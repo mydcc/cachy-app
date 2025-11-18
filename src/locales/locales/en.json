@@ -177,7 +177,8 @@
     "title": "Settings",
     "theme": "Theme",
     "language": "Language",
-    "backup": "Backup"
+    "backup": "Backup",
+    "apiProvider": "API Provider"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found on Bitunix or API error.",

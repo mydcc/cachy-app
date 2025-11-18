@@ -18,6 +18,8 @@ vi.mock('../stores/uiStore', () => ({
 // Mock the apiService to prevent actual network calls
 vi.mock('./apiService', () => ({
     apiService: {
+        fetchKlines: vi.fn(),
+        fetchPrice: vi.fn(),
         fetchBitunixKlines: vi.fn(),
         fetchBitunixPrice: vi.fn()
     }
@@ -235,7 +237,7 @@ describe('app service - ATR and Locking Logic', () => {
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),
         }));
-        vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue(mockKlines);
+        vi.mocked(apiService.fetchKlines).mockResolvedValue(mockKlines);
         updateTradeStore(state => ({ ...state, symbol: 'BTCUSDT', atrTimeframe: '1h' }));
 
         // Act
@@ -243,7 +245,7 @@ describe('app service - ATR and Locking Logic', () => {
 
         // Assert
         const store = get(tradeStore);
-        expect(apiService.fetchBitunixKlines).toHaveBeenCalledWith('BTCUSDT', '1h');
+        expect(apiService.fetchKlines).toHaveBeenCalledWith('BTCUSDT', '1h');
         expect(store.atrValue).not.toBe(null);
         expect(new Decimal(store.atrValue!).isFinite()).toBe(true);
     });

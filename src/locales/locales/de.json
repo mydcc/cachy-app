@@ -177,7 +177,8 @@
     "title": "Einstellungen",
     "theme": "Theme",
     "language": "Sprache",
-    "backup": "Sicherung"
+    "backup": "Sicherung",
+    "apiProvider": "API Anbieter"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol auf Bitunix nicht gefunden oder API-Fehler.",

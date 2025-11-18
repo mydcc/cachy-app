@@ -2,6 +2,7 @@
   import ModalFrame from '../shared/ModalFrame.svelte';
   import { _ } from 'svelte-i18n';
   import { uiStore } from '../../stores/uiStore';
+  import { settingsStore, setApiProvider, type ApiProvider } from '../../stores/settingsStore';
   import { themes, themeIcons, icons } from '../../lib/constants';
   import LanguageSwitcher from '../shared/LanguageSwitcher.svelte';
   import { createBackup, restoreFromBackup } from '../../services/backupService';
@@ -70,6 +71,22 @@
   extraClasses="modal-size-sm"
 >
   <div class="space-y-6">
+    <!-- API Provider Selector -->
+    <div class="flex justify-between items-center">
+      <label for="api-provider-select" class="text-sm font-medium text-text-primary">{$_('settings.apiProvider')}</label>
+      <div class="w-1/2">
+        <select
+          id="api-provider-select"
+          class="input-field w-full"
+          bind:value={$settingsStore.apiProvider}
+          on:change={(e) => setApiProvider(e.currentTarget.value as ApiProvider)}
+        >
+          <option value="Bitunix">Bitunix</option>
+          <option value="Binance">Binance</option>
+        </select>
+      </div>
+    </div>
+
     <!-- Language Switcher -->
     <div class="flex justify-between items-center">
       <span class="text-sm font-medium text-text-primary">{$_('settings.language')}</span>

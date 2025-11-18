@@ -588,7 +588,7 @@ export const app = {
         }
         uiStore.update(state => ({ ...state, isPriceFetching: true }));
         try {
-            const price = await apiService.fetchBitunixPrice(symbol);
+            const price = await apiService.fetchPrice(symbol);
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
             uiStore.showFeedback('copy', 700);
             app.calculateAndDisplay();
@@ -628,7 +628,7 @@ export const app = {
         }
         uiStore.update(state => ({ ...state, isPriceFetching: true }));
         try {
-            const klines = await apiService.fetchBitunixKlines(symbol, currentTradeState.atrTimeframe);
+            const klines = await apiService.fetchKlines(symbol, currentTradeState.atrTimeframe);
             const atr = calculator.calculateATR(klines);
             if (atr.lte(0)) {
                 throw new Error("ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen.");
