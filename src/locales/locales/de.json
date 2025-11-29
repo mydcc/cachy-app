@@ -177,12 +177,13 @@
     "title": "Einstellungen",
     "theme": "Theme",
     "language": "Sprache",
-    "backup": "Sicherung"
+    "backup": "Sicherung",
+    "apiProvider": "API Anbieter"
   },
   "apiErrors": {
-    "symbolNotFound": "Symbol auf Bitunix nicht gefunden oder API-Fehler.",
-    "invalidResponse": "Ungültige Antwort von der Bitunix-API.",
-    "klineError": "Kerzendaten von Bitunix konnten nicht geladen werden.",
+    "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",
+    "invalidResponse": "Ungültige Antwort von der API.",
+    "klineError": "Kerzendaten konnten nicht geladen werden.",
     "generic": "Ein unbekannter API-Fehler ist aufgetreten."
   }
 }
