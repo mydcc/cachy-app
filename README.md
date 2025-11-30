@@ -5,62 +5,62 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-Cachy ist eine umfassende Webanwendung für Krypto-Trader zur präzisen Berechnung von Positionsgrößen, Risikomanagement und zur Verwaltung eines Trading-Journals. Sie ist vollständig lokal (client-seitig), datenschutzfreundlich und unterstützt Echtzeit-Marktdaten von Bitunix und Binance.
+Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
 
 ![Cachy Dashboard](docs/images/dashboard-preview.png)
-*(Hinweis: Ersetze diesen Pfad durch einen echten Screenshot, falls verfügbar)*
+*(Note: Replace this path with a real screenshot if available)*
 
 ---
 
 ## 🚀 Features
 
-### 🔢 Smarter Trading Rechner
-*   **Risikomanagement:** Berechnet automatisch die optimale Positionsgröße basierend auf Kontogröße, Risiko (%) und Stop-Loss.
-*   **Dual Locking System:** Sperre entweder die *Positionsgröße* (um Risiko anzupassen) oder den *Risikobetrag* (um Position anzupassen).
-*   **ATR Integration:** Automatischer Abruf der Average True Range (ATR) von Binance oder Bitunix zur dynamischen Stop-Loss-Berechnung.
-*   **Live-Preise:** Echtzeit-Preisabruf für Kryptowährungen.
+### 🔢 Smart Trading Calculator
+*   **Risk Management:** Automatically calculates the optimal position size based on account size, risk (%), and stop loss.
+*   **Dual Locking System:** Lock either the *Position Size* (to adjust risk) or the *Risk Amount* (to adjust position size).
+*   **ATR Integration:** Automatic fetching of Average True Range (ATR) from Binance or Bitunix for dynamic stop-loss calculations.
+*   **Live Prices:** Real-time price fetching for cryptocurrencies.
 
 ### 🎯 Multi-Target Take Profit
-*   **Partielle Exits:** Definiere bis zu 5 Take-Profit-Ziele.
-*   **Auto-Balancing:** Prozentuale Verteilung passt sich automatisch an, um immer 100% zu ergeben.
-*   **Detaillierte Metriken:** Berechnet Gewinn, R/R (Risk/Reward) und Netto-Ertrag pro Ziel und gesamt.
+*   **Partial Exits:** Define up to 5 take-profit targets.
+*   **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
+*   **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
-### 📓 Integriertes Journal & Presets
-*   **Trade Journal:** Speichere deine Trades lokal, verfolge Status (Offen, Gewonnen, Verloren) und Notizen.
-*   **CSV Import/Export:** Volle Kontrolle über deine Daten – exportiere dein Journal für Excel oder importiere Backups.
-*   **Presets:** Speichere häufig genutzte Setups (z.B. "Scalping Strategy") für schnellen Zugriff.
+### 📓 Integrated Journal & Presets
+*   **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
+*   **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
+*   **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
-### ⚙️ Anpassung & Technik
-*   **Multi-API Support:** Wähle zwischen **Bitunix** und **Binance** als Datenquelle.
-*   **Datenschutz:** Alle Daten (Journal, Einstellungen) liegen nur im `localStorage` deines Browsers.
-*   **Themes:** Über 20 Farbthemen (Dark, Light, Dracula, Nord, etc.).
-*   **Mehrsprachig:** Deutsch und Englisch.
+### ⚙️ Customization & Tech
+*   **Multi-API Support:** Choose between **Bitunix** and **Binance** as your data source.
+*   **Privacy:** All data (journal, settings) is stored only in your browser's `localStorage`.
+*   **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
+*   **Multilingual:** German and English support.
 
 ---
 
-## 🛠️ Installation & Entwicklung
+## 🛠️ Installation & Development
 
-### Voraussetzungen
+### Prerequisites
 *   Node.js (v18+)
 *   npm
 
 ### Setup
-1.  **Repository klonen:**
+1.  **Clone Repository:**
     ```bash
     git clone https://github.com/pheinze/cachy-app.git
     cd cachy-app
     ```
 
-2.  **Abhängigkeiten installieren:**
+2.  **Install Dependencies:**
     ```bash
     npm install
     ```
 
-3.  **Development Server starten:**
+3.  **Start Development Server:**
     ```bash
     npm run dev
     ```
-    Die App läuft nun unter `http://localhost:5173`.
+    The app is now running at `http://localhost:5173`.
 
 ### Tests
 *   **Unit Tests (Vitest):**
@@ -76,41 +76,41 @@ Cachy ist eine umfassende Webanwendung für Krypto-Trader zur präzisen Berechnu
 
 ## 📦 Deployment
 
-Die App ist eine SvelteKit-Anwendung und kann als Node.js-Server oder statische Seite (mit entsprechendem Adapter) deployt werden.
+The app is a SvelteKit application and can be deployed as a Node.js server or a static site (with the appropriate adapter).
 
 **Production Build:**
 ```bash
 npm run build
 ```
 
-**Starten (Node.js):**
+**Start (Node.js):**
 ```bash
 npm start
-# oder mit PM2
+# or with PM2
 pm2 start build/index.js --name "cachy-app"
 ```
-Siehe `DEPLOYMENT.md` für detaillierte Anweisungen.
+See `DEPLOYMENT.md` for detailed instructions.
 
 ---
 
-## 📚 Dokumentation
+## 📚 Documentation
 
-*   **Benutzeranleitung:** Eine detaillierte Anleitung zur Nutzung der App findest du direkt in der Anwendung (über den "Anleitung"-Button) oder in `src/instructions/guide.de.md`.
-*   **Entwickler-Guidelines:** Beachte `AGENT.md` für Code-Konventionen und Prozesse.
-*   **Changelog:** Änderungen werden automatisch in `src/instructions/changelog.de.md` dokumentiert.
+*   **User Guide:** A detailed guide on how to use the app can be found directly within the application (via the "Guide" button) or in `src/instructions/guide.en.md`.
+*   **Developer Guidelines:** Refer to `AGENT.md` for coding conventions and processes.
+*   **Changelog:** Changes are automatically documented in `src/instructions/changelog.en.md`.
 
 ---
 
 ## 🤝 Contributing
 
-Beiträge sind willkommen! Bitte folge diesen Schritten:
+Contributions are welcome! Please follow these steps:
 
-1.  Nutze [Conventional Commits](https://www.conventionalcommits.org/) für deine Commit-Messages (wichtig für automatische Versionierung).
-2.  Erstelle für jedes Feature einen eigenen Branch (`feat/my-feature`).
-3.  Stelle sicher, dass `npm test` und `npm run lint` erfolgreich durchlaufen.
+1.  Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages (important for automated versioning).
+2.  Create a separate branch for each feature (`feat/my-feature`).
+3.  Ensure that `npm test` and `npm run lint` pass successfully.
 
 ---
 
-## 📄 Lizenz
+## 📄 License
 
-Dieses Projekt ist unter der MIT Lizenz veröffentlicht.
+This project is published under the MIT License.
