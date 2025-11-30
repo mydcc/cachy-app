@@ -177,12 +177,13 @@
     "title": "Settings",
     "theme": "Theme",
     "language": "Language",
-    "backup": "Backup"
+    "backup": "Backup",
+    "apiProvider": "API Provider"
   },
   "apiErrors": {
-    "symbolNotFound": "Symbol not found on Bitunix or API error.",
-    "invalidResponse": "Invalid response from the Bitunix API.",
-    "klineError": "Could not load candlestick data from Bitunix.",
+    "symbolNotFound": "Symbol not found on API or API error.",
+    "invalidResponse": "Invalid response from the API.",
+    "klineError": "Could not load candlestick data.",
     "generic": "An unknown API error occurred."
   }
 }

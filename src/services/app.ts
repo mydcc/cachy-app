@@ -10,6 +10,7 @@ import { resultsStore, initialResultsState } from '../stores/resultsStore';
 import { presetStore, updatePresetStore } from '../stores/presetStore';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
+import { settingsStore } from '../stores/settingsStore';
 import type { JournalEntry, TradeValues, IndividualTpResult, BaseMetrics } from '../stores/types';
 import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
@@ -579,6 +580,7 @@ export const app = {
 
     handleFetchPrice: async () => {
         const currentTradeState = get(tradeStore);
+        const settings = get(settingsStore);
         const symbol = currentTradeState.symbol.toUpperCase().replace('/', '');
         if (!symbol) {
             uiStore.showError("Bitte geben Sie ein Symbol ein.");
@@ -586,7 +588,12 @@ export const app = {
         }
         uiStore.update(state => ({ ...state, isPriceFetching: true }));
         try {
-            const price = await apiService.fetchBitunixPrice(symbol);
+            let price: Decimal;
+            if (settings.apiProvider === 'binance') {
+                price = await apiService.fetchBinancePrice(symbol);
+            } else {
+                price = await apiService.fetchBitunixPrice(symbol);
+            }
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
             uiStore.showFeedback('copy', 700);
             app.calculateAndDisplay();
@@ -619,6 +626,7 @@ export const app = {
 
     fetchAtr: async () => {
         const currentTradeState = get(tradeStore);
+        const settings = get(settingsStore);
         const symbol = currentTradeState.symbol.toUpperCase().replace('/', '');
         if (!symbol) {
             uiStore.showError("Bitte geben Sie ein Symbol ein.");
@@ -626,7 +634,13 @@ export const app = {
         }
         uiStore.update(state => ({ ...state, isPriceFetching: true }));
         try {
-            const klines = await apiService.fetchBitunixKlines(symbol, currentTradeState.atrTimeframe);
+            let klines;
+            if (settings.apiProvider === 'binance') {
+                klines = await apiService.fetchBinanceKlines(symbol, currentTradeState.atrTimeframe);
+            } else {
+                klines = await apiService.fetchBitunixKlines(symbol, currentTradeState.atrTimeframe);
+            }
+
             const atr = calculator.calculateATR(klines);
             if (atr.lte(0)) {
                 throw new Error("ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen.");

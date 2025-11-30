@@ -2,6 +2,7 @@
   import ModalFrame from '../shared/ModalFrame.svelte';
   import { _ } from 'svelte-i18n';
   import { uiStore } from '../../stores/uiStore';
+  import { settingsStore } from '../../stores/settingsStore';
   import { themes, themeIcons, icons } from '../../lib/constants';
   import LanguageSwitcher from '../shared/LanguageSwitcher.svelte';
   import { createBackup, restoreFromBackup } from '../../services/backupService';
@@ -77,6 +78,21 @@
         <LanguageSwitcher />
       </div>
     </div>
+
+     <!-- API Provider Selection -->
+     <div class="flex justify-between items-center">
+        <label for="api-provider-select" class="text-sm font-medium text-text-primary">{$_('settings.apiProvider')}</label>
+        <div class="flex items-center gap-2 w-1/2">
+          <select
+            id="api-provider-select"
+            class="input-field w-full"
+            bind:value={$settingsStore.apiProvider}
+          >
+            <option value="bitunix">Bitunix</option>
+            <option value="binance">Binance</option>
+          </select>
+        </div>
+      </div>
 
     <!-- Backup / Restore -->
     <div class="flex justify-between items-center">
