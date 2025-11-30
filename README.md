@@ -1,77 +1,116 @@
-# sv
+# Cachy - Trading Calculator & Journal
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+[![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
+[![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![License](https://img.shields.io/badge/License-MIT-blue.svg?style=for-the-badge)](LICENSE)
 
-## Creating a project
+Cachy ist eine umfassende Webanwendung für Krypto-Trader zur präzisen Berechnung von Positionsgrößen, Risikomanagement und zur Verwaltung eines Trading-Journals. Sie ist vollständig lokal (client-seitig), datenschutzfreundlich und unterstützt Echtzeit-Marktdaten von Bitunix und Binance.
 
-If you're seeing this, you've probably already done this step. Congrats!
-
-```sh
-# create a new project in the current directory
-npx sv create
-
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+![Cachy Dashboard](docs/images/dashboard-preview.png)
+*(Hinweis: Ersetze diesen Pfad durch einen echten Screenshot, falls verfügbar)*
 
 ---
 
-## Versioning and Releasing
+## 🚀 Features
 
-This project uses [semantic-release](https://github.com/semantic-release/semantic-release) to automate the release workflow. The version number is automatically determined based on the commit messages, a changelog is generated, and a new release is created on GitHub.
+### 🔢 Smarter Trading Rechner
+*   **Risikomanagement:** Berechnet automatisch die optimale Positionsgröße basierend auf Kontogröße, Risiko (%) und Stop-Loss.
+*   **Dual Locking System:** Sperre entweder die *Positionsgröße* (um Risiko anzupassen) oder den *Risikobetrag* (um Position anzupassen).
+*   **ATR Integration:** Automatischer Abruf der Average True Range (ATR) von Binance oder Bitunix zur dynamischen Stop-Loss-Berechnung.
+*   **Live-Preise:** Echtzeit-Preisabruf für Kryptowährungen.
 
-### Commit Message Conventions
+### 🎯 Multi-Target Take Profit
+*   **Partielle Exits:** Definiere bis zu 5 Take-Profit-Ziele.
+*   **Auto-Balancing:** Prozentuale Verteilung passt sich automatisch an, um immer 100% zu ergeben.
+*   **Detaillierte Metriken:** Berechnet Gewinn, R/R (Risk/Reward) und Netto-Ertrag pro Ziel und gesamt.
 
-To make this automation work, all commit messages **must** follow the [Conventional Commits specification](https://www.conventionalcommits.org/).
+### 📓 Integriertes Journal & Presets
+*   **Trade Journal:** Speichere deine Trades lokal, verfolge Status (Offen, Gewonnen, Verloren) und Notizen.
+*   **CSV Import/Export:** Volle Kontrolle über deine Daten – exportiere dein Journal für Excel oder importiere Backups.
+*   **Presets:** Speichere häufig genutzte Setups (z.B. "Scalping Strategy") für schnellen Zugriff.
 
-The most common commit types are:
+### ⚙️ Anpassung & Technik
+*   **Multi-API Support:** Wähle zwischen **Bitunix** und **Binance** als Datenquelle.
+*   **Datenschutz:** Alle Daten (Journal, Einstellungen) liegen nur im `localStorage` deines Browsers.
+*   **Themes:** Über 20 Farbthemen (Dark, Light, Dracula, Nord, etc.).
+*   **Mehrsprachig:** Deutsch und Englisch.
 
--   `feat`: A new feature. (triggers a `minor` release, e.g., `1.2.3` -> `1.3.0`)
--   `fix`: A bug fix. (triggers a `patch` release, e.g., `1.2.3` -> `1.2.4`)
+---
 
-Other types like `docs:`, `style:`, `refactor:`, `perf:`, `test:`, and `chore:` are also valid but **do not** trigger a release.
+## 🛠️ Installation & Entwicklung
 
-**Example commit messages:**
+### Voraussetzungen
+*   Node.js (v18+)
+*   npm
 
+### Setup
+1.  **Repository klonen:**
+    ```bash
+    git clone https://github.com/pheinze/cachy-app.git
+    cd cachy-app
+    ```
+
+2.  **Abhängigkeiten installieren:**
+    ```bash
+    npm install
+    ```
+
+3.  **Development Server starten:**
+    ```bash
+    npm run dev
+    ```
+    Die App läuft nun unter `http://localhost:5173`.
+
+### Tests
+*   **Unit Tests (Vitest):**
+    ```bash
+    npm test
+    ```
+*   **Linting:**
+    ```bash
+    npm run lint
+    ```
+
+---
+
+## 📦 Deployment
+
+Die App ist eine SvelteKit-Anwendung und kann als Node.js-Server oder statische Seite (mit entsprechendem Adapter) deployt werden.
+
+**Production Build:**
+```bash
+npm run build
 ```
-feat: Add user login functionality
+
+**Starten (Node.js):**
+```bash
+npm start
+# oder mit PM2
+pm2 start build/index.js --name "cachy-app"
 ```
+Siehe `DEPLOYMENT.md` für detaillierte Anweisungen.
 
-```
-fix: Correct calculation error in the summary view
-```
+---
 
-### Breaking Changes
+## 📚 Dokumentation
 
-To trigger a major release (e.g., `1.2.3` -> `2.0.0`), you must include a `BREAKING CHANGE:` footer in your commit message.
+*   **Benutzeranleitung:** Eine detaillierte Anleitung zur Nutzung der App findest du direkt in der Anwendung (über den "Anleitung"-Button) oder in `src/instructions/guide.de.md`.
+*   **Entwickler-Guidelines:** Beachte `AGENT.md` für Code-Konventionen und Prozesse.
+*   **Changelog:** Änderungen werden automatisch in `src/instructions/changelog.de.md` dokumentiert.
 
-```
-feat: Rework the entire API for better performance
+---
 
-BREAKING CHANGE: The `getUser` endpoint has been renamed to `fetchUser` and the response format has changed.
-```
+## 🤝 Contributing
 
-When you push commits with these formats to the `main` branch, the GitHub Action will automatically create a new release.
+Beiträge sind willkommen! Bitte folge diesen Schritten:
+
+1.  Nutze [Conventional Commits](https://www.conventionalcommits.org/) für deine Commit-Messages (wichtig für automatische Versionierung).
+2.  Erstelle für jedes Feature einen eigenen Branch (`feat/my-feature`).
+3.  Stelle sicher, dass `npm test` und `npm run lint` erfolgreich durchlaufen.
+
+---
+
+## 📄 Lizenz
+
+Dieses Projekt ist unter der MIT Lizenz veröffentlicht.
