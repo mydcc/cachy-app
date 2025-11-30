@@ -47,7 +47,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 ### Setup
 1.  **Clone Repository:**
     ```bash
-    git clone https://github.com/pheinze/cachy-app.git
+    git clone https://github.com/mydcc/cachy-app.git
     cd cachy-app
     ```
 

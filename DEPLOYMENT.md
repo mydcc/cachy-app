@@ -17,12 +17,12 @@ It is recommended to run two separate environments:
 1.  **Staging (`dev.cachy.app`):**
     *   For testing new features.
     *   Updated manually or automatically on every push to the `dev` branch.
-    *   Runs on a dedicated port (e.g., 3001).
+    *   Runs on a dedicated port (e.g., 3002).
 
 2.  **Production (`cachy.app`):**
     *   The stable version for end-users.
     *   Updated only after staging has been successfully tested (push to `main`).
-    *   Runs on a dedicated port (e.g., 3000).
+    *   Runs on a dedicated port (e.g., 3001).
 
 ---
 
@@ -36,7 +36,7 @@ The following steps apply to both environments (just adjust directory names).
 3.  Upload the project files or clone the repo directly in the terminal:
     ```bash
     cd /www/wwwroot/cachy.app
-    git clone https://github.com/pheinze/cachy-app.git .
+    git clone https://github.com/mydcc/cachy-app.git .
     ```
 
 ### Step 2: Install Dependencies & Build
@@ -58,9 +58,9 @@ The following steps apply to both environments (just adjust directory names).
 3.  Fill in the fields:
     *   **Path:** `/www/wwwroot/cachy.app`
     *   **Name:** `cachy-prod` (or `cachy-dev`)
-    *   **Run Command:** Select `Custom Command` and enter: `node build/index.js`
-        *(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)*
-    *   **Port:** `3000` (for Production) or `3001` (for Staging). *Ensure the port is open in the firewall or used internally.*
+    *   **Run Command:** Select `Custom Command` and enter: `node server.js`
+        *(We use `server.js` to ensure the app runs on port 3001 by default, avoiding conflicts)*
+    *   **Port:** `3001` (default for Production). *Ensure the port is open in the firewall or used internally.*
     *   **Node Version:** v18 or higher.
 4.  Click **Submit**.
 
@@ -98,7 +98,7 @@ npm run build
 If you need to change configurations (like ports or API secrets), you can create a `.env` file in the root directory:
 
 ```env
-PORT=3000
+PORT=3001
 ORIGIN=https://cachy.app
 ```
 *Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors.*
@@ -109,5 +109,5 @@ ORIGIN=https://cachy.app
 
 | Environment | Path | Port | Domain |
 | :--- | :--- | :--- | :--- |
-| **Production** | `/www/wwwroot/cachy.app` | `3000` | `cachy.app` |
-| **Staging** | `/www/wwwroot/dev.cachy.app` | `3001` | `dev.cachy.app` |
+| **Production** | `/www/wwwroot/cachy.app` | `3001` | `cachy.app` |
+| **Staging** | `/www/wwwroot/dev.cachy.app` | `3002` | `dev.cachy.app` |
