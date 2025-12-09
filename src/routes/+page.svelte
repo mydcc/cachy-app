@@ -30,6 +30,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import ModalFrame from '../components/shared/ModalFrame.svelte';
     import SettingsButton from '../components/settings/SettingsButton.svelte';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
+    import MarketOverview from '../components/shared/MarketOverview.svelte';
 
     let fileInput: HTMLInputElement;
     let changelogContent = '';
@@ -215,158 +216,170 @@ import { trackCustomEvent } from '../services/trackingService';
 
 <input type="file" class="hidden" bind:this={fileInput} on:change={handleFileSelected} accept=".json,application/json" />
 
-<main class="my-8 w-full max-w-4xl mx-auto calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
-
-    <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
-        <div class="flex justify-between items-center w-full md:w-auto">
-            <div class="flex items-center gap-3 text-[var(--text-primary)]">
-                <CachyIcon class="h-8 w-8" />
-                <h1 class="text-2xl sm:text-3xl font-bold">{$_('app.title')}</h1>
-            </div>
-            <button id="view-journal-btn-mobile" class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg" title="{$_('app.journalButtonTitle')}" on:click={() => uiStore.toggleJournalModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ViewJournalMobile' }}>{$_('app.journalButton')}</button>
-        </div>
-        <div class="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
-            <div class="flex items-center flex-wrap justify-end gap-2 md:order-1">
-                <select id="preset-loader" class="input-field px-3 py-2 rounded-md text-sm" on:change={handlePresetLoad} bind:value={$presetStore.selectedPreset}>
-                    <option value="">{$_('dashboard.presetLoad')}</option>
-                    {#each $presetStore.availablePresets as presetName}
-                        <option value={presetName}>{presetName}</option>
-                    {/each}
-                </select>
-                <button id="save-preset-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('dashboard.savePresetTitle')}" aria-label="{$_('dashboard.savePresetAriaLabel')}" on:click={app.savePreset} use:trackClick={{ category: 'Presets', action: 'Click', name: 'SavePreset' }}>{@html icons.save}</button>
-                <button id="delete-preset-btn" class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed" title="{$_('dashboard.deletePresetTitle')}" disabled={!$presetStore.selectedPreset} on:click={app.deletePreset} use:trackClick={{ category: 'Presets', action: 'Click', name: 'DeletePreset' }}>{@html icons.delete}</button>
-                <button id="reset-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg flex items-center gap-2" title="{$_('dashboard.resetButtonTitle')}" on:click={resetAllInputs} use:trackClick={{ category: 'Actions', action: 'Click', name: 'ResetAll' }}>{@html icons.broom}</button>
-                <button
-                    id="theme-switcher"
-                    class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2 px-2.5 rounded-lg"
-                    aria-label="{$_('dashboard.themeSwitcherAriaLabel')}"
-                    on:click={() => handleThemeSwitch('forward')}
-                    on:contextmenu|preventDefault={() => handleThemeSwitch('backward')}
-                    title={themeTitle}
-                    use:trackClick={{ category: 'Settings', action: 'Click', name: 'SwitchTheme' }}
-                >{@html themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]}</button>
-            </div>
-            <button id="view-journal-btn-desktop" class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2" title="{$_('app.journalButtonTitle')}" on:click={() => uiStore.toggleJournalModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ViewJournalDesktop' }}>{$_('app.journalButton')}</button>
-        </div>
+<!-- Wrapper for desktop positioning -->
+<div class="relative w-full max-w-4xl mx-auto">
+    <div class="hidden xl:block absolute -right-60 top-8 w-52">
+        <MarketOverview />
     </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
-        <div>
-            <GeneralInputs bind:tradeType={$tradeStore.tradeType} bind:leverage={$tradeStore.leverage} bind:fees={$tradeStore.fees} />
+    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
 
-            <PortfolioInputs
-                bind:accountSize={$tradeStore.accountSize}
-                bind:riskPercentage={$tradeStore.riskPercentage}
-                bind:riskAmount={$tradeStore.riskAmount}
-                isRiskAmountLocked={$tradeStore.isRiskAmountLocked}
-                isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
-                on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
-            />
-
-        </div>
-
-        <TradeSetupInputs
-            bind:symbol={$tradeStore.symbol}
-            bind:entryPrice={$tradeStore.entryPrice}
-            bind:useAtrSl={$tradeStore.useAtrSl}
-            bind:atrValue={$tradeStore.atrValue}
-            bind:atrMultiplier={$tradeStore.atrMultiplier}
-            bind:stopLossPrice={$tradeStore.stopLossPrice}
-            bind:atrMode={$tradeStore.atrMode}
-            bind:atrTimeframe={$tradeStore.atrTimeframe}
-
-            on:showError={handleTradeSetupError}
-            
-            on:fetchPrice={() => app.handleFetchPrice()}
-            on:toggleAtrInputs={(e) => toggleAtrInputs(e.detail)}
-            on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
-            on:setAtrMode={(e) => app.setAtrMode(e.detail)}
-            on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
-            on:fetchAtr={() => app.fetchAtr()}
-
-            atrFormulaDisplay={$resultsStore.atrFormulaText}
-            showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
-            isAtrSlInvalid={$resultsStore.isAtrSlInvalid}
-            isPriceFetching={$uiStore.isPriceFetching}
-            symbolSuggestions={$uiStore.symbolSuggestions}
-            showSymbolSuggestions={$uiStore.showSymbolSuggestions}
-        />
-    </div>
-
-    <TakeProfitTargets bind:targets={$tradeStore.targets} on:change={handleTargetsChange} on:remove={handleTpRemove} calculatedTpDetails={$resultsStore.calculatedTpDetails} />
-
-    {#if $uiStore.showErrorMessage}
-        <div id="error-message" class="text-center text-sm font-medium mt-4 md:col-span-2" style:color="var(--danger-color)">{$_($uiStore.errorMessage)}</div>
-    {/if}
-
-    <section id="results" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
-        <div>
-            <SummaryResults
-                isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
-                showCopyFeedback={$uiStore.showCopyFeedback}
-                positionSize={$resultsStore.positionSize}
-                netLoss={$resultsStore.netLoss}
-                requiredMargin={$resultsStore.requiredMargin}
-                entryFee={$resultsStore.entryFee}
-                liquidationPrice={$resultsStore.liquidationPrice}
-                breakEvenPrice={$resultsStore.breakEvenPrice}
-                on:toggleLock={() => app.togglePositionSizeLock()}
-                on:copy={() => uiStore.showFeedback('copy')}
-            />
-            {#if $resultsStore.showTotalMetricsGroup}
-                <div id="total-metrics-group" class="result-group">
-                    <h2 class="section-header">{$_('dashboard.totalTradeMetrics')}<Tooltip text={$_('dashboard.totalTradeMetricsTooltip')} /></h2>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.riskPerTradeCurrency')}<Tooltip text={$_('dashboard.riskPerTradeCurrencyTooltip')} /></span><span id="riskAmountCurrency" class="result-value" style:color="var(--danger-color)">{$resultsStore.riskAmountCurrency}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.totalFees')}<Tooltip text={$_('dashboard.totalFeesTooltip')} /></span><span id="totalFees" class="result-value">{$resultsStore.totalFees}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.maxPotentialProfit')}<Tooltip text={$_('dashboard.maxPotentialProfitTooltip')} /></span><span id="maxPotentialProfit" class="result-value" style:color="var(--success-color)">{$resultsStore.maxPotentialProfit}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.weightedRR')}<Tooltip text={$_('dashboard.weightedRRTooltip')} /></span><span id="totalRR" class="result-value">{$resultsStore.totalRR}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.totalNetProfit')}<Tooltip text={$_('dashboard.totalNetProfitTooltip')} /></span><span id="totalNetProfit" class="result-value" style:color="var(--success-color)">{$resultsStore.totalNetProfit}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.soldPosition')}<Tooltip text={$_('dashboard.soldPositionTooltip')} /></span><span id="totalPercentSold" class="result-value">{$resultsStore.totalPercentSold}</span></div>
+        <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
+            <div class="flex justify-between items-center w-full md:w-auto">
+                <div class="flex items-center gap-3 text-[var(--text-primary)]">
+                    <CachyIcon class="h-8 w-8" />
+                    <h1 class="text-2xl sm:text-3xl font-bold">{$_('app.title')}</h1>
                 </div>
-            {/if}
-        </div>
-        <div id="tp-results-container">
-            {#each $resultsStore.calculatedTpDetails as tpDetail: IndividualTpResult}
-                <div class="result-group !mt-0 md:!mt-6">
-                    <h2 class="section-header">{$_('dashboard.takeProfit')} {(tpDetail as IndividualTpResult).index + 1} ({(tpDetail as IndividualTpResult).percentSold.toFixed(0)}%)</h2>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.riskRewardRatio')}</span><span class="result-value" style:color={tpDetail.riskRewardRatio.gte(2) ? 'var(--success-color)' : tpDetail.riskRewardRatio.gte(1.5) ? 'var(--warning-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.riskRewardRatio, 2)}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.netProfit')}<Tooltip text={$_('dashboard.netProfitTooltip')} /></span><span class="result-value" style:color="var(--success-color)">+{formatDynamicDecimal(tpDetail.netProfit, 2)}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.priceChange')}<Tooltip text={$_('dashboard.priceChangeTooltip')} /></span><span class="result-value" style:color={tpDetail.priceChangePercent.gt(0) ? 'var(--success-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.priceChangePercent, 2)}%</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.returnOnCapital')}<Tooltip text={$_('dashboard.returnOnCapitalTooltip')} /></span><span class="result-value" style:color={tpDetail.returnOnCapital.gt(0) ? 'var(--success-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.returnOnCapital, 2)}%</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.partialVolume')}<Tooltip text={$_('dashboard.partialVolumeTooltip')} /></span><span class="result-value">{formatDynamicDecimal(tpDetail.partialVolume, 4)}</span></div>
-                    <div class="result-item"><span class="result-label">{$_('dashboard.exitFeeLabel')}</span><span class="result-value">{formatDynamicDecimal(tpDetail.exitFee, 4)}</span></div>
-                </div>
-            {/each}
-        </div>
-        <VisualBar 
-            entryPrice={$tradeStore.entryPrice}
-            stopLossPrice={$tradeStore.stopLossPrice}
-            tradeType={$tradeStore.tradeType}
-            targets={$tradeStore.targets}
-            calculatedTpDetails={$resultsStore.calculatedTpDetails}
-        />
-        <footer class="md:col-span-2">
-            <textarea id="tradeNotes" class="input-field w-full px-4 py-2 rounded-md mb-4" rows="2" placeholder="{$_('dashboard.tradeNotesPlaceholder')}" bind:value={$tradeStore.tradeNotes}></textarea>
-            <div class="flex items-center gap-4">
-                <button id="save-journal-btn" class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action" on:click={app.addTrade} disabled={$resultsStore.positionSize === '-'} use:trackClick={{ category: 'Journal', action: 'Click', name: 'SaveTrade' }}>{$_('dashboard.addTradeToJournal')}</button>
-                <button id="show-dashboard-readme-btn" class="font-bold p-3 rounded-lg btn-secondary-action" title="{$_('dashboard.showInstructionsTitle')}" aria-label="{$_('dashboard.showInstructionsAriaLabel')}" on:click={() => app.uiManager.showReadme('dashboard')} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowInstructions' }}>{@html icons.book}</button>
-                {#if $uiStore.showSaveFeedback}<span id="save-feedback" class="save-feedback" class:visible={$uiStore.showSaveFeedback}>{$_('dashboard.savedFeedback')}</span>{/if}
+                <button id="view-journal-btn-mobile" class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg" title="{$_('app.journalButtonTitle')}" on:click={() => uiStore.toggleJournalModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ViewJournalMobile' }}>{$_('app.journalButton')}</button>
             </div>
-            <div class="mt-4 flex justify-between items-center">
-                <LanguageSwitcher />
-                <SettingsButton />
-                <div class="flex items-center gap-2">
-                    <button id="backup-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('app.backupButtonTitle')}" aria-label="{$_('app.backupButtonAriaLabel')}" on:click={handleBackupClick}>
-                        {@html icons.export}
-                    </button>
-                    <button id="restore-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('app.restoreButtonTitle')}" aria-label="{$_('app.restoreButtonAriaLabel')}" on:click={handleRestoreClick}>
-                        {@html icons.import}
-                    </button>
+            <div class="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
+                <div class="flex items-center flex-wrap justify-end gap-2 md:order-1">
+                    <select id="preset-loader" class="input-field px-3 py-2 rounded-md text-sm" on:change={handlePresetLoad} bind:value={$presetStore.selectedPreset}>
+                        <option value="">{$_('dashboard.presetLoad')}</option>
+                        {#each $presetStore.availablePresets as presetName}
+                            <option value={presetName}>{presetName}</option>
+                        {/each}
+                    </select>
+                    <button id="save-preset-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('dashboard.savePresetTitle')}" aria-label="{$_('dashboard.savePresetAriaLabel')}" on:click={app.savePreset} use:trackClick={{ category: 'Presets', action: 'Click', name: 'SavePreset' }}>{@html icons.save}</button>
+                    <button id="delete-preset-btn" class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed" title="{$_('dashboard.deletePresetTitle')}" disabled={!$presetStore.selectedPreset} on:click={app.deletePreset} use:trackClick={{ category: 'Presets', action: 'Click', name: 'DeletePreset' }}>{@html icons.delete}</button>
+                    <button id="reset-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg flex items-center gap-2" title="{$_('dashboard.resetButtonTitle')}" on:click={resetAllInputs} use:trackClick={{ category: 'Actions', action: 'Click', name: 'ResetAll' }}>{@html icons.broom}</button>
+                    <button
+                        id="theme-switcher"
+                        class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2 px-2.5 rounded-lg"
+                        aria-label="{$_('dashboard.themeSwitcherAriaLabel')}"
+                        on:click={() => handleThemeSwitch('forward')}
+                        on:contextmenu|preventDefault={() => handleThemeSwitch('backward')}
+                        title={themeTitle}
+                        use:trackClick={{ category: 'Settings', action: 'Click', name: 'SwitchTheme' }}
+                    >{@html themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]}</button>
                 </div>
+                <button id="view-journal-btn-desktop" class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2" title="{$_('app.journalButtonTitle')}" on:click={() => uiStore.toggleJournalModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ViewJournalDesktop' }}>{$_('app.journalButton')}</button>
             </div>
-        </footer>
-    </section>
-</main>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
+            <div>
+                <GeneralInputs bind:tradeType={$tradeStore.tradeType} bind:leverage={$tradeStore.leverage} bind:fees={$tradeStore.fees} />
+
+                <PortfolioInputs
+                    bind:accountSize={$tradeStore.accountSize}
+                    bind:riskPercentage={$tradeStore.riskPercentage}
+                    bind:riskAmount={$tradeStore.riskAmount}
+                    isRiskAmountLocked={$tradeStore.isRiskAmountLocked}
+                    isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
+                    on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
+                />
+
+            </div>
+
+            <TradeSetupInputs
+                bind:symbol={$tradeStore.symbol}
+                bind:entryPrice={$tradeStore.entryPrice}
+                bind:useAtrSl={$tradeStore.useAtrSl}
+                bind:atrValue={$tradeStore.atrValue}
+                bind:atrMultiplier={$tradeStore.atrMultiplier}
+                bind:stopLossPrice={$tradeStore.stopLossPrice}
+                bind:atrMode={$tradeStore.atrMode}
+                bind:atrTimeframe={$tradeStore.atrTimeframe}
+
+                on:showError={handleTradeSetupError}
+
+                on:fetchPrice={() => app.handleFetchPrice()}
+                on:toggleAtrInputs={(e) => toggleAtrInputs(e.detail)}
+                on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
+                on:setAtrMode={(e) => app.setAtrMode(e.detail)}
+                on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
+                on:fetchAtr={() => app.fetchAtr()}
+
+                atrFormulaDisplay={$resultsStore.atrFormulaText}
+                showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
+                isAtrSlInvalid={$resultsStore.isAtrSlInvalid}
+                isPriceFetching={$uiStore.isPriceFetching}
+                symbolSuggestions={$uiStore.symbolSuggestions}
+                showSymbolSuggestions={$uiStore.showSymbolSuggestions}
+            />
+        </div>
+
+        <TakeProfitTargets bind:targets={$tradeStore.targets} on:change={handleTargetsChange} on:remove={handleTpRemove} calculatedTpDetails={$resultsStore.calculatedTpDetails} />
+
+        {#if $uiStore.showErrorMessage}
+            <div id="error-message" class="text-center text-sm font-medium mt-4 md:col-span-2" style:color="var(--danger-color)">{$_($uiStore.errorMessage)}</div>
+        {/if}
+
+        <section id="results" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
+            <div>
+                <SummaryResults
+                    isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
+                    showCopyFeedback={$uiStore.showCopyFeedback}
+                    positionSize={$resultsStore.positionSize}
+                    netLoss={$resultsStore.netLoss}
+                    requiredMargin={$resultsStore.requiredMargin}
+                    entryFee={$resultsStore.entryFee}
+                    liquidationPrice={$resultsStore.liquidationPrice}
+                    breakEvenPrice={$resultsStore.breakEvenPrice}
+                    on:toggleLock={() => app.togglePositionSizeLock()}
+                    on:copy={() => uiStore.showFeedback('copy')}
+                />
+                {#if $resultsStore.showTotalMetricsGroup}
+                    <div id="total-metrics-group" class="result-group">
+                        <h2 class="section-header">{$_('dashboard.totalTradeMetrics')}<Tooltip text={$_('dashboard.totalTradeMetricsTooltip')} /></h2>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.riskPerTradeCurrency')}<Tooltip text={$_('dashboard.riskPerTradeCurrencyTooltip')} /></span><span id="riskAmountCurrency" class="result-value" style:color="var(--danger-color)">{$resultsStore.riskAmountCurrency}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.totalFees')}<Tooltip text={$_('dashboard.totalFeesTooltip')} /></span><span id="totalFees" class="result-value">{$resultsStore.totalFees}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.maxPotentialProfit')}<Tooltip text={$_('dashboard.maxPotentialProfitTooltip')} /></span><span id="maxPotentialProfit" class="result-value" style:color="var(--success-color)">{$resultsStore.maxPotentialProfit}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.weightedRR')}<Tooltip text={$_('dashboard.weightedRRTooltip')} /></span><span id="totalRR" class="result-value">{$resultsStore.totalRR}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.totalNetProfit')}<Tooltip text={$_('dashboard.totalNetProfitTooltip')} /></span><span id="totalNetProfit" class="result-value" style:color="var(--success-color)">{$resultsStore.totalNetProfit}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.soldPosition')}<Tooltip text={$_('dashboard.soldPositionTooltip')} /></span><span id="totalPercentSold" class="result-value">{$resultsStore.totalPercentSold}</span></div>
+                    </div>
+                {/if}
+            </div>
+            <div id="tp-results-container">
+                {#each $resultsStore.calculatedTpDetails as tpDetail: IndividualTpResult}
+                    <div class="result-group !mt-0 md:!mt-6">
+                        <h2 class="section-header">{$_('dashboard.takeProfit')} {(tpDetail as IndividualTpResult).index + 1} ({(tpDetail as IndividualTpResult).percentSold.toFixed(0)}%)</h2>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.riskRewardRatio')}</span><span class="result-value" style:color={tpDetail.riskRewardRatio.gte(2) ? 'var(--success-color)' : tpDetail.riskRewardRatio.gte(1.5) ? 'var(--warning-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.riskRewardRatio, 2)}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.netProfit')}<Tooltip text={$_('dashboard.netProfitTooltip')} /></span><span class="result-value" style:color="var(--success-color)">+{formatDynamicDecimal(tpDetail.netProfit, 2)}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.priceChange')}<Tooltip text={$_('dashboard.priceChangeTooltip')} /></span><span class="result-value" style:color={tpDetail.priceChangePercent.gt(0) ? 'var(--success-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.priceChangePercent, 2)}%</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.returnOnCapital')}<Tooltip text={$_('dashboard.returnOnCapitalTooltip')} /></span><span class="result-value" style:color={tpDetail.returnOnCapital.gt(0) ? 'var(--success-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.returnOnCapital, 2)}%</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.partialVolume')}<Tooltip text={$_('dashboard.partialVolumeTooltip')} /></span><span class="result-value">{formatDynamicDecimal(tpDetail.partialVolume, 4)}</span></div>
+                        <div class="result-item"><span class="result-label">{$_('dashboard.exitFeeLabel')}</span><span class="result-value">{formatDynamicDecimal(tpDetail.exitFee, 4)}</span></div>
+                    </div>
+                {/each}
+            </div>
+            <VisualBar
+                entryPrice={$tradeStore.entryPrice}
+                stopLossPrice={$tradeStore.stopLossPrice}
+                tradeType={$tradeStore.tradeType}
+                targets={$tradeStore.targets}
+                calculatedTpDetails={$resultsStore.calculatedTpDetails}
+            />
+            <footer class="md:col-span-2">
+                <textarea id="tradeNotes" class="input-field w-full px-4 py-2 rounded-md mb-4" rows="2" placeholder="{$_('dashboard.tradeNotesPlaceholder')}" bind:value={$tradeStore.tradeNotes}></textarea>
+                <div class="flex items-center gap-4">
+                    <button id="save-journal-btn" class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action" on:click={app.addTrade} disabled={$resultsStore.positionSize === '-'} use:trackClick={{ category: 'Journal', action: 'Click', name: 'SaveTrade' }}>{$_('dashboard.addTradeToJournal')}</button>
+                    <button id="show-dashboard-readme-btn" class="font-bold p-3 rounded-lg btn-secondary-action" title="{$_('dashboard.showInstructionsTitle')}" aria-label="{$_('dashboard.showInstructionsAriaLabel')}" on:click={() => app.uiManager.showReadme('dashboard')} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowInstructions' }}>{@html icons.book}</button>
+                    {#if $uiStore.showSaveFeedback}<span id="save-feedback" class="save-feedback" class:visible={$uiStore.showSaveFeedback}>{$_('dashboard.savedFeedback')}</span>{/if}
+                </div>
+                <div class="mt-4 flex justify-between items-center">
+                    <LanguageSwitcher />
+                    <SettingsButton />
+                    <div class="flex items-center gap-2">
+                        <button id="backup-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('app.backupButtonTitle')}" aria-label="{$_('app.backupButtonAriaLabel')}" on:click={handleBackupClick}>
+                            {@html icons.export}
+                        </button>
+                        <button id="restore-btn" class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg" title="{$_('app.restoreButtonTitle')}" aria-label="{$_('app.restoreButtonAriaLabel')}" on:click={handleRestoreClick}>
+                            {@html icons.import}
+                        </button>
+                    </div>
+                </div>
+            </footer>
+        </section>
+
+        <!-- Mobile MarketOverview position -->
+        <div class="xl:hidden mt-8">
+            <MarketOverview />
+        </div>
+    </main>
+</div>
 
 <footer class="w-full max-w-4xl mx-auto text-center py-4 text-sm text-gray-500 flex justify-center items-center gap-4">
     <span>Version {import.meta.env.VITE_APP_VERSION}</span>
