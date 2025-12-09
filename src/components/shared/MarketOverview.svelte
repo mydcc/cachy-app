@@ -12,6 +12,7 @@
     let isLoading = false;
     let error: string | null = null;
     let intervalId: any;
+    let debounceTimer: any;
 
     $: symbol = $tradeStore.symbol;
     $: provider = $settingsStore.apiProvider;
@@ -20,7 +21,7 @@
     // React to symbol, provider, or interval changes
     $: if (symbol && provider && updateInterval) {
         setupInterval();
-        fetchData();
+        debouncedFetchData();
     }
 
     function setupInterval() {
@@ -29,22 +30,40 @@
         if (updateInterval === 'manual') return;
 
         const ms = updateInterval === '10s' ? 10000 : 60000;
-        intervalId = setInterval(fetchData, ms);
+        intervalId = setInterval(() => fetchData(true), ms); // Background fetch
     }
 
-    async function fetchData() {
-        if (!symbol) return;
-        // Don't set loading true if it's a background refresh (data exists) to avoid UI flicker
-        if (!tickerData) isLoading = true;
+    function debouncedFetchData() {
+        if (debounceTimer) clearTimeout(debounceTimer);
+        // Short debounce to avoid spamming while typing
+        debounceTimer = setTimeout(() => {
+            fetchData();
+        }, 600);
+    }
+
+    async function fetchData(isBackground = false) {
+        // Basic validation before fetching
+        if (!symbol || symbol.length < 3) return;
+
+        if (!isBackground) {
+            // Only show loading for manual/initial fetch, not background updates
+            // But if we already have data, maybe don't flicker loading unless symbol changed?
+            // Simple check: if symbol changed, we probably want loading.
+            // For now, simple approach:
+            if (!tickerData || tickerData.symbol !== symbol) isLoading = true;
+        }
 
         error = null;
         try {
+            // Ensure we handle the symbol normalization inside apiService, but if it's too short, it might fail.
             const data = await apiService.fetchTicker24h(symbol, provider);
             tickerData = data;
         } catch (e) {
             console.error("Failed to fetch market data", e);
+            // Don't clear old data on background error, but do on explicit fetch error?
+            // If invalid response, it might be a partial symbol.
             error = 'N/A';
-            tickerData = null;
+            if (!isBackground) tickerData = null;
         } finally {
             isLoading = false;
         }
@@ -56,6 +75,7 @@
 
     onDestroy(() => {
         if (intervalId) clearInterval(intervalId);
+        if (debounceTimer) clearTimeout(debounceTimer);
     });
 
     function formatValue(val: Decimal | undefined, decimals: number = 2) {
@@ -73,7 +93,7 @@
         <button
             class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
             title="Refresh"
-            on:click={fetchData}
+            on:click={() => fetchData()}
             class:animate-spin={isLoading}
         >
             {@html icons.refresh || '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
