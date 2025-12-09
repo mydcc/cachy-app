@@ -94,6 +94,22 @@
         </div>
       </div>
 
+     <!-- Market Data Update Frequency -->
+     <div class="flex justify-between items-center">
+        <label for="market-data-interval-select" class="text-sm font-medium text-text-primary">{$_('settings.marketDataInterval') || 'Market Data Update'}</label>
+        <div class="flex items-center gap-2 w-1/2">
+          <select
+            id="market-data-interval-select"
+            class="input-field w-full"
+            bind:value={$settingsStore.marketDataInterval}
+          >
+            <option value="manual">{$_('settings.intervalManual') || 'Manual'}</option>
+            <option value="10s">{$_('settings.interval10s') || 'Every 10s'}</option>
+            <option value="1m">{$_('settings.interval1m') || 'Every 1m'}</option>
+          </select>
+        </div>
+      </div>
+
     <!-- Backup / Restore -->
     <div class="flex justify-between items-center">
       <span class="text-sm font-medium text-text-primary">{$_('settings.backup')}</span>
