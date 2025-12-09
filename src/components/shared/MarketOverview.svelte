@@ -80,7 +80,29 @@
 
     function formatValue(val: Decimal | undefined, decimals: number = 2) {
         if (!val) return '-';
+        // User requested 4 decimal places for consistency
         return formatDynamicDecimal(val, decimals);
+    }
+
+    // Helper to ensure 'P' suffix if needed for display
+    function getDisplaySymbol(rawSymbol: string | undefined): string {
+        if (!rawSymbol) return symbol || '';
+
+        // If user typed symbol ends with P (e.g. BTCUSDTP), and API returns BTCUSDT, we prefer user's format OR enforce P if it's perp.
+        // But if user typed 'BTCUSDT', we might want to append P if it's meant to be perp.
+        // The user said: "immer mit dem P am Ende eindeutig gekennzeichnet sein, also BTCUSDTP"
+        // So we enforce P suffix for pairs ending in USDT (or similar) if not present.
+
+        let display = rawSymbol.toUpperCase();
+
+        // Bitunix/Binance perps often are conceptually "P" or have explicit suffix.
+        // If it doesn't end with P, append it.
+        // Be careful not to double append if it's already there or if it's ".P".
+        if (!display.endsWith('P') && !display.endsWith('.P')) {
+            display += 'P';
+        }
+
+        return display;
     }
 </script>
 
@@ -88,7 +110,7 @@
     <div class="flex justify-between items-start">
         <div>
             <div class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{provider}</div>
-            <div class="text-lg font-bold text-[var(--text-primary)]">{tickerData?.symbol || symbol}</div>
+            <div class="text-lg font-bold text-[var(--text-primary)]">{getDisplaySymbol(tickerData?.symbol || symbol)}</div>
         </div>
         <button
             class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
@@ -107,23 +129,25 @@
     {:else if tickerData}
         <div class="flex flex-col gap-1 mt-1">
             <div class="flex justify-between items-baseline">
-                <span class="text-2xl font-bold text-[var(--text-primary)]">{formatValue(tickerData.lastPrice)}</span>
+                <!-- Enforce 4 decimals for price as requested -->
+                <span class="text-2xl font-bold text-[var(--text-primary)]">{formatValue(tickerData.lastPrice, 4)}</span>
                 <span class="text-sm font-medium" style:color={tickerData.priceChangePercent.gte(0) ? 'var(--success-color)' : 'var(--danger-color)'}>
-                    {tickerData.priceChangePercent.gte(0) ? '+' : ''}{formatValue(tickerData.priceChangePercent)}%
+                    {tickerData.priceChangePercent.gte(0) ? '+' : ''}{formatValue(tickerData.priceChangePercent, 2)}%
                 </span>
             </div>
 
             <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
                 <div class="flex flex-col">
                     <span class="text-[var(--text-secondary)]">24h High</span>
-                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.highPrice)}</span>
+                    <!-- 24h High/Low should also probably follow the same precision, let's use 4 or 2? User said "Preise... einheitlich". Let's stick to 4 for prices. -->
+                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.highPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col text-right">
                     <span class="text-[var(--text-secondary)]">24h Low</span>
-                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.lowPrice)}</span>
+                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.lowPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col col-span-2 mt-1">
-                    <span class="text-[var(--text-secondary)]">24h Vol ({tickerData.symbol.replace(/USDT.?$/, '')})</span>
+                    <span class="text-[var(--text-secondary)]">24h Vol ({getDisplaySymbol(tickerData.symbol).replace(/USDT.?$/, '').replace(/P$/, '')})</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.volume, 0)}</span>
                 </div>
             </div>
