@@ -98,3 +98,26 @@ Es kann immer nur eine Sperre aktiv sein.
 *   `Alt + S`: Stellt den Trade-Typ auf **Short** um.
 *   `Alt + R`: Setzt alle Eingaben zurück (**Reset**).
 *   `Alt + J`: Öffnet oder schließt das **Journal**.
+
+---
+
+### 6. Marktübersicht (Market Overview)
+
+Die Marktübersicht (Market Overview Card) bietet dir einen schnellen Blick auf die aktuellen Marktdaten für das gewählte Symbol.
+
+*   **Anzeige:** Zeigt den aktuellen Preis, die 24h-Preisänderung (in %), das 24h-Hoch, das 24h-Tief und das 24h-Volumen an.
+*   **Symbol-Erkennung:** Fügt automatisch ein 'P'-Suffix hinzu (z.B. BTCUSDTP), wenn es sich um Perpetual-Futures handelt.
+*   **Aktualisierung:**
+    *   **Manuell:** Klicke auf das Refresh-Symbol, um die Daten manuell zu laden.
+    *   **Automatisch:** In den **Einstellungen** kannst du ein Intervall (10s oder 1m) festlegen, damit sich die Daten automatisch im Hintergrund aktualisieren.
+
+---
+
+### 7. Einstellungen
+
+In den Einstellungen (Zahnrad-Symbol) kannst du Cachy an deine Bedürfnisse anpassen.
+
+*   **API Anbieter:** Wähle zwischen **Bitunix** und **Binance** als Datenquelle für Preise und ATR-Werte.
+*   **Marktdaten Update:** Lege fest, wie oft die Marktübersicht aktualisiert werden soll (**Manuell**, **Alle 10s**, **Alle 1m**).
+*   **Theme & Sprache:** Wähle dein bevorzugtes Design und die Anzeigesprache.
+*   **Backup & Wiederherstellung:** Erstelle ein Backup deiner gesamten Daten (inkl. Journal und Presets) als Datei oder stelle Daten aus einer Datei wieder her.
