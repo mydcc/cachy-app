@@ -98,3 +98,26 @@ Only one lock can be active at a time.
 *   `Alt + S`: Switches the trade type to **Short**.
 *   `Alt + R`: Resets all inputs (**Reset**).
 *   `Alt + J`: Opens or closes the **Journal**.
+
+---
+
+### 6. Market Overview
+
+The Market Overview card provides a quick glance at the current market data for the selected symbol.
+
+*   **Display:** Shows the current price, 24h price change (in %), 24h high, 24h low, and 24h volume.
+*   **Symbol Recognition:** Automatically adds a 'P' suffix (e.g., BTCUSDTP) if it is a perpetual future.
+*   **Refresh:**
+    *   **Manual:** Click the refresh icon to load data manually.
+    *   **Automatic:** In the **Settings**, you can define an interval (10s or 1m) for the data to update automatically in the background.
+
+---
+
+### 7. Settings
+
+In the Settings (gear icon), you can customize Cachy to your needs.
+
+*   **API Provider:** Choose between **Bitunix** and **Binance** as the data source for prices and ATR values.
+*   **Market Data Update:** Set how often the market overview should be updated (**Manual**, **Every 10s**, **Every 1m**).
+*   **Theme & Language:** Select your preferred design and display language.
+*   **Backup & Restore:** Create a full backup of your data (including journal and presets) as a file or restore data from a file.

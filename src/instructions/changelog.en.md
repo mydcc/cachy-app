@@ -7,8 +7,15 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  Version 0.92b1
-2.  Version 0.92b
+1.  [Version 0.92b2](#v0.92b2)
+2.  [Version 0.92b1](#v0.92b1)
+3.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
+- **New:** "Market Overview" displays 24h data (price, volume, change) for the current symbol.
+- **New:** Extended settings: Select API provider (Bitunix/Binance) and market data update interval (Manual, 10s, 1m).
 
 ---
 
