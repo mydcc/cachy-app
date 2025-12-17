@@ -49,11 +49,6 @@ export const apiService = {
         // Simple heuristic: If it ends in "P" or ".P" and isn't just "XRP" (unlikely), strip it.
         if (s.endsWith('.P')) {
             s = s.slice(0, -2);
-        } else if (s.endsWith('P') && s.length > 4 && !s.includes('USDT')) {
-             // Be careful not to strip P from XRP if user typed XRP
-             // But usually it's XRPUSDTP.
-             // If user types XRP, we might need to append USDT.
-             // Let's assume input might be "XRP" or "XRPUSDT" or "XRPUSDTP".
         }
 
         // If the symbol seems to be just the coin (e.g. "BTC"), append USDT
@@ -65,12 +60,9 @@ export const apiService = {
         // Let's rely on the user input mostly but fix the obvious "P" suffix issue if it fails,
         // OR just strip it if we know the provider doesn't like it.
         // Bitunix: BTCUSDT works. BTCUSDTP fails.
-        if (provider === 'bitunix' && s.endsWith('P') && !s.endsWith('XRP')) {
-             // safe guard for XRP, though XRPUSDT ends in T.
-             // If s is BTCUSDTP, slice last char.
-             if (s.length > 6) {
-                 s = s.slice(0, -1);
-             }
+        // Robust fix: Only strip P if it is a suffix on top of standard pair (e.g. USDTP).
+        if (s.endsWith('USDTP')) {
+             s = s.slice(0, -1);
         }
 
         return s;
