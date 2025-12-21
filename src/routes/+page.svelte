@@ -224,8 +224,8 @@ import { trackCustomEvent } from '../services/trackingService';
         <!-- Main current symbol -->
         <MarketOverview />
 
-        <!-- Favorites below -->
-        {#each $favoritesStore as favorite (favorite)}
+        <!-- Favorites below: Filter out the currently selected symbol (which is shown above) -->
+        {#each $favoritesStore.filter(f => f !== ($tradeStore.symbol || '').toUpperCase()) as favorite (favorite)}
             <MarketOverview customSymbol={favorite} isFavoriteTile={true} />
         {/each}
     </div>
