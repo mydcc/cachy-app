@@ -4,16 +4,31 @@ import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
 
+export interface ApiKeys {
+    key: string;
+    secret: string;
+}
+
 export interface Settings {
     apiProvider: 'bitunix' | 'binance';
     marketDataInterval: MarketDataInterval;
     autoUpdatePriceInput: boolean;
+    autoFetchBalance: boolean;
+    apiKeys: {
+        bitunix: ApiKeys;
+        binance: ApiKeys;
+    };
 }
 
 const defaultSettings: Settings = {
     apiProvider: 'bitunix',
     marketDataInterval: '1m', // Default interval
-    autoUpdatePriceInput: false
+    autoUpdatePriceInput: false,
+    autoFetchBalance: false,
+    apiKeys: {
+        bitunix: { key: '', secret: '' },
+        binance: { key: '', secret: '' }
+    }
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -22,8 +37,16 @@ function loadSettingsFromLocalStorage(): Settings {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
         if (!d) return defaultSettings;
         const parsed = JSON.parse(d);
+
         // Ensure we merge with defaults to handle new keys in existing storage
-        const settings = { ...defaultSettings, ...parsed };
+        const settings = {
+            ...defaultSettings,
+            ...parsed,
+            apiKeys: {
+                ...defaultSettings.apiKeys,
+                ...(parsed.apiKeys || {})
+            }
+        };
         
         // Migration logic:
 
@@ -40,17 +63,15 @@ function loadSettingsFromLocalStorage(): Settings {
             } else {
                 settings.autoUpdatePriceInput = false;
             }
-            // We can delete the old key, but local storage is just stringified object, so it will be cleaned up on next save if we strip it.
-            // However, the `parsed` object still has it. The `settings` object is constructed from spread `defaultSettings` + `parsed`.
-            // So `settings` will contain `priceUpdateMode` if we don't remove it.
-            // TypeScript won't complain at runtime, but it's cleaner to remove it.
         }
 
-        // Clean up keys not in interface (optional, but good for hygiene)
+        // Clean up keys not in interface
         const cleanSettings: Settings = {
             apiProvider: settings.apiProvider,
             marketDataInterval: settings.marketDataInterval,
-            autoUpdatePriceInput: settings.autoUpdatePriceInput
+            autoUpdatePriceInput: settings.autoUpdatePriceInput,
+            autoFetchBalance: settings.autoFetchBalance,
+            apiKeys: settings.apiKeys
         };
 
         return cleanSettings;

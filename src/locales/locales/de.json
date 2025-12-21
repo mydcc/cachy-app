@@ -67,7 +67,8 @@
       "riskPerTradeLabel": "Risiko je Trade (%)",
       "riskPerTradePlaceholder": "z.B. 1.5",
       "riskAmountLabel": "Risikobetrag",
-      "toggleRiskAmountLockTitle": "Risikobetrag sperren/entsperren"
+      "toggleRiskAmountLockTitle": "Risikobetrag sperren/entsperren",
+      "fetchBalanceTitle": "Guthaben abrufen"
     },
     "tradeSetupInputs": {
       "header": "Trade Setup",
@@ -179,11 +180,14 @@
     "language": "Sprache",
     "backup": "Sicherung",
     "apiProvider": "API Anbieter",
+    "apiIntegration": "API Integration",
+    "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
     "marketDataInterval": "Update Intervall",
     "interval1s": "Jede Sekunde",
     "interval1m": "Jede Minute",
-    "interval10m": "Alle 10 Minuten"
+    "interval10m": "Alle 10 Minuten",
+    "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen."
   },
   "apiErrors": {
     "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",
