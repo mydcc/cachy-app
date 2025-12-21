@@ -58,7 +58,6 @@ export const app = {
 
     init: () => {
         if (browser) {
-            app.loadSettings();
             app.populatePresetLoader();
             app.calculateAndDisplay();
             app.setupPriceUpdates();
@@ -312,7 +311,6 @@ export const app = {
             currentTradeData: { ...values, ...baseMetrics, ...totalMetrics, tradeType: currentTradeState.tradeType, status: 'Open', calculatedTpDetails },
             stopLossPrice: values.stopLossPrice.toNumber()
         }));
-        app.saveSettings();
     },
 
     clearResults: (showGuidance = false) => {
@@ -407,47 +405,6 @@ export const app = {
             symbol: currentAppState.symbol,
             targets: currentAppState.targets,
         };
-    },
-    saveSettings: () => {
-        if (!browser) return;
-        try {
-            localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(app.getInputsAsObject()));
-        } catch (e) {
-            console.warn("Could not save settings to localStorage.", e);
-        }
-    },
-    loadSettings: () => {
-        if (!browser) return;
-        try {
-            const settingsJSON = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
-            if (!settingsJSON) {
-                return;
-            }
-            const settings = JSON.parse(settingsJSON);
-            if (settings) {
-                updateTradeStore(state => ({
-                    ...state,
-                    accountSize: settings.accountSize || null,
-                    riskPercentage: settings.riskPercentage || null,
-                    leverage: settings.leverage || parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
-                    fees: settings.fees || parseFloat(CONSTANTS.DEFAULT_FEES),
-                    symbol: settings.symbol || '',
-                    atrValue: settings.atrValue || null,
-                    atrMultiplier: settings.atrMultiplier || parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
-                    useAtrSl: settings.useAtrSl || false,
-                    tradeType: settings.tradeType || CONSTANTS.TRADE_TYPE_LONG,
-                    targets: settings.targets || [
-                        { price: null, percent: 50, isLocked: false },
-                        { price: null, percent: 25, isLocked: false },
-                        { price: null, percent: 25, isLocked: false }
-                    ],
-                }));
-                toggleAtrInputs(settings.useAtrSl || false);
-                return;
-            }
-        } catch {
-            console.warn("Could not load settings from localStorage.");
-        }
     },
     savePreset: async () => {
         if (!browser) return;
