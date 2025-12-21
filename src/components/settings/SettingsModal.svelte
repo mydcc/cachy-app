@@ -94,13 +94,68 @@
         </div>
       </div>
 
+     <!-- API Integration Section -->
+     <div class="border-t border-[var(--border-color)] pt-4 mt-4">
+        <div class="flex justify-between items-center mb-3">
+             <h3 class="text-sm font-medium text-text-primary">{$_('settings.apiIntegration') || 'API Integration'}</h3>
+
+             <!-- Auto Fetch Balance Toggle -->
+             <div class="flex items-center gap-2">
+                 <label for="auto-fetch-balance" class="text-xs text-text-secondary cursor-pointer">
+                     {$_('settings.autoFetchBalance') || 'Auto-fetch Balance'}
+                 </label>
+                 <label class="relative inline-flex items-center cursor-pointer">
+                    <input type="checkbox" id="auto-fetch-balance" class="sr-only peer" bind:checked={$settingsStore.autoFetchBalance}>
+                    <div class="w-9 h-5 bg-gray-600 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+                </label>
+             </div>
+        </div>
+
+        <!-- Bitunix Keys -->
+        <div class="mb-4">
+            <h4 class="text-xs font-semibold text-text-secondary mb-2">Bitunix</h4>
+            <div class="space-y-2">
+                <input
+                    type="text"
+                    class="input-field w-full text-xs"
+                    placeholder="API Key"
+                    bind:value={$settingsStore.apiKeys.bitunix.key}
+                />
+                <input
+                    type="password"
+                    class="input-field w-full text-xs"
+                    placeholder="API Secret"
+                    bind:value={$settingsStore.apiKeys.bitunix.secret}
+                />
+            </div>
+        </div>
+
+        <!-- Binance Keys -->
+        <div>
+            <h4 class="text-xs font-semibold text-text-secondary mb-2">Binance</h4>
+            <div class="space-y-2">
+                <input
+                    type="text"
+                    class="input-field w-full text-xs"
+                    placeholder="API Key"
+                    bind:value={$settingsStore.apiKeys.binance.key}
+                />
+                <input
+                    type="password"
+                    class="input-field w-full text-xs"
+                    placeholder="API Secret"
+                    bind:value={$settingsStore.apiKeys.binance.secret}
+                />
+            </div>
+        </div>
+     </div>
+
      <!-- Auto Update Price Input (Checkbox/Toggle) -->
-     <div class="flex justify-between items-center">
+     <div class="flex justify-between items-center border-t border-[var(--border-color)] pt-4">
         <label for="auto-update-price-input" class="text-sm font-medium text-text-primary">
             {$_('settings.autoUpdatePriceInput') || 'Auto-update Price Input'}
         </label>
         <div class="flex items-center gap-2 w-1/2 justify-end">
-            <!-- Simple Toggle using Checkbox -->
              <label class="relative inline-flex items-center cursor-pointer">
                 <input type="checkbox" id="auto-update-price-input" class="sr-only peer" bind:checked={$settingsStore.autoUpdatePriceInput}>
                 <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
@@ -125,7 +180,7 @@
       </div>
 
     <!-- Backup / Restore -->
-    <div class="flex justify-between items-center">
+    <div class="flex justify-between items-center border-t border-[var(--border-color)] pt-4">
       <span class="text-sm font-medium text-text-primary">{$_('settings.backup')}</span>
       <div class="flex items-center gap-2 w-1/2 justify-end">
           <button id="backup-btn-modal" class="btn-icon" title={$_('app.backupButtonTitle')} aria-label={$_('app.backupButtonAriaLabel')} on:click={handleBackupClick}>

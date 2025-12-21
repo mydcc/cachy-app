@@ -2,15 +2,20 @@
     import { numberInput } from '../../utils/inputUtils';
     import { _ } from '../../locales/i18n';
     import { onboardingService } from '../../services/onboardingService';
-    import { createEventDispatcher } from 'svelte';
+    import { createEventDispatcher, onMount } from 'svelte';
     import { icons } from '../../lib/constants';
     import { updateTradeStore } from '../../stores/tradeStore';
+    import { settingsStore } from '../../stores/settingsStore';
+    import { uiStore } from '../../stores/uiStore';
+    import { get } from 'svelte/store';
 
     export let accountSize: number | null;
     export let riskPercentage: number | null;
     export let riskAmount: number | null;
     export let isRiskAmountLocked: boolean;
     export let isPositionSizeLocked: boolean;
+
+    let isFetchingBalance = false;
 
     const dispatch = createEventDispatcher();
 
@@ -37,6 +42,66 @@
         const value = target.value;
         updateTradeStore(s => ({ ...s, riskAmount: value === '' ? null : parseFloat(value) }));
     }
+
+    async function handleFetchBalance(silent = false) {
+        const settings = get(settingsStore);
+        const provider = settings.apiProvider;
+        const keys = settings.apiKeys[provider];
+
+        if (!keys.key || !keys.secret) {
+            if (!silent) {
+                uiStore.showError('settings.missingApiKeys');
+                uiStore.toggleSettingsModal(true);
+            }
+            return;
+        }
+
+        isFetchingBalance = true;
+        try {
+            const res = await fetch('/api/balance', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    exchange: provider,
+                    apiKey: keys.key,
+                    apiSecret: keys.secret
+                })
+            });
+
+            const data = await res.json();
+
+            if (!res.ok) {
+                throw new Error(data.error || 'Failed to fetch balance');
+            }
+
+            if (typeof data.balance === 'number') {
+                updateTradeStore(s => ({ ...s, accountSize: data.balance }));
+                if (!silent) {
+                    uiStore.showFeedback('save'); // Show success feedback
+                }
+            } else {
+                throw new Error('Invalid balance data received');
+            }
+
+        } catch (e: any) {
+            if (!silent) {
+                uiStore.showError(e.message || 'Error fetching balance');
+            } else {
+                console.warn('Auto-fetch balance failed:', e);
+            }
+        } finally {
+            isFetchingBalance = false;
+        }
+    }
+
+    onMount(() => {
+        const settings = get(settingsStore);
+        if (settings.autoFetchBalance) {
+            handleFetchBalance(true);
+        }
+    });
 </script>
 
 <div>
@@ -44,7 +109,17 @@
     <div class="grid grid-cols-3 gap-4">
         <div>
             <label for="account-size" class="input-label text-xs">{$_('dashboard.portfolioInputs.accountSizeLabel')}</label>
-            <input id="account-size" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(accountSize)} on:input={handleAccountSizeInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.portfolioInputs.accountSizePlaceholder')}" on:input={onboardingService.trackFirstInput}>
+            <div class="relative">
+                <input id="account-size" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(accountSize)} on:input={handleAccountSizeInput} class="input-field w-full px-4 py-2 rounded-md pr-10" placeholder="{$_('dashboard.portfolioInputs.accountSizePlaceholder')}" on:input={onboardingService.trackFirstInput}>
+                <button
+                    class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance ? 'animate-spin' : ''}"
+                    on:click={() => handleFetchBalance(false)}
+                    title="{$_('dashboard.portfolioInputs.fetchBalanceTitle') || 'Fetch Balance'}"
+                    disabled={isFetchingBalance}
+                >
+                    {@html icons.fetch}
+                </button>
+            </div>
         </div>
         <div>
             <label for="risk-percentage" class="input-label text-xs">{$_('dashboard.portfolioInputs.riskPerTradeLabel')}</label>
