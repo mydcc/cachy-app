@@ -81,8 +81,17 @@ export const tradeStore = writable(loadTradeStateFromLocalStorage());
 tradeStore.subscribe(value => {
     if (browser) {
         try {
-            // We save everything.
-            localStorage.setItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY, JSON.stringify(value));
+            // Create a copy to avoid mutating the store
+            const stateToSave = { ...value };
+
+            // Remove derived/transient data that shouldn't be persisted or causes issues
+            // currentTradeData contains Decimal objects which stringify to strings, but we re-calculate on load anyway.
+            // Also it might be large.
+            stateToSave.currentTradeData = null;
+
+            // We can also exclude other transient UI state if needed, but per requirements we want to keep inputs.
+
+            localStorage.setItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY, JSON.stringify(stateToSave));
         } catch (e) {
             console.warn("Could not save trade state to localStorage", e);
         }
