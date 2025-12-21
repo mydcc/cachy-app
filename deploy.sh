@@ -25,6 +25,15 @@ if [ -z "$APP_NAME" ]; then
     echo "Usage: ./deploy.sh [app_name]"
 fi
 
+# Set default ports based on app name to avoid conflicts if env var is missing
+if [ "$APP_NAME" = "devcachyapp" ]; then
+    export PORT=3002
+    echo "Dev environment detected. Enforcing PORT=$PORT"
+elif [ "$APP_NAME" = "cachy-app" ] || [ "$APP_NAME" = "prodcachyapp" ]; then
+    export PORT=3001
+    echo "Production environment detected. Enforcing PORT=$PORT"
+fi
+
 echo "Restarting PM2 process '$APP_NAME'..."
 pm2 restart $APP_NAME --update-env || echo "Failed to restart PM2 process '$APP_NAME'. Please check the name."
 
