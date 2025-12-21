@@ -32,6 +32,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import SettingsButton from '../components/settings/SettingsButton.svelte';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
+    import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
 
     let fileInput: HTMLInputElement;
     let changelogContent = '';
@@ -219,7 +220,13 @@ import { trackCustomEvent } from '../services/trackingService';
 
 <!-- Wrapper for desktop positioning -->
 <div class="relative w-full max-w-4xl mx-auto">
-    <!-- Updated Sidebar: Stacked tiles -->
+
+    <!-- Left Sidebar: Positions Table -->
+    <div class="hidden xl:flex absolute -left-80 top-8 flex-col gap-3">
+        <PositionsSidebar />
+    </div>
+
+    <!-- Right Sidebar: Stacked tiles -->
     <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
         <!-- Main current symbol -->
         <MarketOverview />
