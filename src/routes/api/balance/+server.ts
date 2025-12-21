@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function fetchBitunixBalance(apiKey: string, apiSecret: string): Promise<number> {
-    const baseUrl = 'https://api.bitunix.com';
+    const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/account';
     
     // Params for the request
@@ -85,33 +85,31 @@ async function fetchBitunixBalance(apiKey: string, apiSecret: string): Promise<n
     }
 
     // Parsing Logic
-    // Structure typically includes marginBalance, equity, or assets array.
-    // Based on demo, it returns an object.
     const accountInfo = data.data;
 
     if (!accountInfo) {
         return 0;
     }
 
-    // Case 1: Direct property on the object (e.g. marginBalance)
-    if (accountInfo.marginBalance) {
-        return parseFloat(accountInfo.marginBalance);
-    }
-
-    // Case 2: It returns an array of assets (unlikely for 'account' endpoint but possible)
+    // Case: It returns an array of assets (as per documentation)
     if (Array.isArray(accountInfo)) {
-        const usdt = accountInfo.find((a: any) => a.currency === 'USDT' || a.asset === 'USDT');
+        const usdt = accountInfo.find((a: any) => a.marginCoin === 'USDT' || a.currency === 'USDT' || a.asset === 'USDT');
         if (usdt) {
-            return parseFloat(usdt.marginBalance || usdt.equity || usdt.available || '0');
+            // Calculate total wallet balance = available + margin + frozen
+            // If explicit marginBalance/equity is present, prioritize that.
+            if (usdt.marginBalance) return parseFloat(usdt.marginBalance);
+            if (usdt.equity) return parseFloat(usdt.equity);
+
+            const available = parseFloat(usdt.available || '0');
+            const margin = parseFloat(usdt.margin || '0');
+            const frozen = parseFloat(usdt.frozen || '0');
+            return available + margin + frozen;
         }
     }
 
-    // Case 3: It has an 'assets' property which is an array
-    if (Array.isArray(accountInfo.assets)) {
-         const usdt = accountInfo.assets.find((a: any) => a.currency === 'USDT' || a.asset === 'USDT');
-         if (usdt) {
-             return parseFloat(usdt.marginBalance || usdt.equity || usdt.available || '0');
-         }
+    // Case: Direct property on the object (fallback)
+    if (accountInfo.marginBalance) {
+        return parseFloat(accountInfo.marginBalance);
     }
 
     // Fallback: available
