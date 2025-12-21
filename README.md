@@ -1,4 +1,4 @@
-# Cachy - Position Size &  Risk Management
+# Cachy - Position Size & Risk Management
 
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
@@ -20,6 +20,11 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **ATR Integration:** Automatic fetching of Average True Range (ATR) from Binance or Bitunix for dynamic stop-loss calculations.
 *   **Live Prices:** Real-time price fetching for cryptocurrencies.
 
+### 📊 Market Overview & Favorites
+*   **Market Overview:** Real-time 24h statistics (Price, Change %, Volume, High, Low) for the selected symbol.
+*   **Favorites System:** Save up to 4 favorite symbols for quick access. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
+*   **Auto-Updates:** Configurable update intervals (1s, 1m, 10m) for market data.
+
 ### 🎯 Multi-Target Take Profit
 *   **Partial Exits:** Define up to 5 take-profit targets.
 *   **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
@@ -31,8 +36,9 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
 ### ⚙️ Customization & Tech
-*   **Multi-API Support:** Choose between **Bitunix** and **Binance** as your data source.
-*   **Privacy:** All data (journal, settings) is stored only in your browser's `localStorage`.
+*   **Multi-API Support:** Choose between **Bitunix** (Default) and **Binance** as your data source.
+*   **API Integration:** Optional API keys for auto-fetching account balance and private data.
+*   **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
 *   **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 *   **Multilingual:** German and English support.
 
