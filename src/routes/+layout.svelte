@@ -11,8 +11,6 @@
 	import { CONSTANTS } from '../lib/constants';
 
 	onMount(() => {
-		tradeStore.set(data.initialTradeState);
-
 		// The server provides a theme from the cookie.
 		// On the client, we prioritize localStorage as it might be more up-to-date
 		// if the cookie failed to set for any reason.
