@@ -7,9 +7,16 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.92b2](#v0.92b2)
-2.  [Version 0.92b1](#v0.92b1)
-3.  [Version 0.92b](#v0.92b)
+1.  [Version 0.94](#v0.94)
+2.  [Version 0.92b2](#v0.92b2)
+3.  [Version 0.92b1](#v0.92b1)
+4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
+- **New:** Favorites feature: Save up to 4 symbols by clicking the star icon in the Market Overview.
+- **Fix:** Resolved deployment issues (502 errors) and improved stability.
 
 ---
 
