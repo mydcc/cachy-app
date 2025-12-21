@@ -178,7 +178,12 @@
     "theme": "Theme",
     "language": "Sprache",
     "backup": "Sicherung",
-    "apiProvider": "API Anbieter"
+    "apiProvider": "API Anbieter",
+    "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
+    "marketDataInterval": "Update Intervall",
+    "interval1s": "Jede Sekunde",
+    "interval1m": "Jede Minute",
+    "interval10m": "Alle 10 Minuten"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",

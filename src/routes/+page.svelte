@@ -223,10 +223,15 @@ import { trackCustomEvent } from '../services/trackingService';
     <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
         <!-- Main current symbol -->
         <MarketOverview />
-        
-        <!-- Favorites below: Filter out the currently selected symbol (which is shown above) -->
-        {#each $favoritesStore.filter(f => f !== ($tradeStore.symbol || '').toUpperCase()) as favorite (favorite)}
-            <MarketOverview customSymbol={favorite} isFavoriteTile={true} />
+
+        <!-- Favorites list -->
+        {#if $favoritesStore.length > 0}
+            <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
+        {/if}
+        {#each $favoritesStore as fav (fav)}
+            {#if fav.toUpperCase() !== ($tradeStore.symbol || '').toUpperCase()}
+                <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+            {/if}
         {/each}
     </div>
 
@@ -383,8 +388,17 @@ import { trackCustomEvent } from '../services/trackingService';
         </section>
 
         <!-- Mobile MarketOverview position -->
-        <div class="xl:hidden mt-8">
+        <div class="xl:hidden mt-8 flex flex-col gap-4">
             <MarketOverview />
+            
+            {#if $favoritesStore.length > 0}
+                <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
+                {#each $favoritesStore as fav (fav)}
+                    {#if fav.toUpperCase() !== ($tradeStore.symbol || '').toUpperCase()}
+                        <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+                    {/if}
+                {/each}
+            {/if}
         </div>
     </main>
 </div>
