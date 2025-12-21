@@ -2,8 +2,9 @@
 
 # Deploy script for Cachy App
 
-# 1. Pull latest changes
+# 1. Pull latest changes (with reset to avoid conflicts)
 echo "Pulling latest changes..."
+git reset --hard HEAD
 git pull
 
 # 2. Install dependencies (in case package.json changed)
@@ -14,7 +15,12 @@ npm install
 echo "Building application..."
 npm run build
 
-# 4. Restart the application process
+# 4. Fix permissions (Important for Nginx/aaPanel)
+# Ensures www user can read the new build files
+echo "Fixing permissions..."
+chown -R www:www .
+
+# 5. Restart the application process
 # Note: This assumes the process is named 'cachy-app' or 'devcachyapp' or similar.
 # We try to detect or use a passed argument, defaulting to 'cachy-app'.
 
