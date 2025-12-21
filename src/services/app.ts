@@ -49,6 +49,8 @@ interface CSVTradeEntry {
     [key: string]: string | undefined;
 }
 
+let priceUpdateIntervalId: any = null;
+
 export const app = {
     calculator: calculator,
     uiManager: uiManager,
@@ -59,6 +61,51 @@ export const app = {
             app.loadSettings();
             app.populatePresetLoader();
             app.calculateAndDisplay();
+            app.setupPriceUpdates();
+        }
+    },
+
+    setupPriceUpdates: () => {
+        if (!browser) return;
+
+        // Watch settings and symbol changes to adjust interval
+        settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
+        tradeStore.subscribe((curr) => {
+            // We need to check if symbol changed effectively? 
+            // The subscription fires often, so we rely on refreshPriceUpdateInterval to be smart or just idempotent
+             // Actually, the interval function itself just uses the CURRENT symbol from store.
+             // So we just need to ensure the interval is running if conditions met.
+        });
+        
+        // Initial setup
+        app.refreshPriceUpdateInterval();
+    },
+
+    refreshPriceUpdateInterval: () => {
+        if (priceUpdateIntervalId) {
+            clearInterval(priceUpdateIntervalId);
+            priceUpdateIntervalId = null;
+        }
+
+        const settings = get(settingsStore);
+        if (settings.priceUpdateMode === 'auto') {
+            let intervalMs = 60000;
+            if (settings.marketDataInterval === '1s') intervalMs = 1000;
+            else if (settings.marketDataInterval === '1m') intervalMs = 60000;
+            else if (settings.marketDataInterval === '10m') intervalMs = 600000;
+
+            priceUpdateIntervalId = setInterval(() => {
+                const currentSymbol = get(tradeStore).symbol;
+                if (currentSymbol && currentSymbol.length >= 3 && !get(uiStore).isPriceFetching) {
+                     // Fetch silently without blocking UI too much
+                     app.handleFetchPrice(true);
+                     
+                     // Also fetch ATR if needed
+                     if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+                         app.fetchAtr(true);
+                     }
+                }
+            }, intervalMs);
         }
     },
 
@@ -578,15 +625,18 @@ export const app = {
         reader.readAsText(file);
     },
 
-    handleFetchPrice: async () => {
+    handleFetchPrice: async (isAuto = false) => {
         const currentTradeState = get(tradeStore);
         const settings = get(settingsStore);
         const symbol = currentTradeState.symbol.toUpperCase().replace('/', '');
         if (!symbol) {
-            uiStore.showError("Bitte geben Sie ein Symbol ein.");
+            if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
             return;
         }
-        uiStore.update(state => ({ ...state, isPriceFetching: true }));
+        
+        // Don't show global spinner for auto-updates to avoid flashing
+        if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
+        
         try {
             let price: Decimal;
             if (settings.apiProvider === 'binance') {
@@ -595,13 +645,19 @@ export const app = {
                 price = await apiService.fetchBitunixPrice(symbol);
             }
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
-            uiStore.showFeedback('copy', 700);
+            
+            // Only show feedback on manual fetch
+            if (!isAuto) uiStore.showFeedback('copy', 700);
+            
             app.calculateAndDisplay();
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            uiStore.showError(message);
+            // Suppress errors for auto-updates to avoid spamming the user
+            if (!isAuto) {
+                const message = error instanceof Error ? error.message : String(error);
+                uiStore.showError(message);
+            }
         } finally {
-            uiStore.update(state => ({ ...state, isPriceFetching: false }));
+            if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: false }));
         }
     },
 
@@ -611,6 +667,10 @@ export const app = {
             atrMode: mode,
             atrValue: mode === 'auto' ? null : state.atrValue
         }));
+        // If switching to auto, fetch immediately
+        if (mode === 'auto') {
+            app.fetchAtr();
+        }
         app.calculateAndDisplay();
     },
 
@@ -624,15 +684,17 @@ export const app = {
         }
     },
 
-    fetchAtr: async () => {
+    fetchAtr: async (isAuto = false) => {
         const currentTradeState = get(tradeStore);
         const settings = get(settingsStore);
         const symbol = currentTradeState.symbol.toUpperCase().replace('/', '');
         if (!symbol) {
-            uiStore.showError("Bitte geben Sie ein Symbol ein.");
+             if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
             return;
         }
-        uiStore.update(state => ({ ...state, isPriceFetching: true }));
+        
+        if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
+        
         try {
             let klines;
             if (settings.apiProvider === 'binance') {
@@ -647,19 +709,27 @@ export const app = {
             }
             updateTradeStore(state => ({ ...state, atrValue: atr.toDP(4).toNumber() }));
             app.calculateAndDisplay();
-            uiStore.showFeedback('copy', 700);
+            
+            if (!isAuto) uiStore.showFeedback('copy', 700);
         } catch (error) {
-            const message = error instanceof Error ? error.message : String(error);
-            uiStore.showError(message);
+             if (!isAuto) {
+                const message = error instanceof Error ? error.message : String(error);
+                uiStore.showError(message);
+            }
         } finally {
-            uiStore.update(state => ({ ...state, isPriceFetching: false }));
+            if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: false }));
         }
     },
 
     selectSymbolSuggestion: (symbol: string) => {
         updateTradeStore(s => ({ ...s, symbol: symbol }));
         uiStore.update(s => ({ ...s, showSymbolSuggestions: false, symbolSuggestions: [] }));
+        
+        // Immediate fetch upon selection
         app.handleFetchPrice();
+        if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+             app.fetchAtr();
+        }
     },
 
     updateSymbolSuggestions: (query: string) => {

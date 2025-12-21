@@ -47,7 +47,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
                 status: error.status
             });
         }
-
+        
         const message = error instanceof Error ? error.message : 'An unknown error occurred.';
         return json({ message: `Internal server error: ${message}` }, { status: 500 });
     }

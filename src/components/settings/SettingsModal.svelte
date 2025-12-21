@@ -94,21 +94,38 @@
         </div>
       </div>
 
-     <!-- Market Data Update Frequency -->
+     <!-- Market Data Update Mode -->
      <div class="flex justify-between items-center">
-        <label for="market-data-interval-select" class="text-sm font-medium text-text-primary">{$_('settings.marketDataInterval') || 'Market Data Update'}</label>
+        <label for="price-update-mode-select" class="text-sm font-medium text-text-primary">{$_('settings.priceUpdateMode') || 'Update Mode'}</label>
+        <div class="flex items-center gap-2 w-1/2">
+          <select
+            id="price-update-mode-select"
+            class="input-field w-full"
+            bind:value={$settingsStore.priceUpdateMode}
+          >
+            <option value="manual">{$_('settings.modeManual') || 'Manual'}</option>
+            <option value="auto">{$_('settings.modeAuto') || 'Automatic'}</option>
+          </select>
+        </div>
+      </div>
+
+     <!-- Market Data Update Frequency -->
+     {#if $settingsStore.priceUpdateMode === 'auto'}
+     <div class="flex justify-between items-center fade-in">
+        <label for="market-data-interval-select" class="text-sm font-medium text-text-primary">{$_('settings.marketDataInterval') || 'Update Interval'}</label>
         <div class="flex items-center gap-2 w-1/2">
           <select
             id="market-data-interval-select"
             class="input-field w-full"
             bind:value={$settingsStore.marketDataInterval}
           >
-            <option value="manual">{$_('settings.intervalManual') || 'Manual'}</option>
-            <option value="10s">{$_('settings.interval10s') || 'Every 10s'}</option>
+            <option value="1s">{$_('settings.interval1s') || 'Every 1s'}</option>
             <option value="1m">{$_('settings.interval1m') || 'Every 1m'}</option>
+            <option value="10m">{$_('settings.interval10m') || 'Every 10m'}</option>
           </select>
         </div>
       </div>
+      {/if}
 
     <!-- Backup / Restore -->
     <div class="flex justify-between items-center">

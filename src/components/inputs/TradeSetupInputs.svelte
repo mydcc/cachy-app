@@ -41,7 +41,15 @@
 
     const handleSymbolInput = debounce(() => {
         app.updateSymbolSuggestions(symbol);
-    }, 200);
+        // Automatically fetch price and ATR when user stops typing a valid symbol
+        if (symbol && symbol.length >= 3) {
+             dispatch('fetchPrice');
+             // Also fetch ATR if in auto mode
+             if (useAtrSl && atrMode === 'auto') {
+                 dispatch('fetchAtr');
+             }
+        }
+    }, 500); // Increased debounce to 500ms to avoid fetching while still typing rapidly
 
     function selectSuggestion(s: string) {
         trackCustomEvent('Symbol', 'SelectSuggestion', s);
