@@ -2,6 +2,7 @@ export const CONSTANTS = {
     TRADE_TYPE_LONG: 'long',
     TRADE_TYPE_SHORT: 'short',
     LOCAL_STORAGE_SETTINGS_KEY: 'cryptoCalculatorSettings',
+    LOCAL_STORAGE_TRADE_KEY: 'cachy_trade_store',
     LOCAL_STORAGE_JOURNAL_KEY: 'tradeJournal',
     LOCAL_STORAGE_PRESETS_KEY: 'cryptoCalculatorPresets',
     LOCAL_STORAGE_THEME_KEY: 'theme',
