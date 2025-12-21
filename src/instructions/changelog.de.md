@@ -15,14 +15,16 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 ---
 
 ## <a name="v0.94"></a>Version 0.94 (21. Dezember 2025)
-- **Neu:** Favoriten-Funktion: Speichere bis zu 4 Symbole durch Klick auf das Stern-Symbol in der Marktübersicht.
+- **Neu:** Favoriten-Funktion: Speichere bis zu 4 Symbole durch Klick auf das Stern-Symbol in der Marktübersicht. Favoriten werden in der Sidebar (Desktop) oder mobil unter der Hauptkarte angezeigt.
+- **Neu:** Automatisches Abrufen des Kontostands beim Start (aktivierbar in den Einstellungen, erfordert API-Keys).
+- **Neu:** Automatische Preisaktualisierung im Eingabefeld (optional).
 - **Fix:** Behebung von Deployment-Problemen (502 Fehler) und verbesserte Stabilität.
 
 ---
 
 ## <a name="v0.92b2"></a>Version 0.92b2 (11. Dezember 2025)
 - **Neu:** "Marktübersicht" (Market Overview) zeigt 24h-Daten (Preis, Volumen, Änderung) für das aktuelle Symbol an.
-- **Neu:** Einstellungen erweitert: Auswahl des API-Anbieters (Bitunix/Binance) und Intervall für Marktdaten-Updates (Manuell, 10s, 1m).
+- **Neu:** Einstellungen erweitert: Auswahl des API-Anbieters (Bitunix/Binance) und Intervall für Marktdaten-Updates (1s, 1m, 10m).
 
 ---
 

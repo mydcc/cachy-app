@@ -18,7 +18,7 @@ Die Hauptfunktion von Cachy ist die Berechnung deiner Positionsgröße und ander
 
 **Schritt 2: Portfolio-Eingaben**
 
-*   **Konto Guthaben (Account Size):** Gib die Gesamtgröße deines Trading-Kontos ein.
+*   **Konto Guthaben (Account Size):** Gib die Gesamtgröße deines Trading-Kontos ein. Du kannst dein Guthaben auch automatisch abrufen lassen, wenn du deine API-Keys hinterlegt hast (siehe Einstellungen).
 *   **Risiko/Trade (%):** Lege fest, wie viel Prozent deines Kontos du bei diesem einen Trade maximal riskieren möchtest (z.B. 1 für 1%).
 *   **Risikobetrag:** Dieses Feld zeigt den aus deinem prozentualen Risiko berechneten Geldbetrag an. Du kannst diesen Betrag auch direkt eingeben und sperren.
 
@@ -101,16 +101,16 @@ Es kann immer nur eine Sperre aktiv sein.
 
 ---
 
-### 6. Marktübersicht (Market Overview)
+### 6. Marktübersicht (Market Overview) & Favoriten
 
-Die Marktübersicht (Market Overview Card) bietet dir einen schnellen Blick auf die aktuellen Marktdaten für das gewählte Symbol.
+Die Marktübersicht bietet dir einen schnellen Blick auf die aktuellen Marktdaten für das gewählte Symbol.
 
 *   **Anzeige:** Zeigt den aktuellen Preis, die 24h-Preisänderung (in %), das 24h-Hoch, das 24h-Tief und das 24h-Volumen an.
 *   **Symbol-Erkennung:** Fügt automatisch ein 'P'-Suffix hinzu (z.B. BTCUSDTP), wenn es sich um Perpetual-Futures handelt.
 *   **Favoriten:** Klicke auf das **Stern-Symbol**, um das aktuelle Symbol zu deiner Favoritenliste hinzuzufügen (maximal 4). Gespeicherte Favoriten erscheinen in der Seitenleiste (Desktop) oder unter der Hauptkarte (Mobil) und können per Klick direkt in den Rechner geladen werden.
 *   **Aktualisierung:**
     *   **Manuell:** Klicke auf das Refresh-Symbol, um die Daten manuell zu laden.
-    *   **Automatisch:** In den **Einstellungen** kannst du ein Intervall (10s oder 1m) festlegen, damit sich die Daten automatisch im Hintergrund aktualisieren.
+    *   **Automatisch:** In den **Einstellungen** kannst du ein Intervall festlegen, damit sich die Daten automatisch im Hintergrund aktualisieren.
 
 ---
 
@@ -118,7 +118,12 @@ Die Marktübersicht (Market Overview Card) bietet dir einen schnellen Blick auf 
 
 In den Einstellungen (Zahnrad-Symbol) kannst du Cachy an deine Bedürfnisse anpassen.
 
-*   **API Anbieter:** Wähle zwischen **Bitunix** und **Binance** als Datenquelle für Preise und ATR-Werte.
-*   **Marktdaten Update:** Lege fest, wie oft die Marktübersicht aktualisiert werden soll (**Manuell**, **Alle 10s**, **Alle 1m**).
-*   **Theme & Sprache:** Wähle dein bevorzugtes Design und die Anzeigesprache.
-*   **Backup & Wiederherstellung:** Erstelle ein Backup deiner gesamten Daten (inkl. Journal und Presets) als Datei oder stelle Daten aus einer Datei wieder her.
+*   **Sprache:** Wähle zwischen Deutsch und Englisch.
+*   **API Anbieter:** Wähle zwischen **Bitunix** (Standard) und **Binance** als Datenquelle für Preise und ATR-Werte.
+*   **API Integration:**
+    *   Hinterlege deine API Keys für Bitunix oder Binance (Key & Secret).
+    *   **Guthaben beim Laden abrufen:** Wenn aktiviert, wird dein Kontostand beim Starten der App automatisch abgerufen (erfordert API Keys).
+    *   **Automatische Preisaktualisierung (Eingabefeld):** Wenn aktiviert, wird der Preis im Eingabefeld "Kaufpreis" regelmäßig aktualisiert, solange du das Feld nicht bearbeitest.
+*   **Marktdaten Update:** Lege fest, wie oft die Marktübersicht und Preise aktualisiert werden sollen (**1s**, **1m**, **10m**).
+*   **Theme:** Wähle dein bevorzugtes Design.
+*   **Backup & Wiederherstellung:** Erstelle ein Backup deiner gesamten Daten (inkl. Journal und Presets) als JSON-Datei oder stelle Daten aus einer Datei wieder her.
