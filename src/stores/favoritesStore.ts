@@ -35,7 +35,7 @@ function createFavoritesStore() {
         toggleFavorite: (symbol: string) => {
             if (!symbol) return;
             const upperSymbol = symbol.toUpperCase();
-
+            
             update(favorites => {
                 if (favorites.includes(upperSymbol)) {
                     return favorites.filter(f => f !== upperSymbol);
