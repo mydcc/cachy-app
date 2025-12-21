@@ -111,9 +111,9 @@
             <label for="account-size" class="input-label text-xs">{$_('dashboard.portfolioInputs.accountSizeLabel')}</label>
             <div class="relative">
                 <input id="account-size" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(accountSize)} on:input={handleAccountSizeInput} class="input-field w-full px-4 py-2 rounded-md pr-10" placeholder="{$_('dashboard.portfolioInputs.accountSizePlaceholder')}" on:input={onboardingService.trackFirstInput}>
-                <button
-                    class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance ? 'animate-spin' : ''}"
-                    on:click={() => handleFetchBalance(false)}
+                <button 
+                    class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance ? 'animate-spin' : ''}" 
+                    on:click={() => handleFetchBalance(false)} 
                     title="{$_('dashboard.portfolioInputs.fetchBalanceTitle') || 'Fetch Balance'}"
                     disabled={isFetchingBalance}
                 >

@@ -98,7 +98,7 @@
      <div class="border-t border-[var(--border-color)] pt-4 mt-4">
         <div class="flex justify-between items-center mb-3">
              <h3 class="text-sm font-medium text-text-primary">{$_('settings.apiIntegration') || 'API Integration'}</h3>
-
+             
              <!-- Auto Fetch Balance Toggle -->
              <div class="flex items-center gap-2">
                  <label for="auto-fetch-balance" class="text-xs text-text-secondary cursor-pointer">
@@ -110,22 +110,22 @@
                 </label>
              </div>
         </div>
-
+        
         <!-- Bitunix Keys -->
         <div class="mb-4">
             <h4 class="text-xs font-semibold text-text-secondary mb-2">Bitunix</h4>
             <div class="space-y-2">
-                <input
-                    type="text"
-                    class="input-field w-full text-xs"
-                    placeholder="API Key"
-                    bind:value={$settingsStore.apiKeys.bitunix.key}
+                <input 
+                    type="text" 
+                    class="input-field w-full text-xs" 
+                    placeholder="API Key" 
+                    bind:value={$settingsStore.apiKeys.bitunix.key} 
                 />
-                <input
-                    type="password"
-                    class="input-field w-full text-xs"
-                    placeholder="API Secret"
-                    bind:value={$settingsStore.apiKeys.bitunix.secret}
+                <input 
+                    type="password" 
+                    class="input-field w-full text-xs" 
+                    placeholder="API Secret" 
+                    bind:value={$settingsStore.apiKeys.bitunix.secret} 
                 />
             </div>
         </div>
@@ -134,17 +134,17 @@
         <div>
             <h4 class="text-xs font-semibold text-text-secondary mb-2">Binance</h4>
             <div class="space-y-2">
-                <input
-                    type="text"
-                    class="input-field w-full text-xs"
-                    placeholder="API Key"
-                    bind:value={$settingsStore.apiKeys.binance.key}
+                <input 
+                    type="text" 
+                    class="input-field w-full text-xs" 
+                    placeholder="API Key" 
+                    bind:value={$settingsStore.apiKeys.binance.key} 
                 />
-                <input
-                    type="password"
-                    class="input-field w-full text-xs"
-                    placeholder="API Secret"
-                    bind:value={$settingsStore.apiKeys.binance.secret}
+                <input 
+                    type="password" 
+                    class="input-field w-full text-xs" 
+                    placeholder="API Secret" 
+                    bind:value={$settingsStore.apiKeys.binance.secret} 
                 />
             </div>
         </div>

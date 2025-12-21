@@ -1,6 +1,6 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
-import { createHmac } from 'crypto';
+import { createHmac, createHash, randomBytes } from 'crypto';
 
 export const POST: RequestHandler = async ({ request }) => {
     const { exchange, apiKey, apiSecret } = await request.json();
@@ -29,19 +29,45 @@ export const POST: RequestHandler = async ({ request }) => {
 
 async function fetchBitunixBalance(apiKey: string, apiSecret: string): Promise<number> {
     const baseUrl = 'https://api.bitunix.com';
-    const path = '/api/v1/futures/assets';
+    const path = '/api/v1/futures/account';
+    
+    // Params for the request
+    const params: Record<string, string> = {
+        marginCoin: 'USDT'
+    };
+
+    // 1. Generate Nonce and Timestamp
+    const nonce = randomBytes(16).toString('hex');
     const timestamp = Date.now().toString();
 
-    // Bitunix Signature: HMAC-SHA256(timestamp + query_string + body, secret)
-    // For this GET request, there is no query string or body.
-    const signString = timestamp;
-    const signature = createHmac('sha256', apiSecret).update(signString).digest('hex');
+    // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
+    const queryParamsStr = Object.keys(params)
+        .sort()
+        .map(key => key + params[key])
+        .join('');
 
-    const response = await fetch(`${baseUrl}${path}`, {
+    // 3. Construct Digest Input
+    // digestInput = nonce + timestamp + apiKey + queryParams + body
+    // Body is empty for GET
+    const body = ""; 
+    const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
+
+    // 4. Calculate Digest (SHA256)
+    const digest = createHash('sha256').update(digestInput).digest('hex');
+
+    // 5. Calculate Signature (SHA256 of digest + secret)
+    const signInput = digest + apiSecret;
+    const signature = createHash('sha256').update(signInput).digest('hex');
+
+    // 6. Build Query String for URL (standard format key=value)
+    const queryString = new URLSearchParams(params).toString();
+
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
         method: 'GET',
         headers: {
             'api-key': apiKey,
             'timestamp': timestamp,
+            'nonce': nonce,
             'sign': signature,
             'Content-Type': 'application/json'
         }
@@ -53,36 +79,60 @@ async function fetchBitunixBalance(apiKey: string, apiSecret: string): Promise<n
     }
 
     const data = await response.json();
-
+    
     if (data.code !== 0 && data.code !== '0') {
          throw new Error(`Bitunix API error code: ${data.code} - ${data.msg || 'Unknown error'}`);
     }
 
-    // Response structure usually: { code: 0, msg: 'success', data: [ { currency: 'USDT', available: '...' }, ... ] }
-    // I need to find the structure. Assuming standard 'data' array.
+    // Parsing Logic
+    // Structure typically includes marginBalance, equity, or assets array.
+    // Based on demo, it returns an object.
+    const accountInfo = data.data;
 
-    const assets = data.data || [];
-    const usdtAsset = assets.find((a: any) => a.currency === 'USDT');
-
-    if (!usdtAsset) {
-        return 0; // No USDT found or empty wallet
+    if (!accountInfo) {
+        return 0;
     }
 
-    // Usually 'available' or 'marginBalance'. User asked for "Account Size", which usually means total equity or available balance.
-    // Let's assume 'marginBalance' (equity) or 'available'.
-    // Usually for trading calculation, 'available' is safer, but 'equity' (marginBalance) is the actual account size.
-    // Let's use marginBalance if available, otherwise available.
-    // Bitunix docs say: available, marginBalance, positionMargin, etc.
-    // I'll pick marginBalance as it represents total account value.
+    // Case 1: Direct property on the object (e.g. marginBalance)
+    if (accountInfo.marginBalance) {
+        return parseFloat(accountInfo.marginBalance);
+    }
 
-    return parseFloat(usdtAsset.marginBalance || usdtAsset.available || '0');
+    // Case 2: It returns an array of assets (unlikely for 'account' endpoint but possible)
+    if (Array.isArray(accountInfo)) {
+        const usdt = accountInfo.find((a: any) => a.currency === 'USDT' || a.asset === 'USDT');
+        if (usdt) {
+            return parseFloat(usdt.marginBalance || usdt.equity || usdt.available || '0');
+        }
+    }
+
+    // Case 3: It has an 'assets' property which is an array
+    if (Array.isArray(accountInfo.assets)) {
+         const usdt = accountInfo.assets.find((a: any) => a.currency === 'USDT' || a.asset === 'USDT');
+         if (usdt) {
+             return parseFloat(usdt.marginBalance || usdt.equity || usdt.available || '0');
+         }
+    }
+
+    // Fallback: available
+    if (accountInfo.available) {
+        return parseFloat(accountInfo.available);
+    }
+
+    // Fallback: equity
+    if (accountInfo.equity) {
+        return parseFloat(accountInfo.equity);
+    }
+    
+    console.warn('Could not find balance in Bitunix response:', JSON.stringify(accountInfo));
+    return 0;
 }
 
 async function fetchBinanceBalance(apiKey: string, apiSecret: string): Promise<number> {
     const baseUrl = 'https://fapi.binance.com';
     const path = '/fapi/v2/balance';
     const timestamp = Date.now();
-
+    
     let queryString = `timestamp=${timestamp}`;
     const signature = createHmac('sha256', apiSecret).update(queryString).digest('hex');
     queryString += `&signature=${signature}`;
@@ -100,19 +150,12 @@ async function fetchBinanceBalance(apiKey: string, apiSecret: string): Promise<n
     }
 
     const data = await response.json();
-    // Binance returns an array of assets
-    // [ { "accountAlias": "...", "asset": "USDT", "balance": "0.0", "crossWalletBalance": "0.0", "crossUnPnl": "0.0", "availableBalance": "0.0", "maxWithdrawAmount": "0.0" } ]
-
+    
     const usdtAsset = data.find((a: any) => a.asset === 'USDT');
-
+    
     if (!usdtAsset) {
         return 0;
     }
-
-    // For futures calculator, usually we want 'balance' (Wallet Balance) or 'crossWalletBalance'.
-    // 'balance' is total wallet balance. 'availableBalance' is what can be used for new orders.
-    // 'Account Size' in calculator usually implies the total capital available to risk.
-    // I'll use 'balance' (Wallet Balance).
-
+    
     return parseFloat(usdtAsset.balance || '0');
 }

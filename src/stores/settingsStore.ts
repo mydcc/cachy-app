@@ -37,10 +37,10 @@ function loadSettingsFromLocalStorage(): Settings {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
         if (!d) return defaultSettings;
         const parsed = JSON.parse(d);
-
+        
         // Ensure we merge with defaults to handle new keys in existing storage
-        const settings = {
-            ...defaultSettings,
+        const settings = { 
+            ...defaultSettings, 
             ...parsed,
             apiKeys: {
                 ...defaultSettings.apiKeys,
