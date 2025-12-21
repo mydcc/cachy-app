@@ -1,12 +1,16 @@
 <script lang="ts">
     import { onMount, onDestroy } from 'svelte';
-    import { tradeStore } from '../../stores/tradeStore';
+    import { tradeStore, updateTradeStore } from '../../stores/tradeStore';
     import { settingsStore } from '../../stores/settingsStore';
+    import { favoritesStore } from '../../stores/favoritesStore';
     import { apiService, type Ticker24h } from '../../services/apiService';
     import { icons } from '../../lib/constants';
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
     import { Decimal } from 'decimal.js';
+
+    export let customSymbol: string | undefined = undefined;
+    export let isFavoriteTile: boolean = false;
 
     let tickerData: Ticker24h | null = null;
     let isLoading = false;
@@ -14,9 +18,12 @@
     let intervalId: any;
     let debounceTimer: any;
 
-    $: symbol = $tradeStore.symbol;
+    // Use custom symbol if provided, otherwise fall back to store symbol
+    $: symbol = customSymbol || $tradeStore.symbol;
     $: provider = $settingsStore.apiProvider;
     $: updateInterval = $settingsStore.marketDataInterval;
+
+    $: isFavorite = symbol ? $favoritesStore.includes(symbol.toUpperCase()) : false;
 
     // React to symbol, provider, or interval changes
     $: if (symbol && provider && updateInterval) {
@@ -103,22 +110,44 @@
 
         return display;
     }
+
+    function toggleFavorite() {
+        if (symbol) {
+            favoritesStore.toggleFavorite(symbol);
+        }
+    }
+
+    function loadToCalculator() {
+        if (isFavoriteTile && symbol) {
+            // Update the trade store with this symbol
+            updateTradeStore(s => ({ ...s, symbol: symbol }));
+        }
+    }
 </script>
 
-<div class="market-overview-card bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-primary)] p-4 flex flex-col gap-2 min-w-[200px] backdrop-blur-sm bg-opacity-95">
+<div
+    class="market-overview-card bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-primary)] p-4 flex flex-col gap-2 min-w-[200px] backdrop-blur-sm bg-opacity-95 relative transition-transform hover:scale-[1.02]"
+    class:cursor-pointer={isFavoriteTile}
+    on:click={loadToCalculator}
+    role="button"
+    tabindex={isFavoriteTile ? 0 : -1}
+    on:keypress={(e) => isFavoriteTile && (e.key === 'Enter' || e.key === ' ') && loadToCalculator()}
+>
     <div class="flex justify-between items-start">
         <div>
             <div class="text-xs text-[var(--text-secondary)] uppercase font-bold tracking-wider">{provider}</div>
             <div class="text-lg font-bold text-[var(--text-primary)]">{getDisplaySymbol(tickerData?.symbol || symbol)}</div>
         </div>
-        <button
-            class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
-            title="Refresh"
-            on:click={() => fetchData()}
-            class:animate-spin={isLoading}
-        >
-            {@html icons.refresh || '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
-        </button>
+        <div class="flex gap-2">
+            <button
+                class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
+                title="Refresh"
+                on:click|stopPropagation={() => fetchData()}
+                class:animate-spin={isLoading}
+            >
+                {@html icons.refresh || '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+            </button>
+        </div>
     </div>
 
     {#if error}
@@ -160,6 +189,20 @@
             </div>
         </div>
     {/if}
+
+    <!-- Star Icon for Favorites -->
+    <button
+        class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
+        class:text-[var(--accent-color)]={isFavorite}
+        on:click|stopPropagation={toggleFavorite}
+        title={isFavorite ? 'Remove from Favorites' : 'Add to Favorites'}
+    >
+        {#if isFavorite}
+            {@html icons.starFilled}
+        {:else}
+            {@html icons.starEmpty}
+        {/if}
+    </button>
 </div>
 
 <style>
