@@ -140,6 +140,8 @@
     }
 </script>
 
+<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+<!-- svelte-ignore a11y-no-static-element-interactions -->
 <div
     class="market-overview-card bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-primary)] p-4 flex flex-col gap-2 min-w-[200px] backdrop-blur-sm bg-opacity-95 transition-all {isFavoriteTile
         ? 'cursor-pointer hover:border-[var(--accent-color)] active:scale-[0.98]'
