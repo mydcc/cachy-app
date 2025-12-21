@@ -107,6 +107,7 @@ Die Marktübersicht (Market Overview Card) bietet dir einen schnellen Blick auf 
 
 *   **Anzeige:** Zeigt den aktuellen Preis, die 24h-Preisänderung (in %), das 24h-Hoch, das 24h-Tief und das 24h-Volumen an.
 *   **Symbol-Erkennung:** Fügt automatisch ein 'P'-Suffix hinzu (z.B. BTCUSDTP), wenn es sich um Perpetual-Futures handelt.
+*   **Favoriten:** Klicke auf das **Stern-Symbol**, um das aktuelle Symbol zu deiner Favoritenliste hinzuzufügen (maximal 4). Gespeicherte Favoriten erscheinen in der Seitenleiste (Desktop) oder unter der Hauptkarte (Mobil) und können per Klick direkt in den Rechner geladen werden.
 *   **Aktualisierung:**
     *   **Manuell:** Klicke auf das Refresh-Symbol, um die Daten manuell zu laden.
     *   **Automatisch:** In den **Einstellungen** kannst du ein Intervall (10s oder 1m) festlegen, damit sich die Daten automatisch im Hintergrund aktualisieren.

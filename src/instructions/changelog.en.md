@@ -15,7 +15,9 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
 - **New:** "Market Overview" displays 24h data (price, volume, change) for the current symbol.
+- **New:** Favorites feature: Save up to 4 symbols by clicking the star icon in the Market Overview.
 - **New:** Extended settings: Select API provider (Bitunix/Binance) and market data update interval (Manual, 10s, 1m).
+- **Fix:** Resolved deployment issues (502 errors) and improved stability.
 
 ---
 

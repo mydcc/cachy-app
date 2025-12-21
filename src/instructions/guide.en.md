@@ -107,6 +107,7 @@ The Market Overview card provides a quick glance at the current market data for 
 
 *   **Display:** Shows the current price, 24h price change (in %), 24h high, 24h low, and 24h volume.
 *   **Symbol Recognition:** Automatically adds a 'P' suffix (e.g., BTCUSDTP) if it is a perpetual future.
+*   **Favorites:** Click the **Star icon** to add the current symbol to your favorites list (maximum 4). Saved favorites appear in the sidebar (desktop) or below the main card (mobile) and can be loaded directly into the calculator by clicking on them.
 *   **Refresh:**
     *   **Manual:** Click the refresh icon to load data manually.
     *   **Automatic:** In the **Settings**, you can define an interval (10s or 1m) for the data to update automatically in the background.
