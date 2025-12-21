@@ -4,7 +4,6 @@ import type { AppState } from './types';
 import { resultsStore, initialResultsState } from './resultsStore';
 import { uiStore } from './uiStore';
 import { browser } from '$app/environment';
-import { browser } from '$app/environment';
 
 export const initialTradeState: Pick<AppState,
     'tradeType' |
@@ -64,7 +63,7 @@ function loadTradeStateFromLocalStorage(): typeof initialTradeState {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY);
         if (!d) return initialTradeState;
         const parsed = JSON.parse(d);
-
+        
         // Merge with initial state to ensure all keys exist
         // We override initial defaults with parsed data
         // Note: transient data like 'currentTradeData' might be good to ignore or reset if it depends on fresh calculation.
@@ -73,7 +72,7 @@ function loadTradeStateFromLocalStorage(): typeof initialTradeState {
         // But if inputs are saved, the UI might re-trigger calculation or show inputs.
         // We'll trust the merge. But let's verify if we should exclude some.
         // For now, let's load everything that matches the keys.
-
+        
         return {
             ...initialTradeState,
             ...parsed,
