@@ -58,29 +58,21 @@ export const initialTradeState: Pick<AppState,
 };
 
 function loadTradeStateFromLocalStorage(): typeof initialTradeState {
-    if (!browser) return initialTradeState;
+    if (!browser) return JSON.parse(JSON.stringify(initialTradeState));
     try {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY);
-        if (!d) return initialTradeState;
+        if (!d) return JSON.parse(JSON.stringify(initialTradeState));
         const parsed = JSON.parse(d);
         
         // Merge with initial state to ensure all keys exist
         // We override initial defaults with parsed data
-        // Note: transient data like 'currentTradeData' might be good to ignore or reset if it depends on fresh calculation.
-        // However, user said "exactly where left off".
-        // But 'currentTradeData' is typically derived from api/calculation, if we save it, we might show stale data.
-        // But if inputs are saved, the UI might re-trigger calculation or show inputs.
-        // We'll trust the merge. But let's verify if we should exclude some.
-        // For now, let's load everything that matches the keys.
-        
         return {
-            ...initialTradeState,
+            ...JSON.parse(JSON.stringify(initialTradeState)),
             ...parsed,
-            // Ensure we don't accidentally load invalid types if needed, but simple merge is usually fine for these primitives
         };
     } catch (e) {
         console.warn("Could not load trade state from localStorage", e);
-        return initialTradeState;
+        return JSON.parse(JSON.stringify(initialTradeState));
     }
 }
 
@@ -113,10 +105,7 @@ export const toggleAtrInputs = (useAtrSl: boolean) => {
 
 // Helper function to reset all inputs
 export const resetAllInputs = () => {
-    tradeStore.set(initialTradeState);
+    tradeStore.set(JSON.parse(JSON.stringify(initialTradeState)));
     resultsStore.set(initialResultsState);
     uiStore.showError('dashboard.promptForData');
-    // Also clear from local storage if 'reset' implies clearing persistence?
-    // User said "reset back to standard", usually implies clearing.
-    // The subscribe block will handle saving the 'initialTradeState' to localStorage automatically.
 };
