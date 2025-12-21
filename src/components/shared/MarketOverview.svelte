@@ -27,9 +27,8 @@
     function setupInterval() {
         if (intervalId) clearInterval(intervalId);
 
-        if (updateInterval === 'manual') return;
-
-        const ms = updateInterval === '10s' ? 10000 : 60000;
+        // interval is now always '1s', '1m', or '10m'.
+        const ms = updateInterval === '1s' ? 1000 : (updateInterval === '10m' ? 600000 : 60000);
         intervalId = setInterval(() => fetchData(true), ms); // Background fetch
     }
 

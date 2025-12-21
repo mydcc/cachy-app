@@ -13,7 +13,7 @@
     "restoreButtonTitle": "Restore data from a backup file",
     "restoreButtonAriaLabel": "Restore Backup",
     "restoreConfirmTitle": "Restore Backup?",
-    "restoreConfirmMessage": "Are you sure you want to restore from this backup? All your current settings, presets, and journal entries will be overwritten. This action cannot be undone.",
+    "restoreConfirmMessage": "Are you sure you want to restore this backup? All current settings, presets, and journal entries will be irreversibly overwritten. This action cannot be undone.",
     "fileReadError": "Error reading the selected file."
   },
   "dashboard": {
@@ -25,30 +25,30 @@
     "resetButtonTitle": "Reset all inputs",
     "themeSwitcherAriaLabel": "Switch Theme",
     "totalTradeMetrics": "Total Trade Metrics",
-    "totalTradeMetricsTooltip": "Overview of the most important key figures for the entire trade.",
+    "totalTradeMetricsTooltip": "Overview of key metrics for the entire trade.",
     "riskPerTradeCurrency": "Risk per Trade (Currency)",
-    "riskPerTradeCurrencyTooltip": "The absolute amount of money you risk at most.",
+    "riskPerTradeCurrencyTooltip": "The absolute monetary amount you risk max.",
     "totalFees": "Total Fees",
-    "totalFeesTooltip": "The estimated total cost for this trade.",
-    "maxPotentialProfit": "Max. Potential Profit",
-    "maxPotentialProfitTooltip": "The maximum net profit if the entire position were closed at the best TP.",
+    "totalFeesTooltip": "Estimated total costs for this trade.",
+    "maxPotentialProfit": "Max Potential Profit",
+    "maxPotentialProfitTooltip": "Maximum net profit if the entire position is closed at the best TP.",
     "weightedRR": "Weighted R/R",
-    "weightedRRTooltip": "The average risk-reward ratio of all partial sales.",
+    "weightedRRTooltip": "Average risk/reward ratio of all partial sales.",
     "totalNetProfit": "Total Net Profit",
-    "totalNetProfitTooltip": "The accumulated net profit from all partial sales.",
+    "totalNetProfitTooltip": "Cumulative net profit from all partial sales.",
     "soldPosition": "Sold Position",
-    "soldPositionTooltip": "The total percentage of the position sold.",
+    "soldPositionTooltip": "Total percentage of position sold.",
     "takeProfit": "Take Profit",
     "netProfit": "Net Profit",
-    "netProfitTooltip": "The estimated profit for this partial sale.",
+    "netProfitTooltip": "Estimated profit for this partial sale.",
     "priceChange": "Price Change",
-    "priceChangeTooltip": "The percentage price movement from entry.",
+    "priceChangeTooltip": "Percentage price movement from entry.",
     "returnOnCapital": "Return on Capital",
-    "returnOnCapitalTooltip": "The percentage profit in relation to the capital.",
+    "returnOnCapitalTooltip": "Percentage profit relative to capital.",
     "partialVolume": "Partial Volume",
-    "partialVolumeTooltip": "The quantity of units for this partial sale.",
+    "partialVolumeTooltip": "Amount of units for this partial sale.",
     "exitFeeLabel": "Exit Fee",
-    "tradeNotesPlaceholder": "Notes on the trade...",
+    "tradeNotesPlaceholder": "Trade notes...",
     "addTradeToJournal": "Add Trade to Journal",
     "showInstructionsTitle": "Show Instructions",
     "showInstructionsAriaLabel": "Show Instructions",
@@ -62,10 +62,10 @@
     },
     "portfolioInputs": {
       "header": "Portfolio",
-      "accountSizeLabel": "Account Size",
-      "accountSizePlaceholder": "e.g., 10000",
+      "accountSizeLabel": "Account Balance",
+      "accountSizePlaceholder": "e.g. 10000",
       "riskPerTradeLabel": "Risk per Trade (%)",
-      "riskPerTradePlaceholder": "e.g., 1.5",
+      "riskPerTradePlaceholder": "e.g. 1.5",
       "riskAmountLabel": "Risk Amount",
       "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount"
     },
@@ -94,7 +94,7 @@
     },
     "takeProfitTargets": {
       "header": "Take-Profit Targets (Partial)",
-      "tooltip": "Here you can see the calculated key figures for each of your partial take-profit targets.",
+      "tooltip": "Here you see calculated metrics for each partial take-profit target.",
       "addTargetTitle": "Add another target"
     },
     "summaryResults": {
@@ -104,15 +104,15 @@
       "lockPositionSizeAriaLabel": "Lock/Unlock Position Size",
       "copyPositionSizeAriaLabel": "Copy Position Size",
       "copiedFeedback": "Copied!",
-      "maxNetLossLabel": "Max. Net Loss",
-      "maxNetLossTooltip": "The maximum amount you can lose on this trade, including all fees.",
+      "maxNetLossLabel": "Max Net Loss",
+      "maxNetLossTooltip": "Maximum amount you can lose on this trade, including fees.",
       "requiredMarginLabel": "Required Margin",
-      "requiredMarginTooltip": "The capital blocked from your account for this trade.",
+      "requiredMarginTooltip": "Capital blocked from your account for this trade.",
       "entryFeeLabel": "Entry Fee",
       "estimatedLiquidationPriceLabel": "Est. Liquidation Price",
-      "estimatedLiquidationPriceTooltip": "Estimated price at which your position will be liquidated.",
+      "estimatedLiquidationPriceTooltip": "Estimated price where your position will be liquidated.",
       "breakEvenPriceLabel": "Break-Even Price",
-      "breakEvenPriceTooltip": "The price at which your trade makes zero profit/loss, considering fees."
+      "breakEvenPriceTooltip": "Price where your trade breaks even considering fees."
     },
     "customModal": {
       "promptPlaceholder": "Input...",
@@ -122,18 +122,18 @@
     },
     "visualBar": {
       "header": "Visual Analysis",
-      "ariaLabel": "Trade visualization bar",
+      "ariaLabel": "Trade Visualization Bar",
       "netProfitLabel": "Net Profit:",
       "rrLabel": "R/R:"
     },
     "riskRewardRatio": "Risk/Reward Ratio",
-    "promptForData": "Please enter the required trade data to start the calculation.",
+    "promptForData": "Please enter required trade data to start calculation.",
     "instructionsTitle": "Instructions: Dashboard"
   },
   "journal": {
     "title": "Trade Journal",
     "closeJournalAriaLabel": "Close Journal",
-    "searchSymbolPlaceholder": "Search Symbol...",
+    "searchSymbolPlaceholder": "Search symbol...",
     "filterAll": "All",
     "filterOpen": "Open",
     "filterWon": "Won",
@@ -147,7 +147,7 @@
     "status": "Status",
     "notes": "Notes",
     "action": "Action",
-    "noTradesYet": "No trades in the journal yet.",
+    "noTradesYet": "No trades in journal yet.",
     "clickToExpand": "Click to expand",
     "delete": "Delete",
     "performancePerSymbol": "Performance per Symbol",
@@ -159,7 +159,7 @@
     "importCsvTitle": "Import trades from CSV file",
     "export": "Export",
     "import": "Import",
-    "clearJournalTitle": "Clear entire journal",
+    "clearJournalTitle": "Clear Entire Journal",
     "clearAll": "Clear All",
     "showJournalInstructionsTitle": "Show Journal Instructions",
     "showJournalInstructionsAriaLabel": "Show Journal Instructions"
@@ -167,7 +167,7 @@
   "seo": {
     "title": "Cachy - Position Size & Risk Calculator",
     "description": "Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis.",
-    "keywords": "trading calculator, position size, risk management, take profit, crypto trading, forex trading, stock trading, trading tools, financial calculator, trade optimizer"
+    "keywords": "Trading Calculator, Position Sizing, Risk Management, Take Profit, Crypto Trading, Forex Trading, Stock Trading, Trading Tools, Financial Calculator, Trade Optimizer"
   },
   "languages": {
     "german": "German",
@@ -178,12 +178,17 @@
     "theme": "Theme",
     "language": "Language",
     "backup": "Backup",
-    "apiProvider": "API Provider"
+    "apiProvider": "API Provider",
+    "autoUpdatePriceInput": "Auto-update Price Input",
+    "marketDataInterval": "Update Interval",
+    "interval1s": "Every 1s",
+    "interval1m": "Every 1m",
+    "interval10m": "Every 10m"
   },
   "apiErrors": {
-    "symbolNotFound": "Symbol not found on API or API error.",
-    "invalidResponse": "Invalid response from the API.",
-    "klineError": "Could not load candlestick data.",
+    "symbolNotFound": "Symbol not found or API error.",
+    "invalidResponse": "Invalid response from API.",
+    "klineError": "Could not load candle data.",
     "generic": "An unknown API error occurred."
   }
 }

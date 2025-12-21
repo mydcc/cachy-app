@@ -88,25 +88,32 @@ export const app = {
         }
 
         const settings = get(settingsStore);
-        if (settings.priceUpdateMode === 'auto') {
-            let intervalMs = 60000;
-            if (settings.marketDataInterval === '1s') intervalMs = 1000;
-            else if (settings.marketDataInterval === '1m') intervalMs = 60000;
-            else if (settings.marketDataInterval === '10m') intervalMs = 600000;
+        // Interval logic: we start the loop if marketDataInterval is set (it is always set in new types)
+        // However, if we want to stop it completely, we'd need an "Off" option. Currently type is '1s'|'1m'|'10m'.
+        // So we assume it always runs.
 
-            priceUpdateIntervalId = setInterval(() => {
-                const currentSymbol = get(tradeStore).symbol;
-                if (currentSymbol && currentSymbol.length >= 3 && !get(uiStore).isPriceFetching) {
-                     // Fetch silently without blocking UI too much
+        let intervalMs = 60000;
+        if (settings.marketDataInterval === '1s') intervalMs = 1000;
+        else if (settings.marketDataInterval === '1m') intervalMs = 60000;
+        else if (settings.marketDataInterval === '10m') intervalMs = 600000;
+
+        priceUpdateIntervalId = setInterval(() => {
+            const currentSymbol = get(tradeStore).symbol;
+            const uiState = get(uiStore);
+
+            if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
+
+                 // 1. Auto Update Price Input
+                 if (settings.autoUpdatePriceInput) {
                      app.handleFetchPrice(true);
-                     
-                     // Also fetch ATR if needed
-                     if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-                         app.fetchAtr(true);
-                     }
-                }
-            }, intervalMs);
-        }
+                 }
+
+                 // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
+                 if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+                     app.fetchAtr(true);
+                 }
+            }
+        }, intervalMs);
     },
 
     calculateAndDisplay: () => {
