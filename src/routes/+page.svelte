@@ -11,6 +11,7 @@
     import { resultsStore } from '../stores/resultsStore';
     import { presetStore } from '../stores/presetStore';
     import { uiStore } from '../stores/uiStore';
+    import { favoritesStore } from '../stores/favoritesStore'; // Import favorites store
     import { modalManager } from '../services/modalManager';
     import { onMount } from 'svelte';
     import { _, locale } from '../locales/i18n'; // Import locale
@@ -218,8 +219,15 @@ import { trackCustomEvent } from '../services/trackingService';
 
 <!-- Wrapper for desktop positioning -->
 <div class="relative w-full max-w-4xl mx-auto">
-    <div class="hidden xl:block absolute -right-60 top-8 w-52">
+    <!-- Updated Sidebar: Stacked tiles -->
+    <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
+        <!-- Main current symbol -->
         <MarketOverview />
+        
+        <!-- Favorites below: Filter out the currently selected symbol (which is shown above) -->
+        {#each $favoritesStore.filter(f => f !== ($tradeStore.symbol || '').toUpperCase()) as favorite (favorite)}
+            <MarketOverview customSymbol={favorite} isFavoriteTile={true} />
+        {/each}
     </div>
 
     <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
