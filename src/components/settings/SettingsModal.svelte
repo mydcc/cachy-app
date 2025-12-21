@@ -94,23 +94,21 @@
         </div>
       </div>
 
-     <!-- Market Data Update Mode -->
+     <!-- Auto Update Price Input (Checkbox/Toggle) -->
      <div class="flex justify-between items-center">
-        <label for="price-update-mode-select" class="text-sm font-medium text-text-primary">{$_('settings.priceUpdateMode') || 'Update Mode'}</label>
-        <div class="flex items-center gap-2 w-1/2">
-          <select
-            id="price-update-mode-select"
-            class="input-field w-full"
-            bind:value={$settingsStore.priceUpdateMode}
-          >
-            <option value="manual">{$_('settings.modeManual') || 'Manual'}</option>
-            <option value="auto">{$_('settings.modeAuto') || 'Automatic'}</option>
-          </select>
+        <label for="auto-update-price-input" class="text-sm font-medium text-text-primary">
+            {$_('settings.autoUpdatePriceInput') || 'Auto-update Price Input'}
+        </label>
+        <div class="flex items-center gap-2 w-1/2 justify-end">
+            <!-- Simple Toggle using Checkbox -->
+             <label class="relative inline-flex items-center cursor-pointer">
+                <input type="checkbox" id="auto-update-price-input" class="sr-only peer" bind:checked={$settingsStore.autoUpdatePriceInput}>
+                <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+            </label>
         </div>
       </div>
 
-     <!-- Market Data Update Frequency -->
-     {#if $settingsStore.priceUpdateMode === 'auto'}
+     <!-- Market Data Update Frequency (Always Visible) -->
      <div class="flex justify-between items-center fade-in">
         <label for="market-data-interval-select" class="text-sm font-medium text-text-primary">{$_('settings.marketDataInterval') || 'Update Interval'}</label>
         <div class="flex items-center gap-2 w-1/2">
@@ -125,7 +123,6 @@
           </select>
         </div>
       </div>
-      {/if}
 
     <!-- Backup / Restore -->
     <div class="flex justify-between items-center">
