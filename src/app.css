@@ -1161,58 +1161,6 @@
     --overlay-color: var(--black-overlay);
 }
 
-/* =================================================================
-   Shades of Purple Theme
-   ================================================================= */
-.theme-shades-of-purple {
-    /* --- Palette --- */
-    --sop-bg: #2d2b55;
-    --sop-bg-dark: #222044;
-    --sop-bg-alt: #4d4b83;
-    --sop-bg-alt-light: #63609c;
-    --sop-fg: #ffffff;
-    --sop-comment: #b362ff;
-    --sop-cyan: #9effff;
-    --sop-green: #a5ff90;
-    --sop-green-light: #baffab;
-    --sop-orange: #ffca86;
-    --sop-pink: #ff92df;
-    --sop-pink-light: #ffadf1;
-    --sop-red: #ff757f;
-    --sop-red-light: #ff949c;
-    --black-transparent: rgba(0, 0, 0, 0.3);
-    --black-overlay: rgba(0, 0, 0, 0.7);
-
-    /* --- Mapping --- */
-    --bg-primary: var(--sop-bg);
-    --bg-secondary: var(--sop-bg-dark);
-    --bg-tertiary: var(--sop-bg-alt);
-    --text-primary: var(--sop-fg);
-    --text-secondary: var(--sop-comment);
-    --border-color: var(--sop-bg-alt);
-    --accent-color: var(--sop-pink);
-    --accent-color-hover: var(--sop-pink-light);
-    --success-color: var(--sop-green);
-    --danger-color: var(--sop-red);
-    --warning-color: var(--sop-orange);
-    --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
-    --btn-default-bg: var(--sop-bg-alt);
-    --btn-default-hover-bg: var(--sop-bg-alt-light);
-    --btn-default-text: var(--sop-fg);
-    --btn-danger-bg: var(--sop-red);
-    --btn-danger-hover-bg: var(--sop-red-light);
-    --btn-danger-text: var(--sop-bg);
-    --btn-accent-bg: var(--sop-pink);
-    --btn-accent-hover-bg: var(--sop-pink-light);
-    --btn-accent-text: var(--sop-bg);
-    --btn-success-bg: var(--sop-green);
-    --btn-success-hover-bg: var(--sop-green-light);
-    --btn-success-text: var(--sop-bg);
-    --toggle-bg-off: var(--sop-bg-alt);
-    --toggle-bg-on: var(--sop-pink);
-    --toggle-circle-bg: var(--sop-fg);
-    --overlay-color: var(--black-overlay);
-}
 
 
 /* =================================================================
