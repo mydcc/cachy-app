@@ -11,6 +11,7 @@
     import { resultsStore } from '../stores/resultsStore';
     import { presetStore } from '../stores/presetStore';
     import { uiStore } from '../stores/uiStore';
+    import { settingsStore } from '../stores/settingsStore'; // Import settings store
     import { favoritesStore } from '../stores/favoritesStore'; // Import favorites store
     import { modalManager } from '../services/modalManager';
     import { onMount } from 'svelte';
@@ -221,26 +222,28 @@ import { trackCustomEvent } from '../services/trackingService';
 <!-- Wrapper for desktop positioning -->
 <div class="relative w-full max-w-4xl mx-auto">
 
-    <!-- Left Sidebar: Positions Table -->
-    <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3">
-        <PositionsSidebar />
-    </div>
+    {#if $settingsStore.showSidebars}
+        <!-- Left Sidebar: Positions Table -->
+        <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3">
+            <PositionsSidebar />
+        </div>
 
-    <!-- Right Sidebar: Stacked tiles -->
-    <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
-        <!-- Main current symbol -->
-        <MarketOverview />
+        <!-- Right Sidebar: Stacked tiles -->
+        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
+            <!-- Main current symbol -->
+            <MarketOverview />
 
-        <!-- Favorites list -->
-        {#if $favoritesStore.length > 0}
-            <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
-        {/if}
-        {#each $favoritesStore as fav (fav)}
-            {#if fav.toUpperCase() !== ($tradeStore.symbol || '').toUpperCase()}
-                <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+            <!-- Favorites list -->
+            {#if $favoritesStore.length > 0}
+                <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
             {/if}
-        {/each}
-    </div>
+            {#each $favoritesStore as fav (fav)}
+                {#if fav.toUpperCase() !== ($tradeStore.symbol || '').toUpperCase()}
+                    <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+                {/if}
+            {/each}
+        </div>
+    {/if}
 
     <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
 
@@ -394,8 +397,12 @@ import { trackCustomEvent } from '../services/trackingService';
             </footer>
         </section>
 
+        {#if $settingsStore.showSidebars}
         <!-- Mobile MarketOverview position -->
         <div class="xl:hidden mt-8 flex flex-col gap-4">
+            <!-- Add PositionsSidebar for Mobile -->
+            <PositionsSidebar />
+
             <MarketOverview />
             
             {#if $favoritesStore.length > 0}
@@ -407,6 +414,7 @@ import { trackCustomEvent } from '../services/trackingService';
                 {/each}
             {/if}
         </div>
+        {/if}
     </main>
 </div>
 
