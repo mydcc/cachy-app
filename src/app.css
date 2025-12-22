@@ -1161,6 +1161,56 @@
     --overlay-color: var(--black-overlay);
 }
 
+/* =================================================================
+   Midnight Theme
+   ================================================================= */
+.theme-midnight {
+    /* --- Palette --- */
+    --midnight-bg-main: #0D1117;
+    --midnight-bg-cards: #161B22;
+    --midnight-bg-overlay: #21262D;
+    --midnight-border: #30363D;
+    --midnight-text-primary: #E6EDF3;
+    --midnight-text-secondary: #8B949E;
+    --midnight-gold: #FFD700;
+    --midnight-gold-hover: #D4AF37;
+    --midnight-success: #238636;
+    --midnight-error: #DA3633;
+    --midnight-warning: #D29922;
+    --black-transparent: rgba(0, 0, 0, 0.3);
+    --black-overlay: rgba(0, 0, 0, 0.7);
+
+    /* --- Mapping --- */
+    --bg-primary: var(--midnight-bg-main);
+    --bg-secondary: var(--midnight-bg-cards);
+    --bg-tertiary: var(--midnight-bg-overlay);
+    --text-primary: var(--midnight-text-primary);
+    --text-secondary: var(--midnight-text-secondary);
+    --border-color: var(--midnight-border);
+    --accent-color: var(--midnight-gold);
+    --accent-color-hover: var(--midnight-gold-hover);
+    --success-color: var(--midnight-success);
+    --danger-color: var(--midnight-error);
+    --warning-color: var(--midnight-warning);
+    --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+    --btn-default-bg: var(--midnight-bg-overlay);
+    --btn-default-hover-bg: var(--midnight-border);
+    --btn-default-text: var(--midnight-text-primary);
+    --btn-danger-bg: var(--midnight-error);
+    --btn-danger-hover-bg: color-mix(in srgb, var(--midnight-error) 80%, black);
+    --btn-danger-text: var(--midnight-text-primary);
+    --btn-accent-bg: var(--midnight-gold);
+    --btn-accent-hover-bg: var(--midnight-gold-hover);
+    --btn-accent-text: var(--midnight-bg-main);
+    --btn-success-bg: var(--midnight-success);
+    --btn-success-hover-bg: color-mix(in srgb, var(--midnight-success) 80%, black);
+    --btn-success-text: var(--midnight-text-primary);
+    --toggle-bg-off: var(--midnight-bg-overlay);
+    --toggle-bg-on: var(--midnight-gold);
+    --toggle-circle-bg: var(--midnight-text-primary);
+    --overlay-color: var(--black-overlay);
+}
+
 
 
 /* =================================================================
