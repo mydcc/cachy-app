@@ -28,7 +28,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixAccount(apiKey: string, apiSecret: string): Promise<any> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/account';
-
+    
     // We assume USDT for now as it's the standard
     const params: Record<string, string> = {
         marginCoin: 'USDT'

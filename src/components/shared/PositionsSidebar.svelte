@@ -4,14 +4,14 @@
     import { tradeStore } from '../../stores/tradeStore';
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
-
+    
     // Sub-components
     import AccountSummary from './AccountSummary.svelte';
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
 
     let isOpen = true;
-
+    
     // Data State
     let positions: any[] = [];
     let openOrders: any[] = [];
@@ -184,16 +184,16 @@
 
     {#if isOpen}
         <!-- Account Summary -->
-        <AccountSummary
-            available={accountInfo.available}
-            margin={accountInfo.margin}
-            pnl={accountInfo.totalUnrealizedPnL}
-            currency={accountInfo.marginCoin}
+        <AccountSummary 
+            available={accountInfo.available} 
+            margin={accountInfo.margin} 
+            pnl={accountInfo.totalUnrealizedPnL} 
+            currency={accountInfo.marginCoin} 
         />
 
         <!-- Tabs -->
         <div class="flex border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
-            <button
+            <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
                 class:text-[var(--accent-color)]={activeTab === 'positions'}
                 class:border-[var(--accent-color)]={activeTab === 'positions'}
@@ -203,7 +203,7 @@
             >
                 {$_('dashboard.positions') || 'Positions'} ({positions.length})
             </button>
-            <button
+            <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
                 class:text-[var(--accent-color)]={activeTab === 'orders'}
                 class:border-[var(--accent-color)]={activeTab === 'orders'}
@@ -213,7 +213,7 @@
             >
                 {$_('dashboard.orders') || 'Orders'} ({openOrders.length})
             </button>
-            <button
+            <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
                 class:text-[var(--accent-color)]={activeTab === 'history'}
                 class:border-[var(--accent-color)]={activeTab === 'history'}

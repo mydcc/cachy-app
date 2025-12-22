@@ -42,20 +42,20 @@
                     <div class="grid grid-cols-2 gap-y-1 text-xs">
                         <span class="text-[var(--text-secondary)]">{$_('dashboard.type') || 'Type'}:</span>
                         <span class="text-right text-[var(--text-primary)]">{order.type}</span>
-
+                        
                         <span class="text-[var(--text-secondary)]">{$_('dashboard.price') || 'Price'}:</span>
                         <span class="text-right text-[var(--text-primary)]">{formatDynamicDecimal(order.price)}</span>
-
+                        
                         <span class="text-[var(--text-secondary)]">{$_('dashboard.amount') || 'Amount'}:</span>
                         <span class="text-right text-[var(--text-primary)]">{formatDynamicDecimal(order.amount)}</span>
-
+                        
                         <span class="text-[var(--text-secondary)]">{$_('dashboard.filled') || 'Filled'}:</span>
                         <span class="text-right text-[var(--text-primary)]">{formatDynamicDecimal(order.filled)}</span>
                     </div>
 
                     <!-- Cancel Button (Visual only for now unless endpoint added) -->
-                    <!--
-                    <button class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--danger-color)] opacity-0 group-hover:opacity-100 transition-opacity"
+                    <!-- 
+                    <button class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--danger-color)] opacity-0 group-hover:opacity-100 transition-opacity" 
                             on:click|stopPropagation={() => handleCancel(order.id)} title="Cancel Order">
                         <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />

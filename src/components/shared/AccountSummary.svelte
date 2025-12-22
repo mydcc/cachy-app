@@ -13,7 +13,7 @@
         <span class="text-xs text-[var(--text-secondary)]">{$_('dashboard.balance') || 'Available'}</span>
         <span class="text-sm font-bold text-[var(--text-primary)]">{formatDynamicDecimal(available, 2)} {currency}</span>
     </div>
-
+    
     <div class="flex justify-between items-center">
         <span class="text-xs text-[var(--text-secondary)]">{$_('dashboard.margin') || 'Margin'}</span>
         <span class="text-sm font-bold text-[var(--text-primary)]">{formatDynamicDecimal(margin, 2)} {currency}</span>
