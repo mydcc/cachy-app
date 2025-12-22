@@ -19,7 +19,7 @@ The main function of Cachy is to calculate your position size and other importan
 **Step 2: Portfolio Inputs**
 
 *   **Account Size:** Enter the total size of your trading account. You can also have your balance fetched automatically if you have configured your API keys (see Settings).
-*   **Risk/Trade (%):** Determine the maximum percentage of your account you want to risk on this single trade (e.g., 1 for 1%).
+*   **Risk/Trade (%):** Determine the maximum percentage of your account you want to risk on this single trade (e.g., 1 for 1% or 1.25 for 1.25%). This field supports up to 2 decimal places.
 *   **Risk Amount:** This field shows the monetary amount calculated from your percentage risk. You can also enter this amount directly and lock it.
 
 **Step 3: Trade Setup**

@@ -5,7 +5,7 @@
 		"type": "git",
 		"url": "https://github.com/mydcc/cachy-app.git"
 	},
-	"version": "0.94.0",
+	"version": "0.94b1",
 	"type": "module",
 	"scripts": {
 		"dev": "vite dev",
