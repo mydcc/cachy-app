@@ -38,7 +38,9 @@ elif [ "$APP_NAME" = "cachy-app" ] || [ "$APP_NAME" = "prodcachyapp" ]; then
 fi
 
 echo "Restarting PM2 process '$APP_NAME'..."
-pm2 restart $APP_NAME --update-env
+# Try to restart, if it fails (process doesn't exist), start it.
+# The || operator prevents 'set -e' from exiting on the first failure.
+pm2 restart $APP_NAME --update-env || pm2 start server.js --name "$APP_NAME"
 
 echo "Deployment complete. Current PM2 status:"
 pm2 list
