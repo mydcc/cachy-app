@@ -12,7 +12,7 @@ export const CONSTANTS = {
     SUGGESTED_SYMBOLS: ['AAVEUSDT', 'ADAUSDT', 'AEURUSDT', 'ALGOUSDT', 'API3USDT', 'APTUSDT', 'ARBUSDT', 'ARKMUSDT', 'ASRUSDT', 'ATOMUSDT', 'AVAXUSDT', 'BANDUSDT', 'BBUSDT', 'BERAUSDT', 'BCHUSDT', 'BIOUSDT', 'BNBUSDT', 'BONKUSDT', 'BTCUSDT', 'CAKEUSDT', 'CFXUSDT', 'CROUSDT', 'CYBERUSDT', 'DAIUSDT', 'DOGEUSDT', 'DOTUSDT', 'EGLDUSDT', 'EIGENUSDT', 'ENAUSDT', 'ENSUSDT', 'ETCUSDT', 'ETHFIUSDT', 'ETHUSDT', 'FDUSDUSDT', 'FETUSDT', 'FILUSDT', 'FLOKIUSDT', 'FLOWUSDT', 'FTMUSDT', 'GALAUSDT', 'GRTUSDT', 'HBARUSDT', 'ICPUSDT', 'IMXUSDT', 'INJUSDT', 'IOTAUSDT', 'KASUSDT', 'KERNELUSDT', 'LDOUSDT', 'LINKUSDT', 'LTCUSDT', 'MATICUSDT', 'MEMEUSDT', 'MKRUSDT', 'NEARUSDT', 'NEOUSDT', 'OMUSDT', 'ONDOUSDT', 'OPUSDT', 'PENDLEUSDT', 'PENGUUSDT', 'PEPEUSDT', 'PHAUSDT', 'PLUMEUSDT', 'PNUTUSDT', 'POLUSDT', 'PROVEUSDT', 'QNTUSDT', 'QTUMUSDT', 'RAYUSDT', 'RENDERUSDT', 'RNDRUSDT', 'RUNEUSDT', 'SEIUSDT', 'SHIBUSDT', 'SOLUSDT', 'SPKUSDT', 'STXUSDT', 'SUIUSDT', 'SUSDT', 'TAOUSDT', 'TIAUSDT', 'TRUMPUSDT', 'TRXUSDT', 'TUSDUSDT', 'UMAUSDT', 'UNIUSDT', 'USD1USDT', 'VETUSDT', 'VIRTUALUSDT', 'WBTCUSDT', 'WIFUSDT', 'WLDUSDT', 'XLMUSDT', 'XRPUSDT', 'ZECUSDT'],
     DEFAULT_LEVERAGE: '10',
     DEFAULT_FEES: '0.0140',
-    DEFAULT_ATR_MULTIPLIER: '1.5'
+    DEFAULT_ATR_MULTIPLIER: '1.2'
 };
 
 export const themes = ['dark', 'ayu-dark', 'ayu-mirage', 'catppuccin', 'cobalt2', 'dracula', 'dracula-soft', 'everforest-dark', 'github-dark', 'gruvbox-dark', 'matrix', 'monokai', 'night-owl', 'nord', 'obsidian', 'one-dark-pro', 'shades-of-purple', 'solarized-dark', 'tokyo-night', 'VIP', 'ayu-light', 'github-light', 'solarized-light', 'steel', 'meteorite', 'light'];

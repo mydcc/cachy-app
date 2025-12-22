@@ -203,7 +203,7 @@
                     </div>
                     <div>
                         <label for="atr-multiplier-input-auto" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrMultiplierLabel')}</label>
-                        <input id="atr-multiplier-input-auto" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="1.5">
+                        <input id="atr-multiplier-input-auto" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="1.2">
                     </div>
                 </div>
             {/if}

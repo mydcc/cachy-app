@@ -32,7 +32,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/trade/get_pending_orders';
-
+    
     const params: Record<string, string> = {};
     const nonce = randomBytes(16).toString('hex');
     const timestamp = Date.now().toString();
@@ -85,12 +85,12 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/trade/get_history_orders';
-
+    
     // Default limit 20
     const params: Record<string, string> = {
         limit: '20'
     };
-
+    
     const nonce = randomBytes(16).toString('hex');
     const timestamp = Date.now().toString();
 
@@ -100,7 +100,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string): Pro
     const digest = createHash('sha256').update(digestInput).digest('hex');
     const signInput = digest + apiSecret;
     const signature = createHash('sha256').update(signInput).digest('hex');
-
+    
     const queryString = new URLSearchParams(params).toString();
     const url = `${baseUrl}${path}?${queryString}`;
 

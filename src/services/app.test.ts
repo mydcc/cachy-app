@@ -311,6 +311,7 @@ describe('app service - ATR and Locking Logic', () => {
             isRiskAmountLocked: true,
             entryPrice: 100,
             stopLossPrice: 90,
+            useAtrSl: false,
         });
 
         // Act
@@ -324,7 +325,9 @@ describe('app service - ATR and Locking Logic', () => {
     });
 
     it('should set atrMode to auto when useAtrSl is toggled on', () => {
-        // initial state has useAtrSl: false, atrMode: 'manual'
+        // Override initial state to simulate off state for testing toggle
+        updateTradeStore(s => ({...s, useAtrSl: false, atrMode: 'manual'}));
+
         let state = get(tradeStore);
         expect(state.useAtrSl).toBe(false);
         expect(state.atrMode).toBe('manual');

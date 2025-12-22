@@ -10,7 +10,7 @@
         if (!timestamp) return '-';
         const date = new Date(Number(timestamp));
         if (isNaN(date.getTime())) return '-';
-
+        
         // Format: DD.MM. HH:mm
         const day = date.getDate().toString().padStart(2, '0');
         const month = (date.getMonth() + 1).toString().padStart(2, '0');
@@ -44,7 +44,7 @@
                             {order.side}
                         </span>
                     </div>
-
+                    
                     <!-- Row 2: Date & Price -->
                     <div class="flex justify-between text-xs mb-1">
                          <span class="text-[var(--text-secondary)]">{formatDate(order.time)}</span>
@@ -54,7 +54,7 @@
                     <!-- Row 3: Filled & PnL -->
                     <div class="flex justify-between text-xs">
                          <span class="text-[var(--text-secondary)]">{$_('dashboard.filled') || 'Filled'}: {formatDynamicDecimal(order.filled)}</span>
-                         <span class:text-[var(--success-color)]={order.realizedPnL > 0}
+                         <span class:text-[var(--success-color)]={order.realizedPnL > 0} 
                                class:text-[var(--danger-color)]={order.realizedPnL < 0}
                                class:text-[var(--text-secondary)]={order.realizedPnL === 0}>
                             {order.realizedPnL > 0 ? '+' : ''}{formatDynamicDecimal(order.realizedPnL)}

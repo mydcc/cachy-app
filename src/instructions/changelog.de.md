@@ -7,10 +7,18 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.94](#v0.94)
-2.  [Version 0.92b2](#v0.92b2)
+1.  [Version 0.94b1](#v0.94b1)
+2.  [Version 0.94](#v0.94)
+3.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94b1"></a>Version 0.94b1 (Januar 2026)
+- **Neu:** Backup & Wiederherstellung: Erstelle Backups deiner Daten (Einstellungen, Journal, Presets) und stelle sie bei Bedarf wieder her.
+- **Verbesserung:** Eingabe für "Risiko/Trade" unterstützt jetzt bis zu 2 Nachkommastellen.
+- **Verbesserung:** Allgemeine Stabilitätsverbesserungen.
 
 ---
 

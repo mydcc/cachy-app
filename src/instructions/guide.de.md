@@ -19,7 +19,7 @@ Die Hauptfunktion von Cachy ist die Berechnung deiner Positionsgröße und ander
 **Schritt 2: Portfolio-Eingaben**
 
 *   **Konto Guthaben (Account Size):** Gib die Gesamtgröße deines Trading-Kontos ein. Du kannst dein Guthaben auch automatisch abrufen lassen, wenn du deine API-Keys hinterlegt hast (siehe Einstellungen).
-*   **Risiko/Trade (%):** Lege fest, wie viel Prozent deines Kontos du bei diesem einen Trade maximal riskieren möchtest (z.B. 1 für 1%).
+*   **Risiko/Trade (%):** Lege fest, wie viel Prozent deines Kontos du bei diesem einen Trade maximal riskieren möchtest (z.B. 1 für 1% oder 1.25 für 1.25%). Dieses Feld unterstützt bis zu 2 Nachkommastellen.
 *   **Risikobetrag:** Dieses Feld zeigt den aus deinem prozentualen Risiko berechneten Geldbetrag an. Du kannst diesen Betrag auch direkt eingeben und sperren.
 
 **Schritt 3: Trade-Setup**

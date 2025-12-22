@@ -123,7 +123,7 @@
         </div>
         <div>
             <label for="risk-percentage" class="input-label text-xs">{$_('dashboard.portfolioInputs.riskPerTradeLabel')}</label>
-            <input id="risk-percentage" type="text" use:numberInput={{ noDecimals: true, isPercentage: true, maxValue: 100, minValue: 0 }} value={format(riskPercentage)} on:input={handleRiskPercentageInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.portfolioInputs.riskPerTradePlaceholder')}" on:input={onboardingService.trackFirstInput} disabled={isRiskAmountLocked || isPositionSizeLocked}>
+            <input id="risk-percentage" type="text" use:numberInput={{ maxDecimalPlaces: 2, isPercentage: true, maxValue: 100, minValue: 0 }} value={format(riskPercentage)} on:input={handleRiskPercentageInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.portfolioInputs.riskPerTradePlaceholder')}" on:input={onboardingService.trackFirstInput} disabled={isRiskAmountLocked || isPositionSizeLocked}>
         </div>
         <div>
             <label for="risk-amount" class="input-label text-xs">{$_('dashboard.portfolioInputs.riskAmountLabel')}</label>
