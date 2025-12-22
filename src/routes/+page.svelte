@@ -222,7 +222,7 @@ import { trackCustomEvent } from '../services/trackingService';
 <div class="relative w-full max-w-4xl mx-auto">
 
     <!-- Left Sidebar: Positions Table -->
-    <div class="hidden xl:flex absolute -left-80 top-8 flex-col gap-3">
+    <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3">
         <PositionsSidebar />
     </div>
 
