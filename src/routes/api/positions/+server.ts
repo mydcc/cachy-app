@@ -86,13 +86,18 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
 
     return rawPositions.map((p: any) => ({
         symbol: p.symbol,
-        side: p.side === 1 ? 'LONG' : (p.side === 2 ? 'SHORT' : (p.positionSide === 'LONG' ? 'LONG' : 'SHORT')), // Heuristic mapping
-        size: parseFloat(p.positionAmount || p.holdVolume || '0'),
-        entryPrice: parseFloat(p.openAvgPrice || p.avgPrice || '0'),
+        // side: "LONG" | "SHORT". Fallback to heuristic if needed.
+        side: (p.side === 'LONG' || p.side === 1 || p.positionSide === 'LONG') ? 'LONG' : 'SHORT',
+        // size: "qty" as per docs. Fallback to older fields.
+        size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
+        // entryPrice: "avgOpenPrice" as per docs.
+        entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
         markPrice: parseFloat(p.markPrice || '0'),
-        unrealizedPnL: parseFloat(p.unrealizedPnL || p.openLoss || '0'),
+        // unrealizedPnL: "unrealizedPNL" as per docs.
+        unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
         leverage: parseFloat(p.leverage || '0'),
-        marginType: p.marginMode === 1 ? 'cross' : 'isolated'
+        // marginType: "ISOLATION" | "CROSS" as per docs.
+        marginType: (p.marginMode === 'CROSS' || p.marginMode === 1) ? 'cross' : 'isolated'
     })).filter((p: any) => p.size !== 0);
 }
 
