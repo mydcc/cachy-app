@@ -12,7 +12,10 @@
 
     // Function to fetch positions
     async function fetchPositions() {
-        if (!$settingsStore.apiKey || !$settingsStore.apiSecret) {
+        const provider = $settingsStore.apiProvider || 'bitunix';
+        const keys = $settingsStore.apiKeys[provider];
+
+        if (!keys?.key || !keys?.secret) {
             return;
         }
 
@@ -25,9 +28,9 @@
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    exchange: $settingsStore.exchange || 'bitunix',
-                    apiKey: $settingsStore.apiKey,
-                    apiSecret: $settingsStore.apiSecret
+                    exchange: provider,
+                    apiKey: keys.key,
+                    apiSecret: keys.secret
                 })
             });
 
@@ -47,8 +50,11 @@
     }
 
     onMount(() => {
+        const provider = $settingsStore.apiProvider || 'bitunix';
+        const keys = $settingsStore.apiKeys[provider];
+
         // Initial fetch
-        if ($settingsStore.apiKey && $settingsStore.apiSecret) {
+        if (keys?.key && keys?.secret) {
             fetchPositions();
 
             // Poll every 10 seconds
@@ -66,22 +72,36 @@
         // We might want to parse the symbol to remove USDT if needed, but usually it matches
         tradeStore.update(s => ({ ...s, symbol: symbol }));
     }
+
+    function handleKeydown(event: KeyboardEvent, callback: () => void) {
+        if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            callback();
+        }
+    }
 </script>
 
 <div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-primary)] overflow-hidden flex flex-col transition-all duration-300 w-80" class:h-auto={isOpen} class:h-12={!isOpen}>
     <!-- Header -->
-    <div class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-primary)]" on:click={toggle}>
+    <div
+        class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-primary)]"
+        on:click={toggle}
+        on:keydown={(e) => handleKeydown(e, toggle)}
+        role="button"
+        tabindex="0"
+        aria-expanded={isOpen}
+    >
         <h3 class="font-bold text-sm text-[var(--text-primary)]">{$_('dashboard.openPositions') || 'Open Positions'}</h3>
-        <button class="text-[var(--text-secondary)] focus:outline-none transform transition-transform duration-200" class:rotate-180={!isOpen}>
+        <div class="text-[var(--text-secondary)] transform transition-transform duration-200" class:rotate-180={!isOpen}>
             <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
-        </button>
+        </div>
     </div>
 
     {#if isOpen}
         <div class="p-2 overflow-y-auto max-h-[600px] scrollbar-thin">
-            {#if !$settingsStore.apiKey}
+            {#if !$settingsStore.apiKeys[$settingsStore.apiProvider]?.key}
                 <div class="text-xs text-[var(--text-secondary)] text-center p-4">
                     {$_('dashboard.configureApiKeys') || 'Please configure API keys in settings.'}
                 </div>
@@ -98,7 +118,13 @@
             {:else}
                 <div class="flex flex-col gap-2">
                     {#each positions as pos}
-                        <div class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-primary)] hover:border-[var(--accent-color)] cursor-pointer transition-colors" on:click={() => selectSymbol(pos.symbol)}>
+                        <div
+                            class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-primary)] hover:border-[var(--accent-color)] cursor-pointer transition-colors"
+                            on:click={() => selectSymbol(pos.symbol)}
+                            on:keydown={(e) => handleKeydown(e, () => selectSymbol(pos.symbol))}
+                            role="button"
+                            tabindex="0"
+                        >
                             <div class="flex justify-between items-center mb-1">
                                 <span class="font-bold text-sm text-[var(--text-primary)]">{pos.symbol}</span>
                                 <span class="text-xs font-bold px-1.5 py-0.5 rounded"
