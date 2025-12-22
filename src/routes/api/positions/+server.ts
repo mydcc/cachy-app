@@ -29,7 +29,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
-    const path = '/api/v1/futures/position'; // Assuming this is the endpoint
+    const path = '/api/v1/futures/position/get_pending_positions';
 
     // Params for the request
     const params: Record<string, string> = {};
