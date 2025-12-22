@@ -34,7 +34,7 @@
     {:else}
         <div class="flex flex-col gap-2">
             {#each orders as order}
-                <div class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-primary)]">
+                <div class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)]">
                     <!-- Row 1: Symbol & Side -->
                     <div class="flex justify-between items-center mb-1">
                         <span class="font-bold text-sm text-[var(--text-primary)]">{order.symbol}</span>

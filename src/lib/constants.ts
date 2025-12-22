@@ -15,9 +15,9 @@ export const CONSTANTS = {
     DEFAULT_ATR_MULTIPLIER: '1.2'
 };
 
-export const themes = ['dark', 'ayu-dark', 'ayu-mirage', 'catppuccin', 'cobalt2', 'dracula', 'dracula-soft', 'everforest-dark', 'github-dark', 'gruvbox-dark', 'matrix', 'monokai', 'night-owl', 'nord', 'obsidian', 'one-dark-pro', 'shades-of-purple', 'solarized-dark', 'tokyo-night', 'VIP', 'ayu-light', 'github-light', 'solarized-light', 'steel', 'meteorite', 'light'];
+export const themes = ['dark', 'ayu-dark', 'ayu-mirage', 'catppuccin', 'cobalt2', 'dracula', 'dracula-soft', 'everforest-dark', 'github-dark', 'gruvbox-dark', 'matrix', 'midnight', 'monokai', 'night-owl', 'nord', 'obsidian', 'one-dark-pro', 'solarized-dark', 'tokyo-night', 'VIP', 'ayu-light', 'github-light', 'solarized-light', 'steel', 'meteorite', 'light'];
 export const themeIcons = {
-    dark: '🌙', light: '☀️', meteorite: '☄️', steel: '🛡️', VIP: '🦆', matrix: '💻', dracula: '🧛', 'solarized-light': '📜', nord: '🏔️', 'gruvbox-dark': '📦', monokai: '🐒', 'tokyo-night': '🗼', 'everforest-dark': '🌲', 'solarized-dark': '🌘', catppuccin: '🐈', 'one-dark-pro': '⚛️', obsidian: '💎', 'dracula-soft': '🧛🏻‍♀️', 'ayu-dark': '🦉', 'ayu-light': '☀️', 'ayu-mirage': '🌌', 'github-dark': '🐙', 'github-light': '🐙', cobalt2: '🔵', 'night-owl': '🦉', 'shades-of-purple': '💜'
+    dark: '🌙', light: '☀️', meteorite: '☄️', steel: '🛡️', VIP: '🦆', matrix: '💻', dracula: '🧛', 'solarized-light': '📜', nord: '🏔️', 'gruvbox-dark': '📦', monokai: '🐒', 'tokyo-night': '🗼', 'everforest-dark': '🌲', 'solarized-dark': '🌘', catppuccin: '🐈', 'one-dark-pro': '⚛️', obsidian: '💎', 'dracula-soft': '🧛🏻‍♀️', 'ayu-dark': '🦉', 'ayu-light': '☀️', 'ayu-mirage': '🌌', 'github-dark': '🐙', 'github-light': '🐙', cobalt2: '🔵', 'night-owl': '🦉', midnight: '🕛'
 };
 
 export const icons = {

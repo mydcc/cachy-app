@@ -164,10 +164,10 @@
     }
 </script>
 
-<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-primary)] overflow-hidden flex flex-col transition-all duration-300 w-80" class:h-auto={isOpen} class:h-12={!isOpen}>
+<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 w-80" class:h-auto={isOpen} class:h-12={!isOpen}>
     <!-- Header / Toggle -->
     <div
-        class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-primary)]"
+        class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
         on:click={toggle}
         on:keydown={(e) => handleKeydown(e, toggle)}
         role="button"
@@ -192,7 +192,7 @@
         />
 
         <!-- Tabs -->
-        <div class="flex border-b border-[var(--border-primary)] bg-[var(--bg-primary)]">
+        <div class="flex border-b border-[var(--border-color)] bg-[var(--bg-primary)]">
             <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
                 class:text-[var(--accent-color)]={activeTab === 'positions'}
@@ -247,7 +247,7 @@
                         <div class="flex flex-col gap-2">
                             {#each positions as pos}
                                 <div
-                                    class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-primary)] hover:border-[var(--accent-color)] cursor-pointer transition-colors"
+                                    class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] cursor-pointer transition-colors"
                                     on:click={() => selectSymbol(pos.symbol)}
                                     on:keydown={(e) => handleKeydown(e, () => selectSymbol(pos.symbol))}
                                     role="button"
@@ -269,7 +269,7 @@
                                         <span class="text-[var(--text-secondary)]">Entry:</span>
                                         <span class="text-[var(--text-primary)]">{formatDynamicDecimal(pos.entryPrice)}</span>
                                     </div>
-                                     <div class="flex justify-between text-xs border-t border-[var(--border-primary)] pt-1 mt-1">
+                                     <div class="flex justify-between text-xs border-t border-[var(--border-color)] pt-1 mt-1">
                                         <span class="text-[var(--text-secondary)]">PnL:</span>
                                         <span class:text-[var(--success-color)]={pos.unrealizedPnL > 0} class:text-[var(--danger-color)]={pos.unrealizedPnL < 0}>
                                             {formatDynamicDecimal(pos.unrealizedPnL)} USDT
@@ -298,7 +298,7 @@
         background: transparent;
     }
     .scrollbar-thin::-webkit-scrollbar-thumb {
-        background-color: var(--border-primary);
+        background-color: var(--border-color);
         border-radius: 20px;
     }
 </style>
