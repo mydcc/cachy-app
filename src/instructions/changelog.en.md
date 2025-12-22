@@ -7,10 +7,18 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.94](#v0.94)
-2.  [Version 0.92b2](#v0.92b2)
+1.  [Version 0.94b1](#v0.94b1)
+2.  [Version 0.94](#v0.94)
+3.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94b1"></a>Version 0.94b1 (January 2026)
+- **New:** Backup & Restore feature: Create backups of your data (settings, journal, presets) and restore them when needed.
+- **Improvement:** Risk per Trade input now supports up to 2 decimal places.
+- **Improvement:** General stability improvements.
 
 ---
 

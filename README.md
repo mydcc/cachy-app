@@ -1,5 +1,6 @@
 # Cachy - Position Size & Risk Management
 
+![Version](https://img.shields.io/badge/version-0.94b1-blue?style=for-the-badge)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -39,6 +40,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **Multi-API Support:** Choose between **Bitunix** (Default) and **Binance** as your data source.
 *   **API Integration:** Optional API keys for auto-fetching account balance and private data.
 *   **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
+*   **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
 *   **Themes:** Over 20 color themes (Dark, Light, Dracula, Nord, etc.).
 *   **Multilingual:** German and English support.
 
