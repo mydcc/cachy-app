@@ -203,7 +203,14 @@
     "interval1s": "Jede Sekunde",
     "interval1m": "Jede Minute",
     "interval10m": "Alle 10 Minuten",
-    "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen."
+    "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
+    "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
+    "tabs": {
+      "general": "Allgemein",
+      "api": "API & Verbindung",
+      "behavior": "Verhalten",
+      "system": "System"
+    }
   },
   "apiErrors": {
     "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",

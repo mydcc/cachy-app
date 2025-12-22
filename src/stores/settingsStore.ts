@@ -14,6 +14,7 @@ export interface Settings {
     marketDataInterval: MarketDataInterval;
     autoUpdatePriceInput: boolean;
     autoFetchBalance: boolean;
+    showSidebars: boolean;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -25,6 +26,7 @@ const defaultSettings: Settings = {
     marketDataInterval: '1m', // Default interval
     autoUpdatePriceInput: false,
     autoFetchBalance: false,
+    showSidebars: true,
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -71,6 +73,7 @@ function loadSettingsFromLocalStorage(): Settings {
             marketDataInterval: settings.marketDataInterval,
             autoUpdatePriceInput: settings.autoUpdatePriceInput,
             autoFetchBalance: settings.autoFetchBalance,
+            showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             apiKeys: settings.apiKeys
         };
 

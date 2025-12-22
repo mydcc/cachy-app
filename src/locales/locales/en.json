@@ -195,11 +195,20 @@
     "language": "Language",
     "backup": "Backup",
     "apiProvider": "API Provider",
+    "apiIntegration": "API Integration",
+    "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
     "marketDataInterval": "Update Interval",
     "interval1s": "Every 1s",
     "interval1m": "Every 1m",
-    "interval10m": "Every 10m"
+    "interval10m": "Every 10m",
+    "showSidebars": "Show Sidebars",
+    "tabs": {
+      "general": "General",
+      "api": "API & Connection",
+      "behavior": "Behavior",
+      "system": "System"
+    }
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found or API error.",
