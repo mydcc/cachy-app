@@ -84,21 +84,34 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
     // Bitunix response structure needs to be verified. Assuming data.data is the list.
     const rawPositions = Array.isArray(data.data) ? data.data : [];
 
-    return rawPositions.map((p: any) => ({
-        symbol: p.symbol,
-        // side: "LONG" | "SHORT". Fallback to heuristic if needed.
-        side: (p.side === 'LONG' || p.side === 1 || p.positionSide === 'LONG') ? 'LONG' : 'SHORT',
-        // size: "qty" as per docs. Fallback to older fields.
-        size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
-        // entryPrice: "avgOpenPrice" as per docs.
-        entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
-        markPrice: parseFloat(p.markPrice || '0'),
-        // unrealizedPnL: "unrealizedPNL" as per docs.
-        unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
-        leverage: parseFloat(p.leverage || '0'),
-        // marginType: "ISOLATION" | "CROSS" as per docs.
-        marginType: (p.marginMode === 'CROSS' || p.marginMode === 1) ? 'cross' : 'isolated'
-    })).filter((p: any) => p.size !== 0);
+    return rawPositions.map((p: any) => {
+        // Robust side detection
+        let side = 'SHORT';
+        if (p.side) {
+            const s = p.side.toString().toUpperCase();
+            if (s === 'LONG' || s === 'BUY' || s === '1') {
+                side = 'LONG';
+            }
+        } else if (p.positionSide) {
+             const ps = p.positionSide.toString().toUpperCase();
+             if (ps === 'LONG') side = 'LONG';
+        }
+
+        return {
+            symbol: p.symbol,
+            side: side,
+            // size: "qty" as per docs. Fallback to older fields.
+            size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
+            // entryPrice: "avgOpenPrice" as per docs.
+            entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
+            markPrice: parseFloat(p.markPrice || '0'),
+            // unrealizedPnL: "unrealizedPNL" as per docs.
+            unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
+            leverage: parseFloat(p.leverage || '0'),
+            // marginType: "ISOLATION" | "CROSS" as per docs.
+            marginType: (p.marginMode === 'CROSS' || p.marginMode === 1) ? 'cross' : 'isolated'
+        };
+    }).filter((p: any) => p.size !== 0);
 }
 
 async function fetchBinancePositions(apiKey: string, apiSecret: string): Promise<any[]> {
