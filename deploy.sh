@@ -2,6 +2,9 @@
 
 # Deploy script for Cachy App
 
+# Exit immediately if a command exits with a non-zero status
+set -e
+
 # 1. Pull latest changes
 echo "Pulling latest changes..."
 git pull
@@ -35,6 +38,7 @@ elif [ "$APP_NAME" = "cachy-app" ] || [ "$APP_NAME" = "prodcachyapp" ]; then
 fi
 
 echo "Restarting PM2 process '$APP_NAME'..."
-pm2 restart $APP_NAME --update-env || echo "Failed to restart PM2 process '$APP_NAME'. Please check the name."
+pm2 restart $APP_NAME --update-env
 
-echo "Deployment complete."
+echo "Deployment complete. Current PM2 status:"
+pm2 list
