@@ -64,6 +64,8 @@
   function setActiveTab(tab: 'general' | 'api' | 'behavior' | 'system') {
       activeTab = tab;
   }
+
+  $: currentThemeIcon = themeIcons[$uiStore.currentTheme as keyof typeof themeIcons];
 </script>
 
 <input type="file" class="hidden" bind:this={fileInput} on:change={handleFileSelected} accept=".json,application/json" />
@@ -119,7 +121,7 @@
             <div class="flex justify-between items-center">
                 <label for="theme-select" class="text-sm font-medium text-text-primary">{$_('settings.theme')}</label>
                 <div class="flex items-center gap-2 w-1/2">
-                    <span class="text-xl">{@html themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]}</span>
+                    <span class="text-xl">{@html currentThemeIcon}</span>
                     <select
                     id="theme-select"
                     class="input-field w-full"
