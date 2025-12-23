@@ -131,6 +131,8 @@ import { trackCustomEvent } from '../services/trackingService';
         .map(word => word.charAt(0).toUpperCase() + word.slice(1))
         .join(' ');
 
+    $: currentThemeIcon = themeIcons[$uiStore.currentTheme as keyof typeof themeIcons];
+
     function handlePresetLoad(event: Event) {
         const selectedPreset = (event.target as HTMLSelectElement).value;
         app.loadPreset(selectedPreset);
@@ -274,7 +276,7 @@ import { trackCustomEvent } from '../services/trackingService';
                         on:contextmenu|preventDefault={() => handleThemeSwitch('backward')}
                         title={themeTitle}
                         use:trackClick={{ category: 'Settings', action: 'Click', name: 'SwitchTheme' }}
-                    >{@html themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]}</button>
+                    >{@html currentThemeIcon}</button>
                 </div>
                 <button id="view-journal-btn-desktop" class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2" title="{$_('app.journalButtonTitle')}" on:click={() => uiStore.toggleJournalModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ViewJournalDesktop' }}>{$_('app.journalButton')}</button>
             </div>
@@ -356,9 +358,9 @@ import { trackCustomEvent } from '../services/trackingService';
                 {/if}
             </div>
             <div id="tp-results-container">
-                {#each $resultsStore.calculatedTpDetails as tpDetail: IndividualTpResult}
+                {#each $resultsStore.calculatedTpDetails as tpDetail}
                     <div class="result-group !mt-0 md:!mt-6">
-                        <h2 class="section-header">{$_('dashboard.takeProfit')} {(tpDetail as IndividualTpResult).index + 1} ({(tpDetail as IndividualTpResult).percentSold.toFixed(0)}%)</h2>
+                        <h2 class="section-header">{$_('dashboard.takeProfit')} {tpDetail.index + 1} ({tpDetail.percentSold.toFixed(0)}%)</h2>
                         <div class="result-item"><span class="result-label">{$_('dashboard.riskRewardRatio')}</span><span class="result-value" style:color={tpDetail.riskRewardRatio.gte(2) ? 'var(--success-color)' : tpDetail.riskRewardRatio.gte(1.5) ? 'var(--warning-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.riskRewardRatio, 2)}</span></div>
                         <div class="result-item"><span class="result-label">{$_('dashboard.netProfit')}<Tooltip text={$_('dashboard.netProfitTooltip')} /></span><span class="result-value" style:color="var(--success-color)">+{formatDynamicDecimal(tpDetail.netProfit, 2)}</span></div>
                         <div class="result-item"><span class="result-label">{$_('dashboard.priceChange')}<Tooltip text={$_('dashboard.priceChangeTooltip')} /></span><span class="result-value" style:color={tpDetail.priceChangePercent.gt(0) ? 'var(--success-color)' : 'var(--danger-color)'}>{formatDynamicDecimal(tpDetail.priceChangePercent, 2)}%</span></div>

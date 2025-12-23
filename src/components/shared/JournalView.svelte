@@ -21,6 +21,15 @@
             }
         }
     }
+
+    function handleStatusChange(tradeId: number, event: Event) {
+        const target = event.target as HTMLSelectElement;
+        app.updateTradeStatus(tradeId, target.value);
+    }
+
+    function toggleNoteExpand(event: MouseEvent) {
+        (event.target as HTMLElement).classList.toggle('expanded');
+    }
 </script>
 
 <ModalFrame
@@ -47,13 +56,15 @@
                             <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
                             <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">{trade.totalRR.toFixed(2)}</td>
                             <td>
-                                <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => app.updateTradeStatus(trade.id, (e.target as HTMLSelectElement).value)}>
+                                <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
                                     <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
                                     <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
                                     <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
                                 </select>
                             </td>
-                            <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={(e) => (e.target as HTMLElement).classList.toggle('expanded')}>{trade.notes || ''}</td>
+                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                            <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
                             <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => app.deleteTrade(trade.id)}>{@html icons.delete}</button></td>
                         </tr>
                     {/each}
@@ -83,7 +94,7 @@
                     <div class="mt-4 flex justify-between items-center">
                         <div>
                             <div class="text-sm">Status</div>
-                            <select class="status-select input-field p-1 mt-1" data-id="{trade.id}" on:change={(e) => app.updateTradeStatus(trade.id, (e.target as HTMLSelectElement).value)}>
+                            <select class="status-select input-field p-1 mt-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
                                 <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
                                 <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
                                 <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
