@@ -1,6 +1,6 @@
 # Cachy - Position Size & Risk Management
 
-![Version](https://img.shields.io/badge/version-0.94b1-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.94b2-blue?style=for-the-badge)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -122,3 +122,59 @@ Contributions are welcome! Please follow these steps:
 ## 📄 License
 
 This project is published under the MIT License.
+
+---
+
+# Changelog
+
+### Table of Contents
+1.  [Version 0.94b2](#v0.94b2)
+2.  [Version 0.94b1](#v0.94b1)
+3.  [Version 0.94](#v0.94)
+4.  [Version 0.92b2](#v0.92b2)
+5.  [Version 0.92b1](#v0.92b1)
+6.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94b2"></a>Version 0.94b2 (February 2026)
+- **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
+- **Improvement:** Enhanced mobile layout with integrated positions view.
+- **Fix:** Fixed Bitunix "Pending Positions" calculation issues (handling of 'side' parameter).
+- **System:** Improved internal data structure for settings and API keys.
+
+---
+
+## <a name="v0.94b1"></a>Version 0.94b1 (January 2026)
+- **New:** Backup & Restore feature: Create backups of your data (settings, journal, presets) and restore them when needed.
+- **Improvement:** Risk per Trade input now supports up to 2 decimal places.
+- **Improvement:** General stability improvements.
+
+---
+
+## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
+- **New:** Favorites feature: Save up to 4 symbols by clicking the star icon in the Market Overview. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
+- **New:** Auto-fetch account balance on startup (enable in settings, requires API keys).
+- **New:** Auto-update price input field (optional).
+- **Fix:** Fixed deployment issues (502 errors) and improved stability.
+
+---
+
+## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
+- **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
+- **New:** Expanded settings: Select API provider (Bitunix/Binance) and market data update interval (1s, 1m, 10m).
+
+---
+
+## <a name="v0.92b1"></a>Version 0.92b1 (September 04, 2025)
+- **New:** Automatic ATR fetch from Binance API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
+- **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
+- **New:** Keyboard shortcuts (`Alt+L/S/R/J`) added for faster operation.
+- **New:** Modals can now be closed with the `Escape` key or by clicking the background.
+
+---
+
+## <a name="v0.92b"></a>Version 0.92b (August 22, 2025)
+- **Improvement:** Symbol input field now accepts letters and numbers.
+- **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
+- **Improvement:** "Add Trade to Journal" and "Show Instructions" buttons are now theme-dependent.

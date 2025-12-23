@@ -7,11 +7,20 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.94b1](#v0.94b1)
-2.  [Version 0.94](#v0.94)
+1.  [Version 0.94b2](#v0.94b2)
+2.  [Version 0.94b1](#v0.94b1)
+3.  [Version 0.94](#v0.94)
 3.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94b2"></a>Version 0.94b2 (Februar 2026)
+- **Neu:** Einstellung "Seitenleisten anzeigen": Blende die Seitenleiste (Favoriten) und Marktübersicht aus, um Platz zu sparen (Desktop & Mobil).
+- **Verbesserung:** Optimiertes mobiles Layout mit integrierter Positionsansicht.
+- **Fix:** Korrektur bei der Berechnung "Offener Positionen" für Bitunix (Fehlerbehebung beim 'Side'-Parameter).
+- **System:** Verbesserte interne Datenstruktur für Einstellungen und API-Keys.
 
 ---
 

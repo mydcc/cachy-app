@@ -127,3 +127,4 @@ In den Einstellungen (Zahnrad-Symbol) kannst du Cachy an deine Bedürfnisse anpa
 *   **Marktdaten Update:** Lege fest, wie oft die Marktübersicht und Preise aktualisiert werden sollen (**1s**, **1m**, **10m**).
 *   **Theme:** Wähle dein bevorzugtes Design.
 *   **Backup & Wiederherstellung:** Erstelle ein Backup deiner gesamten Daten (inkl. Journal und Presets) als JSON-Datei oder stelle Daten aus einer Datei wieder her.
+*   **Seitenleisten anzeigen:** Du kannst die Seitenleisten (Favoriten/Marktübersicht) ausblenden, um mehr Platz für den Rechner zu haben. Dies betrifft sowohl die Desktop-Ansicht (rechte Spalte) als auch die mobile Ansicht (unterer Bereich).
