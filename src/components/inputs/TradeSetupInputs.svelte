@@ -214,7 +214,7 @@
                 {@const result = atrFormulaDisplay.substring(lastEq + 1)}
                 <div class="text-center text-xs mt-2" style="color: var(--text-primary);">
                     <span>{formula}</span>
-                    <span style={isAtrSlInvalid ? 'color: var(--danger--color)' : ''}>{result}</span>
+                    <span style={isAtrSlInvalid ? 'color: var(--danger-color)' : 'color: var(--accent-color)'}>{result}</span>
                 </div>
             {/if}
         {/if}
