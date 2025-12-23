@@ -7,11 +7,20 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.94b1](#v0.94b1)
-2.  [Version 0.94](#v0.94)
+1.  [Version 0.94b2](#v0.94b2)
+2.  [Version 0.94b1](#v0.94b1)
+3.  [Version 0.94](#v0.94)
 3.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.94b2"></a>Version 0.94b2 (February 2026)
+- **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
+- **Improvement:** Enhanced mobile layout with integrated positions view.
+- **Fix:** Fixed Bitunix "Pending Positions" calculation issues (handling of 'side' parameter).
+- **System:** Improved internal data structure for settings and API keys.
 
 ---
 

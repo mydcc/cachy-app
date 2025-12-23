@@ -4,7 +4,9 @@
 	import { uiStore } from '../stores/uiStore';
 	import { onMount } from 'svelte';
 
-	let { children, data } = $props();
+	// Removed Svelte 5 $props() and children destructuring
+	// let { children, data } = $props();
+    export let data; // Restore standard Svelte 4 data prop
 
 	import '../app.css';
 
@@ -25,5 +27,5 @@
 </svelte:head>
 
 <div class="px-4">
-	{@render children?.()}
+	<slot />
 </div>
