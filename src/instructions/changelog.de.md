@@ -7,31 +7,21 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.94b2](#v0.94b2)
-2.  [Version 0.94b1](#v0.94b1)
-3.  [Version 0.94](#v0.94)
-3.  [Version 0.92b2](#v0.92b2)
+1.  [Version 0.94](#v0.94)
+2.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
 
 ---
 
-## <a name="v0.94b2"></a>Version 0.94b2 (Februar 2026)
+## <a name="v0.94"></a>Version 0.94 (21. Dezember 2025)
 - **Neu:** Einstellung "Seitenleisten anzeigen": Blende die Seitenleiste (Favoriten) und Marktübersicht aus, um Platz zu sparen (Desktop & Mobil).
 - **Verbesserung:** Optimiertes mobiles Layout mit integrierter Positionsansicht.
 - **Fix:** Korrektur bei der Berechnung "Offener Positionen" für Bitunix (Fehlerbehebung beim 'Side'-Parameter).
 - **System:** Verbesserte interne Datenstruktur für Einstellungen und API-Keys.
-
----
-
-## <a name="v0.94b1"></a>Version 0.94b1 (Januar 2026)
 - **Neu:** Backup & Wiederherstellung: Erstelle Backups deiner Daten (Einstellungen, Journal, Presets) und stelle sie bei Bedarf wieder her.
 - **Verbesserung:** Eingabe für "Risiko/Trade" unterstützt jetzt bis zu 2 Nachkommastellen.
 - **Verbesserung:** Allgemeine Stabilitätsverbesserungen.
-
----
-
-## <a name="v0.94"></a>Version 0.94 (21. Dezember 2025)
 - **Neu:** Favoriten-Funktion: Speichere bis zu 4 Symbole durch Klick auf das Stern-Symbol in der Marktübersicht. Favoriten werden in der Sidebar (Desktop) oder mobil unter der Hauptkarte angezeigt.
 - **Neu:** Automatisches Abrufen des Kontostands beim Start (aktivierbar in den Einstellungen, erfordert API-Keys).
 - **Neu:** Automatische Preisaktualisierung im Eingabefeld (optional).
