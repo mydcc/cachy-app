@@ -342,6 +342,7 @@ import { trackCustomEvent } from '../services/trackingService';
                     entryFee={$resultsStore.entryFee}
                     liquidationPrice={$resultsStore.liquidationPrice}
                     breakEvenPrice={$resultsStore.breakEvenPrice}
+                    isMarginExceeded={$resultsStore.isMarginExceeded}
                     on:toggleLock={() => app.togglePositionSizeLock()}
                     on:copy={() => uiStore.showFeedback('copy')}
                 />

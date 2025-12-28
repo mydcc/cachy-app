@@ -122,6 +122,7 @@
       "copiedFeedback": "Copied!",
       "maxNetLossLabel": "Max Net Loss",
       "maxNetLossTooltip": "Maximum amount you can lose on this trade, including fees.",
+      "insufficientBalance": "Insufficient Balance",
       "requiredMarginLabel": "Required Margin",
       "requiredMarginTooltip": "Capital blocked from your account for this trade.",
       "entryFeeLabel": "Entry Fee",

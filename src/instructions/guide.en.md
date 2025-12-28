@@ -46,6 +46,14 @@ Cachy calculates the following values for you:
 *   **Est. Liquidation Price:** An estimate of the price at which your position would be liquidated.
 *   **Break Even Price:** The price at which you exit with zero profit or loss.
 
+> **Why is my position size so large?**
+>
+> If your Stop Loss is very close to your entry price, the position size must be very large to reach your defined risk amount (e.g., $10).
+>
+> **Warning: "Insufficient Balance"**
+>
+> If the calculated position size requires more capital (margin) than you have in your account, Cachy displays a red warning. In this case, you must either reduce your risk or increase your leverage (Caution!).
+
 ---
 
 ### 3. Defining Take-Profit (TP) Targets

@@ -271,6 +271,14 @@ export const app = {
 
         newResults.positionSize = formatDynamicDecimal(baseMetrics.positionSize, 4);
         newResults.requiredMargin = formatDynamicDecimal(baseMetrics.requiredMargin, 2);
+
+        // Check if required margin exceeds account size
+        if (values.accountSize.gt(0) && baseMetrics.requiredMargin.gt(values.accountSize)) {
+            newResults.isMarginExceeded = true;
+        } else {
+            newResults.isMarginExceeded = false;
+        }
+
         newResults.netLoss = `-${formatDynamicDecimal(baseMetrics.netLoss, 2)}`;
         newResults.liquidationPrice = values.leverage.gt(1) ? formatDynamicDecimal(baseMetrics.liquidationPrice) : 'N/A';
         newResults.breakEvenPrice = formatDynamicDecimal(baseMetrics.breakEvenPrice);

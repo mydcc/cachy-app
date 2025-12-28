@@ -18,7 +18,8 @@ export const initialResultsState: Pick<AppState,
     'showTotalMetricsGroup' |
     'showAtrFormulaDisplay' |
     'atrFormulaText' |
-    'isAtrSlInvalid'
+    'isAtrSlInvalid' |
+    'isMarginExceeded'
 > = {
     positionSize: '-',
     requiredMargin: '-',
@@ -37,6 +38,7 @@ export const initialResultsState: Pick<AppState,
     showAtrFormulaDisplay: false,
     atrFormulaText: '',
     isAtrSlInvalid: false,
+    isMarginExceeded: false,
 };
 
 export const resultsStore = writable(initialResultsState);

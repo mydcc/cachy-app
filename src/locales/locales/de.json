@@ -123,6 +123,7 @@
       "copiedFeedback": "Kopiert!",
       "maxNetLossLabel": "Max. Verlust (Netto)",
       "maxNetLossTooltip": "Der maximale Betrag, den du bei diesem Trade verlieren kannst, einschließlich aller Gebühren.",
+      "insufficientBalance": "Guthaben nicht ausreichend",
       "requiredMarginLabel": "Benötigte Margin",
       "requiredMarginTooltip": "Das Kapital, das von deinem Konto für diesen Trade blockiert wird.",
       "entryFeeLabel": "Einstiegsgebühr",
