@@ -15,6 +15,7 @@ export interface Settings {
     autoUpdatePriceInput: boolean;
     autoFetchBalance: boolean;
     showSidebars: boolean;
+    isPro: boolean;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -27,6 +28,7 @@ const defaultSettings: Settings = {
     autoUpdatePriceInput: false,
     autoFetchBalance: false,
     showSidebars: true,
+    isPro: false,
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -74,6 +76,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoUpdatePriceInput: settings.autoUpdatePriceInput,
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
+            isPro: settings.isPro ?? defaultSettings.isPro,
             apiKeys: settings.apiKeys
         };
 
