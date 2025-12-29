@@ -88,6 +88,7 @@ export interface AppState {
     showAtrFormulaDisplay: boolean;
     atrFormulaText: string;
     isAtrSlInvalid: boolean;
+    isMarginExceeded?: boolean;
     isPriceFetching: boolean;
     showCopyFeedback: boolean;
     showSaveFeedback: boolean;

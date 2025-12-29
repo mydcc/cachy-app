@@ -46,6 +46,14 @@ Cachy berechnet für dich die folgenden Werte:
 *   **Gesch. Liquidationspreis (Est. Liquidation Price):** Eine Schätzung, bei welchem Preis deine Position liquidiert würde.
 *   **Break-Even-Preis (Break Even Price):** Der Preis, bei dem du ohne Gewinn oder Verlust aussteigst.
 
+> **Warum ist meine Positionsgröße so groß?**
+>
+> Wenn dein Stop-Loss sehr nah an deinem Einstiegspreis liegt, muss die Positionsgröße sehr hoch sein, um dein festgelegtes Risiko (z.B. 10$) zu erreichen.
+>
+> **Warnung: "Guthaben nicht ausreichend"**
+>
+> Wenn die berechnete Positionsgröße mehr Kapital (Margin) erfordert, als du auf dem Konto hast, zeigt Cachy eine rote Warnung an. In diesem Fall musst du entweder dein Risiko verringern oder den Hebel erhöhen (Vorsicht!).
+
 ---
 
 ### 3. Take-Profit (TP) Ziele definieren
