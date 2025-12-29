@@ -128,8 +128,10 @@
                     bind:value={$uiStore.currentTheme}
                     on:change={(e) => uiStore.setTheme(e.currentTarget.value)}
                     >
-                    {#each themes as theme}
-                        <option value={theme}>{theme.charAt(0).toUpperCase() + theme.slice(1).replace('-', ' ')}</option>
+                    {#each themes as theme, index}
+                        <option value={theme} disabled={index > 4 && !$settingsStore.isPro}>
+                            {theme.charAt(0).toUpperCase() + theme.slice(1).replace('-', ' ')} {index > 4 && !$settingsStore.isPro ? '(Pro)' : ''}
+                        </option>
                     {/each}
                     </select>
                 </div>
@@ -263,6 +265,7 @@
             <!-- Backup / Restore -->
             <div class="flex justify-between items-center">
                 <span class="text-sm font-medium text-text-primary">{$_('settings.backup')}</span>
+                {#if $settingsStore.isPro}
                 <div class="flex items-center gap-2 w-1/2 justify-end">
                     <button id="backup-btn-modal" class="btn-icon" title={$_('app.backupButtonTitle')} aria-label={$_('app.backupButtonAriaLabel')} on:click={handleBackupClick}>
                         {@html icons.export}
@@ -271,6 +274,15 @@
                         {@html icons.import}
                     </button>
                 </div>
+                {:else}
+                    <div class="flex items-center gap-2 w-1/2 justify-end">
+                        <span class="text-xs text-red-500 font-bold">Pro Version Required</span>
+                        <div class="opacity-50 pointer-events-none flex gap-2">
+                             <button class="btn-icon">{@html icons.export}</button>
+                             <button class="btn-icon">{@html icons.import}</button>
+                        </div>
+                    </div>
+                {/if}
             </div>
 
             <p class="text-xs text-text-secondary">
