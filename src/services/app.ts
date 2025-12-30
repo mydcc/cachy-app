@@ -495,14 +495,20 @@ export const app = {
         const journalData = get(journalStore);
         if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
-        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
+        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
+        // New headers
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+         ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
             const notes = trade.notes ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '';
             const tpData = Array.from({length: 5}, (_, i) => [ (trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2) ]).flat();
             return [ trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
                 (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
-                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, ...tpData ].join(',');
+                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
+                // New values
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
         const link = document.createElement("a");
@@ -511,6 +517,123 @@ export const app = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    },
+    syncBitunixHistory: async () => {
+        const settings = get(settingsStore);
+        if (!settings.isPro) return;
+        if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
+            uiStore.showError('settings.apiKeysRequired');
+            return;
+        }
+
+        uiStore.update(s => ({ ...s, isPriceFetching: true })); // Reuse spinner
+
+        try {
+            const response = await fetch('/api/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret,
+                    limit: 100 // Fetch last 100 trades for now
+                })
+            });
+
+            const result = await response.json();
+            if (result.error) throw new Error(result.error);
+            const trades = result.data;
+
+            if (!Array.isArray(trades)) throw new Error("Invalid response format");
+
+            let addedCount = 0;
+            const currentJournal = get(journalStore);
+            const existingTradeIds = new Set(currentJournal.map(j => j.tradeId).filter(Boolean));
+
+            const newEntries: JournalEntry[] = [];
+
+            for (const t of trades) {
+                // Skip if already exists
+                if (existingTradeIds.has(t.tradeId)) continue;
+
+                // Only import Realized PnL events (closing trades) or significant Fee events to keep journal clean
+                // For "History", we want PnL.
+                const realizedPnl = new Decimal(t.realizedPNL || 0);
+                const fee = new Decimal(t.fee || 0);
+
+                const tradeId = t.tradeId;
+                const orderId = t.orderId;
+                const symbol = t.symbol;
+                const date = new Date(t.ctime); // ctime is ms timestamp
+                const side = t.side; // BUY or SELL
+                const price = new Decimal(t.price);
+                const qty = new Decimal(t.qty);
+
+                // Map side to Trade Type
+                const tradeType = side.toLowerCase();
+
+                // Status
+                let status = 'Open';
+                if (!realizedPnl.isZero()) {
+                    status = realizedPnl.gt(0) ? 'Won' : 'Lost';
+                }
+
+                const entry: JournalEntry = {
+                    id: parseInt(tradeId) || Date.now() + Math.random(), // fallback ID
+                    date: date.toISOString(),
+                    symbol: symbol,
+                    tradeType: tradeType,
+                    status: status,
+
+                    // We don't have account size context for historical trades
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(t.leverage || 0),
+                    fees: new Decimal(0), // Percentage fee unknown, absolute fee is in tradingFee
+
+                    entryPrice: price,
+                    stopLossPrice: new Decimal(0), // Unknown
+
+                    totalRR: new Decimal(0), // Unknown
+                    totalNetProfit: realizedPnl,
+                    riskAmount: new Decimal(0),
+                    totalFees: fee,
+                    maxPotentialProfit: new Decimal(0),
+
+                    notes: `Imported from Bitunix (Order: ${orderId})`,
+                    targets: [],
+                    calculatedTpDetails: [],
+
+                    // New fields
+                    tradeId: tradeId,
+                    orderId: orderId,
+                    fundingFee: new Decimal(0),
+                    tradingFee: fee,
+                    realizedPnl: realizedPnl,
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+            if (addedCount > 0) {
+                const updatedJournal = [...currentJournal, ...newEntries];
+                // Sort by date descending
+                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                journalStore.set(updatedJournal);
+                app.saveJournal(updatedJournal);
+                uiStore.showFeedback('save', 2000);
+                trackCustomEvent('Journal', 'Sync', 'Bitunix', addedCount);
+            } else {
+                 uiStore.showError("Keine neuen Trades gefunden.");
+            }
+
+        } catch (e: any) {
+            console.error("Sync error:", e);
+            uiStore.showError("Sync failed: " + e.message);
+        } finally {
+            uiStore.update(s => ({ ...s, isPriceFetching: false }));
+        }
     },
     importFromCSV: (file: File) => {
         if (!browser) return;
@@ -554,7 +677,7 @@ export const app = {
                     }
 
                     const typedEntry = entry as CSVTradeEntry;
-                    return {
+                    const importedTrade: JournalEntry = {
                         id: parseInt(typedEntry.ID, 10),
                         date: new Date(`${typedEntry.Datum} ${typedEntry.Uhrzeit}`).toISOString(),
                         symbol: typedEntry.Symbol,
@@ -572,8 +695,17 @@ export const app = {
                         totalFees: parseDecimal(typedEntry['Gesamte Gebuehren'] || '0'),
                         maxPotentialProfit: parseDecimal(typedEntry['Max. potenzieller Gewinn'] || '0'),
                         notes: typedEntry.Notizen ? typedEntry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
-                        targets: targets
-                    } as JournalEntry;
+                        targets: targets,
+                        // New fields
+                        tradeId: typedEntry['Trade ID'] || undefined,
+                        orderId: typedEntry['Order ID'] || undefined,
+                        fundingFee: parseDecimal(typedEntry['Funding Fee'] || '0'),
+                        tradingFee: parseDecimal(typedEntry['Trading Fee'] || '0'),
+                        realizedPnl: parseDecimal(typedEntry['Realized PnL'] || '0'),
+                        isManual: typedEntry['Is Manual'] ? typedEntry['Is Manual'] === 'true' : true,
+                        calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
+                    };
+                    return importedTrade;
                 } catch (err: unknown) {
                     console.warn("Fehler beim Verarbeiten einer Zeile:", entry, err);
                     return null;
