@@ -563,7 +563,17 @@ export const app = {
                 const tradeId = t.tradeId;
                 const orderId = t.orderId;
                 const symbol = t.symbol;
-                const date = new Date(t.ctime); // ctime is ms timestamp
+                // ctime can be a string or number, force to number if possible, or handle string timestamp
+                let timestamp = t.ctime;
+                if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
+                    timestamp = parseInt(t.ctime, 10);
+                }
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) {
+                    console.warn(`Invalid date for trade ${tradeId}:`, t.ctime);
+                    continue; // Skip invalid dates
+                }
+
                 const side = t.side; // BUY or SELL
                 const price = new Decimal(t.price);
                 const qty = new Decimal(t.qty);
