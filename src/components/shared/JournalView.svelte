@@ -1,5 +1,6 @@
 <script lang="ts">
     import { tradeStore } from '../../stores/tradeStore';
+    import { settingsStore } from '../../stores/settingsStore';
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
@@ -132,6 +133,9 @@
         </table>
     </div>
         <div class="flex flex-wrap items-center gap-4 mt-4">
+        {#if $settingsStore.isPro}
+             <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="Sync from Bitunix" on:click={app.syncBitunixHistory}>{@html icons.refresh}<span class="hidden sm:inline">Sync Bitunix</span></button>
+        {/if}
         <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>{@html icons.export}<span class="hidden sm:inline">{$_('journal.export')}</span></button>
         <input type="file" id="import-csv-input" accept=".csv" class="hidden" on:change={handleImportCsv}/>
         <button id="import-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)]" title="{$_('journal.importCsvTitle')}" on:click={() => document.getElementById('import-csv-input')?.click()}>{@html icons.import}<span class="hidden sm:inline">{$_('journal.import')}</span></button>

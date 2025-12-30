@@ -13,10 +13,15 @@ function loadJournalFromLocalStorage(): JournalEntry[] {
         return parsedData.map(trade => {
             const newTrade = { ...trade };
             Object.keys(newTrade).forEach(key => {
-                if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize'].includes(key)) {
+                if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
                     newTrade[key] = new Decimal(newTrade[key] || 0);
                 }
             });
+            // Ensure defaults for new fields if missing (migration)
+            if (newTrade.isManual === undefined) newTrade.isManual = true; // Assume existing are manual
+            if (!newTrade.fundingFee) newTrade.fundingFee = new Decimal(0);
+            if (!newTrade.tradingFee) newTrade.tradingFee = new Decimal(0);
+            if (!newTrade.realizedPnl) newTrade.realizedPnl = new Decimal(0);
             if (newTrade.targets && Array.isArray(newTrade.targets)) {
                 newTrade.targets = newTrade.targets.map((tp: {price: string | number; percent: string | number}) => ({ ...tp, price: new Decimal(tp.price || 0), percent: new Decimal(tp.percent || 0) }));
             }

@@ -128,4 +128,11 @@ export interface JournalEntry {
     notes: string;
     targets: Array<{ price: Decimal; percent: Decimal; isLocked: boolean }>;
     calculatedTpDetails: IndividualTpResult[];
+    // Extended fields for Bitunix sync
+    tradeId?: string; // Bitunix trade ID
+    orderId?: string;
+    fundingFee?: Decimal;
+    tradingFee?: Decimal;
+    realizedPnl?: Decimal;
+    isManual?: boolean;
 }
