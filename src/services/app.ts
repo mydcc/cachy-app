@@ -554,7 +554,7 @@ export const app = {
             for (const t of trades) {
                 // Skip if already exists
                 if (existingTradeIds.has(t.tradeId)) continue;
-
+                
                 // Only import Realized PnL events (closing trades) or significant Fee events to keep journal clean
                 // For "History", we want PnL.
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
@@ -563,11 +563,21 @@ export const app = {
                 const tradeId = t.tradeId;
                 const orderId = t.orderId;
                 const symbol = t.symbol;
-                const date = new Date(t.ctime); // ctime is ms timestamp
+                // ctime can be a string or number, force to number if possible, or handle string timestamp
+                let timestamp = t.ctime;
+                if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
+                    timestamp = parseInt(t.ctime, 10);
+                }
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) {
+                    console.warn(`Invalid date for trade ${tradeId}:`, t.ctime);
+                    continue; // Skip invalid dates
+                }
+                
                 const side = t.side; // BUY or SELL
                 const price = new Decimal(t.price);
                 const qty = new Decimal(t.qty);
-
+                
                 // Map side to Trade Type
                 const tradeType = side.toLowerCase();
 
@@ -583,30 +593,30 @@ export const app = {
                     symbol: symbol,
                     tradeType: tradeType,
                     status: status,
-
+                    
                     // We don't have account size context for historical trades
                     accountSize: new Decimal(0),
                     riskPercentage: new Decimal(0),
                     leverage: new Decimal(t.leverage || 0),
                     fees: new Decimal(0), // Percentage fee unknown, absolute fee is in tradingFee
-
-                    entryPrice: price,
+                    
+                    entryPrice: price, 
                     stopLossPrice: new Decimal(0), // Unknown
-
+                    
                     totalRR: new Decimal(0), // Unknown
-                    totalNetProfit: realizedPnl,
+                    totalNetProfit: realizedPnl, 
                     riskAmount: new Decimal(0),
                     totalFees: fee,
                     maxPotentialProfit: new Decimal(0),
-
+                    
                     notes: `Imported from Bitunix (Order: ${orderId})`,
                     targets: [],
                     calculatedTpDetails: [],
-
+                    
                     // New fields
                     tradeId: tradeId,
                     orderId: orderId,
-                    fundingFee: new Decimal(0),
+                    fundingFee: new Decimal(0), 
                     tradingFee: fee,
                     realizedPnl: realizedPnl,
                     isManual: false
@@ -619,10 +629,10 @@ export const app = {
                 const updatedJournal = [...currentJournal, ...newEntries];
                 // Sort by date descending
                 updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
+                
                 journalStore.set(updatedJournal);
                 app.saveJournal(updatedJournal);
-                uiStore.showFeedback('save', 2000);
+                uiStore.showFeedback('save', 2000); 
                 trackCustomEvent('Journal', 'Sync', 'Bitunix', addedCount);
             } else {
                  uiStore.showError("Keine neuen Trades gefunden.");

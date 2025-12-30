@@ -21,7 +21,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixHistory(apiKey: string, apiSecret: string, startTime?: number, endTime?: number, limit: number = 50): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/trade/get_history_trades';
-
+    
     // Params for the request
     const params: Record<string, string> = {
         limit: limit.toString()
@@ -41,7 +41,7 @@ async function fetchBitunixHistory(apiKey: string, apiSecret: string, startTime?
 
     // 3. Construct Digest Input
     // digestInput = nonce + timestamp + apiKey + queryParams + body
-    const body = "";
+    const body = ""; 
     const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
 
     // 4. Calculate Digest (SHA256)
@@ -71,7 +71,7 @@ async function fetchBitunixHistory(apiKey: string, apiSecret: string, startTime?
     }
 
     const data = await response.json();
-
+    
     if (data.code !== 0 && data.code !== '0') {
          throw new Error(`Bitunix API error code: ${data.code} - ${data.msg || 'Unknown error'}`);
     }
