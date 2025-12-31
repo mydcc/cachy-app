@@ -634,8 +634,10 @@ export const app = {
                 let stopLoss = new Decimal(0);
 
                 if (relatedOrder) {
-                    // Bitunix order object might have 'stopLossPrice' or 'triggerPrice'
-                    if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
+                    // Bitunix order object might have 'slPrice', 'stopLossPrice' or 'triggerPrice'
+                    if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
+                    else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
+                    else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
                 }
                 
                 const price = new Decimal(t.price);
