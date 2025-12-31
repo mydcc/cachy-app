@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
 async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: number = 100): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
-    const path = '/api/v1/futures/order/get_history_orders';
+    const path = '/api/v1/futures/trade/get_history_orders';
     
     // Params for the request
     const params: Record<string, string> = {
@@ -74,5 +74,5 @@ async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: numb
          throw new Error(`Bitunix API error code: ${data.code} - ${data.msg || 'Unknown error'}`);
     }
 
-    return data.data || [];
+    return data.data?.orderList || [];
 }
