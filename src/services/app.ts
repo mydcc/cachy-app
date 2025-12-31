@@ -573,7 +573,49 @@ export const app = {
             const newEntries: JournalEntry[] = [];
 
             // Helper to find order
-            const findOrder = (orderId: string) => orders.find((o: any) => o.orderId === orderId);
+            let findOrder = (orderId: string) => orders.find((o: any) => o.orderId === orderId);
+
+            // Identify missing orders and fetch them individually
+            const missingOrderIds = new Set<string>();
+            for (const t of trades) {
+                if (existingTradeIds.has(t.tradeId)) continue;
+                if (!findOrder(t.orderId)) {
+                    missingOrderIds.add(t.orderId);
+                }
+            }
+
+            if (missingOrderIds.size > 0) {
+                // Fetch missing orders with a concurrency limit
+                const fetchOrder = async (orderId: string) => {
+                    try {
+                        const res = await fetch('/api/sync/order-detail', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                apiKey: settings.apiKeys.bitunix.key,
+                                apiSecret: settings.apiKeys.bitunix.secret,
+                                orderId
+                            })
+                        });
+                        const result = await res.json();
+                        return result.data;
+                    } catch (err) {
+                        console.warn(`Failed to fetch detail for order ${orderId}:`, err);
+                        return null;
+                    }
+                };
+
+                const missingIds = Array.from(missingOrderIds);
+                // Simple batch processing (chunking to avoid rate limits if necessary, though simpler here)
+                for (let i = 0; i < missingIds.length; i++) {
+                     const orderData = await fetchOrder(missingIds[i]);
+                     if (orderData) {
+                         orders.push(orderData);
+                     }
+                     // Small delay to respect rate limits (10 req/sec)
+                     if (i < missingIds.length - 1) await new Promise(r => setTimeout(r, 150));
+                }
+            }
 
             for (const t of trades) {
                 // Skip if already exists
@@ -634,8 +676,10 @@ export const app = {
                 let stopLoss = new Decimal(0);
 
                 if (relatedOrder) {
-                    // Bitunix order object might have 'stopLossPrice' or 'triggerPrice'
-                    if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
+                    // Bitunix order object might have 'slPrice', 'stopLossPrice' or 'triggerPrice'
+                    if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
+                    else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
+                    else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
                 }
                 
                 const price = new Decimal(t.price);
