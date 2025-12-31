@@ -4,15 +4,19 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
+    import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
     import { icons, CONSTANTS } from '../../lib/constants';
     import { browser } from '$app/environment';
+    import { formatDynamicDecimal } from '../../utils/utils';
     import ModalFrame from './ModalFrame.svelte';
 
     $: filteredTrades = $journalStore.filter(trade =>
         trade.symbol.toLowerCase().includes($tradeStore.journalSearchQuery.toLowerCase()) &&
         ($tradeStore.journalFilterStatus === 'all' || trade.status === $tradeStore.journalFilterStatus)
     );
+
+    $: stats = calculator.calculateJournalStats($journalStore);
 
     function handleImportCsv(event: Event) {
         if (browser) {
@@ -39,7 +43,35 @@
     on:close={() => uiStore.toggleJournalModal(false)}
     extraClasses="modal-size-journal"
 >
-    <div id="journal-stats" class="journal-stats"></div>
+    <!-- New Performance Stats Dashboard -->
+    <div id="journal-stats" class="journal-stats grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+        <div class="bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
+            <div class="text-xs text-[var(--text-secondary)] uppercase">Total P/L</div>
+            <div class="text-lg font-bold {stats.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : stats.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">
+                {stats.totalNetProfit.gt(0) ? '+' : ''}{stats.totalNetProfit.toFixed(2)}
+            </div>
+        </div>
+        <div class="bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
+            <div class="text-xs text-[var(--text-secondary)] uppercase">Win Rate</div>
+            <div class="text-lg font-bold text-[var(--accent-color)]">
+                {stats.winRate.toFixed(1)}%
+            </div>
+            <div class="text-xs text-[var(--text-secondary)]">{stats.wonTrades}W / {stats.lostTrades}L</div>
+        </div>
+        <div class="bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
+            <div class="text-xs text-[var(--text-secondary)] uppercase">Profit Factor</div>
+            <div class="text-lg font-bold text-[var(--text-primary)]">
+                {stats.profitFactor.toFixed(2)}
+            </div>
+        </div>
+        <div class="bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
+            <div class="text-xs text-[var(--text-secondary)] uppercase">Avg Trade</div>
+            <div class="text-lg font-bold {stats.avgTrade.gt(0) ? 'text-[var(--success-color)]' : stats.avgTrade.lt(0) ? 'text-[var(--danger-color)]' : ''}">
+                {stats.avgTrade.gt(0) ? '+' : ''}{stats.avgTrade.toFixed(2)}
+            </div>
+        </div>
+    </div>
+
     <div class="flex gap-4 my-4"><input type="text" id="journal-search" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}><select id="journal-filter" class="input-field px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}><option value="all">{$_('journal.filterAll')}</option><option value="Open">{$_('journal.filterOpen')}</option><option value="Won">{$_('journal.filterWon')}</option><option value="Lost">{$_('journal.filterLost')}</option></select></div>
     <div class="max-h-[calc(100vh-20rem)] overflow-auto">
         <!-- Desktop Table -->
@@ -51,17 +83,29 @@
                         <tr>
                             <td>{new Date(trade.date).toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
                             <td>{trade.symbol || '-'}</td>
-                            <td class="{trade.tradeType === CONSTANTS.TRADE_TYPE_LONG ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
+                            <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
                             <td>{trade.entryPrice.toFixed(4)}</td>
-                            <td>{trade.stopLossPrice.toFixed(4)}</td>
+                            <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
                             <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
-                            <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">{trade.totalRR.toFixed(2)}</td>
+                            <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
+                                {trade.totalRR.gt(0) ? trade.totalRR.toFixed(2) : '-'}
+                            </td>
                             <td>
-                                <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
-                                    <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
-                                    <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
-                                    <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
-                                </select>
+                                {#if trade.isManual === false}
+                                    <!-- Read-only status for API trades -->
+                                    <span class="px-2 py-1 rounded text-xs font-bold
+                                        {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
+                                         trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
+                                         'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
+                                        {trade.status}
+                                    </span>
+                                {:else}
+                                    <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
+                                        <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
+                                        <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
+                                        <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
+                                    </select>
+                                {/if}
                             </td>
                             <!-- svelte-ignore a11y-click-events-have-key-events -->
                             <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -83,7 +127,7 @@
                     <div class="flex justify-between items-start">
                         <div>
                             <div class="text-lg font-bold text-[var(--text-primary)]">{trade.symbol || '-'}</div>
-                            <div class="text-sm {trade.tradeType === CONSTANTS.TRADE_TYPE_LONG ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</div>
+                            <div class="text-sm {trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</div>
                         </div>
                         <div class="text-right">
                             <div class="text-lg font-bold {trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">
@@ -95,11 +139,20 @@
                     <div class="mt-4 flex justify-between items-center">
                         <div>
                             <div class="text-sm">Status</div>
-                            <select class="status-select input-field p-1 mt-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
-                                <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
-                                <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
-                                <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
-                            </select>
+                            {#if trade.isManual === false}
+                                <span class="px-2 py-1 rounded text-xs font-bold mt-1 inline-block
+                                    {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
+                                     trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
+                                     'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
+                                    {trade.status}
+                                </span>
+                            {:else}
+                                <select class="status-select input-field p-1 mt-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
+                                    <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
+                                    <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
+                                    <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
+                                </select>
+                            {/if}
                         </div>
                         <div class="text-right">
                             <div class="text-sm text-slate-400">{new Date(trade.date).toLocaleString('de-DE', {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'})}</div>
@@ -118,7 +171,7 @@
         <table class="journal-table w-full">
             <thead><tr><th>{$_('journal.symbol')}</th><th>{$_('journal.trades')}</th><th>{$_('journal.profitPercent')}</th><th>{$_('journal.totalPL')}</th></tr></thead>
             <tbody id="symbol-performance-table-body">
-                {#each Object.entries(app.calculator.calculateSymbolPerformance($journalStore)) as [symbol, data]}
+                {#each Object.entries(calculator.calculateSymbolPerformance($journalStore)) as [symbol, data]}
                     <tr>
                         <td>{symbol}</td>
                         <td>{data.totalTrades}</td>
@@ -126,7 +179,7 @@
                         <td class="{data.totalProfitLoss.gt(0) ? 'text-[var(--success-color)]' : data.totalProfitLoss.lt(0) ? 'text-[var(--danger-color)]' : ''}">{data.totalProfitLoss.toFixed(2)}</td>
                     </tr>
                 {/each}
-                {#if Object.keys(app.calculator.calculateSymbolPerformance($journalStore)).length === 0}
+                {#if Object.keys(calculator.calculateSymbolPerformance($journalStore)).length === 0}
                     <tr><td colspan="4" class="text-center text-slate-500 py-4">{$_('journal.noData')}</td></tr>
                 {/if}
             </tbody>

@@ -201,5 +201,50 @@ export const calculator = {
             }
         });
         return symbolPerformance;
+    },
+
+    calculateJournalStats(journalData: JournalEntry[]) {
+        const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        let wonTrades = 0;
+        let lostTrades = 0;
+        let totalNetProfit = new Decimal(0);
+        let totalWinPnl = new Decimal(0);
+        let totalLossPnl = new Decimal(0);
+
+        const getPnL = (t: JournalEntry) => {
+             // For API trades (not manual), trust the totalNetProfit
+             if (t.isManual === false) return new Decimal(t.totalNetProfit || 0);
+
+             // For Manual trades
+             if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
+             if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
+             return new Decimal(0);
+        };
+
+        closedTrades.forEach(t => {
+            if (t.status === 'Won') wonTrades++;
+            if (t.status === 'Lost') lostTrades++;
+
+            const pnl = getPnL(t);
+            totalNetProfit = totalNetProfit.plus(pnl);
+
+            if (pnl.gt(0)) totalWinPnl = totalWinPnl.plus(pnl);
+            if (pnl.lt(0)) totalLossPnl = totalLossPnl.plus(pnl.abs());
+        });
+
+        const totalTrades = wonTrades + lostTrades;
+        const winRate = totalTrades > 0 ? (wonTrades / totalTrades) * 100 : 0;
+        const profitFactor = totalLossPnl.gt(0) ? totalWinPnl.div(totalLossPnl) : (totalWinPnl.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+        const avgTrade = totalTrades > 0 ? totalNetProfit.div(totalTrades) : new Decimal(0);
+
+        return {
+            totalNetProfit,
+            winRate: new Decimal(winRate),
+            wonTrades,
+            lostTrades,
+            profitFactor,
+            avgTrade
+        };
     }
 };
