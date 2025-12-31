@@ -205,7 +205,7 @@ export const calculator = {
 
     calculateJournalStats(journalData: JournalEntry[]) {
         const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
-        
+
         let wonTrades = 0;
         let lostTrades = 0;
         let totalNetProfit = new Decimal(0);
@@ -215,7 +215,7 @@ export const calculator = {
         const getPnL = (t: JournalEntry) => {
              // For API trades (not manual), trust the totalNetProfit
              if (t.isManual === false) return new Decimal(t.totalNetProfit || 0);
-             
+
              // For Manual trades
              if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
              if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
@@ -228,7 +228,7 @@ export const calculator = {
 
             const pnl = getPnL(t);
             totalNetProfit = totalNetProfit.plus(pnl);
-            
+
             if (pnl.gt(0)) totalWinPnl = totalWinPnl.plus(pnl);
             if (pnl.lt(0)) totalLossPnl = totalLossPnl.plus(pnl.abs());
         });

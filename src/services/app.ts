@@ -584,44 +584,44 @@ export const app = {
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
                 const fee = new Decimal(t.fee || 0);
 
-                // If PnL is 0 and it's just a fee, maybe skip? 
-                // Depends if the user wants to see every funding fee. 
+                // If PnL is 0 and it's just a fee, maybe skip?
+                // Depends if the user wants to see every funding fee.
                 // Let's filter for trades that have PnL OR are significant opens?
-                // Actually Bitunix 'get_history_trades' returns fills. 
+                // Actually Bitunix 'get_history_trades' returns fills.
                 // A "Closing" fill usually has PnL.
-                
+
                 const tradeId = t.tradeId;
                 const orderId = t.orderId;
                 const symbol = t.symbol;
-                
+
                 let timestamp = t.ctime;
                 if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
                     timestamp = parseInt(t.ctime, 10);
                 }
                 const date = new Date(timestamp);
                 if (isNaN(date.getTime())) continue;
-                
-                const side = t.side; // e.g. "BUY" or "SELL" (Open Long) or "SELL" (Close Long)? 
+
+                const side = t.side; // e.g. "BUY" or "SELL" (Open Long) or "SELL" (Close Long)?
                 // Bitunix side is just direction. We need to infer if it was Open or Close based on PnL or position side?
                 // The API doesn't strictly say "Open/Close" in trade history easily without context.
                 // BUT, if realizedPnl != 0, it is a CLOSE.
-                
+
                 // If realizedPnl is 0, it's likely an OPEN or a partial fill that hasn't closed yet?
                 // For the journal, we primarily want COMPLETED trades or OPEN trades.
                 // If it's an OPEN trade, realizedPnl is 0.
-                
+
                 // Let's try to match with Order to see "reduceOnly".
                 const relatedOrder = findOrder(orderId);
-                
+
                 // Determine Trade Type (Long/Short)
                 // If it's a CLOSE (PnL != 0), and side is SELL, it was a LONG.
                 // If it's a CLOSE (PnL != 0), and side is BUY, it was a SHORT.
                 // If it's an OPEN (PnL == 0), and side is BUY, it is LONG.
                 // If it's an OPEN (PnL == 0), and side is SELL, it is SHORT.
-                
+
                 let tradeType = 'long'; // default
                 let isClose = !realizedPnl.isZero();
-                
+
                 if (isClose) {
                     if (side.toUpperCase() === 'SELL') tradeType = 'long';
                     else tradeType = 'short';
@@ -632,7 +632,7 @@ export const app = {
 
                 // If we found an order, we might get SL/TP
                 let stopLoss = new Decimal(0);
-                
+
                 if (relatedOrder) {
                     // Bitunix order object might have 'stopLossPrice' or 'triggerPrice'
                     if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
@@ -643,7 +643,7 @@ export const app = {
                 // Calculate realized stats if SL exists
                 let riskAmount = new Decimal(0);
                 let totalRR = new Decimal(0);
-                
+
                 if (stopLoss.gt(0)) {
                     const riskPerUnit = price.minus(stopLoss).abs();
                     const qtyDecimal = new Decimal(t.qty || 0); // t.qty is likely quantity in base asset or contracts

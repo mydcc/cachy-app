@@ -93,9 +93,9 @@
                             <td>
                                 {#if trade.isManual === false}
                                     <!-- Read-only status for API trades -->
-                                    <span class="px-2 py-1 rounded text-xs font-bold 
-                                        {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' : 
-                                         trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' : 
+                                    <span class="px-2 py-1 rounded text-xs font-bold
+                                        {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
+                                         trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
                                          'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
                                         {trade.status}
                                     </span>
@@ -141,8 +141,8 @@
                             <div class="text-sm">Status</div>
                             {#if trade.isManual === false}
                                 <span class="px-2 py-1 rounded text-xs font-bold mt-1 inline-block
-                                    {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' : 
-                                     trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' : 
+                                    {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
+                                     trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
                                      'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
                                     {trade.status}
                                 </span>
