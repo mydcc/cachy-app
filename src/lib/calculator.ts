@@ -29,14 +29,11 @@ export const calculator = {
     },
 
     calculateATR(klines: Kline[], period: number = 14): Decimal {
-        // We need at least `period + 1` klines to calculate `period` true ranges.
         if (klines.length < period + 1) {
-            return new Decimal(0); // Not enough data to calculate ATR.
+            return new Decimal(0);
         }
 
         const trueRanges: Decimal[] = [];
-        // Loop starts at 1 because each True Range calculation needs the previous kline (at i-1).
-        // We calculate TR for the last `period` candles available.
         const relevantKlines = klines.slice(-(period + 1));
 
         for (let i = 1; i < relevantKlines.length; i++) {
@@ -55,7 +52,6 @@ export const calculator = {
             return new Decimal(0);
         }
 
-        // The ATR is the average of the true ranges.
         const sumOfTrueRanges = trueRanges.reduce((sum, val) => sum.plus(val), new Decimal(0));
         return sumOfTrueRanges.div(trueRanges.length);
     },
@@ -68,12 +64,13 @@ export const calculator = {
         const exitFee = positionPart.times(tpPrice).times(values.fees.div(100));
         const entryFeePart = positionPart.times(values.entryPrice).times(values.fees.div(100));
         const netProfit = grossProfitPart.minus(entryFeePart).minus(exitFee);
-        const riskForPart = riskAmount.times(currentTpPercent.div(100)); // Annahme: targets[0] ist der aktuelle TP
+        const riskForPart = riskAmount.times(currentTpPercent.div(100));
         const riskRewardRatio = riskForPart.gt(0) ? netProfit.div(riskForPart) : new Decimal(0);
         const priceChangePercent = values.entryPrice.gt(0) ? tpPrice.minus(values.entryPrice).div(values.entryPrice).times(100) : new Decimal(0);
         const returnOnCapital = requiredMargin.gt(0) && currentTpPercent.gt(0) ? netProfit.div(requiredMargin.times(currentTpPercent.div(100))).times(100) : new Decimal(0);
         return { netProfit, riskRewardRatio, priceChangePercent, returnOnCapital, partialVolume: positionPart, exitFee, index: index, percentSold: currentTpPercent };
     },
+
     calculateTotalMetrics(targets: Array<{ price: Decimal; percent: Decimal; }>, baseMetrics: BaseMetrics, values: TradeValues, tradeType: string): TotalMetrics {
         const { positionSize, entryFee, riskAmount } = baseMetrics;
         let totalNetProfit = new Decimal(0);
@@ -104,6 +101,112 @@ export const calculator = {
         const totalRR = values.totalPercentSold.gt(0) ? weightedRRSum.div(values.totalPercentSold.div(100)) : new Decimal(0);
         return { totalNetProfit, totalRR, totalFees, maxPotentialProfit, riskAmount };
     },
+
+    // --- New Data Builders for Charts ---
+
+    getPerformanceData(journal: JournalEntry[]) {
+        const closedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // 1. Equity Curve
+        let cumulative = new Decimal(0);
+        const equityCurve = closedTrades.map(t => {
+            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            cumulative = cumulative.plus(pnl);
+            return { x: t.date, y: cumulative.toNumber() };
+        });
+
+        // 2. Drawdown Series
+        let peak = new Decimal(0);
+        let currentDrawdown = new Decimal(0);
+        let runningPnl = new Decimal(0);
+        const drawdownSeries = closedTrades.map(t => {
+             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             runningPnl = runningPnl.plus(pnl);
+             if (runningPnl.gt(peak)) peak = runningPnl;
+             currentDrawdown = runningPnl.minus(peak); // Should be negative or zero
+             return { x: t.date, y: currentDrawdown.toNumber() };
+        });
+
+        // 3. Monthly Stats
+        const monthlyStats: {[key: string]: Decimal} = {};
+        closedTrades.forEach(t => {
+            const date = new Date(t.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            monthlyStats[monthKey] = (monthlyStats[monthKey] || new Decimal(0)).plus(pnl);
+        });
+        const monthlyLabels = Object.keys(monthlyStats).sort();
+        const monthlyData = monthlyLabels.map(k => monthlyStats[k].toNumber());
+
+        return { equityCurve, drawdownSeries, monthlyLabels, monthlyData };
+    },
+
+    getQualityData(journal: JournalEntry[]) {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+        const won = closedTrades.filter(t => t.status === 'Won').length;
+        const lost = closedTrades.filter(t => t.status === 'Lost').length;
+        const total = won + lost;
+
+        // 1. Win/Loss Distribution
+        const winLossData = [won, lost];
+
+        // 2. R-Multiple Distribution
+        const rMultiples = closedTrades.map(t => {
+             if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
+             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             return pnl.div(t.riskAmount).toNumber();
+        });
+
+        // Bucketing R-Multiples
+        const buckets: {[key: string]: number} = { '<-1R': 0, '-1R to 0R': 0, '0R to 1R': 0, '1R to 2R': 0, '2R to 3R': 0, '>3R': 0 };
+        rMultiples.forEach(r => {
+            if (r < -1) buckets['<-1R']++;
+            else if (r < 0) buckets['-1R to 0R']++; // Usually losses are -1R
+            else if (r < 1) buckets['0R to 1R']++;
+            else if (r < 2) buckets['1R to 2R']++;
+            else if (r < 3) buckets['2R to 3R']++;
+            else buckets['>3R']++;
+        });
+
+        // 3. KPI
+        const stats = this.calculateJournalStats(journal);
+
+        return { winLossData, rHistogram: buckets, stats };
+    },
+
+    getDirectionData(journal: JournalEntry[]) {
+         const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+         // 1. Long vs Short
+         let longPnl = new Decimal(0);
+         let shortPnl = new Decimal(0);
+         closedTrades.forEach(t => {
+             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) longPnl = longPnl.plus(pnl);
+             else shortPnl = shortPnl.plus(pnl);
+         });
+
+         // 2. Symbol Performance (Top 5 / Bottom 5)
+         const symbolMap: {[key: string]: Decimal} = {};
+         closedTrades.forEach(t => {
+             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             symbolMap[t.symbol] = (symbolMap[t.symbol] || new Decimal(0)).plus(pnl);
+         });
+
+         const sortedSymbols = Object.entries(symbolMap).sort((a, b) => b[1].minus(a[1]).toNumber());
+         const topSymbols = sortedSymbols.slice(0, 5);
+         const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
+
+         return {
+             longPnl: longPnl.toNumber(),
+             shortPnl: shortPnl.toNumber(),
+             topSymbols: { labels: topSymbols.map(s => s[0]), data: topSymbols.map(s => s[1].toNumber()) },
+             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) }
+         };
+    },
+
     calculatePerformanceStats(journalData: JournalEntry[]) {
         const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
         if (closedTrades.length === 0) return null;
@@ -184,23 +287,87 @@ export const calculator = {
 
         return { totalTrades, winRate, profitFactor, expectancy, avgRMultiple, avgRR, avgWin, avgLossOnly, winLossRatio, largestProfit, largestLoss, maxDrawdown, recoveryFactor, currentStreakText, longestWinningStreak, longestLosingStreak, totalProfitLong, totalLossLong, totalProfitShort, totalLossShort };
     },
-    calculateSymbolPerformance(journalData: JournalEntry[]) {
-        const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
-        const symbolPerformance: { [key: string]: { totalTrades: number; wonTrades: number; totalProfitLoss: Decimal; } } = {};
-        closedTrades.forEach(trade => {
-            if (!trade.symbol) return;
-            if (!symbolPerformance[trade.symbol]) {
-                symbolPerformance[trade.symbol] = { totalTrades: 0, wonTrades: 0, totalProfitLoss: new Decimal(0) };
-            }
-            symbolPerformance[trade.symbol].totalTrades++;
-            if (trade.status === 'Won') {
-                symbolPerformance[trade.symbol].wonTrades++;
-                symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.plus(new Decimal(trade.totalNetProfit || 0));
-            } else {
-                symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.minus(new Decimal(trade.riskAmount || 0));
-            }
+
+    getDisciplineData(journal: JournalEntry[]) {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 1. Time of Day Analysis (Heatmap proxy: Hourly buckets)
+        const hourlyPnl = new Array(24).fill(0);
+        const hourlyCount = new Array(24).fill(0);
+
+        closedTrades.forEach(t => {
+            const hour = new Date(t.date).getHours();
+            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            hourlyPnl[hour] += pnl.toNumber();
+            hourlyCount[hour]++;
         });
-        return symbolPerformance;
+
+        // 2. Risk Consistency (Histogram of Risk %)
+        // We use riskPercentage if available, or calculate it riskAmount/accountSize
+        const riskBuckets: {[key: string]: number} = { '<1%': 0, '1-2%': 0, '2-3%': 0, '>3%': 0 };
+        closedTrades.forEach(t => {
+            let riskPct = t.riskPercentage ? t.riskPercentage.toNumber() : 0;
+            if (riskPct === 0 && t.accountSize && t.accountSize.gt(0) && t.riskAmount) {
+                riskPct = t.riskAmount.div(t.accountSize).times(100).toNumber();
+            }
+
+            if (riskPct < 1) riskBuckets['<1%']++;
+            else if (riskPct < 2) riskBuckets['1-2%']++;
+            else if (riskPct < 3) riskBuckets['2-3%']++;
+            else riskBuckets['>3%']++;
+        });
+
+        // 3. Streak Analysis (calculated in performancestats, just returning formatted)
+        const perfStats = this.calculatePerformanceStats(journal);
+
+        return { hourlyPnl, riskBuckets, streak: perfStats ? { win: perfStats.longestWinningStreak, loss: perfStats.longestLosingStreak } : { win:0, loss:0 } };
+    },
+
+    getCostData(journal: JournalEntry[]) {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 1. Gross vs Net PnL (Total)
+        let totalGross = new Decimal(0);
+        let totalNet = new Decimal(0);
+        let totalFees = new Decimal(0);
+
+        closedTrades.forEach(t => {
+            const net = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            const fees = t.totalFees || new Decimal(0);
+            const funding = t.fundingFee || new Decimal(0);
+            const trading = t.tradingFee || new Decimal(0);
+
+            const totalFee = fees.plus(funding).plus(trading);
+
+            totalNet = totalNet.plus(net);
+            totalFees = totalFees.plus(totalFee);
+            totalGross = totalGross.plus(net).plus(totalFee); // Gross = Net + Fees (since Net = Gross - Fees)
+        });
+
+        // 2. Cumulative Fees
+        let cumFees = new Decimal(0);
+        const feeCurve = closedTrades.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(t => {
+            const fees = t.totalFees || new Decimal(0);
+            const funding = t.fundingFee || new Decimal(0);
+            const trading = t.tradingFee || new Decimal(0);
+            cumFees = cumFees.plus(fees).plus(funding).plus(trading);
+            return { x: t.date, y: cumFees.toNumber() };
+        });
+
+        // 3. Fee Structure
+        let sumTrading = new Decimal(0);
+        let sumFunding = new Decimal(0);
+        closedTrades.forEach(t => {
+             sumTrading = sumTrading.plus(t.tradingFee || t.fees || 0); // fallback to fees if tradingFee not set
+             sumFunding = sumFunding.plus(t.fundingFee || 0);
+        });
+
+        return {
+            gross: totalGross.toNumber(),
+            net: totalNet.toNumber(),
+            feeCurve,
+            feeStructure: { trading: sumTrading.toNumber(), funding: sumFunding.toNumber() }
+        };
     },
 
     calculateJournalStats(journalData: JournalEntry[]) {
@@ -246,5 +413,32 @@ export const calculator = {
             profitFactor,
             avgTrade
         };
+    },
+
+    calculateSymbolPerformance(journalData: JournalEntry[]) {
+        const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
+        const symbolPerformance: { [key: string]: { totalTrades: number; wonTrades: number; totalProfitLoss: Decimal; } } = {};
+        closedTrades.forEach(trade => {
+            if (!trade.symbol) return;
+            if (!symbolPerformance[trade.symbol]) {
+                symbolPerformance[trade.symbol] = { totalTrades: 0, wonTrades: 0, totalProfitLoss: new Decimal(0) };
+            }
+            symbolPerformance[trade.symbol].totalTrades++;
+
+            // PnL calculation needs to be consistent
+            let pnl = new Decimal(0);
+             if (trade.isManual === false) {
+                 pnl = new Decimal(trade.totalNetProfit || 0);
+             } else {
+                 if (trade.status === 'Won') pnl = new Decimal(trade.totalNetProfit || 0);
+                 else if (trade.status === 'Lost') pnl = (new Decimal(trade.riskAmount || 0)).negated();
+             }
+
+            if (trade.status === 'Won') {
+                symbolPerformance[trade.symbol].wonTrades++;
+            }
+            symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.plus(pnl);
+        });
+        return symbolPerformance;
     }
 };
