@@ -88,7 +88,7 @@
                             <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
                             <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
                             <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
-                                {trade.totalRR.gt(0) ? trade.totalRR.toFixed(2) : '-'}
+                                {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : '-'}
                             </td>
                             <td>
                                 {#if trade.isManual === false}
