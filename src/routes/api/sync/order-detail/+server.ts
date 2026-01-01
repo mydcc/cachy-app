@@ -3,55 +3,29 @@ import type { RequestHandler } from './$types';
 import { createHash, randomBytes } from 'crypto';
 
 export const POST: RequestHandler = async ({ request }) => {
-    const { apiKey, apiSecret, limit } = await request.json();
+    const { apiKey, apiSecret, orderId } = await request.json();
 
-    if (!apiKey || !apiSecret) {
-        return json({ error: 'Missing credentials' }, { status: 400 });
+    if (!apiKey || !apiSecret || !orderId) {
+        return json({ error: 'Missing credentials or orderId' }, { status: 400 });
     }
 
     try {
-        // Fetch up to 500 orders (5 pages of 100) to increase chances of finding the relevant order
-        const maxPages = 5;
-        let allOrders: any[] = [];
-        let currentEndTime: number | undefined = undefined;
-
-        for (let i = 0; i < maxPages; i++) {
-            const batch = await fetchBitunixOrders(apiKey, apiSecret, 100, currentEndTime);
-            
-            if (!batch || batch.length === 0) {
-                break;
-            }
-
-            allOrders = allOrders.concat(batch);
-            
-            // Prepare for next page: use the ctime of the last order as endTime
-            // The API sorts desc, so the last one is the oldest.
-            const lastOrder = batch[batch.length - 1];
-            if (lastOrder && lastOrder.ctime) {
-                currentEndTime = parseInt(lastOrder.ctime, 10);
-            } else {
-                break; // Should not happen if data is valid, but safe break
-            }
-        }
-
-        return json({ data: allOrders });
+        const order = await fetchBitunixOrderDetail(apiKey, apiSecret, orderId);
+        return json({ data: order });
     } catch (e: any) {
-        console.error(`Error fetching orders from Bitunix:`, e);
-        return json({ error: e.message || 'Failed to fetch orders' }, { status: 500 });
+        console.error(`Error fetching order detail from Bitunix for ${orderId}:`, e);
+        return json({ error: e.message || 'Failed to fetch order detail' }, { status: 500 });
     }
 };
 
-async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: number = 100, endTime?: number): Promise<any[]> {
+async function fetchBitunixOrderDetail(apiKey: string, apiSecret: string, orderId: string): Promise<any> {
     const baseUrl = 'https://fapi.bitunix.com';
-    const path = '/api/v1/futures/trade/get_history_orders';
+    const path = '/api/v1/futures/trade/get_order_detail';
     
     // Params for the request
     const params: Record<string, string> = {
-        limit: limit.toString()
+        orderId: orderId
     };
-    if (endTime) {
-        params.endTime = endTime.toString();
-    }
 
     // 1. Generate Nonce and Timestamp
     const nonce = randomBytes(16).toString('hex');
@@ -64,7 +38,6 @@ async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: numb
         .join('');
 
     // 3. Construct Digest Input
-    // digestInput = nonce + timestamp + apiKey + queryParams + body
     const body = ""; 
     const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
 
@@ -100,5 +73,5 @@ async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: numb
          throw new Error(`Bitunix API error code: ${data.code} - ${data.msg || 'Unknown error'}`);
     }
 
-    return data.data?.orderList || [];
+    return data.data;
 }
