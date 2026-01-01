@@ -10,22 +10,32 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        // Fetch Regular Orders
         let allOrders: any[] = [];
+
+        // 1. Fetch Regular Orders
         try {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
             console.error('Error fetching regular orders:', err);
-            if (allOrders.length === 0) throw err; 
+            // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
         }
 
-        // Fetch Plan Orders (Trigger Orders) - often contain Stop Loss history
+        // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
+        // Documentation: /api/v1/futures/tpsl/get_history_orders
+        try {
+            const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders');
+            allOrders = allOrders.concat(tpslOrders);
+        } catch (err: any) {
+            console.warn('Error fetching TP/SL orders:', err.message);
+        }
+
+        // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
         try {
             const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
             allOrders = allOrders.concat(planOrders);
         } catch (err: any) {
-            console.warn('Error fetching plan orders (non-critical):', err.message);
+            console.warn('Error fetching plan orders:', err.message);
         }
 
         return json({ data: allOrders });
