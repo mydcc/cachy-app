@@ -463,6 +463,7 @@ export const calculator = {
                 return {
                     x: t.riskAmount.toNumber(),
                     y: pnl.toNumber(),
+                    r: 6, // Fixed radius for scatter plot visibility
                     l: `${t.symbol} (${t.status}): Risk $${t.riskAmount.toFixed(2)} -> PnL $${pnl.toFixed(2)}`
                 };
             });
