@@ -566,6 +566,30 @@ export const app = {
 
             if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
 
+            // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
+            const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
+
+            orders.forEach((o: any) => {
+                let sl = new Decimal(0);
+                if (o.slPrice) sl = new Decimal(o.slPrice);
+                else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
+                else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
+
+                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
+                // Assuming standardized API response or fallback.
+                let t = o.createTime || o.ctime || 0;
+                if (typeof t === 'string') t = parseInt(t, 10);
+
+                if (sl.gt(0) && o.symbol) {
+                    if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
+                    symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+                }
+            });
+
+            // Sort by time ascending
+            Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
+            // ------------------------------------------------------------------
+
             let addedCount = 0;
             const currentJournal = get(journalStore);
             const existingTradeIds = new Set(currentJournal.map(j => String(j.tradeId || '')).filter(Boolean));
@@ -604,12 +628,28 @@ export const app = {
 
                 let stopLoss = new Decimal(0);
 
+                // Strategy 1: Direct link to order
                 if (relatedOrder) {
                     if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
                     else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
                     else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
                 }
                 
+                // Strategy 2: Fallback to last known SL for symbol
+                if (stopLoss.lte(0)) {
+                    const candidates = symbolSlMap[symbol];
+                    if (candidates) {
+                        const tradeTime = date.getTime();
+                        // Find most recent order BEFORE tradeTime
+                        for (let i = candidates.length - 1; i >= 0; i--) {
+                            if (candidates[i].ctime < tradeTime) {
+                                stopLoss = candidates[i].slPrice;
+                                break;
+                            }
+                        }
+                    }
+                }
+
                 const exitPrice = new Decimal(t.price);
                 const qtyDecimal = new Decimal(t.qty || 0);
 
@@ -617,7 +657,7 @@ export const app = {
                 // PnL = (Exit - Entry) * Qty  (Long)
                 // PnL = (Entry - Exit) * Qty  (Short)
                 let entryPrice = exitPrice;
-                
+
                 if (qtyDecimal.gt(0)) {
                     if (tradeType === 'long') {
                          // Entry = Exit - (PnL / Qty)
