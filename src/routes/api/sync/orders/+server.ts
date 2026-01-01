@@ -20,12 +20,24 @@ export const POST: RequestHandler = async ({ request }) => {
             if (allOrders.length === 0) throw err;
         }
 
-        // Fetch Plan Orders (Trigger Orders) - often contain Stop Loss history
+        // Fetch Plan Orders (Trigger Orders) - Try multiple endpoints
+        // Endpoint 1: get_history_plan_orders (Common convention)
         try {
             const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
-            allOrders = allOrders.concat(planOrders);
-        } catch (err: any) {
-            console.warn('Error fetching plan orders (non-critical):', err.message);
+            if (planOrders.length > 0) {
+                allOrders = allOrders.concat(planOrders);
+            } else {
+                throw new Error("No data from get_history_plan_orders");
+            }
+        } catch (err1: any) {
+            console.warn('Endpoint 1 failed, trying Endpoint 2:', err1.message);
+            // Endpoint 2: get_history_orders (Alternative convention for Plan module)
+            try {
+                const planOrders2 = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_orders');
+                allOrders = allOrders.concat(planOrders2);
+            } catch (err2: any) {
+                console.warn('All plan order endpoints failed:', err2.message);
+            }
         }
 
         return json({ data: allOrders });
