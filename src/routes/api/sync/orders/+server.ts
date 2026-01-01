@@ -10,28 +10,22 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        // Fetch up to 500 orders (5 pages of 100) to increase chances of finding the relevant order
-        const maxPages = 5;
+        // Fetch Regular Orders
         let allOrders: any[] = [];
-        let currentEndTime: number | undefined = undefined;
+        try {
+            const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
+            allOrders = allOrders.concat(regularOrders);
+        } catch (err: any) {
+            console.error('Error fetching regular orders:', err);
+            if (allOrders.length === 0) throw err;
+        }
 
-        for (let i = 0; i < maxPages; i++) {
-            const batch = await fetchBitunixOrders(apiKey, apiSecret, 100, currentEndTime);
-            
-            if (!batch || batch.length === 0) {
-                break;
-            }
-
-            allOrders = allOrders.concat(batch);
-            
-            // Prepare for next page: use the ctime of the last order as endTime
-            // The API sorts desc, so the last one is the oldest.
-            const lastOrder = batch[batch.length - 1];
-            if (lastOrder && lastOrder.ctime) {
-                currentEndTime = parseInt(lastOrder.ctime, 10);
-            } else {
-                break; // Should not happen if data is valid, but safe break
-            }
+        // Fetch Plan Orders (Trigger Orders) - often contain Stop Loss history
+        try {
+            const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
+            allOrders = allOrders.concat(planOrders);
+        } catch (err: any) {
+            console.warn('Error fetching plan orders (non-critical):', err.message);
         }
 
         return json({ data: allOrders });
@@ -41,9 +35,36 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 };
 
-async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: number = 100, endTime?: number): Promise<any[]> {
+async function fetchAllPages(apiKey: string, apiSecret: string, path: string): Promise<any[]> {
+    const maxPages = 5;
+    let accumulated: any[] = [];
+    let currentEndTime: number | undefined = undefined;
+
+    for (let i = 0; i < maxPages; i++) {
+        const batch = await fetchBitunixData(apiKey, apiSecret, path, 100, currentEndTime);
+
+        if (!batch || batch.length === 0) {
+            break;
+        }
+
+        accumulated = accumulated.concat(batch);
+
+        // Pagination logic: use the creation time of the last item
+        const lastItem = batch[batch.length - 1];
+        // Standardize time field: ctime, createTime, updateTime
+        const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
+
+        if (timeField) {
+            currentEndTime = parseInt(timeField, 10);
+        } else {
+            break;
+        }
+    }
+    return accumulated;
+}
+
+async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
-    const path = '/api/v1/futures/trade/get_history_orders';
     
     // Params for the request
     const params: Record<string, string> = {
@@ -57,14 +78,13 @@ async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: numb
     const nonce = randomBytes(16).toString('hex');
     const timestamp = Date.now().toString();
 
-    // 2. Sort and Concatenate Query Params (keyvaluekeyvalue...)
+    // 2. Sort and Concatenate Query Params
     const queryParamsStr = Object.keys(params)
         .sort()
         .map(key => key + params[key])
         .join('');
 
     // 3. Construct Digest Input
-    // digestInput = nonce + timestamp + apiKey + queryParams + body
     const body = ""; 
     const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
 
@@ -91,14 +111,25 @@ async function fetchBitunixOrders(apiKey: string, apiSecret: string, limit: numb
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Bitunix API error: ${response.status} ${text}`);
+        throw new Error(`Bitunix API error [${path}]: ${response.status} ${text}`);
     }
 
     const data = await response.json();
     
     if (data.code !== 0 && data.code !== '0') {
-         throw new Error(`Bitunix API error code: ${data.code} - ${data.msg || 'Unknown error'}`);
+         throw new Error(`Bitunix API error code [${path}]: ${data.code} - ${data.msg || 'Unknown error'}`);
     }
 
-    return data.data?.orderList || [];
+    // Robustly find the list in the response
+    const resultData = data.data;
+    if (Array.isArray(resultData)) return resultData;
+    if (resultData && typeof resultData === 'object') {
+        // Try common keys
+        if (Array.isArray(resultData.orderList)) return resultData.orderList;
+        if (Array.isArray(resultData.planOrderList)) return resultData.planOrderList;
+        if (Array.isArray(resultData.rows)) return resultData.rows;
+        if (Array.isArray(resultData.list)) return resultData.list;
+    }
+
+    return [];
 }
