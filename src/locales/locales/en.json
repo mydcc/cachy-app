@@ -179,7 +179,26 @@
     "clearJournalTitle": "Clear Entire Journal",
     "clearAll": "Clear All",
     "showJournalInstructionsTitle": "Show Journal Instructions",
-    "showJournalInstructionsAriaLabel": "Show Journal Instructions"
+    "showJournalInstructionsAriaLabel": "Show Journal Instructions",
+    "deepDive": {
+      "title": "Deep Dive",
+      "timing": "Timing",
+      "assets": "Assets",
+      "risk": "Risk",
+      "market": "Market",
+      "psychology": "Psychology",
+      "charts": {
+        "hourlyPnl": "PnL by Hour of Day",
+        "dayOfWeekPnl": "PnL by Day of Week",
+        "assetBubble": "Asset Performance (WinRate vs PnL)",
+        "riskRewardScatter": "Risk vs Realized PnL",
+        "leverageDist": "Leverage Distribution",
+        "winStreak": "Win Streaks",
+        "lossStreak": "Loss Streaks",
+        "recovery": "Drawdown Recovery",
+        "longShortWinRate": "Win Rate: Long vs Short"
+      }
+    }
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Calculator",

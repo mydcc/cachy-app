@@ -13,10 +13,12 @@
     import LineChart from './charts/LineChart.svelte';
     import BarChart from './charts/BarChart.svelte';
     import DoughnutChart from './charts/DoughnutChart.svelte';
+    import BubbleChart from './charts/BubbleChart.svelte';
     import { Decimal } from 'decimal.js';
 
     // --- State for Dashboard ---
     let activePreset = 'performance';
+    let activeDeepDivePreset = 'timing';
 
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
@@ -148,6 +150,83 @@
         }]
     };
 
+    // --- Deep Dive Data ---
+    // Timing
+    $: timingData = calculator.getTimingData(journal);
+    $: hourlyPnlData = {
+        labels: Array.from({length: 24}, (_, i) => `${i}h`),
+        datasets: [{
+            label: 'PnL',
+            data: timingData.hourlyPnl,
+            backgroundColor: timingData.hourlyPnl.map(d => d >= 0 ? '#10b981' : '#ef4444')
+        }]
+    };
+    $: dayOfWeekPnlData = {
+        labels: timingData.dayLabels,
+        datasets: [{
+            label: 'PnL',
+            data: timingData.dayOfWeekPnl,
+            backgroundColor: timingData.dayOfWeekPnl.map(d => d >= 0 ? '#10b981' : '#ef4444')
+        }]
+    };
+
+    // Assets
+    $: assetData = calculator.getAssetData(journal);
+    $: assetBubbleData = {
+        datasets: [{
+            label: 'Assets',
+            data: assetData.bubbleData,
+            backgroundColor: assetData.bubbleData.map(d => d.y >= 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)')
+        }]
+    };
+
+    // Risk
+    $: riskScatterData = calculator.getRiskData(journal);
+    $: riskRewardScatter = {
+        datasets: [{
+            label: 'Trades',
+            data: riskScatterData.scatterData,
+            backgroundColor: riskScatterData.scatterData.map(d => d.y >= 0 ? '#10b981' : '#ef4444')
+        }]
+    };
+
+    // Market
+    $: marketData = calculator.getMarketData(journal);
+    $: longShortWinData = {
+        labels: ['Long Win Rate', 'Short Win Rate'],
+        datasets: [{
+            data: marketData.longShortWinRate,
+            backgroundColor: ['#10b981', '#ef4444'],
+            borderWidth: 0
+        }]
+    };
+    $: leverageDistData = {
+        labels: marketData.leverageLabels,
+        datasets: [{
+            label: 'Count',
+            data: marketData.leverageDist,
+            backgroundColor: '#3b82f6'
+        }]
+    };
+
+    // Psychology
+    $: psychData = calculator.getPsychologyData(journal);
+    $: winStreakData = {
+        labels: psychData.streakLabels,
+        datasets: [{
+            label: 'Frequency',
+            data: psychData.winStreakData,
+            backgroundColor: '#10b981'
+        }]
+    };
+    $: lossStreakData = {
+        labels: psychData.streakLabels,
+        datasets: [{
+            label: 'Frequency',
+            data: psychData.lossStreakData,
+            backgroundColor: '#ef4444'
+        }]
+    };
 
     // --- Table State ---
     let currentPage = 1;
@@ -486,6 +565,80 @@
             </div>
         </div>
     {/if}
+
+    <!-- Deep Dive Section -->
+    <div class="mt-8 border-t border-[var(--border-color)] pt-6">
+        <div class="flex items-center gap-2 mb-4">
+            <span class="text-2xl">🦆</span>
+            <h3 class="text-xl font-bold text-[var(--text-primary)]">{$_('deepDive.title')}</h3>
+        </div>
+
+        <DashboardNav
+            activePreset={activeDeepDivePreset}
+            presets={[
+                { id: 'timing', label: $_('deepDive.timing') },
+                { id: 'assets', label: $_('deepDive.assets') },
+                { id: 'risk', label: $_('deepDive.risk') },
+                { id: 'market', label: $_('deepDive.market') },
+                { id: 'psychology', label: $_('deepDive.psychology') }
+            ]}
+            on:select={(e) => activeDeepDivePreset = e.detail}
+        />
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4">
+            {#if activeDeepDivePreset === 'timing'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BarChart data={hourlyPnlData} title={$_('deepDive.charts.hourlyPnl')} />
+                </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BarChart data={dayOfWeekPnlData} title={$_('deepDive.charts.dayOfWeekPnl')} />
+                </div>
+                 <!-- Placeholder for future timing metric -->
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)]">
+                    <span>More Timing metrics coming soon...</span>
+                 </div>
+            {:else if activeDeepDivePreset === 'assets'}
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BubbleChart data={assetBubbleData} title={$_('deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" />
+                </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
+                    <div class="text-center">
+                        <div class="text-sm text-[var(--text-secondary)]">Top Asset</div>
+                         {#if dirData.topSymbols.labels.length > 0}
+                             <div class="text-2xl font-bold text-[var(--success-color)]">{dirData.topSymbols.labels[0]}</div>
+                             <div class="text-lg text-[var(--text-primary)]">${dirData.topSymbols.data[0]?.toFixed(2)}</div>
+                         {:else}
+                             <div class="text-xl">-</div>
+                         {/if}
+                    </div>
+                 </div>
+            {:else if activeDeepDivePreset === 'risk'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BubbleChart data={riskRewardScatter} title={$_('deepDive.charts.riskRewardScatter')} xLabel="Risk Amount ($)" yLabel="Realized PnL ($)" />
+                </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BarChart data={rDistData} title="R-Multiple Distribution" />
+                </div>
+            {:else if activeDeepDivePreset === 'market'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <DoughnutChart data={longShortWinData} title={$_('deepDive.charts.longShortWinRate')} />
+                </div>
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BarChart data={leverageDistData} title={$_('deepDive.charts.leverageDist')} />
+                </div>
+            {:else if activeDeepDivePreset === 'psychology'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BarChart data={winStreakData} title={$_('deepDive.charts.winStreak')} />
+                </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BarChart data={lossStreakData} title={$_('deepDive.charts.lossStreak')} />
+                </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                     <LineChart data={drawdownData} title={$_('deepDive.charts.recovery')} yLabel="Drawdown ($)" />
+                </div>
+            {/if}
+        </div>
+    </div>
 
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">
