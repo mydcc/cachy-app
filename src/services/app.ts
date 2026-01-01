@@ -526,7 +526,7 @@ export const app = {
             return;
         }
 
-        uiStore.update(s => ({ ...s, isPriceFetching: true }));
+        uiStore.update(s => ({ ...s, isPriceFetching: true })); 
 
         try {
             // 1. Fetch Trades
@@ -553,7 +553,7 @@ export const app = {
                     limit: 100
                 })
             });
-
+            
             let orders: any[] = [];
             try {
                 const orderResult = await orderResponse.json();
@@ -565,6 +565,30 @@ export const app = {
             }
 
             if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
+
+            // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
+            const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
+
+            orders.forEach((o: any) => {
+                let sl = new Decimal(0);
+                if (o.slPrice) sl = new Decimal(o.slPrice);
+                else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
+                else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
+
+                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
+                // Assuming standardized API response or fallback.
+                let t = o.createTime || o.ctime || 0;
+                if (typeof t === 'string') t = parseInt(t, 10);
+
+                if (sl.gt(0) && o.symbol) {
+                    if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
+                    symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+                }
+            });
+
+            // Sort by time ascending
+            Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
+            // ------------------------------------------------------------------
 
             let addedCount = 0;
             const currentJournal = get(journalStore);
@@ -581,7 +605,7 @@ export const app = {
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
                 const fee = new Decimal(t.fee || 0);
 
-                if (realizedPnl.eq(0)) continue;
+                if (realizedPnl.eq(0)) continue; 
 
                 const tradeId = String(t.tradeId);
                 const orderId = String(t.orderId);
@@ -594,9 +618,9 @@ export const app = {
                 const date = new Date(timestamp);
                 if (isNaN(date.getTime())) continue;
 
-                const side = t.side;
-
-                let tradeType = 'long';
+                const side = t.side; 
+                
+                let tradeType = 'long'; 
                 if (side.toUpperCase() === 'SELL') tradeType = 'long';
                 else tradeType = 'short';
 
@@ -604,15 +628,31 @@ export const app = {
 
                 let stopLoss = new Decimal(0);
 
+                // Strategy 1: Direct link to order
                 if (relatedOrder) {
                     if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
                     else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
                     else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
                 }
                 
-                const exitPrice = new Decimal(t.price);
-                const qtyDecimal = new Decimal(t.qty || 0);
+                // Strategy 2: Fallback to last known SL for symbol
+                if (stopLoss.lte(0)) {
+                    const candidates = symbolSlMap[symbol];
+                    if (candidates) {
+                        const tradeTime = date.getTime();
+                        // Find most recent order BEFORE tradeTime
+                        for (let i = candidates.length - 1; i >= 0; i--) {
+                            if (candidates[i].ctime < tradeTime) {
+                                stopLoss = candidates[i].slPrice;
+                                break;
+                            }
+                        }
+                    }
+                }
 
+                const exitPrice = new Decimal(t.price);
+                const qtyDecimal = new Decimal(t.qty || 0); 
+                
                 // Back-calculate Entry Price if possible
                 // PnL = (Exit - Entry) * Qty  (Long)
                 // PnL = (Entry - Exit) * Qty  (Short)
@@ -636,7 +676,7 @@ export const app = {
                     const riskPerUnit = entryPrice.minus(stopLoss).abs();
                     if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
                         riskAmount = riskPerUnit.times(qtyDecimal);
-
+                        
                         if (riskAmount.gt(0) && !realizedPnl.isZero()) {
                             totalRR = realizedPnl.div(riskAmount);
                         }
@@ -660,7 +700,7 @@ export const app = {
                     leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
                     fees: new Decimal(0),
                     
-                    entryPrice: entryPrice,
+                    entryPrice: entryPrice, 
                     stopLossPrice: stopLoss,
                     
                     totalRR: totalRR,
