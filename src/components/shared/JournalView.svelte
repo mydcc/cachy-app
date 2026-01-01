@@ -573,8 +573,8 @@
             <h3 class="text-xl font-bold text-[var(--text-primary)]">{$_('deepDive.title')}</h3>
         </div>
 
-        <DashboardNav
-            activePreset={activeDeepDivePreset}
+        <DashboardNav 
+            activePreset={activeDeepDivePreset} 
             presets={[
                 { id: 'timing', label: $_('deepDive.timing') },
                 { id: 'assets', label: $_('deepDive.assets') },
@@ -582,7 +582,7 @@
                 { id: 'market', label: $_('deepDive.market') },
                 { id: 'psychology', label: $_('deepDive.psychology') }
             ]}
-            on:select={(e) => activeDeepDivePreset = e.detail}
+            on:select={(e) => activeDeepDivePreset = e.detail} 
         />
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4">

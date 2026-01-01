@@ -3,16 +3,15 @@
     import { icons } from '../../lib/constants';
 
     export let activePreset: string;
-
-    const dispatch = createEventDispatcher();
-
-    const presets = [
+    export let presets: { id: string, label: string, icon?: string }[] = [
         { id: 'performance', label: 'Performance', icon: icons.chart },
         { id: 'quality', label: 'Qualität', icon: icons.check },
         { id: 'direction', label: 'Richtung', icon: icons.exchange },
         { id: 'discipline', label: 'Disziplin', icon: icons.lockClosed },
         { id: 'costs', label: 'Kosten', icon: icons.settings }
     ];
+
+    const dispatch = createEventDispatcher();
 </script>
 
 <div class="flex flex-wrap gap-2 mb-4 border-b border-[var(--border-color)] pb-2">
@@ -24,7 +23,9 @@
                 : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}"
             on:click={() => dispatch('select', preset.id)}
         >
-            {@html preset.icon}
+            {#if preset.icon}
+                {@html preset.icon}
+            {/if}
             <span>{preset.label}</span>
         </button>
     {/each}

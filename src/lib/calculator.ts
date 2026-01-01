@@ -388,7 +388,7 @@ export const calculator = {
             if (pnl.isZero() && t.status === 'Lost') {
                  pnl = t.riskAmount ? t.riskAmount.negated() : new Decimal(0);
             }
-
+            
             hourlyPnl[hour] = hourlyPnl[hour].plus(pnl);
             dayOfWeekPnl[day] = dayOfWeekPnl[day].plus(pnl);
         });
@@ -420,15 +420,15 @@ export const calculator = {
             if (t.status === 'Open') return;
             const sym = t.symbol;
             if (!symbolStats[sym]) symbolStats[sym] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
-
+            
             symbolStats[sym].count++;
-
+            
             let pnl = new Decimal(t.totalNetProfit || 0);
             if (pnl.isZero() && t.status === 'Lost') {
                  pnl = t.riskAmount ? t.riskAmount.negated() : new Decimal(0);
             }
             symbolStats[sym].pnl = symbolStats[sym].pnl.plus(pnl);
-
+            
             if (t.status === 'Won') symbolStats[sym].win++;
             else symbolStats[sym].loss++;
         });
@@ -479,7 +479,7 @@ export const calculator = {
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-
+            
             // Direction Analysis
             if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
                 longTotal++;
@@ -511,7 +511,7 @@ export const calculator = {
     getPsychologyData: (trades: JournalEntry[]) => {
         // Streak Analysis
         const sorted = [...trades].filter(t => t.status === 'Won' || t.status === 'Lost').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
+        
         let currentWinStreak = 0;
         let currentLossStreak = 0;
         const winStreaks: number[] = [];
@@ -545,7 +545,7 @@ export const calculator = {
         // Prepare labels (1 to max streak)
         const maxStreak = Math.max(...winStreaks, ...lossStreaks, 0);
         const streakLabels = Array.from({length: maxStreak}, (_, i) => (i + 1).toString());
-
+        
         const winStreakData = streakLabels.map(l => winStreakCounts[parseInt(l)] || 0);
         const lossStreakData = streakLabels.map(l => lossStreakCounts[parseInt(l)] || 0);
 
