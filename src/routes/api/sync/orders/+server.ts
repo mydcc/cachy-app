@@ -10,34 +10,32 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        // Fetch Regular Orders
         let allOrders: any[] = [];
+
+        // 1. Fetch Regular Orders
         try {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
             console.error('Error fetching regular orders:', err);
-            if (allOrders.length === 0) throw err;
+            // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
         }
 
-        // Fetch Plan Orders (Trigger Orders) - Try multiple endpoints
-        // Endpoint 1: get_history_plan_orders (Common convention)
+        // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
+        // Documentation: /api/v1/futures/tpsl/get_history_orders
+        try {
+            const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders');
+            allOrders = allOrders.concat(tpslOrders);
+        } catch (err: any) {
+            console.warn('Error fetching TP/SL orders:', err.message);
+        }
+
+        // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
         try {
             const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
-            if (planOrders.length > 0) {
-                allOrders = allOrders.concat(planOrders);
-            } else {
-                throw new Error("No data from get_history_plan_orders");
-            }
-        } catch (err1: any) {
-            console.warn('Endpoint 1 failed, trying Endpoint 2:', err1.message);
-            // Endpoint 2: get_history_orders (Alternative convention for Plan module)
-            try {
-                const planOrders2 = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_orders');
-                allOrders = allOrders.concat(planOrders2);
-            } catch (err2: any) {
-                console.warn('All plan order endpoints failed:', err2.message);
-            }
+            allOrders = allOrders.concat(planOrders);
+        } catch (err: any) {
+            console.warn('Error fetching plan orders:', err.message);
         }
 
         return json({ data: allOrders });
