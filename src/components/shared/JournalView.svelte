@@ -8,6 +8,7 @@
     import { _, locale } from '../../locales/i18n';
     import { icons, CONSTANTS } from '../../lib/constants';
     import { browser } from '$app/environment';
+    import { getComputedColor, hexToRgba } from '../../utils/colors';
     import ModalFrame from './ModalFrame.svelte';
     import DashboardNav from './DashboardNav.svelte';
     import LineChart from './charts/LineChart.svelte';
@@ -20,6 +21,36 @@
     let activePreset = 'performance';
     let activeDeepDivePreset = 'timing';
 
+    // --- Dynamic Colors ---
+    // We bind to store to react to changes, even if we don't use the variable directly here
+    $: currentTheme = $uiStore.currentTheme;
+
+    // Default fallback colors
+    let c = {
+        success: '#10b981',
+        danger: '#ef4444',
+        accent: '#3b82f6',
+        warning: '#f59e0b',
+        textSecondary: '#64748b'
+    };
+
+    function updateColors() {
+        if (!browser) return;
+        // Use a timeout to allow the DOM to update with the new theme class
+        setTimeout(() => {
+            c = {
+                success: getComputedColor('--success-color') || '#10b981',
+                danger: getComputedColor('--danger-color') || '#ef4444',
+                accent: getComputedColor('--accent-color') || '#3b82f6',
+                warning: getComputedColor('--warning-color') || '#f59e0b',
+                textSecondary: getComputedColor('--text-secondary') || '#64748b'
+            };
+        }, 10);
+    }
+
+    // Trigger update when theme changes or modal opens
+    $: if (currentTheme || $uiStore.showJournalModal) updateColors();
+
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
 
@@ -30,8 +61,8 @@
         datasets: [{
             label: 'Equity',
             data: perfData.equityCurve.map(d => d.y),
-            borderColor: '#10b981', // success-color
-            backgroundColor: 'rgba(16, 185, 129, 0.1)',
+            borderColor: c.success,
+            backgroundColor: hexToRgba(c.success, 0.1),
             fill: true,
             tension: 0.1
         }]
@@ -41,8 +72,8 @@
         datasets: [{
             label: 'Drawdown',
             data: perfData.drawdownSeries.map(d => d.y),
-            borderColor: '#ef4444', // danger-color
-            backgroundColor: 'rgba(239, 68, 68, 0.2)',
+            borderColor: c.danger,
+            backgroundColor: hexToRgba(c.danger, 0.2),
             fill: true,
             tension: 0.1
         }]
@@ -52,7 +83,7 @@
         datasets: [{
             label: 'Monthly PnL',
             data: perfData.monthlyData,
-            backgroundColor: perfData.monthlyData.map(d => d >= 0 ? '#10b981' : '#ef4444')
+            backgroundColor: perfData.monthlyData.map(d => d >= 0 ? c.success : c.danger)
         }]
     };
 
@@ -62,7 +93,7 @@
         labels: ['Win', 'Loss'],
         datasets: [{
             data: qualData.winLossData,
-            backgroundColor: ['#10b981', '#ef4444'],
+            backgroundColor: [c.success, c.danger],
             borderWidth: 0
         }]
     };
@@ -71,7 +102,7 @@
         datasets: [{
             label: 'Trades',
             data: Object.values(qualData.rHistogram),
-            backgroundColor: '#3b82f6' // accent-color
+            backgroundColor: c.accent
         }]
     };
 
@@ -82,7 +113,7 @@
         datasets: [{
             label: 'Net PnL',
             data: [dirData.longPnl, dirData.shortPnl],
-            backgroundColor: [dirData.longPnl >= 0 ? '#10b981' : '#ef4444', dirData.shortPnl >= 0 ? '#10b981' : '#ef4444']
+            backgroundColor: [dirData.longPnl >= 0 ? c.success : c.danger, dirData.shortPnl >= 0 ? c.success : c.danger]
         }]
     };
     $: topSymbolData = {
@@ -90,7 +121,7 @@
         datasets: [{
             label: 'PnL',
             data: dirData.topSymbols.data,
-            backgroundColor: '#10b981'
+            backgroundColor: c.success
         }]
     };
     $: bottomSymbolData = {
@@ -98,7 +129,7 @@
         datasets: [{
             label: 'PnL',
             data: dirData.bottomSymbols.data,
-            backgroundColor: '#ef4444'
+            backgroundColor: c.danger
         }]
     };
 
@@ -109,7 +140,7 @@
         datasets: [{
             label: 'PnL',
             data: discData.hourlyPnl,
-            backgroundColor: discData.hourlyPnl.map(d => d >= 0 ? '#10b981' : '#ef4444')
+            backgroundColor: discData.hourlyPnl.map(d => d >= 0 ? c.success : c.danger)
         }]
     };
     $: riskData = {
@@ -117,7 +148,7 @@
         datasets: [{
             label: 'Trades',
             data: Object.values(discData.riskBuckets),
-            backgroundColor: '#f59e0b' // warning-color
+            backgroundColor: c.warning
         }]
     };
 
@@ -128,7 +159,7 @@
         datasets: [{
             label: 'PnL',
             data: [costData.gross, costData.net],
-            backgroundColor: ['#3b82f6', costData.net >= 0 ? '#10b981' : '#ef4444']
+            backgroundColor: [c.accent, costData.net >= 0 ? c.success : c.danger]
         }]
     };
     $: feeCurveData = {
@@ -136,16 +167,16 @@
         datasets: [{
             label: 'Cumulative Fees',
             data: costData.feeCurve.map(d => d.y),
-            borderColor: '#f59e0b',
+            borderColor: c.warning,
             fill: true,
-            backgroundColor: 'rgba(245, 158, 11, 0.1)'
+            backgroundColor: hexToRgba(c.warning, 0.1)
         }]
     };
     $: feeStructureData = {
         labels: ['Trading', 'Funding'],
         datasets: [{
             data: [costData.feeStructure.trading, costData.feeStructure.funding],
-            backgroundColor: ['#64748b', '#ef4444'],
+            backgroundColor: [c.textSecondary, c.danger],
             borderWidth: 0
         }]
     };
@@ -158,7 +189,7 @@
         datasets: [{
             label: 'PnL',
             data: timingData.hourlyPnl,
-            backgroundColor: timingData.hourlyPnl.map(d => d >= 0 ? '#10b981' : '#ef4444')
+            backgroundColor: timingData.hourlyPnl.map(d => d >= 0 ? c.success : c.danger)
         }]
     };
     $: dayOfWeekPnlData = {
@@ -166,7 +197,7 @@
         datasets: [{
             label: 'PnL',
             data: timingData.dayOfWeekPnl,
-            backgroundColor: timingData.dayOfWeekPnl.map(d => d >= 0 ? '#10b981' : '#ef4444')
+            backgroundColor: timingData.dayOfWeekPnl.map(d => d >= 0 ? c.success : c.danger)
         }]
     };
 
@@ -176,7 +207,7 @@
         datasets: [{
             label: 'Assets',
             data: assetData.bubbleData,
-            backgroundColor: assetData.bubbleData.map(d => d.y >= 0 ? 'rgba(16, 185, 129, 0.6)' : 'rgba(239, 68, 68, 0.6)')
+            backgroundColor: assetData.bubbleData.map(d => d.y >= 0 ? hexToRgba(c.success, 0.6) : hexToRgba(c.danger, 0.6))
         }]
     };
 
@@ -186,7 +217,7 @@
         datasets: [{
             label: 'Trades',
             data: riskScatterData.scatterData,
-            backgroundColor: riskScatterData.scatterData.map(d => d.y >= 0 ? '#10b981' : '#ef4444')
+            backgroundColor: riskScatterData.scatterData.map(d => d.y >= 0 ? c.success : c.danger)
         }]
     };
 
@@ -196,7 +227,7 @@
         labels: ['Long Win Rate', 'Short Win Rate'],
         datasets: [{
             data: marketData.longShortWinRate,
-            backgroundColor: ['#10b981', '#ef4444'],
+            backgroundColor: [c.success, c.danger],
             borderWidth: 0
         }]
     };
@@ -205,7 +236,7 @@
         datasets: [{
             label: 'Count',
             data: marketData.leverageDist,
-            backgroundColor: '#3b82f6'
+            backgroundColor: c.accent
         }]
     };
 
@@ -216,7 +247,7 @@
         datasets: [{
             label: 'Frequency',
             data: psychData.winStreakData,
-            backgroundColor: '#10b981'
+            backgroundColor: c.success
         }]
     };
     $: lossStreakData = {
@@ -224,7 +255,7 @@
         datasets: [{
             label: 'Frequency',
             data: psychData.lossStreakData,
-            backgroundColor: '#ef4444'
+            backgroundColor: c.danger
         }]
     };
 
