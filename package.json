@@ -38,9 +38,11 @@
 	"type": "module",
 	"dependencies": {
 		"@floating-ui/dom": "^1.6.3",
+		"chart.js": "^4.5.1",
 		"crypto-js": "^4.2.0",
 		"decimal.js": "^10.4.3",
 		"marked": "^17.0.1",
+		"svelte-chartjs": "^3.1.5",
 		"svelte-i18n": "^3.7.4"
 	}
 }

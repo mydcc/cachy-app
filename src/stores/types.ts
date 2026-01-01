@@ -111,6 +111,7 @@ export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics
 export interface JournalEntry {
     id: number;
     date: string;
+    exitDate?: string; // New field for duration calculation
     symbol: string;
     tradeType: string;
     status: string;
