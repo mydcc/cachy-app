@@ -3,6 +3,16 @@ import { CONSTANTS } from './constants';
 import type { TradeValues, BaseMetrics, IndividualTpResult, TotalMetrics, JournalEntry } from '../stores/types';
 import type { Kline } from '../services/apiService';
 
+function getTradePnL(t: JournalEntry): Decimal {
+    if (t.isManual === false) {
+        return new Decimal(t.totalNetProfit || 0);
+    }
+    // Manual trades
+    if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
+    if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
+    return new Decimal(0);
+}
+
 export const calculator = {
     calculateBaseMetrics(values: TradeValues, tradeType: string): BaseMetrics | null {
         const riskAmount = values.accountSize.times(values.riskPercentage.div(100));
@@ -112,7 +122,7 @@ export const calculator = {
         // 1. Equity Curve
         let cumulative = new Decimal(0);
         const equityCurve = closedTrades.map(t => {
-            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            const pnl = getTradePnL(t);
             cumulative = cumulative.plus(pnl);
             return { x: t.date, y: cumulative.toNumber() };
         });
@@ -122,7 +132,7 @@ export const calculator = {
         let currentDrawdown = new Decimal(0);
         let runningPnl = new Decimal(0);
         const drawdownSeries = closedTrades.map(t => {
-             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             const pnl = getTradePnL(t);
              runningPnl = runningPnl.plus(pnl);
              if (runningPnl.gt(peak)) peak = runningPnl;
              currentDrawdown = runningPnl.minus(peak); // Should be negative or zero
@@ -134,7 +144,7 @@ export const calculator = {
         closedTrades.forEach(t => {
             const date = new Date(t.date);
             const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
-            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            const pnl = getTradePnL(t);
             monthlyStats[monthKey] = (monthlyStats[monthKey] || new Decimal(0)).plus(pnl);
         });
         const monthlyLabels = Object.keys(monthlyStats).sort();
@@ -147,7 +157,6 @@ export const calculator = {
         const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
         const won = closedTrades.filter(t => t.status === 'Won').length;
         const lost = closedTrades.filter(t => t.status === 'Lost').length;
-        const total = won + lost;
 
         // 1. Win/Loss Distribution
         const winLossData = [won, lost];
@@ -155,7 +164,7 @@ export const calculator = {
         // 2. R-Multiple Distribution
         const rMultiples = closedTrades.map(t => {
              if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
-             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             const pnl = getTradePnL(t);
              return pnl.div(t.riskAmount).toNumber();
         });
 
@@ -183,7 +192,7 @@ export const calculator = {
          let longPnl = new Decimal(0);
          let shortPnl = new Decimal(0);
          closedTrades.forEach(t => {
-             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             const pnl = getTradePnL(t);
              if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) longPnl = longPnl.plus(pnl);
              else shortPnl = shortPnl.plus(pnl);
          });
@@ -191,7 +200,7 @@ export const calculator = {
          // 2. Symbol Performance (Top 5 / Bottom 5)
          const symbolMap: {[key: string]: Decimal} = {};
          closedTrades.forEach(t => {
-             const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+             const pnl = getTradePnL(t);
              symbolMap[t.symbol] = (symbolMap[t.symbol] || new Decimal(0)).plus(pnl);
          });
 
@@ -242,7 +251,7 @@ export const calculator = {
 
         let cumulativeProfit = new Decimal(0), peakEquity = new Decimal(0), maxDrawdown = new Decimal(0);
         sortedClosedTrades.forEach(trade => {
-            cumulativeProfit = trade.status === 'Won' ? cumulativeProfit.plus(new Decimal(trade.totalNetProfit || 0)) : cumulativeProfit.minus(new Decimal(trade.riskAmount || 0));
+            cumulativeProfit = cumulativeProfit.plus(getTradePnL(trade));
             if (cumulativeProfit.gt(peakEquity)) peakEquity = cumulativeProfit;
             const drawdown = peakEquity.minus(cumulativeProfit);
             if (drawdown.gt(maxDrawdown)) maxDrawdown = drawdown;
@@ -254,12 +263,13 @@ export const calculator = {
 
         let totalProfitLong = new Decimal(0), totalLossLong = new Decimal(0), totalProfitShort = new Decimal(0), totalLossShort = new Decimal(0);
         closedTrades.forEach(trade => {
+            const pnl = getTradePnL(trade);
             if (trade.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
-                if (trade.status === 'Won') totalProfitLong = totalProfitLong.plus(new Decimal(trade.totalNetProfit || 0));
-                else totalLossLong = totalLossLong.plus(new Decimal(trade.riskAmount || 0));
+                if (pnl.gte(0)) totalProfitLong = totalProfitLong.plus(pnl);
+                else totalLossLong = totalLossLong.plus(pnl.abs());
             } else {
-                if (trade.status === 'Won') totalProfitShort = totalProfitShort.plus(new Decimal(trade.totalNetProfit || 0));
-                else totalLossShort = totalLossShort.plus(new Decimal(trade.riskAmount || 0));
+                if (pnl.gte(0)) totalProfitShort = totalProfitShort.plus(pnl);
+                else totalLossShort = totalLossShort.plus(pnl.abs());
             }
         });
 
@@ -297,7 +307,7 @@ export const calculator = {
 
         closedTrades.forEach(t => {
             const hour = new Date(t.date).getHours();
-            const pnl = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            const pnl = getTradePnL(t);
             hourlyPnl[hour] += pnl.toNumber();
             hourlyCount[hour]++;
         });
@@ -332,7 +342,7 @@ export const calculator = {
         let totalFees = new Decimal(0);
 
         closedTrades.forEach(t => {
-            const net = t.status === 'Won' ? (t.totalNetProfit || new Decimal(0)) : (t.riskAmount ? t.riskAmount.negated() : new Decimal(0));
+            const net = getTradePnL(t);
             const fees = t.totalFees || new Decimal(0);
             const funding = t.fundingFee || new Decimal(0);
             const trading = t.tradingFee || new Decimal(0);
@@ -383,11 +393,7 @@ export const calculator = {
             const hour = date.getHours();
             const day = date.getDay();
 
-            // Use realized PnL if available (synced trades), otherwise fallback for manual trades logic
-            let pnl = new Decimal(t.totalNetProfit || 0);
-            if (pnl.isZero() && t.status === 'Lost') {
-                 pnl = t.riskAmount ? t.riskAmount.negated() : new Decimal(0);
-            }
+            const pnl = getTradePnL(t);
             
             hourlyPnl[hour] = hourlyPnl[hour].plus(pnl);
             dayOfWeekPnl[day] = dayOfWeekPnl[day].plus(pnl);
@@ -423,10 +429,7 @@ export const calculator = {
             
             symbolStats[sym].count++;
             
-            let pnl = new Decimal(t.totalNetProfit || 0);
-            if (pnl.isZero() && t.status === 'Lost') {
-                 pnl = t.riskAmount ? t.riskAmount.negated() : new Decimal(0);
-            }
+            const pnl = getTradePnL(t);
             symbolStats[sym].pnl = symbolStats[sym].pnl.plus(pnl);
             
             if (t.status === 'Won') symbolStats[sym].win++;
@@ -456,10 +459,7 @@ export const calculator = {
         const scatterData = trades
             .filter(t => t.status !== 'Open' && t.riskAmount && t.riskAmount.gt(0))
             .map(t => {
-                let pnl = new Decimal(t.totalNetProfit || 0);
-                if (pnl.isZero() && t.status === 'Lost') {
-                    pnl = t.riskAmount ? t.riskAmount.negated() : new Decimal(0);
-                }
+                const pnl = getTradePnL(t);
                 return {
                     x: t.riskAmount.toNumber(),
                     y: pnl.toNumber(),
@@ -566,21 +566,11 @@ export const calculator = {
         let totalWinPnl = new Decimal(0);
         let totalLossPnl = new Decimal(0);
 
-        const getPnL = (t: JournalEntry) => {
-             // For API trades (not manual), trust the totalNetProfit
-             if (t.isManual === false) return new Decimal(t.totalNetProfit || 0);
-
-             // For Manual trades
-             if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
-             if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
-             return new Decimal(0);
-        };
-
         closedTrades.forEach(t => {
             if (t.status === 'Won') wonTrades++;
             if (t.status === 'Lost') lostTrades++;
 
-            const pnl = getPnL(t);
+            const pnl = getTradePnL(t);
             totalNetProfit = totalNetProfit.plus(pnl);
 
             if (pnl.gt(0)) totalWinPnl = totalWinPnl.plus(pnl);
@@ -612,14 +602,7 @@ export const calculator = {
             }
             symbolPerformance[trade.symbol].totalTrades++;
 
-            // PnL calculation needs to be consistent
-            let pnl = new Decimal(0);
-             if (trade.isManual === false) {
-                 pnl = new Decimal(trade.totalNetProfit || 0);
-             } else {
-                 if (trade.status === 'Won') pnl = new Decimal(trade.totalNetProfit || 0);
-                 else if (trade.status === 'Lost') pnl = (new Decimal(trade.riskAmount || 0)).negated();
-             }
+            const pnl = getTradePnL(trade);
 
             if (trade.status === 'Won') {
                 symbolPerformance[trade.symbol].wonTrades++;

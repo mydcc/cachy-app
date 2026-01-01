@@ -526,7 +526,7 @@ export const app = {
             return;
         }
 
-        uiStore.update(s => ({ ...s, isPriceFetching: true })); // Reuse spinner
+        uiStore.update(s => ({ ...s, isPriceFetching: true })); 
 
         try {
             // 1. Fetch Trades
@@ -553,8 +553,8 @@ export const app = {
                     limit: 100
                 })
             });
-            // If orders fail, we can still proceed with trades, but log it
-            let orders = [];
+            
+            let orders: any[] = [];
             try {
                 const orderResult = await orderResponse.json();
                 if (!orderResult.error && Array.isArray(orderResult.data)) {
@@ -566,32 +566,49 @@ export const app = {
 
             if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
 
+            // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
+            const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
+
+            orders.forEach((o: any) => {
+                let sl = new Decimal(0);
+                if (o.slPrice) sl = new Decimal(o.slPrice);
+                else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
+                else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
+
+                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
+                // Assuming standardized API response or fallback.
+                let t = o.createTime || o.ctime || 0;
+                if (typeof t === 'string') t = parseInt(t, 10);
+
+                if (sl.gt(0) && o.symbol) {
+                    if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
+                    symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+                }
+            });
+
+            // Sort by time ascending
+            Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
+            // ------------------------------------------------------------------
+
             let addedCount = 0;
             const currentJournal = get(journalStore);
-            const existingTradeIds = new Set(currentJournal.map(j => j.tradeId).filter(Boolean));
+            const existingTradeIds = new Set(currentJournal.map(j => String(j.tradeId || '')).filter(Boolean));
 
             const newEntries: JournalEntry[] = [];
 
-            // Helper to find order
-            const findOrder = (orderId: string) => orders.find((o: any) => o.orderId === orderId);
+            const findOrder = (orderId: string | number) => orders.find((o: any) => String(o.orderId) === String(orderId));
 
             for (const t of trades) {
                 // Skip if already exists
-                if (existingTradeIds.has(t.tradeId)) continue;
+                if (existingTradeIds.has(String(t.tradeId))) continue;
                 
-                // Only import Realized PnL events (closing trades) or significant Fee events to keep journal clean
-                // For "History", we want PnL.
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
                 const fee = new Decimal(t.fee || 0);
 
-                // If PnL is 0 and it's just a fee, maybe skip?
-                // Depends if the user wants to see every funding fee.
-                // Let's filter for trades that have PnL OR are significant opens?
-                // Actually Bitunix 'get_history_trades' returns fills.
-                // A "Closing" fill usually has PnL.
+                if (realizedPnl.eq(0)) continue; 
 
-                const tradeId = t.tradeId;
-                const orderId = t.orderId;
+                const tradeId = String(t.tradeId);
+                const orderId = String(t.orderId);
                 const symbol = t.symbol;
 
                 let timestamp = t.ctime;
@@ -601,68 +618,73 @@ export const app = {
                 const date = new Date(timestamp);
                 if (isNaN(date.getTime())) continue;
 
-                const side = t.side; // e.g. "BUY" or "SELL" (Open Long) or "SELL" (Close Long)?
-                // Bitunix side is just direction. We need to infer if it was Open or Close based on PnL or position side?
-                // The API doesn't strictly say "Open/Close" in trade history easily without context.
-                // BUT, if realizedPnl != 0, it is a CLOSE.
+                const side = t.side; 
+                
+                let tradeType = 'long'; 
+                if (side.toUpperCase() === 'SELL') tradeType = 'long';
+                else tradeType = 'short';
 
-                // If realizedPnl is 0, it's likely an OPEN or a partial fill that hasn't closed yet?
-                // For the journal, we primarily want COMPLETED trades or OPEN trades.
-                // If it's an OPEN trade, realizedPnl is 0.
-
-                // Let's try to match with Order to see "reduceOnly".
                 const relatedOrder = findOrder(orderId);
 
-                // Determine Trade Type (Long/Short)
-                // If it's a CLOSE (PnL != 0), and side is SELL, it was a LONG.
-                // If it's a CLOSE (PnL != 0), and side is BUY, it was a SHORT.
-                // If it's an OPEN (PnL == 0), and side is BUY, it is LONG.
-                // If it's an OPEN (PnL == 0), and side is SELL, it is SHORT.
-
-                let tradeType = 'long'; // default
-                let isClose = !realizedPnl.isZero();
-
-                if (isClose) {
-                    if (side.toUpperCase() === 'SELL') tradeType = 'long';
-                    else tradeType = 'short';
-                } else {
-                    if (side.toUpperCase() === 'BUY') tradeType = 'long';
-                    else tradeType = 'short';
-                }
-
-                // If we found an order, we might get SL/TP
                 let stopLoss = new Decimal(0);
 
+                // Strategy 1: Direct link to order
                 if (relatedOrder) {
-                    // Bitunix order object might have 'slPrice', 'stopLossPrice' or 'triggerPrice'
                     if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
                     else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
                     else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
                 }
                 
-                const price = new Decimal(t.price);
+                // Strategy 2: Fallback to last known SL for symbol
+                if (stopLoss.lte(0)) {
+                    const candidates = symbolSlMap[symbol];
+                    if (candidates) {
+                        const tradeTime = date.getTime();
+                        // Find most recent order BEFORE tradeTime
+                        for (let i = candidates.length - 1; i >= 0; i--) {
+                            if (candidates[i].ctime < tradeTime) {
+                                stopLoss = candidates[i].slPrice;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const exitPrice = new Decimal(t.price);
+                const qtyDecimal = new Decimal(t.qty || 0); 
                 
+                // Back-calculate Entry Price if possible
+                // PnL = (Exit - Entry) * Qty  (Long)
+                // PnL = (Entry - Exit) * Qty  (Short)
+                let entryPrice = exitPrice;
+                
+                if (qtyDecimal.gt(0)) {
+                    if (tradeType === 'long') {
+                         // Entry = Exit - (PnL / Qty)
+                         entryPrice = exitPrice.minus(realizedPnl.div(qtyDecimal));
+                    } else {
+                         // Entry = PnL / Qty + Exit
+                         entryPrice = realizedPnl.div(qtyDecimal).plus(exitPrice);
+                    }
+                }
+
                 // Calculate realized stats if SL exists
                 let riskAmount = new Decimal(0);
                 let totalRR = new Decimal(0);
 
                 if (stopLoss.gt(0)) {
-                    const riskPerUnit = price.minus(stopLoss).abs();
-                    const qtyDecimal = new Decimal(t.qty || 0); // t.qty is likely quantity in base asset or contracts
+                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
                     if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
                         riskAmount = riskPerUnit.times(qtyDecimal);
-                        // Realized RR = Realized PnL / Risk
-                        // Note: Risk Amount here is absolute loss potential.
-                        // PnL is absolute profit/loss.
+                        
                         if (riskAmount.gt(0) && !realizedPnl.isZero()) {
                             totalRR = realizedPnl.div(riskAmount);
                         }
                     }
                 }
 
-                // Status
                 let status = 'Open';
-                if (isClose) {
+                if (!realizedPnl.isZero()) {
                     status = realizedPnl.gt(0) ? 'Won' : 'Lost';
                 }
 
@@ -673,13 +695,12 @@ export const app = {
                     tradeType: tradeType,
                     status: status,
                     
-                    // We don't have account size context for historical trades
                     accountSize: new Decimal(0),
                     riskPercentage: new Decimal(0),
                     leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
-                    fees: new Decimal(0), // Percentage fee unknown, absolute fee is in tradingFee
+                    fees: new Decimal(0),
                     
-                    entryPrice: price, 
+                    entryPrice: entryPrice, 
                     stopLossPrice: stopLoss,
                     
                     totalRR: totalRR,
@@ -692,7 +713,6 @@ export const app = {
                     targets: [],
                     calculatedTpDetails: [],
                     
-                    // New fields
                     tradeId: tradeId,
                     orderId: orderId,
                     fundingFee: new Decimal(0), 
@@ -706,7 +726,6 @@ export const app = {
 
             if (addedCount > 0) {
                 const updatedJournal = [...currentJournal, ...newEntries];
-                // Sort by date descending
                 updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 
                 journalStore.set(updatedJournal);
