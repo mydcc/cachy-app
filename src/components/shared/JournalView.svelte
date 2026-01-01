@@ -570,17 +570,17 @@
     <div class="mt-8 border-t border-[var(--border-color)] pt-6">
         <div class="flex items-center gap-2 mb-4">
             <span class="text-2xl">🦆</span>
-            <h3 class="text-xl font-bold text-[var(--text-primary)]">{$_('deepDive.title')}</h3>
+            <h3 class="text-xl font-bold text-[var(--text-primary)]">{$_('journal.deepDive.title')}</h3>
         </div>
 
         <DashboardNav 
             activePreset={activeDeepDivePreset} 
             presets={[
-                { id: 'timing', label: $_('deepDive.timing') },
-                { id: 'assets', label: $_('deepDive.assets') },
-                { id: 'risk', label: $_('deepDive.risk') },
-                { id: 'market', label: $_('deepDive.market') },
-                { id: 'psychology', label: $_('deepDive.psychology') }
+                { id: 'timing', label: $_('journal.deepDive.timing') },
+                { id: 'assets', label: $_('journal.deepDive.assets') },
+                { id: 'risk', label: $_('journal.deepDive.risk') },
+                { id: 'market', label: $_('journal.deepDive.market') },
+                { id: 'psychology', label: $_('journal.deepDive.psychology') }
             ]}
             on:select={(e) => activeDeepDivePreset = e.detail} 
         />
@@ -588,10 +588,10 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4">
             {#if activeDeepDivePreset === 'timing'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={hourlyPnlData} title={$_('deepDive.charts.hourlyPnl')} />
+                    <BarChart data={hourlyPnlData} title={$_('journal.deepDive.charts.hourlyPnl')} />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={dayOfWeekPnlData} title={$_('deepDive.charts.dayOfWeekPnl')} />
+                    <BarChart data={dayOfWeekPnlData} title={$_('journal.deepDive.charts.dayOfWeekPnl')} />
                 </div>
                  <!-- Placeholder for future timing metric -->
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)]">
@@ -599,7 +599,7 @@
                  </div>
             {:else if activeDeepDivePreset === 'assets'}
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BubbleChart data={assetBubbleData} title={$_('deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" />
+                    <BubbleChart data={assetBubbleData} title={$_('journal.deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
                     <div class="text-center">
@@ -614,27 +614,27 @@
                  </div>
             {:else if activeDeepDivePreset === 'risk'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BubbleChart data={riskRewardScatter} title={$_('deepDive.charts.riskRewardScatter')} xLabel="Risk Amount ($)" yLabel="Realized PnL ($)" />
+                    <BubbleChart data={riskRewardScatter} title={$_('journal.deepDive.charts.riskRewardScatter')} xLabel="Risk Amount ($)" yLabel="Realized PnL ($)" />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                     <BarChart data={rDistData} title="R-Multiple Distribution" />
                 </div>
             {:else if activeDeepDivePreset === 'market'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <DoughnutChart data={longShortWinData} title={$_('deepDive.charts.longShortWinRate')} />
+                    <DoughnutChart data={longShortWinData} title={$_('journal.deepDive.charts.longShortWinRate')} />
                 </div>
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BarChart data={leverageDistData} title={$_('deepDive.charts.leverageDist')} />
+                    <BarChart data={leverageDistData} title={$_('journal.deepDive.charts.leverageDist')} />
                 </div>
             {:else if activeDeepDivePreset === 'psychology'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={winStreakData} title={$_('deepDive.charts.winStreak')} />
+                    <BarChart data={winStreakData} title={$_('journal.deepDive.charts.winStreak')} />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={lossStreakData} title={$_('deepDive.charts.lossStreak')} />
+                    <BarChart data={lossStreakData} title={$_('journal.deepDive.charts.lossStreak')} />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                     <LineChart data={drawdownData} title={$_('deepDive.charts.recovery')} yLabel="Drawdown ($)" />
+                     <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" />
                 </div>
             {/if}
         </div>
