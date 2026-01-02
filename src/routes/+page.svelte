@@ -34,6 +34,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
+    import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
 
     let fileInput: HTMLInputElement;
     let changelogContent = '';
@@ -247,7 +248,8 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
     {/if}
 
-    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
+    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative">
+        <ConnectionStatus />
 
         <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
             <div class="flex justify-between items-center w-full md:w-auto">
