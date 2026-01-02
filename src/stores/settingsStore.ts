@@ -16,6 +16,7 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     isPro: boolean;
+    isDeepDiveUnlocked: boolean;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -29,6 +30,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     isPro: false,
+    isDeepDiveUnlocked: false,
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -77,6 +79,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
+            isDeepDiveUnlocked: settings.isDeepDiveUnlocked ?? defaultSettings.isDeepDiveUnlocked,
             apiKeys: settings.apiKeys
         };
 
