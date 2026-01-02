@@ -13,6 +13,7 @@
     import { uiStore } from '../stores/uiStore';
     import { settingsStore } from '../stores/settingsStore'; // Import settings store
     import { favoritesStore } from '../stores/favoritesStore'; // Import favorites store
+    import { wsStatusStore } from '../stores/marketStore'; // Import wsStatusStore
     import { modalManager } from '../services/modalManager';
     import { onMount } from 'svelte';
     import { _, locale } from '../locales/i18n'; // Import locale
@@ -259,6 +260,15 @@ import { trackCustomEvent } from '../services/trackingService';
             </div>
             <div class="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
                 <div class="flex items-center flex-wrap justify-end gap-2 md:order-1">
+                    {#if $settingsStore.apiProvider === 'bitunix'}
+                    <div class="flex items-center gap-1 mr-1" title="Bitunix Connection: {$wsStatusStore}">
+                        <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
+                             class:bg-green-500={$wsStatusStore === 'connected'}
+                             class:bg-yellow-500={$wsStatusStore === 'connecting' || $wsStatusStore === 'reconnecting'}
+                             class:bg-red-500={$wsStatusStore === 'disconnected' || $wsStatusStore === 'error'}>
+                        </div>
+                    </div>
+                    {/if}
                     <select id="preset-loader" class="input-field px-3 py-2 rounded-md text-sm" on:change={handlePresetLoad} bind:value={$presetStore.selectedPreset}>
                         <option value="">{$_('dashboard.presetLoad')}</option>
                         {#each $presetStore.availablePresets as presetName}
