@@ -78,7 +78,7 @@ describe('accountStore', () => {
             unrealizedPNL: '5',
             margin: '100'
         });
-
+        
         accountStore.updatePositionFromWs({
             event: 'CLOSE',
             positionId: '123'

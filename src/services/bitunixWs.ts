@@ -18,18 +18,18 @@ interface Subscription {
 class BitunixWebSocketService {
     private wsPublic: WebSocket | null = null;
     private wsPrivate: WebSocket | null = null;
-
+    
     private pingTimerPublic: any = null;
     private pingTimerPrivate: any = null;
 
     private publicSubscriptions: Set<string> = new Set();
-
+    
     private reconnectTimerPublic: any = null;
     private reconnectTimerPrivate: any = null;
 
     private isReconnectingPublic = false;
     private isReconnectingPrivate = false;
-
+    
     private isAuthenticated = false;
 
     constructor() {}
@@ -116,7 +116,7 @@ class BitunixWebSocketService {
              this.stopHeartbeat('private');
              this.scheduleReconnect('private');
         };
-
+        
         this.wsPrivate.onerror = (error) => {
             console.error('Bitunix Private WebSocket error:', error);
         };
@@ -147,7 +147,7 @@ class BitunixWebSocketService {
                 ws.send(JSON.stringify(pingPayload));
             }
         }, PING_INTERVAL);
-
+        
         if (type === 'public') this.pingTimerPublic = timer;
         else this.pingTimerPrivate = timer;
     }
@@ -186,7 +186,7 @@ class BitunixWebSocketService {
                 sign
             }]
         };
-
+        
         console.log('Sending Login to Bitunix...');
         this.wsPrivate.send(JSON.stringify(payload));
     }
@@ -251,14 +251,6 @@ class BitunixWebSocketService {
         } else if (message.ch === 'wallet') {
              if (message.data) accountStore.updateBalanceFromWs(message.data);
         }
-        // Private Channels
-        else if (message.ch === 'position') {
-            if (message.data) accountStore.updatePositionFromWs(message.data);
-        } else if (message.ch === 'order') {
-             if (message.data) accountStore.updateOrderFromWs(message.data);
-        } else if (message.ch === 'wallet') {
-             if (message.data) accountStore.updateBalanceFromWs(message.data);
-        }
     }
 
     subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
@@ -291,10 +283,10 @@ class BitunixWebSocketService {
 
     private subscribePrivate() {
         if (!this.isAuthenticated || !this.wsPrivate) return;
-
+        
         const channels = ['position', 'order', 'wallet'];
         const args = channels.map(ch => ({ ch }));
-
+        
         const payload = {
             op: 'subscribe',
             args: args
