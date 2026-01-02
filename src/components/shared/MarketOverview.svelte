@@ -184,6 +184,17 @@
 >
     <!-- WS Indicator Removed -->
 
+    <!-- Absolute Refresh Button (Top Right) -->
+    <button
+        class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)] z-50"
+        title="Refresh Stats"
+        on:click|stopPropagation={() => fetchRestData()}
+        class:animate-spin={restLoading}
+    >
+        {@html icons.refresh ||
+            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+    </button>
+
     <div class="flex justify-between items-start">
         <div>
             <div
@@ -194,19 +205,6 @@
             <div class="text-lg font-bold text-[var(--text-primary)]">
                 {displaySymbol}
             </div>
-        </div>
-        
-        <!-- Manual Refresh (still useful for REST stats re-sync) -->
-        <div class="flex gap-2 mr-4"> 
-            <button
-                class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
-                title="Refresh Stats"
-                on:click|stopPropagation={() => fetchRestData()}
-                class:animate-spin={restLoading}
-            >
-                {@html icons.refresh ||
-                    '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
-            </button>
         </div>
     </div>
 
@@ -234,7 +232,7 @@
                 {/if}
             </div>
             
-            <!-- Depth Visualization (Proposal 2) -->
+            <!-- Depth Visualization -->
             {#if depthData}
                 <DepthBar bids={depthData.bids} asks={depthData.asks} />
             {/if}
