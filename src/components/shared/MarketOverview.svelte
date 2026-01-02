@@ -96,9 +96,9 @@
                 clearInterval(restIntervalId);
                 restIntervalId = undefined;
             }
-            // Maybe fetch once initially to populate before WS connects?
+            // Maybe fetch once initially to populate before WS connects? 
             // Optional, but might feel faster.
-            // fetchRestData();
+            // fetchRestData(); 
         }
     }
 

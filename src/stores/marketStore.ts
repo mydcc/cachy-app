@@ -59,7 +59,7 @@ function createMarketStore() {
         updateTicker: (symbol: string, data: { lastPrice: string, high: string, low: string, vol: string, quoteVol: string, change: string, open: string }) => {
             update(store => {
                 const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
-
+                
                 // Calculate percentage change manually to be safe
                 // (Last - Open) / Open * 100
                 const last = new Decimal(data.lastPrice);
