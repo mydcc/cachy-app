@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeEach } from 'vitest';
+import { accountStore } from './accountStore';
 import { get } from 'svelte/store';
-import { accountStore, type Position, type Order, type AccountInfo } from './accountStore';
+import { Decimal } from 'decimal.js';
 
 describe('accountStore', () => {
     beforeEach(() => {
@@ -8,94 +9,108 @@ describe('accountStore', () => {
     });
 
     it('should initialize with empty state', () => {
-        const state = get(accountStore);
-        expect(state.positions).toEqual([]);
-        expect(state.openOrders).toEqual([]);
-        expect(state.historyOrders).toEqual([]);
-        expect(state.accountInfo).toEqual({ available: 0, margin: 0, totalUnrealizedPnL: 0, marginCoin: 'USDT' });
+        const store = get(accountStore);
+        expect(store.positions).toEqual([]);
+        expect(store.openOrders).toEqual([]);
     });
 
-    it('should set positions', () => {
-        const positions: Position[] = [{
+    it('should update position from WS (OPEN)', () => {
+        const payload = {
+            event: 'OPEN',
+            positionId: '123',
             symbol: 'BTCUSDT',
             side: 'LONG',
-            leverage: 10,
-            size: 1,
-            entryPrice: 50000,
-            unrealizedPnL: 100,
-            marginMode: 'CROSS',
-            margin: 5000
-        }];
-        accountStore.setPositions(positions);
-        expect(get(accountStore).positions).toEqual(positions);
+            qty: '0.1',
+            leverage: '10',
+            unrealizedPNL: '5',
+            margin: '100',
+            marginMode: 'cross'
+        };
+        accountStore.updatePositionFromWs(payload);
+        const store = get(accountStore);
+        expect(store.positions.length).toBe(1);
+        expect(store.positions[0].symbol).toBe('BTCUSDT');
+        expect(store.positions[0].side).toBe('long');
     });
 
-    it('should update existing position', () => {
-        const initialPos: Position = {
+    it('should update position from WS (UPDATE)', () => {
+        // First create
+        accountStore.updatePositionFromWs({
+            event: 'OPEN',
+            positionId: '123',
             symbol: 'BTCUSDT',
             side: 'LONG',
-            leverage: 10,
-            size: 1,
-            entryPrice: 50000,
-            unrealizedPnL: 100,
-            marginMode: 'CROSS',
-            margin: 5000
-        };
-        accountStore.setPositions([initialPos]);
+            qty: '0.1',
+            leverage: '10',
+            unrealizedPNL: '5',
+            margin: '100',
+            averagePrice: '50000'
+        });
 
-        const updatedPos: Position = { ...initialPos, unrealizedPnL: 200 };
-        accountStore.updatePosition(updatedPos);
+        // Then update
+        accountStore.updatePositionFromWs({
+            event: 'UPDATE',
+            positionId: '123',
+            symbol: 'BTCUSDT',
+            side: 'LONG',
+            qty: '0.2', // Increased size
+            leverage: '10',
+            unrealizedPNL: '15',
+            margin: '200'
+            // averagePrice missing in update, should keep old?
+        });
 
-        const state = get(accountStore);
-        expect(state.positions.length).toBe(1);
-        expect(state.positions[0].unrealizedPnL).toBe(200);
+        const store = get(accountStore);
+        expect(store.positions.length).toBe(1);
+        expect(store.positions[0].size.toNumber()).toBe(0.2);
+        expect(store.positions[0].entryPrice.toNumber()).toBe(50000); // Preserved
+        expect(store.positions[0].unrealizedPnl.toNumber()).toBe(15);
     });
 
-    it('should add new position via updatePosition if not exists', () => {
-        const newPos: Position = {
-            symbol: 'ETHUSDT',
-            side: 'SHORT',
-            leverage: 20,
-            size: 10,
-            entryPrice: 3000,
-            unrealizedPnL: -50,
-            marginMode: 'ISOLATED',
-            margin: 1500
-        };
-        accountStore.updatePosition(newPos);
+    it('should update position from WS (CLOSE)', () => {
+        accountStore.updatePositionFromWs({
+            event: 'OPEN',
+            positionId: '123',
+            symbol: 'BTCUSDT',
+            side: 'LONG',
+            qty: '0.1',
+            leverage: '10',
+            unrealizedPNL: '5',
+            margin: '100'
+        });
         
-        const state = get(accountStore);
-        expect(state.positions.length).toBe(1);
-        expect(state.positions[0]).toEqual(newPos);
+        accountStore.updatePositionFromWs({
+            event: 'CLOSE',
+            positionId: '123'
+        });
+
+        const store = get(accountStore);
+        expect(store.positions.length).toBe(0);
     });
 
-    it('should remove position', () => {
-        const pos1: Position = {
-            symbol: 'BTCUSDT',
-            side: 'LONG',
-            leverage: 10,
-            size: 1,
-            entryPrice: 50000,
-            unrealizedPnL: 100,
-            marginMode: 'CROSS',
-            margin: 5000
-        };
-        const pos2: Position = {
+    it('should update order from WS', () => {
+        accountStore.updateOrderFromWs({
+            orderId: '999',
             symbol: 'ETHUSDT',
-            side: 'SHORT',
-            leverage: 20,
-            size: 10,
-            entryPrice: 3000,
-            unrealizedPnL: -50,
-            marginMode: 'ISOLATED',
-            margin: 1500
-        };
-        accountStore.setPositions([pos1, pos2]);
+            side: 'BUY',
+            type: 'LIMIT',
+            price: '3000',
+            qty: '1',
+            orderStatus: 'NEW',
+            ctime: '1600000000'
+        });
 
-        accountStore.removePosition('BTCUSDT', 'LONG');
-        
-        const state = get(accountStore);
-        expect(state.positions.length).toBe(1);
-        expect(state.positions[0]).toEqual(pos2);
+        let store = get(accountStore);
+        expect(store.openOrders.length).toBe(1);
+        expect(store.openOrders[0].status).toBe('NEW');
+
+        // Close it
+        accountStore.updateOrderFromWs({
+            orderId: '999',
+            orderStatus: 'FILLED'
+        });
+
+        store = get(accountStore);
+        expect(store.openOrders.length).toBe(0);
     });
 });
