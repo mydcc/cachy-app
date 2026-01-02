@@ -182,17 +182,7 @@
     role={isFavoriteTile ? "button" : "region"}
     tabindex={isFavoriteTile ? 0 : -1}
 >
-    <!-- WS Status Indicator -->
-    {#if provider === 'bitunix'}
-    <div class="absolute top-2 right-2 flex gap-1 items-center z-10">
-         <div class="w-2 h-2 rounded-full transition-colors duration-300"
-              class:bg-green-500={wsStatus === 'connected'}
-              class:bg-yellow-500={wsStatus === 'connecting' || wsStatus === 'reconnecting'}
-              class:bg-red-500={wsStatus === 'disconnected' || wsStatus === 'error'}
-              title="Real-time Connection: {wsStatus}">
-         </div>
-    </div>
-    {/if}
+    <!-- WS Indicator Removed -->
 
     <div class="flex justify-between items-start">
         <div>
@@ -273,8 +263,8 @@
                  <div class="flex flex-col">
                     <span class="text-[var(--text-secondary)]">Funding Rate</span>
                     <span class="font-medium" 
-                          class:text-[var(--success-color)]={fundingRate.lt(0)} 
-                          class:text-[var(--danger-color)]={fundingRate.gt(0)}>
+                          class:text-[var(--success-color)]={fundingRate.gt(0)}
+                          class:text-[var(--danger-color)]={fundingRate.lt(0)}>
                         {formatValue(fundingRate.times(100), 4)}%
                     </span>
                  </div>
