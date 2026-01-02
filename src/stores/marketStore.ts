@@ -10,7 +10,12 @@ export interface MarketData {
     depth?: {
         bids: [string, string][]; // [price, qty]
         asks: [string, string][];
-    }
+    };
+    highPrice?: Decimal | null;
+    lowPrice?: Decimal | null;
+    volume?: Decimal | null;
+    quoteVolume?: Decimal | null;
+    priceChangePercent?: Decimal | null;
 }
 
 export type WSStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
@@ -47,6 +52,33 @@ function createMarketStore() {
                         indexPrice: new Decimal(data.indexPrice),
                         fundingRate: new Decimal(data.fundingRate),
                         nextFundingTime: nft
+                    }
+                };
+            });
+        },
+        updateTicker: (symbol: string, data: { lastPrice: string, high: string, low: string, vol: string, quoteVol: string, change: string, open: string }) => {
+            update(store => {
+                const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
+
+                // Calculate percentage change manually to be safe
+                // (Last - Open) / Open * 100
+                const last = new Decimal(data.lastPrice);
+                const open = new Decimal(data.open);
+                let pct = new Decimal(0);
+                if (!open.isZero()) {
+                    pct = last.minus(open).div(open).times(100);
+                }
+
+                return {
+                    ...store,
+                    [symbol]: {
+                        ...current,
+                        lastPrice: last,
+                        highPrice: new Decimal(data.high),
+                        lowPrice: new Decimal(data.low),
+                        volume: new Decimal(data.vol),
+                        quoteVolume: new Decimal(data.quoteVol),
+                        priceChangePercent: pct
                     }
                 };
             });

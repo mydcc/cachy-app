@@ -113,6 +113,20 @@ class BitunixWebSocketService {
                     nextFundingTime: data.nft
                 });
             }
+        } else if (message.ch === 'ticker') {
+            const symbol = message.symbol;
+            const data = message.data;
+            if (symbol && data) {
+                marketStore.updateTicker(symbol, {
+                    lastPrice: data.la,
+                    high: data.h,
+                    low: data.l,
+                    vol: data.b,
+                    quoteVol: data.q,
+                    change: data.r,
+                    open: data.o
+                });
+            }
         } else if (message.ch === 'depth_book5') {
             const symbol = message.symbol;
             const data = message.data; // { b: [[price, qty], ...], a: [[price, qty], ...] }
@@ -125,7 +139,7 @@ class BitunixWebSocketService {
         }
     }
 
-    subscribe(symbol: string, channel: 'price' | 'depth_book5') {
+    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase(); // Ensure uppercase
         const subKey = `${channel}:${normalizedSymbol}`;
@@ -142,7 +156,7 @@ class BitunixWebSocketService {
         }
     }
 
-    unsubscribe(symbol: string, channel: 'price' | 'depth_book5') {
+    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
         
