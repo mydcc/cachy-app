@@ -108,7 +108,11 @@
         }, 0);
     }
 
-    $: $uiStore.currentTheme, updateThemeColors();
+    let lastTheme = '';
+    $: if ($uiStore.currentTheme !== lastTheme) {
+        lastTheme = $uiStore.currentTheme;
+        updateThemeColors();
+    }
 
     // Performance Data
     $: perfData = calculator.getPerformanceData(journal);
