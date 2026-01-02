@@ -389,14 +389,16 @@ export const calculator = {
         trades.forEach(t => {
             if (t.status === 'Open') return;
             const date = new Date(t.date); // Use entry date as proxy for now, or exitDate if available
+            if (isNaN(date.getTime())) return;
+
             // If synced from Bitunix, t.date is the close time (ctime of trade event).
             const hour = date.getHours();
             const day = date.getDay();
 
             const pnl = getTradePnL(t);
             
-            hourlyPnl[hour] = hourlyPnl[hour].plus(pnl);
-            dayOfWeekPnl[day] = dayOfWeekPnl[day].plus(pnl);
+            if (hourlyPnl[hour]) hourlyPnl[hour] = hourlyPnl[hour].plus(pnl);
+            if (dayOfWeekPnl[day]) dayOfWeekPnl[day] = dayOfWeekPnl[day].plus(pnl);
         });
 
         // Reorder Day of Week to start Monday (Index 1) -> Sunday (Index 0)
