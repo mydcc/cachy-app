@@ -2,17 +2,16 @@
     import { Bubble } from 'svelte-chartjs';
     import {
         Chart as ChartJS,
-        Tooltip as ChartTooltip,
+        Tooltip,
         Legend,
         PointElement,
         LinearScale,
     } from 'chart.js';
-    import Tooltip from '../Tooltip.svelte';
 
     ChartJS.register(
         LinearScale,
         PointElement,
-        ChartTooltip,
+        Tooltip,
         Legend
     );
 
@@ -20,7 +19,6 @@
     export let title: string = "";
     export let xLabel: string = "";
     export let yLabel: string = "";
-    export let description: string = "";
 
     const options = {
         responsive: true,
@@ -73,11 +71,6 @@
     };
 </script>
 
-<div class="w-full h-full min-h-[200px] relative">
-    {#if description}
-        <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
-           <Tooltip text={description} />
-        </div>
-    {/if}
+<div class="w-full h-full min-h-[200px]">
     <Bubble {data} {options} />
 </div>

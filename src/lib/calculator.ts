@@ -154,10 +154,7 @@ export const calculator = {
     },
 
     getQualityData(journal: JournalEntry[]) {
-        const closedTrades = journal
-            .filter(t => t.status === 'Won' || t.status === 'Lost')
-            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
         const won = closedTrades.filter(t => t.status === 'Won').length;
         const lost = closedTrades.filter(t => t.status === 'Lost').length;
 
@@ -182,27 +179,10 @@ export const calculator = {
             else buckets['>3R']++;
         });
 
-        // 3. Cumulative R Curve (New Requirement)
-        let cumulativeR = new Decimal(0);
-        const cumulativeRCurve = closedTrades.map(t => {
-            let r = new Decimal(0);
-            if (t.riskAmount && t.riskAmount.gt(0)) {
-                const pnl = getTradePnL(t);
-                r = pnl.div(t.riskAmount);
-            } else if (t.status === 'Won') {
-                r = new Decimal(1); // Fallback if no risk defined, assume 1R win? Or 0. Better 0 to not distort.
-            } else if (t.status === 'Lost') {
-                r = new Decimal(-1);
-            }
-
-            cumulativeR = cumulativeR.plus(r);
-            return { x: t.date, y: cumulativeR.toNumber() };
-        });
-
-        // 4. KPI
+        // 3. KPI
         const stats = this.calculateJournalStats(journal);
 
-        return { winLossData, rHistogram: buckets, cumulativeRCurve, stats };
+        return { winLossData, rHistogram: buckets, stats };
     },
 
     getDirectionData(journal: JournalEntry[]) {
@@ -403,125 +383,42 @@ export const calculator = {
     // --- Deep Dive Data Builders ---
 
     getTimingData: (trades: JournalEntry[]) => {
-        // Initialize arrays for 24 hours
-        const hourlyNetPnl = new Array(24).fill(0).map(() => new Decimal(0));
-        const hourlyGrossProfit = new Array(24).fill(0).map(() => new Decimal(0));
-        const hourlyGrossLoss = new Array(24).fill(0).map(() => new Decimal(0));
-
-        // Initialize arrays for 7 days (0=Sun, 6=Sat)
-        const dayNetPnl = new Array(7).fill(0).map(() => new Decimal(0));
-        const dayGrossProfit = new Array(7).fill(0).map(() => new Decimal(0));
-        const dayGrossLoss = new Array(7).fill(0).map(() => new Decimal(0));
+        const hourlyPnl = new Array(24).fill(0).map(() => new Decimal(0));
+        const dayOfWeekPnl = new Array(7).fill(0).map(() => new Decimal(0)); // 0=Sun, 6=Sat
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-            const date = new Date(t.date);
+            const date = new Date(t.date); // Use entry date as proxy for now, or exitDate if available
             if (isNaN(date.getTime())) return;
 
+            // If synced from Bitunix, t.date is the close time (ctime of trade event).
             const hour = date.getHours();
             const day = date.getDay();
+
             const pnl = getTradePnL(t);
             
-            // Hourly
-            hourlyNetPnl[hour] = hourlyNetPnl[hour].plus(pnl);
-            if (pnl.gte(0)) hourlyGrossProfit[hour] = hourlyGrossProfit[hour].plus(pnl);
-            else hourlyGrossLoss[hour] = hourlyGrossLoss[hour].plus(pnl);
-
-            // Daily
-            dayNetPnl[day] = dayNetPnl[day].plus(pnl);
-            if (pnl.gte(0)) dayGrossProfit[day] = dayGrossProfit[day].plus(pnl);
-            else dayGrossLoss[day] = dayGrossLoss[day].plus(pnl);
+            if (hourlyPnl[hour]) hourlyPnl[hour] = hourlyPnl[hour].plus(pnl);
+            if (dayOfWeekPnl[day]) dayOfWeekPnl[day] = dayOfWeekPnl[day].plus(pnl);
         });
 
         // Reorder Day of Week to start Monday (Index 1) -> Sunday (Index 0)
         // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat
-        // Target: Mon, Tue, Wed, Thu, Fri, Sat, Sun
-        const reorder = (arr: Decimal[]) => [
-            arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[0]
+        // We want: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+        const orderedDaysPnl = [
+            dayOfWeekPnl[1], // Mon
+            dayOfWeekPnl[2],
+            dayOfWeekPnl[3],
+            dayOfWeekPnl[4],
+            dayOfWeekPnl[5],
+            dayOfWeekPnl[6],
+            dayOfWeekPnl[0]  // Sun
         ];
 
         return {
-            hourlyPnl: hourlyNetPnl.map(d => d.toNumber()),
-            hourlyGrossProfit: hourlyGrossProfit.map(d => d.toNumber()),
-            hourlyGrossLoss: hourlyGrossLoss.map(d => d.toNumber()), // Keep negative numbers negative
-            dayOfWeekPnl: reorder(dayNetPnl).map(d => d.toNumber()),
-            dayOfWeekGrossProfit: reorder(dayGrossProfit).map(d => d.toNumber()),
-            dayOfWeekGrossLoss: reorder(dayGrossLoss).map(d => d.toNumber()),
+            hourlyPnl: hourlyPnl.map(d => d.toNumber()),
+            dayOfWeekPnl: orderedDaysPnl.map(d => d.toNumber()),
             dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
         };
-    },
-
-    getDurationData: (trades: JournalEntry[]) => {
-        // Scatter: x = Duration (minutes), y = PnL ($)
-        const scatterData = trades
-            .filter(t => t.status !== 'Open')
-            .map(t => {
-                // For synced trades we might only have ctime (exit). We need entry time.
-                // If not available, we can't calculate duration properly.
-                // Assuming `t.date` is exit time. `t.entryDate` or similar would be needed.
-                // Checking types.ts or app.ts...
-                // Manual trades have `date`.
-                // Wait, `t.date` is the MAIN date.
-                // If we don't have entry time, we skip.
-                // However, let's assume `t.date` is entry for manual? No, usually date is entry.
-                // If manual: date is entry? exitDate is exit?
-                // If synced: date is exit (ctime).
-
-                // Let's try to calculate duration if we have both timestamps.
-                // `entryTime` is not explicitly on JournalEntry interface in memory,
-                // but `date` is usually the 'relevant' date.
-                // For manual trades, users set `date` (usually entry). `exitDate` is optional.
-
-                // Let's assume:
-                // Start = t.date (Manual) or ...
-                // End = t.exitDate (Manual) or t.date (Synced)
-
-                // Actually, for Synced trades, `date` is exit time. We need to find entry time.
-                // `t.entryTime` might exist if I check the sync logic.
-                // If not available, we return null or filter out.
-
-                // Let's use a heuristic: if `exitDate` exists and `date` exists: duration = exit - date (Manual).
-                // If synced, we might need to check if `entryTime` property was added.
-                // In `app.ts`, synced trades are created. I'll check if entry time is stored.
-                // If not, I can't do duration.
-
-                // fallback: duration 0 if unknown.
-
-                let durationMinutes = 0;
-                let valid = false;
-
-                // Check if we have both times
-                if (t.exitDate && t.date) {
-                    const start = new Date(t.date).getTime();
-                    const end = new Date(t.exitDate).getTime();
-                    if (!isNaN(start) && !isNaN(end)) {
-                         // If manual trade, date is usually entry.
-                         // If synced trade, date is exit... wait.
-                         // Let's rely on positive duration.
-                         const diff = end - start;
-                         if (diff > 0) {
-                             durationMinutes = diff / 1000 / 60;
-                             valid = true;
-                         } else if (diff < 0) {
-                             // maybe date was exit and exitDate was entry? unlikely naming.
-                             // maybe synced trade: date=exit. entry=?
-                         }
-                    }
-                }
-
-                if (!valid) return null;
-
-                const pnl = getTradePnL(t);
-                return {
-                    x: durationMinutes,
-                    y: pnl.toNumber(),
-                    r: 6,
-                    l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
-                };
-            })
-            .filter(d => d !== null);
-
-        return { scatterData };
     },
 
     getAssetData: (trades: JournalEntry[]) => {

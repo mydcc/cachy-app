@@ -61,7 +61,7 @@ function createAccountStore() {
              update(store => {
                 const currentPositions = [...store.positions];
                 const index = currentPositions.findIndex(p => String(p.positionId) === String(data.positionId));
-                
+
                 if (data.event === 'CLOSE') {
                     if (index !== -1) {
                         currentPositions.splice(index, 1);
@@ -71,9 +71,9 @@ function createAccountStore() {
                     const newPos: Position = {
                         positionId: data.positionId,
                         symbol: data.symbol,
-                        side: data.side ? data.side.toLowerCase() : 'long', 
+                        side: data.side ? data.side.toLowerCase() : 'long',
                         size: new Decimal(data.qty || 0),
-                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0), 
+                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
                         leverage: new Decimal(data.leverage || 0),
                         unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
                         margin: new Decimal(data.margin || 0),
@@ -91,7 +91,7 @@ function createAccountStore() {
                         newPos.markPrice = existing.markPrice;
                         newPos.breakEvenPrice = existing.breakEvenPrice;
                         if (!data.side) newPos.side = existing.side;
-                        
+
                         currentPositions[index] = newPos;
                     } else {
                         currentPositions.push(newPos);
@@ -104,9 +104,9 @@ function createAccountStore() {
             update(store => {
                 const currentOrders = [...store.openOrders];
                 const index = currentOrders.findIndex(o => String(o.orderId) === String(data.orderId));
-                
+
                 const isClosed = ['FILLED', 'CANCELED', 'PART_FILLED_CANCELED'].includes(data.orderStatus);
-                
+
                 if (isClosed) {
                     if (index !== -1) {
                         currentOrders.splice(index, 1);
@@ -139,7 +139,7 @@ function createAccountStore() {
                  if (data.coin === 'USDT') {
                      const currentAssets = [...store.assets];
                      const idx = currentAssets.findIndex(a => a.currency === 'USDT');
-                     
+
                      const newAsset = {
                          currency: 'USDT',
                          available: new Decimal(data.available || 0),
@@ -153,7 +153,7 @@ function createAccountStore() {
                      } else {
                          currentAssets.push(newAsset);
                      }
-                     
+
                      return { ...store, assets: currentAssets };
                  }
                  return store;
