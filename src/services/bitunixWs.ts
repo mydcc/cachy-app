@@ -1,117 +1,230 @@
 import { writable, get } from 'svelte/store';
 import { marketStore, wsStatusStore } from '../stores/marketStore';
+import { accountStore, type Position } from '../stores/accountStore';
+import CryptoJS from 'crypto-js';
 
-const WS_URL = 'wss://fapi.bitunix.com/public/';
+const WS_URL = 'wss://fapi.bitunix.com/public/'; // Public URL (can handle login for private ch?)
+// Documentation says:
+// Public: wss://fapi.bitunix.com/public/
+// Private: wss://fapi.bitunix.com/private/
+// It's better to use separate connections or switch URL if needed.
+// However, the "Login" op documentation is under "WebSocket -> Prepare -> WebSocket", and usually exchanges allow login on the same connection or require a specific endpoint.
+// The doc mentions "Websocket Domain wss://fapi.bitunix.com/private/ Main Domain, Private channel".
+// It is safer to use the PRIVATE endpoint if we intend to use private channels.
+// But we also need public data (price, depth).
+// Typically, private endpoints also support public channels, or we need two connections.
+// Let's try to use the public endpoint for everything first, but if it fails, we might need two connections.
+// Actually, reading the doc again:
+// "Websocket Domain wss://fapi.bitunix.com/public/ Main Domain, Public channel"
+// "Websocket Domain wss://fapi.bitunix.com/private/ Main Domain, Private channel"
+// This strongly suggests we need a separate connection for private data.
+
+const PUBLIC_WS_URL = 'wss://fapi.bitunix.com/public/';
+const PRIVATE_WS_URL = 'wss://fapi.bitunix.com/private/';
 const PING_INTERVAL = 15000; // 15 seconds
 const RECONNECT_DELAY = 3000; // 3 seconds
 
 interface Subscription {
-    symbol: string;
+    symbol?: string;
     channel: string;
+    isPrivate?: boolean;
 }
 
 class BitunixWebSocketService {
-    private ws: WebSocket | null = null;
-    private pingTimer: any = null;
-    private subscriptions: Set<string> = new Set();
-    private reconnectTimer: any = null;
-    private isReconnecting = false;
+    private publicWs: WebSocket | null = null;
+    private privateWs: WebSocket | null = null;
+
+    private publicPingTimer: any = null;
+    private privatePingTimer: any = null;
+
+    private subscriptions: Map<string, Subscription> = new Map();
+    
+    private isReconnectingPublic = false;
+    private isReconnectingPrivate = false;
+    private publicReconnectTimer: any = null;
+    private privateReconnectTimer: any = null;
+
+    private apiKey: string | null = null;
+    private apiSecret: string | null = null;
+    private isAuthenticated = false;
 
     constructor() {}
 
-    connect() {
-        if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+    init(apiKey?: string, apiSecret?: string) {
+        if (apiKey && apiSecret) {
+            this.apiKey = apiKey;
+            this.apiSecret = apiSecret;
+        }
+        this.connectPublic();
+        if (this.apiKey && this.apiSecret) {
+            this.connectPrivate();
+        }
+    }
+
+    setCredentials(apiKey: string, apiSecret: string) {
+        this.apiKey = apiKey;
+        this.apiSecret = apiSecret;
+        if (!this.privateWs || this.privateWs.readyState === WebSocket.CLOSED) {
+            this.connectPrivate();
+        } else if (this.privateWs.readyState === WebSocket.OPEN && !this.isAuthenticated) {
+            this.authenticate();
+        }
+    }
+
+    private connectPublic() {
+        if (this.publicWs && (this.publicWs.readyState === WebSocket.OPEN || this.publicWs.readyState === WebSocket.CONNECTING)) {
             return;
         }
 
-        wsStatusStore.set('connecting');
-        console.log('Connecting to Bitunix WebSocket...');
-        this.ws = new WebSocket(WS_URL);
+        console.log('Connecting to Bitunix Public WebSocket...');
+        this.publicWs = new WebSocket(PUBLIC_WS_URL);
 
-        this.ws.onopen = () => {
-            console.log('Bitunix WebSocket connected.');
-            wsStatusStore.set('connected');
-            this.isReconnecting = false;
-            this.startHeartbeat();
-            this.resubscribe();
+        this.publicWs.onopen = () => {
+            console.log('Bitunix Public WebSocket connected.');
+            wsStatusStore.set('connected'); // Simplified status
+            this.isReconnectingPublic = false;
+            this.startHeartbeat(this.publicWs, 'public');
+            this.resubscribePublic();
         };
 
-        this.ws.onmessage = (event) => {
+        this.publicWs.onmessage = (event) => {
             try {
                 const message = JSON.parse(event.data);
-                this.handleMessage(message);
+                this.handleMessage(message, false);
             } catch (e) {
-                console.error('Error parsing WS message:', e);
+                console.error('Error parsing Public WS message:', e);
             }
         };
 
-        this.ws.onclose = () => {
-            console.log('Bitunix WebSocket closed.');
+        this.publicWs.onclose = () => {
+            console.log('Bitunix Public WebSocket closed.');
             wsStatusStore.set('disconnected');
-            this.stopHeartbeat();
-            this.scheduleReconnect();
+            this.stopHeartbeat('public');
+            this.scheduleReconnect('public');
         };
 
-        this.ws.onerror = (error) => {
-            console.error('Bitunix WebSocket error:', error);
+        this.publicWs.onerror = (error) => {
+            console.error('Bitunix Public WebSocket error:', error);
             wsStatusStore.set('error');
-            // onError will usually trigger onClose, so we handle reconnect there
         };
     }
 
-    private scheduleReconnect() {
-        if (this.isReconnecting) return;
-        this.isReconnecting = true;
-        
-        if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-        this.reconnectTimer = setTimeout(() => {
-            this.connect();
-        }, RECONNECT_DELAY);
+    private connectPrivate() {
+        if (!this.apiKey || !this.apiSecret) return;
+        if (this.privateWs && (this.privateWs.readyState === WebSocket.OPEN || this.privateWs.readyState === WebSocket.CONNECTING)) {
+            return;
+        }
+
+        console.log('Connecting to Bitunix Private WebSocket...');
+        this.privateWs = new WebSocket(PRIVATE_WS_URL);
+
+        this.privateWs.onopen = () => {
+            console.log('Bitunix Private WebSocket connected.');
+            this.isReconnectingPrivate = false;
+            this.startHeartbeat(this.privateWs, 'private');
+            this.authenticate();
+        };
+
+        this.privateWs.onmessage = (event) => {
+            try {
+                const message = JSON.parse(event.data);
+                this.handleMessage(message, true);
+            } catch (e) {
+                console.error('Error parsing Private WS message:', e);
+            }
+        };
+
+        this.privateWs.onclose = () => {
+            console.log('Bitunix Private WebSocket closed.');
+            this.isAuthenticated = false;
+            this.stopHeartbeat('private');
+            this.scheduleReconnect('private');
+        };
+
+        this.privateWs.onerror = (error) => {
+            console.error('Bitunix Private WebSocket error:', error);
+        };
     }
 
-    private startHeartbeat() {
-        this.stopHeartbeat();
-        this.pingTimer = setInterval(() => {
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+    private scheduleReconnect(type: 'public' | 'private') {
+        if (type === 'public') {
+            if (this.isReconnectingPublic) return;
+            this.isReconnectingPublic = true;
+            if (this.publicReconnectTimer) clearTimeout(this.publicReconnectTimer);
+            this.publicReconnectTimer = setTimeout(() => this.connectPublic(), RECONNECT_DELAY);
+        } else {
+            if (this.isReconnectingPrivate) return;
+            this.isReconnectingPrivate = true;
+            if (this.privateReconnectTimer) clearTimeout(this.privateReconnectTimer);
+            this.privateReconnectTimer = setTimeout(() => this.connectPrivate(), RECONNECT_DELAY);
+        }
+    }
+
+    private startHeartbeat(ws: WebSocket | null, type: 'public' | 'private') {
+        this.stopHeartbeat(type);
+        const timer = setInterval(() => {
+            if (ws && ws.readyState === WebSocket.OPEN) {
                 const pingPayload = {
                     op: 'ping',
                     ping: Math.floor(Date.now() / 1000)
                 };
-                this.ws.send(JSON.stringify(pingPayload));
+                ws.send(JSON.stringify(pingPayload));
             }
         }, PING_INTERVAL);
-    }
-
-    private stopHeartbeat() {
-        if (this.pingTimer) {
-            clearInterval(this.pingTimer);
-            this.pingTimer = null;
-        }
-    }
-
-    private handleMessage(message: any) {
-        if (message.op === 'ping') {
-            // Server might send ping, we should pong back? Or is it response to our ping?
-            // Bitunix docs say: request {op:ping}, response {op:ping, pong:..., ping:...}
-            return;
-        }
         
-        if (message.op === 'pong' || message.pong) {
-            // Pong received
-            return;
-        }
+        if (type === 'public') this.publicPingTimer = timer;
+        else this.privatePingTimer = timer;
+    }
 
-        // Handle Data Push
-        if (message.ch === 'price') {
-            const symbol = message.symbol;
-            const data = message.data;
-            if (symbol && data) {
-                marketStore.updatePrice(symbol, {
-                    price: data.mp,
-                    indexPrice: data.ip,
-                    fundingRate: data.fr,
-                    nextFundingTime: data.nft
-                });
+    private stopHeartbeat(type: 'public' | 'private') {
+        if (type === 'public' && this.publicPingTimer) {
+            clearInterval(this.publicPingTimer);
+            this.publicPingTimer = null;
+        } else if (type === 'private' && this.privatePingTimer) {
+            clearInterval(this.privatePingTimer);
+            this.privatePingTimer = null;
+        }
+    }
+
+    private authenticate() {
+        if (!this.privateWs || this.privateWs.readyState !== WebSocket.OPEN || !this.apiKey || !this.apiSecret) return;
+
+        const timestamp = Math.floor(Date.now() / 1000); // Seconds
+        const nonce = Math.random().toString(36).substring(2, 15);
+        
+        // Sign generation: 
+        // 1. sign = sha256(nonce + timestamp + apiKey)
+        // 2. sign = sha256(sign + secretKey)
+        
+        const firstHash = CryptoJS.SHA256(nonce + timestamp + this.apiKey).toString(CryptoJS.enc.Hex);
+        const signature = CryptoJS.SHA256(firstHash + this.apiSecret).toString(CryptoJS.enc.Hex);
+
+        const loginPayload = {
+            op: 'login',
+            args: [{
+                apiKey: this.apiKey,
+                timestamp: timestamp,
+                nonce: nonce,
+                sign: signature
+            }]
+        };
+
+        this.privateWs.send(JSON.stringify(loginPayload));
+    }
+
+    private handleMessage(message: any, isPrivate: boolean) {
+        if (message.op === 'ping') return;
+        if (message.op === 'pong' || message.pong) return;
+
+        if (isPrivate) {
+            if (message.event === 'login') {
+                if (message.code === '0' || message.msg === 'success') { // Check success criteria
+                    console.log('Bitunix Authenticated successfully');
+                    this.isAuthenticated = true;
+                    this.resubscribePrivate();
+                } else {
+                    console.error('Bitunix Authentication failed', message);
+                }
             }
         } else if (message.ch === 'ticker') {
             const symbol = message.symbol;
@@ -141,54 +254,82 @@ class BitunixWebSocketService {
 
     subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         if (!symbol) return;
-        const normalizedSymbol = symbol.toUpperCase(); // Ensure uppercase
-        const subKey = `${channel}:${normalizedSymbol}`;
+        const normalizedSymbol = symbol.toUpperCase();
+        const subKey = `public:${channel}:${normalizedSymbol}`;
 
         if (this.subscriptions.has(subKey)) return;
 
-        this.subscriptions.add(subKey);
+        this.subscriptions.set(subKey, { symbol: normalizedSymbol, channel, isPrivate: false });
 
-        if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-            this.sendSubscribe(normalizedSymbol, channel);
+        if (this.publicWs && this.publicWs.readyState === WebSocket.OPEN) {
+            this.sendSubscribePublic(normalizedSymbol, channel);
         } else {
-            // Connection might not be ready, connect if needed
-            this.connect();
+            this.connectPublic();
         }
+    }
+    
+    subscribePrivate(channel: 'position') {
+         const subKey = `private:${channel}`;
+         if (this.subscriptions.has(subKey)) return;
+         
+         this.subscriptions.set(subKey, { channel, isPrivate: true });
+         
+         if (this.privateWs && this.privateWs.readyState === WebSocket.OPEN && this.isAuthenticated) {
+             this.sendSubscribePrivate(channel);
+         } else {
+             this.connectPrivate();
+         }
     }
 
     unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         const normalizedSymbol = symbol.toUpperCase();
-        const subKey = `${channel}:${normalizedSymbol}`;
+        const subKey = `public:${channel}:${normalizedSymbol}`;
         
         if (this.subscriptions.has(subKey)) {
             this.subscriptions.delete(subKey);
-            if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-                this.sendUnsubscribe(normalizedSymbol, channel);
+            if (this.publicWs && this.publicWs.readyState === WebSocket.OPEN) {
+                this.sendUnsubscribePublic(normalizedSymbol, channel);
             }
         }
     }
 
-    private sendSubscribe(symbol: string, channel: string) {
+    private sendSubscribePublic(symbol: string, channel: string) {
         const payload = {
             op: 'subscribe',
             args: [{ symbol, ch: channel }]
         };
-        this.ws?.send(JSON.stringify(payload));
+        this.publicWs?.send(JSON.stringify(payload));
+    }
+    
+    private sendSubscribePrivate(channel: string) {
+        const payload = {
+            op: 'subscribe',
+            args: [{ ch: channel }]
+        };
+        this.privateWs?.send(JSON.stringify(payload));
     }
 
-    private sendUnsubscribe(symbol: string, channel: string) {
+    private sendUnsubscribePublic(symbol: string, channel: string) {
         const payload = {
             op: 'unsubscribe',
             args: [{ symbol, ch: channel }]
         };
-        this.ws?.send(JSON.stringify(payload));
+        this.publicWs?.send(JSON.stringify(payload));
     }
 
-    private resubscribe() {
-        // Re-send all active subscriptions on reconnect
-        this.subscriptions.forEach(subKey => {
-            const [channel, symbol] = subKey.split(':');
-            this.sendSubscribe(symbol, channel);
+    private resubscribePublic() {
+        this.subscriptions.forEach((sub, key) => {
+            if (!sub.isPrivate && sub.symbol) {
+                this.sendSubscribePublic(sub.symbol, sub.channel);
+            }
+        });
+    }
+
+    private resubscribePrivate() {
+        this.subscriptions.forEach((sub, key) => {
+            if (sub.isPrivate) {
+                this.sendSubscribePrivate(sub.channel);
+            }
         });
     }
 }
