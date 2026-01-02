@@ -36,6 +36,12 @@
     $: fundingRate = wsData?.fundingRate;
     $: nextFundingTime = wsData?.nextFundingTime;
     
+    // 24h Stats (Prefer WS 'ticker' channel data, fallback to REST)
+    $: highPrice = wsData?.highPrice || tickerData?.highPrice;
+    $: lowPrice = wsData?.lowPrice || tickerData?.lowPrice;
+    $: volume = wsData?.volume || tickerData?.volume;
+    $: priceChangePercent = wsData?.priceChangePercent || tickerData?.priceChangePercent;
+
     // Depth Data
     $: depthData = wsData?.depth;
 
@@ -73,13 +79,27 @@
     // Subscribe to WS when symbol changes
     $: if (symbol && provider === 'bitunix') {
         bitunixWs.subscribe(symbol, 'price');
-        bitunixWs.subscribe(symbol, 'depth_book5'); // Subscribe to depth
+        bitunixWs.subscribe(symbol, 'ticker'); // Subscribe to 24h ticker
+        bitunixWs.subscribe(symbol, 'depth_book5');
     }
 
     // REST Polling for Volume/24h Change (Background)
     $: if (symbol && provider) {
-        setupRestInterval();
-        fetchRestData();
+        // Only run REST polling if we are NOT using Bitunix (or if we want a fallback initially)
+        // Bitunix uses WS for this now.
+        if (provider !== 'bitunix') {
+             setupRestInterval();
+             fetchRestData();
+        } else {
+            // For Bitunix, clear REST interval if it exists
+            if (restIntervalId) {
+                clearInterval(restIntervalId);
+                restIntervalId = undefined;
+            }
+            // Maybe fetch once initially to populate before WS connects?
+            // Optional, but might feel faster.
+            // fetchRestData();
+        }
     }
 
     function setupRestInterval() {
@@ -115,6 +135,7 @@
         if (countdownInterval) clearInterval(countdownInterval);
         if (symbol && provider === 'bitunix') {
              bitunixWs.unsubscribe(symbol, 'price');
+             bitunixWs.unsubscribe(symbol, 'ticker');
              bitunixWs.unsubscribe(symbol, 'depth_book5');
         }
     });
@@ -199,14 +220,14 @@
                 >
                     {formatValue(currentPrice, 4)}
                 </span>
-                {#if tickerData}
+                {#if priceChangePercent}
                 <span
                     class="text-sm font-medium"
-                    style:color={tickerData.priceChangePercent.gte(0)
+                    style:color={priceChangePercent.gte(0)
                         ? "var(--success-color)"
                         : "var(--danger-color)"}
                 >
-                    {tickerData.priceChangePercent.gte(0) ? "+" : ""}{formatValue(tickerData.priceChangePercent, 2)}%
+                    {priceChangePercent.gte(0) ? "+" : ""}{formatValue(priceChangePercent, 2)}%
                 </span>
                 {/if}
             </div>
@@ -216,20 +237,20 @@
                 <DepthBar bids={depthData.bids} asks={depthData.asks} />
             {/if}
 
-            <!-- REST Stats -->
-            {#if tickerData}
+            <!-- 24h Stats (WS or REST) -->
+            {#if highPrice || tickerData}
             <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
                 <div class="flex flex-col">
                     <span class="text-[var(--text-secondary)]">24h High</span>
-                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.highPrice, 4)}</span>
+                    <span class="font-medium text-[var(--text-primary)]">{formatValue(highPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col text-right">
                     <span class="text-[var(--text-secondary)]">24h Low</span>
-                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.lowPrice, 4)}</span>
+                    <span class="font-medium text-[var(--text-primary)]">{formatValue(lowPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col col-span-2 mt-1">
                     <span class="text-[var(--text-secondary)]">Vol ({displaySymbol.replace(/USDT.?$/, "").replace(/P$/, "")})</span>
-                    <span class="font-medium text-[var(--text-primary)]">{formatValue(tickerData.volume, 0)}</span>
+                    <span class="font-medium text-[var(--text-primary)]">{formatValue(volume, 0)}</span>
                 </div>
             </div>
             {/if}

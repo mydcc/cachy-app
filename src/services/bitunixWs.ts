@@ -226,65 +226,33 @@ class BitunixWebSocketService {
                     console.error('Bitunix Authentication failed', message);
                 }
             }
-
-            // Handle Private Data Push
-            if (message.ch === 'position') {
-                // message.data can be a single object or list? Docs say "Subscription data".
-                // Usually for position it pushes the updated position.
-                const data = message.data;
-                if (data) {
-                    // Update accountStore
-                    // The data structure from "Push Parameters" matches our Position interface mostly
-                    // data: { event: 'OPEN/UPDATE/CLOSE', positionId, symbol, side, ... }
-                    
-                    // We need to map it to Position interface
-                    const pos: Position = {
-                        symbol: data.symbol,
-                        side: data.side,
-                        leverage: Number(data.leverage),
-                        size: Number(data.qty),
-                        entryPrice: Number(data.avgOpenPrice || data.entryPrice || data.openPrice || 0), // check exact field
-                        unrealizedPnL: Number(data.unrealizedPNL),
-                        marginMode: data.marginMode,
-                        margin: Number(data.margin)
-                    };
-                    
-                    // Logic to update/remove based on size or event
-                    // If size is 0, it's closed
-                    if (Number(data.qty) === 0 || data.event === 'CLOSE') {
-                        accountStore.removePosition(pos.symbol, pos.side);
-                    } else {
-                        accountStore.updatePosition(pos);
-                    }
-                }
+        } else if (message.ch === 'ticker') {
+            const symbol = message.symbol;
+            const data = message.data;
+            if (symbol && data) {
+                marketStore.updateTicker(symbol, {
+                    lastPrice: data.la,
+                    high: data.h,
+                    low: data.l,
+                    vol: data.b,
+                    quoteVol: data.q,
+                    change: data.r,
+                    open: data.o
+                });
             }
-        } else {
-            // Handle Public Data Push
-            if (message.ch === 'price') {
-                const symbol = message.symbol;
-                const data = message.data;
-                if (symbol && data) {
-                    marketStore.updatePrice(symbol, {
-                        price: data.mp,
-                        indexPrice: data.ip,
-                        fundingRate: data.fr,
-                        nextFundingTime: data.nft
-                    });
-                }
-            } else if (message.ch === 'depth_book5') {
-                const symbol = message.symbol;
-                const data = message.data;
-                if (symbol && data) {
-                    marketStore.updateDepth(symbol, {
-                        bids: data.b,
-                        asks: data.a
-                    });
-                }
+        } else if (message.ch === 'depth_book5') {
+            const symbol = message.symbol;
+            const data = message.data; // { b: [[price, qty], ...], a: [[price, qty], ...] }
+            if (symbol && data) {
+                marketStore.updateDepth(symbol, {
+                    bids: data.b,
+                    asks: data.a
+                });
             }
         }
     }
 
-    subscribe(symbol: string, channel: 'price' | 'depth_book5') {
+    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `public:${channel}:${normalizedSymbol}`;
@@ -313,7 +281,7 @@ class BitunixWebSocketService {
          }
     }
 
-    unsubscribe(symbol: string, channel: 'price' | 'depth_book5') {
+    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `public:${channel}:${normalizedSymbol}`;
         
