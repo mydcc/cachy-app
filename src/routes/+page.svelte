@@ -13,6 +13,7 @@
     import { uiStore } from '../stores/uiStore';
     import { settingsStore } from '../stores/settingsStore'; // Import settings store
     import { favoritesStore } from '../stores/favoritesStore'; // Import favorites store
+    import { wsStatusStore } from '../stores/marketStore'; // Import wsStatusStore
     import { modalManager } from '../services/modalManager';
     import { onMount } from 'svelte';
     import { _, locale } from '../locales/i18n'; // Import locale
@@ -247,7 +248,16 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
     {/if}
 
-    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
+    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative">
+        {#if $settingsStore.apiProvider === 'bitunix'}
+        <div class="absolute top-4 right-4 flex items-center gap-1" title="Bitunix Connection: {$wsStatusStore}">
+            <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
+                    class:bg-green-500={$wsStatusStore === 'connected'}
+                    class:bg-yellow-500={$wsStatusStore === 'connecting' || $wsStatusStore === 'reconnecting'}
+                    class:bg-red-500={$wsStatusStore === 'disconnected' || $wsStatusStore === 'error'}>
+            </div>
+        </div>
+        {/if}
 
         <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
             <div class="flex justify-between items-center w-full md:w-auto">
