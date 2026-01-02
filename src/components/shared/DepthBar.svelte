@@ -4,13 +4,13 @@
 
     export let bids: [string, string][] = [];
     export let asks: [string, string][] = [];
-
+    
     // Calculate total volume for the top 5 levels
     $: bidVol = bids.reduce((acc, [_, qty]) => acc.plus(new Decimal(qty)), new Decimal(0));
     $: askVol = asks.reduce((acc, [_, qty]) => acc.plus(new Decimal(qty)), new Decimal(0));
-
+    
     $: totalVol = bidVol.plus(askVol);
-
+    
     // Percentages
     $: bidPercent = totalVol.gt(0) ? bidVol.div(totalVol).times(100).toNumber() : 50;
     $: askPercent = totalVol.gt(0) ? askVol.div(totalVol).times(100).toNumber() : 50;
@@ -22,7 +22,7 @@
         <div class="bg-[var(--success-color)] transition-all duration-300" style="width: {bidPercent}%"></div>
         <div class="bg-[var(--danger-color)] transition-all duration-300" style="width: {askPercent}%"></div>
     </div>
-
+    
     <!-- Text Labels -->
     <div class="flex justify-between text-[10px] text-[var(--text-secondary)]">
         <span class="text-[var(--success-color)]">{formatDynamicDecimal(bidVol, 0)} Bids</span>
