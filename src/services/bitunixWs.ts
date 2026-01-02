@@ -299,19 +299,6 @@ class BitunixWebSocketService {
             this.connectPublic();
         }
     }
-    
-    subscribePrivate(channel: 'position') {
-         const subKey = `private:${channel}`;
-         if (this.subscriptions.has(subKey)) return;
-         
-         this.subscriptions.set(subKey, { channel, isPrivate: true });
-         
-         if (this.privateWs && this.privateWs.readyState === WebSocket.OPEN && this.isAuthenticated) {
-             this.sendSubscribePrivate(channel);
-         } else {
-             this.connectPrivate();
-         }
-    }
 
     subscribePrivate(channel: 'position') {
          const subKey = `private:${channel}`;

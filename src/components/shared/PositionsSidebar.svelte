@@ -133,12 +133,6 @@
             if (activeTab === 'history') fetchOrders('history');
         }
     }
-    
-    // React to keys/provider changes to initialize WS
-    $: if ($settingsStore.apiProvider === 'bitunix' && $settingsStore.apiKeys.bitunix?.key && $settingsStore.apiKeys.bitunix?.secret) {
-        bitunixWs.setCredentials($settingsStore.apiKeys.bitunix.key, $settingsStore.apiKeys.bitunix.secret);
-        bitunixWs.subscribePrivate('position');
-    }
 
     // React to keys/provider changes to initialize WS
     $: if ($settingsStore.apiProvider === 'bitunix' && $settingsStore.apiKeys.bitunix?.key && $settingsStore.apiKeys.bitunix?.secret) {
