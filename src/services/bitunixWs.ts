@@ -38,7 +38,7 @@ class BitunixWebSocketService {
     private privatePingTimer: any = null;
 
     private subscriptions: Map<string, Subscription> = new Map();
-    
+
     private isReconnectingPublic = false;
     private isReconnectingPrivate = false;
     private publicReconnectTimer: any = null;
@@ -171,7 +171,7 @@ class BitunixWebSocketService {
                 ws.send(JSON.stringify(pingPayload));
             }
         }, PING_INTERVAL);
-        
+
         if (type === 'public') this.publicPingTimer = timer;
         else this.privatePingTimer = timer;
     }
@@ -191,11 +191,11 @@ class BitunixWebSocketService {
 
         const timestamp = Math.floor(Date.now() / 1000); // Seconds
         const nonce = Math.random().toString(36).substring(2, 15);
-        
-        // Sign generation: 
+
+        // Sign generation:
         // 1. sign = sha256(nonce + timestamp + apiKey)
         // 2. sign = sha256(sign + secretKey)
-        
+
         const firstHash = CryptoJS.SHA256(nonce + timestamp + this.apiKey).toString(CryptoJS.enc.Hex);
         const signature = CryptoJS.SHA256(firstHash + this.apiSecret).toString(CryptoJS.enc.Hex);
 
@@ -236,7 +236,7 @@ class BitunixWebSocketService {
                     // Update accountStore
                     // The data structure from "Push Parameters" matches our Position interface mostly
                     // data: { event: 'OPEN/UPDATE/CLOSE', positionId, symbol, side, ... }
-                    
+
                     // We need to map it to Position interface
                     const pos: Position = {
                         symbol: data.symbol,
@@ -248,7 +248,7 @@ class BitunixWebSocketService {
                         marginMode: data.marginMode,
                         margin: Number(data.margin)
                     };
-                    
+
                     // Logic to update/remove based on size or event
                     // If size is 0, it's closed
                     if (Number(data.qty) === 0 || data.event === 'CLOSE') {
@@ -313,10 +313,23 @@ class BitunixWebSocketService {
          }
     }
 
+    subscribePrivate(channel: 'position') {
+         const subKey = `private:${channel}`;
+         if (this.subscriptions.has(subKey)) return;
+
+         this.subscriptions.set(subKey, { channel, isPrivate: true });
+
+         if (this.privateWs && this.privateWs.readyState === WebSocket.OPEN && this.isAuthenticated) {
+             this.sendSubscribePrivate(channel);
+         } else {
+             this.connectPrivate();
+         }
+    }
+
     unsubscribe(symbol: string, channel: 'price' | 'depth_book5') {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `public:${channel}:${normalizedSymbol}`;
-        
+
         if (this.subscriptions.has(subKey)) {
             this.subscriptions.delete(subKey);
             if (this.publicWs && this.publicWs.readyState === WebSocket.OPEN) {
@@ -332,7 +345,7 @@ class BitunixWebSocketService {
         };
         this.publicWs?.send(JSON.stringify(payload));
     }
-    
+
     private sendSubscribePrivate(channel: string) {
         const payload = {
             op: 'subscribe',

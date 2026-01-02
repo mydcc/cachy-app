@@ -107,7 +107,7 @@ export const app = {
                 const symbolKey = state.symbol.toUpperCase();
                 // Check exact symbol or with P suffix logic or USDT suffix logic to be robust
                 const marketData = data[symbolKey] || data[symbolKey.replace('P', '')] || data[symbolKey + 'USDT'];
-                
+
                 if (marketData && marketData.lastPrice) {
                     // Update Entry Price
                     const newPrice = marketData.lastPrice.toNumber();
@@ -156,13 +156,13 @@ export const app = {
                  // If using Bitunix and WS is connected, maybe we skip REST price update to save bandwidth?
                  // But for robustness (and Binance support), we keep it.
                  // Also, 'autoUpdatePriceInput' logic is handled here for non-WS or fallback.
-                 
-                 // If we have fresh WS data, maybe skip this REST call for price? 
+
+                 // If we have fresh WS data, maybe skip this REST call for price?
                  // We can check if `bitunixWs` is connected.
                  // For now, let's keep it simple: run both. The store update handles deduplication somewhat.
                  // But to avoid overwriting WS data with potentially slightly stale REST data,
                  // we might want to prioritize WS.
-                 
+
                  // 1. Auto Update Price Input (REST Fallback)
                  if (settings.autoUpdatePriceInput) {
                      // If provider is Binance, we MUST use REST (no WS impl yet).
