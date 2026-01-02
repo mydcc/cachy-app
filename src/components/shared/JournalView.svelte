@@ -21,32 +21,50 @@
     let activePreset = 'performance';
     let activeDeepDivePreset = 'timing';
     let showUnlockOverlay = false;
+    let unlockOverlayMessage = '';
 
     // --- Cheat Code Logic ---
     const CHEAT_CODE = 'VIPENTE2026';
+    const LOCK_CODE = 'VIPDEEPDIVE2026';
     let inputBuffer: string[] = [];
 
     function handleKeydown(event: KeyboardEvent) {
         if (!$settingsStore.isPro) return; // Only listen if Pro is active (optional constraint, but good for performance)
-        if ($settingsStore.isDeepDiveUnlocked) return; // Already unlocked
 
         const key = event.key;
         // Only accept single character keys to avoid control keys filling buffer
         if (key.length === 1) {
             inputBuffer.push(key);
-            if (inputBuffer.length > CHEAT_CODE.length) {
+            // Keep buffer size enough for the longest code
+            if (inputBuffer.length > Math.max(CHEAT_CODE.length, LOCK_CODE.length)) {
                 inputBuffer.shift();
             }
 
-            if (inputBuffer.join('') === CHEAT_CODE) {
+            const bufferStr = inputBuffer.join('');
+
+            if (!$settingsStore.isDeepDiveUnlocked && bufferStr.endsWith(CHEAT_CODE)) {
                 unlockDeepDive();
+            } else if ($settingsStore.isDeepDiveUnlocked && bufferStr.endsWith(LOCK_CODE)) {
+                lockDeepDive();
             }
         }
     }
 
     function unlockDeepDive() {
         $settingsStore.isDeepDiveUnlocked = true;
+        unlockOverlayMessage = 'freigeschaltet';
         showUnlockOverlay = true;
+        inputBuffer = []; // Reset buffer
+        setTimeout(() => {
+            showUnlockOverlay = false;
+        }, 2000);
+    }
+
+    function lockDeepDive() {
+        $settingsStore.isDeepDiveUnlocked = false;
+        unlockOverlayMessage = 'deaktivert';
+        showUnlockOverlay = true;
+        inputBuffer = []; // Reset buffer
         setTimeout(() => {
             showUnlockOverlay = false;
         }, 2000);
@@ -692,7 +710,7 @@
     <div class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center">
             <div class="text-xl font-bold text-[var(--accent-color)] mb-1">Deep Dive</div>
-            <div class="text-lg">freigeschaltet</div>
+            <div class="text-lg">{unlockOverlayMessage}</div>
         </div>
     </div>
     {/if}
