@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
+    import { onMount, onDestroy } from 'svelte';
     import { settingsStore } from '../../stores/settingsStore';
     import { tradeStore } from '../../stores/tradeStore';
+    import { accountStore } from '../../stores/accountStore';
+    import { bitunixWs } from '../../services/bitunixWs';
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
     
@@ -13,10 +15,10 @@
     let isOpen = true;
     
     // Data State
-    let positions: any[] = [];
-    let openOrders: any[] = [];
-    let historyOrders: any[] = [];
-    let accountInfo: any = { available: 0, margin: 0, totalUnrealizedPnL: 0, marginCoin: 'USDT' };
+    $: positions = $accountStore.positions;
+    $: openOrders = $accountStore.openOrders;
+    $: historyOrders = $accountStore.historyOrders;
+    $: accountInfo = $accountStore.accountInfo;
 
     // Loading State
     let loadingPositions = false;
@@ -49,7 +51,7 @@
             });
             const data = await response.json();
             if (data.error) errorPositions = data.error;
-            else positions = data.positions || [];
+            else accountStore.setPositions(data.positions || []);
         } catch (e) {
             errorPositions = 'Failed to load positions';
         } finally {
@@ -81,8 +83,8 @@
                 if (type === 'pending') errorOrders = data.error;
                 else errorHistory = data.error;
             } else {
-                if (type === 'pending') openOrders = data.orders || [];
-                else historyOrders = data.orders || [];
+                if (type === 'pending') accountStore.setOpenOrders(data.orders || []);
+                else accountStore.setHistoryOrders(data.orders || []);
             }
         } catch (e) {
             const msg = `Failed to load ${type} orders`;
@@ -108,7 +110,7 @@
             });
             const data = await response.json();
             if (!data.error) {
-                accountInfo = data;
+                accountStore.setAccountInfo(data);
             }
         } catch (e) {
             console.error(e);
@@ -121,23 +123,30 @@
         const provider = $settingsStore.apiProvider || 'bitunix';
         const keys = $settingsStore.apiKeys[provider];
         if (keys?.key && keys?.secret) {
+            // If using Bitunix and WS, we might not need to poll positions heavily
+            // But for now we keep polling as backup or for other providers
+            // If WS is active, maybe reduce poll frequency or rely on WS
             fetchAccount();
             fetchPositions();
-            // Fetch orders only if tab is active to save API calls, or just fetch all?
-            // Let's fetch active tab data more frequently
+
             if (activeTab === 'orders') fetchOrders('pending');
             if (activeTab === 'history') fetchOrders('history');
         }
     }
 
+    // React to keys/provider changes to initialize WS
+    $: if ($settingsStore.apiProvider === 'bitunix' && $settingsStore.apiKeys.bitunix?.key && $settingsStore.apiKeys.bitunix?.secret) {
+        bitunixWs.setCredentials($settingsStore.apiKeys.bitunix.key, $settingsStore.apiKeys.bitunix.secret);
+        bitunixWs.subscribePrivate('position');
+    }
+
     onMount(() => {
         refreshAll();
-        // Initial fetch for background tabs too so they aren't empty when clicked
+        // Initial fetch
         const provider = $settingsStore.apiProvider || 'bitunix';
         const keys = $settingsStore.apiKeys[provider];
         if (keys?.key && keys?.secret) {
              fetchOrders('pending');
-             // History maybe less frequent?
         }
 
         const interval = setInterval(refreshAll, 10000); // 10s poll

@@ -248,7 +248,16 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
     {/if}
 
-    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
+    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative">
+        {#if $settingsStore.apiProvider === 'bitunix'}
+        <div class="absolute top-4 right-4 flex items-center gap-1" title="Bitunix Connection: {$wsStatusStore}">
+            <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
+                    class:bg-green-500={$wsStatusStore === 'connected'}
+                    class:bg-yellow-500={$wsStatusStore === 'connecting' || $wsStatusStore === 'reconnecting'}
+                    class:bg-red-500={$wsStatusStore === 'disconnected' || $wsStatusStore === 'error'}>
+            </div>
+        </div>
+        {/if}
 
         <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
             <div class="flex justify-between items-center w-full md:w-auto">
@@ -260,15 +269,6 @@ import { trackCustomEvent } from '../services/trackingService';
             </div>
             <div class="flex items-center flex-wrap justify-end gap-2 w-full md:w-auto">
                 <div class="flex items-center flex-wrap justify-end gap-2 md:order-1">
-                    {#if $settingsStore.apiProvider === 'bitunix'}
-                    <div class="flex items-center gap-1 mr-1" title="Bitunix Connection: {$wsStatusStore}">
-                        <div class="w-2.5 h-2.5 rounded-full transition-colors duration-300"
-                             class:bg-green-500={$wsStatusStore === 'connected'}
-                             class:bg-yellow-500={$wsStatusStore === 'connecting' || $wsStatusStore === 'reconnecting'}
-                             class:bg-red-500={$wsStatusStore === 'disconnected' || $wsStatusStore === 'error'}>
-                        </div>
-                    </div>
-                    {/if}
                     <select id="preset-loader" class="input-field px-3 py-2 rounded-md text-sm" on:change={handlePresetLoad} bind:value={$presetStore.selectedPreset}>
                         <option value="">{$_('dashboard.presetLoad')}</option>
                         {#each $presetStore.availablePresets as presetName}
