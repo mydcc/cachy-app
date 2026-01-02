@@ -63,7 +63,7 @@ describe('accountStore', () => {
             margin: 1500
         };
         accountStore.updatePosition(newPos);
-
+        
         const state = get(accountStore);
         expect(state.positions.length).toBe(1);
         expect(state.positions[0]).toEqual(newPos);
@@ -93,7 +93,7 @@ describe('accountStore', () => {
         accountStore.setPositions([pos1, pos2]);
 
         accountStore.removePosition('BTCUSDT', 'LONG');
-
+        
         const state = get(accountStore);
         expect(state.positions.length).toBe(1);
         expect(state.positions[0]).toEqual(pos2);
