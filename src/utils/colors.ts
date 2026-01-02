@@ -8,10 +8,10 @@ import { browser } from '$app/environment';
  */
 export function getComputedColor(variableName: string, element?: HTMLElement): string {
     if (!browser) return '#000000';
-
+    
     const target = element || document.body;
     const value = getComputedStyle(target).getPropertyValue(variableName).trim();
-
+    
     // Return empty string if variable is not defined, let caller handle fallback if needed
     return value;
 }
@@ -29,7 +29,7 @@ export function hexToRgba(hex: string, alpha: number): string {
     if (c.length === 3) {
         c = [c[0], c[0], c[1], c[1], c[2], c[2]];
     }
-
+    
     if (c.length !== 6) return `rgba(0, 0, 0, ${alpha})`;
 
     const n = Number('0x' + c.join(''));
