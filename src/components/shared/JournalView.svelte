@@ -15,10 +15,54 @@
     import DoughnutChart from './charts/DoughnutChart.svelte';
     import BubbleChart from './charts/BubbleChart.svelte';
     import { Decimal } from 'decimal.js';
+    import { onMount, onDestroy } from 'svelte';
 
     // --- State for Dashboard ---
     let activePreset = 'performance';
     let activeDeepDivePreset = 'timing';
+    let showUnlockOverlay = false;
+
+    // --- Cheat Code Logic ---
+    const CHEAT_CODE = 'VIPENTE2026';
+    let inputBuffer: string[] = [];
+
+    function handleKeydown(event: KeyboardEvent) {
+        if (!$settingsStore.isPro) return; // Only listen if Pro is active (optional constraint, but good for performance)
+        if ($settingsStore.isDeepDiveUnlocked) return; // Already unlocked
+
+        const key = event.key;
+        // Only accept single character keys to avoid control keys filling buffer
+        if (key.length === 1) {
+            inputBuffer.push(key);
+            if (inputBuffer.length > CHEAT_CODE.length) {
+                inputBuffer.shift();
+            }
+
+            if (inputBuffer.join('') === CHEAT_CODE) {
+                unlockDeepDive();
+            }
+        }
+    }
+
+    function unlockDeepDive() {
+        $settingsStore.isDeepDiveUnlocked = true;
+        showUnlockOverlay = true;
+        setTimeout(() => {
+            showUnlockOverlay = false;
+        }, 2000);
+    }
+
+    onMount(() => {
+        if (browser) {
+            window.addEventListener('keydown', handleKeydown);
+        }
+    });
+
+    onDestroy(() => {
+        if (browser) {
+            window.removeEventListener('keydown', handleKeydown);
+        }
+    });
 
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
@@ -340,6 +384,7 @@
     extraClasses="modal-size-journal"
 >
     <!-- Dashboard Section -->
+    {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <DashboardNav {activePreset} on:select={(e) => activePreset = e.detail} />
 
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 min-h-[250px]">
@@ -418,6 +463,7 @@
             </div>
         {/if}
     </div>
+    {/if}
 
     <!-- Filter & Toolbar -->
     <div class="flex flex-wrap gap-4 my-4 items-end bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
@@ -567,6 +613,7 @@
     {/if}
 
     <!-- Deep Dive Section -->
+    {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <div class="mt-8 border-t border-[var(--border-color)] pt-6">
         <div class="flex items-center gap-2 mb-4">
             <span class="text-2xl">🦆</span>
@@ -639,6 +686,16 @@
             {/if}
         </div>
     </div>
+    {/if}
+
+    {#if showUnlockOverlay}
+    <div class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
+        <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center">
+            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">Deep Dive</div>
+            <div class="text-lg">freigeschaltet</div>
+        </div>
+    </div>
+    {/if}
 
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">
