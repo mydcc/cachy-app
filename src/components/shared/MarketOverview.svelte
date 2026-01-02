@@ -30,12 +30,12 @@
     // WS Data
     $: wsData = $marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']; // Try robust keys
     $: wsStatus = $wsStatusStore;
-
+    
     // Derived Real-time values (fallback to REST if WS missing)
     $: currentPrice = wsData?.lastPrice || tickerData?.lastPrice;
     $: fundingRate = wsData?.fundingRate;
     $: nextFundingTime = wsData?.nextFundingTime;
-
+    
     // Depth Data
     $: depthData = wsData?.depth;
 
@@ -91,7 +91,7 @@
     async function fetchRestData(isBackground = false) {
         if (!symbol || symbol.length < 3) return;
         if (!isBackground && !tickerData) restLoading = true;
-
+        
         try {
             const data = await apiService.fetchTicker24h(symbol, provider);
             tickerData = data;
@@ -184,9 +184,9 @@
                 {displaySymbol}
             </div>
         </div>
-
+        
         <!-- Manual Refresh (still useful for REST stats re-sync) -->
-        <div class="flex gap-2 mr-4">
+        <div class="flex gap-2 mr-4"> 
             <button
                 class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
                 title="Refresh Stats"
@@ -222,7 +222,7 @@
                 </span>
                 {/if}
             </div>
-
+            
             <!-- Depth Visualization (Proposal 2) -->
             {#if depthData}
                 <DepthBar bids={depthData.bids} asks={depthData.asks} />
@@ -250,15 +250,15 @@
             {#if fundingRate}
             <div class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs">
                  <div class="flex flex-col">
-                    <span class="text-[var(--text-secondary)]">Funding / Count</span>
-                    <span class="font-medium"
-                          class:text-[var(--success-color)]={fundingRate.lt(0)}
+                    <span class="text-[var(--text-secondary)]">Funding Rate</span>
+                    <span class="font-medium" 
+                          class:text-[var(--success-color)]={fundingRate.lt(0)} 
                           class:text-[var(--danger-color)]={fundingRate.gt(0)}>
                         {formatValue(fundingRate.times(100), 4)}%
                     </span>
                  </div>
                  <div class="flex flex-col text-right">
-                    <span class="text-[var(--text-secondary)]">Next Funding</span>
+                    <span class="text-[var(--text-secondary)]">Countdown</span>
                     <span class="font-mono text-[var(--text-primary)]">{countdownText}</span>
                  </div>
             </div>

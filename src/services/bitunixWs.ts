@@ -62,7 +62,7 @@ class BitunixWebSocketService {
     private scheduleReconnect() {
         if (this.isReconnecting) return;
         this.isReconnecting = true;
-
+        
         if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
         this.reconnectTimer = setTimeout(() => {
             this.connect();
@@ -95,7 +95,7 @@ class BitunixWebSocketService {
             // Bitunix docs say: request {op:ping}, response {op:ping, pong:..., ping:...}
             return;
         }
-
+        
         if (message.op === 'pong' || message.pong) {
             // Pong received
             return;
@@ -145,7 +145,7 @@ class BitunixWebSocketService {
     unsubscribe(symbol: string, channel: 'price' | 'depth_book5') {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
-
+        
         if (this.subscriptions.has(subKey)) {
             this.subscriptions.delete(subKey);
             if (this.ws && this.ws.readyState === WebSocket.OPEN) {

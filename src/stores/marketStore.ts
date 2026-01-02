@@ -23,7 +23,7 @@ function createMarketStore() {
         updatePrice: (symbol: string, data: { price: string, indexPrice: string, fundingRate: string, nextFundingTime: string }) => {
             update(store => {
                 const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
-
+                
                 // Bitunix timestamps often come as strings, ensure conversion if needed
                 let nft = 0;
                 if (data.nextFundingTime) {
