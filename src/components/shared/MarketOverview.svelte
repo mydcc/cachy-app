@@ -126,7 +126,7 @@
 
     onMount(() => {
         if (symbol && provider === 'bitunix') {
-            bitunixWs.init();
+            bitunixWs.connect();
         }
     });
 
@@ -182,6 +182,18 @@
     role={isFavoriteTile ? "button" : "region"}
     tabindex={isFavoriteTile ? 0 : -1}
 >
+    <!-- WS Status Indicator -->
+    {#if provider === 'bitunix'}
+    <div class="absolute top-2 right-2 flex gap-1 items-center z-10">
+         <div class="w-2 h-2 rounded-full transition-colors duration-300"
+              class:bg-green-500={wsStatus === 'connected'}
+              class:bg-yellow-500={wsStatus === 'connecting' || wsStatus === 'reconnecting'}
+              class:bg-red-500={wsStatus === 'disconnected' || wsStatus === 'error'}
+              title="Real-time Connection: {wsStatus}">
+         </div>
+    </div>
+    {/if}
+
     <div class="flex justify-between items-start">
         <div>
             <div

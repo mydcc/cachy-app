@@ -13,7 +13,6 @@
     import { uiStore } from '../stores/uiStore';
     import { settingsStore } from '../stores/settingsStore'; // Import settings store
     import { favoritesStore } from '../stores/favoritesStore'; // Import favorites store
-    import { wsStatusStore } from '../stores/marketStore'; // Import wsStatusStore
     import { modalManager } from '../services/modalManager';
     import { onMount } from 'svelte';
     import { _, locale } from '../locales/i18n'; // Import locale
@@ -35,7 +34,6 @@ import { trackCustomEvent } from '../services/trackingService';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
-    import ConnectionStatus from '../components/shared/ConnectionStatus.svelte';
 
     let fileInput: HTMLInputElement;
     let changelogContent = '';
@@ -249,8 +247,7 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
     {/if}
 
-    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative">
-        <ConnectionStatus />
+    <main class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in">
 
         <div class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4">
             <div class="flex justify-between items-center w-full md:w-auto">
