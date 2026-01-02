@@ -709,7 +709,7 @@
     {#if showUnlockOverlay}
     <div class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
         <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center">
-            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">Deep Dive</div>
+            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">🦆 Deep Dive</div>
             <div class="text-lg">{unlockOverlayMessage}</div>
         </div>
     </div>
