@@ -31,7 +31,7 @@
 
     function handleKeydown(event: KeyboardEvent) {
         if (!$settingsStore.isPro) return; // Only listen if Pro is active (optional constraint, but good for performance)
-        
+
         const key = event.key;
         // Only accept single character keys to avoid control keys filling buffer
         if (key.length === 1) {
