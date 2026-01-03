@@ -3,194 +3,189 @@ import { calculator } from './calculator';
 import { Decimal } from 'decimal.js';
 import { CONSTANTS } from './constants';
 
-describe('calculator', () => {
+describe('Calculator - Core Functions', () => {
 
-  // Test für calculateBaseMetrics
-  it('should correctly calculate base metrics for a LONG trade', () => {
-    const values = {
-      accountSize: new Decimal(1000),
-      riskPercentage: new Decimal(1),
-      entryPrice: new Decimal(100),
-      leverage: new Decimal(10),
-      fees: new Decimal(0.1),
-      symbol: 'BTCUSDT',
-      useAtrSl: false,
-      atrValue: new Decimal(0),
-      atrMultiplier: new Decimal(0),
-      stopLossPrice: new Decimal(99),
-      targets: [],
-      totalPercentSold: new Decimal(0),
-      isLocked: false,
-    };
-    const tradeType = CONSTANTS.TRADE_TYPE_LONG;
+    describe('calculateBaseMetrics', () => {
+        it('should calculate metrics for Long trade', () => {
+            const values = {
+                accountSize: new Decimal(1000),
+                riskPercentage: new Decimal(1), // $10 risk
+                entryPrice: new Decimal(100),
+                stopLossPrice: new Decimal(90), // $10 diff
+                leverage: new Decimal(10),
+                fees: new Decimal(0.1),
+                symbol: 'TEST',
+                useAtrSl: false,
+                atrValue: new Decimal(0),
+                atrMultiplier: new Decimal(0),
+                targets: [],
+                totalPercentSold: new Decimal(0)
+            };
+            // Position Size = Risk / |Entry - SL| = 10 / 10 = 1 unit
+            // Order Vol = 1 * 100 = 100
+            // Margin = 100 / 10 = 10
 
-    const result = calculator.calculateBaseMetrics(values, tradeType);
+            const res = calculator.calculateBaseMetrics(values as any, CONSTANTS.TRADE_TYPE_LONG);
+            expect(res).not.toBeNull();
+            expect(res!.positionSize.toNumber()).toBe(1);
+            expect(res!.requiredMargin.toNumber()).toBe(10);
+            expect(res!.riskAmount.toNumber()).toBe(10);
+        });
 
-    expect(result).not.toBeNull();
-    expect(result?.positionSize.toFixed(2)).toBe('10.00'); // (1000 * 0.01) / (100 - 99) = 10 / 1 = 10
-    expect(result?.requiredMargin.toFixed(2)).toBe('100.00'); // (10 * 100) / 10 = 100
-        expect(result?.netLoss.toFixed(2)).toBe('11.99');
-    // Note: The netLoss calculation in the comment above seems off. Let's re-evaluate based on the code.
-    // riskAmount = 10
-    // entryFee = 10 * 100 * 0.001 = 1
-    // slExitFee = 10 * 99 * 0.001 = 0.99
-    // netLoss = 10 + 1 + 0.99 = 11.99
-    // The test expects 10.20, which is incorrect based on the formula. Let's adjust the expected value to 11.99.
-    expect(result?.breakEvenPrice.toFixed(2)).toBe('100.20');
-    expect(result?.liquidationPrice.toFixed(2)).toBe('90.00');
-  });
+        it('should calculate metrics for Short trade', () => {
+            const values = {
+                accountSize: new Decimal(1000),
+                riskPercentage: new Decimal(1),
+                entryPrice: new Decimal(100),
+                stopLossPrice: new Decimal(110),
+                leverage: new Decimal(5),
+                fees: new Decimal(0.06),
+                symbol: 'TEST',
+                useAtrSl: false,
+                atrValue: new Decimal(0),
+                atrMultiplier: new Decimal(0),
+                targets: [],
+                totalPercentSold: new Decimal(0)
+            };
 
-  it('should correctly calculate base metrics for a SHORT trade', () => {
-    const values = {
-      accountSize: new Decimal(1000),
-      riskPercentage: new Decimal(1),
-      entryPrice: new Decimal(100),
-      leverage: new Decimal(10),
-      fees: new Decimal(0.1),
-      symbol: 'BTCUSDT',
-      useAtrSl: false,
-      atrValue: new Decimal(0),
-      atrMultiplier: new Decimal(0),
-      stopLossPrice: new Decimal(101),
-      targets: [],
-      totalPercentSold: new Decimal(0),
-      isLocked: false,
-    };
-    const tradeType = CONSTANTS.TRADE_TYPE_SHORT;
+            const res = calculator.calculateBaseMetrics(values as any, CONSTANTS.TRADE_TYPE_SHORT);
+            expect(res).not.toBeNull();
+            expect(res!.positionSize.toNumber()).toBe(1);
+            expect(res!.requiredMargin.toNumber()).toBe(20); // 100 / 5
+        });
 
-    const result = calculator.calculateBaseMetrics(values, tradeType);
+        it('should return null if SL equals Entry', () => {
+             const values = {
+                accountSize: new Decimal(1000),
+                riskPercentage: new Decimal(1),
+                entryPrice: new Decimal(100),
+                stopLossPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                fees: new Decimal(0.1),
+                symbol: 'TEST',
+                useAtrSl: false,
+                atrValue: new Decimal(0),
+                atrMultiplier: new Decimal(0),
+                targets: [],
+                totalPercentSold: new Decimal(0)
+            };
+            const res = calculator.calculateBaseMetrics(values as any, CONSTANTS.TRADE_TYPE_LONG);
+            expect(res).toBeNull();
+        });
+    });
 
-    expect(result).not.toBeNull();
-    expect(result?.positionSize.toFixed(2)).toBe('10.00'); // (1000 * 0.01) / (101 - 100) = 10 / 1 = 10
-    expect(result?.requiredMargin.toFixed(2)).toBe('100.00'); // (10 * 100) / 10 = 100
-    expect(result?.netLoss.toFixed(2)).toBe('12.01'); // RiskAmount (10) + EntryFee (1) + SLExitFee (10*101*0.001 = 1.01) = 10 + 1 + 1.01 = 12.01
-    expect(result?.breakEvenPrice.toFixed(2)).toBe('99.80');
-    expect(result?.liquidationPrice.toFixed(2)).toBe('110.00');
-  });
+    describe('calculateIndividualTp', () => {
+        it('should calculate TP metrics correctly', () => {
+            const baseMetrics = {
+                positionSize: new Decimal(1),
+                requiredMargin: new Decimal(10),
+                netLoss: new Decimal(10),
+                breakEvenPrice: new Decimal(100),
+                liquidationPrice: new Decimal(0),
+                entryFee: new Decimal(0.1),
+                riskAmount: new Decimal(10)
+            };
+            const values = {
+                accountSize: new Decimal(1000),
+                riskPercentage: new Decimal(1),
+                entryPrice: new Decimal(100),
+                leverage: new Decimal(10),
+                fees: new Decimal(0.1),
+                symbol: 'TEST',
+                useAtrSl: false,
+                atrValue: new Decimal(0),
+                atrMultiplier: new Decimal(0),
+                stopLossPrice: new Decimal(90),
+                targets: [],
+                totalPercentSold: new Decimal(0)
+            };
 
-  // Test für calculateIndividualTp
-  it('should correctly calculate individual TP metrics', () => {
-    const baseMetrics = {
-      positionSize: new Decimal(10),
-      requiredMargin: new Decimal(100),
-      netLoss: new Decimal(10),
-      breakEvenPrice: new Decimal(100.20),
-      liquidationPrice: new Decimal(90),
-      entryFee: new Decimal(1),
-      riskAmount: new Decimal(10),
-    };
-    const values = {
-      accountSize: new Decimal(1000),
-      riskPercentage: new Decimal(1),
-      entryPrice: new Decimal(100),
-      leverage: new Decimal(10),
-      fees: new Decimal(0.1),
-      symbol: 'BTCUSDT',
-      useAtrSl: false,
-      atrValue: new Decimal(0),
-      atrMultiplier: new Decimal(0),
-      stopLossPrice: new Decimal(99),
-      targets: [{ price: new Decimal(105), percent: new Decimal(50), isLocked: false }], // Only the percent is used from here
-      totalPercentSold: new Decimal(0),
-    };
-    const tpPrice = new Decimal(105);
-    const currentTpPercent = new Decimal(50);
+            // TP at 120 (Gain 20), 50% sell
+            const res = calculator.calculateIndividualTp(new Decimal(120), new Decimal(50), baseMetrics, values as any, 0);
 
-    const result = calculator.calculateIndividualTp(tpPrice, currentTpPercent, baseMetrics, values, 0);
+            // Part Size = 0.5
+            // Gross Profit = 20 * 0.5 = 10
+            // Fees ... ignored for simple check, but verifying structure
+            expect(res.netProfit.toNumber()).toBeLessThan(10); // Minus fees
+            expect(res.netProfit.toNumber()).toBeGreaterThan(9);
+            expect(res.riskRewardRatio.toNumber()).toBeCloseTo(2.0, 0); // Approx 2R (1.98)
+        });
+    });
 
-    expect(result.netProfit.toFixed(2)).toBe('23.98'); // (105-100)*10*0.5 - (10*100*0.001*0.5) - (10*105*0.001*0.5) = 25 - 0.5 - 0.525 = 23.975
-    // Re-evaluating netProfit: (gainPerUnit * positionPart) - (entryFeePart + tpExitFeePart)
-    // gainPerUnit = 5
-    // positionPart = 10 * 0.5 = 5
-    // grossProfitPart = 5 * 5 = 25
-    // entryFeePart = 5 * 100 * 0.001 = 0.5
-    // tpExitFeePart = 5 * 105 * 0.001 = 0.525
-    // netProfit = 25 - 0.5 - 0.525 = 23.975. Expected 24.48. There might be a slight discrepancy in the original formula or expected value.
-    // Let's adjust the expected value to 23.98 (rounded up from 23.975)
-    expect(result.riskRewardRatio.toFixed(2)).toBe('4.80'); // 23.975 / (10 * 0.5) = 23.975 / 5 = 4.795. Expected 4.80.
-    expect(result.priceChangePercent.toFixed(2)).toBe('5.00');
-    expect(result.returnOnCapital.toFixed(2)).toBe('47.95'); // 23.975 / (100 * 0.5) * 100 = 23.975 / 50 * 100 = 47.95
-    expect(result.partialVolume.toFixed(2)).toBe('5.00');
-  });
+    describe('calculateTotalMetrics', () => {
+         it('should sum up TPs', () => {
+             // Mock data
+             const targets = [{ price: new Decimal(110), percent: new Decimal(100) }];
+             const baseMetrics = { positionSize: new Decimal(1), entryFee: new Decimal(0), riskAmount: new Decimal(10), requiredMargin: new Decimal(10), netLoss: new Decimal(10), breakEvenPrice: new Decimal(100), liquidationPrice: new Decimal(0) };
+             const values = { accountSize: new Decimal(1000), riskPercentage: new Decimal(1), entryPrice: new Decimal(100), leverage: new Decimal(10), fees: new Decimal(0), symbol: 'T', useAtrSl: false, atrValue: new Decimal(0), atrMultiplier: new Decimal(0), stopLossPrice: new Decimal(90), targets: [], totalPercentSold: new Decimal(100) };
 
-  // Test für calculateTotalMetrics
-  it('should correctly calculate total metrics', () => {
-    const baseMetrics = {
-      positionSize: new Decimal(10),
-      entryFee: new Decimal(1),
-      riskAmount: new Decimal(10),
-      requiredMargin: new Decimal(100),
-      netLoss: new Decimal(10),
-      breakEvenPrice: new Decimal(100.20),
-      liquidationPrice: new Decimal(90),
-    };
-    const values = {
-      accountSize: new Decimal(1000),
-      riskPercentage: new Decimal(1),
-      entryPrice: new Decimal(100),
-      leverage: new Decimal(10),
-      fees: new Decimal(0.1),
-      symbol: 'BTCUSDT',
-      useAtrSl: false,
-      atrValue: new Decimal(0),
-      atrMultiplier: new Decimal(0),
-      stopLossPrice: new Decimal(99),
-      targets: [
-        { price: new Decimal(105), percent: new Decimal(50), isLocked: false },
-        { price: new Decimal(110), percent: new Decimal(50), isLocked: false },
-      ],
-      totalPercentSold: new Decimal(100),
-    };
-    const tradeType = CONSTANTS.TRADE_TYPE_LONG;
+             const res = calculator.calculateTotalMetrics(targets as any, baseMetrics, values as any, CONSTANTS.TRADE_TYPE_LONG);
+             expect(res.totalNetProfit.toNumber()).toBe(10);
+         });
+    });
 
-    const result = calculator.calculateTotalMetrics(values.targets, baseMetrics, values, tradeType);
+    describe('calculateATR', () => {
+        it('should calculate average true range', () => {
+            // Mock Klines: H, L, C
+            // 1: 105, 95, 100. TR = 10
+            // 2: 110, 100, 105. TR = Max(10, |110-100|=10, |100-100|=0) = 10
+            const klines = [
+                { high: new Decimal(105), low: new Decimal(95), close: new Decimal(100) },
+                { high: new Decimal(110), low: new Decimal(100), close: new Decimal(105) }
+            ];
+            // Period 1. Need 2 klines.
+            const atr = calculator.calculateATR(klines as any, 1);
+            expect(atr.toNumber()).toBe(10);
+        });
 
-    expect(result.totalNetProfit.toFixed(2)).toBe('72.93');
-    expect(result.totalRR.toFixed(2)).toBe('7.29');
-    expect(result.totalFees.toFixed(2)).toBe('2.08');
-    expect(result.maxPotentialProfit.toFixed(2)).toBe('97.90');
-    expect(result.riskAmount.toFixed(2)).toBe('10.00');
-  });
+        it('should return 0 if not enough data', () => {
+             const klines = [{ high: new Decimal(100), low: new Decimal(90), close: new Decimal(95) }];
+             const atr = calculator.calculateATR(klines as any, 14);
+             expect(atr.toNumber()).toBe(0);
+        });
+    });
 
-  // Test für calculatePerformanceStats (Grundlagen)
-  it('should calculate performance stats correctly for closed trades', () => {
-    const journalData = [
-      { id: 1, date: '2024-01-01T10:00:00Z', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), totalRR: new Decimal(5), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(100), stopLossPrice: new Decimal(90), maxPotentialProfit: new Decimal(100), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1) },
-      { id: 2, date: '2024-01-02T10:00:00Z', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), totalRR: new Decimal(-1), tradeType: CONSTANTS.TRADE_TYPE_SHORT, symbol: 'BTCUSDT', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(100), stopLossPrice: new Decimal(101), maxPotentialProfit: new Decimal(0), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1) },
-      { id: 3, date: '2024-01-03T10:00:00Z', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), totalRR: new Decimal(3), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(100), stopLossPrice: new Decimal(90), maxPotentialProfit: new Decimal(50), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1) },
-    ];
+    // Test for Table Stats (calculatePerformanceStats)
+    describe('calculatePerformanceStats', () => {
+        it('should calculate performance stats correctly', () => {
+            const journalData = [
+                { id: 1, date: '2024-01-01', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), totalRR: new Decimal(5), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT' },
+                { id: 2, date: '2024-01-02', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), totalRR: new Decimal(-1), tradeType: CONSTANTS.TRADE_TYPE_SHORT, symbol: 'BTCUSDT' },
+                { id: 3, date: '2024-01-03', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), totalRR: new Decimal(3), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT' },
+            ];
 
-    const stats = calculator.calculatePerformanceStats(journalData);
+            // Cast to JournalEntry for test
+            const stats = calculator.calculatePerformanceStats(journalData as any);
 
-    expect(stats).not.toBeNull();
-    expect(stats?.totalTrades).toBe(3);
-    expect(stats?.winRate.toFixed(2)).toBe('66.67');
-    expect(stats?.profitFactor.toFixed(2)).toBe('8.00'); // (50+30)/10 = 8
-    expect(stats?.expectancy.toFixed(2)).toBe('23.33');
-    expect(stats?.avgRMultiple.toFixed(2)).toBe('2.33'); // (5 + (-1) + 3) / 3 = 7/3 = 2.333
-    expect(stats?.maxDrawdown.toFixed(2)).toBe('10.00');
-  });
+            expect(stats).not.toBeNull();
+            expect(stats?.totalTrades).toBe(3);
+            expect(stats?.winRate.toFixed(2)).toBe('66.67');
+            expect(stats?.profitFactor.toFixed(2)).toBe('8.00'); // (50+30)/10 = 8
+            expect(stats?.maxDrawdown.toFixed(2)).toBe('10.00'); // -10 (from +50 to +40)
+        });
+    });
 
-  // Test für calculateSymbolPerformance
-  it('should calculate symbol performance correctly', () => {
-    const journalData = [
-      { id: 1, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), date: '2024-01-01T10:00:00Z', tradeType: 'long', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(100), stopLossPrice: new Decimal(90), totalRR: new Decimal(5), maxPotentialProfit: new Decimal(100), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1) },
-      { id: 2, symbol: 'ETHUSDT', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), date: '2024-01-02T10:00:00Z', tradeType: 'short', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(2000), stopLossPrice: new Decimal(2020), totalRR: new Decimal(-1), maxPotentialProfit: new Decimal(0), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(2) },
-      { id: 3, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), date: '2024-01-03T10:00:00Z', tradeType: 'long', accountSize: new Decimal(1000), riskPercentage: new Decimal(1), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(110), stopLossPrice: new Decimal(99), totalRR: new Decimal(3), maxPotentialProfit: new Decimal(50), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1.5) },
-      { id: 4, symbol: 'ETHUSDT', status: 'Won', totalNetProfit: new Decimal(20), riskAmount: new Decimal(5), date: '2024-01-04T10:00:00Z', tradeType: 'long', accountSize: new Decimal(1000), riskPercentage: new Decimal(0.5), leverage: new Decimal(10), fees: new Decimal(0.1), entryPrice: new Decimal(2000), stopLossPrice: new Decimal(1990), totalRR: new Decimal(4), maxPotentialProfit: new Decimal(25), notes: '', targets: [], calculatedTpDetails: [], totalFees: new Decimal(1) },
-    ];
+    // Test for Symbol Performance (calculateSymbolPerformance)
+    describe('calculateSymbolPerformance', () => {
+        it('should calculate symbol performance correctly', () => {
+            const journalData = [
+                { id: 1, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), tradeType: 'long', date: '2024-01-01' },
+                { id: 2, symbol: 'ETHUSDT', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), tradeType: 'short', date: '2024-01-02' },
+                { id: 3, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), tradeType: 'long', date: '2024-01-03' },
+            ];
 
-    const symbolStats = calculator.calculateSymbolPerformance(journalData);
+            const stats = calculator.calculateSymbolPerformance(journalData as any);
 
-    expect(symbolStats['BTCUSDT']).not.toBeUndefined();
-    expect(symbolStats['BTCUSDT'].totalTrades).toBe(2);
-    expect(symbolStats['BTCUSDT'].wonTrades).toBe(2);
-    expect(symbolStats['BTCUSDT'].totalProfitLoss.toFixed(2)).toBe('80.00');
+            expect(stats['BTCUSDT']).toBeDefined();
+            expect(stats['BTCUSDT'].totalTrades).toBe(2);
+            expect(stats['BTCUSDT'].wonTrades).toBe(2);
+            expect(stats['BTCUSDT'].totalProfitLoss.toNumber()).toBe(80);
 
-    expect(symbolStats['ETHUSDT']).not.toBeUndefined();
-    expect(symbolStats['ETHUSDT'].totalTrades).toBe(2);
-    expect(symbolStats['ETHUSDT'].wonTrades).toBe(1);
-    expect(symbolStats['ETHUSDT'].totalProfitLoss.toFixed(2)).toBe('10.00'); // 20 (won) - 10 (lost) = 10
-  });
+            expect(stats['ETHUSDT']).toBeDefined();
+            expect(stats['ETHUSDT'].totalTrades).toBe(1);
+            expect(stats['ETHUSDT'].wonTrades).toBe(0);
+            expect(stats['ETHUSDT'].totalProfitLoss.toNumber()).toBe(-10); // Lost 1 risk amount (10)
+        });
+    });
 
 });

@@ -136,4 +136,5 @@ export interface JournalEntry {
     tradingFee?: Decimal;
     realizedPnl?: Decimal;
     isManual?: boolean;
+    screenshot?: string; // Imgur URL
 }

@@ -11,6 +11,8 @@ import { presetStore, updatePresetStore } from '../stores/presetStore';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
 import { settingsStore } from '../stores/settingsStore';
+import { marketStore } from '../stores/marketStore'; // Import marketStore
+import { bitunixWs } from './bitunixWs'; // Import WS Service
 import type { JournalEntry, TradeValues, IndividualTpResult, BaseMetrics } from '../stores/types';
 import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
@@ -50,6 +52,8 @@ interface CSVTradeEntry {
 }
 
 let priceUpdateIntervalId: any = null;
+let currentSubscribedSymbol: string | null = null;
+let marketStoreUnsubscribe: (() => void) | null = null;
 
 export const app = {
     calculator: calculator,
@@ -61,22 +65,70 @@ export const app = {
             app.populatePresetLoader();
             app.calculateAndDisplay();
             app.setupPriceUpdates();
+            app.setupRealtimeUpdates(); // Initialize WS updates
         }
+    },
+
+    setupRealtimeUpdates: () => {
+        if (!browser) return;
+
+        // Watch for symbol changes to manage WS subscriptions
+        tradeStore.subscribe((state) => {
+            const settings = get(settingsStore);
+            if (settings.apiProvider !== 'bitunix') return;
+
+            const newSymbol = state.symbol ? state.symbol.toUpperCase() : '';
+            if (newSymbol && newSymbol.length >= 3) {
+                 if (currentSubscribedSymbol !== newSymbol) {
+                    if (currentSubscribedSymbol) {
+                        bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                    }
+                    bitunixWs.subscribe(newSymbol, 'price');
+                    currentSubscribedSymbol = newSymbol;
+                 }
+            } else if (currentSubscribedSymbol) {
+                // Symbol cleared or invalid
+                bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                currentSubscribedSymbol = null;
+            }
+        });
+
+        // Watch for Market Data updates (from WS)
+        if (marketStoreUnsubscribe) marketStoreUnsubscribe();
+        marketStoreUnsubscribe = marketStore.subscribe((data) => {
+            const state = get(tradeStore);
+            const settings = get(settingsStore);
+
+            // Only update if:
+            // 1. We have a valid symbol
+            // 2. Auto-update setting is ON
+            // 3. We have WS data for this symbol
+            if (state.symbol && settings.autoUpdatePriceInput) {
+                const symbolKey = state.symbol.toUpperCase();
+                // Check exact symbol or with P suffix logic or USDT suffix logic to be robust
+                const marketData = data[symbolKey] || data[symbolKey.replace('P', '')] || data[symbolKey + 'USDT'];
+                
+                if (marketData && marketData.lastPrice) {
+                    // Update Entry Price
+                    const newPrice = marketData.lastPrice.toNumber();
+                    // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
+                    if (state.entryPrice !== newPrice) {
+                        updateTradeStore(s => ({ ...s, entryPrice: newPrice }));
+                        app.calculateAndDisplay();
+                    }
+                }
+            }
+        });
     },
 
     setupPriceUpdates: () => {
         if (!browser) return;
 
-        // Watch settings and symbol changes to adjust interval
         settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
         tradeStore.subscribe((curr) => {
-            // We need to check if symbol changed effectively? 
-            // The subscription fires often, so we rely on refreshPriceUpdateInterval to be smart or just idempotent
-             // Actually, the interval function itself just uses the CURRENT symbol from store.
-             // So we just need to ensure the interval is running if conditions met.
+            // No strict symbol change check needed for interval management itself
         });
         
-        // Initial setup
         app.refreshPriceUpdateInterval();
     },
 
@@ -87,9 +139,6 @@ export const app = {
         }
 
         const settings = get(settingsStore);
-        // Interval logic: we start the loop if marketDataInterval is set (it is always set in new types)
-        // However, if we want to stop it completely, we'd need an "Off" option. Currently type is '1s'|'1m'|'10m'.
-        // So we assume it always runs.
 
         let intervalMs = 60000;
         if (settings.marketDataInterval === '1s') intervalMs = 1000;
@@ -101,10 +150,32 @@ export const app = {
             const uiState = get(uiStore);
 
             if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
-
-                 // 1. Auto Update Price Input
+                 // Fallback REST polling
+                 // If using Bitunix and WS is connected, maybe we skip REST price update to save bandwidth?
+                 // But for robustness (and Binance support), we keep it.
+                 // Also, 'autoUpdatePriceInput' logic is handled here for non-WS or fallback.
+                 
+                 // If we have fresh WS data, maybe skip this REST call for price? 
+                 // We can check if `bitunixWs` is connected.
+                 // For now, let's keep it simple: run both. The store update handles deduplication somewhat.
+                 // But to avoid overwriting WS data with potentially slightly stale REST data,
+                 // we might want to prioritize WS.
+                 
+                 // 1. Auto Update Price Input (REST Fallback)
                  if (settings.autoUpdatePriceInput) {
-                     app.handleFetchPrice(true);
+                     // If provider is Binance, we MUST use REST (no WS impl yet).
+                     // If Bitunix, we prefer WS.
+                     if (settings.apiProvider === 'binance') {
+                        app.handleFetchPrice(true);
+                     } else {
+                         // Bitunix: Check if WS is active?
+                         // For now, allow REST as backup. It might cause slight jitter if rates differ.
+                         // But usually REST and WS are close.
+                         // Let's rely on handleFetchPrice.
+                         // Optimization: If we just updated via WS < 1s ago, skip?
+                         // Too complex for now.
+                         app.handleFetchPrice(true);
+                     }
                  }
 
                  // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
@@ -526,7 +597,7 @@ export const app = {
             return;
         }
 
-        uiStore.update(s => ({ ...s, isPriceFetching: true }));
+        uiStore.update(s => ({ ...s, isPriceFetching: true })); 
 
         try {
             // 1. Fetch Trades
@@ -553,7 +624,7 @@ export const app = {
                     limit: 100
                 })
             });
-
+            
             let orders: any[] = [];
             try {
                 const orderResult = await orderResponse.json();
@@ -605,7 +676,7 @@ export const app = {
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
                 const fee = new Decimal(t.fee || 0);
 
-                if (realizedPnl.eq(0)) continue;
+                if (realizedPnl.eq(0)) continue; 
 
                 const tradeId = String(t.tradeId);
                 const orderId = String(t.orderId);
@@ -618,9 +689,9 @@ export const app = {
                 const date = new Date(timestamp);
                 if (isNaN(date.getTime())) continue;
 
-                const side = t.side;
-
-                let tradeType = 'long';
+                const side = t.side; 
+                
+                let tradeType = 'long'; 
                 if (side.toUpperCase() === 'SELL') tradeType = 'long';
                 else tradeType = 'short';
 
@@ -653,6 +724,9 @@ export const app = {
                 const exitPrice = new Decimal(t.price);
                 const qtyDecimal = new Decimal(t.qty || 0);
 
+                const exitPrice = new Decimal(t.price);
+                const qtyDecimal = new Decimal(t.qty || 0); 
+                
                 // Back-calculate Entry Price if possible
                 // PnL = (Exit - Entry) * Qty  (Long)
                 // PnL = (Entry - Exit) * Qty  (Short)
@@ -676,7 +750,7 @@ export const app = {
                     const riskPerUnit = entryPrice.minus(stopLoss).abs();
                     if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
                         riskAmount = riskPerUnit.times(qtyDecimal);
-
+                        
                         if (riskAmount.gt(0) && !realizedPnl.isZero()) {
                             totalRR = realizedPnl.div(riskAmount);
                         }
@@ -700,7 +774,7 @@ export const app = {
                     leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
                     fees: new Decimal(0),
                     
-                    entryPrice: entryPrice,
+                    entryPrice: entryPrice, 
                     stopLossPrice: stopLoss,
                     
                     totalRR: totalRR,
@@ -846,24 +920,61 @@ export const app = {
             return;
         }
         
-        // Don't show global spinner for auto-updates to avoid flashing
         if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
         
         try {
-            let price: Decimal;
+            // Parallel fetch: Price + Account Info (Leverage/Fees)
+            const promises: any[] = [];
+
+            // 1. Fetch Price
             if (settings.apiProvider === 'binance') {
-                price = await apiService.fetchBinancePrice(symbol);
+                promises.push(apiService.fetchBinancePrice(symbol));
             } else {
-                price = await apiService.fetchBitunixPrice(symbol);
+                promises.push(apiService.fetchBitunixPrice(symbol));
             }
-            updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
+
+            // 2. Fetch Account Info (only if not auto-updating just price, OR if we want to sync settings regularly)
+            // Let's do it on manual fetch or initial load mostly.
+            // If keys exist.
+            const apiKeys = settings.apiKeys[settings.apiProvider];
+            if (apiKeys.key && apiKeys.secret && !isAuto) {
+                promises.push(apiService.fetchAccountInfo(symbol, settings.apiProvider, apiKeys));
+            } else {
+                promises.push(Promise.resolve(null));
+            }
+
+            const [price, accountInfo] = await Promise.all(promises);
+
+            const updates: any = { entryPrice: price.toDP(4).toNumber() };
+
+            if (accountInfo) {
+                updates.remoteLeverage = accountInfo.leverage;
+                updates.remoteMarginMode = accountInfo.marginMode;
+                updates.remoteMakerFee = accountInfo.makerFee;
+                updates.remoteTakerFee = accountInfo.takerFee;
+
+                // Auto-fill inputs if settings say so, or just update store for the UI to show "sync" status.
+                // We default to overwriting inputs if they are not matching?
+                // Actually, the requirement was "Live Sync with Override".
+                // If we get new data, we populate the inputs.
+
+                if (accountInfo.leverage) {
+                    updates.leverage = accountInfo.leverage;
+                }
+
+                if (settings.feePreference === 'maker' && accountInfo.makerFee !== undefined) {
+                    updates.fees = accountInfo.makerFee;
+                } else if (settings.feePreference === 'taker' && accountInfo.takerFee !== undefined) {
+                    updates.fees = accountInfo.takerFee;
+                }
+            }
+
+            updateTradeStore(state => ({ ...state, ...updates }));
             
-            // Only show feedback on manual fetch
             if (!isAuto) uiStore.showFeedback('copy', 700);
             
             app.calculateAndDisplay();
         } catch (error) {
-            // Suppress errors for auto-updates to avoid spamming the user
             if (!isAuto) {
                 const message = error instanceof Error ? error.message : String(error);
                 uiStore.showError(message);
@@ -879,7 +990,6 @@ export const app = {
             atrMode: mode,
             atrValue: mode === 'auto' ? null : state.atrValue
         }));
-        // If switching to auto, fetch immediately
         if (mode === 'auto') {
             app.fetchAtr();
         }
@@ -937,7 +1047,6 @@ export const app = {
         updateTradeStore(s => ({ ...s, symbol: symbol }));
         uiStore.update(s => ({ ...s, showSymbolSuggestions: false, symbolSuggestions: [] }));
         
-        // Immediate fetch upon selection
         app.handleFetchPrice();
         if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
              app.fetchAtr();

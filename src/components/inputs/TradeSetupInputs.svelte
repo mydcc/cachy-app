@@ -7,6 +7,7 @@
     import { trackCustomEvent } from '../../services/trackingService';
     import { onboardingService } from '../../services/onboardingService';
     import { updateTradeStore } from '../../stores/tradeStore';
+    import { settingsStore } from '../../stores/settingsStore';
 
     const dispatch = createEventDispatcher();
 
@@ -94,6 +95,10 @@
         const value = target.value;
         updateTradeStore(s => ({ ...s, stopLossPrice: value === '' ? null : parseFloat(value) }));
     }
+
+    function toggleAutoUpdatePrice() {
+        settingsStore.update(s => ({ ...s, autoUpdatePriceInput: !s.autoUpdatePriceInput }));
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -136,8 +141,17 @@
                 </div>
             {/if}
         </div>
-        <div class="flex-grow">
+        <div class="flex-grow relative">
             <input id="entry-price-input" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(entryPrice)} on:input={handleEntryPriceInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.entryPricePlaceholder')}" on:input={onboardingService.trackFirstInput}>
+
+            <!-- Auto Update Price Toggle -->
+            <button
+                class="absolute top-2 right-2 rounded-full transition-colors duration-300"
+                style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput ? 'var(--success-color)' : 'var(--danger-color)'}"
+                title={$settingsStore.autoUpdatePriceInput ? 'Auto-Update On' : 'Auto-Update Off'}
+                on:click={toggleAutoUpdatePrice}
+                aria-label="Toggle Auto Update Price"
+            ></button>
         </div>
     </div>
 
@@ -214,7 +228,7 @@
                 {@const result = atrFormulaDisplay.substring(lastEq + 1)}
                 <div class="text-center text-xs mt-2" style="color: var(--text-primary);">
                     <span>{formula}</span>
-                    <span style={isAtrSlInvalid ? 'color: var(--danger-color)' : 'color: var(--accent-color)'}>{result}</span>
+                    <span style="color: var(--danger-color);">{result}</span>
                 </div>
             {/if}
         {/if}
