@@ -1,307 +1,204 @@
 <script lang="ts">
-  import ModalFrame from '../shared/ModalFrame.svelte';
-  import { _ } from 'svelte-i18n';
-  import { uiStore } from '../../stores/uiStore';
-  import { settingsStore } from '../../stores/settingsStore';
-  import { themes, themeIcons, icons } from '../../lib/constants';
-  import LanguageSwitcher from '../shared/LanguageSwitcher.svelte';
-  import { createBackup, restoreFromBackup } from '../../services/backupService';
-  import { modalManager } from '../../services/modalManager';
-  import { trackCustomEvent } from '../../services/trackingService';
+    import ModalFrame from '../shared/ModalFrame.svelte';
+    import { settingsStore, type ApiKeys } from '../../stores/settingsStore';
+    import { uiStore } from '../../stores/uiStore';
+    import { _ } from '../../locales/i18n';
+    import { trackCustomEvent } from '../../services/trackingService';
 
-  let fileInput: HTMLInputElement;
-  let activeTab: 'general' | 'api' | 'behavior' | 'system' = 'general';
+    // Local state for the form inputs
+    let apiProvider: 'bitunix' | 'binance';
+    let marketDataInterval: '1s' | '1m' | '10m';
+    let autoUpdatePriceInput: boolean;
+    let autoFetchBalance: boolean;
+    let showSidebars: boolean;
+    let feePreference: 'maker' | 'taker';
 
-  function handleClose() {
-    uiStore.toggleSettingsModal(false);
-  }
+    // Separate API keys per provider
+    let bitunixKeys: ApiKeys = { key: '', secret: '' };
+    let binanceKeys: ApiKeys = { key: '', secret: '' };
 
-  function handleBackupClick() {
-    createBackup();
-    trackCustomEvent('Backup', 'Click', 'CreateBackup_SettingsModal');
-  }
+    // Track active tab
+    let activeTab: 'general' | 'api' | 'behavior' = 'general';
 
-  function handleRestoreClick() {
-    fileInput.click();
-  }
+    // Subscribe to store to initialize local state
+    // We use a reactive statement that runs when the modal opens to sync state
+    $: if ($uiStore.showSettingsModal) {
+        apiProvider = $settingsStore.apiProvider;
+        marketDataInterval = $settingsStore.marketDataInterval;
+        autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
+        autoFetchBalance = $settingsStore.autoFetchBalance;
+        showSidebars = $settingsStore.showSidebars;
+        feePreference = $settingsStore.feePreference;
 
-  function handleFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
+        // Deep copy keys to avoid binding issues
+        bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
+        binanceKeys = { ...$settingsStore.apiKeys.binance };
+    }
 
-    const reader = new FileReader();
-    reader.onload = (e) => {
-        const content = e.target?.result as string;
-
-        modalManager.show(
-            $_('app.restoreConfirmTitle'),
-            $_('app.restoreConfirmMessage'),
-            'confirm'
-        ).then((confirmed) => {
-            if (confirmed) {
-                const result = restoreFromBackup(content);
-                if (result.success) {
-                    uiStore.showFeedback('save');
-                    setTimeout(() => {
-                        window.location.reload();
-                    }, 1000);
-                } else {
-                    uiStore.showError(result.message);
-                }
+    function saveSettings() {
+        settingsStore.update(s => ({
+            ...s,
+            apiProvider,
+            marketDataInterval,
+            autoUpdatePriceInput,
+            autoFetchBalance,
+            showSidebars,
+            feePreference,
+            apiKeys: {
+                bitunix: bitunixKeys,
+                binance: binanceKeys
             }
-            input.value = '';
-        });
-    };
-    reader.onerror = () => {
-        uiStore.showError('app.fileReadError');
-    };
-    reader.readAsText(file);
+        }));
 
-    trackCustomEvent('Backup', 'Click', 'RestoreBackup_SettingsModal');
-  }
+        trackCustomEvent('Settings', 'Save', apiProvider);
+        uiStore.toggleSettingsModal(false);
+        uiStore.showFeedback('save'); // Assuming generic 'save' feedback exists
+    }
 
-  function setActiveTab(tab: 'general' | 'api' | 'behavior' | 'system') {
-      activeTab = tab;
-  }
-
-  $: currentThemeIcon = themeIcons[$uiStore.currentTheme as keyof typeof themeIcons];
+    function close() {
+        uiStore.toggleSettingsModal(false);
+    }
 </script>
 
-<input type="file" class="hidden" bind:this={fileInput} on:change={handleFileSelected} accept=".json,application/json" />
-
 <ModalFrame
-  isOpen={$uiStore.showSettingsModal}
-  title={$_('settings.title')}
-  on:close={handleClose}
-  extraClasses="modal-size-sm"
+    isOpen={$uiStore.showSettingsModal}
+    title={$_('settings.title') || 'Settings'}
+    on:close={close}
+    extraClasses="max-w-md w-full"
 >
-  <!-- Tab Navigation -->
-  <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto">
-      <button
-          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap {activeTab === 'general' ? 'border-blue-500 text-blue-500' : 'border-transparent text-text-secondary hover:text-text-primary'}"
-          on:click={() => setActiveTab('general')}
-      >
-          {$_('settings.tabs.general') || 'General'}
-      </button>
-      <button
-          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap {activeTab === 'api' ? 'border-blue-500 text-blue-500' : 'border-transparent text-text-secondary hover:text-text-primary'}"
-          on:click={() => setActiveTab('api')}
-      >
-          {$_('settings.tabs.api') || 'API'}
-      </button>
-      <button
-          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap {activeTab === 'behavior' ? 'border-blue-500 text-blue-500' : 'border-transparent text-text-secondary hover:text-text-primary'}"
-          on:click={() => setActiveTab('behavior')}
-      >
-          {$_('settings.tabs.behavior') || 'Behavior'}
-      </button>
-      <button
-          class="px-4 py-2 text-sm font-medium transition-colors border-b-2 whitespace-nowrap {activeTab === 'system' ? 'border-blue-500 text-blue-500' : 'border-transparent text-text-secondary hover:text-text-primary'}"
-          on:click={() => setActiveTab('system')}
-      >
-          {$_('settings.tabs.system') || 'System'}
-      </button>
-  </div>
+    <!-- Tabs Header -->
+    <div class="flex border-b border-[var(--border-color)] mb-4">
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === 'general' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'general'}
+        >
+            {$_('settings.tabs.general') || 'General'}
+        </button>
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === 'api' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'api'}
+        >
+            {$_('settings.tabs.api') || 'API'}
+        </button>
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === 'behavior' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'behavior'}
+        >
+            {$_('settings.tabs.behavior') || 'Behavior'}
+        </button>
+    </div>
 
-  <div class="space-y-6">
+    <!-- Tab Content -->
+    <div class="flex flex-col gap-4 min-h-[300px]">
 
-    <!-- Tab: General -->
-    {#if activeTab === 'general'}
-        <div class="space-y-6 fade-in">
-             <!-- Language Switcher -->
-            <div class="flex justify-between items-center">
-                <span class="text-sm font-medium text-text-primary">{$_('settings.language')}</span>
-                <div class="w-1/2 flex justify-end">
-                    <LanguageSwitcher />
+        {#if activeTab === 'general'}
+            <div class="flex flex-col gap-3">
+                 <!-- UI Toggles -->
+                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                    <span class="text-sm font-medium">{$_('settings.showSidebars') || 'Show Sidebars (Positions/Market)'}</span>
+                    <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                <!-- Fee Preference -->
+                <div class="flex flex-col gap-1 mt-2">
+                    <span class="text-sm font-medium">{$_('settings.feePreference') || 'Default Fee Preference'}</span>
+                    <div class="flex gap-2">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" group={feePreference} value="maker" class="accent-[var(--accent-color)]" />
+                            <span class="text-sm">Maker</span>
+                        </label>
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="radio" group={feePreference} value="taker" class="accent-[var(--accent-color)]" />
+                            <span class="text-sm">Taker</span>
+                        </label>
+                    </div>
+                    <p class="text-xs text-[var(--text-secondary)]">
+                        {$_('settings.feePreferenceDesc') || 'Select which fee rate to use by default when syncing from API.'}
+                    </p>
                 </div>
             </div>
 
-            <!-- Theme Selector -->
-            <div class="flex justify-between items-center">
-                <label for="theme-select" class="text-sm font-medium text-text-primary">{$_('settings.theme')}</label>
-                <div class="flex items-center gap-2 w-1/2">
-                    <span class="text-xl">{@html currentThemeIcon}</span>
-                    <select
-                    id="theme-select"
-                    class="input-field w-full"
-                    bind:value={$uiStore.currentTheme}
-                    on:change={(e) => uiStore.setTheme(e.currentTarget.value)}
-                    >
-                    {#each themes as theme, index}
-                        <option value={theme} disabled={index > 4 && !$settingsStore.isPro}>
-                            {theme.charAt(0).toUpperCase() + theme.slice(1).replace('-', ' ')} {index > 4 && !$settingsStore.isPro ? '(Pro)' : ''}
-                        </option>
-                    {/each}
+        {:else if activeTab === 'api'}
+            <div class="flex flex-col gap-4">
+                <!-- Provider Selection -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium">{$_('settings.providerLabel') || 'Exchange Provider'}</span>
+                    <select bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <option value="bitunix">Bitunix</option>
+                        <option value="binance">Binance Futures</option>
                     </select>
                 </div>
-            </div>
 
-            <!-- Show Sidebars Toggle -->
-             <div class="flex justify-between items-center border-t border-[var(--border-color)] pt-4">
-                <label for="show-sidebars" class="text-sm font-medium text-text-primary">
-                    {$_('settings.showSidebars') || 'Show Sidebars'}
-                </label>
-                <div class="flex items-center gap-2 w-1/2 justify-end">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="show-sidebars" class="sr-only peer" bind:checked={$settingsStore.showSidebars}>
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-            </div>
-        </div>
-    {/if}
-
-    <!-- Tab: API -->
-    {#if activeTab === 'api'}
-        <div class="space-y-6 fade-in">
-             <!-- API Provider Selection -->
-             <div class="flex justify-between items-center">
-                <label for="api-provider-select" class="text-sm font-medium text-text-primary">{$_('settings.apiProvider')}</label>
-                <div class="flex items-center gap-2 w-1/2">
-                  <select
-                    id="api-provider-select"
-                    class="input-field w-full"
-                    bind:value={$settingsStore.apiProvider}
-                  >
-                    <option value="bitunix">Bitunix</option>
-                    <option value="binance">Binance</option>
-                  </select>
-                </div>
-            </div>
-
-            <!-- Auto Fetch Balance Toggle -->
-            <div class="flex justify-between items-center">
-                 <label for="auto-fetch-balance" class="text-sm font-medium text-text-primary">
-                     {$_('settings.autoFetchBalance') || 'Auto-fetch Balance'}
-                 </label>
-                 <div class="flex items-center gap-2 w-1/2 justify-end">
-                    <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="auto-fetch-balance" class="sr-only peer" bind:checked={$settingsStore.autoFetchBalance}>
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                 </div>
-            </div>
-
-            <div class="border-t border-[var(--border-color)] pt-4">
-                <!-- Imgur Client ID -->
-                <div class="mb-4">
-                    <h4 class="text-xs font-semibold text-text-secondary mb-2">Imgur Integration</h4>
-                    <p class="text-xs text-text-secondary mb-2">Required for screenshot uploads. <a href="https://api.imgur.com/oauth2/addclient" target="_blank" class="text-blue-500 hover:underline">Get Client ID</a></p>
-                    <input
-                        type="text"
-                        class="input-field w-full text-xs"
-                        placeholder="Imgur Client ID"
-                        bind:value={$settingsStore.imgurClientId}
-                    />
-                </div>
-
-                 <!-- Bitunix Keys -->
-                <div class="mb-4">
-                    <h4 class="text-xs font-semibold text-text-secondary mb-2">Bitunix</h4>
-                    <div class="space-y-2">
-                        <input
-                            type="text"
-                            class="input-field w-full text-xs"
-                            placeholder="API Key"
-                            bind:value={$settingsStore.apiKeys.bitunix.key}
-                        />
-                        <input
-                            type="password"
-                            class="input-field w-full text-xs"
-                            placeholder="API Secret"
-                            bind:value={$settingsStore.apiKeys.bitunix.secret}
-                        />
+                <!-- API Keys (Conditional based on provider) -->
+                {#if apiProvider === 'bitunix'}
+                    <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                        <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Bitunix Credentials</h4>
+                        <div class="flex flex-col gap-1">
+                            <label for="bx-key" class="text-xs">API Key</label>
+                            <input id="bx-key" type="password" bind:value={bitunixKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label for="bx-secret" class="text-xs">Secret Key</label>
+                            <input id="bx-secret" type="password" bind:value={bitunixKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
+                        </div>
                     </div>
-                </div>
-
-                <!-- Binance Keys -->
-                <div>
-                    <h4 class="text-xs font-semibold text-text-secondary mb-2">Binance</h4>
-                    <div class="space-y-2">
-                        <input
-                            type="text"
-                            class="input-field w-full text-xs"
-                            placeholder="API Key"
-                            bind:value={$settingsStore.apiKeys.binance.key}
-                        />
-                        <input
-                            type="password"
-                            class="input-field w-full text-xs"
-                            placeholder="API Secret"
-                            bind:value={$settingsStore.apiKeys.binance.secret}
-                        />
-                    </div>
-                </div>
-            </div>
-        </div>
-    {/if}
-
-    <!-- Tab: Behavior -->
-    {#if activeTab === 'behavior'}
-        <div class="space-y-6 fade-in">
-             <!-- Market Data Update Frequency -->
-             <div class="flex justify-between items-center">
-                <label for="market-data-interval-select" class="text-sm font-medium text-text-primary">{$_('settings.marketDataInterval') || 'Update Interval'}</label>
-                <div class="flex items-center gap-2 w-1/2">
-                  <select
-                    id="market-data-interval-select"
-                    class="input-field w-full"
-                    bind:value={$settingsStore.marketDataInterval}
-                  >
-                    <option value="1s">{$_('settings.interval1s') || 'Every 1s'}</option>
-                    <option value="1m">{$_('settings.interval1m') || 'Every 1m'}</option>
-                    <option value="10m">{$_('settings.interval10m') || 'Every 10m'}</option>
-                  </select>
-                </div>
-              </div>
-
-             <!-- Auto Update Price Input (Checkbox/Toggle) -->
-             <div class="flex justify-between items-center">
-                <label for="auto-update-price-input" class="text-sm font-medium text-text-primary">
-                    {$_('settings.autoUpdatePriceInput') || 'Auto-update Price Input'}
-                </label>
-                <div class="flex items-center gap-2 w-1/2 justify-end">
-                     <label class="relative inline-flex items-center cursor-pointer">
-                        <input type="checkbox" id="auto-update-price-input" class="sr-only peer" bind:checked={$settingsStore.autoUpdatePriceInput}>
-                        <div class="w-11 h-6 bg-gray-600 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                    </label>
-                </div>
-              </div>
-        </div>
-    {/if}
-
-    <!-- Tab: System -->
-    {#if activeTab === 'system'}
-        <div class="space-y-6 fade-in">
-            <!-- Backup / Restore -->
-            <div class="flex justify-between items-center">
-                <span class="text-sm font-medium text-text-primary">{$_('settings.backup')}</span>
-                {#if $settingsStore.isPro}
-                <div class="flex items-center gap-2 w-1/2 justify-end">
-                    <button id="backup-btn-modal" class="btn-icon" title={$_('app.backupButtonTitle')} aria-label={$_('app.backupButtonAriaLabel')} on:click={handleBackupClick}>
-                        {@html icons.export}
-                    </button>
-                    <button id="restore-btn-modal" class="btn-icon" title={$_('app.restoreButtonTitle')} aria-label={$_('app.restoreButtonAriaLabel')} on:click={handleRestoreClick}>
-                        {@html icons.import}
-                    </button>
-                </div>
                 {:else}
-                    <div class="flex items-center gap-2 w-1/2 justify-end">
-                        <span class="text-xs text-red-500 font-bold">Pro Version Required</span>
-                        <div class="opacity-50 pointer-events-none flex gap-2">
-                             <button class="btn-icon">{@html icons.export}</button>
-                             <button class="btn-icon">{@html icons.import}</button>
+                    <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                        <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Binance Credentials</h4>
+                        <div class="flex flex-col gap-1">
+                            <label for="bn-key" class="text-xs">API Key</label>
+                            <input id="bn-key" type="password" bind:value={binanceKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <label for="bn-secret" class="text-xs">Secret Key</label>
+                            <input id="bn-secret" type="password" bind:value={binanceKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
                         </div>
                     </div>
                 {/if}
+
+                <p class="text-xs text-[var(--text-secondary)] italic">
+                    {$_('settings.securityNote') || 'Keys are stored locally in your browser.'}
+                </p>
             </div>
 
-            <p class="text-xs text-text-secondary">
-                {$_('app.backupButtonTitle')} / {$_('app.restoreButtonTitle')}
-            </p>
-        </div>
-    {/if}
+        {:else if activeTab === 'behavior'}
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium">{$_('settings.intervalLabel') || 'Market Data Update Interval'}</span>
+                    <select bind:value={marketDataInterval} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <option value="1s">1s (Real-time)</option>
+                        <option value="1m">1m (Standard)</option>
+                        <option value="10m">10m (Slow)</option>
+                    </select>
+                </div>
 
-  </div>
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium">{$_('settings.autoUpdatePrice') || 'Auto-update Price Input'}</span>
+                        <span class="text-xs text-[var(--text-secondary)]">Overwrite entry price on every update tick</span>
+                    </div>
+                    <input type="checkbox" bind:checked={autoUpdatePriceInput} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                     <div class="flex flex-col">
+                        <span class="text-sm font-medium">{$_('settings.autoFetchBalance') || 'Auto-fetch Balance'}</span>
+                        <span class="text-xs text-[var(--text-secondary)]">Fetch wallet balance on startup</span>
+                    </div>
+                    <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+            </div>
+        {/if}
+
+    </div>
+
+    <!-- Footer Actions -->
+    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)]">
+        <button class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]" on:click={close}>
+            {$_('common.cancel') || 'Cancel'}
+        </button>
+        <button class="px-4 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={saveSettings}>
+            {$_('common.save') || 'Save'}
+        </button>
+    </div>
 </ModalFrame>

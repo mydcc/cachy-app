@@ -16,8 +16,7 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     isPro: boolean;
-    isDeepDiveUnlocked: boolean;
-    imgurClientId: string;
+    feePreference: 'maker' | 'taker';
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -31,8 +30,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     isPro: false,
-    isDeepDiveUnlocked: false,
-    imgurClientId: '',
+    feePreference: 'taker', // Default to Taker fees
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -81,8 +79,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
-            isDeepDiveUnlocked: settings.isDeepDiveUnlocked ?? defaultSettings.isDeepDiveUnlocked,
-            imgurClientId: settings.imgurClientId ?? defaultSettings.imgurClientId,
+            feePreference: settings.feePreference ?? defaultSettings.feePreference,
             apiKeys: settings.apiKeys
         };
 
