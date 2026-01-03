@@ -15,6 +15,9 @@ interface UiState {
     symbolSuggestions: string[];
     showSymbolSuggestions: boolean;
     showSettingsModal: boolean;
+    // Loading State
+    isLoading: boolean;
+    loadingMessage: string;
 }
 
 const initialUiState: UiState = {
@@ -30,6 +33,8 @@ const initialUiState: UiState = {
     isPriceFetching: false,
     symbolSuggestions: [],
     showSymbolSuggestions: false,
+    isLoading: false,
+    loadingMessage: '',
 };
 
 function createUiStore() {
@@ -70,6 +75,9 @@ function createUiStore() {
         },
         showError: (message: string) => update(state => ({ ...state, errorMessage: message, showErrorMessage: true })),
         hideError: () => update(state => ({ ...state, errorMessage: '', showErrorMessage: false })),
+        // Added methods for loading state
+        showLoading: (message = 'Loading...') => update(state => ({ ...state, isLoading: true, loadingMessage: message })),
+        hideLoading: () => update(state => ({ ...state, isLoading: false, loadingMessage: '' })),
     };
 }
 
