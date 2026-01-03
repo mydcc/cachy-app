@@ -21,6 +21,11 @@ export interface Settings {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
+    // ImgBB Settings
+    imgbbApiKey: string;
+    imgbbExpiration: number; // 0 = never, otherwise seconds
+    isDeepDiveUnlocked?: boolean; // Persist cheat code state
+    imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
 }
 
 const defaultSettings: Settings = {
@@ -34,7 +39,10 @@ const defaultSettings: Settings = {
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
-    }
+    },
+    imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
+    imgbbExpiration: 0,
+    isDeepDiveUnlocked: false
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -71,6 +79,14 @@ function loadSettingsFromLocalStorage(): Settings {
             }
         }
 
+        // 3. Ensure ImgBB defaults if missing (even if other settings existed)
+        if (!settings.imgbbApiKey) {
+            settings.imgbbApiKey = defaultSettings.imgbbApiKey;
+        }
+        if (settings.imgbbExpiration === undefined) {
+             settings.imgbbExpiration = defaultSettings.imgbbExpiration;
+        }
+
         // Clean up keys not in interface
         const cleanSettings: Settings = {
             apiProvider: settings.apiProvider,
@@ -80,7 +96,10 @@ function loadSettingsFromLocalStorage(): Settings {
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
-            apiKeys: settings.apiKeys
+            apiKeys: settings.apiKeys,
+            imgbbApiKey: settings.imgbbApiKey,
+            imgbbExpiration: settings.imgbbExpiration,
+            isDeepDiveUnlocked: settings.isDeepDiveUnlocked ?? defaultSettings.isDeepDiveUnlocked
         };
 
         return cleanSettings;

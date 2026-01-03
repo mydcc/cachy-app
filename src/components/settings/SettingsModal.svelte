@@ -13,6 +13,10 @@
     let showSidebars: boolean;
     let feePreference: 'maker' | 'taker';
 
+    // ImgBB
+    let imgbbApiKey: string;
+    let imgbbExpiration: number;
+
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
     let binanceKeys: ApiKeys = { key: '', secret: '' };
@@ -29,6 +33,8 @@
         autoFetchBalance = $settingsStore.autoFetchBalance;
         showSidebars = $settingsStore.showSidebars;
         feePreference = $settingsStore.feePreference;
+        imgbbApiKey = $settingsStore.imgbbApiKey;
+        imgbbExpiration = $settingsStore.imgbbExpiration;
 
         // Deep copy keys to avoid binding issues
         bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
@@ -44,6 +50,8 @@
             autoFetchBalance,
             showSidebars,
             feePreference,
+            imgbbApiKey,
+            imgbbExpiration,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -120,6 +128,29 @@
 
         {:else if activeTab === 'api'}
             <div class="flex flex-col gap-4">
+                <!-- ImgBB Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">ImgBB Image Hosting</h4>
+                     <div class="flex flex-col gap-1">
+                        <label for="imgbb-key" class="text-xs">API Key</label>
+                        <input id="imgbb-key" type="password" bind:value={imgbbApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste ImgBB Key" />
+                    </div>
+                     <div class="flex flex-col gap-1">
+                        <label for="imgbb-exp" class="text-xs">Image Expiration</label>
+                         <select id="imgbb-exp" bind:value={imgbbExpiration} class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]">
+                             <option value={0}>Permanent (No Auto-Delete)</option>
+                             <option value={600}>10 Minutes</option>
+                             <option value={3600}>1 Hour</option>
+                             <option value={86400}>1 Day</option>
+                             <option value={604800}>1 Week</option>
+                             <option value={2592000}>1 Month</option>
+                        </select>
+                    </div>
+                    <p class="text-[10px] text-[var(--text-secondary)]">
+                         Get your key at <a href="https://api.imgbb.com/" target="_blank" class="text-[var(--accent-color)] hover:underline">api.imgbb.com</a>.
+                    </p>
+                </div>
+
                 <!-- Provider Selection -->
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">{$_('settings.providerLabel') || 'Exchange Provider'}</span>

@@ -4,6 +4,7 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
+    import { imgbbService } from '../../services/imgbbService';
     import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
     import { icons, CONSTANTS } from '../../lib/constants';
@@ -460,10 +461,93 @@
         (event.target as HTMLElement).classList.toggle('expanded');
     }
 
+    // --- Image Upload Logic ---
+    async function handleScreenshotUpload(tradeId: number, event: Event) {
+        if (!browser) return;
+
+        const file = (event.target as HTMLInputElement).files?.[0];
+        if (!file) return;
+
+        // Reset input so same file can be selected again if needed
+        (event.target as HTMLInputElement).value = '';
+
+        uiStore.showLoading('Uploading screenshot...');
+
+        try {
+            const url = await imgbbService.uploadToImgbb(file);
+
+            // Update Journal Entry
+            journalStore.update(trades => {
+                return trades.map(t => {
+                    if (t.id === tradeId) {
+                        return { ...t, screenshot: url };
+                    }
+                    return t;
+                });
+            });
+
+            uiStore.showFeedback('save'); // Re-use save success
+        } catch (error: any) {
+            console.error(error);
+            uiStore.showError(error.message || 'Screenshot upload failed');
+        } finally {
+            uiStore.hideLoading();
+        }
+    }
+
     // Reset pagination on filter change
     $: if (processedTrades.length) currentPage = 1;
 
 </script>
+
+<style>
+    /* Add style for the thumbnail hover effect */
+    .screenshot-cell {
+        position: relative;
+    }
+
+    .thumbnail-popup {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        background: var(--bg-tertiary);
+        padding: 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        width: 200px;
+        height: auto;
+    }
+
+    .screenshot-cell:hover .thumbnail-popup {
+        display: block;
+    }
+
+    .thumbnail-popup img {
+        width: 100%;
+        height: auto;
+        border-radius: 2px;
+    }
+
+    /* Icon styling */
+    .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        color: var(--text-secondary);
+        transition: color 0.2s, background-color 0.2s;
+    }
+
+    .icon-btn:hover {
+        color: var(--accent-color);
+        background-color: var(--bg-tertiary);
+    }
+</style>
 
 <ModalFrame
     isOpen={$uiStore.showJournalModal}
@@ -623,6 +707,7 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Status</th>
+                            <th>Screenshot</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>
@@ -655,6 +740,27 @@
                                         </select>
                                     {/if}
                                 </td>
+
+                                <td class="text-center screenshot-cell">
+                                    {#if trade.screenshot}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                            {@html icons.camera || '📷'}
+                                        </button>
+                                        <div class="thumbnail-popup">
+                                            <img src={trade.screenshot} alt="Trade Screenshot" />
+                                        </div>
+                                    {:else}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <label class="icon-btn cursor-pointer block" title="Upload Screenshot">
+                                            {@html icons.plus || '+'}
+                                            <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
+                                        </label>
+                                    {/if}
+                                </td>
+
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                 <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
