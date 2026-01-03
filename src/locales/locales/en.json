@@ -212,17 +212,28 @@
   "settings": {
     "title": "Settings",
     "theme": "Theme",
+    "themeDark": "Dark",
+    "themeLight": "Light",
     "language": "Language",
     "backup": "Backup",
+    "restore": "Restore",
+    "reset": "Reset Data",
+    "resetConfirm": "Are you sure you want to reset all data? This cannot be undone.",
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",
     "autoUpdatePriceInput": "Auto-update Price Input",
     "marketDataInterval": "Update Interval",
+    "intervalLabel": "Market Data Interval",
+    "autoUpdatePrice": "Auto-update Price",
     "interval1s": "Every 1s",
     "interval1m": "Every 1m",
     "interval10m": "Every 10m",
     "showSidebars": "Show Sidebars",
+    "feePreference": "Fee Preference",
+    "feePreferenceDesc": "Select which fee rate to use by default when syncing from API.",
+    "providerLabel": "Exchange Provider",
+    "securityNote": "Keys are stored locally in your browser.",
     "imgbbHeader": "ImgBB Image Hosting",
     "imgbbApiKey": "API Key",
     "imgbbExpiration": "Expiration",
@@ -239,6 +250,10 @@
       "behavior": "Behavior",
       "system": "System"
     }
+  },
+  "common": {
+      "save": "Save",
+      "cancel": "Cancel"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found or API error.",

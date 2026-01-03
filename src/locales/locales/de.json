@@ -213,18 +213,29 @@
   "settings": {
     "title": "Einstellungen",
     "theme": "Theme",
+    "themeDark": "Dunkel",
+    "themeLight": "Hell",
     "language": "Sprache",
     "backup": "Sicherung",
+    "restore": "Wiederherstellen",
+    "reset": "Daten zurücksetzen",
+    "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
     "apiProvider": "API Anbieter",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",
     "autoUpdatePriceInput": "Automatische Preisaktualisierung (Eingabefeld)",
     "marketDataInterval": "Update Intervall",
+    "intervalLabel": "Marktdaten-Intervall",
+    "autoUpdatePrice": "Preis automatisch aktualisieren",
     "interval1s": "Jede Sekunde",
     "interval1m": "Jede Minute",
     "interval10m": "Alle 10 Minuten",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
+    "feePreference": "Gebühren-Präferenz",
+    "feePreferenceDesc": "Wähle den Gebührensatz, der standardmäßig beim Synchronisieren von der API verwendet werden soll.",
+    "providerLabel": "Börsen-Anbieter",
+    "securityNote": "Schlüssel werden lokal in deinem Browser gespeichert.",
     "imgbbHeader": "ImgBB Bild-Hosting",
     "imgbbApiKey": "API Key",
     "imgbbExpiration": "Ablaufzeit",
@@ -241,6 +252,10 @@
       "behavior": "Verhalten",
       "system": "System"
     }
+  },
+  "common": {
+      "save": "Speichern",
+      "cancel": "Abbrechen"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",
