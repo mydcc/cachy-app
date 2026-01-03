@@ -33,7 +33,7 @@ describe('marketStore', () => {
         expect(data.lowPrice?.toNumber()).toBe(49000);
         expect(data.volume?.toNumber()).toBe(1000);
         expect(data.quoteVolume?.toNumber()).toBe(52000000);
-        
+
         // Change calculation: (52000 - 50000) / 50000 * 100 = 4%
         expect(data.priceChangePercent?.toNumber()).toBe(4);
     });
