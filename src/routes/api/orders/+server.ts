@@ -135,6 +135,8 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string): Pro
         amount: parseFloat(o.qty || '0'),
         filled: parseFloat(o.tradeQty || '0'),
         realizedPnL: parseFloat(o.realizedPNL || '0'),
+        fee: parseFloat(o.fee || '0'),
+        role: o.role, // Assuming 'MAKER' or 'TAKER' or similar string
         status: o.status,
         time: o.ctime
     }));
