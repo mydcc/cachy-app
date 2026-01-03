@@ -124,10 +124,11 @@ export const app = {
     setupPriceUpdates: () => {
         if (!browser) return;
 
-        // Watch settings and symbol changes to adjust interval
         settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
+        tradeStore.subscribe((curr) => {
+            // No strict symbol change check needed for interval management itself
+        });
         
-        // Initial setup
         app.refreshPriceUpdateInterval();
     },
 
@@ -138,9 +139,6 @@ export const app = {
         }
 
         const settings = get(settingsStore);
-        // Interval logic: we start the loop if marketDataInterval is set (it is always set in new types)
-        // However, if we want to stop it completely, we'd need an "Off" option. Currently type is '1s'|'1m'|'10m'.
-        // So we assume it always runs.
 
         let intervalMs = 60000;
         if (settings.marketDataInterval === '1s') intervalMs = 1000;
@@ -919,24 +917,61 @@ export const app = {
             return;
         }
         
-        // Don't show global spinner for auto-updates to avoid flashing
         if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
         
         try {
-            let price: Decimal;
+            // Parallel fetch: Price + Account Info (Leverage/Fees)
+            const promises: any[] = [];
+
+            // 1. Fetch Price
             if (settings.apiProvider === 'binance') {
-                price = await apiService.fetchBinancePrice(symbol);
+                promises.push(apiService.fetchBinancePrice(symbol));
             } else {
-                price = await apiService.fetchBitunixPrice(symbol);
+                promises.push(apiService.fetchBitunixPrice(symbol));
             }
-            updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
+
+            // 2. Fetch Account Info (only if not auto-updating just price, OR if we want to sync settings regularly)
+            // Let's do it on manual fetch or initial load mostly.
+            // If keys exist.
+            const apiKeys = settings.apiKeys[settings.apiProvider];
+            if (apiKeys.key && apiKeys.secret && !isAuto) {
+                promises.push(apiService.fetchAccountInfo(symbol, settings.apiProvider, apiKeys));
+            } else {
+                promises.push(Promise.resolve(null));
+            }
+
+            const [price, accountInfo] = await Promise.all(promises);
+
+            const updates: any = { entryPrice: price.toDP(4).toNumber() };
+
+            if (accountInfo) {
+                updates.remoteLeverage = accountInfo.leverage;
+                updates.remoteMarginMode = accountInfo.marginMode;
+                updates.remoteMakerFee = accountInfo.makerFee;
+                updates.remoteTakerFee = accountInfo.takerFee;
+
+                // Auto-fill inputs if settings say so, or just update store for the UI to show "sync" status.
+                // We default to overwriting inputs if they are not matching?
+                // Actually, the requirement was "Live Sync with Override".
+                // If we get new data, we populate the inputs.
+
+                if (accountInfo.leverage) {
+                    updates.leverage = accountInfo.leverage;
+                }
+
+                if (settings.feePreference === 'maker' && accountInfo.makerFee !== undefined) {
+                    updates.fees = accountInfo.makerFee;
+                } else if (settings.feePreference === 'taker' && accountInfo.takerFee !== undefined) {
+                    updates.fees = accountInfo.takerFee;
+                }
+            }
+
+            updateTradeStore(state => ({ ...state, ...updates }));
             
-            // Only show feedback on manual fetch
             if (!isAuto) uiStore.showFeedback('copy', 700);
             
             app.calculateAndDisplay();
         } catch (error) {
-            // Suppress errors for auto-updates to avoid spamming the user
             if (!isAuto) {
                 const message = error instanceof Error ? error.message : String(error);
                 uiStore.showError(message);
@@ -952,7 +987,6 @@ export const app = {
             atrMode: mode,
             atrValue: mode === 'auto' ? null : state.atrValue
         }));
-        // If switching to auto, fetch immediately
         if (mode === 'auto') {
             app.fetchAtr();
         }
@@ -1010,7 +1044,6 @@ export const app = {
         updateTradeStore(s => ({ ...s, symbol: symbol }));
         uiStore.update(s => ({ ...s, showSymbolSuggestions: false, symbolSuggestions: [] }));
         
-        // Immediate fetch upon selection
         app.handleFetchPrice();
         if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
              app.fetchAtr();
