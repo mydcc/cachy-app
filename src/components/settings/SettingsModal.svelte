@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode } from '../../stores/settingsStore';
     import { uiStore } from '../../stores/uiStore';
     import { _ } from '../../locales/i18n';
     import { trackCustomEvent } from '../../services/trackingService';
@@ -12,10 +12,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let feePreference: 'maker' | 'taker';
-    
-    // ImgBB
-    let imgbbApiKey: string;
-    let imgbbExpiration: number;
+    let hotkeyMode: HotkeyMode;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -33,8 +30,7 @@
         autoFetchBalance = $settingsStore.autoFetchBalance;
         showSidebars = $settingsStore.showSidebars;
         feePreference = $settingsStore.feePreference;
-        imgbbApiKey = $settingsStore.imgbbApiKey;
-        imgbbExpiration = $settingsStore.imgbbExpiration;
+        hotkeyMode = $settingsStore.hotkeyMode;
 
         // Deep copy keys to avoid binding issues
         bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
@@ -50,8 +46,7 @@
             autoFetchBalance,
             showSidebars,
             feePreference,
-            imgbbApiKey,
-            imgbbExpiration,
+            hotkeyMode,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -66,6 +61,33 @@
     function close() {
         uiStore.toggleSettingsModal(false);
     }
+
+    const hotkeyDescriptions = {
+        mode1: [
+            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
+            { keys: 'T', action: 'Focus Next Take Profit' },
+            { keys: '+ / -', action: 'Add / Remove Take Profit' },
+            { keys: 'E', action: 'Focus Entry Price' },
+            { keys: 'S', action: 'Focus Stop Loss' },
+            { keys: 'L / K', action: 'Set Long / Short' },
+            { keys: 'J', action: 'Open Journal' }
+        ],
+        mode2: [
+            { keys: 'Alt + 1-4', action: 'Load Favorites' },
+            { keys: 'Alt + T', action: 'Add Take Profit' },
+            { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
+            { keys: 'Alt + E', action: 'Focus Entry Price' },
+            { keys: 'Alt + S', action: 'Focus Stop Loss' },
+            { keys: 'Alt + L / K', action: 'Set Long / Short' },
+            { keys: 'Alt + J', action: 'Open Journal' }
+        ],
+        mode3: [
+            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
+            { keys: 'T', action: 'Focus TP 1' },
+            { keys: 'Shift + T', action: 'Focus Last TP' },
+            { keys: '+ / -', action: 'Add / Remove TP' }
+        ]
+    };
 </script>
 
 <ModalFrame
@@ -218,6 +240,29 @@
                     </div>
                     <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
+
+                <!-- Hotkey Mode Selection -->
+                <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
+                     <span class="text-sm font-medium">Hotkey Profile</span>
+                     <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <option value="mode2">Safety Mode (Alt + Key) - Default</option>
+                        <option value="mode1">Direct Mode (Fast)</option>
+                        <option value="mode3">Hybrid Mode</option>
+                     </select>
+
+                     <!-- Info Text for Hotkeys -->
+                     <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
+                        <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
+                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                            {#each hotkeyDescriptions[hotkeyMode] as desc}
+                                <div class="flex justify-between">
+                                    <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
+                                    <span>{desc.action}</span>
+                                </div>
+                            {/each}
+                        </div>
+                     </div>
+                </div>
             </div>
         {/if}
 

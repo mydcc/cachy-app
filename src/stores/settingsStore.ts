@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
+export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
 
 export interface ApiKeys {
     key: string;
@@ -17,6 +18,7 @@ export interface Settings {
     showSidebars: boolean;
     isPro: boolean;
     feePreference: 'maker' | 'taker';
+    hotkeyMode: HotkeyMode;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -36,6 +38,7 @@ const defaultSettings: Settings = {
     showSidebars: true,
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
+    hotkeyMode: 'mode2', // Safety Mode as default
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -96,10 +99,8 @@ function loadSettingsFromLocalStorage(): Settings {
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
-            apiKeys: settings.apiKeys,
-            imgbbApiKey: settings.imgbbApiKey,
-            imgbbExpiration: settings.imgbbExpiration,
-            isDeepDiveUnlocked: settings.isDeepDiveUnlocked ?? defaultSettings.isDeepDiveUnlocked
+            hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
+            apiKeys: settings.apiKeys
         };
 
         return cleanSettings;
