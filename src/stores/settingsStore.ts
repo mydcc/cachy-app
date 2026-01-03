@@ -78,7 +78,7 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.autoUpdatePriceInput = false;
             }
         }
-
+        
         // 3. Ensure ImgBB defaults if missing (even if other settings existed)
         if (!settings.imgbbApiKey) {
             settings.imgbbApiKey = defaultSettings.imgbbApiKey;

@@ -488,24 +488,24 @@
 
     async function handleScreenshotUpload(tradeId: number, event: Event) {
         if (!browser) return;
-
+        
         const input = event.target as HTMLInputElement;
         const file = input.files?.[0];
-
+        
         if (file) {
             await uploadScreenshot(tradeId, file);
         }
-
+        
         // Reset input so same file can be selected again if needed
         input.value = '';
     }
 
     async function uploadScreenshot(tradeId: number, file: File) {
         uiStore.showLoading('Uploading screenshot...');
-
+        
         try {
             const url = await imgbbService.uploadToImgbb(file);
-
+            
             // Update Journal Entry
             journalStore.update(trades => {
                 return trades.map(t => {
@@ -540,7 +540,7 @@
         background-color: rgba(var(--accent-rgb), 0.2) !important;
         border: 2px dashed var(--accent-color);
     }
-
+    
     .thumbnail-popup {
         display: none;
         position: absolute;
@@ -775,7 +775,7 @@
                                         </select>
                                     {/if}
                                 </td>
-
+                                
                                 <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
                                     on:dragover={(e) => handleDragOver(trade.id, e)}
                                     on:dragleave={(e) => handleDragLeave(trade.id, e)}

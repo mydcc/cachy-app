@@ -12,7 +12,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let feePreference: 'maker' | 'taker';
-
+    
     // ImgBB
     let imgbbApiKey: string;
     let imgbbExpiration: number;

@@ -13,7 +13,7 @@ export const imgbbService = {
 
         const formData = new FormData();
         formData.append('image', file);
-
+        
         // Handle expiration (API expects seconds)
         // If 0, we simply don't send the expiration parameter (default is permanent or user account setting)
         // Note: API documentation says "expiration" parameter is optional.
