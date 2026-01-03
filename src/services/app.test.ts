@@ -3,6 +3,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { tradeStore, updateTradeStore, initialTradeState, toggleAtrInputs } from '../stores/tradeStore';
 import { resultsStore, initialResultsState } from '../stores/resultsStore';
+import { settingsStore } from '../stores/settingsStore';
+import { journalStore } from '../stores/journalStore';
 import { app } from './app';
 import { get } from 'svelte/store';
 import { Decimal } from 'decimal.js';
@@ -235,7 +237,11 @@ describe('app service - ATR and Locking Logic', () => {
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),
         }));
-        vi.mocked(apiService.fetchBitunixKlines).mockResolvedValue(mockKlines);
+        
+        // Since apiService methods are mocked via factory, we should just assign the mock implementation
+        // or ensure types match. Let's try mocking implementation directly.
+        (apiService.fetchBitunixKlines as any) = vi.fn().mockResolvedValue(mockKlines);
+        
         updateTradeStore(state => ({ ...state, symbol: 'BTCUSDT', atrTimeframe: '1h' }));
 
         // Act
@@ -349,5 +355,37 @@ describe('app service - ATR and Locking Logic', () => {
         toggleAtrInputs(true);
         state = get(tradeStore);
         expect(state.atrMode).toBe('auto');
+    });
+
+    it('should parse trade history date correctly (number and string)', async () => {
+        // Mock global fetch
+        const originalFetch = global.fetch;
+        const mockFetch = vi.fn().mockResolvedValue({
+            json: () => Promise.resolve({
+                data: [
+                    { tradeId: '1', ctime: 1672531200000, realizedPNL: '10', fee: '1', symbol: 'BTCUSDT', side: 'SELL', price: '20000', qty: '1', leverage: 10, orderId: 'o1' }, // Number
+                    { tradeId: '2', ctime: "1672531200000", realizedPNL: '5', fee: '0.5', symbol: 'ETHUSDT', side: 'BUY', price: '1500', qty: '10', leverage: 10, orderId: 'o2' }  // String
+                ]
+            }),
+            ok: true
+        });
+        global.fetch = mockFetch;
+
+        // Setup settings for Pro
+        settingsStore.update(s => ({ ...s, isPro: true, apiKeys: { bitunix: { key: 'k', secret: 's' }, binance: { key: '', secret: '' } } }));
+        journalStore.set([]); // Clear journal
+
+        await app.syncBitunixHistory();
+
+        const journal = get(journalStore);
+        expect(journal.length).toBe(2);
+        
+        // Check dates
+        // 1672531200000 is 2023-01-01T00:00:00.000Z
+        expect(new Date(journal[0].date).toISOString()).toBe('2023-01-01T00:00:00.000Z');
+        expect(new Date(journal[1].date).toISOString()).toBe('2023-01-01T00:00:00.000Z');
+
+        // Restore fetch
+        global.fetch = originalFetch;
     });
 });

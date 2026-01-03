@@ -3,6 +3,16 @@ import { CONSTANTS } from './constants';
 import type { TradeValues, BaseMetrics, IndividualTpResult, TotalMetrics, JournalEntry } from '../stores/types';
 import type { Kline } from '../services/apiService';
 
+function getTradePnL(t: JournalEntry): Decimal {
+    if (t.isManual === false) {
+        return new Decimal(t.totalNetProfit || 0);
+    }
+    // Manual trades
+    if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
+    if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
+    return new Decimal(0);
+}
+
 export const calculator = {
     calculateBaseMetrics(values: TradeValues, tradeType: string): BaseMetrics | null {
         const riskAmount = values.accountSize.times(values.riskPercentage.div(100));
@@ -29,14 +39,11 @@ export const calculator = {
     },
 
     calculateATR(klines: Kline[], period: number = 14): Decimal {
-        // We need at least `period + 1` klines to calculate `period` true ranges.
         if (klines.length < period + 1) {
-            return new Decimal(0); // Not enough data to calculate ATR.
+            return new Decimal(0);
         }
 
         const trueRanges: Decimal[] = [];
-        // Loop starts at 1 because each True Range calculation needs the previous kline (at i-1).
-        // We calculate TR for the last `period` candles available.
         const relevantKlines = klines.slice(-(period + 1));
 
         for (let i = 1; i < relevantKlines.length; i++) {
@@ -55,7 +62,6 @@ export const calculator = {
             return new Decimal(0);
         }
 
-        // The ATR is the average of the true ranges.
         const sumOfTrueRanges = trueRanges.reduce((sum, val) => sum.plus(val), new Decimal(0));
         return sumOfTrueRanges.div(trueRanges.length);
     },
@@ -68,12 +74,13 @@ export const calculator = {
         const exitFee = positionPart.times(tpPrice).times(values.fees.div(100));
         const entryFeePart = positionPart.times(values.entryPrice).times(values.fees.div(100));
         const netProfit = grossProfitPart.minus(entryFeePart).minus(exitFee);
-        const riskForPart = riskAmount.times(currentTpPercent.div(100)); // Annahme: targets[0] ist der aktuelle TP
+        const riskForPart = riskAmount.times(currentTpPercent.div(100));
         const riskRewardRatio = riskForPart.gt(0) ? netProfit.div(riskForPart) : new Decimal(0);
         const priceChangePercent = values.entryPrice.gt(0) ? tpPrice.minus(values.entryPrice).div(values.entryPrice).times(100) : new Decimal(0);
         const returnOnCapital = requiredMargin.gt(0) && currentTpPercent.gt(0) ? netProfit.div(requiredMargin.times(currentTpPercent.div(100))).times(100) : new Decimal(0);
         return { netProfit, riskRewardRatio, priceChangePercent, returnOnCapital, partialVolume: positionPart, exitFee, index: index, percentSold: currentTpPercent };
     },
+
     calculateTotalMetrics(targets: Array<{ price: Decimal; percent: Decimal; }>, baseMetrics: BaseMetrics, values: TradeValues, tradeType: string): TotalMetrics {
         const { positionSize, entryFee, riskAmount } = baseMetrics;
         let totalNetProfit = new Decimal(0);
@@ -104,6 +111,131 @@ export const calculator = {
         const totalRR = values.totalPercentSold.gt(0) ? weightedRRSum.div(values.totalPercentSold.div(100)) : new Decimal(0);
         return { totalNetProfit, totalRR, totalFees, maxPotentialProfit, riskAmount };
     },
+
+    // --- New Data Builders for Charts ---
+
+    getPerformanceData(journal: JournalEntry[]) {
+        const closedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // 1. Equity Curve
+        let cumulative = new Decimal(0);
+        const equityCurve = closedTrades.map(t => {
+            const pnl = getTradePnL(t);
+            cumulative = cumulative.plus(pnl);
+            return { x: t.date, y: cumulative.toNumber() };
+        });
+
+        // 2. Drawdown Series
+        let peak = new Decimal(0);
+        let currentDrawdown = new Decimal(0);
+        let runningPnl = new Decimal(0);
+        const drawdownSeries = closedTrades.map(t => {
+             const pnl = getTradePnL(t);
+             runningPnl = runningPnl.plus(pnl);
+             if (runningPnl.gt(peak)) peak = runningPnl;
+             currentDrawdown = runningPnl.minus(peak); // Should be negative or zero
+             return { x: t.date, y: currentDrawdown.toNumber() };
+        });
+
+        // 3. Monthly Stats
+        const monthlyStats: {[key: string]: Decimal} = {};
+        closedTrades.forEach(t => {
+            const date = new Date(t.date);
+            const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+            const pnl = getTradePnL(t);
+            monthlyStats[monthKey] = (monthlyStats[monthKey] || new Decimal(0)).plus(pnl);
+        });
+        const monthlyLabels = Object.keys(monthlyStats).sort();
+        const monthlyData = monthlyLabels.map(k => monthlyStats[k].toNumber());
+
+        return { equityCurve, drawdownSeries, monthlyLabels, monthlyData };
+    },
+
+    getQualityData(journal: JournalEntry[]) {
+        const closedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            
+        const won = closedTrades.filter(t => t.status === 'Won').length;
+        const lost = closedTrades.filter(t => t.status === 'Lost').length;
+
+        // 1. Win/Loss Distribution
+        const winLossData = [won, lost];
+
+        // 2. R-Multiple Distribution
+        const rMultiples = closedTrades.map(t => {
+             if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
+             const pnl = getTradePnL(t);
+             return pnl.div(t.riskAmount).toNumber();
+        });
+
+        // Bucketing R-Multiples
+        const buckets: {[key: string]: number} = { '<-1R': 0, '-1R to 0R': 0, '0R to 1R': 0, '1R to 2R': 0, '2R to 3R': 0, '>3R': 0 };
+        rMultiples.forEach(r => {
+            if (r < -1) buckets['<-1R']++;
+            else if (r < 0) buckets['-1R to 0R']++; // Usually losses are -1R
+            else if (r < 1) buckets['0R to 1R']++;
+            else if (r < 2) buckets['1R to 2R']++;
+            else if (r < 3) buckets['2R to 3R']++;
+            else buckets['>3R']++;
+        });
+
+        // 3. Cumulative R Curve (New Requirement)
+        let cumulativeR = new Decimal(0);
+        const cumulativeRCurve = closedTrades.map(t => {
+            let r = new Decimal(0);
+            if (t.riskAmount && t.riskAmount.gt(0)) {
+                const pnl = getTradePnL(t);
+                r = pnl.div(t.riskAmount);
+            } else if (t.status === 'Won') {
+                r = new Decimal(1); // Fallback if no risk defined, assume 1R win? Or 0. Better 0 to not distort.
+            } else if (t.status === 'Lost') {
+                r = new Decimal(-1);
+            }
+            
+            cumulativeR = cumulativeR.plus(r);
+            return { x: t.date, y: cumulativeR.toNumber() };
+        });
+
+        // 4. KPI
+        const stats = this.calculateJournalStats(journal);
+
+        return { winLossData, rHistogram: buckets, cumulativeRCurve, stats };
+    },
+
+    getDirectionData(journal: JournalEntry[]) {
+         const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+         // 1. Long vs Short
+         let longPnl = new Decimal(0);
+         let shortPnl = new Decimal(0);
+         closedTrades.forEach(t => {
+             const pnl = getTradePnL(t);
+             if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) longPnl = longPnl.plus(pnl);
+             else shortPnl = shortPnl.plus(pnl);
+         });
+
+         // 2. Symbol Performance (Top 5 / Bottom 5)
+         const symbolMap: {[key: string]: Decimal} = {};
+         closedTrades.forEach(t => {
+             const pnl = getTradePnL(t);
+             symbolMap[t.symbol] = (symbolMap[t.symbol] || new Decimal(0)).plus(pnl);
+         });
+
+         const sortedSymbols = Object.entries(symbolMap).sort((a, b) => b[1].minus(a[1]).toNumber());
+         const topSymbols = sortedSymbols.slice(0, 5);
+         const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
+
+         return {
+             longPnl: longPnl.toNumber(),
+             shortPnl: shortPnl.toNumber(),
+             topSymbols: { labels: topSymbols.map(s => s[0]), data: topSymbols.map(s => s[1].toNumber()) },
+             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) }
+         };
+    },
+
     calculatePerformanceStats(journalData: JournalEntry[]) {
         const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
         if (closedTrades.length === 0) return null;
@@ -139,7 +271,7 @@ export const calculator = {
 
         let cumulativeProfit = new Decimal(0), peakEquity = new Decimal(0), maxDrawdown = new Decimal(0);
         sortedClosedTrades.forEach(trade => {
-            cumulativeProfit = trade.status === 'Won' ? cumulativeProfit.plus(new Decimal(trade.totalNetProfit || 0)) : cumulativeProfit.minus(new Decimal(trade.riskAmount || 0));
+            cumulativeProfit = cumulativeProfit.plus(getTradePnL(trade));
             if (cumulativeProfit.gt(peakEquity)) peakEquity = cumulativeProfit;
             const drawdown = peakEquity.minus(cumulativeProfit);
             if (drawdown.gt(maxDrawdown)) maxDrawdown = drawdown;
@@ -151,12 +283,13 @@ export const calculator = {
 
         let totalProfitLong = new Decimal(0), totalLossLong = new Decimal(0), totalProfitShort = new Decimal(0), totalLossShort = new Decimal(0);
         closedTrades.forEach(trade => {
+            const pnl = getTradePnL(trade);
             if (trade.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
-                if (trade.status === 'Won') totalProfitLong = totalProfitLong.plus(new Decimal(trade.totalNetProfit || 0));
-                else totalLossLong = totalLossLong.plus(new Decimal(trade.riskAmount || 0));
+                if (pnl.gte(0)) totalProfitLong = totalProfitLong.plus(pnl);
+                else totalLossLong = totalLossLong.plus(pnl.abs());
             } else {
-                if (trade.status === 'Won') totalProfitShort = totalProfitShort.plus(new Decimal(trade.totalNetProfit || 0));
-                else totalLossShort = totalLossShort.plus(new Decimal(trade.riskAmount || 0));
+                if (pnl.gte(0)) totalProfitShort = totalProfitShort.plus(pnl);
+                else totalLossShort = totalLossShort.plus(pnl.abs());
             }
         });
 
@@ -184,6 +317,386 @@ export const calculator = {
 
         return { totalTrades, winRate, profitFactor, expectancy, avgRMultiple, avgRR, avgWin, avgLossOnly, winLossRatio, largestProfit, largestLoss, maxDrawdown, recoveryFactor, currentStreakText, longestWinningStreak, longestLosingStreak, totalProfitLong, totalLossLong, totalProfitShort, totalLossShort };
     },
+
+    getDisciplineData(journal: JournalEntry[]) {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 1. Time of Day Analysis (Heatmap proxy: Hourly buckets)
+        const hourlyPnl = new Array(24).fill(0);
+        const hourlyCount = new Array(24).fill(0);
+
+        closedTrades.forEach(t => {
+            const hour = new Date(t.date).getHours();
+            const pnl = getTradePnL(t);
+            hourlyPnl[hour] += pnl.toNumber();
+            hourlyCount[hour]++;
+        });
+
+        // 2. Risk Consistency (Histogram of Risk %)
+        // We use riskPercentage if available, or calculate it riskAmount/accountSize
+        const riskBuckets: {[key: string]: number} = { '<1%': 0, '1-2%': 0, '2-3%': 0, '>3%': 0 };
+        closedTrades.forEach(t => {
+            let riskPct = t.riskPercentage ? t.riskPercentage.toNumber() : 0;
+            if (riskPct === 0 && t.accountSize && t.accountSize.gt(0) && t.riskAmount) {
+                riskPct = t.riskAmount.div(t.accountSize).times(100).toNumber();
+            }
+
+            if (riskPct < 1) riskBuckets['<1%']++;
+            else if (riskPct < 2) riskBuckets['1-2%']++;
+            else if (riskPct < 3) riskBuckets['2-3%']++;
+            else riskBuckets['>3%']++;
+        });
+
+        // 3. Streak Analysis (calculated in performancestats, just returning formatted)
+        const perfStats = this.calculatePerformanceStats(journal);
+
+        return { hourlyPnl, riskBuckets, streak: perfStats ? { win: perfStats.longestWinningStreak, loss: perfStats.longestLosingStreak } : { win:0, loss:0 } };
+    },
+
+    getCostData(journal: JournalEntry[]) {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 1. Gross vs Net PnL (Total)
+        let totalGross = new Decimal(0);
+        let totalNet = new Decimal(0);
+        let totalFees = new Decimal(0);
+
+        closedTrades.forEach(t => {
+            const net = getTradePnL(t);
+            const fees = t.totalFees || new Decimal(0);
+            const funding = t.fundingFee || new Decimal(0);
+            const trading = t.tradingFee || new Decimal(0);
+
+            const totalFee = fees.plus(funding).plus(trading);
+
+            totalNet = totalNet.plus(net);
+            totalFees = totalFees.plus(totalFee);
+            totalGross = totalGross.plus(net).plus(totalFee); // Gross = Net + Fees (since Net = Gross - Fees)
+        });
+
+        // 2. Cumulative Fees
+        let cumFees = new Decimal(0);
+        const feeCurve = closedTrades.sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).map(t => {
+            const fees = t.totalFees || new Decimal(0);
+            const funding = t.fundingFee || new Decimal(0);
+            const trading = t.tradingFee || new Decimal(0);
+            cumFees = cumFees.plus(fees).plus(funding).plus(trading);
+            return { x: t.date, y: cumFees.toNumber() };
+        });
+
+        // 3. Fee Structure
+        let sumTrading = new Decimal(0);
+        let sumFunding = new Decimal(0);
+        closedTrades.forEach(t => {
+             sumTrading = sumTrading.plus(t.tradingFee || t.fees || 0); // fallback to fees if tradingFee not set
+             sumFunding = sumFunding.plus(t.fundingFee || 0);
+        });
+
+        return {
+            gross: totalGross.toNumber(),
+            net: totalNet.toNumber(),
+            feeCurve,
+            feeStructure: { trading: sumTrading.toNumber(), funding: sumFunding.toNumber() }
+        };
+    },
+
+    // --- Deep Dive Data Builders ---
+
+    getTimingData: (trades: JournalEntry[]) => {
+        // Initialize arrays for 24 hours
+        const hourlyNetPnl = new Array(24).fill(0).map(() => new Decimal(0));
+        const hourlyGrossProfit = new Array(24).fill(0).map(() => new Decimal(0));
+        const hourlyGrossLoss = new Array(24).fill(0).map(() => new Decimal(0));
+        
+        // Initialize arrays for 7 days (0=Sun, 6=Sat)
+        const dayNetPnl = new Array(7).fill(0).map(() => new Decimal(0));
+        const dayGrossProfit = new Array(7).fill(0).map(() => new Decimal(0));
+        const dayGrossLoss = new Array(7).fill(0).map(() => new Decimal(0));
+
+        trades.forEach(t => {
+            if (t.status === 'Open') return;
+            const date = new Date(t.date); 
+            if (isNaN(date.getTime())) return;
+
+            const hour = date.getHours();
+            const day = date.getDay();
+            const pnl = getTradePnL(t);
+            
+            // Hourly
+            hourlyNetPnl[hour] = hourlyNetPnl[hour].plus(pnl);
+            if (pnl.gte(0)) hourlyGrossProfit[hour] = hourlyGrossProfit[hour].plus(pnl);
+            else hourlyGrossLoss[hour] = hourlyGrossLoss[hour].plus(pnl);
+
+            // Daily
+            dayNetPnl[day] = dayNetPnl[day].plus(pnl);
+            if (pnl.gte(0)) dayGrossProfit[day] = dayGrossProfit[day].plus(pnl);
+            else dayGrossLoss[day] = dayGrossLoss[day].plus(pnl);
+        });
+
+        // Reorder Day of Week to start Monday (Index 1) -> Sunday (Index 0)
+        // JS getDay(): 0=Sun, 1=Mon, ..., 6=Sat
+        // Target: Mon, Tue, Wed, Thu, Fri, Sat, Sun
+        const reorder = (arr: Decimal[]) => [
+            arr[1], arr[2], arr[3], arr[4], arr[5], arr[6], arr[0]
+        ];
+
+        return {
+            hourlyPnl: hourlyNetPnl.map(d => d.toNumber()),
+            hourlyGrossProfit: hourlyGrossProfit.map(d => d.toNumber()),
+            hourlyGrossLoss: hourlyGrossLoss.map(d => d.toNumber()), // Keep negative numbers negative
+            dayOfWeekPnl: reorder(dayNetPnl).map(d => d.toNumber()),
+            dayOfWeekGrossProfit: reorder(dayGrossProfit).map(d => d.toNumber()),
+            dayOfWeekGrossLoss: reorder(dayGrossLoss).map(d => d.toNumber()),
+            dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
+        };
+    },
+    
+    getDurationData: (trades: JournalEntry[]) => {
+        // Scatter: x = Duration (minutes), y = PnL ($)
+        const scatterData = trades
+            .filter(t => t.status !== 'Open')
+            .map(t => {
+                // For synced trades we might only have ctime (exit). We need entry time.
+                // If not available, we can't calculate duration properly.
+                // Assuming `t.date` is exit time. `t.entryDate` or similar would be needed.
+                // Checking types.ts or app.ts... 
+                // Manual trades have `date`. 
+                // Wait, `t.date` is the MAIN date. 
+                // If we don't have entry time, we skip.
+                // However, let's assume `t.date` is entry for manual? No, usually date is entry.
+                // If manual: date is entry? exitDate is exit?
+                // If synced: date is exit (ctime).
+                
+                // Let's try to calculate duration if we have both timestamps.
+                // `entryTime` is not explicitly on JournalEntry interface in memory, 
+                // but `date` is usually the 'relevant' date. 
+                // For manual trades, users set `date` (usually entry). `exitDate` is optional.
+                
+                // Let's assume:
+                // Start = t.date (Manual) or ...
+                // End = t.exitDate (Manual) or t.date (Synced)
+                
+                // Actually, for Synced trades, `date` is exit time. We need to find entry time.
+                // `t.entryTime` might exist if I check the sync logic.
+                // If not available, we return null or filter out.
+                
+                // Let's use a heuristic: if `exitDate` exists and `date` exists: duration = exit - date (Manual).
+                // If synced, we might need to check if `entryTime` property was added.
+                // In `app.ts`, synced trades are created. I'll check if entry time is stored.
+                // If not, I can't do duration.
+                
+                // fallback: duration 0 if unknown.
+                
+                let durationMinutes = 0;
+                let valid = false;
+                
+                // Check if we have both times
+                if (t.exitDate && t.date) {
+                    const start = new Date(t.date).getTime();
+                    const end = new Date(t.exitDate).getTime();
+                    if (!isNaN(start) && !isNaN(end)) {
+                         // If manual trade, date is usually entry.
+                         // If synced trade, date is exit... wait.
+                         // Let's rely on positive duration.
+                         const diff = end - start;
+                         if (diff > 0) {
+                             durationMinutes = diff / 1000 / 60;
+                             valid = true;
+                         } else if (diff < 0) {
+                             // maybe date was exit and exitDate was entry? unlikely naming.
+                             // maybe synced trade: date=exit. entry=?
+                         }
+                    }
+                }
+                
+                if (!valid) return null;
+
+                const pnl = getTradePnL(t);
+                return {
+                    x: durationMinutes,
+                    y: pnl.toNumber(),
+                    r: 6,
+                    l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
+                };
+            })
+            .filter(d => d !== null);
+
+        return { scatterData };
+    },
+
+    getAssetData: (trades: JournalEntry[]) => {
+        const symbolStats: {[key: string]: { win: number, loss: number, pnl: Decimal, count: number }} = {};
+
+        trades.forEach(t => {
+            if (t.status === 'Open') return;
+            const sym = t.symbol;
+            if (!symbolStats[sym]) symbolStats[sym] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
+            
+            symbolStats[sym].count++;
+            
+            const pnl = getTradePnL(t);
+            symbolStats[sym].pnl = symbolStats[sym].pnl.plus(pnl);
+            
+            if (t.status === 'Won') symbolStats[sym].win++;
+            else symbolStats[sym].loss++;
+        });
+
+        // Bubble Data: x=WinRate, y=PnL, r=Count (scaled)
+        const bubbleData = Object.keys(symbolStats).map(sym => {
+            const s = symbolStats[sym];
+            const winRate = s.count > 0 ? (s.win / s.count) * 100 : 0;
+            return {
+                x: winRate,
+                y: s.pnl.toNumber(),
+                r: Math.min(Math.max(s.count * 2, 5), 30), // Scale radius
+                l: `${sym}: ${s.count} Trades, ${winRate.toFixed(1)}% Win, $${s.pnl.toFixed(2)}` // Label for tooltip
+            };
+        });
+
+        return {
+            bubbleData
+        };
+    },
+
+    getRiskData: (trades: JournalEntry[]) => {
+        // Scatter: x = Risk Amount ($), y = Realized PnL ($)
+        // Helps visualize if high risk = high reward (or high loss)
+        const scatterData = trades
+            .filter(t => t.status !== 'Open' && t.riskAmount && t.riskAmount.gt(0))
+            .map(t => {
+                const pnl = getTradePnL(t);
+                return {
+                    x: t.riskAmount.toNumber(),
+                    y: pnl.toNumber(),
+                    r: 6, // Fixed radius for scatter plot visibility
+                    l: `${t.symbol} (${t.status}): Risk $${t.riskAmount.toFixed(2)} -> PnL $${pnl.toFixed(2)}`
+                };
+            });
+
+        return {
+            scatterData
+        };
+    },
+
+    getMarketData: (trades: JournalEntry[]) => {
+        let longWin = 0, longTotal = 0;
+        let shortWin = 0, shortTotal = 0;
+        const leverageBuckets: {[key: string]: number} = { '1-5x': 0, '6-10x': 0, '11-20x': 0, '21-50x': 0, '50x+': 0 };
+
+        trades.forEach(t => {
+            if (t.status === 'Open') return;
+            
+            // Direction Analysis
+            if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
+                longTotal++;
+                if (t.status === 'Won') longWin++;
+            } else {
+                shortTotal++;
+                if (t.status === 'Won') shortWin++;
+            }
+
+            // Leverage Analysis
+            const lev = t.leverage ? t.leverage.toNumber() : 1;
+            if (lev <= 5) leverageBuckets['1-5x']++;
+            else if (lev <= 10) leverageBuckets['6-10x']++;
+            else if (lev <= 20) leverageBuckets['11-20x']++;
+            else if (lev <= 50) leverageBuckets['21-50x']++;
+            else leverageBuckets['50x+']++;
+        });
+
+        const longWinRate = longTotal > 0 ? (longWin / longTotal) * 100 : 0;
+        const shortWinRate = shortTotal > 0 ? (shortWin / shortTotal) * 100 : 0;
+
+        return {
+            longShortWinRate: [longWinRate, shortWinRate],
+            leverageDist: Object.values(leverageBuckets),
+            leverageLabels: Object.keys(leverageBuckets)
+        };
+    },
+
+    getPsychologyData: (trades: JournalEntry[]) => {
+        // Streak Analysis
+        const sorted = [...trades].filter(t => t.status === 'Won' || t.status === 'Lost').sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        let currentWinStreak = 0;
+        let currentLossStreak = 0;
+        const winStreaks: number[] = [];
+        const lossStreaks: number[] = [];
+
+        sorted.forEach(t => {
+            if (t.status === 'Won') {
+                if (currentLossStreak > 0) {
+                    lossStreaks.push(currentLossStreak);
+                    currentLossStreak = 0;
+                }
+                currentWinStreak++;
+            } else if (t.status === 'Lost') {
+                if (currentWinStreak > 0) {
+                    winStreaks.push(currentWinStreak);
+                    currentWinStreak = 0;
+                }
+                currentLossStreak++;
+            }
+        });
+        if (currentWinStreak > 0) winStreaks.push(currentWinStreak);
+        if (currentLossStreak > 0) lossStreaks.push(currentLossStreak);
+
+        // Histogram of streaks
+        const winStreakCounts: {[key: number]: number} = {};
+        const lossStreakCounts: {[key: number]: number} = {};
+
+        winStreaks.forEach(s => winStreakCounts[s] = (winStreakCounts[s] || 0) + 1);
+        lossStreaks.forEach(s => lossStreakCounts[s] = (lossStreakCounts[s] || 0) + 1);
+
+        // Prepare labels (1 to max streak)
+        const maxStreak = Math.max(...winStreaks, ...lossStreaks, 0);
+        const streakLabels = Array.from({length: maxStreak}, (_, i) => (i + 1).toString());
+        
+        const winStreakData = streakLabels.map(l => winStreakCounts[parseInt(l)] || 0);
+        const lossStreakData = streakLabels.map(l => lossStreakCounts[parseInt(l)] || 0);
+
+        return {
+            winStreakData,
+            lossStreakData,
+            streakLabels
+        };
+    },
+
+    calculateJournalStats(journalData: JournalEntry[]) {
+        const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        let wonTrades = 0;
+        let lostTrades = 0;
+        let totalNetProfit = new Decimal(0);
+        let totalWinPnl = new Decimal(0);
+        let totalLossPnl = new Decimal(0);
+
+        closedTrades.forEach(t => {
+            if (t.status === 'Won') wonTrades++;
+            if (t.status === 'Lost') lostTrades++;
+
+            const pnl = getTradePnL(t);
+            totalNetProfit = totalNetProfit.plus(pnl);
+
+            if (pnl.gt(0)) totalWinPnl = totalWinPnl.plus(pnl);
+            if (pnl.lt(0)) totalLossPnl = totalLossPnl.plus(pnl.abs());
+        });
+
+        const totalTrades = wonTrades + lostTrades;
+        const winRate = totalTrades > 0 ? (wonTrades / totalTrades) * 100 : 0;
+        const profitFactor = totalLossPnl.gt(0) ? totalWinPnl.div(totalLossPnl) : (totalWinPnl.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+        const avgTrade = totalTrades > 0 ? totalNetProfit.div(totalTrades) : new Decimal(0);
+
+        return {
+            totalNetProfit,
+            winRate: new Decimal(winRate),
+            wonTrades,
+            lostTrades,
+            profitFactor,
+            avgTrade
+        };
+    },
+
     calculateSymbolPerformance(journalData: JournalEntry[]) {
         const closedTrades = journalData.filter(t => t.status === 'Won' || t.status === 'Lost');
         const symbolPerformance: { [key: string]: { totalTrades: number; wonTrades: number; totalProfitLoss: Decimal; } } = {};
@@ -193,12 +706,13 @@ export const calculator = {
                 symbolPerformance[trade.symbol] = { totalTrades: 0, wonTrades: 0, totalProfitLoss: new Decimal(0) };
             }
             symbolPerformance[trade.symbol].totalTrades++;
+
+            const pnl = getTradePnL(trade);
+
             if (trade.status === 'Won') {
                 symbolPerformance[trade.symbol].wonTrades++;
-                symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.plus(new Decimal(trade.totalNetProfit || 0));
-            } else {
-                symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.minus(new Decimal(trade.riskAmount || 0));
             }
+            symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.plus(pnl);
         });
         return symbolPerformance;
     }

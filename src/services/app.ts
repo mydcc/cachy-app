@@ -11,6 +11,8 @@ import { presetStore, updatePresetStore } from '../stores/presetStore';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
 import { settingsStore } from '../stores/settingsStore';
+import { marketStore } from '../stores/marketStore'; // Import marketStore
+import { bitunixWs } from './bitunixWs'; // Import WS Service
 import type { JournalEntry, TradeValues, IndividualTpResult, BaseMetrics } from '../stores/types';
 import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
@@ -50,6 +52,8 @@ interface CSVTradeEntry {
 }
 
 let priceUpdateIntervalId: any = null;
+let currentSubscribedSymbol: string | null = null;
+let marketStoreUnsubscribe: (() => void) | null = null;
 
 export const app = {
     calculator: calculator,
@@ -61,7 +65,60 @@ export const app = {
             app.populatePresetLoader();
             app.calculateAndDisplay();
             app.setupPriceUpdates();
+            app.setupRealtimeUpdates(); // Initialize WS updates
         }
+    },
+
+    setupRealtimeUpdates: () => {
+        if (!browser) return;
+
+        // Watch for symbol changes to manage WS subscriptions
+        tradeStore.subscribe((state) => {
+            const settings = get(settingsStore);
+            if (settings.apiProvider !== 'bitunix') return;
+
+            const newSymbol = state.symbol ? state.symbol.toUpperCase() : '';
+            if (newSymbol && newSymbol.length >= 3) {
+                 if (currentSubscribedSymbol !== newSymbol) {
+                    if (currentSubscribedSymbol) {
+                        bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                    }
+                    bitunixWs.subscribe(newSymbol, 'price');
+                    currentSubscribedSymbol = newSymbol;
+                 }
+            } else if (currentSubscribedSymbol) {
+                // Symbol cleared or invalid
+                bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                currentSubscribedSymbol = null;
+            }
+        });
+
+        // Watch for Market Data updates (from WS)
+        if (marketStoreUnsubscribe) marketStoreUnsubscribe();
+        marketStoreUnsubscribe = marketStore.subscribe((data) => {
+            const state = get(tradeStore);
+            const settings = get(settingsStore);
+
+            // Only update if:
+            // 1. We have a valid symbol
+            // 2. Auto-update setting is ON
+            // 3. We have WS data for this symbol
+            if (state.symbol && settings.autoUpdatePriceInput) {
+                const symbolKey = state.symbol.toUpperCase();
+                // Check exact symbol or with P suffix logic or USDT suffix logic to be robust
+                const marketData = data[symbolKey] || data[symbolKey.replace('P', '')] || data[symbolKey + 'USDT'];
+                
+                if (marketData && marketData.lastPrice) {
+                    // Update Entry Price
+                    const newPrice = marketData.lastPrice.toNumber();
+                    // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
+                    if (state.entryPrice !== newPrice) {
+                        updateTradeStore(s => ({ ...s, entryPrice: newPrice }));
+                        app.calculateAndDisplay();
+                    }
+                }
+            }
+        });
     },
 
     setupPriceUpdates: () => {
@@ -93,10 +150,32 @@ export const app = {
             const uiState = get(uiStore);
 
             if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
-
-                 // 1. Auto Update Price Input
+                 // Fallback REST polling
+                 // If using Bitunix and WS is connected, maybe we skip REST price update to save bandwidth?
+                 // But for robustness (and Binance support), we keep it.
+                 // Also, 'autoUpdatePriceInput' logic is handled here for non-WS or fallback.
+                 
+                 // If we have fresh WS data, maybe skip this REST call for price? 
+                 // We can check if `bitunixWs` is connected.
+                 // For now, let's keep it simple: run both. The store update handles deduplication somewhat.
+                 // But to avoid overwriting WS data with potentially slightly stale REST data,
+                 // we might want to prioritize WS.
+                 
+                 // 1. Auto Update Price Input (REST Fallback)
                  if (settings.autoUpdatePriceInput) {
-                     app.handleFetchPrice(true);
+                     // If provider is Binance, we MUST use REST (no WS impl yet).
+                     // If Bitunix, we prefer WS.
+                     if (settings.apiProvider === 'binance') {
+                        app.handleFetchPrice(true);
+                     } else {
+                         // Bitunix: Check if WS is active?
+                         // For now, allow REST as backup. It might cause slight jitter if rates differ.
+                         // But usually REST and WS are close.
+                         // Let's rely on handleFetchPrice.
+                         // Optimization: If we just updated via WS < 1s ago, skip?
+                         // Too complex for now.
+                         app.handleFetchPrice(true);
+                     }
                  }
 
                  // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
@@ -487,14 +566,20 @@ export const app = {
         const journalData = get(journalStore);
         if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
-        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
+        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
+        // New headers
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+         ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
             const notes = trade.notes ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '';
             const tpData = Array.from({length: 5}, (_, i) => [ (trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2) ]).flat();
             return [ trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
                 (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
-                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, ...tpData ].join(',');
+                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
+                // New values
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
         const link = document.createElement("a");
@@ -503,6 +588,231 @@ export const app = {
         document.body.appendChild(link);
         link.click();
         document.body.removeChild(link);
+    },
+    syncBitunixHistory: async () => {
+        const settings = get(settingsStore);
+        if (!settings.isPro) return;
+        if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
+            uiStore.showError('settings.apiKeysRequired');
+            return;
+        }
+
+        uiStore.update(s => ({ ...s, isPriceFetching: true })); 
+
+        try {
+            // 1. Fetch Trades
+            const tradeResponse = await fetch('/api/sync', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret,
+                    limit: 100
+                })
+            });
+            const tradeResult = await tradeResponse.json();
+            if (tradeResult.error) throw new Error(tradeResult.error);
+            const trades = tradeResult.data;
+
+            // 2. Fetch Orders (to get SL and Entry confirmation)
+            const orderResponse = await fetch('/api/sync/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret,
+                    limit: 100
+                })
+            });
+            
+            let orders: any[] = [];
+            try {
+                const orderResult = await orderResponse.json();
+                if (!orderResult.error && Array.isArray(orderResult.data)) {
+                    orders = orderResult.data;
+                }
+            } catch (err) {
+                console.warn("Failed to fetch orders:", err);
+            }
+
+            if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
+
+            // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
+            const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
+
+            orders.forEach((o: any) => {
+                let sl = new Decimal(0);
+                if (o.slPrice) sl = new Decimal(o.slPrice);
+                else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
+                else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
+
+                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
+                // Assuming standardized API response or fallback.
+                let t = o.createTime || o.ctime || 0;
+                if (typeof t === 'string') t = parseInt(t, 10);
+
+                if (sl.gt(0) && o.symbol) {
+                    if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
+                    symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+                }
+            });
+
+            // Sort by time ascending
+            Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
+            // ------------------------------------------------------------------
+
+            let addedCount = 0;
+            const currentJournal = get(journalStore);
+            const existingTradeIds = new Set(currentJournal.map(j => String(j.tradeId || '')).filter(Boolean));
+
+            const newEntries: JournalEntry[] = [];
+
+            const findOrder = (orderId: string | number) => orders.find((o: any) => String(o.orderId) === String(orderId));
+
+            for (const t of trades) {
+                // Skip if already exists
+                if (existingTradeIds.has(String(t.tradeId))) continue;
+                
+                const realizedPnl = new Decimal(t.realizedPNL || 0);
+                const fee = new Decimal(t.fee || 0);
+
+                if (realizedPnl.eq(0)) continue; 
+
+                const tradeId = String(t.tradeId);
+                const orderId = String(t.orderId);
+                const symbol = t.symbol;
+
+                let timestamp = t.ctime;
+                if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
+                    timestamp = parseInt(t.ctime, 10);
+                }
+                const date = new Date(timestamp);
+                if (isNaN(date.getTime())) continue;
+
+                const side = t.side; 
+                
+                let tradeType = 'long'; 
+                if (side.toUpperCase() === 'SELL') tradeType = 'long';
+                else tradeType = 'short';
+
+                const relatedOrder = findOrder(orderId);
+
+                let stopLoss = new Decimal(0);
+
+                // Strategy 1: Direct link to order
+                if (relatedOrder) {
+                    if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
+                    else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
+                    else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
+                }
+                
+                // Strategy 2: Fallback to last known SL for symbol
+                if (stopLoss.lte(0)) {
+                    const candidates = symbolSlMap[symbol];
+                    if (candidates) {
+                        const tradeTime = date.getTime();
+                        // Find most recent order BEFORE tradeTime
+                        for (let i = candidates.length - 1; i >= 0; i--) {
+                            if (candidates[i].ctime < tradeTime) {
+                                stopLoss = candidates[i].slPrice;
+                                break;
+                            }
+                        }
+                    }
+                }
+
+                const exitPrice = new Decimal(t.price);
+                const qtyDecimal = new Decimal(t.qty || 0); 
+                
+                // Back-calculate Entry Price if possible
+                // PnL = (Exit - Entry) * Qty  (Long)
+                // PnL = (Entry - Exit) * Qty  (Short)
+                let entryPrice = exitPrice;
+                
+                if (qtyDecimal.gt(0)) {
+                    if (tradeType === 'long') {
+                         // Entry = Exit - (PnL / Qty)
+                         entryPrice = exitPrice.minus(realizedPnl.div(qtyDecimal));
+                    } else {
+                         // Entry = PnL / Qty + Exit
+                         entryPrice = realizedPnl.div(qtyDecimal).plus(exitPrice);
+                    }
+                }
+
+                // Calculate realized stats if SL exists
+                let riskAmount = new Decimal(0);
+                let totalRR = new Decimal(0);
+
+                if (stopLoss.gt(0)) {
+                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
+                    if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
+                        riskAmount = riskPerUnit.times(qtyDecimal);
+                        
+                        if (riskAmount.gt(0) && !realizedPnl.isZero()) {
+                            totalRR = realizedPnl.div(riskAmount);
+                        }
+                    }
+                }
+
+                let status = 'Open';
+                if (!realizedPnl.isZero()) {
+                    status = realizedPnl.gt(0) ? 'Won' : 'Lost';
+                }
+
+                const entry: JournalEntry = {
+                    id: parseInt(tradeId) || Date.now() + Math.random(),
+                    date: date.toISOString(),
+                    symbol: symbol,
+                    tradeType: tradeType,
+                    status: status,
+                    
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
+                    fees: new Decimal(0),
+                    
+                    entryPrice: entryPrice, 
+                    stopLossPrice: stopLoss,
+                    
+                    totalRR: totalRR,
+                    totalNetProfit: realizedPnl, 
+                    riskAmount: riskAmount,
+                    totalFees: fee,
+                    maxPotentialProfit: new Decimal(0),
+                    
+                    notes: `Imported (Order: ${orderId})`,
+                    targets: [],
+                    calculatedTpDetails: [],
+                    
+                    tradeId: tradeId,
+                    orderId: orderId,
+                    fundingFee: new Decimal(0), 
+                    tradingFee: fee,
+                    realizedPnl: realizedPnl,
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+            if (addedCount > 0) {
+                const updatedJournal = [...currentJournal, ...newEntries];
+                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+                
+                journalStore.set(updatedJournal);
+                app.saveJournal(updatedJournal);
+                uiStore.showFeedback('save', 2000); 
+                trackCustomEvent('Journal', 'Sync', 'Bitunix', addedCount);
+            } else {
+                 uiStore.showError("Keine neuen Trades gefunden.");
+            }
+
+        } catch (e: any) {
+            console.error("Sync error:", e);
+            uiStore.showError("Sync failed: " + e.message);
+        } finally {
+            uiStore.update(s => ({ ...s, isPriceFetching: false }));
+        }
     },
     importFromCSV: (file: File) => {
         if (!browser) return;
@@ -546,7 +856,7 @@ export const app = {
                     }
 
                     const typedEntry = entry as CSVTradeEntry;
-                    return {
+                    const importedTrade: JournalEntry = {
                         id: parseInt(typedEntry.ID, 10),
                         date: new Date(`${typedEntry.Datum} ${typedEntry.Uhrzeit}`).toISOString(),
                         symbol: typedEntry.Symbol,
@@ -564,8 +874,17 @@ export const app = {
                         totalFees: parseDecimal(typedEntry['Gesamte Gebuehren'] || '0'),
                         maxPotentialProfit: parseDecimal(typedEntry['Max. potenzieller Gewinn'] || '0'),
                         notes: typedEntry.Notizen ? typedEntry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
-                        targets: targets
-                    } as JournalEntry;
+                        targets: targets,
+                        // New fields
+                        tradeId: typedEntry['Trade ID'] || undefined,
+                        orderId: typedEntry['Order ID'] || undefined,
+                        fundingFee: parseDecimal(typedEntry['Funding Fee'] || '0'),
+                        tradingFee: parseDecimal(typedEntry['Trading Fee'] || '0'),
+                        realizedPnl: parseDecimal(typedEntry['Realized PnL'] || '0'),
+                        isManual: typedEntry['Is Manual'] ? typedEntry['Is Manual'] === 'true' : true,
+                        calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
+                    };
+                    return importedTrade;
                 } catch (err: unknown) {
                     console.warn("Fehler beim Verarbeiten einer Zeile:", entry, err);
                     return null;

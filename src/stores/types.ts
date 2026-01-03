@@ -111,6 +111,7 @@ export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics
 export interface JournalEntry {
     id: number;
     date: string;
+    exitDate?: string; // New field for duration calculation
     symbol: string;
     tradeType: string;
     status: string;
@@ -128,4 +129,12 @@ export interface JournalEntry {
     notes: string;
     targets: Array<{ price: Decimal; percent: Decimal; isLocked: boolean }>;
     calculatedTpDetails: IndividualTpResult[];
+    // Extended fields for Bitunix sync
+    tradeId?: string; // Bitunix trade ID
+    orderId?: string;
+    fundingFee?: Decimal;
+    tradingFee?: Decimal;
+    realizedPnl?: Decimal;
+    isManual?: boolean;
+    screenshot?: string; // Imgur URL
 }
