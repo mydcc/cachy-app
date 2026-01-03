@@ -130,24 +130,24 @@
             <div class="flex flex-col gap-4">
                 <!-- ImgBB Settings -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">ImgBB Image Hosting</h4>
+                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
                      <div class="flex flex-col gap-1">
-                        <label for="imgbb-key" class="text-xs">API Key</label>
+                        <label for="imgbb-key" class="text-xs">{$_('settings.imgbbApiKey')}</label>
                         <input id="imgbb-key" type="password" bind:value={imgbbApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste ImgBB Key" />
                     </div>
                      <div class="flex flex-col gap-1">
-                        <label for="imgbb-exp" class="text-xs">Image Expiration</label>
+                        <label for="imgbb-exp" class="text-xs">{$_('settings.imgbbExpiration')}</label>
                          <select id="imgbb-exp" bind:value={imgbbExpiration} class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]">
-                             <option value={0}>Permanent (No Auto-Delete)</option>
-                             <option value={600}>10 Minutes</option>
-                             <option value={3600}>1 Hour</option>
-                             <option value={86400}>1 Day</option>
-                             <option value={604800}>1 Week</option>
-                             <option value={2592000}>1 Month</option>
+                             <option value={0}>{$_('settings.imgbbPermanent')}</option>
+                             <option value={600}>{$_('settings.imgbb10m')}</option>
+                             <option value={3600}>{$_('settings.imgbb1h')}</option>
+                             <option value={86400}>{$_('settings.imgbb1d')}</option>
+                             <option value={604800}>{$_('settings.imgbb1w')}</option>
+                             <option value={2592000}>{$_('settings.imgbb1m')}</option>
                         </select>
                     </div>
                     <p class="text-[10px] text-[var(--text-secondary)]">
-                         Get your key at <a href="https://api.imgbb.com/" target="_blank" class="text-[var(--accent-color)] hover:underline">api.imgbb.com</a>.
+                         {$_('settings.imgbbGetKey')} <a href="https://api.imgbb.com/" target="_blank" class="text-[var(--accent-color)] hover:underline">api.imgbb.com</a>.
                     </p>
                 </div>
 
