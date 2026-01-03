@@ -18,6 +18,10 @@
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
     let binanceKeys: ApiKeys = { key: '', secret: '' };
 
+    // ImgBB
+    let imgbbApiKey: string;
+    let imgbbExpiration: number;
+
     // Track active tab
     let activeTab: 'general' | 'api' | 'behavior' = 'general';
 
@@ -35,6 +39,9 @@
         // Deep copy keys to avoid binding issues
         bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
         binanceKeys = { ...$settingsStore.apiKeys.binance };
+
+        imgbbApiKey = $settingsStore.imgbbApiKey;
+        imgbbExpiration = $settingsStore.imgbbExpiration;
     }
 
     function saveSettings() {
@@ -47,6 +54,8 @@
             showSidebars,
             feePreference,
             hotkeyMode,
+            imgbbApiKey,
+            imgbbExpiration,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
