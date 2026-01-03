@@ -462,15 +462,45 @@
     }
 
     // --- Image Upload Logic ---
+    let dragOverTradeId: number | null = null;
+
+    function handleDragOver(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = tradeId;
+    }
+
+    function handleDragLeave(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        if (dragOverTradeId === tradeId) {
+            dragOverTradeId = null;
+        }
+    }
+
+    async function handleDrop(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = null;
+
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            await uploadScreenshot(tradeId, file);
+        }
+    }
+
     async function handleScreenshotUpload(tradeId: number, event: Event) {
         if (!browser) return;
 
-        const file = (event.target as HTMLInputElement).files?.[0];
-        if (!file) return;
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+
+        if (file) {
+            await uploadScreenshot(tradeId, file);
+        }
 
         // Reset input so same file can be selected again if needed
-        (event.target as HTMLInputElement).value = '';
+        input.value = '';
+    }
 
+    async function uploadScreenshot(tradeId: number, file: File) {
         uiStore.showLoading('Uploading screenshot...');
 
         try {
@@ -504,6 +534,11 @@
     /* Add style for the thumbnail hover effect */
     .screenshot-cell {
         position: relative;
+    }
+
+    .screenshot-cell.drag-over {
+        background-color: rgba(var(--accent-rgb), 0.2) !important;
+        border: 2px dashed var(--accent-color);
     }
 
     .thumbnail-popup {
@@ -741,7 +776,11 @@
                                     {/if}
                                 </td>
 
-                                <td class="text-center screenshot-cell">
+                                <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                    on:dragover={(e) => handleDragOver(trade.id, e)}
+                                    on:dragleave={(e) => handleDragLeave(trade.id, e)}
+                                    on:drop={(e) => handleDrop(trade.id, e)}
+                                >
                                     {#if trade.screenshot}
                                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                                         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
@@ -754,7 +793,7 @@
                                     {:else}
                                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                                         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                        <label class="icon-btn cursor-pointer block" title="Upload Screenshot">
+                                        <label class="icon-btn cursor-pointer block w-full h-full" title="Upload Screenshot">
                                             {@html icons.plus || '+'}
                                             <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
                                         </label>
