@@ -184,6 +184,18 @@
             </div>
 
             <div class="border-t border-[var(--border-color)] pt-4">
+                <!-- Imgur Client ID -->
+                <div class="mb-4">
+                    <h4 class="text-xs font-semibold text-text-secondary mb-2">Imgur Integration</h4>
+                    <p class="text-xs text-text-secondary mb-2">Required for screenshot uploads. <a href="https://api.imgur.com/oauth2/addclient" target="_blank" class="text-blue-500 hover:underline">Get Client ID</a></p>
+                    <input
+                        type="text"
+                        class="input-field w-full text-xs"
+                        placeholder="Imgur Client ID"
+                        bind:value={$settingsStore.imgurClientId}
+                    />
+                </div>
+
                  <!-- Bitunix Keys -->
                 <div class="mb-4">
                     <h4 class="text-xs font-semibold text-text-secondary mb-2">Bitunix</h4>

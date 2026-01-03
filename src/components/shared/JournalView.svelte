@@ -9,7 +9,9 @@
     import { icons, CONSTANTS } from '../../lib/constants';
     import { browser } from '$app/environment';
     import { getComputedColor, hexToRgba } from '../../utils/colors';
+    import { imgurService } from '../../services/imgurService';
     import ModalFrame from './ModalFrame.svelte';
+    import ImageModal from './ImageModal.svelte';
     import DashboardNav from './DashboardNav.svelte';
     import LineChart from './charts/LineChart.svelte';
     import BarChart from './charts/BarChart.svelte';
@@ -23,6 +25,10 @@
     let activeDeepDivePreset = 'timing';
     let showUnlockOverlay = false;
     let unlockOverlayMessage = '';
+
+    // --- Image Modal State ---
+    let showImageModal = false;
+    let selectedImageUrl = '';
 
     // --- Cheat Code Logic ---
     const CHEAT_CODE = 'VIPENTE2026';
@@ -419,10 +425,77 @@
         (event.target as HTMLElement).classList.toggle('expanded');
     }
 
+    // --- Screenshot Handling ---
+    async function handleScreenshotUpload(file: File, tradeId: number) {
+        if (!file.type.startsWith('image/')) {
+            uiStore.showError('Only image files are allowed.');
+            return;
+        }
+
+        try {
+            const link = await imgurService.uploadToImgur(file);
+            app.updateTrade(tradeId, { screenshot: link });
+
+            // Copy to clipboard
+            if (browser) {
+                await navigator.clipboard.writeText(link);
+                uiStore.showFeedback('copy'); // Reuse copy feedback
+            }
+        } catch (error: any) {
+            uiStore.showError(error.message || 'Upload failed');
+        }
+    }
+
+    function handleScreenshotDrop(event: DragEvent, tradeId: number) {
+        event.preventDefault();
+        const file = event.dataTransfer?.files[0];
+        if (file) {
+            handleScreenshotUpload(file, tradeId);
+        }
+    }
+
+    function handleScreenshotPaste(event: ClipboardEvent, tradeId: number) {
+        const items = event.clipboardData?.items;
+        if (items) {
+            for (let i = 0; i < items.length; i++) {
+                if (items[i].type.indexOf('image') !== -1) {
+                    const file = items[i].getAsFile();
+                    if (file) {
+                        handleScreenshotUpload(file, tradeId);
+                        event.preventDefault(); // Prevent double paste if targeting input
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    function handleScreenshotClick(tradeId: number) {
+        // Trigger hidden file input
+        const input = document.getElementById(`screenshot-input-${tradeId}`) as HTMLInputElement;
+        input?.click();
+    }
+
+    function handleFileSelect(event: Event, tradeId: number) {
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        if (file) {
+            handleScreenshotUpload(file, tradeId);
+        }
+        input.value = ''; // Reset
+    }
+
+    function openImage(url: string) {
+        selectedImageUrl = url;
+        showImageModal = true;
+    }
+
     // Reset pagination on filter change
     $: if (processedTrades.length) currentPage = 1;
 
 </script>
+
+<ImageModal isOpen={showImageModal} imageUrl={selectedImageUrl} on:close={() => showImageModal = false} />
 
 <ModalFrame
     isOpen={$uiStore.showJournalModal}
@@ -588,6 +661,7 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Status</th>
+                            <th>Screenshot</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>

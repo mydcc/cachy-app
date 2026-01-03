@@ -17,6 +17,7 @@ export interface Settings {
     showSidebars: boolean;
     isPro: boolean;
     isDeepDiveUnlocked: boolean;
+    imgurClientId: string;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -31,6 +32,7 @@ const defaultSettings: Settings = {
     showSidebars: true,
     isPro: false,
     isDeepDiveUnlocked: false,
+    imgurClientId: '',
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -80,6 +82,7 @@ function loadSettingsFromLocalStorage(): Settings {
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked ?? defaultSettings.isDeepDiveUnlocked,
+            imgurClientId: settings.imgurClientId ?? defaultSettings.imgurClientId,
             apiKeys: settings.apiKeys
         };
 
