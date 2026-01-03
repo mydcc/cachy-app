@@ -722,13 +722,16 @@ export const app = {
                 }
 
                 const exitPrice = new Decimal(t.price);
+                const qtyDecimal = new Decimal(t.qty || 0);
+
+                const exitPrice = new Decimal(t.price);
                 const qtyDecimal = new Decimal(t.qty || 0); 
                 
                 // Back-calculate Entry Price if possible
                 // PnL = (Exit - Entry) * Qty  (Long)
                 // PnL = (Entry - Exit) * Qty  (Short)
                 let entryPrice = exitPrice;
-                
+
                 if (qtyDecimal.gt(0)) {
                     if (tradeType === 'long') {
                          // Entry = Exit - (PnL / Qty)

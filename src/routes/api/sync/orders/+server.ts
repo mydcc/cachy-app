@@ -52,22 +52,22 @@ async function fetchAllPages(apiKey: string, apiSecret: string, path: string): P
 
     for (let i = 0; i < maxPages; i++) {
         const batch = await fetchBitunixData(apiKey, apiSecret, path, 100, currentEndTime);
-        
+
         if (!batch || batch.length === 0) {
             break;
         }
 
         accumulated = accumulated.concat(batch);
-        
+
         // Pagination logic: use the creation time of the last item
         const lastItem = batch[batch.length - 1];
         // Standardize time field: ctime, createTime, updateTime
         const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
-        
+
         if (timeField) {
             currentEndTime = parseInt(timeField, 10);
         } else {
-            break; 
+            break;
         }
     }
     return accumulated;
