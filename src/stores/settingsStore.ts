@@ -100,7 +100,10 @@ function loadSettingsFromLocalStorage(): Settings {
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
-            apiKeys: settings.apiKeys
+            apiKeys: settings.apiKeys,
+            imgbbApiKey: settings.imgbbApiKey,
+            imgbbExpiration: settings.imgbbExpiration,
+            isDeepDiveUnlocked: settings.isDeepDiveUnlocked
         };
 
         return cleanSettings;
