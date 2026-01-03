@@ -235,6 +235,9 @@
     "imgbb1w": "1 Woche",
     "imgbb1m": "1 Monat",
     "imgbbGetKey": "Hole deinen Key auf",
+    "securityNote": "Keys werden lokal in deinem Browser gespeichert.",
+    "intervalLabel": "Update Intervall für Marktdaten",
+    "providerLabel": "Börsen-Anbieter",
     "tabs": {
       "general": "Allgemein",
       "api": "API & Verbindung",
@@ -247,5 +250,9 @@
     "invalidResponse": "Ungültige Antwort von der API.",
     "klineError": "Kerzendaten konnten nicht geladen werden.",
     "generic": "Ein unbekannter API-Fehler ist aufgetreten."
+  },
+  "common": {
+    "save": "Speichern",
+    "cancel": "Abbrechen"
   }
 }

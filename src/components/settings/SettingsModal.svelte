@@ -4,6 +4,7 @@
     import { uiStore } from '../../stores/uiStore';
     import { _ } from '../../locales/i18n';
     import { trackCustomEvent } from '../../services/trackingService';
+    import { createBackup, restoreFromBackup } from '../../services/backupService';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -22,7 +23,7 @@
     let binanceKeys: ApiKeys = { key: '', secret: '' };
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'behavior' = 'general';
+    let activeTab: 'general' | 'api' | 'behavior' | 'system' = 'general';
 
     // Subscribe to store to initialize local state
     // We use a reactive statement that runs when the modal opens to sync state
@@ -66,6 +67,35 @@
     function close() {
         uiStore.toggleSettingsModal(false);
     }
+
+    function handleBackup() {
+        createBackup();
+        trackCustomEvent('Settings', 'Backup');
+        uiStore.showFeedback('save');
+    }
+
+    function handleRestore() {
+        const input = document.createElement('input');
+        input.type = 'file';
+        input.accept = '.json';
+        input.onchange = (e) => {
+            const file = (e.target as HTMLInputElement).files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = (event) => {
+                const content = event.target?.result as string;
+                const result = restoreFromBackup(content);
+                if (result.success) {
+                    trackCustomEvent('Settings', 'Restore');
+                    window.location.reload();
+                } else {
+                    uiStore.showError(result.message);
+                }
+            };
+            reader.readAsText(file);
+        };
+        input.click();
+    }
 </script>
 
 <ModalFrame
@@ -93,6 +123,12 @@
             on:click={() => activeTab = 'behavior'}
         >
             {$_('settings.tabs.behavior') || 'Behavior'}
+        </button>
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors {activeTab === 'system' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'system'}
+        >
+            {$_('settings.tabs.system') || 'System'}
         </button>
     </div>
 
@@ -153,7 +189,7 @@
 
                 <!-- Provider Selection -->
                 <div class="flex flex-col gap-1">
-                    <span class="text-sm font-medium">{$_('settings.providerLabel') || 'Exchange Provider'}</span>
+                    <span class="text-sm font-medium">{$_('settings.apiProvider') || 'Exchange Provider'}</span>
                     <select bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                         <option value="bitunix">Bitunix</option>
                         <option value="binance">Binance Futures</option>
@@ -218,6 +254,31 @@
                     </div>
                     <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
+            </div>
+
+        {:else if activeTab === 'system'}
+            <div class="flex flex-col gap-4">
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium">{$_('settings.theme') || 'Theme'}</span>
+                    <div class="flex gap-2">
+                        <button class="px-3 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)]" on:click={() => uiStore.setTheme('dark')}>Dark</button>
+                        <button class="px-3 py-1 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-primary)] hover:bg-[var(--bg-tertiary)]" on:click={() => uiStore.setTheme('light')}>Light</button>
+                    </div>
+                </div>
+
+                <div class="border-t border-[var(--border-color)] my-2"></div>
+
+                <div class="flex flex-col gap-2">
+                    <span class="text-sm font-medium">{$_('settings.backup') || 'Backup'}</span>
+                    <div class="flex flex-wrap gap-2">
+                         <button class="px-3 py-2 text-sm bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded hover:opacity-90" on:click={handleBackup}>
+                            {$_('app.backupButtonAriaLabel') || 'Create Backup'}
+                        </button>
+                        <button class="px-3 py-2 text-sm bg-[var(--btn-secondary-bg)] text-[var(--btn-secondary-text)] rounded hover:opacity-90" on:click={handleRestore}>
+                            {$_('app.restoreButtonAriaLabel') || 'Restore Backup'}
+                        </button>
+                    </div>
+                </div>
             </div>
         {/if}
 
