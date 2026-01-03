@@ -6,6 +6,7 @@ export interface TradeValues {
     entryPrice: Decimal;
     leverage: Decimal;
     fees: Decimal;
+    exitFees?: Decimal; // Optional: if defined, used for exit calculation
     symbol: string;
     useAtrSl: boolean;
     atrValue: Decimal;
@@ -53,6 +54,8 @@ export interface AppState {
     stopLossPrice: number | null;
     leverage: number | null;
     fees: number | null;
+    exitFees?: number | null;
+    feeMode?: 'maker_maker' | 'maker_taker' | 'taker_taker' | 'taker_maker';
     symbol: string;
     atrValue: number | null;
     atrMultiplier: number | null;
