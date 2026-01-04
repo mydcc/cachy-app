@@ -2,10 +2,11 @@ import { writable, get } from 'svelte/store';
 import { marketStore, wsStatusStore } from '../stores/marketStore';
 import { accountStore } from '../stores/accountStore';
 import { settingsStore } from '../stores/settingsStore';
+import { CONSTANTS } from '../lib/constants';
 import CryptoJS from 'crypto-js';
 
-const WS_PUBLIC_URL = 'wss://fapi.bitunix.com/public/';
-const WS_PRIVATE_URL = 'wss://fapi.bitunix.com/private/';
+const WS_PUBLIC_URL = CONSTANTS.BITUNIX_WS_PUBLIC_URL || 'wss://fapi.bitunix.com/public/';
+const WS_PRIVATE_URL = CONSTANTS.BITUNIX_WS_PRIVATE_URL || 'wss://fapi.bitunix.com/private/';
 
 const PING_INTERVAL = 15000; // 15 seconds
 const RECONNECT_DELAY = 3000; // 3 seconds
@@ -52,7 +53,9 @@ class BitunixWebSocketService {
             console.log('Bitunix Public WebSocket connected.');
             wsStatusStore.set('connected');
             this.isReconnectingPublic = false;
-            this.startHeartbeat(this.wsPublic, 'public');
+            if (this.wsPublic) {
+                this.startHeartbeat(this.wsPublic, 'public');
+            }
             this.resubscribePublic();
         };
 
@@ -97,7 +100,9 @@ class BitunixWebSocketService {
         this.wsPrivate.onopen = () => {
             console.log('Bitunix Private WebSocket connected.');
             this.isReconnectingPrivate = false;
-            this.startHeartbeat(this.wsPrivate, 'private');
+            if (this.wsPrivate) {
+                this.startHeartbeat(this.wsPrivate, 'private');
+            }
             this.login(apiKey, apiSecret);
         };
 
@@ -241,6 +246,37 @@ class BitunixWebSocketService {
                     bids: data.b,
                     asks: data.a
                 });
+            }
+        }
+
+        // Private Channels
+        else if (message.ch === 'position') {
+            const data = message.data;
+            if (data) {
+                // If it is an array (Snapshot), iterate
+                if (Array.isArray(data)) {
+                     data.forEach(item => accountStore.updatePositionFromWs(item));
+                } else {
+                     accountStore.updatePositionFromWs(data);
+                }
+            }
+        } else if (message.ch === 'order') {
+            const data = message.data;
+            if (data) {
+                if (Array.isArray(data)) {
+                    data.forEach(item => accountStore.updateOrderFromWs(item));
+                } else {
+                    accountStore.updateOrderFromWs(data);
+                }
+            }
+        } else if (message.ch === 'wallet') {
+            const data = message.data;
+            if (data) {
+                if (Array.isArray(data)) {
+                    data.forEach(item => accountStore.updateBalanceFromWs(item));
+                } else {
+                     accountStore.updateBalanceFromWs(data);
+                }
             }
         }
     }

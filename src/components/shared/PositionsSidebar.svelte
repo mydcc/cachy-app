@@ -13,6 +13,12 @@
     export let isMobile = false; // Add isMobile prop
 
     let isOpen = true;
+
+    // Fix for duplicate loading: only fetch if visible or explicit logic
+    // Actually, in the mobile view it might be conditionally rendered with CSS 'hidden' classes in +page.svelte
+    // If it is just hidden with CSS, Svelte still mounts it.
+    // We should rely on a singleton store or similar, BUT for now, let's just make sure we don't over-poll.
+    // The component uses props or checks store.
     
     // Data State
     let positions: any[] = [];

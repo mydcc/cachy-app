@@ -683,15 +683,17 @@ export const app = {
             const findOrder = (orderId: string | number) => orders.find((o: any) => String(o.orderId) === String(orderId));
 
             for (const t of trades) {
+                // Robustly normalize ID to string
+                const currentTradeIdStr = String(t.tradeId);
                 // Skip if already exists
-                if (existingTradeIds.has(String(t.tradeId))) continue;
+                if (existingTradeIds.has(currentTradeIdStr)) continue;
                 
                 const realizedPnl = new Decimal(t.realizedPNL || 0);
                 const fee = new Decimal(t.fee || 0);
 
                 if (realizedPnl.eq(0)) continue; 
 
-                const tradeId = String(t.tradeId);
+                const tradeId = currentTradeIdStr;
                 const orderId = String(t.orderId);
                 const symbol = t.symbol;
 
@@ -724,9 +726,12 @@ export const app = {
                     const candidates = symbolSlMap[symbol];
                     if (candidates) {
                         const tradeTime = date.getTime();
-                        // Find most recent order BEFORE tradeTime
+                        // Find most recent order BEFORE or EQUAL to tradeTime (allowing small clock drift or same-second exec)
+                        // Buffer of 2 seconds
+                        const adjustedTradeTime = tradeTime + 2000;
+
                         for (let i = candidates.length - 1; i >= 0; i--) {
-                            if (candidates[i].ctime < tradeTime) {
+                            if (candidates[i].ctime <= adjustedTradeTime) {
                                 stopLoss = candidates[i].slPrice;
                                 break;
                             }
