@@ -17,6 +17,7 @@
     import DoughnutChart from './charts/DoughnutChart.svelte';
     import BubbleChart from './charts/BubbleChart.svelte';
     import CalendarHeatmap from './charts/CalendarHeatmap.svelte';
+    import Tooltip from './Tooltip.svelte';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
 
