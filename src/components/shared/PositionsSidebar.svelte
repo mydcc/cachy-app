@@ -10,6 +10,8 @@
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
 
+    export let isMobile = false; // Add isMobile prop
+
     let isOpen = true;
     
     // Data State
@@ -164,7 +166,7 @@
     }
 </script>
 
-<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 w-80" class:h-auto={isOpen} class:h-12={!isOpen}>
+<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 {isMobile ? 'w-full' : 'w-80'}" class:h-auto={isOpen} class:h-12={!isOpen}>
     <!-- Header / Toggle -->
     <div
         class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
@@ -256,8 +258,8 @@
                                     <div class="flex justify-between items-center mb-1">
                                         <span class="font-bold text-sm text-[var(--text-primary)]">{pos.symbol}</span>
                                         <span class="text-xs font-bold px-1.5 py-0.5 rounded"
-                                            class:bg-green-900={pos.side === 'LONG'} class:text-green-300={pos.side === 'LONG'}
-                                            class:bg-red-900={pos.side === 'SHORT'} class:text-red-300={pos.side === 'SHORT'}>
+                                            class:bg-green-900={pos.side.toUpperCase() === 'LONG'} class:text-green-300={pos.side.toUpperCase() === 'LONG'}
+                                            class:bg-red-900={pos.side.toUpperCase() === 'SHORT'} class:text-red-300={pos.side.toUpperCase() === 'SHORT'}>
                                             {pos.side} {pos.leverage}x
                                         </span>
                                     </div>
