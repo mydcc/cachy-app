@@ -1,5 +1,6 @@
 <script lang="ts">
     import { numberInput } from '../../utils/inputUtils';
+    import { enhancedInput } from '../../lib/actions/inputEnhancements';
     import { _ } from '../../locales/i18n';
     import { onboardingService } from '../../services/onboardingService';
     import { createEventDispatcher, onMount } from 'svelte';
@@ -104,18 +105,37 @@
     });
 </script>
 
+<style>
+    .input-field:focus {
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: var(--accent-color);
+        z-index: 10;
+    }
+</style>
+
 <div>
     <h2 class="section-header !mt-6">{$_('dashboard.portfolioInputs.header')}</h2>
     <div class="grid grid-cols-3 gap-4">
         <div>
             <label for="account-size" class="input-label text-xs">{$_('dashboard.portfolioInputs.accountSizeLabel')}</label>
             <div class="relative">
-                <input id="account-size" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(accountSize)} on:input={handleAccountSizeInput} class="input-field w-full px-4 py-2 rounded-md pr-10" placeholder="{$_('dashboard.portfolioInputs.accountSizePlaceholder')}" on:input={onboardingService.trackFirstInput}>
+                <input
+                    id="account-size"
+                    type="text"
+                    use:numberInput={{ maxDecimalPlaces: 4 }}
+                    use:enhancedInput={{ step: 100, min: 0, rightOffset: '24px' }}
+                    value={format(accountSize)}
+                    on:input={handleAccountSizeInput}
+                    class="input-field w-full px-4 py-2 rounded-md pr-10"
+                    placeholder="{$_('dashboard.portfolioInputs.accountSizePlaceholder')}"
+                    on:input={onboardingService.trackFirstInput}
+                >
                 <button 
                     class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance ? 'animate-spin' : ''}" 
                     on:click={() => handleFetchBalance(false)} 
                     title="{$_('dashboard.portfolioInputs.fetchBalanceTitle') || 'Fetch Balance'}"
                     disabled={isFetchingBalance}
+                    style="margin-right: 16px;"
                 >
                     {@html icons.fetch}
                 </button>
@@ -123,13 +143,42 @@
         </div>
         <div>
             <label for="risk-percentage" class="input-label text-xs">{$_('dashboard.portfolioInputs.riskPerTradeLabel')}</label>
-            <input id="risk-percentage" type="text" use:numberInput={{ maxDecimalPlaces: 2, isPercentage: true, maxValue: 100, minValue: 0 }} value={format(riskPercentage)} on:input={handleRiskPercentageInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.portfolioInputs.riskPerTradePlaceholder')}" on:input={onboardingService.trackFirstInput} disabled={isRiskAmountLocked || isPositionSizeLocked}>
+            <div class="relative">
+                <input
+                    id="risk-percentage"
+                    type="text"
+                    use:numberInput={{ maxDecimalPlaces: 2, isPercentage: true, maxValue: 100, minValue: 0 }}
+                    use:enhancedInput={{ step: 0.5, min: 0, max: 100, rightOffset: '2px' }}
+                    value={format(riskPercentage)}
+                    on:input={handleRiskPercentageInput}
+                    class="input-field w-full px-4 py-2 rounded-md"
+                    placeholder="{$_('dashboard.portfolioInputs.riskPerTradePlaceholder')}"
+                    on:input={onboardingService.trackFirstInput}
+                    disabled={isRiskAmountLocked || isPositionSizeLocked}
+                >
+            </div>
         </div>
         <div>
             <label for="risk-amount" class="input-label text-xs">{$_('dashboard.portfolioInputs.riskAmountLabel')}</label>
             <div class="relative">
-                <input id="risk-amount" type="text" use:numberInput={{ maxDecimalPlaces: 2 }} value={format(riskAmount)} on:input={handleRiskAmountInput} class="input-field w-full px-4 py-2 rounded-md pr-10" placeholder="e.g. 100" disabled={isPositionSizeLocked}>
-                <button class="absolute top-1/2 right-2 -translate-y-1/2 btn-lock-icon" on:click={handleLockClick} title="{$_('dashboard.portfolioInputs.toggleRiskAmountLockTitle')}" disabled={isPositionSizeLocked}>
+                <input
+                    id="risk-amount"
+                    type="text"
+                    use:numberInput={{ maxDecimalPlaces: 2 }}
+                    use:enhancedInput={{ step: 10, min: 0, rightOffset: '24px' }}
+                    value={format(riskAmount)}
+                    on:input={handleRiskAmountInput}
+                    class="input-field w-full px-4 py-2 rounded-md pr-10"
+                    placeholder="e.g. 100"
+                    disabled={isPositionSizeLocked}
+                >
+                <button
+                    class="absolute top-1/2 right-2 -translate-y-1/2 btn-lock-icon"
+                    on:click={handleLockClick}
+                    title="{$_('dashboard.portfolioInputs.toggleRiskAmountLockTitle')}"
+                    disabled={isPositionSizeLocked}
+                    style="margin-right: 16px;"
+                >
                     {@html isRiskAmountLocked ? icons.lockClosed : icons.lockOpen}
                 </button>
             </div>

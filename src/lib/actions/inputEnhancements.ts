@@ -1,166 +1,95 @@
+export function enhancedInput(node: HTMLElement, options: { step?: number, min?: number, max?: number, noDecimals?: boolean, rightOffset?: string } = {}) {
+    const step = options.step || 1;
+    const rightOffset = options.rightOffset || '2px';
 
-import { Decimal } from 'decimal.js';
-
-interface EnhancedInputOptions {
-    step?: number;
-    dynamic?: boolean;
-    min?: number;
-    max?: number;
-    noDecimals?: boolean;
-    rightOffset?: string; // e.g. '2rem' if there are other icons
-}
-
-export function enhancedInput(node: HTMLInputElement, options: EnhancedInputOptions = {}) {
-    let { step = 1, dynamic = false, min = -Infinity, max = Infinity, noDecimals = false, rightOffset = '4px' } = options;
-
-    // Ensure parent is relative for absolute positioning of arrows
+    // Ensure parent is relative for absolute positioning
     const parent = node.parentElement;
     if (parent) {
-        const computedStyle = window.getComputedStyle(parent);
-        if (computedStyle.position === 'static') {
-             parent.style.position = 'relative';
+        if (getComputedStyle(parent).position === 'static') {
+            parent.style.position = 'relative';
         }
     }
 
     // Create container for arrows
     const arrowContainer = document.createElement('div');
-    arrowContainer.className = 'enhanced-input-arrows';
-    // Style the container
-    Object.assign(arrowContainer.style, {
-        position: 'absolute',
-        right: rightOffset,
-        top: '50%',
-        transform: 'translateY(-50%)',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '0px',
-        zIndex: '20',
-        opacity: '0.6', // Slightly transparent by default
-        transition: 'opacity 0.2s',
-        cursor: 'pointer',
-        height: '100%',
-        justifyContent: 'center',
-        padding: '0 2px'
-    });
+    arrowContainer.className = 'absolute top-1/2 -translate-y-1/2 flex flex-col z-20';
+    arrowContainer.style.right = rightOffset;
+    arrowContainer.style.height = '100%';
+    arrowContainer.style.justifyContent = 'center';
 
-    // Hover effect
-    if (parent) {
-        parent.addEventListener('mouseenter', () => arrowContainer.style.opacity = '1');
-        parent.addEventListener('mouseleave', () => arrowContainer.style.opacity = '0.6');
-    }
+    // Up Arrow
+    const upBtn = document.createElement('button');
+    upBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3 text-[var(--text-secondary)] hover:text-[var(--accent-color)]"><path fill-rule="evenodd" d="M11.47 7.72a.75.75 0 011.06 0l7.5 7.5a.75.75 0 11-1.06 1.06L12 9.31l-6.97 6.97a.75.75 0 01-1.06-1.06l7.5-7.5z" clip-rule="evenodd" /></svg>`;
+    upBtn.className = 'p-0.5 focus:outline-none transition-colors';
+    upBtn.tabIndex = -1; // Prevent tab focus
+    upBtn.type = 'button';
 
-    // Arrow Up
-    const upArrow = document.createElement('div');
-    upArrow.innerHTML = `<svg width="8" height="5" viewBox="0 0 10 6" fill="currentColor"><path d="M5 0L0 5L1.4 6.4L5 2.8L8.6 6.4L10 5L5 0Z"/></svg>`;
-    styleArrow(upArrow);
-    upArrow.style.marginBottom = '2px';
+    // Down Arrow
+    const downBtn = document.createElement('button');
+    downBtn.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-3 h-3 text-[var(--text-secondary)] hover:text-[var(--accent-color)]"><path fill-rule="evenodd" d="M12.53 16.28a.75.75 0 01-1.06 0l-7.5-7.5a.75.75 0 011.06-1.06L12 14.69l6.97-6.97a.75.75 0 111.06 1.06l-7.5 7.5z" clip-rule="evenodd" /></svg>`;
+    downBtn.className = 'p-0.5 focus:outline-none transition-colors';
+    downBtn.tabIndex = -1;
+    downBtn.type = 'button';
 
-    // Arrow Down
-    const downArrow = document.createElement('div');
-    downArrow.innerHTML = `<svg width="8" height="5" viewBox="0 0 10 6" fill="currentColor" style="transform: rotate(180deg);"><path d="M5 0L0 5L1.4 6.4L5 2.8L8.6 6.4L10 5L5 0Z"/></svg>`;
-    styleArrow(downArrow);
+    arrowContainer.appendChild(upBtn);
+    arrowContainer.appendChild(downBtn);
 
-    arrowContainer.appendChild(upArrow);
-    arrowContainer.appendChild(downArrow);
+    if (parent) parent.appendChild(arrowContainer);
 
-    if (parent) {
-        parent.appendChild(arrowContainer);
-    }
-
-    function styleArrow(el: HTMLElement) {
-        Object.assign(el.style, {
-            width: '12px',
-            height: '10px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'var(--text-secondary)',
-            fontSize: '8px',
-            userSelect: 'none'
-        });
-        el.onmouseenter = () => el.style.color = 'var(--accent-color)';
-        el.onmouseleave = () => el.style.color = 'var(--text-secondary)';
-    }
-
-    function getDynamicStep(val: number): number {
-        if (!dynamic) return step;
-        const absVal = Math.abs(val);
-        if (absVal === 0) return step; // default
-
-        // Count decimals
-        const s = String(val);
-        if (s.includes('.')) {
-            const decimals = s.split('.')[1].length;
-            return Math.pow(10, -decimals);
-        } else {
-            return 1;
-        }
-    }
-
-    function changeValue(direction: 1 | -1) {
-        const currentVal = parseFloat(node.value) || 0;
-        const currentStep = getDynamicStep(currentVal);
-
-        let newVal = new Decimal(currentVal).plus(new Decimal(currentStep).times(direction));
-
-        if (noDecimals) {
-             newVal = newVal.round();
-        }
-
-        if (newVal.toNumber() < min) newVal = new Decimal(min);
-        if (newVal.toNumber() > max) newVal = new Decimal(max);
-
-        // Update input
-        const prototype = Object.getPrototypeOf(node);
-        const prototypeValueSetter = Object.getOwnPropertyDescriptor(prototype, 'value')?.set;
-
-        if (prototypeValueSetter) {
-            prototypeValueSetter.call(node, String(newVal));
-        } else {
-            node.value = String(newVal);
-        }
-
+    function triggerInput() {
         node.dispatchEvent(new Event('input', { bubbles: true }));
         node.dispatchEvent(new Event('change', { bubbles: true }));
+    }
+
+    function updateValue(delta: number) {
+        const input = node as HTMLInputElement;
+        let val = parseFloat(input.value);
+        if (isNaN(val)) val = 0;
+
+        let newVal = val + delta;
+
+        // Precision handling to avoid floating point errors (e.g. 0.1 + 0.2)
+        const stepStr = String(step);
+        const decimals = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
+        newVal = parseFloat(newVal.toFixed(decimals));
+
+        if (options.min !== undefined && newVal < options.min) newVal = options.min;
+        if (options.max !== undefined && newVal > options.max) newVal = options.max;
+
+        input.value = String(newVal);
+        triggerInput();
     }
 
     const handleUp = (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-        changeValue(1);
+        updateValue(step);
     };
 
     const handleDown = (e: Event) => {
         e.preventDefault();
         e.stopPropagation();
-        changeValue(-1);
+        updateValue(-step);
     };
 
-    upArrow.addEventListener('mousedown', handleUp);
-    downArrow.addEventListener('mousedown', handleDown);
-
-    // Wheel Handler
     const handleWheel = (e: WheelEvent) => {
         if (document.activeElement === node) {
             e.preventDefault();
-            const direction = e.deltaY < 0 ? 1 : -1;
-            changeValue(direction);
+            if (e.deltaY < 0) updateValue(step);
+            else updateValue(-step);
         }
     };
 
+    upBtn.addEventListener('mousedown', handleUp); // mousedown avoids focus loss issues sometimes
+    downBtn.addEventListener('mousedown', handleDown);
     node.addEventListener('wheel', handleWheel, { passive: false });
 
     return {
-        update(newOptions: EnhancedInputOptions) {
-            step = newOptions.step ?? step;
-            dynamic = newOptions.dynamic ?? dynamic;
-            min = newOptions.min ?? min;
-            max = newOptions.max ?? max;
-            noDecimals = newOptions.noDecimals ?? noDecimals;
-        },
         destroy() {
+            upBtn.removeEventListener('mousedown', handleUp);
+            downBtn.removeEventListener('mousedown', handleDown);
             node.removeEventListener('wheel', handleWheel);
-            if (parent && parent.contains(arrowContainer)) {
+            if (parent && arrowContainer.parentElement === parent) {
                 parent.removeChild(arrowContainer);
             }
         }
