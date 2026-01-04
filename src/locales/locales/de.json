@@ -260,7 +260,8 @@
   },
   "common": {
       "save": "Speichern",
-      "cancel": "Abbrechen"
+      "cancel": "Abbrechen",
+      "ok": "OK"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol nicht gefunden oder API-Fehler.",

@@ -431,7 +431,7 @@
     <!-- Footer Actions -->
     <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
         <button class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={close}>
-            {$_('customModal.okButton') || 'OK'}
+            {$_('common.ok') || 'OK'}
         </button>
     </div>
 </ModalFrame>
