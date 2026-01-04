@@ -27,7 +27,13 @@ export const initialTradeState: Pick<AppState,
     'riskAmount' |
     'journalSearchQuery' |
     'journalFilterStatus' |
-    'currentTradeData'
+    'currentTradeData' |
+    'remoteLeverage' |
+    'remoteMarginMode' |
+    'remoteMakerFee' |
+    'remoteTakerFee' |
+    'feeMode' |
+    'exitFees'
 > = {
     tradeType: CONSTANTS.TRADE_TYPE_LONG,
     accountSize: 1000,
@@ -55,6 +61,12 @@ export const initialTradeState: Pick<AppState,
     journalSearchQuery: '',
     journalFilterStatus: 'all',
     currentTradeData: null,
+    remoteLeverage: undefined,
+    remoteMarginMode: undefined,
+    remoteMakerFee: undefined,
+    remoteTakerFee: undefined,
+    feeMode: 'maker_taker',
+    exitFees: undefined
 };
 
 function loadTradeStateFromLocalStorage(): typeof initialTradeState {

@@ -103,6 +103,12 @@ export interface AppState {
     journalSearchQuery: string;
     journalFilterStatus: string;
     currentTradeData: CurrentTradeData | null;
+
+    // Remote / Synced Data (Optional)
+    remoteLeverage?: number;
+    remoteMarginMode?: string;
+    remoteMakerFee?: number;
+    remoteTakerFee?: number;
 }
 
 export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics {
