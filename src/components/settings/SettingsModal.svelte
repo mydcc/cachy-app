@@ -12,6 +12,7 @@
     let autoUpdatePriceInput: boolean;
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
+    let hideUnfilledOrders: boolean;
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
 
@@ -68,6 +69,7 @@
             autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
+            hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
 
@@ -96,6 +98,7 @@
             autoUpdatePriceInput,
             autoFetchBalance,
             showSidebars,
+            hideUnfilledOrders,
             feePreference,
             hotkeyMode,
             imgbbApiKey,
@@ -254,6 +257,11 @@
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
                     <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
+                    <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
 
                 <!-- Fee Preference -->

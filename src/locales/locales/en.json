@@ -235,6 +235,7 @@
     "interval1m": "Every 1m",
     "interval10m": "Every 10m",
     "showSidebars": "Show Sidebars",
+    "hideUnfilledOrders": "Show only executed orders",
     "feePreference": "Fee Preference",
     "feePreferenceDesc": "Select which fee rate to use by default when syncing from API.",
     "providerLabel": "Exchange Provider",

@@ -156,6 +156,19 @@
     $: if (activeTab === 'orders') fetchOrders('pending');
     $: if (activeTab === 'history') fetchOrders('history');
 
+    // Filter History
+    let filteredHistoryOrders = [];
+    $: {
+        if ($settingsStore.hideUnfilledOrders) {
+             // Filter: Must have fill amount > 0 OR status FILLED/PARTIAL
+             // Bitunix usually has 'filled' or 'dealAmount' or 'state'
+             // Based on the screenshot, unfilled orders have 0 filled/vol.
+             filteredHistoryOrders = historyOrders.filter(o => Number(o.filled || o.dealAmount || 0) > 0);
+        } else {
+             filteredHistoryOrders = historyOrders;
+        }
+    }
+
     function toggle() {
         isOpen = !isOpen;
     }
@@ -291,7 +304,7 @@
             {:else if activeTab === 'orders'}
                 <OpenOrdersList orders={openOrders} loading={loadingOrders} error={errorOrders} />
             {:else if activeTab === 'history'}
-                <OrderHistoryList orders={historyOrders} loading={loadingHistory} error={errorHistory} />
+                <OrderHistoryList orders={filteredHistoryOrders} loading={loadingHistory} error={errorHistory} />
             {/if}
         </div>
     {/if}
