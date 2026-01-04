@@ -29,27 +29,62 @@
 
     // Track active tab
     let activeTab: 'general' | 'api' | 'behavior' | 'system' = 'general';
+    let isInitialized = false;
+
+    const themes = [
+        { value: 'dark', label: 'Dark (Default)' },
+        { value: 'light', label: 'Light' },
+        { value: 'meteorite', label: 'Meteorite' },
+        { value: 'midnight', label: 'Midnight' },
+        { value: 'cobalt2', label: 'Cobalt2' },
+        { value: 'night-owl', label: 'Night Owl' },
+        { value: 'dracula', label: 'Dracula' },
+        { value: 'dracula-soft', label: 'Dracula Soft' },
+        { value: 'monokai', label: 'Monokai' },
+        { value: 'nord', label: 'Nord' },
+        { value: 'solarized-dark', label: 'Solarized Dark' },
+        { value: 'solarized-light', label: 'Solarized Light' },
+        { value: 'gruvbox-dark', label: 'Gruvbox Dark' },
+        { value: 'catppuccin', label: 'Catppuccin' },
+        { value: 'tokyo-night', label: 'Tokyo Night' },
+        { value: 'one-dark-pro', label: 'One Dark Pro' },
+        { value: 'obsidian', label: 'Obsidian' },
+        { value: 'ayu-dark', label: 'Ayu Dark' },
+        { value: 'ayu-light', label: 'Ayu Light' },
+        { value: 'ayu-mirage', label: 'Ayu Mirage' },
+        { value: 'github-dark', label: 'GitHub Dark' },
+        { value: 'github-light', label: 'GitHub Light' },
+        { value: 'steel', label: 'Steel' },
+        { value: 'matrix', label: 'Matrix' },
+        { value: 'everforest-dark', label: 'Everforest Dark' },
+    ];
 
     // Subscribe to store to initialize local state
-    // We use a reactive statement that runs when the modal opens to sync state
+    // We use a guard to prevent overwriting user changes if the store updates while modal is open
     $: if ($uiStore.showSettingsModal) {
-        apiProvider = $settingsStore.apiProvider;
-        marketDataInterval = $settingsStore.marketDataInterval;
-        autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
-        autoFetchBalance = $settingsStore.autoFetchBalance;
-        showSidebars = $settingsStore.showSidebars;
-        feePreference = $settingsStore.feePreference;
-        hotkeyMode = $settingsStore.hotkeyMode;
+        if (!isInitialized) {
+            apiProvider = $settingsStore.apiProvider;
+            marketDataInterval = $settingsStore.marketDataInterval;
+            autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
+            autoFetchBalance = $settingsStore.autoFetchBalance;
+            showSidebars = $settingsStore.showSidebars;
+            feePreference = $settingsStore.feePreference;
+            hotkeyMode = $settingsStore.hotkeyMode;
 
-        // Deep copy keys to avoid binding issues
-        bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
-        binanceKeys = { ...$settingsStore.apiKeys.binance };
+            // Deep copy keys to avoid binding issues
+            bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
+            binanceKeys = { ...$settingsStore.apiKeys.binance };
 
-        imgbbApiKey = $settingsStore.imgbbApiKey;
-        imgbbExpiration = $settingsStore.imgbbExpiration;
+            imgbbApiKey = $settingsStore.imgbbApiKey;
+            imgbbExpiration = $settingsStore.imgbbExpiration;
 
-        currentTheme = $uiStore.currentTheme;
-        currentLanguage = $locale || 'en';
+            currentTheme = $uiStore.currentTheme;
+            currentLanguage = $locale || 'en';
+
+            isInitialized = true;
+        }
+    } else {
+        isInitialized = false;
     }
 
     function saveSettings() {
@@ -80,7 +115,7 @@
 
         trackCustomEvent('Settings', 'Save', apiProvider);
         uiStore.toggleSettingsModal(false);
-        uiStore.showFeedback('save'); // Assuming generic 'save' feedback exists
+        uiStore.showFeedback('save');
     }
 
     function close() {
@@ -162,10 +197,10 @@
     isOpen={$uiStore.showSettingsModal}
     title={$_('settings.title') || 'Settings'}
     on:close={close}
-    extraClasses="max-w-md w-full"
+    extraClasses="max-w-md w-full max-h-[90vh] flex flex-col"
 >
     <!-- Tabs Header -->
-    <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto">
+    <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0">
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'general' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'general'}
@@ -193,7 +228,7 @@
     </div>
 
     <!-- Tab Content -->
-    <div class="flex flex-col gap-4 min-h-[300px]">
+    <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
 
         {#if activeTab === 'general'}
             <div class="flex flex-col gap-4">
@@ -209,8 +244,9 @@
                     <div class="flex flex-col gap-1">
                          <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.theme')}</span>
                         <select bind:value={currentTheme} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
-                            <option value="dark">{$_('settings.themeDark')}</option>
-                            <option value="light">{$_('settings.themeLight')}</option>
+                            {#each themes as theme}
+                                <option value={theme.value}>{theme.label}</option>
+                            {/each}
                         </select>
                     </div>
                 </div>
@@ -394,7 +430,7 @@
     </div>
 
     <!-- Footer Actions -->
-    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)]">
+    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
         <button class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]" on:click={close}>
             {$_('common.cancel')}
         </button>
