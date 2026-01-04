@@ -123,7 +123,7 @@
                     id="account-size"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
-                    use:enhancedInput={{ step: 100, min: 0, rightOffset: '24px' }}
+                    use:enhancedInput={{ step: 100, min: 0, rightOffset: '40px' }}
                     value={format(accountSize)}
                     on:input={handleAccountSizeInput}
                     class="input-field w-full px-4 py-2 rounded-md pr-10"
@@ -165,7 +165,7 @@
                     id="risk-amount"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 2 }}
-                    use:enhancedInput={{ step: 10, min: 0, rightOffset: '24px' }}
+                    use:enhancedInput={{ step: 10, min: 0, rightOffset: '40px' }}
                     value={format(riskAmount)}
                     on:input={handleRiskAmountInput}
                     class="input-field w-full px-4 py-2 rounded-md pr-10"

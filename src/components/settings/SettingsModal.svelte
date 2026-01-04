@@ -87,8 +87,9 @@
         isInitialized = false;
     }
 
-    function saveSettings() {
-        settingsStore.update(s => ({
+    // Reactive update for settings (Immediate Save)
+    $: if (isInitialized) {
+         settingsStore.update(s => ({
             ...s,
             apiProvider,
             marketDataInterval,
@@ -104,18 +105,16 @@
                 binance: binanceKeys
             }
         }));
+    }
 
-        // Apply theme and language immediately if changed
-        if (currentTheme !== $uiStore.currentTheme) {
-            uiStore.setTheme(currentTheme);
-        }
-        if (currentLanguage !== $locale) {
-            setLocale(currentLanguage);
-        }
+    // Immediate Theme Update
+    $: if (isInitialized && currentTheme !== $uiStore.currentTheme) {
+        uiStore.setTheme(currentTheme);
+    }
 
-        trackCustomEvent('Settings', 'Save', apiProvider);
-        uiStore.toggleSettingsModal(false);
-        uiStore.showFeedback('save');
+    // Immediate Language Update
+    $: if (isInitialized && currentLanguage !== $locale) {
+        setLocale(currentLanguage);
     }
 
     function close() {
@@ -197,7 +196,7 @@
     isOpen={$uiStore.showSettingsModal}
     title={$_('settings.title') || 'Settings'}
     on:close={close}
-    extraClasses="max-w-md w-full max-h-[90vh] flex flex-col"
+    extraClasses="w-full max-w-lg max-h-[85vh] flex flex-col"
 >
     <!-- Tabs Header -->
     <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0">
@@ -431,11 +430,8 @@
 
     <!-- Footer Actions -->
     <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
-        <button class="px-4 py-2 text-sm font-medium text-[var(--text-secondary)] hover:text-[var(--text-primary)]" on:click={close}>
-            {$_('common.cancel')}
-        </button>
-        <button class="px-4 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={saveSettings}>
-            {$_('common.save')}
+        <button class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={close}>
+            {$_('customModal.okButton') || 'OK'}
         </button>
     </div>
 </ModalFrame>

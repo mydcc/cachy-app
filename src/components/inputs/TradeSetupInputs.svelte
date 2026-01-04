@@ -221,7 +221,7 @@
                 id="entry-price-input"
                 type="text"
                 use:numberInput={{ maxDecimalPlaces: 4 }}
-                use:enhancedInput={{ step: priceStep, min: 0, rightOffset: '24px' }}
+                use:enhancedInput={{ step: priceStep, min: 0, rightOffset: '40px' }}
                 value={format(entryPrice)}
                 on:input={handleEntryPriceInput}
                 class="input-field w-full px-4 py-2 rounded-md"
@@ -326,7 +326,7 @@
                                 id="atr-value-input-auto"
                                 type="text"
                                 use:numberInput={{ maxDecimalPlaces: 4 }}
-                                use:enhancedInput={{ step: 0.1, min: 0, rightOffset: '24px' }}
+                                use:enhancedInput={{ step: 0.1, min: 0, rightOffset: '40px' }}
                                 value={format(atrValue)}
                                 on:input={handleAtrValueInput}
                                 class="input-field w-full px-4 py-2 rounded-md pr-10"
