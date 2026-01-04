@@ -23,10 +23,19 @@
     function getFeeDisplay(order: any) {
         if (order.fee === undefined || order.fee === null) return '-';
         const role = order.role === 'MAKER' ? ' (M)' : order.role === 'TAKER' ? ' (T)' : '';
-        // If fee is positive, it's a cost? Or revenue? Usually negative for cost.
-        // Bitunix: Fee is usually negative number in PnL terms? Or positive absolute value?
-        // Assuming fee is absolute value or negative. Let's show as is.
         return `${formatDynamicDecimal(order.fee)}${role}`;
+    }
+
+    function getTypeLabel(type: any) {
+        const t = String(type || '').toUpperCase();
+        if (['LIMIT', '1'].includes(t)) return 'Limit';
+        if (['MARKET', '2'].includes(t)) return 'Market';
+        if (['STOP', 'STOP_LIMIT', '3'].includes(t)) return 'Stop Limit';
+        if (['STOP_MARKET', '4'].includes(t)) return 'Stop Market';
+        if (['TRAILING_STOP_MARKET', '5'].includes(t)) return 'Trailing';
+        if (t === 'LIQUIDATION') return 'Liq.';
+        if (!t || t === 'UNDEFINED' || t === 'NULL') return ''; // Empty for unknown
+        return t.length > 6 ? t.substring(0, 6) + '.' : t; // Truncate long types
     }
 </script>
 
@@ -57,28 +66,18 @@
 
                         <!-- Col 2: Execution Details -->
                         <div class="flex flex-col items-center justify-center border-r border-[var(--border-color)] border-opacity-30 px-1">
+                             <!-- Unified Badge -->
                              <div class="flex items-center gap-1 mb-1">
-                                <span class="text-[10px] font-bold px-1 rounded uppercase tracking-tighter"
+                                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded uppercase tracking-tight flex items-center gap-1"
                                       class:bg-green-900={order.side === 'BUY'} class:text-green-300={order.side === 'BUY'}
-                                      class:bg-red-900={order.side === 'SELL'} class:text-red-300={order.side === 'SELL'}>
-                                    {order.side === 'BUY' ? 'BUY' : 'SELL'}
-                                </span>
-                                <!-- Type Badge (L/M) -->
-                                <span class="text-[10px] font-bold px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title={order.type}>
-                                    {#if ['LIMIT', 'limit', '1'].includes(String(order.type).toUpperCase())}
-                                        L
-                                    {:else if ['MARKET', 'market', '2'].includes(String(order.type).toUpperCase())}
-                                        M
-                                    {:else}
-                                        {String(order.type).charAt(0).toUpperCase()}
-                                    {/if}
+                                      class:bg-red-900={order.side === 'SELL'} class:text-red-300={order.side === 'SELL'}
+                                      title={`Type: ${order.type || 'Unknown'}`}>
+                                    {getTypeLabel(order.type)} {order.side === 'BUY' ? 'Buy' : 'Sell'}
                                 </span>
                             </div>
-                            <span class="text-[10px] text-[var(--text-primary)] font-mono">
+
+                            <span class="text-[11px] text-[var(--text-primary)] font-mono font-medium">
                                 {formatDynamicDecimal(order.filled)}
-                            </span>
-                             <span class="text-[9px] text-[var(--text-secondary)]">
-                                Vol: {formatDynamicDecimal(order.filled * order.price)}
                             </span>
                         </div>
 
@@ -97,7 +96,7 @@
                             {/if}
 
                             <!-- Fee -->
-                            <span class="text-[9px] text-[var(--text-secondary)] whitespace-nowrap mt-0.5">
+                            <span class="text-[9px] text-[var(--text-tertiary)] opacity-70 whitespace-nowrap mt-0.5">
                                 Fee: {getFeeDisplay(order)}
                             </span>
                         </div>
