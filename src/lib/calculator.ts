@@ -13,6 +13,7 @@ function getTradePnL(t: JournalEntry): Decimal {
     return new Decimal(0);
 }
 
+// Calculator utility
 export const calculator = {
     calculateBaseMetrics(values: TradeValues, tradeType: string): BaseMetrics | null {
         const riskAmount = values.accountSize.times(values.riskPercentage.div(100));
