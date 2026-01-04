@@ -131,7 +131,7 @@
                     on:input={onboardingService.trackFirstInput}
                 >
                 <button 
-                    class="price-fetch-btn absolute top-2 right-2 {isFetchingBalance ? 'animate-spin' : ''}"
+                    class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance ? 'animate-spin' : ''}"
                     on:click={() => handleFetchBalance(false)} 
                     title="{$_('dashboard.portfolioInputs.fetchBalanceTitle') || 'Fetch Balance'}"
                     disabled={isFetchingBalance}
@@ -172,7 +172,7 @@
                     disabled={isPositionSizeLocked}
                 >
                 <button
-                    class="absolute top-2 right-2 btn-lock-icon"
+                    class="absolute top-1/2 right-2 -translate-y-1/2 btn-lock-icon"
                     on:click={handleLockClick}
                     title="{$_('dashboard.portfolioInputs.toggleRiskAmountLockTitle')}"
                     disabled={isPositionSizeLocked}
