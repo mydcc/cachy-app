@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
+export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
 
 export interface ApiKeys {
     key: string;
@@ -17,10 +18,16 @@ export interface Settings {
     showSidebars: boolean;
     isPro: boolean;
     feePreference: 'maker' | 'taker';
+    hotkeyMode: HotkeyMode;
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
+    // ImgBB Settings
+    imgbbApiKey: string;
+    imgbbExpiration: number; // 0 = never, otherwise seconds
+    isDeepDiveUnlocked?: boolean; // Persist cheat code state
+    imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
 }
 
 const defaultSettings: Settings = {
@@ -31,10 +38,14 @@ const defaultSettings: Settings = {
     showSidebars: true,
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
+    hotkeyMode: 'mode2', // Safety Mode as default
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
-    }
+    },
+    imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
+    imgbbExpiration: 0,
+    isDeepDiveUnlocked: false
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -70,6 +81,14 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.autoUpdatePriceInput = false;
             }
         }
+        
+        // 3. Ensure ImgBB defaults if missing (even if other settings existed)
+        if (!settings.imgbbApiKey) {
+            settings.imgbbApiKey = defaultSettings.imgbbApiKey;
+        }
+        if (settings.imgbbExpiration === undefined) {
+             settings.imgbbExpiration = defaultSettings.imgbbExpiration;
+        }
 
         // Clean up keys not in interface
         const cleanSettings: Settings = {
@@ -80,7 +99,11 @@ function loadSettingsFromLocalStorage(): Settings {
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
-            apiKeys: settings.apiKeys
+            hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
+            apiKeys: settings.apiKeys,
+            imgbbApiKey: settings.imgbbApiKey,
+            imgbbExpiration: settings.imgbbExpiration,
+            isDeepDiveUnlocked: settings.isDeepDiveUnlocked
         };
 
         return cleanSettings;

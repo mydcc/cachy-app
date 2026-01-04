@@ -4,6 +4,7 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
+    import { imgbbService } from '../../services/imgbbService';
     import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
     import { icons, CONSTANTS } from '../../lib/constants';
@@ -15,7 +16,7 @@
     import BarChart from './charts/BarChart.svelte';
     import DoughnutChart from './charts/DoughnutChart.svelte';
     import BubbleChart from './charts/BubbleChart.svelte';
-    import Tooltip from './Tooltip.svelte';
+    import CalendarHeatmap from './charts/CalendarHeatmap.svelte';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
 
@@ -31,13 +32,11 @@
     let inputBuffer: string[] = [];
 
     function handleKeydown(event: KeyboardEvent) {
-        if (!$settingsStore.isPro) return; // Only listen if Pro is active (optional constraint, but good for performance)
+        if (!$settingsStore.isPro) return; // Only listen if Pro is active
         
         const key = event.key;
-        // Only accept single character keys to avoid control keys filling buffer
         if (key.length === 1) {
             inputBuffer.push(key);
-            // Keep buffer size enough for the longest code
             if (inputBuffer.length > Math.max(CHEAT_CODE.length, LOCK_CODE.length)) {
                 inputBuffer.shift();
             }
@@ -205,6 +204,20 @@
             backgroundColor: themeColors.danger
         }]
     };
+
+    // Strategies (Tags)
+    $: tagData = calculator.getTagData(journal);
+    $: tagPnlData = {
+        labels: tagData.labels,
+        datasets: [{
+            label: 'PnL',
+            data: tagData.pnlData,
+            backgroundColor: tagData.pnlData.map(d => d >= 0 ? themeColors.success : themeColors.danger)
+        }]
+    };
+
+    // Calendar Data
+    $: calendarData = calculator.getCalendarData(journal);
 
     // Discipline Data
     $: discData = calculator.getDisciplineData(journal);
@@ -460,10 +473,128 @@
         (event.target as HTMLElement).classList.toggle('expanded');
     }
 
+    // --- Image Upload Logic ---
+    let dragOverTradeId: number | null = null;
+
+    function handleDragOver(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = tradeId;
+    }
+
+    function handleDragLeave(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        if (dragOverTradeId === tradeId) {
+            dragOverTradeId = null;
+        }
+    }
+
+    async function handleDrop(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = null;
+
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            await uploadScreenshot(tradeId, file);
+        }
+    }
+
+    async function handleScreenshotUpload(tradeId: number, event: Event) {
+        if (!browser) return;
+        
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        
+        if (file) {
+            await uploadScreenshot(tradeId, file);
+        }
+        
+        // Reset input so same file can be selected again if needed
+        input.value = '';
+    }
+
+    async function uploadScreenshot(tradeId: number, file: File) {
+        uiStore.showLoading('Uploading screenshot...');
+        
+        try {
+            const url = await imgbbService.uploadToImgbb(file);
+            
+            // Update Journal Entry
+            journalStore.update(trades => {
+                return trades.map(t => {
+                    if (t.id === tradeId) {
+                        return { ...t, screenshot: url };
+                    }
+                    return t;
+                });
+            });
+
+            uiStore.showFeedback('save'); // Re-use save success
+        } catch (error: any) {
+            console.error(error);
+            uiStore.showError(error.message || 'Screenshot upload failed');
+        } finally {
+            uiStore.hideLoading();
+        }
+    }
+
     // Reset pagination on filter change
     $: if (processedTrades.length) currentPage = 1;
 
 </script>
+
+<style>
+    /* Add style for the thumbnail hover effect */
+    .screenshot-cell {
+        position: relative;
+    }
+
+    .screenshot-cell.drag-over {
+        background-color: rgba(var(--accent-rgb), 0.2) !important;
+        border: 2px dashed var(--accent-color);
+    }
+    
+    .thumbnail-popup {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        background: var(--bg-tertiary);
+        padding: 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        width: 200px;
+        height: auto;
+    }
+
+    .screenshot-cell:hover .thumbnail-popup {
+        display: block;
+    }
+
+    .thumbnail-popup img {
+        width: 100%;
+        height: auto;
+        border-radius: 2px;
+    }
+
+    /* Icon styling */
+    .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        color: var(--text-secondary);
+        transition: color 0.2s, background-color 0.2s;
+    }
+
+    .icon-btn:hover {
+        color: var(--accent-color);
+        background-color: var(--bg-tertiary);
+    }
+</style>
 
 <ModalFrame
     isOpen={$uiStore.showJournalModal}
@@ -623,6 +754,7 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Status</th>
+                            <th>Screenshot</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>
@@ -655,6 +787,31 @@
                                         </select>
                                     {/if}
                                 </td>
+                                
+                                <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                    on:dragover={(e) => handleDragOver(trade.id, e)}
+                                    on:dragleave={(e) => handleDragLeave(trade.id, e)}
+                                    on:drop={(e) => handleDrop(trade.id, e)}
+                                >
+                                    {#if trade.screenshot}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                            {@html icons.camera || '📷'}
+                                        </button>
+                                        <div class="thumbnail-popup">
+                                            <img src={trade.screenshot} alt="Trade Screenshot" />
+                                        </div>
+                                    {:else}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <label class="icon-btn cursor-pointer block w-full h-full" title="Upload Screenshot">
+                                            {@html icons.plus || '+'}
+                                            <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
+                                        </label>
+                                    {/if}
+                                </td>
+
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                 <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
@@ -709,7 +866,9 @@
                 { id: 'assets', label: $_('journal.deepDive.assets') },
                 { id: 'risk', label: $_('journal.deepDive.risk') },
                 { id: 'market', label: $_('journal.deepDive.market') },
-                { id: 'psychology', label: $_('journal.deepDive.psychology') }
+                { id: 'psychology', label: $_('journal.deepDive.psychology') },
+                { id: 'strategies', label: $_('journal.deepDive.strategies') },
+                { id: 'calendar', label: $_('journal.deepDive.calendar') }
             ]}
             on:select={(e) => activeDeepDivePreset = e.detail} 
         />
@@ -763,6 +922,27 @@
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                      <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" description="Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst." />
+                </div>
+            {:else if activeDeepDivePreset === 'strategies'}
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BarChart data={tagPnlData} title={$_('journal.deepDive.charts.tagPerformance')} />
+                </div>
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
+                     <div class="text-center p-4">
+                         <div class="text-[var(--text-secondary)] text-sm mb-2">Most Profitable Strategy</div>
+                         {#if tagData.labels.length > 0}
+                             {@const bestIdx = tagData.pnlData.indexOf(Math.max(...tagData.pnlData))}
+                             <div class="text-2xl font-bold text-[var(--success-color)]">#{tagData.labels[bestIdx]}</div>
+                             <div class="text-[var(--text-primary)]">${tagData.pnlData[bestIdx].toFixed(2)}</div>
+                         {:else}
+                             <div class="text-xl">-</div>
+                         {/if}
+                     </div>
+                </div>
+            {:else if activeDeepDivePreset === 'calendar'}
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <h4 class="text-center font-bold mb-4 text-[var(--text-primary)]">{$_('journal.deepDive.charts.heatmap')}</h4>
+                    <CalendarHeatmap data={calendarData} />
                 </div>
             {/if}
         </div>

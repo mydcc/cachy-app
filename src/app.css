@@ -1102,7 +1102,7 @@
     --btn-success-text: var(--cobalt-bg);
     --toggle-bg-off: var(--cobalt-bg-alt);
     --toggle-bg-on: var(--cobalt-yellow);
-    --toggle-circle-bg: var(--cobalt-fg);
+    --toggle-circle-bg: var(--cobalt-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1207,7 +1207,7 @@
     --btn-success-text: var(--midnight-text-primary);
     --toggle-bg-off: var(--midnight-bg-overlay);
     --toggle-bg-on: var(--midnight-gold);
-    --toggle-circle-bg: var(--midnight-text-primary);
+    --toggle-circle-bg: var(--midnight-bg-main);
     --overlay-color: var(--black-overlay);
 }
 

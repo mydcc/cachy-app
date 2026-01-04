@@ -439,7 +439,16 @@ export const app = {
         const currentAppState = get(tradeStore);
         if (!currentAppState.currentTradeData || !currentAppState.currentTradeData.positionSize || currentAppState.currentTradeData.positionSize.lte(0)) { uiStore.showError("Kann keinen ungültigen Trade speichern."); return; }
         const journalData = app.getJournal();
-        journalData.push({ ...currentAppState.currentTradeData, notes: currentAppState.tradeNotes, id: Date.now(), date: new Date().toISOString() } as JournalEntry);
+
+        const newTrade: JournalEntry = {
+            ...currentAppState.currentTradeData,
+            notes: currentAppState.tradeNotes,
+            tags: currentAppState.tags || [],
+            id: Date.now(),
+            date: new Date().toISOString()
+        } as JournalEntry;
+
+        journalData.push(newTrade);
         app.saveJournal(journalData);
         journalStore.set(journalData);
         onboardingService.trackFirstJournalSave();
@@ -485,6 +494,7 @@ export const app = {
             atrMultiplier: currentAppState.atrMultiplier,
             symbol: currentAppState.symbol,
             targets: currentAppState.targets,
+            tags: currentAppState.tags
         };
     },
     savePreset: async () => {
@@ -537,6 +547,7 @@ export const app = {
                     atrMultiplier: preset.atrMultiplier || parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
                     useAtrSl: preset.useAtrSl || false,
                     tradeType: preset.tradeType || CONSTANTS.TRADE_TYPE_LONG,
+                    tags: preset.tags || [],
                     targets: preset.targets || [
                         { price: null, percent: 50, isLocked: false },
                         { price: null, percent: 25, isLocked: false },
@@ -1070,6 +1081,32 @@ export const app = {
             targets: [...state.targets, { price, percent, isLocked }]
         }));
     },
+    scanMultiAtr: async (symbol: string): Promise<Record<string, number>> => {
+        const settings = get(settingsStore);
+        const timeframes = ['5m', '15m', '1h', '4h'];
+        const results: Record<string, number> = {};
+
+        const fetchPromise = async (tf: string) => {
+            try {
+                let klines;
+                if (settings.apiProvider === 'binance') {
+                    klines = await apiService.fetchBinanceKlines(symbol, tf);
+                } else {
+                    klines = await apiService.fetchBitunixKlines(symbol, tf);
+                }
+                const atr = calculator.calculateATR(klines);
+                if (atr.gt(0)) {
+                    results[tf] = atr.toDP(4).toNumber();
+                }
+            } catch (e) {
+                console.warn(`Failed to fetch ATR for ${tf}`, e);
+            }
+        };
+
+        await Promise.all(timeframes.map(tf => fetchPromise(tf)));
+        return results;
+    },
+
     adjustTpPercentages: (changedIndex: number | null) => {
         const currentAppState = get(tradeStore);
         if (changedIndex !== null && currentAppState.targets[changedIndex].isLocked) {

@@ -20,6 +20,7 @@
     export let stopLossPrice: number | null;
     export let atrMode: 'manual' | 'auto';
     export let atrTimeframe: string;
+    export let tags: string[] = []; // Default empty array
 
 
     export let atrFormulaDisplay: string;
@@ -177,6 +178,26 @@
         </div>
     </div>
 
+    <!-- Tags Input -->
+    <div class="mb-4 relative">
+        <div class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]">
+            {#each tags as tag}
+                <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]">
+                    #{tag}
+                    <button class="hover:text-[var(--danger-color)]" on:click={() => removeTag(tag)}>×</button>
+                </span>
+            {/each}
+            <input
+                type="text"
+                class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
+                placeholder={tags.length === 0 ? $_('dashboard.tradeSetupInputs.tagsPlaceholder') : ''}
+                bind:value={tagInput}
+                on:keydown={handleTagKeydown}
+                on:blur={addTag}
+            />
+        </div>
+    </div>
+
     <div class="p-2 rounded-lg mb-4" style="background-color: var(--bg-tertiary);">
         <div class="flex items-center mb-2 {useAtrSl ? 'justify-between' : 'justify-end'}">
             {#if useAtrSl}
@@ -278,6 +299,31 @@
                     <span style="color: var(--danger-color);">{result}</span>
                 </div>
             {/if}
+        {/if}
+
+        <!-- Multi-ATR Preview (Minimalist) -->
+        {#if useAtrSl}
+        <div class="mt-3 border-t border-[var(--border-color)] pt-2">
+            <div class="flex items-center gap-2 flex-wrap text-xs">
+                <button class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] font-bold flex items-center gap-1" on:click={scanMultiAtr} disabled={isScanningAtr}>
+                    <span class={isScanningAtr ? 'animate-spin' : ''}>{@html icons.refresh}</span>
+                    SCAN
+                </button>
+                {#if Object.keys(multiAtrData).length > 0}
+                    <span class="text-[var(--border-color)]">|</span>
+                    {#each Object.entries(multiAtrData) as [tf, val]}
+                         <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
+                             on:click={() => applyAtr(tf, val)}
+                             title="Apply {tf} ATR"
+                         >
+                            <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
+                         </button>
+                    {/each}
+                {:else if !isScanningAtr}
+                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">Click scan for multi-TF</span>
+                {/if}
+            </div>
+        </div>
         {/if}
     </div>
 </div>
