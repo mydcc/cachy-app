@@ -9,6 +9,7 @@
     import { onboardingService } from '../../services/onboardingService';
     import { updateTradeStore } from '../../stores/tradeStore';
     import { settingsStore } from '../../stores/settingsStore';
+    import { app } from '../../services/app';
 
     const dispatch = createEventDispatcher();
 
@@ -38,9 +39,8 @@
     function handleFetchPriceClick() {
         trackCustomEvent('Price', 'Fetch', symbol);
         dispatch('fetchPrice');
+        scanMultiAtr();
     }
-
-    import { app } from '../../services/app';
 
     const handleSymbolInput = debounce(() => {
         app.updateSymbolSuggestions(symbol);
@@ -51,6 +51,8 @@
              if (useAtrSl && atrMode === 'auto') {
                  dispatch('fetchAtr');
              }
+             // Trigger Multi-ATR Scan automatically
+             scanMultiAtr();
         }
     }, 500); // Increased debounce to 500ms to avoid fetching while still typing rapidly
 
@@ -120,10 +122,6 @@
         if (cleaned) {
             if (!tags.includes(cleaned)) {
                 // We update the store via the parent binding or store update
-                // Since tags is a prop, we can update it if it's bound, but safer to use store update directly
-                // to ensure consistency if parent relies on store.
-                // However, the template iterates over `tags`.
-                // Let's update store.
                 updateTradeStore(s => ({ ...s, tags: [...s.tags, cleaned] }));
             }
             tagInput = '';
@@ -157,21 +155,19 @@
         }
     }
 
+    const timeframesOrder = ['5m', '15m', '1h', '4h', '1d'];
+    $: sortedMultiAtrData = Object.entries(multiAtrData).sort((a, b) => {
+        const ia = timeframesOrder.indexOf(a[0]);
+        const ib = timeframesOrder.indexOf(b[0]);
+        // Handle unexpected timeframes by putting them at the end
+        const valA = ia === -1 ? 999 : ia;
+        const valB = ib === -1 ? 999 : ib;
+        return valA - valB;
+    });
+
     function applyAtr(tf: string, val: number) {
         updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
-        // Trigger calculation via fetchAtr (which does calc) or just recalc
-        // Since we set value directly, we can just trigger calc.
-        // But app.setAtrTimeframe does more.
         dispatch('setAtrTimeframe', tf);
-        // We manually updated atrValue in store, so we might need to notify app or just rely on reactivity?
-        // app.setAtrTimeframe triggers fetchAtr if auto.
-        // If we want to force this specific value:
-        updateTradeStore(s => ({ ...s, atrValue: val }));
-        // We might want to switch to manual mode if we are applying a specific value?
-        // Or keep it auto but with this value?
-        // If we keep auto, fetchAtr might overwrite it.
-        // The UI button says "Apply {tf} ATR".
-        // Let's assume we just want to set it.
     }
 </script>
 
@@ -200,7 +196,7 @@
             >
             <button
                 type="button"
-                class="price-fetch-btn absolute top-2 right-2 {isPriceFetching ? 'animate-spin' : ''}"
+                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}"
                 title="{$_('dashboard.tradeSetupInputs.fetchPriceTitle')}"
                 aria-label="{$_('dashboard.tradeSetupInputs.fetchPriceAriaLabel')}"
                 on:click={handleFetchPriceClick}
@@ -238,7 +234,7 @@
 
             <!-- Auto Update Price Toggle -->
             <button
-                class="absolute top-2 right-2 rounded-full transition-colors duration-300 z-30"
+                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full transition-colors duration-300 z-30"
                 style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput ? 'var(--success-color)' : 'var(--danger-color)'}; margin-right: 14px;"
                 title={$settingsStore.autoUpdatePriceInput ? 'Auto-Update On' : 'Auto-Update Off'}
                 on:click={toggleAutoUpdatePrice}
@@ -341,8 +337,12 @@
                             >
                             <button 
                                 type="button" 
-                                class="price-fetch-btn absolute top-2 right-2 {isPriceFetching ? 'animate-spin' : ''}"
-                                on:click={() => { trackCustomEvent('ATR', 'Fetch', symbol); dispatch('fetchAtr'); }} 
+                                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}"
+                                on:click={() => {
+                                    trackCustomEvent('ATR', 'Fetch', symbol);
+                                    dispatch('fetchAtr');
+                                    scanMultiAtr();
+                                }}
                                 title="Fetch ATR Value"
                             >
                                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
@@ -372,16 +372,14 @@
         <!-- Multi-ATR Preview (Minimalist) -->
         {#if useAtrSl}
         <div class="mt-3 border-t border-[var(--border-color)] pt-2">
-            <div class="flex items-center gap-2 flex-wrap text-xs">
-                <button class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] font-bold flex items-center gap-1" on:click={scanMultiAtr} disabled={isScanningAtr}>
-                    <span class={isScanningAtr ? 'animate-spin' : ''}>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
+            <div class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]">
+                {#if isScanningAtr}
+                    <span class="animate-spin text-[var(--text-secondary)]">
+                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
                     </span>
-                    SCAN
-                </button>
-                {#if Object.keys(multiAtrData).length > 0}
-                    <span class="text-[var(--border-color)]">|</span>
-                    {#each Object.entries(multiAtrData) as [tf, val]}
+                    <span class="text-[var(--text-secondary)]">Scanning...</span>
+                {:else if sortedMultiAtrData.length > 0}
+                    {#each sortedMultiAtrData as [tf, val]}
                          <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
                              on:click={() => applyAtr(tf, val)}
                              title="Apply {tf} ATR"
@@ -390,7 +388,8 @@
                          </button>
                     {/each}
                 {:else if !isScanningAtr && symbol}
-                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">Click scan for multi-TF</span>
+                    <!-- No scan button, just placeholder if desired or empty -->
+                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">...</span>
                 {/if}
             </div>
         </div>
