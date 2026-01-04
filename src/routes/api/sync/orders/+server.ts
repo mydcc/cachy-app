@@ -61,11 +61,19 @@ async function fetchAllPages(apiKey: string, apiSecret: string, path: string): P
 
         // Pagination logic: use the creation time of the last item
         const lastItem = batch[batch.length - 1];
+
+        // Safety check if lastItem is null or undefined
+        if (!lastItem) break;
+
         // Standardize time field: ctime, createTime, updateTime
         const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
-        if (timeField) {
+        // Ensure we have a valid time field before parsing
+        if (timeField && !isNaN(parseInt(timeField, 10))) {
             currentEndTime = parseInt(timeField, 10);
+
+            // Safety break: if the timestamp is 0 or very old/invalid, stop
+            if (currentEndTime <= 0) break;
         } else {
             break;
         }
