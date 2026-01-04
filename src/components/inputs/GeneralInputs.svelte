@@ -106,7 +106,7 @@
                     id="leverage-input"
                     type="text"
                     use:numberInput={{ noDecimals: true, maxValue: 125, minValue: 1 }}
-                    use:enhancedInput={{ step: 1, min: 1, max: 125, noDecimals: true, rightOffset: '24px' }}
+                    use:enhancedInput={{ step: 1, min: 1, max: 125, noDecimals: true }}
                     value={format(leverage)}
                     on:input={handleLeverageInput}
                     class="input-field w-full h-full px-4 py-2 rounded-md transition-colors"
@@ -132,7 +132,7 @@
                     id="fees-input"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
-                    use:enhancedInput={{ step: 0.01, min: 0, rightOffset: '24px' }}
+                    use:enhancedInput={{ step: 0.01, min: 0 }}
                     value={format(fees)}
                     on:input={handleFeesInput}
                     class="input-field w-full px-4 py-2 rounded-md transition-colors"
