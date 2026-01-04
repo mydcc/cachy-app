@@ -93,7 +93,12 @@ async function fetchBitunixBalance(apiKey: string, apiSecret: string): Promise<n
 
     // Case: It returns an array of assets (as per documentation)
     if (Array.isArray(accountInfo)) {
-        const usdt = accountInfo.find((a: any) => a.marginCoin === 'USDT' || a.currency === 'USDT' || a.asset === 'USDT');
+        // Robust search for USDT
+        const usdt = accountInfo.find((a: any) => {
+            const coin = (a.marginCoin || a.currency || a.asset || '').toUpperCase();
+            return coin === 'USDT';
+        });
+
         if (usdt) {
             // Calculate total wallet balance = available + margin + frozen
             // If explicit marginBalance/equity is present, prioritize that.
