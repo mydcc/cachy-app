@@ -109,7 +109,7 @@
                     use:enhancedInput={{ step: 1, min: 1, max: 125, noDecimals: true, rightOffset: '24px' }}
                     value={format(leverage)}
                     on:input={handleLeverageInput}
-                    class="input-field w-full h-full px-4 py-2 rounded-md transition-colors"
+                    class="input-field w-full px-4 py-2 rounded-md transition-colors"
                     class:border-green-500={isLeverageSynced}
                     class:text-green-400={isLeverageSynced}
                     placeholder="{$_('dashboard.generalInputs.leveragePlaceholder')}"
@@ -152,6 +152,6 @@
             </div>
         </div>
         <!-- Spacer -->
-        <div class="mb-1"></div>
+        <div class="mb-0"></div>
     </div>
 </div>

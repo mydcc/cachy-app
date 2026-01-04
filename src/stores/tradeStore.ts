@@ -80,10 +80,18 @@ function loadTradeStateFromLocalStorage(): typeof initialTradeState {
         
         // Merge with initial state to ensure all keys exist
         // We override initial defaults with parsed data
-        return {
+        const loadedState = {
             ...JSON.parse(JSON.stringify(initialTradeState)),
             ...parsed,
         };
+
+        // Ensure we always have at least default targets if the array is empty
+        // This fixes the issue where targets disappear on reload if they were cleared
+        if (!loadedState.targets || loadedState.targets.length === 0) {
+            loadedState.targets = JSON.parse(JSON.stringify(initialTradeState.targets));
+        }
+
+        return loadedState;
     } catch (e) {
         console.warn("Could not load trade state from localStorage", e);
         return JSON.parse(JSON.stringify(initialTradeState));

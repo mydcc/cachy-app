@@ -38,7 +38,7 @@
 </style>
 
 <!-- Tags Input -->
-<div class="mb-4 relative">
+<div class="mb-2 relative">
     <div class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]">
         {#each tags as tag}
             <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]">
