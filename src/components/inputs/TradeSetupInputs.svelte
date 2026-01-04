@@ -104,6 +104,68 @@
 
     // Determine dynamic step based on price magnitude
     $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
+
+    // Tags Logic
+    let tagInput = '';
+
+    function addTag() {
+        const cleaned = tagInput.trim();
+        if (cleaned) {
+            if (!tags.includes(cleaned)) {
+                // We update the store via the parent binding or store update
+                // Since tags is a prop, we can update it if it's bound, but safer to use store update directly
+                // to ensure consistency if parent relies on store.
+                // However, the template iterates over `tags`.
+                // Let's update store.
+                updateTradeStore(s => ({ ...s, tags: [...s.tags, cleaned] }));
+            }
+            tagInput = '';
+        }
+    }
+
+    function handleTagKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter') {
+            e.preventDefault();
+            addTag();
+        }
+    }
+
+    function removeTag(tagToRemove: string) {
+        updateTradeStore(s => ({ ...s, tags: s.tags.filter(t => t !== tagToRemove) }));
+    }
+
+    // Multi-ATR Logic
+    let isScanningAtr = false;
+    let multiAtrData: Record<string, number> = {};
+
+    async function scanMultiAtr() {
+        if (!symbol) return;
+        isScanningAtr = true;
+        try {
+            multiAtrData = await app.scanMultiAtr(symbol);
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isScanningAtr = false;
+        }
+    }
+
+    function applyAtr(tf: string, val: number) {
+        updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
+        // Trigger calculation via fetchAtr (which does calc) or just recalc
+        // Since we set value directly, we can just trigger calc.
+        // But app.setAtrTimeframe does more.
+        dispatch('setAtrTimeframe', tf);
+        // We manually updated atrValue in store, so we might need to notify app or just rely on reactivity?
+        // app.setAtrTimeframe triggers fetchAtr if auto.
+        // If we want to force this specific value:
+        updateTradeStore(s => ({ ...s, atrValue: val }));
+        // We might want to switch to manual mode if we are applying a specific value?
+        // Or keep it auto but with this value?
+        // If we keep auto, fetchAtr might overwrite it.
+        // The UI button says "Apply {tf} ATR".
+        // Let's assume we just want to set it.
+    }
 </script>
 
 <style>
