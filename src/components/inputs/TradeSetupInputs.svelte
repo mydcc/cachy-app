@@ -234,8 +234,8 @@
 
             <!-- Auto Update Price Toggle -->
             <button
-                class="absolute top-1/2 right-2 -translate-y-1/2 rounded-full transition-colors duration-300 z-30"
-                style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput ? 'var(--success-color)' : 'var(--danger-color)'}; margin-right: 14px;"
+                class="absolute top-2 right-2 rounded-full transition-colors duration-300 z-30"
+                style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput ? 'var(--success-color)' : 'var(--danger-color)'};"
                 title={$settingsStore.autoUpdatePriceInput ? 'Auto-Update On' : 'Auto-Update Off'}
                 on:click={toggleAutoUpdatePrice}
                 aria-label="Toggle Auto Update Price"
