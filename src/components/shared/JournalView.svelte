@@ -931,10 +931,15 @@
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
                      <div class="text-center p-4">
                          <div class="text-[var(--text-secondary)] text-sm mb-2">Most Profitable Strategy</div>
-                         {#if tagData.labels.length > 0}
-                             {@const bestIdx = tagData.pnlData.indexOf(Math.max(...tagData.pnlData))}
-                             <div class="text-2xl font-bold text-[var(--success-color)]">#{tagData.labels[bestIdx]}</div>
-                             <div class="text-[var(--text-primary)]">${tagData.pnlData[bestIdx].toFixed(2)}</div>
+                         {#if tagData.labels.length > 0 && tagData.pnlData.length > 0}
+                             {@const maxVal = Math.max(...tagData.pnlData)}
+                             {@const bestIdx = tagData.pnlData.indexOf(maxVal)}
+                             {#if bestIdx !== -1 && tagData.labels[bestIdx]}
+                                <div class="text-2xl font-bold text-[var(--success-color)]">#{tagData.labels[bestIdx]}</div>
+                                <div class="text-[var(--text-primary)]">${tagData.pnlData[bestIdx].toFixed(2)}</div>
+                             {:else}
+                                <div class="text-xl">-</div>
+                             {/if}
                          {:else}
                              <div class="text-xl">-</div>
                          {/if}
