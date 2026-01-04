@@ -51,32 +51,12 @@
              if (useAtrSl && atrMode === 'auto') {
                  dispatch('fetchAtr');
              }
-             if (useAtrSl) {
-                 scanMultiAtr();
-             }
         }
     }, 500); // Increased debounce to 500ms to avoid fetching while still typing rapidly
 
     function selectSuggestion(s: string) {
         trackCustomEvent('Symbol', 'SelectSuggestion', s);
         dispatch('selectSymbolSuggestion', s);
-        if (useAtrSl) {
-             // We need to wait a moment for the symbol store update to propagate if scanMultiAtr uses store
-             // But scanMultiAtr uses the local symbol prop in my previous reading.
-             // Actually, the previous implementation used `if (!symbol) return;`.
-             // When selecting suggestion, `symbol` prop might not be updated yet in this component scope
-             // because it's bound.
-             // However, `dispatch('selectSymbolSuggestion', s)` updates the store.
-             // The parent passes `symbol` back down.
-             // We can just call scanMultiAtr passing `s` or rely on reactive statement.
-             // But wait, scanMultiAtr is async.
-
-             // Let's rely on a reactive statement for symbol changes to trigger scan if we want it robust?
-             // Or just call it here with explicit argument?
-             // My implementation of scanMultiAtr used `if (!symbol) return`.
-             // I'll modify scanMultiAtr to accept an optional symbol argument.
-             scanMultiAtr(s);
-        }
     }
 
     function handleKeyDownSuggestion(event: KeyboardEvent, s: string) {
@@ -122,6 +102,13 @@
         settingsStore.update(s => ({ ...s, autoUpdatePriceInput: !s.autoUpdatePriceInput }));
     }
 
+    // Trigger Multi-ATR Scan when Price or ATR is fetched
+    let wasPriceFetching = false;
+    $: if (wasPriceFetching && !isPriceFetching && symbol && symbol.length >= 3) {
+         scanMultiAtr();
+    }
+    $: wasPriceFetching = isPriceFetching;
+
     // Determine dynamic step based on price magnitude
     $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
 
@@ -132,6 +119,11 @@
         const cleaned = tagInput.trim();
         if (cleaned) {
             if (!tags.includes(cleaned)) {
+                // We update the store via the parent binding or store update
+                // Since tags is a prop, we can update it if it's bound, but safer to use store update directly
+                // to ensure consistency if parent relies on store.
+                // However, the template iterates over `tags`.
+                // Let's update store.
                 updateTradeStore(s => ({ ...s, tags: [...s.tags, cleaned] }));
             }
             tagInput = '';
@@ -153,12 +145,11 @@
     let isScanningAtr = false;
     let multiAtrData: Record<string, number> = {};
 
-    async function scanMultiAtr(overrideSymbol?: string) {
-        const sym = overrideSymbol || symbol;
-        if (!sym) return;
+    async function scanMultiAtr() {
+        if (!symbol) return;
         isScanningAtr = true;
         try {
-            multiAtrData = await app.scanMultiAtr(sym);
+            multiAtrData = await app.scanMultiAtr(symbol);
         } catch (e) {
             console.error(e);
         } finally {
@@ -166,17 +157,21 @@
         }
     }
 
-    // Clear data when symbol changes
-    $: if (symbol) {
-        // We don't want to clear immediately on every keystroke if we are debouncing fetch.
-        // But if symbol changes to empty, we should clear.
-        if (symbol.length < 3) multiAtrData = {};
-    }
-
     function applyAtr(tf: string, val: number) {
         updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
+        // Trigger calculation via fetchAtr (which does calc) or just recalc
+        // Since we set value directly, we can just trigger calc.
+        // But app.setAtrTimeframe does more.
         dispatch('setAtrTimeframe', tf);
+        // We manually updated atrValue in store, so we might need to notify app or just rely on reactivity?
+        // app.setAtrTimeframe triggers fetchAtr if auto.
+        // If we want to force this specific value:
         updateTradeStore(s => ({ ...s, atrValue: val }));
+        // We might want to switch to manual mode if we are applying a specific value?
+        // Or keep it auto but with this value?
+        // If we keep auto, fetchAtr might overwrite it.
+        // The UI button says "Apply {tf} ATR".
+        // Let's assume we just want to set it.
     }
 </script>
 
@@ -205,12 +200,12 @@
             >
             <button
                 type="button"
-                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}"
+                class="price-fetch-btn absolute top-2 right-2 {isPriceFetching ? 'animate-spin' : ''}"
                 title="{$_('dashboard.tradeSetupInputs.fetchPriceTitle')}"
                 aria-label="{$_('dashboard.tradeSetupInputs.fetchPriceAriaLabel')}"
                 on:click={handleFetchPriceClick}
             >
-                {@html icons.fetch}
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
             </button>
             {#if showSymbolSuggestions}
                 <div class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]">
@@ -346,12 +341,11 @@
                             >
                             <button 
                                 type="button" 
-                                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}" 
+                                class="price-fetch-btn absolute top-2 right-2 {isPriceFetching ? 'animate-spin' : ''}"
                                 on:click={() => { trackCustomEvent('ATR', 'Fetch', symbol); dispatch('fetchAtr'); }} 
                                 title="Fetch ATR Value"
-                                style="margin-right: 16px;"
                             >
-                                {@html icons.fetch}
+                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
                             </button>
                         </div>
                     </div>
@@ -379,23 +373,24 @@
         {#if useAtrSl}
         <div class="mt-3 border-t border-[var(--border-color)] pt-2">
             <div class="flex items-center gap-2 flex-wrap text-xs">
-                {#if isScanningAtr}
-                   <span class="animate-spin text-[var(--accent-color)]">{@html icons.refresh}</span>
-                {/if}
-
+                <button class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] font-bold flex items-center gap-1" on:click={scanMultiAtr} disabled={isScanningAtr}>
+                    <span class={isScanningAtr ? 'animate-spin' : ''}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
+                    </span>
+                    SCAN
+                </button>
                 {#if Object.keys(multiAtrData).length > 0}
-                    {#each ['5m', '15m', '1h', '4h'] as tf}
-                        {#if multiAtrData[tf]}
+                    <span class="text-[var(--border-color)]">|</span>
+                    {#each Object.entries(multiAtrData) as [tf, val]}
                          <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
-                             on:click={() => applyAtr(tf, multiAtrData[tf])}
+                             on:click={() => applyAtr(tf, val)}
                              title="Apply {tf} ATR"
                          >
-                            <span class="font-bold opacity-70 mr-1">{tf}:</span>{multiAtrData[tf]}
+                            <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
                          </button>
-                        {/if}
                     {/each}
-                {:else if !isScanningAtr}
-                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">Type symbol to scan</span>
+                {:else if !isScanningAtr && symbol}
+                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">Click scan for multi-TF</span>
                 {/if}
             </div>
         </div>

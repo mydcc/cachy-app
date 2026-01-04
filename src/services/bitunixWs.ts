@@ -41,11 +41,6 @@ class BitunixWebSocketService {
     }
 
     private connectPublic() {
-        if (this.reconnectTimerPublic) {
-            clearTimeout(this.reconnectTimerPublic);
-            this.reconnectTimerPublic = null;
-        }
-
         if (this.wsPublic && (this.wsPublic.readyState === WebSocket.OPEN || this.wsPublic.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -58,10 +53,6 @@ class BitunixWebSocketService {
             console.log('Bitunix Public WebSocket connected.');
             wsStatusStore.set('connected');
             this.isReconnectingPublic = false;
-            if (this.reconnectTimerPublic) {
-                 clearTimeout(this.reconnectTimerPublic);
-                 this.reconnectTimerPublic = null;
-            }
             if (this.wsPublic) {
                 this.startHeartbeat(this.wsPublic, 'public');
             }
@@ -99,11 +90,6 @@ class BitunixWebSocketService {
             return;
         }
 
-        if (this.reconnectTimerPrivate) {
-            clearTimeout(this.reconnectTimerPrivate);
-            this.reconnectTimerPrivate = null;
-        }
-
         if (this.wsPrivate && (this.wsPrivate.readyState === WebSocket.OPEN || this.wsPrivate.readyState === WebSocket.CONNECTING)) {
             return;
         }
@@ -114,10 +100,6 @@ class BitunixWebSocketService {
         this.wsPrivate.onopen = () => {
             console.log('Bitunix Private WebSocket connected.');
             this.isReconnectingPrivate = false;
-             if (this.reconnectTimerPrivate) {
-                 clearTimeout(this.reconnectTimerPrivate);
-                 this.reconnectTimerPrivate = null;
-            }
             if (this.wsPrivate) {
                 this.startHeartbeat(this.wsPrivate, 'private');
             }
