@@ -35,7 +35,7 @@
     function handleKeydown(event: KeyboardEvent) {
         if (!$settingsStore.isPro) return; // Only listen if Pro is active
         
-        const key = event.key;
+        const key = event.key.toUpperCase();
         if (key.length === 1) {
             inputBuffer.push(key);
             if (inputBuffer.length > Math.max(CHEAT_CODE.length, LOCK_CODE.length)) {
@@ -539,7 +539,20 @@
     }
 
     // Reset pagination on filter change
-    $: if (processedTrades.length) currentPage = 1;
+    function resetPagination(..._args: any[]) {
+        currentPage = 1;
+    }
+
+    $: resetPagination(
+        $tradeStore.journalSearchQuery,
+        $tradeStore.journalFilterStatus,
+        filterDateStart,
+        filterDateEnd,
+        groupBySymbol,
+        sortField,
+        sortDirection,
+        itemsPerPage
+    );
 
 </script>
 
