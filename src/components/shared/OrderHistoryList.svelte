@@ -83,8 +83,10 @@
 
                         <!-- Col 3: Financials -->
                         <div class="flex flex-col items-end justify-center pl-1">
-                             <!-- Entry/Exit Price -->
-                            <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">{formatDynamicDecimal(order.price)}</span>
+                             <!-- Entry/Exit Price: Prefer AvgPrice (Execution) over Price (Limit) if available -->
+                            <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
+                                {formatDynamicDecimal(order.avgPrice && Number(order.avgPrice) > 0 ? order.avgPrice : order.price)}
+                            </span>
 
                             <!-- PnL -->
                              {#if order.realizedPnL && Number(order.realizedPnL) !== 0}
