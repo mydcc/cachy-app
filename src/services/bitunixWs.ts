@@ -248,111 +248,125 @@ class BitunixWebSocketService {
     }
 
     private login(apiKey: string, apiSecret: string) {
-        if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN) return;
+        try {
+            if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN) return;
 
-        const nonce = Math.random().toString(36).substring(2, 15);
-        const timestamp = Math.floor(Date.now() / 1000);
-        
-        const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(CryptoJS.enc.Hex);
-        const sign = CryptoJS.SHA256(first + apiSecret).toString(CryptoJS.enc.Hex);
+            if (!CryptoJS || !CryptoJS.SHA256) {
+                console.error("CryptoJS is not available for Bitunix login signature.");
+                return;
+            }
 
-        const payload = {
-            op: 'login',
-            args: [{
-                apiKey,
-                timestamp,
-                nonce,
-                sign
-            }]
-        };
-        
-        console.log('Sending Login to Bitunix...');
-        this.wsPrivate.send(JSON.stringify(payload));
+            const nonce = Math.random().toString(36).substring(2, 15);
+            const timestamp = Math.floor(Date.now() / 1000);
+
+            const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(CryptoJS.enc.Hex);
+            const sign = CryptoJS.SHA256(first + apiSecret).toString(CryptoJS.enc.Hex);
+
+            const payload = {
+                op: 'login',
+                args: [{
+                    apiKey,
+                    timestamp,
+                    nonce,
+                    sign
+                }]
+            };
+
+            console.log('Sending Login to Bitunix...');
+            this.wsPrivate.send(JSON.stringify(payload));
+        } catch (error) {
+            console.error("Error during Bitunix login construction/sending:", error);
+        }
     }
 
     private handleMessage(message: any, type: 'public' | 'private') {
-        // Watchdog reset is handled in onmessage handler to catch ALL events
+        try {
+            // Watchdog reset is handled in onmessage handler to catch ALL events
 
-        if (message.event === 'login') {
-            if (message.code === 0 || message.msg === 'success') {
-                console.log('Bitunix Login Successful.');
-                this.isAuthenticated = true;
-                this.subscribePrivate();
-            } else {
-                console.error('Bitunix Login Failed:', message);
-            }
-            return;
-        }
-
-        if (message.op === 'ping') return;
-        if (message.op === 'pong' || message.pong) return;
-
-        // Handle Data Push
-        // Public Channels
-        if (message.ch === 'price') {
-            const symbol = message.symbol;
-            const data = message.data;
-            if (symbol && data) {
-                marketStore.updatePrice(symbol, {
-                    price: data.mp,
-                    indexPrice: data.ip,
-                    fundingRate: data.fr,
-                    nextFundingTime: data.nft
-                });
-            }
-        } else if (message.ch === 'ticker') {
-            const symbol = message.symbol;
-            const data = message.data;
-            if (symbol && data) {
-                marketStore.updateTicker(symbol, {
-                    lastPrice: data.la,
-                    high: data.h,
-                    low: data.l,
-                    vol: data.b,
-                    quoteVol: data.q,
-                    change: data.r,
-                    open: data.o
-                });
-            }
-        } else if (message.ch === 'depth_book5') {
-            const symbol = message.symbol;
-            const data = message.data;
-            if (symbol && data) {
-                marketStore.updateDepth(symbol, {
-                    bids: data.b,
-                    asks: data.a
-                });
-            }
-        }
-
-        // Private Channels
-        else if (message.ch === 'position') {
-            const data = message.data;
-            if (data) {
-                if (Array.isArray(data)) {
-                     data.forEach(item => accountStore.updatePositionFromWs(item));
+            if (message && message.event === 'login') {
+                if (message.code === 0 || message.msg === 'success') {
+                    console.log('Bitunix Login Successful.');
+                    this.isAuthenticated = true;
+                    this.subscribePrivate();
                 } else {
-                     accountStore.updatePositionFromWs(data);
+                    console.error('Bitunix Login Failed:', message);
+                }
+                return;
+            }
+
+            if (!message) return;
+            if (message.op === 'ping') return;
+            if (message.op === 'pong' || message.pong) return;
+
+            // Handle Data Push
+            // Public Channels
+            if (message.ch === 'price') {
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updatePrice(symbol, {
+                        price: data.mp,
+                        indexPrice: data.ip,
+                        fundingRate: data.fr,
+                        nextFundingTime: data.nft
+                    });
+                }
+            } else if (message.ch === 'ticker') {
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updateTicker(symbol, {
+                        lastPrice: data.la,
+                        high: data.h,
+                        low: data.l,
+                        vol: data.b,
+                        quoteVol: data.q,
+                        change: data.r,
+                        open: data.o
+                    });
+                }
+            } else if (message.ch === 'depth_book5') {
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updateDepth(symbol, {
+                        bids: data.b,
+                        asks: data.a
+                    });
                 }
             }
-        } else if (message.ch === 'order') {
-            const data = message.data;
-            if (data) {
-                if (Array.isArray(data)) {
-                    data.forEach(item => accountStore.updateOrderFromWs(item));
-                } else {
-                    accountStore.updateOrderFromWs(data);
+
+            // Private Channels
+            else if (message.ch === 'position') {
+                const data = message.data;
+                if (data) {
+                    if (Array.isArray(data)) {
+                        data.forEach(item => accountStore.updatePositionFromWs(item));
+                    } else {
+                        accountStore.updatePositionFromWs(data);
+                    }
+                }
+            } else if (message.ch === 'order') {
+                const data = message.data;
+                if (data) {
+                    if (Array.isArray(data)) {
+                        data.forEach(item => accountStore.updateOrderFromWs(item));
+                    } else {
+                        accountStore.updateOrderFromWs(data);
+                    }
+                }
+            } else if (message.ch === 'wallet') {
+                const data = message.data;
+                if (data) {
+                    if (Array.isArray(data)) {
+                        data.forEach(item => accountStore.updateBalanceFromWs(item));
+                    } else {
+                        accountStore.updateBalanceFromWs(data);
+                    }
                 }
             }
-        } else if (message.ch === 'wallet') {
-            const data = message.data;
-            if (data) {
-                if (Array.isArray(data)) {
-                    data.forEach(item => accountStore.updateBalanceFromWs(item));
-                } else {
-                     accountStore.updateBalanceFromWs(data);
-                }
-            }
+        } catch (err) {
+            console.error(`Error handling ${type} message:`, err, "Message:", message);
         }
     }
 
