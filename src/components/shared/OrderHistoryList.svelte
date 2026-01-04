@@ -65,7 +65,13 @@
                                 </span>
                                 <!-- Type Badge (L/M) -->
                                 <span class="text-[10px] font-bold px-1 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]" title={order.type}>
-                                    {order.type === 'LIMIT' ? 'L' : order.type === 'MARKET' ? 'M' : '?'}
+                                    {#if ['LIMIT', 'limit', '1'].includes(String(order.type).toUpperCase())}
+                                        L
+                                    {:else if ['MARKET', 'market', '2'].includes(String(order.type).toUpperCase())}
+                                        M
+                                    {:else}
+                                        {String(order.type).charAt(0).toUpperCase()}
+                                    {/if}
                                 </span>
                             </div>
                             <span class="text-[10px] text-[var(--text-primary)] font-mono">
