@@ -1,6 +1,7 @@
 <script lang="ts">
     import GeneralInputs from '../components/inputs/GeneralInputs.svelte';
     import PortfolioInputs from '../components/inputs/PortfolioInputs.svelte';
+    import TagInputs from '../components/inputs/TagInputs.svelte';
     import TradeSetupInputs from '../components/inputs/TradeSetupInputs.svelte';
     import TakeProfitTargets from '../components/inputs/TakeProfitTargets.svelte';
     import CustomModal from '../components/shared/CustomModal.svelte';
@@ -270,6 +271,8 @@ import { trackCustomEvent } from '../services/trackingService';
             <div>
                 <GeneralInputs bind:tradeType={$tradeStore.tradeType} bind:leverage={$tradeStore.leverage} bind:fees={$tradeStore.fees} />
 
+                <TagInputs tags={$tradeStore.tags} />
+
                 <PortfolioInputs
                     bind:accountSize={$tradeStore.accountSize}
                     bind:riskPercentage={$tradeStore.riskPercentage}
@@ -290,7 +293,6 @@ import { trackCustomEvent } from '../services/trackingService';
                 bind:stopLossPrice={$tradeStore.stopLossPrice}
                 bind:atrMode={$tradeStore.atrMode}
                 bind:atrTimeframe={$tradeStore.atrTimeframe}
-                tags={$tradeStore.tags}
 
                 on:showError={handleTradeSetupError}
 

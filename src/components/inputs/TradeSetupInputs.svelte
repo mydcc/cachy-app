@@ -21,8 +21,6 @@
     export let stopLossPrice: number | null;
     export let atrMode: 'manual' | 'auto';
     export let atrTimeframe: string;
-    export let tags: string[] = []; // Default empty array
-
 
     export let atrFormulaDisplay: string;
     export let showAtrFormulaDisplay: boolean;
@@ -113,31 +111,6 @@
 
     // Determine dynamic step based on price magnitude
     $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
-
-    // Tags Logic
-    let tagInput = '';
-
-    function addTag() {
-        const cleaned = tagInput.trim();
-        if (cleaned) {
-            if (!tags.includes(cleaned)) {
-                // We update the store via the parent binding or store update
-                updateTradeStore(s => ({ ...s, tags: [...s.tags, cleaned] }));
-            }
-            tagInput = '';
-        }
-    }
-
-    function handleTagKeydown(e: KeyboardEvent) {
-        if (e.key === 'Enter') {
-            e.preventDefault();
-            addTag();
-        }
-    }
-
-    function removeTag(tagToRemove: string) {
-        updateTradeStore(s => ({ ...s, tags: s.tags.filter(t => t !== tagToRemove) }));
-    }
 
     // Multi-ATR Logic
     let isScanningAtr = false;
@@ -240,26 +213,6 @@
                 on:click={toggleAutoUpdatePrice}
                 aria-label="Toggle Auto Update Price"
             ></button>
-        </div>
-    </div>
-
-    <!-- Tags Input -->
-    <div class="mb-4 relative">
-        <div class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]">
-            {#each tags as tag}
-                <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]">
-                    #{tag}
-                    <button class="hover:text-[var(--danger-color)]" on:click={() => removeTag(tag)}>×</button>
-                </span>
-            {/each}
-            <input
-                type="text"
-                class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
-                placeholder={tags.length === 0 ? $_('dashboard.tradeSetupInputs.tagsPlaceholder') : ''}
-                bind:value={tagInput}
-                on:keydown={handleTagKeydown}
-                on:blur={addTag}
-            />
         </div>
     </div>
 
