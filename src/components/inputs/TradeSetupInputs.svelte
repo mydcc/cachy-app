@@ -204,7 +204,7 @@
         </div>
         <div class="flex-grow relative">
             <input id="entry-price-input" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} value={format(entryPrice)} on:input={handleEntryPriceInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.entryPricePlaceholder')}" on:input={onboardingService.trackFirstInput}>
-            
+
             <!-- Auto Update Price Toggle -->
             <button
                 class="absolute top-2 right-2 rounded-full transition-colors duration-300"

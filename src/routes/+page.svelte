@@ -35,6 +35,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
     import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
+    import { handleGlobalKeydown } from '../services/hotkeyService';
 
     let fileInput: HTMLInputElement;
     let changelogContent = '';
@@ -149,26 +150,7 @@ import { trackCustomEvent } from '../services/trackingService';
             return;
         }
 
-        if (event && event.key && event.altKey) {
-            switch (event.key.toLowerCase()) {
-                case 'l':
-                    event.preventDefault();
-                    updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
-                    break;
-                case 's':
-                    event.preventDefault();
-                    updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
-                    break;
-                case 'r':
-                    event.preventDefault();
-                    resetAllInputs();
-                    break;
-                case 'j':
-                    event.preventDefault();
-                    uiStore.toggleJournalModal(true);
-                    break;
-            }
-        }
+        handleGlobalKeydown(event);
     }
 
     function handleBackupClick() {

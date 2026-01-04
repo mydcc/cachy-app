@@ -38,7 +38,7 @@ class BitunixWebSocketService {
         this.connectPublic();
         this.connectPrivate();
     }
-    
+
     private connectPublic() {
         if (this.wsPublic && (this.wsPublic.readyState === WebSocket.OPEN || this.wsPublic.readyState === WebSocket.CONNECTING)) {
             return;
@@ -242,14 +242,6 @@ class BitunixWebSocketService {
                     asks: data.a
                 });
             }
-        } 
-        // Private Channels
-        else if (message.ch === 'position') {
-            if (message.data) accountStore.updatePositionFromWs(message.data);
-        } else if (message.ch === 'order') {
-             if (message.data) accountStore.updateOrderFromWs(message.data);
-        } else if (message.ch === 'wallet') {
-             if (message.data) accountStore.updateBalanceFromWs(message.data);
         }
     }
 

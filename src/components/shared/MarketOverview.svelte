@@ -96,9 +96,9 @@
                 clearInterval(restIntervalId);
                 restIntervalId = undefined;
             }
-            // Maybe fetch once initially to populate before WS connects? 
+            // Maybe fetch once initially to populate before WS connects?
             // Optional, but might feel faster.
-            // fetchRestData(); 
+            // fetchRestData();
         }
     }
 
@@ -261,7 +261,7 @@
                  <div class="flex flex-col">
                     <span class="text-[var(--text-secondary)]">Funding Rate</span>
                     <span class="font-medium" 
-                          class:text-[var(--success-color)]={fundingRate.gt(0)} 
+                          class:text-[var(--success-color)]={fundingRate.gt(0)}
                           class:text-[var(--danger-color)]={fundingRate.lt(0)}>
                         {formatValue(fundingRate.times(100), 4)}%
                     </span>

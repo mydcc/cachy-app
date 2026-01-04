@@ -4,6 +4,7 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
+    import { imgbbService } from '../../services/imgbbService';
     import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
     import { icons, CONSTANTS } from '../../lib/constants';
@@ -164,6 +165,18 @@
             backgroundColor: themeColors.accent
         }]
     };
+    $: cumRData = {
+        labels: qualData.cumulativeRCurve.map(d => new Date(d.x).toLocaleDateString()),
+        datasets: [{
+            label: 'Cumulative R',
+            data: qualData.cumulativeRCurve.map(d => d.y),
+            borderColor: themeColors.accent,
+            backgroundColor: hexToRgba(themeColors.accent, 0.1),
+            fill: true,
+            tension: 0.1
+        }]
+    };
+
 
     // Direction Data
     $: dirData = calculator.getDirectionData(journal);
@@ -257,22 +270,50 @@
     // --- Deep Dive Data ---
     // Timing
     $: timingData = calculator.getTimingData(journal);
+    
+    // Split View for Timing (Green/Red) - SIDE BY SIDE (no stack property)
     $: hourlyPnlData = {
         labels: Array.from({length: 24}, (_, i) => `${i}h`),
-        datasets: [{
-            label: 'PnL',
-            data: timingData.hourlyPnl,
-            backgroundColor: timingData.hourlyPnl.map(d => d >= 0 ? themeColors.success : themeColors.danger)
-        }]
+        datasets: [
+            {
+                label: 'Gross Profit',
+                data: timingData.hourlyGrossProfit,
+                backgroundColor: themeColors.success
+            },
+            {
+                label: 'Gross Loss',
+                data: timingData.hourlyGrossLoss,
+                backgroundColor: themeColors.danger
+            }
+        ]
     };
+    
     $: dayOfWeekPnlData = {
         labels: timingData.dayLabels,
-        datasets: [{
-            label: 'PnL',
-            data: timingData.dayOfWeekPnl,
-            backgroundColor: timingData.dayOfWeekPnl.map(d => d >= 0 ? themeColors.success : themeColors.danger)
+        datasets: [
+            {
+                label: 'Gross Profit',
+                data: timingData.dayOfWeekGrossProfit,
+                backgroundColor: themeColors.success
+            },
+            {
+                label: 'Gross Loss',
+                data: timingData.dayOfWeekGrossLoss,
+                backgroundColor: themeColors.danger
+            }
+        ]
+    };
+    
+    // Duration
+    $: durationDataRaw = calculator.getDurationData(journal);
+    $: durationScatterData = {
+         datasets: [{
+            label: 'Trades',
+            data: durationDataRaw.scatterData,
+            backgroundColor: durationDataRaw.scatterData.map(d => d.y >= 0 ? themeColors.success : themeColors.danger)
         }]
     };
+
 
     // Assets
     $: assetData = calculator.getAssetData(journal);
@@ -432,10 +473,128 @@
         (event.target as HTMLElement).classList.toggle('expanded');
     }
 
+    // --- Image Upload Logic ---
+    let dragOverTradeId: number | null = null;
+
+    function handleDragOver(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = tradeId;
+    }
+
+    function handleDragLeave(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        if (dragOverTradeId === tradeId) {
+            dragOverTradeId = null;
+        }
+    }
+
+    async function handleDrop(tradeId: number, event: DragEvent) {
+        event.preventDefault();
+        dragOverTradeId = null;
+
+        const file = event.dataTransfer?.files?.[0];
+        if (file && file.type.startsWith('image/')) {
+            await uploadScreenshot(tradeId, file);
+        }
+    }
+
+    async function handleScreenshotUpload(tradeId: number, event: Event) {
+        if (!browser) return;
+        
+        const input = event.target as HTMLInputElement;
+        const file = input.files?.[0];
+        
+        if (file) {
+            await uploadScreenshot(tradeId, file);
+        }
+        
+        // Reset input so same file can be selected again if needed
+        input.value = '';
+    }
+
+    async function uploadScreenshot(tradeId: number, file: File) {
+        uiStore.showLoading('Uploading screenshot...');
+        
+        try {
+            const url = await imgbbService.uploadToImgbb(file);
+            
+            // Update Journal Entry
+            journalStore.update(trades => {
+                return trades.map(t => {
+                    if (t.id === tradeId) {
+                        return { ...t, screenshot: url };
+                    }
+                    return t;
+                });
+            });
+
+            uiStore.showFeedback('save'); // Re-use save success
+        } catch (error: any) {
+            console.error(error);
+            uiStore.showError(error.message || 'Screenshot upload failed');
+        } finally {
+            uiStore.hideLoading();
+        }
+    }
+
     // Reset pagination on filter change
     $: if (processedTrades.length) currentPage = 1;
 
 </script>
+
+<style>
+    /* Add style for the thumbnail hover effect */
+    .screenshot-cell {
+        position: relative;
+    }
+
+    .screenshot-cell.drag-over {
+        background-color: rgba(var(--accent-rgb), 0.2) !important;
+        border: 2px dashed var(--accent-color);
+    }
+    
+    .thumbnail-popup {
+        display: none;
+        position: absolute;
+        bottom: 100%;
+        left: 50%;
+        transform: translateX(-50%);
+        z-index: 50;
+        background: var(--bg-tertiary);
+        padding: 4px;
+        border: 1px solid var(--border-color);
+        border-radius: 4px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        width: 200px;
+        height: auto;
+    }
+
+    .screenshot-cell:hover .thumbnail-popup {
+        display: block;
+    }
+
+    .thumbnail-popup img {
+        width: 100%;
+        height: auto;
+        border-radius: 2px;
+    }
+
+    /* Icon styling */
+    .icon-btn {
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        color: var(--text-secondary);
+        transition: color 0.2s, background-color 0.2s;
+    }
+
+    .icon-btn:hover {
+        color: var(--accent-color);
+        background-color: var(--bg-tertiary);
+    }
+</style>
 
 <ModalFrame
     isOpen={$uiStore.showJournalModal}
@@ -450,56 +609,50 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 min-h-[250px]">
         {#if activePreset === 'performance'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={equityData} title="Equity Curve" yLabel="PnL ($)" />
+                <LineChart data={equityData} title="Equity Curve" yLabel="PnL ($)" description="Verlauf des Gesamtkapitals basierend auf allen abgeschlossenen Trades." />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={drawdownData} title="Drawdown" yLabel="$" />
+                <LineChart data={drawdownData} title="Drawdown" yLabel="$" description="Zeigt den Rückgang vom letzten Höchststand des Kapitals (Equity High)." />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={monthlyData} title="Monthly PnL" />
+                <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center items-center">
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center items-center relative">
                  <!-- Stats KPI Tile -->
+                 <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
+                     <Tooltip text="Prozentsatz der Gewinn-Trades im Verhältnis zur Gesamtzahl." />
+                 </div>
                 <div class="text-center w-full mb-4">
                     <div class="text-sm text-[var(--text-secondary)]">Win Rate</div>
                     <div class="text-3xl font-bold text-[var(--accent-color)]">{qualData.stats.winRate.toFixed(1)}%</div>
                 </div>
                 <div class="h-32 w-full">
-                     <DoughnutChart data={winLossChartData} title="" />
+                     <DoughnutChart data={winLossChartData} title="" description="Verteilung der gewonnenen vs. verlorenen Trades." />
                 </div>
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={rDistData} title="R-Multiple Distribution" />
+                <BarChart data={rDistData} title="R-Multiple Distribution" description="Häufigkeitsverteilung der Ergebnisse gemessen in Risiko-Einheiten (R). Zeigt wie oft du 1R, 2R etc. gewinnst." />
             </div>
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col gap-4 justify-center">
-                 <div class="text-center p-2 bg-[var(--bg-primary)] rounded">
-                    <div class="text-xs uppercase text-[var(--text-secondary)]">Profit Factor</div>
-                    <div class="text-2xl font-bold text-[var(--text-primary)]">{qualData.stats.profitFactor.toFixed(2)}</div>
-                 </div>
-                 <div class="text-center p-2 bg-[var(--bg-primary)] rounded">
-                    <div class="text-xs uppercase text-[var(--text-secondary)]">Avg Trade</div>
-                    <div class="text-2xl font-bold {qualData.stats.avgTrade.gt(0) ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
-                        {qualData.stats.avgTrade.gt(0) ? '+' : ''}{qualData.stats.avgTrade.toFixed(2)}
-                    </div>
-                 </div>
+             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                <LineChart data={cumRData} title="Cumulative R" yLabel="R" description="Summe aller R-Multiples über die Zeit. Zeigt die Performance bereinigt um die Positionsgröße." />
             </div>
         {:else if activePreset === 'direction'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={longShortData} title="Long vs Short PnL" />
+                <BarChart data={longShortData} title="Long vs Short PnL" description="Vergleich der Netto-Gewinne zwischen Long- und Short-Positionen." />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={topSymbolData} title="Top 5 Symbols" horizontal={true} />
+                <BarChart data={topSymbolData} title="Top 5 Symbols" horizontal={true} description="Die 5 profitabelsten Trading-Paare." />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={bottomSymbolData} title="Bottom 5 Symbols" horizontal={true} />
+                <BarChart data={bottomSymbolData} title="Bottom 5 Symbols" horizontal={true} description="Die 5 Trading-Paare mit den größten Verlusten." />
             </div>
         {:else if activePreset === 'discipline'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={hourlyData} title="Hourly Performance (PnL)" />
+                <BarChart data={hourlyData} title="Hourly Performance (PnL)" description="Netto-Gewinn/Verlust aggregiert nach Tageszeit (Stunde)." />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={riskData} title="Risk Consistency" />
+                <BarChart data={riskData} title="Risk Consistency" description="Zeigt, wie konsistent dein Risiko pro Trade (in % des Accounts) ist." />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center gap-4">
                  <div class="text-center">
@@ -513,13 +666,13 @@
             </div>
         {:else if activePreset === 'costs'}
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={grossNetData} title="Gross vs Net PnL" />
+                <BarChart data={grossNetData} title="Gross vs Net PnL" description="Vergleich des Gewinns vor (Gross) und nach (Net) Gebühren." />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={feeCurveData} title="Cumulative Fees" yLabel="$" />
+                <LineChart data={feeCurveData} title="Cumulative Fees" yLabel="$" description="Die Summe aller gezahlten Gebühren über die Zeit." />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <DoughnutChart data={feeStructureData} title="Fee Breakdown" />
+                <DoughnutChart data={feeStructureData} title="Fee Breakdown" description="Aufteilung der Kosten in Handelsgebühren und Funding-Gebühren." />
             </div>
         {/if}
     </div>
@@ -601,6 +754,7 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Status</th>
+                            <th>Screenshot</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>
@@ -633,6 +787,31 @@
                                         </select>
                                     {/if}
                                 </td>
+                                
+                                <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                    on:dragover={(e) => handleDragOver(trade.id, e)}
+                                    on:dragleave={(e) => handleDragLeave(trade.id, e)}
+                                    on:drop={(e) => handleDrop(trade.id, e)}
+                                >
+                                    {#if trade.screenshot}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                            {@html icons.camera || '📷'}
+                                        </button>
+                                        <div class="thumbnail-popup">
+                                            <img src={trade.screenshot} alt="Trade Screenshot" />
+                                        </div>
+                                    {:else}
+                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                        <label class="icon-btn cursor-pointer block w-full h-full" title="Upload Screenshot">
+                                            {@html icons.plus || '+'}
+                                            <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
+                                        </label>
+                                    {/if}
+                                </td>
+
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                 <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
@@ -697,18 +876,17 @@
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4">
             {#if activeDeepDivePreset === 'timing'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={hourlyPnlData} title={$_('journal.deepDive.charts.hourlyPnl')} />
+                    <BarChart data={hourlyPnlData} title={$_('journal.deepDive.charts.hourlyPnl')} description="Brutto-Gewinne (Grün) und Brutto-Verluste (Rot) pro Tageszeit. Hilft zu erkennen, wann du profitabel bist und wann du Geld verlierst." />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={dayOfWeekPnlData} title={$_('journal.deepDive.charts.dayOfWeekPnl')} />
+                    <BarChart data={dayOfWeekPnlData} title={$_('journal.deepDive.charts.dayOfWeekPnl')} description="Brutto-Gewinne und -Verluste pro Wochentag." />
                 </div>
-                 <!-- Placeholder for future timing metric -->
-                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center text-[var(--text-secondary)]">
-                    <span>More Timing metrics coming soon...</span>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                    <BubbleChart data={durationScatterData} title="Duration vs PnL" xLabel="Dauer (Min)" yLabel="PnL ($)" description="Verhältnis von Haltedauer zum Gewinn/Verlust. Erkennst du Muster bei kurzen vs. langen Trades?" />
                  </div>
             {:else if activeDeepDivePreset === 'assets'}
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BubbleChart data={assetBubbleData} title={$_('journal.deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" />
+                    <BubbleChart data={assetBubbleData} title={$_('journal.deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" description="Asset-Matrix: Oben rechts sind deine besten Coins (hohe Winrate, viel Gewinn). Größe der Blase = Anzahl Trades." />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
                     <div class="text-center">
@@ -723,27 +901,27 @@
                  </div>
             {:else if activeDeepDivePreset === 'risk'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BubbleChart data={riskRewardScatter} title={$_('journal.deepDive.charts.riskRewardScatter')} xLabel="Risk Amount ($)" yLabel="Realized PnL ($)" />
+                    <BubbleChart data={riskRewardScatter} title={$_('journal.deepDive.charts.riskRewardScatter')} xLabel="Risk Amount ($)" yLabel="Realized PnL ($)" description="Risk/Reward Scatter: Zeigt das Verhältnis von eingesetztem Risiko zum tatsächlichen Ergebnis. Ideal: Geringes Risiko, hoher Gewinn (oben links)." />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={rDistData} title="R-Multiple Distribution" />
+                    <BarChart data={rDistData} title="R-Multiple Distribution" description="Häufigkeitsverteilung deiner Ergebnisse in R-Multiples." />
                 </div>
             {:else if activeDeepDivePreset === 'market'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <DoughnutChart data={longShortWinData} title={$_('journal.deepDive.charts.longShortWinRate')} />
+                    <DoughnutChart data={longShortWinData} title={$_('journal.deepDive.charts.longShortWinRate')} description="Vergleich der Gewinnrate zwischen Long- und Short-Trades." />
                 </div>
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
-                    <BarChart data={leverageDistData} title={$_('journal.deepDive.charts.leverageDist')} />
+                    <BarChart data={leverageDistData} title={$_('journal.deepDive.charts.leverageDist')} description="Verteilung der verwendeten Hebel (Leverage)." />
                 </div>
             {:else if activeDeepDivePreset === 'psychology'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={winStreakData} title={$_('journal.deepDive.charts.winStreak')} />
+                    <BarChart data={winStreakData} title={$_('journal.deepDive.charts.winStreak')} description="Häufigkeit von Gewinnserien unterschiedlicher Länge." />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={lossStreakData} title={$_('journal.deepDive.charts.lossStreak')} />
+                    <BarChart data={lossStreakData} title={$_('journal.deepDive.charts.lossStreak')} description="Häufigkeit von Verlustserien unterschiedlicher Länge." />
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                     <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" />
+                     <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" description="Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst." />
                 </div>
             {:else if activeDeepDivePreset === 'strategies'}
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
