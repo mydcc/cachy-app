@@ -11,31 +11,42 @@ export const POST: RequestHandler = async ({ request }) => {
 
     try {
         let allOrders: any[] = [];
+        let errorCount = 0;
 
         // 1. Fetch Regular Orders
         try {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
-            allOrders = allOrders.concat(regularOrders);
+            if (regularOrders && Array.isArray(regularOrders)) {
+                allOrders = allOrders.concat(regularOrders);
+            }
         } catch (err: any) {
             console.error('Error fetching regular orders:', err);
-            // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
+            errorCount++;
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
-        // Documentation: /api/v1/futures/tpsl/get_history_orders
         try {
             const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders');
-            allOrders = allOrders.concat(tpslOrders);
+            if (tpslOrders && Array.isArray(tpslOrders)) {
+                allOrders = allOrders.concat(tpslOrders);
+            }
         } catch (err: any) {
             console.warn('Error fetching TP/SL orders:', err.message);
+            // Not counting as critical error
         }
 
         // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
         try {
             const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
-            allOrders = allOrders.concat(planOrders);
+            if (planOrders && Array.isArray(planOrders)) {
+                allOrders = allOrders.concat(planOrders);
+            }
         } catch (err: any) {
             console.warn('Error fetching plan orders:', err.message);
+        }
+
+        if (errorCount > 0 && allOrders.length === 0) {
+             throw new Error('Failed to fetch regular orders and no other orders found.');
         }
 
         return json({ data: allOrders });
@@ -46,35 +57,41 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function fetchAllPages(apiKey: string, apiSecret: string, path: string): Promise<any[]> {
-    const maxPages = 5;
+    const maxPages = 10; // Increased depth
     let accumulated: any[] = [];
     let currentEndTime: number | undefined = undefined;
 
     for (let i = 0; i < maxPages; i++) {
-        const batch = await fetchBitunixData(apiKey, apiSecret, path, 100, currentEndTime);
+        try {
+            const batch = await fetchBitunixData(apiKey, apiSecret, path, 100, currentEndTime);
 
-        if (!batch || batch.length === 0) {
-            break;
-        }
+            if (!batch || batch.length === 0) {
+                break;
+            }
 
-        accumulated = accumulated.concat(batch);
+            accumulated = accumulated.concat(batch);
 
-        // Pagination logic: use the creation time of the last item
-        const lastItem = batch[batch.length - 1];
+            // Pagination logic: use the creation time of the last item
+            const lastItem = batch[batch.length - 1];
 
-        // Safety check if lastItem is null or undefined
-        if (!lastItem) break;
+            if (!lastItem) break;
 
-        // Standardize time field: ctime, createTime, updateTime
-        const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
+            // Standardize time field: ctime, createTime, updateTime
+            const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
-        // Ensure we have a valid time field before parsing
-        if (timeField && !isNaN(parseInt(timeField, 10))) {
-            currentEndTime = parseInt(timeField, 10);
-
-            // Safety break: if the timestamp is 0 or very old/invalid, stop
-            if (currentEndTime <= 0) break;
-        } else {
+            if (timeField) {
+                 const parsedTime = parseInt(timeField, 10);
+                 if (!isNaN(parsedTime) && parsedTime > 0) {
+                     currentEndTime = parsedTime;
+                 } else {
+                     break;
+                 }
+            } else {
+                break;
+            }
+        } catch (e) {
+            console.warn(`Error fetching page ${i} for ${path}:`, e);
+            // If one page fails, we stop but return what we have
             break;
         }
     }

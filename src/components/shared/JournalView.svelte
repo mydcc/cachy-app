@@ -390,6 +390,10 @@
             let valA = a[sortField];
             let valB = b[sortField];
 
+            // Handle Null/Undefined (push to bottom)
+            if (valA === null || valA === undefined) return 1;
+            if (valB === null || valB === undefined) return -1;
+
             // Handle Decimals
             if (valA instanceof Decimal) valA = valA.toNumber();
             if (valB instanceof Decimal) valB = valB.toNumber();

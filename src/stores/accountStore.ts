@@ -86,12 +86,22 @@ function createAccountStore() {
                     if (index !== -1) {
                         // Merge with existing to preserve missing fields
                         const existing = currentPositions[index];
-                        if (newPos.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
-                        newPos.liquidationPrice = existing.liquidationPrice;
-                        newPos.markPrice = existing.markPrice;
-                        newPos.breakEvenPrice = existing.breakEvenPrice;
+
+                        // Only overwrite if new value is present/non-zero or explicitly provided
+                        // For Decimals, check isZero() only if that makes sense (e.g. price 0 is invalid).
+                        // However, WS might send 0 for "no change" or "not provided".
+
+                        if (newPos.entryPrice.isZero() && !existing.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
+                        if (newPos.liquidationPrice.isZero() && !existing.liquidationPrice.isZero()) newPos.liquidationPrice = existing.liquidationPrice;
+                        if (newPos.markPrice.isZero() && !existing.markPrice.isZero()) newPos.markPrice = existing.markPrice;
+                        if (newPos.breakEvenPrice.isZero() && !existing.breakEvenPrice.isZero()) newPos.breakEvenPrice = existing.breakEvenPrice;
+
                         if (!data.side) newPos.side = existing.side;
+                        if (!data.marginMode) newPos.marginMode = existing.marginMode;
                         
+                        // Leverage might be 0 in update?
+                        if (newPos.leverage.isZero() && !existing.leverage.isZero()) newPos.leverage = existing.leverage;
+
                         currentPositions[index] = newPos;
                     } else {
                         currentPositions.push(newPos);
