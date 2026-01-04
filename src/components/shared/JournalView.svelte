@@ -16,7 +16,7 @@
     import BarChart from './charts/BarChart.svelte';
     import DoughnutChart from './charts/DoughnutChart.svelte';
     import BubbleChart from './charts/BubbleChart.svelte';
-    import Tooltip from './Tooltip.svelte';
+    import CalendarHeatmap from './charts/CalendarHeatmap.svelte';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
 
@@ -32,13 +32,11 @@
     let inputBuffer: string[] = [];
 
     function handleKeydown(event: KeyboardEvent) {
-        if (!$settingsStore.isPro) return; // Only listen if Pro is active (optional constraint, but good for performance)
+        if (!$settingsStore.isPro) return; // Only listen if Pro is active
         
         const key = event.key;
-        // Only accept single character keys to avoid control keys filling buffer
         if (key.length === 1) {
             inputBuffer.push(key);
-            // Keep buffer size enough for the longest code
             if (inputBuffer.length > Math.max(CHEAT_CODE.length, LOCK_CODE.length)) {
                 inputBuffer.shift();
             }
@@ -206,6 +204,20 @@
             backgroundColor: themeColors.danger
         }]
     };
+
+    // Strategies (Tags)
+    $: tagData = calculator.getTagData(journal);
+    $: tagPnlData = {
+        labels: tagData.labels,
+        datasets: [{
+            label: 'PnL',
+            data: tagData.pnlData,
+            backgroundColor: tagData.pnlData.map(d => d >= 0 ? themeColors.success : themeColors.danger)
+        }]
+    };
+
+    // Calendar Data
+    $: calendarData = calculator.getCalendarData(journal);
 
     // Discipline Data
     $: discData = calculator.getDisciplineData(journal);
@@ -854,7 +866,9 @@
                 { id: 'assets', label: $_('journal.deepDive.assets') },
                 { id: 'risk', label: $_('journal.deepDive.risk') },
                 { id: 'market', label: $_('journal.deepDive.market') },
-                { id: 'psychology', label: $_('journal.deepDive.psychology') }
+                { id: 'psychology', label: $_('journal.deepDive.psychology') },
+                { id: 'strategies', label: $_('journal.deepDive.strategies') },
+                { id: 'calendar', label: $_('journal.deepDive.calendar') }
             ]}
             on:select={(e) => activeDeepDivePreset = e.detail} 
         />
@@ -908,6 +922,27 @@
                 </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                      <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" description="Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst." />
+                </div>
+            {:else if activeDeepDivePreset === 'strategies'}
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BarChart data={tagPnlData} title={$_('journal.deepDive.charts.tagPerformance')} />
+                </div>
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center">
+                     <div class="text-center p-4">
+                         <div class="text-[var(--text-secondary)] text-sm mb-2">Most Profitable Strategy</div>
+                         {#if tagData.labels.length > 0}
+                             {@const bestIdx = tagData.pnlData.indexOf(Math.max(...tagData.pnlData))}
+                             <div class="text-2xl font-bold text-[var(--success-color)]">#{tagData.labels[bestIdx]}</div>
+                             <div class="text-[var(--text-primary)]">${tagData.pnlData[bestIdx].toFixed(2)}</div>
+                         {:else}
+                             <div class="text-xl">-</div>
+                         {/if}
+                     </div>
+                </div>
+            {:else if activeDeepDivePreset === 'calendar'}
+                <div class="col-span-1 md:col-span-2 lg:col-span-3">
+                    <h4 class="text-center font-bold mb-4 text-[var(--text-primary)]">{$_('journal.deepDive.charts.heatmap')}</h4>
+                    <CalendarHeatmap data={calendarData} />
                 </div>
             {/if}
         </div>

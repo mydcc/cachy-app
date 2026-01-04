@@ -100,7 +100,8 @@
       "atrStopLossLabel": "ATR Stop-Loss",
       "manualStopLossPlaceholder": "Manueller Stopp Loss",
       "atrValuePlaceholder": "ATR Wert",
-      "multiplierPlaceholder": "Multiplikator"
+      "multiplierPlaceholder": "Multiplikator",
+      "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)"
     },
     "takeProfitRow": {
       "winLabel": "Win:",
@@ -188,6 +189,8 @@
       "risk": "Risiko",
       "market": "Markt",
       "psychology": "Psychologie",
+      "strategies": "Strategien",
+      "calendar": "Kalender",
       "charts": {
         "hourlyPnl": "PnL nach Tageszeit",
         "dayOfWeekPnl": "PnL nach Wochentag",
@@ -197,7 +200,9 @@
         "winStreak": "Gewinnsträhnen",
         "lossStreak": "Verluststrähnen",
         "recovery": "Erholung nach Drawdown",
-        "longShortWinRate": "Win Rate: Long vs Short"
+        "longShortWinRate": "Win Rate: Long vs Short",
+        "tagPerformance": "Tag Performance (PnL)",
+        "heatmap": "Täglicher PnL Kalender"
       }
     }
   },

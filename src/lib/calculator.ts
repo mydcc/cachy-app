@@ -715,5 +715,64 @@ export const calculator = {
             symbolPerformance[trade.symbol].totalProfitLoss = symbolPerformance[trade.symbol].totalProfitLoss.plus(pnl);
         });
         return symbolPerformance;
+    },
+
+    getTagData: (trades: JournalEntry[]) => {
+        const tagStats: {[key: string]: { win: number, loss: number, pnl: Decimal, count: number }} = {};
+
+        trades.forEach(t => {
+            if (t.status === 'Open') return;
+            const tags = t.tags || [];
+
+            // If no tags, maybe bucket as 'No Tag'?
+            // if (tags.length === 0) tags.push('Untagged');
+
+            tags.forEach(tag => {
+                if (!tagStats[tag]) tagStats[tag] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
+
+                tagStats[tag].count++;
+                const pnl = getTradePnL(t);
+                tagStats[tag].pnl = tagStats[tag].pnl.plus(pnl);
+
+                if (t.status === 'Won') tagStats[tag].win++;
+                else tagStats[tag].loss++;
+            });
+        });
+
+        // Convert to array for sorting/display
+        const labels = Object.keys(tagStats);
+        const pnlData = labels.map(l => tagStats[l].pnl.toNumber());
+        const winRateData = labels.map(l => (tagStats[l].win / tagStats[l].count) * 100);
+
+        return {
+            labels,
+            pnlData,
+            winRateData
+        };
+    },
+
+    getCalendarData: (trades: JournalEntry[]) => {
+        // Aggregate PnL by day (YYYY-MM-DD)
+        const dailyMap: {[key: string]: { pnl: Decimal, count: number }} = {};
+
+        trades.forEach(t => {
+            if (t.status === 'Open') return;
+            // Use local date string for simplicity or ISO date part
+            const date = new Date(t.date);
+            const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
+
+            if (!dailyMap[key]) dailyMap[key] = { pnl: new Decimal(0), count: 0 };
+
+            const pnl = getTradePnL(t);
+            dailyMap[key].pnl = dailyMap[key].pnl.plus(pnl);
+            dailyMap[key].count++;
+        });
+
+        // Convert to array of objects { date: string, pnl: number, count: number }
+        return Object.entries(dailyMap).map(([date, data]) => ({
+            date,
+            pnl: data.pnl.toNumber(),
+            count: data.count
+        }));
     }
 };

@@ -19,6 +19,7 @@
     export let stopLossPrice: number | null;
     export let atrMode: 'manual' | 'auto';
     export let atrTimeframe: string;
+    export let tags: string[] = []; // Default empty array
 
 
     export let atrFormulaDisplay: string;
@@ -99,6 +100,66 @@
     function toggleAutoUpdatePrice() {
         settingsStore.update(s => ({ ...s, autoUpdatePriceInput: !s.autoUpdatePriceInput }));
     }
+
+    // --- Tags Logic ---
+    let tagInput = '';
+
+    function handleTagKeydown(e: KeyboardEvent) {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addTag();
+        }
+    }
+
+    function addTag() {
+        const t = tagInput.trim().replace(/#/g, '');
+        if (t && !tags.includes(t)) {
+            const newTags = [...tags, t];
+            // Since `tags` prop is not two-way bound explicitly in the parent yet via bind:tags in +page.svelte
+            // we will need to update the store directly or emit an event.
+            // Following existing pattern: updateTradeStore
+            updateTradeStore(s => ({ ...s, tags: newTags }));
+            tagInput = '';
+            trackCustomEvent('Tags', 'Add', t);
+        }
+    }
+
+    function removeTag(tagToRemove: string) {
+        const newTags = tags.filter(t => t !== tagToRemove);
+        updateTradeStore(s => ({ ...s, tags: newTags }));
+        trackCustomEvent('Tags', 'Remove', tagToRemove);
+    }
+
+    // --- Multi-Timeframe ATR Logic ---
+    // Minimalist: Small text badges below ATR input.
+    // We need state to hold fetched ATRs.
+    // We'll manage this state locally or in a store? Locally is fine for "preview".
+    let multiAtrData: Record<string, number> = {};
+    let isScanningAtr = false;
+
+    async function scanMultiAtr() {
+        if (!symbol || symbol.length < 3) return;
+        isScanningAtr = true;
+        multiAtrData = {};
+        trackCustomEvent('ATR', 'ScanMulti', symbol);
+
+        try {
+            // Trigger parallel fetch
+            const results = await app.scanMultiAtr(symbol);
+            multiAtrData = results;
+        } catch (e) {
+            console.error(e);
+        } finally {
+            isScanningAtr = false;
+        }
+    }
+
+    function applyAtr(tf: string, val: number) {
+        dispatch('setAtrTimeframe', tf);
+        updateTradeStore(s => ({ ...s, atrValue: val }));
+        app.calculateAndDisplay();
+        trackCustomEvent('ATR', 'ApplyMulti', tf);
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -152,6 +213,26 @@
                 on:click={toggleAutoUpdatePrice}
                 aria-label="Toggle Auto Update Price"
             ></button>
+        </div>
+    </div>
+
+    <!-- Tags Input -->
+    <div class="mb-4 relative">
+        <div class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]">
+            {#each tags as tag}
+                <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]">
+                    #{tag}
+                    <button class="hover:text-[var(--danger-color)]" on:click={() => removeTag(tag)}>×</button>
+                </span>
+            {/each}
+            <input
+                type="text"
+                class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
+                placeholder={tags.length === 0 ? $_('dashboard.tradeSetupInputs.tagsPlaceholder') : ''}
+                bind:value={tagInput}
+                on:keydown={handleTagKeydown}
+                on:blur={addTag}
+            />
         </div>
     </div>
 
@@ -231,6 +312,31 @@
                     <span style="color: var(--danger-color);">{result}</span>
                 </div>
             {/if}
+        {/if}
+
+        <!-- Multi-ATR Preview (Minimalist) -->
+        {#if useAtrSl}
+        <div class="mt-3 border-t border-[var(--border-color)] pt-2">
+            <div class="flex items-center gap-2 flex-wrap text-xs">
+                <button class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] font-bold flex items-center gap-1" on:click={scanMultiAtr} disabled={isScanningAtr}>
+                    <span class={isScanningAtr ? 'animate-spin' : ''}>{@html icons.refresh}</span>
+                    SCAN
+                </button>
+                {#if Object.keys(multiAtrData).length > 0}
+                    <span class="text-[var(--border-color)]">|</span>
+                    {#each Object.entries(multiAtrData) as [tf, val]}
+                         <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
+                             on:click={() => applyAtr(tf, val)}
+                             title="Apply {tf} ATR"
+                         >
+                            <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
+                         </button>
+                    {/each}
+                {:else if !isScanningAtr}
+                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">Click scan for multi-TF</span>
+                {/if}
+            </div>
+        </div>
         {/if}
     </div>
 </div>

@@ -290,6 +290,7 @@ import { trackCustomEvent } from '../services/trackingService';
                 bind:stopLossPrice={$tradeStore.stopLossPrice}
                 bind:atrMode={$tradeStore.atrMode}
                 bind:atrTimeframe={$tradeStore.atrTimeframe}
+                tags={$tradeStore.tags}
 
                 on:showError={handleTradeSetupError}
 
