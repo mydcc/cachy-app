@@ -20,6 +20,7 @@ export const initialTradeState: Pick<AppState,
     'atrMode' |
     'atrTimeframe' |
     'tradeNotes' |
+    'tags' |
     'targets' |
     'isPositionSizeLocked' |
     'lockedPositionSize' |
@@ -43,6 +44,7 @@ export const initialTradeState: Pick<AppState,
     atrMode: 'auto',
     atrTimeframe: '5m',
     tradeNotes: '',
+    tags: [],
     targets: [
         { price: null, percent: 50, isLocked: false },
         { price: null, percent: 25, isLocked: false },

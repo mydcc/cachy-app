@@ -13,6 +13,7 @@ export interface TradeValues {
     stopLossPrice: Decimal;
     targets: Array<{ price: Decimal; percent: Decimal; isLocked: boolean; }>;
     totalPercentSold: Decimal;
+    tags?: string[];
 }
 
 export interface BaseMetrics {
@@ -60,6 +61,7 @@ export interface AppState {
     atrMode: 'manual' | 'auto';
     atrTimeframe: string;
     tradeNotes: string;
+    tags: string[];
     targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
 
     // Calculated Results
@@ -136,4 +138,5 @@ export interface JournalEntry {
     tradingFee?: Decimal;
     realizedPnl?: Decimal;
     isManual?: boolean;
+    tags?: string[];
 }
