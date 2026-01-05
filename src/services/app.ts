@@ -888,7 +888,7 @@ export const app = {
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim());
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, ''));
             // Map possible headers to internal keys
             const headerMap: { [key: string]: string } = {
                 'ID': 'ID',
