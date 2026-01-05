@@ -412,11 +412,15 @@
         });
     }
 
+    // Extract tradeStore values to local reactive variables to prevent unrelated updates (e.g. price) from triggering re-renders/pagination resets
+    $: journalSearchQuery = $tradeStore.journalSearchQuery;
+    $: journalFilterStatus = $tradeStore.journalFilterStatus;
+
     $: processedTrades = $journalStore.filter(trade => {
         // Text Search
-        const matchesSearch = trade.symbol.toLowerCase().includes($tradeStore.journalSearchQuery.toLowerCase());
+        const matchesSearch = trade.symbol.toLowerCase().includes(journalSearchQuery.toLowerCase());
         // Status Filter
-        const matchesStatus = $tradeStore.journalFilterStatus === 'all' || trade.status === $tradeStore.journalFilterStatus;
+        const matchesStatus = journalFilterStatus === 'all' || trade.status === journalFilterStatus;
         // Date Filter
         let matchesDate = true;
         const tradeDate = new Date(trade.date);
@@ -544,8 +548,8 @@
     }
 
     $: resetPagination(
-        $tradeStore.journalSearchQuery,
-        $tradeStore.journalFilterStatus,
+        journalSearchQuery,
+        journalFilterStatus,
         filterDateStart,
         filterDateEnd,
         groupBySymbol,
