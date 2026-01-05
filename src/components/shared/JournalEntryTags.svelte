@@ -6,11 +6,14 @@
 
     let tagInput = '';
 
+    // Ensure tags is always an array for local usage
+    $: safeTags = Array.isArray(tags) ? tags : [];
+
     function addTag() {
         const cleaned = tagInput.trim();
         if (cleaned) {
-            if (!tags.includes(cleaned)) {
-                onTagsChange([...tags, cleaned]);
+            if (!safeTags.includes(cleaned)) {
+                onTagsChange([...safeTags, cleaned]);
             }
             tagInput = '';
         }
@@ -24,7 +27,7 @@
     }
 
     function removeTag(tagToRemove: string) {
-        onTagsChange(tags.filter(t => t !== tagToRemove));
+        onTagsChange(safeTags.filter(t => t !== tagToRemove));
     }
 </script>
 
@@ -41,7 +44,7 @@
 </style>
 
 <div class="tag-container input-field rounded-md flex flex-wrap items-center gap-1.5 w-full min-w-[150px]">
-    {#each tags || [] as tag}
+    {#each safeTags as tag}
         <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-[10px] font-bold px-1.5 py-0.5 rounded flex items-center gap-1 border border-[var(--border-color)] whitespace-nowrap">
             #{tag}
             <button class="hover:text-[var(--danger-color)] cursor-pointer leading-none" on:click|stopPropagation={() => removeTag(tag)}>×</button>
@@ -50,7 +53,7 @@
     <input
         type="text"
         class="bg-transparent outline-none flex-grow min-w-[50px] text-xs journal-tag-input"
-        placeholder={(!tags || tags.length === 0) ? '+' : ''}
+        placeholder={safeTags.length === 0 ? '+' : ''}
         bind:value={tagInput}
         on:keydown={handleTagKeydown}
         on:blur={addTag}
