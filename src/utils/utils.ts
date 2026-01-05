@@ -48,3 +48,39 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
     // Otherwise, remove only the trailing zeros and the decimal point if it's the last char
     return formatted.replace(/0+$/, '').replace(/\.$/, '');
 }
+
+/**
+ * Parses a date string which might be in German format (DD.MM.YYYY) into a Date object.
+ * @param dateStr Date string (e.g., "23.12.2025" or "2025-12-23")
+ * @param timeStr Time string (e.g., "19:40:08")
+ * @returns Date object
+ */
+export function parseDateString(dateStr: string, timeStr: string): Date {
+    if (!dateStr) return new Date();
+
+    let isoDate = dateStr;
+    // Check for German format DD.MM.YYYY
+    if (dateStr.includes('.')) {
+        const parts = dateStr.split('.');
+        if (parts.length === 3) {
+            // Reassemble to YYYY-MM-DD
+            // Assuming DD.MM.YYYY
+            const day = parts[0].padStart(2, '0');
+            const month = parts[1].padStart(2, '0');
+            const year = parts[2];
+            isoDate = `${year}-${month}-${day}`;
+        }
+    }
+
+    const isoTime = timeStr ? timeStr.trim() : '00:00:00';
+
+    // Attempt to construct ISO string YYYY-MM-DDTHH:mm:ss
+    const combined = `${isoDate}T${isoTime}`;
+    const d = new Date(combined);
+
+    if (isNaN(d.getTime())) {
+        // Fallback for other formats if ISO construction fails
+        return new Date(`${dateStr} ${timeStr}`);
+    }
+    return d;
+}

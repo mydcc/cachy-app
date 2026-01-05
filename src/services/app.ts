@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -889,20 +889,66 @@ export const app = {
             }
 
             const headers = lines[0].split(',').map(h => h.trim());
-            const requiredHeaders = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Einstieg', 'Stop Loss'];
-            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+            // Map possible headers to internal keys
+            const headerMap: { [key: string]: string } = {
+                'ID': 'ID',
+                'Datum': 'Datum', 'Date': 'Datum',
+                'Uhrzeit': 'Uhrzeit', 'Time': 'Uhrzeit',
+                'Symbol': 'Symbol',
+                'Typ': 'Typ', 'Type': 'Typ',
+                'Status': 'Status',
+                'Konto Guthaben': 'Konto Guthaben', 'Account Balance': 'Konto Guthaben',
+                'Risiko %': 'Risiko %', 'Risk %': 'Risiko %',
+                'Hebel': 'Hebel', 'Leverage': 'Hebel',
+                'Gebuehren %': 'Gebuehren %', 'Fees %': 'Gebuehren %',
+                'Einstieg': 'Einstieg', 'Entry Price': 'Einstieg', 'Entry': 'Einstieg',
+                'Stop Loss': 'Stop Loss',
+                'Gewichtetes R/R': 'Gewichtetes R/R', 'Weighted R/R': 'Gewichtetes R/R',
+                'Gesamt Netto-Gewinn': 'Gesamt Netto-Gewinn', 'Total Net Profit': 'Gesamt Netto-Gewinn',
+                'Risiko pro Trade (Waehrung)': 'Risiko pro Trade (Waehrung)', 'Risk Amount': 'Risiko pro Trade (Waehrung)',
+                'Gesamte Gebuehren': 'Gesamte Gebuehren', 'Total Fees': 'Gesamte Gebuehren',
+                'Max. potenzieller Gewinn': 'Max. potenzieller Gewinn', 'Max Potential Profit': 'Max. potenzieller Gewinn',
+                'Notizen': 'Notizen', 'Notes': 'Notizen',
+                'Funding Fee': 'Funding Fee',
+                'Trading Fee': 'Trading Fee',
+                'Realized PnL': 'Realized PnL',
+                'Is Manual': 'Is Manual',
+                'Trade ID': 'Trade ID',
+                'Order ID': 'Order ID'
+            };
 
-            if (missingHeaders.length > 0) {
-                uiStore.showError(`CSV-Datei fehlen benötigte Spalten: ${missingHeaders.join(', ')}`);
+            // Identify which language/set of headers is present
+            const requiredKeys = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Einstieg', 'Stop Loss'];
+
+            // Check if we have mapped all required keys
+            const presentMappedKeys = new Set(headers.map(h => headerMap[h]).filter(Boolean));
+            const missingKeys = requiredKeys.filter(k => !presentMappedKeys.has(k));
+
+            if (missingKeys.length > 0) {
+                // If strictly missing required mapped keys
+                uiStore.showError(`CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): ${missingKeys.join(', ')}`);
                 return;
             }
 
             const entries = lines.slice(1).map(line => {
                 const values = line.split(',');
-                const entry: CSVTradeEntry = headers.reduce((obj: Partial<CSVTradeEntry>, header, index) => {
-                    obj[header as keyof CSVTradeEntry] = values[index] ? values[index].trim() : '';
-                    return obj;
-                }, {}) as CSVTradeEntry;
+                // Map values to standardized German keys internally using the header map
+                const entry: Record<string, string> = {};
+                headers.forEach((header, index) => {
+                    const mappedKey = headerMap[header];
+                    if (mappedKey) {
+                        entry[mappedKey] = values[index] ? values[index].trim() : '';
+                    } else if (header.startsWith('TP') && (header.includes('Preis') || header.includes('Price') || header.includes('%'))) {
+                         // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
+                         // We normalize them to "TP{n} Preis" and "TP{n} %"
+                         const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
+                         if (match) {
+                             const num = match[1];
+                             const type = match[2] === '%' ? '%' : 'Preis';
+                             entry[`TP${num} ${type}`] = values[index] ? values[index].trim() : '';
+                         }
+                    }
+                });
 
                 try {
                     const targets = [];
@@ -918,33 +964,32 @@ export const app = {
                         }
                     }
 
-                    const typedEntry = entry as CSVTradeEntry;
                     const importedTrade: JournalEntry = {
-                        id: parseInt(typedEntry.ID, 10),
-                        date: new Date(`${typedEntry.Datum} ${typedEntry.Uhrzeit}`).toISOString(),
-                        symbol: typedEntry.Symbol,
-                        tradeType: typedEntry.Typ.toLowerCase(),
-                        status: typedEntry.Status,
-                        accountSize: parseDecimal(typedEntry['Konto Guthaben'] || '0'),
-                        riskPercentage: parseDecimal(typedEntry['Risiko %'] || '0'),
-                        leverage: parseDecimal(typedEntry.Hebel || '1'),
-                        fees: parseDecimal(typedEntry['Gebuehren %'] || '0.1'),
-                        entryPrice: parseDecimal(typedEntry.Einstieg),
-                        stopLossPrice: parseDecimal(typedEntry['Stop Loss']),
-                        totalRR: parseDecimal(typedEntry['Gewichtetes R/R'] || '0'),
-                        totalNetProfit: parseDecimal(typedEntry['Gesamt Netto-Gewinn'] || '0'),
-                        riskAmount: parseDecimal(typedEntry['Risiko pro Trade (Waehrung)'] || '0'),
-                        totalFees: parseDecimal(typedEntry['Gesamte Gebuehren'] || '0'),
-                        maxPotentialProfit: parseDecimal(typedEntry['Max. potenzieller Gewinn'] || '0'),
-                        notes: typedEntry.Notizen ? typedEntry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
+                        id: parseInt(entry.ID, 10),
+                        date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
+                        symbol: entry.Symbol,
+                        tradeType: entry.Typ.toLowerCase(),
+                        status: entry.Status,
+                        accountSize: parseDecimal(entry['Konto Guthaben'] || '0'),
+                        riskPercentage: parseDecimal(entry['Risiko %'] || '0'),
+                        leverage: parseDecimal(entry.Hebel || '1'),
+                        fees: parseDecimal(entry['Gebuehren %'] || '0.1'),
+                        entryPrice: parseDecimal(entry.Einstieg),
+                        stopLossPrice: parseDecimal(entry['Stop Loss']),
+                        totalRR: parseDecimal(entry['Gewichtetes R/R'] || '0'),
+                        totalNetProfit: parseDecimal(entry['Gesamt Netto-Gewinn'] || '0'),
+                        riskAmount: parseDecimal(entry['Risiko pro Trade (Waehrung)'] || '0'),
+                        totalFees: parseDecimal(entry['Gesamte Gebuehren'] || '0'),
+                        maxPotentialProfit: parseDecimal(entry['Max. potenzieller Gewinn'] || '0'),
+                        notes: entry.Notizen ? entry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
                         targets: targets,
                         // New fields
-                        tradeId: typedEntry['Trade ID'] || undefined,
-                        orderId: typedEntry['Order ID'] || undefined,
-                        fundingFee: parseDecimal(typedEntry['Funding Fee'] || '0'),
-                        tradingFee: parseDecimal(typedEntry['Trading Fee'] || '0'),
-                        realizedPnl: parseDecimal(typedEntry['Realized PnL'] || '0'),
-                        isManual: typedEntry['Is Manual'] ? typedEntry['Is Manual'] === 'true' : true,
+                        tradeId: entry['Trade ID'] || undefined,
+                        orderId: entry['Order ID'] || undefined,
+                        fundingFee: parseDecimal(entry['Funding Fee'] || '0'),
+                        tradingFee: parseDecimal(entry['Trading Fee'] || '0'),
+                        realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
+                        isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
                         calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
                     };
                     return importedTrade;
