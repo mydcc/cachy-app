@@ -305,7 +305,6 @@ import { trackCustomEvent } from '../services/trackingService';
 
                 atrFormulaDisplay={$resultsStore.atrFormulaText}
                 showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
-                isAtrSlInvalid={$resultsStore.isAtrSlInvalid}
                 isPriceFetching={$uiStore.isPriceFetching}
                 symbolSuggestions={$uiStore.symbolSuggestions}
                 showSymbolSuggestions={$uiStore.showSymbolSuggestions}

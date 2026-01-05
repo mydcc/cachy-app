@@ -35,6 +35,10 @@
     function handleKeydown(event: KeyboardEvent) {
         if (!$settingsStore.isPro) return; // Only listen if Pro is active
         
+        // Ignore if user is typing in an input field
+        const target = event.target as HTMLElement;
+        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
+
         const key = event.key.toUpperCase();
         if (key.length === 1) {
             inputBuffer.push(key);
@@ -699,12 +703,12 @@
     <!-- Filter & Toolbar -->
     <div class="flex flex-wrap gap-4 my-4 items-end bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
         <div class="flex-1 min-w-[200px]">
-            <label class="text-xs text-[var(--text-secondary)] block mb-1">Search</label>
-            <input type="text" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}>
+            <label for="journal-search" class="text-xs text-[var(--text-secondary)] block mb-1">Search</label>
+            <input id="journal-search" type="text" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}>
         </div>
         <div class="w-32">
-             <label class="text-xs text-[var(--text-secondary)] block mb-1">Status</label>
-            <select class="input-field w-full px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}>
+             <label for="journal-status" class="text-xs text-[var(--text-secondary)] block mb-1">Status</label>
+            <select id="journal-status" class="input-field w-full px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}>
                 <option value="all">{$_('journal.filterAll')}</option>
                 <option value="Open">{$_('journal.filterOpen')}</option>
                 <option value="Won">{$_('journal.filterWon')}</option>
@@ -712,12 +716,12 @@
             </select>
         </div>
         <div class="w-36">
-             <label class="text-xs text-[var(--text-secondary)] block mb-1">From</label>
-             <input type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateStart} />
+             <label for="journal-date-start" class="text-xs text-[var(--text-secondary)] block mb-1">From</label>
+             <input id="journal-date-start" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateStart} />
         </div>
          <div class="w-36">
-             <label class="text-xs text-[var(--text-secondary)] block mb-1">To</label>
-             <input type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
+             <label for="journal-date-end" class="text-xs text-[var(--text-secondary)] block mb-1">To</label>
+             <input id="journal-date-end" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
         </div>
 
         <div class="flex items-center gap-2 pb-2">
@@ -817,6 +821,7 @@
                                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                                         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                         <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                            <!-- svelte-ignore svelte/no-at-html-tags -->
                                             {@html icons.camera || '📷'}
                                         </button>
                                         <div class="thumbnail-popup">
@@ -826,6 +831,7 @@
                                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                                         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                         <label class="icon-btn cursor-pointer block w-full h-full" title="Upload Screenshot">
+                                            <!-- svelte-ignore svelte/no-at-html-tags -->
                                             {@html icons.plus || '+'}
                                             <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
                                         </label>
@@ -835,7 +841,9 @@
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
                                 <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                 <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
-                                <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => app.deleteTrade(trade.id)}>{@html icons.delete}</button></td>
+                                <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => app.deleteTrade(trade.id)}>
+                                    <!-- svelte-ignore svelte/no-at-html-tags -->
+                                    {@html icons.delete}</button></td>
                             </tr>
                         {/each}
                         {#if paginatedTrades.length === 0}
@@ -986,12 +994,22 @@
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">
         {#if $settingsStore.isPro}
-             <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="Sync from Bitunix" on:click={app.syncBitunixHistory}>{@html icons.refresh}<span class="hidden sm:inline">Sync Bitunix</span></button>
+             <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="Sync from Bitunix" on:click={app.syncBitunixHistory}>
+                <!-- svelte-ignore svelte/no-at-html-tags -->
+                {@html icons.refresh}<span class="hidden sm:inline">Sync Bitunix</span></button>
         {/if}
-        <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>{@html icons.export}<span class="hidden sm:inline">{$_('journal.export')}</span></button>
+        <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>
+            <!-- svelte-ignore svelte/no-at-html-tags -->
+            {@html icons.export}<span class="hidden sm:inline">{$_('journal.export')}</span></button>
         <input type="file" id="import-csv-input" accept=".csv" class="hidden" on:change={handleImportCsv}/>
-        <button id="import-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)]" title="{$_('journal.importCsvTitle')}" on:click={() => document.getElementById('import-csv-input')?.click()}>{@html icons.import}<span class="hidden sm:inline">{$_('journal.import')}</span></button>
-        <button id="clear-journal-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]" title="{$_('journal.clearJournalTitle')}" on:click={() => { if (browser) app.clearJournal() }}>{@html icons.delete}<span class="hidden sm:inline">{$_('journal.clearAll')}</span></button>
-        <button id="show-journal-readme-btn" class="font-bold p-2.5 rounded-lg bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)]" title="{$_('journal.showJournalInstructionsTitle')}" aria-label="{$_('journal.showJournalInstructionsAriaLabel')}" on:click={() => app.uiManager.showReadme('journal')}>{@html icons.book}</button>
+        <button id="import-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)]" title="{$_('journal.importCsvTitle')}" on:click={() => document.getElementById('import-csv-input')?.click()}>
+            <!-- svelte-ignore svelte/no-at-html-tags -->
+            {@html icons.import}<span class="hidden sm:inline">{$_('journal.import')}</span></button>
+        <button id="clear-journal-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]" title="{$_('journal.clearJournalTitle')}" on:click={() => { if (browser) app.clearJournal() }}>
+            <!-- svelte-ignore svelte/no-at-html-tags -->
+            {@html icons.delete}<span class="hidden sm:inline">{$_('journal.clearAll')}</span></button>
+        <button id="show-journal-readme-btn" class="font-bold p-2.5 rounded-lg bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)]" title="{$_('journal.showJournalInstructionsTitle')}" aria-label="{$_('journal.showJournalInstructionsAriaLabel')}" on:click={() => app.uiManager.showReadme('journal')}>
+            <!-- svelte-ignore svelte/no-at-html-tags -->
+            {@html icons.book}</button>
     </div>
 </ModalFrame>

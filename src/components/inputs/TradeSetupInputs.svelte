@@ -24,7 +24,6 @@
 
     export let atrFormulaDisplay: string;
     export let showAtrFormulaDisplay: boolean;
-    export let isAtrSlInvalid: boolean;
     export let isPriceFetching: boolean;
     export let symbolSuggestions: string[];
     export let showSymbolSuggestions: boolean;
