@@ -116,12 +116,13 @@ import { trackCustomEvent } from '../services/trackingService';
 
     function handleThemeSwitch(direction: 'forward' | 'backward' = 'forward') {
         const currentIndex = themes.indexOf($uiStore.currentTheme);
+        const limit = $settingsStore.isPro ? themes.length : 5;
         let nextIndex;
 
         if (direction === 'forward') {
-            nextIndex = (currentIndex + 1) % themes.length;
+            nextIndex = (currentIndex + 1) % limit;
         } else {
-            nextIndex = (currentIndex - 1 + themes.length) % themes.length;
+            nextIndex = (currentIndex - 1 + limit) % limit;
         }
 
         uiStore.setTheme(themes[nextIndex]);

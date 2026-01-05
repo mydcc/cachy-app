@@ -28,13 +28,23 @@
     let unlockOverlayMessage = '';
 
     // --- Cheat Code Logic ---
-    const CHEAT_CODE = 'VIPENTE2026';
-    const LOCK_CODE = 'VIPDEEPDIVE2026';
+    const CODE_UNLOCK = 'VIPENTE2026';
+    const CODE_LOCK = 'VIPDEEPDIVE';
+    const CODE_SPACE = 'VIPSPACE2026';
+    const CODE_BONUS = 'VIPBONUS2026';
+    const CODE_STREAK = 'VIPSTREAK2026';
+
+    const MAX_CODE_LENGTH = Math.max(
+        CODE_UNLOCK.length,
+        CODE_LOCK.length,
+        CODE_SPACE.length,
+        CODE_BONUS.length,
+        CODE_STREAK.length
+    );
+
     let inputBuffer: string[] = [];
 
     function handleKeydown(event: KeyboardEvent) {
-        if (!$settingsStore.isPro) return; // Only listen if Pro is active
-        
         // Ignore if user is typing in an input field
         const target = event.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
@@ -42,21 +52,42 @@
         const key = event.key.toUpperCase();
         if (key.length === 1) {
             inputBuffer.push(key);
-            if (inputBuffer.length > Math.max(CHEAT_CODE.length, LOCK_CODE.length)) {
+            if (inputBuffer.length > MAX_CODE_LENGTH) {
                 inputBuffer.shift();
             }
 
             const bufferStr = inputBuffer.join('');
 
-            if (!$settingsStore.isDeepDiveUnlocked && bufferStr.endsWith(CHEAT_CODE)) {
-                unlockDeepDive();
-            } else if ($settingsStore.isDeepDiveUnlocked && bufferStr.endsWith(LOCK_CODE)) {
+            // VIPENTE2026: Pro Active + VIP Theme Active => Unlock Charts
+            if (bufferStr.endsWith(CODE_UNLOCK)) {
+                if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
+                    unlockDeepDive();
+                }
+            }
+            // VIPDEEPDIVE: Lock Charts (Always works if matched)
+            else if (bufferStr.endsWith(CODE_LOCK)) {
                 lockDeepDive();
+            }
+            // VIPSPACE2026: Pro Active + VIP Theme Active => Space Dialog + Link
+            else if (bufferStr.endsWith(CODE_SPACE)) {
+                 if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
+                    activateVipSpace();
+                }
+            }
+            // Placeholders
+            else if (bufferStr.endsWith(CODE_BONUS)) {
+                console.log('VIPBONUS2026 detected (Placeholder)');
+                inputBuffer = [];
+            }
+            else if (bufferStr.endsWith(CODE_STREAK)) {
+                 console.log('VIPSTREAK2026 detected (Placeholder)');
+                 inputBuffer = [];
             }
         }
     }
 
     function unlockDeepDive() {
+        if ($settingsStore.isDeepDiveUnlocked) return;
         $settingsStore.isDeepDiveUnlocked = true;
         unlockOverlayMessage = 'freigeschaltet';
         showUnlockOverlay = true;
@@ -67,12 +98,25 @@
     }
 
     function lockDeepDive() {
+        if (!$settingsStore.isDeepDiveUnlocked) return;
         $settingsStore.isDeepDiveUnlocked = false;
         unlockOverlayMessage = 'deaktivert';
         showUnlockOverlay = true;
         inputBuffer = []; // Reset buffer
         setTimeout(() => {
             showUnlockOverlay = false;
+        }, 2000);
+    }
+
+    function activateVipSpace() {
+        unlockOverlayMessage = '🚀 VIP Space freigeschaltet';
+        showUnlockOverlay = true;
+        inputBuffer = [];
+        setTimeout(() => {
+            showUnlockOverlay = false;
+            if (browser) {
+                window.open('https://metaverse.bitunix.cyou', '_blank');
+            }
         }, 2000);
     }
 
@@ -725,8 +769,8 @@
         </div>
 
         <div class="flex items-center gap-2 pb-2">
-            <label class="flex items-center cursor-pointer gap-2 select-none">
-                <input type="checkbox" bind:checked={groupBySymbol} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0" />
+            <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
+                <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">Pivot Mode</span>
             </label>
         </div>
