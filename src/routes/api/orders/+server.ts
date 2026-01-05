@@ -127,6 +127,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string): Pro
 
     const list = res.data?.orderList || [];
     return list.map((o: any) => ({
+        ...o,
         id: o.orderId,
         symbol: o.symbol,
         type: o.type,

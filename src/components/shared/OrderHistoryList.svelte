@@ -1,10 +1,56 @@
 <script lang="ts">
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
+    import OrderDetailsTooltip from './OrderDetailsTooltip.svelte';
 
     export let orders: any[] = [];
     export let loading: boolean = false;
     export let error: string = '';
+
+    let hoveredOrder: any = null;
+    let tooltipX = 0;
+    let tooltipY = 0;
+
+    function handleMouseEnter(event: MouseEvent, order: any) {
+        hoveredOrder = order;
+        updateTooltipPosition(event);
+    }
+
+    function handleMouseMove(event: MouseEvent) {
+        if (hoveredOrder) {
+            updateTooltipPosition(event);
+        }
+    }
+
+    function handleMouseLeave() {
+        hoveredOrder = null;
+    }
+
+    function updateTooltipPosition(event: MouseEvent) {
+        const tooltipWidth = 320; // Approx width
+        const tooltipHeight = 400; // Approx max height
+        const padding = 10;
+
+        let x = event.clientX + padding;
+        let y = event.clientY + padding;
+
+        // Check right edge
+        if (x + tooltipWidth > window.innerWidth) {
+            x = event.clientX - tooltipWidth - padding;
+        }
+
+        // Check bottom edge
+        if (y + tooltipHeight > window.innerHeight) {
+            y = event.clientY - tooltipHeight - padding;
+        }
+
+        // Ensure not off-screen top/left
+        x = Math.max(padding, x);
+        y = Math.max(padding, y);
+
+        tooltipX = x;
+        tooltipY = y;
+    }
 
     function formatDate(timestamp: number) {
         if (!timestamp) return '-';
@@ -59,8 +105,14 @@
                     <div class="grid grid-cols-3 gap-1">
 
                         <!-- Col 1: Identity & Time -->
-                        <div class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1">
-                            <span class="font-bold text-sm text-[var(--text-primary)] leading-tight">{order.symbol}</span>
+                        <div
+                            class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
+                            on:mouseenter={(e) => handleMouseEnter(e, order)}
+                            on:mousemove={handleMouseMove}
+                            on:mouseleave={handleMouseLeave}
+                            role="tooltip"
+                        >
+                            <span class="font-bold text-sm text-[var(--text-primary)] leading-tight underline decoration-dotted decoration-[var(--text-tertiary)] underline-offset-2">{order.symbol}</span>
                             <span class="text-[10px] text-[var(--text-secondary)] mt-1">{formatDate(order.time)}</span>
                         </div>
 
@@ -110,3 +162,12 @@
         </div>
     {/if}
 </div>
+
+{#if hoveredOrder}
+    <div
+        class="fixed z-[9999] pointer-events-none"
+        style="top: {tooltipY}px; left: {tooltipX}px;"
+    >
+        <OrderDetailsTooltip order={hoveredOrder} />
+    </div>
+{/if}
