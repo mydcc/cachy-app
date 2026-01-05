@@ -412,7 +412,7 @@ export const app = {
             return parsedData.map(trade => {
                 const newTrade = { ...trade };
                 Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize'].includes(key)) {
+                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
                         newTrade[key] = new Decimal(newTrade[key] || 0);
                     }
                 });
@@ -613,8 +613,8 @@ export const app = {
         uiStore.update(s => ({ ...s, isPriceFetching: true })); 
 
         try {
-            // 1. Fetch Trades
-            const tradeResponse = await fetch('/api/sync', {
+            // 1. Fetch History Positions (The Truth about closed trades)
+            const historyResponse = await fetch('/api/sync/positions-history', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -623,11 +623,25 @@ export const app = {
                     limit: 100
                 })
             });
-            const tradeResult = await tradeResponse.json();
-            if (tradeResult.error) throw new Error(tradeResult.error);
-            const trades = tradeResult.data;
+            const historyResult = await historyResponse.json();
+            if (historyResult.error) throw new Error(historyResult.error);
+            const historyPositions = historyResult.data;
 
-            // 2. Fetch Orders (to get SL and Entry confirmation)
+            // 2. Fetch Pending Positions (Open Trades)
+            const pendingResponse = await fetch('/api/sync/positions-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret
+                })
+            });
+            const pendingResult = await pendingResponse.json();
+            // Pending positions might fail if empty, but we check array
+            const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+
+
+            // 3. Fetch Orders (Still needed to find initial Stop Loss for R-Calc)
             const orderResponse = await fetch('/api/sync/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -648,8 +662,6 @@ export const app = {
                 console.warn("Failed to fetch orders:", err);
             }
 
-            if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
-
             // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
             const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
 
@@ -659,8 +671,6 @@ export const app = {
                 else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
                 else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
 
-                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
-                // Assuming standardized API response or fallback.
                 let t = o.createTime || o.ctime || 0;
                 if (typeof t === 'string') t = parseInt(t, 10);
 
@@ -669,142 +679,158 @@ export const app = {
                     symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
                 }
             });
-
-            // Sort by time ascending
             Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
             // ------------------------------------------------------------------
 
-            let addedCount = 0;
-            const currentJournal = get(journalStore);
-            const existingTradeIds = new Set(currentJournal.map(j => String(j.tradeId || '')).filter(Boolean));
+            // Cleanup: Remove existing "Open" synced trades to avoid duplicates/stale data.
+            // We assume that if we are running a sync, we want a fresh snapshot of Open positions.
+            const currentJournal = get(journalStore).filter(j => j.isManual !== false || j.status !== 'Open');
+
+            // Re-build existing ID set based on the filtered journal (Closed history remains)
+            const existingIds = new Set(currentJournal.map(j => String(j.tradeId || j.id)));
 
             const newEntries: JournalEntry[] = [];
+            let addedCount = 0;
 
-            const findOrder = (orderId: string | number) => orders.find((o: any) => String(o.orderId) === String(orderId));
-
-            for (const t of trades) {
-                // Robustly normalize ID to string
-                const currentTradeIdStr = String(t.tradeId);
-                // Skip if already exists
-                if (existingTradeIds.has(currentTradeIdStr)) continue;
+            // --- Process Pending Positions (Open) ---
+            for (const p of pendingPositions) {
+                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
+                const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+                // Since we cleared old Open positions, we just add the fresh ones.
+                // But double check we don't somehow add duplicates within this loop (unlikely).
                 
-                const realizedPnl = new Decimal(t.realizedPNL || 0);
-                const fee = new Decimal(t.fee || 0);
+                const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
+                const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const size = new Decimal(p.qty || p.size || 0);
 
-                if (realizedPnl.eq(0)) continue; 
-
-                const tradeId = currentTradeIdStr;
-                const orderId = String(t.orderId);
-                const symbol = t.symbol;
-
-                let timestamp = t.ctime;
-                if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
-                    timestamp = parseInt(t.ctime, 10);
-                }
-                const date = new Date(timestamp);
-                if (isNaN(date.getTime())) continue;
-
-                const side = t.side; 
-                
-                let tradeType = 'long'; 
-                if (side.toUpperCase() === 'SELL') tradeType = 'long';
-                else tradeType = 'short';
-
-                const relatedOrder = findOrder(orderId);
-
+                // Find SL for Open Position (Look for recent orders)
                 let stopLoss = new Decimal(0);
-
-                // Strategy 1: Direct link to order
-                if (relatedOrder) {
-                    if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
-                    else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
-                    else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
-                }
-                
-                // Strategy 2: Fallback to last known SL for symbol
-                if (stopLoss.lte(0)) {
-                    const candidates = symbolSlMap[symbol];
-                    if (candidates) {
-                        const tradeTime = date.getTime();
-                        // Find most recent order BEFORE or EQUAL to tradeTime (allowing small clock drift or same-second exec)
-                        // Buffer of 2 seconds
-                        const adjustedTradeTime = tradeTime + 2000;
-
-                        for (let i = candidates.length - 1; i >= 0; i--) {
-                            if (candidates[i].ctime <= adjustedTradeTime) {
-                                stopLoss = candidates[i].slPrice;
-                                break;
-                            }
-                        }
-                    }
-                }
-
-                const exitPrice = new Decimal(t.price);
-                const qtyDecimal = new Decimal(t.qty || 0); 
-                
-                // Back-calculate Entry Price if possible
-                // PnL = (Exit - Entry) * Qty  (Long)
-                // PnL = (Entry - Exit) * Qty  (Short)
-                let entryPrice = exitPrice;
-                
-                if (qtyDecimal.gt(0)) {
-                    if (tradeType === 'long') {
-                         // Entry = Exit - (PnL / Qty)
-                         entryPrice = exitPrice.minus(realizedPnl.div(qtyDecimal));
-                    } else {
-                         // Entry = PnL / Qty + Exit
-                         entryPrice = realizedPnl.div(qtyDecimal).plus(exitPrice);
-                    }
-                }
-
-                // Calculate realized stats if SL exists
-                let riskAmount = new Decimal(0);
-                let totalRR = new Decimal(0);
-
-                if (stopLoss.gt(0)) {
-                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
-                    if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
-                        riskAmount = riskPerUnit.times(qtyDecimal);
-                        
-                        if (riskAmount.gt(0) && !realizedPnl.isZero()) {
-                            totalRR = realizedPnl.div(riskAmount);
-                        }
-                    }
-                }
-
-                let status = 'Open';
-                if (!realizedPnl.isZero()) {
-                    status = realizedPnl.gt(0) ? 'Won' : 'Lost';
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates && candidates.length > 0) {
+                     // Get latest SL
+                     stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
                 const entry: JournalEntry = {
-                    id: parseInt(tradeId) || Date.now() + Math.random(),
-                    date: date.toISOString(),
-                    symbol: symbol,
-                    tradeType: tradeType,
-                    status: status,
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(parseInt(p.ctime || Date.now())).toISOString(),
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short') ? 'short' : 'long',
+                    status: 'Open',
+
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(p.leverage || 0),
+                    fees: new Decimal(0), // Estimated % not known, using absolute below
+
+                    entryPrice: entryPrice,
+                    stopLossPrice: stopLoss,
+
+                    totalRR: new Decimal(0), // Not realized
+                    totalNetProfit: unrealizedPnl.minus(fee).plus(funding), // Unrealized Net
+                    riskAmount: new Decimal(0),
+                    totalFees: fee.abs().plus(funding.abs()), // Total costs so far
+                    maxPotentialProfit: new Decimal(0),
+
+                    notes: `Open Position. Funding: ${funding.toFixed(4)}, Unrealized: ${unrealizedPnl.toFixed(4)}`,
+                    targets: [],
+                    calculatedTpDetails: [],
+
+                    fundingFee: funding,
+                    tradingFee: fee,
+                    realizedPnl: new Decimal(0), // It's unrealized
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+            // --- Process History Positions (Closed) ---
+            for (const p of historyPositions) {
+                const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
+                if (existingIds.has(uniqueId)) continue;
+
+                const realizedPnl = new Decimal(p.realizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const entryPrice = new Decimal(p.entryPrice || 0);
+                const closePrice = new Decimal(p.closePrice || 0);
+                const qty = new Decimal(p.maxQty || 0); // Approx size
+
+                // Calculate Net PnL = Realized - Fees + Funding (Funding is usually negative if paid, so + (-cost))
+                // Bitunix "funding": "total funding fee". If positive, we received it? If negative we paid?
+                // Usually "Fee" is positive in DB but subtracted. "Funding" is signed.
+                // Let's assume standard PnL math: Net = Realized - Fee + Funding.
+                // Wait, Bitunix API says: "realizedPNL: Realized PnL(exclude funding fee and transaction fee)"
+                // So Net = Realized + Funding - Fee? Or is Fee signed?
+                // Example: fee "0.1", funding "-0.2", realized "102.9".
+                // Net = 102.9 + (-0.2) - 0.1 = 102.6.
+                // We will use: realizedPnl.plus(funding).minus(fee.abs())  (assuming fee string is usually positive number representing cost)
+                
+                const netPnl = realizedPnl.plus(funding).minus(fee.abs());
+
+                // Find SL
+                let stopLoss = new Decimal(0);
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates) {
+                    // Match by time: Order Ctime <= Position Ctime (Entry)
+                    // Position ctime is creation time.
+                    const posTime = parseInt(p.ctime);
+                    // Use tolerance
+                    const tolerance = 5000;
+                    for (let i = candidates.length - 1; i >= 0; i--) {
+                        // Find SL set around the time position was created
+                        if (Math.abs(candidates[i].ctime - posTime) < 60000 * 60 * 24) { // Look back 24h?
+                             // Better: simple loop
+                             if (candidates[i].ctime <= posTime + tolerance) {
+                                 stopLoss = candidates[i].slPrice;
+                                 break;
+                             }
+                        }
+                    }
+                }
+
+                // R-Calc
+                let riskAmount = new Decimal(0);
+                let totalRR = new Decimal(0);
+                if (stopLoss.gt(0) && entryPrice.gt(0) && qty.gt(0)) {
+                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
+                    riskAmount = riskPerUnit.times(qty);
+                    if (riskAmount.gt(0) && !netPnl.isZero()) {
+                        totalRR = netPnl.div(riskAmount);
+                    }
+                }
+
+                const entry: JournalEntry = {
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(parseInt(p.mtime || p.ctime)).toISOString(), // Close time roughly mtime?
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
+                    status: netPnl.gt(0) ? 'Won' : 'Lost',
                     
                     accountSize: new Decimal(0),
                     riskPercentage: new Decimal(0),
-                    leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
+                    leverage: new Decimal(p.leverage || 0),
                     fees: new Decimal(0),
                     
-                    entryPrice: entryPrice, 
+                    entryPrice: entryPrice,
                     stopLossPrice: stopLoss,
                     
                     totalRR: totalRR,
-                    totalNetProfit: realizedPnl, 
+                    totalNetProfit: netPnl,
                     riskAmount: riskAmount,
-                    totalFees: fee,
+                    totalFees: fee.abs().plus(funding.abs()),
                     maxPotentialProfit: new Decimal(0),
                     
-                    notes: `Imported (Order: ${orderId})`,
+                    notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
                     targets: [],
                     calculatedTpDetails: [],
                     
-                    tradeId: tradeId,
-                    orderId: orderId,
-                    fundingFee: new Decimal(0), 
+                    fundingFee: funding,
                     tradingFee: fee,
                     realizedPnl: realizedPnl,
                     isManual: false
@@ -813,16 +839,18 @@ export const app = {
                 addedCount++;
             }
 
-            if (addedCount > 0) {
+
+            if (addedCount > 0 || currentJournal.length !== get(journalStore).length) {
+                // Combine the filtered journal (without old open positions) with new entries
                 const updatedJournal = [...currentJournal, ...newEntries];
                 updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
                 
                 journalStore.set(updatedJournal);
                 app.saveJournal(updatedJournal);
                 uiStore.showFeedback('save', 2000); 
-                trackCustomEvent('Journal', 'Sync', 'Bitunix', addedCount);
+                trackCustomEvent('Journal', 'Sync', 'Bitunix-Positions', addedCount);
             } else {
-                 uiStore.showError("Keine neuen Trades gefunden.");
+                 uiStore.showError("Keine neuen Positionen gefunden.");
             }
 
         } catch (e: any) {
