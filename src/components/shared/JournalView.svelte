@@ -18,6 +18,7 @@
     import BubbleChart from './charts/BubbleChart.svelte';
     import CalendarHeatmap from './charts/CalendarHeatmap.svelte';
     import Tooltip from './Tooltip.svelte';
+    import JournalEntryTags from './JournalEntryTags.svelte';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
 
@@ -590,6 +591,17 @@
         }
     }
 
+    function handleTagsUpdate(tradeId: number, newTags: string[]) {
+        journalStore.update(trades => {
+            return trades.map(t => {
+                if (t.id === tradeId) {
+                    return { ...t, tags: newTags };
+                }
+                return t;
+            });
+        });
+    }
+
     // Reset pagination on filter change
     function resetPagination(..._args: any[]) {
         currentPage = 1;
@@ -822,6 +834,7 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Status</th>
                             <th>Screenshot</th>
+                            <th>Tags</th>
                             <th>Notes</th>
                             <th>Action</th>
                         </tr>
@@ -880,6 +893,10 @@
                                             <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
                                         </label>
                                     {/if}
+                                </td>
+
+                                <td>
+                                    <JournalEntryTags tags={trade.tags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
                                 </td>
 
                                 <!-- svelte-ignore a11y-click-events-have-key-events -->
