@@ -7,12 +7,29 @@
         if (!ts) return '-';
         return new Date(Number(ts)).toLocaleString();
     }
+
+    function getOrderType(order: any) {
+        // Prefer 'orderType' or 'type'
+        // Handle numeric codes: 1=LIMIT, 2=MARKET, 3=STOP_LIMIT, 4=STOP_MARKET, 5=TRAILING_STOP_MARKET
+        const rawType = order.orderType || order.type;
+        const t = String(rawType || '').toUpperCase();
+
+        if (['LIMIT', '1'].includes(t)) return 'LIMIT';
+        if (['MARKET', '2'].includes(t)) return 'MARKET';
+        if (['STOP', 'STOP_LIMIT', '3'].includes(t)) return 'STOP LIMIT';
+        if (['STOP_MARKET', '4'].includes(t)) return 'STOP MARKET';
+        if (['TRAILING_STOP_MARKET', '5'].includes(t)) return 'TRAILING';
+        if (t === 'LIQUIDATION') return 'LIQ.';
+        if (!t || t === 'UNDEFINED' || t === 'NULL') return '';
+
+        return t;
+    }
 </script>
 
 <div class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded-lg p-3 text-xs text-[var(--text-primary)] w-[320px] max-w-[90vw] pointer-events-none">
     <div class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-1">
         <span class="font-bold text-sm">{order.symbol}</span>
-        <span class="font-mono text-[var(--text-secondary)] uppercase">{order.side} {order.type}</span>
+        <span class="font-mono text-[var(--text-secondary)] uppercase">{order.side} {getOrderType(order)}</span>
     </div>
 
     <div class="grid grid-cols-2 gap-x-4 gap-y-1">
