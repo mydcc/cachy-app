@@ -965,7 +965,7 @@ export const app = {
                     }
 
                     const importedTrade: JournalEntry = {
-                        id: parseInt(entry.ID, 10),
+                        id: parseFloat(entry.ID),
                         date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
                         symbol: entry.Symbol,
                         tradeType: entry.Typ.toLowerCase(),
