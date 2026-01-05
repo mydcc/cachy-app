@@ -27,6 +27,7 @@
     // UI state
     let currentTheme: string;
     let currentLanguage: string;
+    let isPro: boolean;
 
     // Track active tab
     let activeTab: 'general' | 'api' | 'behavior' | 'system' = 'general';
@@ -58,6 +59,7 @@
         { value: 'steel', label: 'Steel' },
         { value: 'matrix', label: 'Matrix' },
         { value: 'everforest-dark', label: 'Everforest Dark' },
+        { value: 'VIP', label: 'VIP' },
     ];
 
     // Subscribe to store to initialize local state
@@ -72,6 +74,7 @@
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
+            isPro = $settingsStore.isPro;
 
             // Deep copy keys to avoid binding issues
             bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
@@ -246,8 +249,8 @@
                     <div class="flex flex-col gap-1">
                          <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.theme')}</span>
                         <select bind:value={currentTheme} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
-                            {#each themes as theme}
-                                <option value={theme.value}>{theme.label}</option>
+                            {#each themes as theme, index}
+                                <option value={theme.value} disabled={!isPro && index >= 5}>{theme.label} {!isPro && index >= 5 ? '(Pro)' : ''}</option>
                             {/each}
                         </select>
                     </div>
@@ -408,8 +411,8 @@
                      <p class="text-xs text-[var(--text-secondary)] mb-2">
                          Save all your settings, presets, and journal entries to a file.
                      </p>
-                     <button class="btn btn-secondary text-sm w-full" on:click={handleBackup}>
-                        {$_('app.backupButtonAriaLabel')}
+                     <button class="btn btn-secondary text-sm w-full" on:click={handleBackup} disabled={!isPro}>
+                        {$_('app.backupButtonAriaLabel')} {!isPro ? '(Pro only)' : ''}
                      </button>
                 </div>
 
