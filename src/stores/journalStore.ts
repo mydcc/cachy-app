@@ -22,6 +22,7 @@ function loadJournalFromLocalStorage(): JournalEntry[] {
             if (!newTrade.fundingFee) newTrade.fundingFee = new Decimal(0);
             if (!newTrade.tradingFee) newTrade.tradingFee = new Decimal(0);
             if (!newTrade.realizedPnl) newTrade.realizedPnl = new Decimal(0);
+            if (!Array.isArray(newTrade.tags)) newTrade.tags = [];
             if (newTrade.targets && Array.isArray(newTrade.targets)) {
                 newTrade.targets = newTrade.targets.map((tp: {price: string | number; percent: string | number}) => ({ ...tp, price: new Decimal(tp.price || 0), percent: new Decimal(tp.percent || 0) }));
             }
