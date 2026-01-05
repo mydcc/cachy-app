@@ -129,9 +129,10 @@ describe('Calculator - Deep Dive & Dashboard Charts', () => {
                 createTrade({ status: 'Won', riskAmount: new Decimal(0), totalNetProfit: new Decimal(100) })
             ];
             const data = calculator.getQualityData(trades);
-            // logic: if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
-            // 0 -> '0R to 1R'
-            expect(data.rHistogram['0R to 1R']).toBe(1);
+            // Logic change: trades with 0 riskAmount are now ignored in the histogram
+            // So '0R to 1R' should be 0, total count 0
+            expect(data.rHistogram['0R to 1R']).toBe(0);
+            expect(Object.values(data.rHistogram).reduce((a, b) => a + b, 0)).toBe(0);
         });
     });
 

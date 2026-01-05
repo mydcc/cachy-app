@@ -360,14 +360,32 @@ describe('app service - ATR and Locking Logic', () => {
     it('should parse trade history date correctly (number and string)', async () => {
         // Mock global fetch
         const originalFetch = global.fetch;
-        const mockFetch = vi.fn().mockResolvedValue({
-            json: () => Promise.resolve({
-                data: [
-                    { tradeId: '1', ctime: 1672531200000, realizedPNL: '10', fee: '1', symbol: 'BTCUSDT', side: 'SELL', price: '20000', qty: '1', leverage: 10, orderId: 'o1' }, // Number
-                    { tradeId: '2', ctime: "1672531200000", realizedPNL: '5', fee: '0.5', symbol: 'ETHUSDT', side: 'BUY', price: '1500', qty: '10', leverage: 10, orderId: 'o2' }  // String
-                ]
-            }),
-            ok: true
+        const mockFetch = vi.fn().mockImplementation((url) => {
+             // Mock endpoints
+             if (url.includes('positions-history')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({
+                        data: [
+                            { positionId: '1', ctime: 1672531200000, realizedPNL: '10', fee: '1', symbol: 'BTCUSDT', side: 'SELL', entryPrice: '20000', maxQty: '1', leverage: 10 }, // Number
+                            { positionId: '2', ctime: "1672531200000", realizedPNL: '5', fee: '0.5', symbol: 'ETHUSDT', side: 'BUY', entryPrice: '1500', maxQty: '10', leverage: 10 }  // String
+                        ]
+                    }),
+                    ok: true
+                 });
+             }
+             if (url.includes('positions-pending')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({ data: [] }),
+                    ok: true
+                 });
+             }
+             if (url.includes('orders')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({ data: [] }),
+                    ok: true
+                 });
+             }
+             return Promise.reject('Unknown URL');
         });
         global.fetch = mockFetch;
 

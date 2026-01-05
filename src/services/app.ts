@@ -684,7 +684,13 @@ export const app = {
 
             // Cleanup: Remove existing "Open" synced trades to avoid duplicates/stale data.
             // We assume that if we are running a sync, we want a fresh snapshot of Open positions.
-            const currentJournal = get(journalStore).filter(j => j.isManual !== false || j.status !== 'Open');
+            // FIX: Explicitly check for isManual === false to identify synced trades, and status === 'Open'
+            const currentJournal = get(journalStore).filter(j => {
+                const isSynced = j.isManual === false;
+                const isOpen = j.status === 'Open';
+                // Keep if it's manual OR if it's synced but NOT open (i.e., closed history)
+                return !isSynced || !isOpen;
+            });
 
             // Re-build existing ID set based on the filtered journal (Closed history remains)
             const existingIds = new Set(currentJournal.map(j => String(j.tradeId || j.id)));
@@ -696,8 +702,6 @@ export const app = {
             for (const p of pendingPositions) {
                 // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
                 const uniqueId = `OPEN-${p.positionId || p.symbol}`;
-                // Since we cleared old Open positions, we just add the fresh ones.
-                // But double check we don't somehow add duplicates within this loop (unlikely).
                 
                 const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
                 const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
@@ -713,10 +717,15 @@ export const app = {
                      stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
+                // FIX: Robust date parsing
+                let dateTs = parseInt(p.ctime);
+                if (isNaN(dateTs) || dateTs <= 0) dateTs = Date.now();
+
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
                     tradeId: uniqueId,
-                    date: new Date(parseInt(p.ctime || Date.now())).toISOString(),
+                    date: new Date(dateTs).toISOString(),
+                    entryDate: new Date(dateTs).toISOString(), // For duration calculation
                     symbol: p.symbol,
                     tradeType: (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short') ? 'short' : 'long',
                     status: 'Open',
@@ -774,17 +783,20 @@ export const app = {
 
                 // Find SL
                 let stopLoss = new Decimal(0);
+                // FIX: Robust time parsing
+                let posTime = parseInt(p.ctime);
+                if (isNaN(posTime)) posTime = 0;
+
                 const candidates = symbolSlMap[p.symbol];
-                if (candidates) {
+                if (candidates && posTime > 0) {
                     // Match by time: Order Ctime <= Position Ctime (Entry)
                     // Position ctime is creation time.
-                    const posTime = parseInt(p.ctime);
                     // Use tolerance
                     const tolerance = 5000;
                     for (let i = candidates.length - 1; i >= 0; i--) {
                         // Find SL set around the time position was created
-                        if (Math.abs(candidates[i].ctime - posTime) < 60000 * 60 * 24) { // Look back 24h?
-                             // Better: simple loop
+                        // Look back window to avoid matching orders from weeks ago
+                        if (Math.abs(candidates[i].ctime - posTime) < 60000 * 60 * 24 * 7) {
                              if (candidates[i].ctime <= posTime + tolerance) {
                                  stopLoss = candidates[i].slPrice;
                                  break;
@@ -804,10 +816,15 @@ export const app = {
                     }
                 }
 
+                // FIX: Robust date parsing for Close Time
+                let closeTime = parseInt(p.mtime || p.ctime);
+                if (isNaN(closeTime) || closeTime <= 0) closeTime = Date.now();
+
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
                     tradeId: uniqueId,
-                    date: new Date(parseInt(p.mtime || p.ctime)).toISOString(), // Close time roughly mtime?
+                    date: new Date(closeTime).toISOString(), // Close time
+                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined, // FIX: Store Entry Date for Duration
                     symbol: p.symbol,
                     tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
                     status: netPnl.gt(0) ? 'Won' : 'Lost',

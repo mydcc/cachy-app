@@ -11,10 +11,10 @@ vi.mock('$app/environment', () => ({
 const localStorageMock = (() => {
   let store: Record<string, string> = {};
   return {
-    getItem: (key: string) => store[key] || null,
-    setItem: (key: string, value: string) => {
+    getItem: vi.fn((key: string) => store[key] || null),
+    setItem: vi.fn((key: string, value: string) => {
       store[key] = value.toString();
-    },
+    }),
     clear: () => {
       store = {};
     },
@@ -22,9 +22,19 @@ const localStorageMock = (() => {
   };
 })();
 
-Object.defineProperty(window, 'localStorage', {
-  value: localStorageMock,
-});
+// Ensure global localStorage is available for the service
+global.localStorage = localStorageMock as any;
+
+// In some JSDOM environments, window.localStorage is read-only.
+// We try to override it if possible, otherwise we might need to mock directly in the SUT or use a different approach.
+try {
+  Object.defineProperty(window, 'localStorage', {
+    value: localStorageMock,
+    writable: true // Ensure writable
+  });
+} catch (e) {
+  console.warn("Could not define property localStorage on window", e);
+}
 
 // Mock for createObjectURL and revokeObjectURL
 Object.defineProperty(window.URL, 'createObjectURL', { value: vi.fn() });

@@ -165,10 +165,15 @@ export const calculator = {
         const winLossData = [won, lost];
 
         // 2. R-Multiple Distribution
-        const rMultiples = closedTrades.map(t => {
-             if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
-             const pnl = getTradePnL(t);
-             return pnl.div(t.riskAmount).toNumber();
+        const rMultiples: number[] = [];
+
+        closedTrades.forEach(t => {
+            // Only calculate R if riskAmount is present and positive
+            if (t.riskAmount && t.riskAmount.gt(0)) {
+                const pnl = getTradePnL(t);
+                rMultiples.push(pnl.div(t.riskAmount).toNumber());
+            }
+            // If synced trade with no riskAmount (0), we exclude it from distribution to avoid skewing "0R to 1R" bucket with massive count of 0s.
         });
 
         // Bucketing R-Multiples
@@ -189,10 +194,10 @@ export const calculator = {
             if (t.riskAmount && t.riskAmount.gt(0)) {
                 const pnl = getTradePnL(t);
                 r = pnl.div(t.riskAmount);
-            } else if (t.status === 'Won') {
-                r = new Decimal(1); // Fallback if no risk defined, assume 1R win? Or 0. Better 0 to not distort.
-            } else if (t.status === 'Lost') {
-                r = new Decimal(-1);
+            } else {
+                // For trades without risk, do not add arbitrary 1R/-1R as it distorts data.
+                // We add 0R.
+                r = new Decimal(0);
             }
             
             cumulativeR = cumulativeR.plus(r);
