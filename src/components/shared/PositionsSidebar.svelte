@@ -157,7 +157,7 @@
     $: if (activeTab === 'history') fetchOrders('history');
 
     // Filter History
-    let filteredHistoryOrders = [];
+    let filteredHistoryOrders: any[] = [];
     $: {
         if ($settingsStore.hideUnfilledOrders) {
              // Filter: Must have fill amount > 0 OR status FILLED/PARTIAL

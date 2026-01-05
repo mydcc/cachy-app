@@ -9,7 +9,7 @@ const WS_PUBLIC_URL = CONSTANTS.BITUNIX_WS_PUBLIC_URL || 'wss://fapi.bitunix.com
 const WS_PRIVATE_URL = CONSTANTS.BITUNIX_WS_PRIVATE_URL || 'wss://fapi.bitunix.com/private/';
 
 const PING_INTERVAL = 15000; // 15 seconds
-const WATCHDOG_TIMEOUT = 20000; // 20 seconds (if no message for 20s, reconnect)
+const WATCHDOG_TIMEOUT = 30000; // 30 seconds (increased to avoid false disconnects)
 const RECONNECT_DELAY = 3000; // 3 seconds
 
 interface Subscription {
