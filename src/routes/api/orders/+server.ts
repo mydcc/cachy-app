@@ -71,6 +71,8 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     const list = res.data?.orderList || [];
     return list.map((o: any) => ({
         id: o.orderId,
+        orderId: o.orderId,
+        clientId: o.clientId,
         symbol: o.symbol,
         type: o.type, // LIMIT, MARKET
         side: o.side, // BUY, SELL
@@ -78,7 +80,20 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
         amount: parseFloat(o.qty || '0'),
         filled: parseFloat(o.tradeQty || '0'),
         status: o.status,
-        time: o.ctime
+        time: o.ctime,
+        mtime: o.mtime,
+        leverage: o.leverage,
+        marginMode: o.marginMode,
+        positionMode: o.positionMode,
+        reduceOnly: o.reduceOnly,
+        fee: parseFloat(o.fee || '0'),
+        realizedPNL: parseFloat(o.realizedPNL || '0'),
+        tpPrice: o.tpPrice,
+        tpStopType: o.tpStopType,
+        tpOrderType: o.tpOrderType,
+        slPrice: o.slPrice,
+        slStopType: o.slStopType,
+        slOrderType: o.slOrderType
     }));
 }
 
