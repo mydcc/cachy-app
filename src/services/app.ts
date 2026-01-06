@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal, parseDateString } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -671,8 +671,8 @@ export const app = {
                 else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
                 else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
 
-                let t = o.createTime || o.ctime || 0;
-                if (typeof t === 'string') t = parseInt(t, 10);
+                // FIX: Robust date parsing using shared helper
+                const t = parseTimestamp(o.createTime || o.ctime, 0);
 
                 if (sl.gt(0) && o.symbol) {
                     if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
@@ -718,8 +718,7 @@ export const app = {
                 }
 
                 // FIX: Robust date parsing
-                let dateTs = parseInt(p.ctime);
-                if (isNaN(dateTs) || dateTs <= 0) dateTs = Date.now();
+                const dateTs = parseTimestamp(p.ctime, Date.now());
 
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
@@ -784,8 +783,7 @@ export const app = {
                 // Find SL
                 let stopLoss = new Decimal(0);
                 // FIX: Robust time parsing
-                let posTime = parseInt(p.ctime);
-                if (isNaN(posTime)) posTime = 0;
+                const posTime = parseTimestamp(p.ctime, 0);
 
                 const candidates = symbolSlMap[p.symbol];
                 if (candidates && posTime > 0) {
@@ -817,8 +815,7 @@ export const app = {
                 }
 
                 // FIX: Robust date parsing for Close Time
-                let closeTime = parseInt(p.mtime || p.ctime);
-                if (isNaN(closeTime) || closeTime <= 0) closeTime = Date.now();
+                const closeTime = parseTimestamp(p.mtime || p.uTime || p.ctime, Date.now());
 
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
