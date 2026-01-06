@@ -40,29 +40,21 @@ export const apiService = {
     normalizeSymbol(symbol: string, provider: 'bitunix' | 'binance'): string {
         if (!symbol) return '';
         let s = symbol.toUpperCase();
-        // Remove .P or P suffix if present for standardization logic, though APIs might need specific handling
-        // Based on user input: "BTCUSDTP" or "BTCUSDT.P".
-        // Based on curl tests: Bitunix wants "BTCUSDT", Binance Futures often wants "BTCUSDT" but checks might vary.
-        // We will try to strip P suffixes to get the base pair, then let the API proxy handle it or pass as is if needed.
-        // Actually, for Bitunix, we saw "BTCUSDT" works and "BTCUSDTP" fails.
 
-        // Simple heuristic: If it ends in "P" or ".P" and isn't just "XRP" (unlikely), strip it.
+        // 1. Strip known Futures suffixes
+        // Handle "BTCUSDT.P" -> "BTCUSDT"
         if (s.endsWith('.P')) {
             s = s.slice(0, -2);
         }
-
-        // If the symbol seems to be just the coin (e.g. "BTC"), append USDT
-        if (!s.includes('USDT') && !s.includes('USD')) {
-            s += 'USDT';
+        // Handle "BTCUSDTP" -> "BTCUSDT"
+        // We only strip 'P' if it follows 'USDT' to avoid accidental stripping of coins ending in P
+        else if (s.endsWith('USDTP')) {
+            s = s.slice(0, -1);
         }
 
-        // If it ends with P but is meant for Bitunix/Binance Futures that prefer standard symbols?
-        // Let's rely on the user input mostly but fix the obvious "P" suffix issue if it fails,
-        // OR just strip it if we know the provider doesn't like it.
-        // Bitunix: BTCUSDT works. BTCUSDTP fails.
-        // Robust fix: Only strip P if it is a suffix on top of standard pair (e.g. USDTP).
-        if (s.endsWith('USDTP')) {
-             s = s.slice(0, -1);
+        // 2. Append base pair if missing (assuming USDT defaults for this context)
+        if (!s.includes('USDT') && !s.includes('USD')) {
+            s += 'USDT';
         }
 
         return s;
