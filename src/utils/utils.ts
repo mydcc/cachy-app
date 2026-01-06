@@ -86,25 +86,47 @@ export function parseDateString(dateStr: string, timeStr: string): Date {
 }
 
 /**
- * Parses a timestamp that might be in seconds or milliseconds, string or number.
- * Returns the timestamp in milliseconds.
- * @param val The timestamp value (string, number, or undefined)
- * @param fallback Default value if parsing fails (default: Date.now())
+ * Robustly parses a timestamp from various formats (seconds, milliseconds, string, ISO).
+ * Returns a timestamp in milliseconds.
+ * If parsing fails, returns 0.
+ *
+ * Heuristic: Values < 10,000,000,000 (10 billion) are treated as seconds.
+ * This covers dates up to year 2286 for seconds, and avoids confusion with milliseconds (starting 1970).
  */
-export function parseTimestamp(val: string | number | undefined | null, fallback: number = Date.now()): number {
-    if (val === undefined || val === null || val === '') return fallback;
+export function parseTimestamp(input: string | number | null | undefined): number {
+    if (input === null || input === undefined) return 0;
 
-    let ts = typeof val === 'string' ? parseFloat(val) : val;
+    if (typeof input === 'number') {
+        // Handle NaN explicitly if passed as number type
+        if (isNaN(input)) return 0;
 
-    if (isNaN(ts) || ts <= 0) return fallback;
-
-    // Heuristic: If timestamp is small (e.g. less than 10 billion), it's likely in seconds.
-    // 10,000,000,000 seconds is year 2286.
-    // 10,000,000,000 milliseconds is ~115 days after 1970 (April 1970).
-    // Since we deal with modern dates, anything below 10 billion is seconds.
-    if (ts < 10000000000) {
-        ts *= 1000;
+        // Check for seconds vs milliseconds
+        // 1e10 (10 billion) seconds is year 2286.
+        // 1e10 milliseconds is year 1970 (April).
+        // Current TS is ~1.7e12 (ms) or ~1.7e9 (sec).
+        if (Math.abs(input) < 10000000000) {
+            return Math.floor(input * 1000);
+        }
+        return Math.floor(input);
     }
 
-    return Math.floor(ts);
+    if (typeof input === 'string') {
+        const trimmed = input.trim();
+        if (!trimmed) return 0;
+
+        // Check if strictly numeric
+        if (/^-?\d+(\.\d+)?$/.test(trimmed)) {
+            const parsed = parseFloat(trimmed);
+            if (isNaN(parsed)) return 0;
+            return parseTimestamp(parsed); // Recurse to handle seconds logic
+        }
+
+        // Try Date.parse for ISO strings etc.
+        const dateTs = Date.parse(trimmed);
+        if (!isNaN(dateTs)) {
+            return dateTs;
+        }
+    }
+
+    return 0;
 }
