@@ -682,26 +682,18 @@ export const app = {
             Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
             // ------------------------------------------------------------------
 
-            // Cleanup: Remove existing "Open" synced trades to avoid duplicates/stale data.
-            // We assume that if we are running a sync, we want a fresh snapshot of Open positions.
-            // FIX: Explicitly check for isManual === false to identify synced trades, and status === 'Open'
-            const currentJournal = get(journalStore).filter(j => {
-                const isSynced = j.isManual === false;
-                const isOpen = j.status === 'Open';
-                // Keep if it's manual OR if it's synced but NOT open (i.e., closed history)
-                return !isSynced || !isOpen;
-            });
-
-            // Re-build existing ID set based on the filtered journal (Closed history remains)
-            const existingIds = new Set(currentJournal.map(j => String(j.tradeId || j.id)));
-
+            // Cleanup logic prepared, but we execute it ONLY after we successfully processed the new data
+            // to prevent data loss in case of logic errors during processing.
             const newEntries: JournalEntry[] = [];
             let addedCount = 0;
 
             // --- Process Pending Positions (Open) ---
+            const processedPendingIds = new Set<string>();
+
             for (const p of pendingPositions) {
                 // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
                 const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+                processedPendingIds.add(uniqueId);
                 
                 const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
                 const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
@@ -758,9 +750,14 @@ export const app = {
             }
 
             // --- Process History Positions (Closed) ---
+            // We need a set of existing IDs from the *current* journal to avoid duplicates,
+            // but we must not check against the "to-be-removed" open positions.
+            const currentJournalForHistoryCheck = get(journalStore);
+            const existingHistoryIds = new Set(currentJournalForHistoryCheck.map(j => String(j.tradeId || j.id)));
+
             for (const p of historyPositions) {
                 const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-                if (existingIds.has(uniqueId)) continue;
+                if (existingHistoryIds.has(uniqueId)) continue;
 
                 const realizedPnl = new Decimal(p.realizedPNL || 0);
                 const funding = new Decimal(p.funding || 0);
@@ -856,11 +853,30 @@ export const app = {
             }
 
 
-            if (addedCount > 0 || currentJournal.length !== get(journalStore).length) {
-                // Combine the filtered journal (without old open positions) with new entries
-                const updatedJournal = [...currentJournal, ...newEntries];
-                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                
+            // --- SAFE SWAP ---
+            // Now that we have `newEntries` (containing new Open and new History positions),
+            // we perform the swap.
+
+            // 1. Get current state
+            const previousJournal = get(journalStore);
+
+            // 2. Filter out OLD synced Open positions (because we have a fresh list of them in `newEntries`)
+            //    We keep Manual trades and Closed Synced trades.
+            const keptJournal = previousJournal.filter(j => {
+                const isSynced = j.isManual === false;
+                const isOpen = j.status === 'Open';
+                // Remove if it is a Synced Open position
+                return !(isSynced && isOpen);
+            });
+
+            // 3. Combine Kept + New
+            const updatedJournal = [...keptJournal, ...newEntries];
+
+            // 4. Sort
+            updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            // 5. Update Store & Save
+            if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
                 journalStore.set(updatedJournal);
                 app.saveJournal(updatedJournal);
                 uiStore.showFeedback('save', 2000); 
