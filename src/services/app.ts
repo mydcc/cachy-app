@@ -445,7 +445,8 @@ export const app = {
             notes: currentAppState.tradeNotes,
             tags: currentAppState.tags || [],
             id: Date.now(),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            entryDate: new Date().toISOString()
         } as JournalEntry;
 
         journalData.push(newTrade);
@@ -581,7 +582,7 @@ export const app = {
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
         const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
         // New headers
-        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
          ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
@@ -591,7 +592,7 @@ export const app = {
                 (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
                 (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
                 // New values
-                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
                 ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
@@ -822,7 +823,7 @@ export const app = {
                     id: Date.now() + Math.random(),
                     tradeId: uniqueId,
                     date: new Date(closeTime).toISOString(), // Close time
-                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined, // FIX: Store Entry Date for Duration
+                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined,
                     symbol: p.symbol,
                     tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
                     status: netPnl.gt(0) ? 'Won' : 'Lost',
@@ -912,7 +913,9 @@ export const app = {
                 'Realized PnL': 'Realized PnL',
                 'Is Manual': 'Is Manual',
                 'Trade ID': 'Trade ID',
-                'Order ID': 'Order ID'
+                'Order ID': 'Order ID',
+                'Entry Date': 'Einstiegsdatum',
+                'Einstiegsdatum': 'Einstiegsdatum'
             };
 
             // Identify which language/set of headers is present
@@ -988,6 +991,7 @@ export const app = {
                         tradingFee: parseDecimal(entry['Trading Fee'] || '0'),
                         realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
                         isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
+                        entryDate: entry['Einstiegsdatum'] ? new Date(entry['Einstiegsdatum']).toISOString() : undefined,
                         calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
                     };
                     return importedTrade;
