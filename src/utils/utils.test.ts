@@ -58,3 +58,50 @@ describe('parseDateString', () => {
         expect(date.toISOString()).toBe('2025-12-23T00:00:00.000Z');
     });
 });
+
+import { parseTimestamp } from './utils';
+
+describe('parseTimestamp', () => {
+    const NOW = Date.now();
+
+    it('should parse valid millisecond timestamps (number)', () => {
+        const ts = 1672531200000; // 2023-01-01
+        expect(parseTimestamp(ts)).toBe(ts);
+    });
+
+    it('should parse valid millisecond timestamps (string)', () => {
+        const ts = 1672531200000;
+        expect(parseTimestamp(String(ts))).toBe(ts);
+    });
+
+    it('should convert seconds to milliseconds (number)', () => {
+        const seconds = 1672531200;
+        expect(parseTimestamp(seconds)).toBe(seconds * 1000);
+    });
+
+    it('should convert seconds to milliseconds (string)', () => {
+        const seconds = 1672531200;
+        expect(parseTimestamp(String(seconds))).toBe(seconds * 1000);
+    });
+
+    it('should handle floating point seconds (string)', () => {
+        const seconds = 1672531200.5;
+        expect(parseTimestamp(seconds)).toBe(1672531200500);
+    });
+
+    it('should return fallback for invalid inputs', () => {
+        expect(parseTimestamp(undefined, 123)).toBe(123);
+        expect(parseTimestamp(null, 123)).toBe(123);
+        expect(parseTimestamp('', 123)).toBe(123);
+        expect(parseTimestamp('invalid', 123)).toBe(123);
+        expect(parseTimestamp(0, 123)).toBe(123);
+        expect(parseTimestamp(-100, 123)).toBe(123);
+    });
+
+    it('should default fallback to Date.now()ish if not provided', () => {
+        // Can't match exact now, but should be close
+        const result = parseTimestamp(undefined);
+        expect(result).toBeGreaterThan(NOW - 1000);
+        expect(result).toBeLessThan(NOW + 1000);
+    });
+});
