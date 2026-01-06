@@ -82,22 +82,25 @@
     $: viewMode = $settingsStore.positionViewMode || 'detailed';
     $: pnlMode = $settingsStore.pnlViewMode || 'value';
 
+    // Safe access to positions
+    $: safePositions = Array.isArray(positions) ? positions : [];
+
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
-    {#if loading && positions.length === 0}
+    {#if loading && safePositions.length === 0}
         <div class="flex justify-center p-4">
             <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"></div>
         </div>
     {:else if error}
         <div class="text-xs text-[var(--danger-color)] p-2 text-center">{error}</div>
-    {:else if positions.length === 0}
+    {:else if safePositions.length === 0}
         <div class="text-xs text-[var(--text-secondary)] text-center p-4">
             No open positions.
         </div>
     {:else}
         <div class="flex flex-col gap-2">
-            {#each positions as pos}
+            {#each safePositions as pos}
                 <!-- Card Container -->
                 <div class="bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-colors relative overflow-hidden group">
 
