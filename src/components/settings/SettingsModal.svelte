@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode } from '../../stores/settingsStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
     import { createBackup, restoreFromBackup } from '../../services/backupService';
@@ -15,6 +15,7 @@
     let hideUnfilledOrders: boolean;
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
+    let positionViewMode: PositionViewMode;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -74,6 +75,7 @@
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
+            positionViewMode = $settingsStore.positionViewMode || 'detailed';
             isPro = $settingsStore.isPro;
 
             // Deep copy keys to avoid binding issues
@@ -104,6 +106,7 @@
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
+            positionViewMode,
             imgbbApiKey,
             imgbbExpiration,
             apiKeys: {
@@ -378,6 +381,15 @@
                     </div>
                     <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
+
+                <!-- New: Position View Mode -->
+                <div class="flex flex-col gap-1 pt-2 border-t border-[var(--border-color)]">
+                    <span class="text-sm font-medium">Position View Mode</span>
+                    <select bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <option value="detailed">Detailed (Default)</option>
+                        <option value="focus">Focus (Compact)</option>
+                    </select>
+                </div>
 
                 <!-- Hotkey Mode Selection -->
                 <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
