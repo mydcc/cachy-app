@@ -179,8 +179,8 @@
             { keys: 'T', action: 'Focus Next Take Profit' },
             { keys: '+ / -', action: 'Add / Remove Take Profit' },
             { keys: 'E', action: 'Focus Entry Price' },
-            { keys: 'S', action: 'Focus Stop Loss' },
-            { keys: 'L / K', action: 'Set Long / Short' },
+            { keys: 'O', action: 'Focus Stop Loss' },
+            { keys: 'L / S', action: 'Set Long / Short' },
             { keys: 'J', action: 'Open Journal' }
         ],
         mode2: [
@@ -188,8 +188,8 @@
             { keys: 'Alt + T', action: 'Add Take Profit' },
             { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
             { keys: 'Alt + E', action: 'Focus Entry Price' },
-            { keys: 'Alt + S', action: 'Focus Stop Loss' },
-            { keys: 'Alt + L / K', action: 'Set Long / Short' },
+            { keys: 'Alt + O', action: 'Focus Stop Loss' },
+            { keys: 'Alt + L / S', action: 'Set Long / Short' },
             { keys: 'Alt + J', action: 'Open Journal' }
         ],
         mode3: [
