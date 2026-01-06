@@ -41,6 +41,7 @@ import { trackCustomEvent } from '../services/trackingService';
     let fileInput: HTMLInputElement;
     let changelogContent = '';
     let guideContent = '';
+    let privacyContent = '';
 
     // Initialisierung der App-Logik, sobald die Komponente gemountet ist
     onMount(() => {
@@ -61,10 +62,18 @@ import { trackCustomEvent } from '../services/trackingService';
         });
     }
 
+    // Load privacy content when modal is opened
+    $: if ($uiStore.showPrivacyModal && privacyContent === '') {
+        loadInstruction('privacy').then(content => {
+            privacyContent = content.html;
+        });
+    }
+
     // Reset content when locale changes to force refetch
     $: if ($locale) {
         guideContent = '';
         changelogContent = '';
+        privacyContent = '';
     }
 
     // Reactive statement to trigger app.calculateAndDisplay() when relevant inputs change
@@ -147,6 +156,7 @@ import { trackCustomEvent } from '../services/trackingService';
             event.preventDefault();
             if ($uiStore.showJournalModal) uiStore.toggleJournalModal(false);
             if ($uiStore.showGuideModal) uiStore.toggleGuideModal(false);
+            if ($uiStore.showPrivacyModal) uiStore.togglePrivacyModal(false);
             if ($uiStore.showChangelogModal) uiStore.toggleChangelogModal(false);
             if (get(modalManager).isOpen) modalManager._handleModalConfirm(false);
             return;
@@ -412,6 +422,7 @@ import { trackCustomEvent } from '../services/trackingService';
     <span>Version {import.meta.env.VITE_APP_VERSION}</span>
     <button class="text-link" on:click={() => uiStore.toggleGuideModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowGuide' }}>{$_('app.guideButton')}</button>
     <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>Changelog</button>
+    <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>Privacy & Legal</button>
     <button class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}" on:click={() => $settingsStore.isPro = !$settingsStore.isPro}>
         {$settingsStore.isPro ? 'Pro Active' : 'Pro'}
     </button>
@@ -442,5 +453,16 @@ import { trackCustomEvent } from '../services/trackingService';
 >
     <div id="guide-content" class="prose dark:prose-invert">
         {@html guideContent}
+    </div>
+</ModalFrame>
+
+<ModalFrame
+    isOpen={$uiStore.showPrivacyModal}
+    title="Privacy & Legal"
+    on:close={() => uiStore.togglePrivacyModal(false)}
+    extraClasses="modal-size-instructions"
+>
+    <div id="privacy-content" class="prose dark:prose-invert">
+        {@html privacyContent}
     </div>
 </ModalFrame>
