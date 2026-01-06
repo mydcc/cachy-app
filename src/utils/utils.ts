@@ -50,50 +50,6 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
 }
 
 /**
- * Robustly parses a timestamp from various input types.
- * @param value Input value (number, string, date, null, undefined)
- * @returns Timestamp in milliseconds or 0 if invalid
- */
-export function parseTimestamp(value: unknown): number {
-    if (value === null || value === undefined) {
-        return 0;
-    }
-
-    if (typeof value === 'number') {
-        return isNaN(value) ? 0 : value;
-    }
-
-    if (typeof value === 'string') {
-        const trimmed = value.trim();
-        if (trimmed === '') return 0;
-
-        // Try parsing as integer first
-        const parsedInt = parseInt(trimmed, 10);
-
-        // Check if the original string was purely numeric (except possibly whitespace)
-        // This distinguishes "123" (valid) from "2023-01-01" (which parseInt might read as 2023)
-        // If it's purely numeric, return the integer.
-        if (/^-?\d+$/.test(trimmed)) {
-            return isNaN(parsedInt) ? 0 : parsedInt;
-        }
-
-        // Try parsing as Date string (ISO, etc.)
-        const date = new Date(trimmed);
-        const time = date.getTime();
-        if (!isNaN(time)) {
-            return time;
-        }
-    }
-
-    if (value instanceof Date) {
-        const time = value.getTime();
-        return isNaN(time) ? 0 : time;
-    }
-
-    return 0;
-}
-
-/**
  * Parses a date string which might be in German format (DD.MM.YYYY) into a Date object.
  * @param dateStr Date string (e.g., "23.12.2025" or "2025-12-23")
  * @param timeStr Time string (e.g., "19:40:08")
@@ -130,14 +86,14 @@ export function parseDateString(dateStr: string, timeStr: string): Date {
 }
 
 /**
- * Robustly parses a timestamp from various formats (seconds, milliseconds, string, ISO).
+ * Robustly parses a timestamp from various formats (seconds, milliseconds, string, ISO, Date).
  * Returns a timestamp in milliseconds.
  * If parsing fails, returns 0.
  *
  * Heuristic: Values < 10,000,000,000 (10 billion) are treated as seconds.
  * This covers dates up to year 2286 for seconds, and avoids confusion with milliseconds (starting 1970).
  */
-export function parseTimestamp(input: string | number | null | undefined): number {
+export function parseTimestamp(input: string | number | null | undefined | Date): number {
     if (input === null || input === undefined) return 0;
 
     if (typeof input === 'number') {
@@ -170,6 +126,11 @@ export function parseTimestamp(input: string | number | null | undefined): numbe
         if (!isNaN(dateTs)) {
             return dateTs;
         }
+    }
+
+    if (input instanceof Date) {
+        const time = input.getTime();
+        return isNaN(time) ? 0 : time;
     }
 
     return 0;
