@@ -66,7 +66,7 @@
                 // Since PositionsList uses `positions` prop, let's pass data.
                 // Ideally, accountStore should manage this.
                 if (data.positions) {
-                    accountStore.set(prev => ({ ...prev, positions: data.positions }));
+                    accountStore.update(prev => ({ ...prev, positions: data.positions }));
                 }
             }
         } catch (e) {
@@ -159,8 +159,20 @@
         return () => clearInterval(interval);
     });
 
+    // React to settings changes (e.g. keys added)
+    $: if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
+        // Debounce or just check if we can fetch
+        const p = $settingsStore.apiProvider;
+        const k = $settingsStore.apiKeys[p];
+        if (k?.key && k?.secret && activeTab === 'positions') {
+             fetchPositions();
+             fetchAccount();
+        }
+    }
+
     $: if (activeTab === 'orders') fetchOrders('pending');
     $: if (activeTab === 'history') fetchOrders('history');
+    $: if (activeTab === 'positions') fetchPositions();
 
     // Filter History
     let filteredHistoryOrders: any[] = [];
@@ -216,7 +228,7 @@
                     apiSecret: $settingsStore.apiKeys[$settingsStore.apiProvider].secret,
                     type: 'close-position', // Helper type
                     symbol: pos.symbol,
-                    side: pos.side === 'long' ? 'sell' : 'buy', // Close opposite
+                    side: String(pos.side).toLowerCase() === 'long' ? 'sell' : 'buy', // Close opposite
                     amount: pos.size
                 })
             });

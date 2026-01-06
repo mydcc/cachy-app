@@ -54,6 +54,7 @@ function createAccountStore() {
     return {
         subscribe,
         set,
+        update, // Expose update
         reset: () => set(initialState),
 
         // WS Actions
