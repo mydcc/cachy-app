@@ -1,7 +1,15 @@
 <script lang="ts">
     import { formatDynamicDecimal } from '../../utils/utils';
 
+    import { icons } from '../../lib/constants';
+
     export let order: any;
+
+    let isDetailsOpen = false;
+
+    function toggleDetails() {
+        isDetailsOpen = !isDetailsOpen;
+    }
 
     function formatDate(ts: any) {
         if (!ts) return '-';
@@ -26,25 +34,13 @@
     }
 </script>
 
-<div class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded-lg p-3 text-xs text-[var(--text-primary)] w-[320px] max-w-[90vw] pointer-events-none">
+<div class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded-lg p-3 text-xs text-[var(--text-primary)] w-[320px] max-w-[90vw] pointer-events-auto">
     <div class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-1">
         <span class="font-bold text-sm">{order.symbol}</span>
         <span class="font-mono text-[var(--text-secondary)] uppercase">{order.side} {getOrderType(order)}</span>
     </div>
 
     <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-        <!-- IDs -->
-        <div class="col-span-2 flex justify-between group">
-            <span class="text-[var(--text-secondary)]">Order ID:</span>
-            <span class="font-mono">{order.orderId}</span>
-        </div>
-        {#if order.clientId}
-        <div class="col-span-2 flex justify-between">
-            <span class="text-[var(--text-secondary)]">Client ID:</span>
-            <span class="font-mono truncate max-w-[150px]">{order.clientId}</span>
-        </div>
-        {/if}
-
         <!-- Settings -->
         <div class="flex justify-between">
             <span class="text-[var(--text-secondary)]">Leverage:</span>
@@ -108,22 +104,46 @@
             {/if}
         {/if}
 
-         <!-- Timestamps -->
-         <div class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1">
-            <div class="flex justify-between text-[10px]">
-                <span class="text-[var(--text-secondary)]">Created:</span>
-                <span>{formatDate(order.ctime)}</span>
-            </div>
-             {#if order.mtime && order.mtime !== order.ctime}
-             <div class="flex justify-between text-[10px]">
-                <span class="text-[var(--text-secondary)]">Updated:</span>
-                <span>{formatDate(order.mtime)}</span>
-            </div>
-            {/if}
+        <!-- Accordion Toggle -->
+        <div class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 cursor-pointer select-none flex items-center justify-between text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+             on:click={toggleDetails}
+             on:keydown={(e) => e.key === 'Enter' && toggleDetails()}
+             role="button"
+             tabindex="0">
+            <span class="text-[10px] font-bold">Details...</span>
+            <span class="transform transition-transform duration-200" class:rotate-180={isDetailsOpen}>
+                {@html icons.chevronDown}
+            </span>
         </div>
 
-        <!-- Status -->
-         <div class="col-span-2 flex justify-between items-center mt-1 pt-1">
+        <!-- Accordion Content -->
+        {#if isDetailsOpen}
+            <div class="col-span-2 flex flex-col gap-1 text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-primary)] p-2 rounded mt-1">
+                <div class="flex justify-between">
+                    <span>Created:</span>
+                    <span>{formatDate(order.ctime)}</span>
+                </div>
+                {#if order.mtime && order.mtime !== order.ctime}
+                    <div class="flex justify-between">
+                        <span>Updated:</span>
+                        <span>{formatDate(order.mtime)}</span>
+                    </div>
+                {/if}
+                <div class="flex justify-between gap-2">
+                    <span>Order ID:</span>
+                    <span class="font-mono truncate">{order.orderId}</span>
+                </div>
+                {#if order.clientId}
+                    <div class="flex justify-between gap-2">
+                        <span>Client ID:</span>
+                        <span class="font-mono truncate">{order.clientId}</span>
+                    </div>
+                {/if}
+            </div>
+        {/if}
+
+        <!-- Footer (Status) -->
+         <div class="col-span-2 flex justify-between items-center mt-2 border-t border-[var(--border-color)] pt-2">
              <span class="font-bold px-1.5 py-0.5 rounded bg-[var(--bg-secondary)] text-[10px] uppercase border border-[var(--border-color)]">{order.status}</span>
              {#if order.reduceOnly}
                 <span class="text-[10px] text-[var(--warning-color)] font-bold">Reduce Only</span>
