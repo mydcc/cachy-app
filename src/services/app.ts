@@ -716,7 +716,7 @@ export const app = {
                      stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
-                // FIX: Robust date parsing
+                // Robust date parsing using new helper
                 let dateTs = parseTimestamp(p.ctime);
                 if (dateTs <= 0) dateTs = Date.now();
 
@@ -782,7 +782,7 @@ export const app = {
 
                 // Find SL
                 let stopLoss = new Decimal(0);
-                // FIX: Robust time parsing
+                // FIX: Robust time parsing implemented
                 const posTime = parseTimestamp(p.ctime);
 
                 const candidates = symbolSlMap[p.symbol];
@@ -814,13 +814,9 @@ export const app = {
                     }
                 }
 
-                // FIX: Robust date parsing for Close Time
-                // Use mtime (modify/close time) preferably, else ctime (creation).
-                // If both fail, avoid Date.now() for historical data to prevent timeline corruption.
-                // Fallback to 0 (1970-01-01) if absolutely no date is found.
-                let closeTime = parseTimestamp(p.mtime);
-                if (closeTime === 0) closeTime = parseTimestamp(p.ctime);
-                if (closeTime <= 0) closeTime = 0; // Use Epoch instead of Date.now()
+                // Robust date parsing for Close Time using helper
+                let closeTime = parseTimestamp(p.mtime || p.ctime);
+                if (closeTime <= 0) closeTime = Date.now();
 
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
