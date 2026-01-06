@@ -84,3 +84,27 @@ export function parseDateString(dateStr: string, timeStr: string): Date {
     }
     return d;
 }
+
+/**
+ * Parses a timestamp that might be in seconds or milliseconds, string or number.
+ * Returns the timestamp in milliseconds.
+ * @param val The timestamp value (string, number, or undefined)
+ * @param fallback Default value if parsing fails (default: Date.now())
+ */
+export function parseTimestamp(val: string | number | undefined | null, fallback: number = Date.now()): number {
+    if (val === undefined || val === null || val === '') return fallback;
+
+    let ts = typeof val === 'string' ? parseFloat(val) : val;
+
+    if (isNaN(ts) || ts <= 0) return fallback;
+
+    // Heuristic: If timestamp is small (e.g. less than 10 billion), it's likely in seconds.
+    // 10,000,000,000 seconds is year 2286.
+    // 10,000,000,000 milliseconds is ~115 days after 1970 (April 1970).
+    // Since we deal with modern dates, anything below 10 billion is seconds.
+    if (ts < 10000000000) {
+        ts *= 1000;
+    }
+
+    return Math.floor(ts);
+}
