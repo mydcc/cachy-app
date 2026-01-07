@@ -7,6 +7,7 @@ interface UiState {
     showJournalModal: boolean;
     showChangelogModal: boolean;
     showGuideModal: boolean;
+    showPrivacyModal: boolean;
     showCopyFeedback: boolean;
     showSaveFeedback: boolean;
     errorMessage: string;
@@ -25,6 +26,7 @@ const initialUiState: UiState = {
     showJournalModal: false,
     showChangelogModal: false,
     showGuideModal: false,
+    showPrivacyModal: false,
     showSettingsModal: false,
     showCopyFeedback: false,
     showSaveFeedback: false,
@@ -67,6 +69,7 @@ function createUiStore() {
         toggleJournalModal: (show: boolean) => update(state => ({ ...state, showJournalModal: show })),
         toggleChangelogModal: (show: boolean) => update(state => ({ ...state, showChangelogModal: show })),
         toggleGuideModal: (show: boolean) => update(state => ({ ...state, showGuideModal: show })),
+        togglePrivacyModal: (show: boolean) => update(state => ({ ...state, showPrivacyModal: show })),
         toggleSettingsModal: (show: boolean) => update(state => ({ ...state, showSettingsModal: show })),
         showFeedback: (type: 'copy' | 'save', duration = 2000) => {
             const key = type === 'copy' ? 'showCopyFeedback' : 'showSaveFeedback';
