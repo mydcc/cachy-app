@@ -19,6 +19,7 @@
     let refreshInterval: any;
     let showTimeframePopup = false;
     let customTimeframeInput = "";
+    let currentSubscription: string | null = null;
 
     // Use analysisTimeframe for Technicals, NOT atrTimeframe
     $: symbol = $tradeStore.symbol;
@@ -162,15 +163,16 @@
 
         <!-- Header -->
         <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
-            <h3
-                class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2"
+            <button
+                type="button"
+                class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
                 on:click={toggleTimeframePopup}
             >
                 Technicals
                 <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
                     {timeframe}
                 </span>
-            </h3>
+            </button>
 
             {#if showTimeframePopup}
                 <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
