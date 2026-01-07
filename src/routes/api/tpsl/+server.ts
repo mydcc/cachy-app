@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
         return json(result);
 
     } catch (e: any) {
-        console.error(`Error processing TP/SL request:`, e);
+        console.error(`Error processing TP/SL request:`, e.message || e);
 
         // Determine appropriate status code
         let status = 500;
