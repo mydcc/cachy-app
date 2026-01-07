@@ -221,7 +221,7 @@ import { trackCustomEvent } from '../services/trackingService';
 
     {#if $settingsStore.showSidebars}
         <!-- Left Sidebar: Positions Table -->
-        <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3">
+        <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3 z-50">
             <PositionsSidebar />
         </div>
 

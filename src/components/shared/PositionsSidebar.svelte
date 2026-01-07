@@ -274,7 +274,7 @@
 
 <svelte:window on:click={closeContextMenu} />
 
-<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 {isMobile ? 'w-full' : 'w-80'}"
+<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 relative z-20 {isMobile ? 'w-full' : 'w-80'}"
     class:overflow-hidden={!isOpen}
     class:h-auto={isOpen}
     class:h-12={!isOpen}
