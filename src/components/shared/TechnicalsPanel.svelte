@@ -19,6 +19,7 @@
     let refreshInterval: any;
     let showTimeframePopup = false;
     let customTimeframeInput = "";
+    let currentSubscription: string | null = null;
 
     // Use analysisTimeframe for Technicals, NOT atrTimeframe
     $: symbol = $tradeStore.symbol;

@@ -37,7 +37,6 @@
         trackCustomEvent('Price', 'Fetch', symbol);
         // Use unified fetch
         app.fetchAllAnalysisData(symbol, false);
-        scanMultiAtr();
     }
 
     const handleSymbolInput = debounce(() => {
@@ -46,7 +45,6 @@
         if (symbol && symbol.length >= 3) {
              // Unified Fetch
              app.fetchAllAnalysisData(symbol, true);
-             scanMultiAtr();
         }
     }, 500);
 
@@ -104,50 +102,13 @@
         trackCustomEvent('ATR', 'ChangeTimeframe', val);
     }
 
-    // Trigger Multi-ATR Scan when Price or ATR is fetched
-    let wasPriceFetching = false;
-    $: if (wasPriceFetching && !isPriceFetching && symbol && symbol.length >= 3) {
-         scanMultiAtr();
-    }
-    $: wasPriceFetching = isPriceFetching;
-
-    // Also trigger scan when symbol changes externally (e.g. Tile click, Favorite shortcut)
-    // We check if symbol has changed compared to last scan
-    let lastScannedSymbol = '';
-    $: if (symbol && symbol !== lastScannedSymbol && symbol.length >= 3 && !isPriceFetching) {
-        // Debounce slightly to avoid rapid fires if typing, but typing is handled by handleSymbolInput
-        // This is for external updates.
-        // We set timeout to let other updates settle
-        setTimeout(() => {
-             if (symbol === $tradeStore.symbol) { // Ensure still valid
-                 scanMultiAtr();
-             }
-        }, 200);
-    }
-
     // Determine dynamic step based on price magnitude
     $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
 
-    // Multi-ATR Logic
-    let isScanningAtr = false;
-    let multiAtrData: Record<string, number> = {};
-
-    async function scanMultiAtr() {
-        if (!symbol) return;
-        lastScannedSymbol = symbol; // Update tracker
-        isScanningAtr = true;
-        try {
-            multiAtrData = await app.scanMultiAtr(symbol);
-        } catch (e) {
-            console.error(e);
-        } finally {
-            isScanningAtr = false;
-        }
-    }
-
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
     // MTF-ATR: Ensure we only show the user's favorites from Settings
-    $: sortedMultiAtrData = Object.entries(multiAtrData)
+    // NOTE: multiAtrData is now in tradeStore
+    $: sortedMultiAtrData = Object.entries($tradeStore.multiAtrData)
         .filter(([tf]) => $settingsStore.favoriteTimeframes.includes(tf))
         .sort((a, b) => {
             const ia = availableTimeframes.indexOf(a[0]);
@@ -159,12 +120,6 @@
 
     function applyAtr(tf: string, val: number) {
         // Apply ATR to inputs but DO NOT change the dropdown timeframe unless desired.
-        // Usually clicking an MTF value applies that value to the input field.
-        // If we want to change the dropdown too, we can.
-        // "Diese Buttons kontrollieren dann den Timeframe..." applies to Technicals.
-        // For MTF-ATR, clicking it should probably set the ATR value?
-        // Let's assume it sets the value. Does it change the "Timeframe" dropdown?
-        // Usually yes, so the user sees which one is active.
         updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
         dispatch('setAtrTimeframe', tf);
     }
@@ -330,7 +285,8 @@
                                 on:click={() => {
                                     trackCustomEvent('ATR', 'Fetch', symbol);
                                     dispatch('fetchAtr');
-                                    scanMultiAtr();
+                                    // Also refresh Multi-ATR on manual click
+                                    app.scanMultiAtr(symbol);
                                 }}
                                 title="Fetch ATR Value"
                             >
@@ -362,12 +318,7 @@
         {#if useAtrSl}
         <div class="mt-3 border-t border-[var(--border-color)] pt-2">
             <div class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]">
-                {#if isScanningAtr}
-                    <span class="animate-spin text-[var(--text-secondary)]">
-                         <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>
-                    </span>
-                    <span class="text-[var(--text-secondary)]">Scanning...</span>
-                {:else if sortedMultiAtrData.length > 0}
+                {#if sortedMultiAtrData.length > 0}
                     {#each sortedMultiAtrData as [tf, val]}
                          <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
                              on:click={() => applyAtr(tf, val)}
@@ -376,9 +327,8 @@
                             <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
                          </button>
                     {/each}
-                {:else if !isScanningAtr && symbol}
-                    <!-- No scan button, just placeholder if desired or empty -->
-                    <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">...</span>
+                {:else if symbol}
+                     <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">...</span>
                 {/if}
             </div>
         </div>
