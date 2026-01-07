@@ -349,6 +349,19 @@ class BitunixWebSocketService {
                         asks: data.a
                     });
                 }
+            } else if (message.ch && (message.ch.startsWith('market_kline_') || message.ch === 'mark_kline_1day')) {
+                // Handle both generic kline channels and the specific mark_kline_1day
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updateKline(symbol, {
+                        o: data.o,
+                        h: data.h,
+                        l: data.l,
+                        c: data.c,
+                        b: data.b || data.v // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                    });
+                }
             }
 
             // Private Channels
