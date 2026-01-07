@@ -7,7 +7,7 @@
     import { _ } from '../../locales/i18n';
     import { trackCustomEvent } from '../../services/trackingService';
     import { onboardingService } from '../../services/onboardingService';
-    import { updateTradeStore } from '../../stores/tradeStore';
+    import { updateTradeStore, tradeStore } from '../../stores/tradeStore';
     import { settingsStore } from '../../stores/settingsStore';
     import { app } from '../../services/app';
 
@@ -98,12 +98,32 @@
         settingsStore.update(s => ({ ...s, autoUpdatePriceInput: !s.autoUpdatePriceInput }));
     }
 
+    function handleAtrTimeframeChange(e: Event) {
+        const val = (e.target as HTMLSelectElement).value;
+        dispatch('setAtrTimeframe', val);
+        trackCustomEvent('ATR', 'ChangeTimeframe', val);
+    }
+
     // Trigger Multi-ATR Scan when Price or ATR is fetched
     let wasPriceFetching = false;
     $: if (wasPriceFetching && !isPriceFetching && symbol && symbol.length >= 3) {
          scanMultiAtr();
     }
     $: wasPriceFetching = isPriceFetching;
+
+    // Also trigger scan when symbol changes externally (e.g. Tile click, Favorite shortcut)
+    // We check if symbol has changed compared to last scan
+    let lastScannedSymbol = '';
+    $: if (symbol && symbol !== lastScannedSymbol && symbol.length >= 3 && !isPriceFetching) {
+        // Debounce slightly to avoid rapid fires if typing, but typing is handled by handleSymbolInput
+        // This is for external updates.
+        // We set timeout to let other updates settle
+        setTimeout(() => {
+             if (symbol === $tradeStore.symbol) { // Ensure still valid
+                 scanMultiAtr();
+             }
+        }, 200);
+    }
 
     // Determine dynamic step based on price magnitude
     $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
@@ -114,6 +134,7 @@
 
     async function scanMultiAtr() {
         if (!symbol) return;
+        lastScannedSymbol = symbol; // Update tracker
         isScanningAtr = true;
         try {
             multiAtrData = await app.scanMultiAtr(symbol);
@@ -125,15 +146,25 @@
     }
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
-    $: sortedMultiAtrData = Object.entries(multiAtrData).sort((a, b) => {
-        const ia = availableTimeframes.indexOf(a[0]);
-        const ib = availableTimeframes.indexOf(b[0]);
-        const valA = ia === -1 ? 999 : ia;
-        const valB = ib === -1 ? 999 : ib;
-        return valA - valB;
-    });
+    // MTF-ATR: Ensure we only show the user's favorites from Settings
+    $: sortedMultiAtrData = Object.entries(multiAtrData)
+        .filter(([tf]) => $settingsStore.favoriteTimeframes.includes(tf))
+        .sort((a, b) => {
+            const ia = availableTimeframes.indexOf(a[0]);
+            const ib = availableTimeframes.indexOf(b[0]);
+            const valA = ia === -1 ? 999 : ia;
+            const valB = ib === -1 ? 999 : ib;
+            return valA - valB;
+        });
 
     function applyAtr(tf: string, val: number) {
+        // Apply ATR to inputs but DO NOT change the dropdown timeframe unless desired.
+        // Usually clicking an MTF value applies that value to the input field.
+        // If we want to change the dropdown too, we can.
+        // "Diese Buttons kontrollieren dann den Timeframe..." applies to Technicals.
+        // For MTF-ATR, clicking it should probably set the ATR value?
+        // Let's assume it sets the value. Does it change the "Timeframe" dropdown?
+        // Usually yes, so the user sees which one is active.
         updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
         dispatch('setAtrTimeframe', tf);
     }
@@ -262,19 +293,22 @@
                 <div class="grid grid-cols-3 gap-2 mt-2 items-end">
                     <div>
                         <label for="atr-timeframe" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrTimeframeLabel')}</label>
-                        <!-- Dynamic Timeframe Selection based on Favorites -->
-                        <div class="flex gap-1">
-                             {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ['5m', '15m', '1h', '4h'] as tf}
-                                <button
-                                    class="px-2 py-2 text-xs rounded border transition-colors flex-1 text-center {atrTimeframe === tf ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
-                                    on:click={() => {
-                                        dispatch('setAtrTimeframe', tf);
-                                        trackCustomEvent('ATR', 'ChangeTimeframe', tf);
-                                    }}
-                                >
-                                    {tf}
-                                </button>
-                             {/each}
+                        <!-- Dynamic Dropdown based on Favorites -->
+                        <div class="relative">
+                            <select
+                                id="atr-timeframe"
+                                value={atrTimeframe}
+                                on:change={handleAtrTimeframeChange}
+                                class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
+                            >
+                                {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ['5m', '15m', '1h', '4h'] as tf}
+                                    <option value={tf}>{tf}</option>
+                                {/each}
+                            </select>
+                            <!-- Arrow Icon -->
+                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-secondary)]">
+                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            </div>
                         </div>
                     </div>
                     <div>

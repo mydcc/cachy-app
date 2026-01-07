@@ -1,11 +1,12 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
     import { createBackup, restoreFromBackup } from '../../services/backupService';
     import { trackCustomEvent } from '../../services/trackingService';
+    import { normalizeTimeframeInput } from '../../utils/utils';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -21,6 +22,7 @@
 
     // Timeframe & RSI Sync
     let favoriteTimeframes: string[] = [];
+    let favoriteTimeframesInput: string = ''; // Text input
     let syncRsiTimeframe: boolean;
 
     // Indicator Settings
@@ -91,6 +93,7 @@
             isPro = $settingsStore.isPro;
 
             favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
+            favoriteTimeframesInput = favoriteTimeframes.join(', '); // Init text input
             syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
 
             rsiSettings = { ...$indicatorStore.rsi };
@@ -194,20 +197,24 @@
         }
     }
 
-    function toggleTimeframe(tf: string) {
-        if (favoriteTimeframes.includes(tf)) {
-            // Remove (min 1 must remain)
-            if (favoriteTimeframes.length > 1) {
-                favoriteTimeframes = favoriteTimeframes.filter(t => t !== tf);
-            }
-        } else {
-            // Add (max 4)
-            if (favoriteTimeframes.length < 4) {
-                favoriteTimeframes = [...favoriteTimeframes, tf];
-                // Sort by standard order
-                favoriteTimeframes.sort((a, b) => availableTimeframes.indexOf(a) - availableTimeframes.indexOf(b));
-            }
-        }
+    function handleTimeframeInput(event: Event) {
+        const input = (event.target as HTMLInputElement).value;
+        favoriteTimeframesInput = input; // update local input state
+
+        const rawTags = input.split(',').map(s => s.trim()).filter(s => s !== '');
+
+        // Normalize
+        const normalizedTags = rawTags.map(normalizeTimeframeInput);
+
+        // Limit to 4
+        const limitedTags = normalizedTags.slice(0, 4);
+
+        favoriteTimeframes = limitedTags;
+    }
+
+    function handleTimeframeBlur() {
+        // Re-format the input field to show the normalized versions nicely
+        favoriteTimeframesInput = favoriteTimeframes.join(', ');
     }
 
     const hotkeyDescriptions = {
@@ -482,16 +489,25 @@
                         <span class="text-sm font-bold">Favorite Timeframes (Max 4)</span>
                         <span class="text-xs text-[var(--text-secondary)]">{favoriteTimeframes.length}/4</span>
                     </div>
-                    <div class="grid grid-cols-5 gap-2 mt-1">
-                        {#each availableTimeframes as tf}
-                            <button
-                                class="px-2 py-1 text-xs rounded border transition-colors {favoriteTimeframes.includes(tf) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
-                                class:opacity-50={!favoriteTimeframes.includes(tf) && favoriteTimeframes.length >= 4}
-                                disabled={!favoriteTimeframes.includes(tf) && favoriteTimeframes.length >= 4}
-                                on:click={() => toggleTimeframe(tf)}
-                            >
+                    <div class="flex flex-col gap-1 mt-1">
+                        <input
+                            type="text"
+                            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                            value={favoriteTimeframesInput}
+                            on:input={handleTimeframeInput}
+                            on:blur={handleTimeframeBlur}
+                            placeholder="e.g. 5m, 15m, 1h, 4h"
+                        />
+                        <p class="text-[10px] text-[var(--text-secondary)]">
+                            Enter up to 4 comma-separated timeframes. Inputs like '60m' or '1S' are automatically normalized.
+                        </p>
+                    </div>
+                    <!-- Display Tags Preview -->
+                    <div class="flex flex-wrap gap-2 mt-2">
+                        {#each favoriteTimeframes as tf}
+                             <span class="px-2 py-1 text-xs rounded bg-[var(--accent-color)] text-white border border-[var(--accent-color)]">
                                 {tf}
-                            </button>
+                             </span>
                         {/each}
                     </div>
                 </div>

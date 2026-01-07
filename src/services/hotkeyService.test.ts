@@ -37,6 +37,8 @@ describe('hotkeyService', () => {
             pnlViewMode: 'value',
             isPro: true,
             feePreference: 'maker',
+            favoriteTimeframes: [],
+            syncRsiTimeframe: true,
             imgbbApiKey: '',
             imgbbExpiration: 0,
             apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } }
@@ -60,6 +62,7 @@ describe('hotkeyService', () => {
             useAtrSl: false,
             atrMode: 'manual',
             atrTimeframe: '1h',
+            analysisTimeframe: '1h',
             riskAmount: 10,
             isRiskAmountLocked: false,
             isPositionSizeLocked: false,
@@ -67,7 +70,11 @@ describe('hotkeyService', () => {
             tradeNotes: '',
             journalSearchQuery: '',
             journalFilterStatus: 'all', // Added missing property
-            currentTradeData: null // Added missing property
+            currentTradeData: null, // Added missing property
+            remoteLeverage: undefined,
+            remoteMarginMode: undefined,
+            remoteMakerFee: undefined,
+            remoteTakerFee: undefined
         });
 
         uiStore.set({

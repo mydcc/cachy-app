@@ -19,6 +19,7 @@ export const initialTradeState: Pick<AppState,
     'useAtrSl' |
     'atrMode' |
     'atrTimeframe' |
+    'analysisTimeframe' |
     'tradeNotes' |
     'tags' |
     'targets' |
@@ -49,6 +50,7 @@ export const initialTradeState: Pick<AppState,
     useAtrSl: true,
     atrMode: 'auto',
     atrTimeframe: '5m',
+    analysisTimeframe: '1h',
     tradeNotes: '',
     tags: [],
     targets: [

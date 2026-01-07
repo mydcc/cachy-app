@@ -1,11 +1,11 @@
 <script lang="ts">
     import { onMount, onDestroy } from "svelte";
-    import { tradeStore } from "../../stores/tradeStore";
+    import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
     import { apiService } from "../../services/apiService";
     import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
     import { _ } from "../../locales/i18n";
-    import { formatDynamicDecimal } from "../../utils/utils";
+    import { formatDynamicDecimal, normalizeTimeframeInput } from "../../utils/utils";
     import { Decimal } from "decimal.js";
     import Tooltip from "../shared/Tooltip.svelte";
 
@@ -15,9 +15,12 @@
     let loading = false;
     let error: string | null = null;
     let refreshInterval: any;
+    let showTimeframePopup = false;
+    let customTimeframeInput = "";
 
+    // Use analysisTimeframe for Technicals, NOT atrTimeframe
     $: symbol = $tradeStore.symbol;
-    $: timeframe = $tradeStore.atrTimeframe || '1d';
+    $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
 
     // Trigger fetch when relevant props change
@@ -79,14 +82,76 @@
     function formatVal(val: number) {
         return new Decimal(val).toDecimalPlaces(2).toString();
     }
+
+    function toggleTimeframePopup() {
+        showTimeframePopup = !showTimeframePopup;
+    }
+
+    function setTimeframe(tf: string) {
+        updateTradeStore(s => ({ ...s, analysisTimeframe: tf }));
+        showTimeframePopup = false;
+    }
+
+    function handleCustomTimeframeSubmit() {
+        if (!customTimeframeInput) return;
+        const normalized = normalizeTimeframeInput(customTimeframeInput);
+        if (normalized) {
+            setTimeframe(normalized);
+            customTimeframeInput = "";
+        }
+    }
+
+    function handleClickOutside(event: MouseEvent) {
+        if (showTimeframePopup && !(event.target as HTMLElement).closest('.timeframe-selector-container')) {
+            showTimeframePopup = false;
+        }
+    }
 </script>
 
+<svelte:window on:click={handleClickOutside} />
+
 {#if showPanel}
-    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all">
+    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative">
 
         <!-- Header -->
-        <div class="flex justify-between items-center pb-2">
-            <h3 class="font-bold text-[var(--text-primary)]">Technicals <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1">{timeframe}</span></h3>
+        <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
+            <h3
+                class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2"
+                on:click={toggleTimeframePopup}
+            >
+                Technicals
+                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                    {timeframe}
+                </span>
+            </h3>
+
+            {#if showTimeframePopup}
+                <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
+                    <!-- Row 1 -->
+                    <div class="grid grid-cols-3 gap-1">
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1m')}>1m</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('5m')}>5m</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('15m')}>15m</button>
+                    </div>
+                    <!-- Row 2 -->
+                    <div class="grid grid-cols-3 gap-1">
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1h')}>1h</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('4h')}>4h</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1d')}>1d</button>
+                    </div>
+                    <!-- Row 3 Custom -->
+                    <div class="flex gap-1">
+                        <input
+                            type="text"
+                            class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)]"
+                            placeholder="e.g. 24m"
+                            bind:value={customTimeframeInput}
+                            on:keydown={(e) => e.key === 'Enter' && handleCustomTimeframeSubmit()}
+                        />
+                        <button class="px-2 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded text-xs" on:click={handleCustomTimeframeSubmit}>OK</button>
+                    </div>
+                </div>
+            {/if}
 
             {#if data?.summary}
                 <div class="flex items-center gap-2 text-sm font-bold">

@@ -20,7 +20,8 @@ export interface Settings {
     showSidebars: boolean;
     showTechnicals: boolean;
     hideUnfilledOrders: boolean;
-    positionViewMode?: 'detailed' | 'focus';
+    positionViewMode?: PositionViewMode;
+    pnlViewMode?: PnlViewMode;
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -114,6 +115,7 @@ function loadSettingsFromLocalStorage(): Settings {
             showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
+            pnlViewMode: settings.pnlViewMode || 'value',
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
