@@ -84,7 +84,7 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
         low: new Decimal(k.low || k.l || 0),
         close: new Decimal(k.close || k.c || 0),
         volume: new Decimal(k.vol || k.v || 0),
-        timestamp: k.id || k.ts || 0
+        timestamp: k.id || k.ts || k.time || 0
     })).sort((a: any, b: any) => a.timestamp - b.timestamp); // Ensure ascending
 }
 
