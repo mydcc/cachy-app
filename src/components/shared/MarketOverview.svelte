@@ -148,13 +148,9 @@
     function getDisplaySymbol(rawSymbol: string | undefined): string {
         if (!rawSymbol) return symbol || "";
         let display = rawSymbol.toUpperCase();
-
-        if (display.endsWith(".P")) {
-            display = display.slice(0, -2);
-        } else if (display.endsWith("USDTP")) {
-            display = display.slice(0, -1);
+        if (!display.endsWith("P") && !display.endsWith(".P")) {
+            display += "P";
         }
-
         return display;
     }
 
