@@ -1,6 +1,8 @@
 <script lang="ts">
     import { onMount } from 'svelte';
     import { settingsStore } from '../../stores/settingsStore';
+    import { accountStore } from '../../stores/accountStore';
+    import { tradeStore } from '../../stores/tradeStore';
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
     import TpSlEditModal from './TpSlEditModal.svelte';
@@ -30,25 +32,83 @@
         loading = true;
         error = '';
         try {
-            const response = await fetch('/api/tpsl', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    exchange: provider,
-                    apiKey: keys.key,
-                    apiSecret: keys.secret,
-                    action: view
-                })
-            });
-            const data = await response.json();
-            if (data.error) error = data.error;
-            else {
-                // Bitunix returns list directly or inside data
-                // Need to handle potential variations
-                const list = Array.isArray(data) ? data : (data.rows || []);
-                orders = list;
+            // Bitunix TP/SL endpoints require a symbol or favor it.
+            // Other providers might support global fetching.
+            if (provider === 'bitunix') {
+                const symbolsToFetch = new Set<string>();
+                if ($tradeStore.symbol) symbolsToFetch.add($tradeStore.symbol);
+                $accountStore.positions.forEach(p => symbolsToFetch.add(p.symbol));
+
+                const fetchList = symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];
+                const results: any[] = [];
+
+                // Rate limit handling: Batch requests (max 5 concurrent)
+                const BATCH_SIZE = 5;
+                for (let i = 0; i < fetchList.length; i += BATCH_SIZE) {
+                    const batch = fetchList.slice(i, i + BATCH_SIZE);
+                    const batchResults = await Promise.all(batch.map(async (sym) => {
+                        try {
+                            const params: any = {};
+                            if (sym) params.symbol = sym;
+                            const response = await fetch('/api/tpsl', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    exchange: provider,
+                                    apiKey: keys.key,
+                                    apiSecret: keys.secret,
+                                    action: view,
+                                    params
+                                })
+                            });
+                            const data = await response.json();
+                            if (data.error) {
+                                // Suppress specific symbol errors, just warn
+                                console.warn(`TP/SL fetch warning for ${sym}:`, data.error);
+                                return [];
+                            }
+                            return Array.isArray(data) ? data : (data.rows || []);
+                        } catch (e) {
+                            console.warn(`TP/SL network error for ${sym}:`, e);
+                            return [];
+                        }
+                    }));
+                    results.push(...batchResults.flat());
+                }
+
+                // Deduplicate
+                const uniqueOrders = new Map();
+                results.forEach(o => {
+                    const id = o.id || o.orderId || o.planId;
+                    if (id) uniqueOrders.set(id, o);
+                });
+                orders = Array.from(uniqueOrders.values());
+
+            } else {
+                // Standard fetch for other providers (e.g. Binance)
+                const response = await fetch('/api/tpsl', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        exchange: provider,
+                        apiKey: keys.key,
+                        apiSecret: keys.secret,
+                        action: view
+                    })
+                });
+                const data = await response.json();
+                if (data.error) error = data.error;
+                else {
+                    const list = Array.isArray(data) ? data : (data.rows || []);
+                    orders = list;
+                }
             }
+
+            // Sort by time (newest first)
+            orders.sort((a, b) => (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0));
+
         } catch (e) {
+            console.error("TP/SL Global Error:", e);
             error = 'Failed to load TP/SL orders';
         } finally {
             loading = false;
@@ -144,7 +204,7 @@
             <div class="text-xs text-[var(--danger-color)] p-2 text-center">{error}</div>
         {:else if orders.length === 0}
              <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-                No {view} TP/SL orders.
+                No {view} TP/SL orders found.
             </div>
         {:else}
             <div class="flex flex-col gap-2">
