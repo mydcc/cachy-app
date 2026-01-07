@@ -708,7 +708,12 @@
                 <!-- Left: Chart (Small) -->
                 <div class="flex flex-col items-center">
                     <div class="h-32 w-32 relative">
-                        <DoughnutChart data={winLossChartData} title="" description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)." />
+                        <DoughnutChart
+                            data={winLossChartData}
+                            title=""
+                            description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
+                            options={{ plugins: { legend: { display: false } } }}
+                        />
                         <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div class="text-center">
                                 <div class="text-[10px] text-[var(--text-secondary)] leading-tight">Win Rate</div>
@@ -717,11 +722,11 @@
                         </div>
                     </div>
                     <!-- Mini Legend -->
-                    <div class="flex flex-wrap justify-center gap-x-2 gap-y-1 mt-2 max-w-[140px]">
-                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>W-L</div>
-                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.success, 0.5)}"></span>W-S</div>
-                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.danger, 1)}"></span>L-L</div>
-                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.danger, 0.5)}"></span>L-S</div>
+                    <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 w-full text-center">
+                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>Win Long</div>
+                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.success, 0.5)}"></span>Win Short</div>
+                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.danger, 1)}"></span>Loss Long</div>
+                        <div class="flex items-center gap-1 text-[10px] text-[var(--text-secondary)]"><span class="w-2 h-2 rounded-full" style="background: {hexToRgba(themeColors.danger, 0.5)}"></span>Loss Short</div>
                     </div>
                 </div>
 
