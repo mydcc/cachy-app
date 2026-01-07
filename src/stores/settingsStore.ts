@@ -4,6 +4,8 @@ import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
+export type PositionViewMode = 'detailed' | 'focus';
+export type PnlViewMode = 'value' | 'percent' | 'bar';
 
 export interface ApiKeys {
     key: string;
@@ -16,6 +18,7 @@ export interface Settings {
     autoUpdatePriceInput: boolean;
     autoFetchBalance: boolean;
     showSidebars: boolean;
+    showTechnicals: boolean;
     hideUnfilledOrders: boolean;
     positionViewMode?: 'detailed' | 'focus';
     isPro: boolean;
@@ -42,6 +45,7 @@ const defaultSettings: Settings = {
     autoUpdatePriceInput: false,
     autoFetchBalance: false,
     showSidebars: true,
+    showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
     isPro: false,
@@ -107,6 +111,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoUpdatePriceInput: settings.autoUpdatePriceInput,
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
+            showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             isPro: settings.isPro ?? defaultSettings.isPro,

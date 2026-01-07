@@ -13,10 +13,11 @@
     let autoUpdatePriceInput: boolean;
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
+    let showTechnicals: boolean;
     let hideUnfilledOrders: boolean;
-    let positionViewMode: 'detailed' | 'focus';
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
+    let positionViewMode: PositionViewMode;
 
     // Timeframe & RSI Sync
     let favoriteTimeframes: string[] = [];
@@ -82,8 +83,9 @@
             autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
+            showTechnicals = $settingsStore.showTechnicals;
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
-            positionViewMode = $settingsStore.positionViewMode;
+            positionViewMode = $settingsStore.positionViewMode || 'detailed';
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
             isPro = $settingsStore.isPro;
@@ -118,8 +120,8 @@
             autoUpdatePriceInput,
             autoFetchBalance,
             showSidebars,
+            showTechnicals,
             hideUnfilledOrders,
-            positionViewMode,
             feePreference,
             hotkeyMode,
             favoriteTimeframes,
@@ -214,8 +216,8 @@
             { keys: 'T', action: 'Focus Next Take Profit' },
             { keys: '+ / -', action: 'Add / Remove Take Profit' },
             { keys: 'E', action: 'Focus Entry Price' },
-            { keys: 'S', action: 'Focus Stop Loss' },
-            { keys: 'L / K', action: 'Set Long / Short' },
+            { keys: 'O', action: 'Focus Stop Loss' },
+            { keys: 'L / S', action: 'Set Long / Short' },
             { keys: 'J', action: 'Open Journal' }
         ],
         mode2: [
@@ -223,8 +225,8 @@
             { keys: 'Alt + T', action: 'Add Take Profit' },
             { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
             { keys: 'Alt + E', action: 'Focus Entry Price' },
-            { keys: 'Alt + S', action: 'Focus Stop Loss' },
-            { keys: 'Alt + L / K', action: 'Set Long / Short' },
+            { keys: 'Alt + O', action: 'Focus Stop Loss' },
+            { keys: 'Alt + L / S', action: 'Set Long / Short' },
             { keys: 'Alt + J', action: 'Open Journal' }
         ],
         mode3: [
@@ -240,7 +242,8 @@
     isOpen={$uiStore.showSettingsModal}
     title={$_('settings.title') || 'Settings'}
     on:close={close}
-    extraClasses="!w-[90vw] md:!w-[62vw] !h-[70vh] flex flex-col"
+    extraClasses="!w-auto !max-w-[62vw] max-h-[85vh] flex flex-col"
+    alignment="top"
 >
     <!-- Tabs Header -->
     <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0">
@@ -449,6 +452,11 @@
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
                     <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
+                    <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
 
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">

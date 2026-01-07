@@ -5,6 +5,7 @@
     export let isOpen = false;
     export let title = '';
     export let extraClasses = '';
+    export let alignment: 'center' | 'top' = 'center';
 
     const dispatch = createEventDispatcher();
 
@@ -14,8 +15,10 @@
 </script>
 
 {#if isOpen}
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div
-        class="modal-overlay visible"
+        class="modal-overlay visible {alignment === 'top' ? 'items-start pt-20' : ''}"
+        style={alignment === 'top' ? 'align-items: flex-start; padding-top: 10vh;' : ''}
         on:click|self={handleClose}
         on:keydown={(e) => { if (e.key === 'Escape') handleClose() }}
         role="dialog"
