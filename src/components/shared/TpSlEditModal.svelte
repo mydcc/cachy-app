@@ -64,8 +64,9 @@
         </div>
 
         <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-[var(--text-secondary)]">Trigger Price</label>
+            <label for="tpsl-trigger-price" class="text-xs font-bold text-[var(--text-secondary)]">Trigger Price</label>
             <input
+                id="tpsl-trigger-price"
                 type="number"
                 step="any"
                 bind:value={triggerPrice}
@@ -74,8 +75,9 @@
         </div>
 
         <div class="flex flex-col gap-1">
-            <label class="text-xs font-bold text-[var(--text-secondary)]">Amount (Qty)</label>
+            <label for="tpsl-amount" class="text-xs font-bold text-[var(--text-secondary)]">Amount (Qty)</label>
             <input
+                id="tpsl-amount"
                 type="number"
                 step="any"
                 bind:value={amount}
