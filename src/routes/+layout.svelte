@@ -20,6 +20,24 @@
 		const themeToSet = storedTheme || data.theme; // Use localStorage theme, fallback to cookie theme
 		uiStore.setTheme(themeToSet);
 	});
+
+	// Dynamic theme color for PWA/Android status bar
+	$: if (typeof document !== 'undefined' && $uiStore.currentTheme) {
+		updateThemeColor();
+	}
+
+	function updateThemeColor() {
+		// Small timeout to allow the DOM/CSS variables to update after class change
+		setTimeout(() => {
+			const metaThemeColor = document.querySelector('meta[name="theme-color"]');
+			if (metaThemeColor) {
+				// We need to read the background color of the body, which carries the theme variable
+				const style = getComputedStyle(document.body);
+				const bgColor = style.backgroundColor;
+				metaThemeColor.setAttribute('content', bgColor);
+			}
+		}, 50);
+	}
 </script>
 
 <svelte:head>

@@ -9,7 +9,6 @@
     import AccountSummary from './AccountSummary.svelte';
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
-    import PositionsList from './PositionsList.svelte';
     import TpSlList from './TpSlList.svelte';
 
     export let isMobile = false;

@@ -15,6 +15,7 @@
 </script>
 
 {#if isOpen}
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div
         class="modal-overlay visible {alignment === 'top' ? 'items-start pt-20' : ''}"
         style={alignment === 'top' ? 'align-items: flex-start; padding-top: 10vh;' : ''}
