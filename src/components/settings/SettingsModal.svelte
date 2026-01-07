@@ -74,10 +74,9 @@
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
-            positionViewMode = $settingsStore.positionViewMode;
+            positionViewMode = $settingsStore.positionViewMode || 'detailed';
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
-            positionViewMode = $settingsStore.positionViewMode || 'detailed';
             isPro = $settingsStore.isPro;
 
             // Deep copy keys to avoid binding issues
