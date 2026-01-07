@@ -6,7 +6,7 @@ const BASE_URL = 'https://fapi.bitunix.com';
 
 export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json();
-    const { exchange, apiKey, apiSecret, action, params } = body;
+    const { exchange, apiKey, apiSecret, action, params = {} } = body;
 
     if (!exchange || !apiKey || !apiSecret) {
         return json({ error: 'Missing credentials or exchange' }, { status: 400 });
@@ -38,6 +38,7 @@ export const POST: RequestHandler = async ({ request }) => {
         return json(result);
     } catch (e: any) {
         console.error(`Error processing TP/SL ${action}:`, e);
+        // Return 500 but include the message so the frontend can display it (e.g. "System error")
         return json({ error: e.message || `Failed to process ${action}` }, { status: 500 });
     }
 };
@@ -51,7 +52,9 @@ async function fetchBitunixTpSl(apiKey: string, apiSecret: string, path: string,
     // Remove undefined/null
     const cleanParams: Record<string, string> = {};
     Object.keys(params).forEach(k => {
-        if (params[k] !== undefined && params[k] !== null) cleanParams[k] = String(params[k]);
+        if (params[k] !== undefined && params[k] !== null && params[k] !== '') {
+            cleanParams[k] = String(params[k]);
+        }
     });
 
     const queryParamsStr = Object.keys(cleanParams).sort().map(key => key + cleanParams[key]).join('');
@@ -64,7 +67,8 @@ async function fetchBitunixTpSl(apiKey: string, apiSecret: string, path: string,
     const signature = createHash('sha256').update(signInput).digest('hex');
 
     const queryString = new URLSearchParams(cleanParams).toString();
-    const url = `${BASE_URL}${path}?${queryString}`;
+    // Only append ? if there are query params, otherwise some APIs (like Bitunix possibly) throw errors
+    const url = queryString ? `${BASE_URL}${path}?${queryString}` : `${BASE_URL}${path}`;
 
     const response = await fetch(url, {
         method: 'GET',

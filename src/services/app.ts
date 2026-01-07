@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal, parseDateString } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -445,7 +445,8 @@ export const app = {
             notes: currentAppState.tradeNotes,
             tags: currentAppState.tags || [],
             id: Date.now(),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            entryDate: new Date().toISOString()
         } as JournalEntry;
 
         journalData.push(newTrade);
@@ -581,7 +582,7 @@ export const app = {
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
         const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
         // New headers
-        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
          ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
@@ -591,7 +592,7 @@ export const app = {
                 (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
                 (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
                 // New values
-                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
                 ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
@@ -671,8 +672,7 @@ export const app = {
                 else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
                 else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
 
-                let t = o.createTime || o.ctime || 0;
-                if (typeof t === 'string') t = parseInt(t, 10);
+                const t = parseTimestamp(o.createTime || o.ctime);
 
                 if (sl.gt(0) && o.symbol) {
                     if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
@@ -682,26 +682,18 @@ export const app = {
             Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
             // ------------------------------------------------------------------
 
-            // Cleanup: Remove existing "Open" synced trades to avoid duplicates/stale data.
-            // We assume that if we are running a sync, we want a fresh snapshot of Open positions.
-            // FIX: Explicitly check for isManual === false to identify synced trades, and status === 'Open'
-            const currentJournal = get(journalStore).filter(j => {
-                const isSynced = j.isManual === false;
-                const isOpen = j.status === 'Open';
-                // Keep if it's manual OR if it's synced but NOT open (i.e., closed history)
-                return !isSynced || !isOpen;
-            });
-
-            // Re-build existing ID set based on the filtered journal (Closed history remains)
-            const existingIds = new Set(currentJournal.map(j => String(j.tradeId || j.id)));
-
+            // Cleanup logic prepared, but we execute it ONLY after we successfully processed the new data
+            // to prevent data loss in case of logic errors during processing.
             const newEntries: JournalEntry[] = [];
             let addedCount = 0;
 
             // --- Process Pending Positions (Open) ---
+            const processedPendingIds = new Set<string>();
+
             for (const p of pendingPositions) {
                 // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
                 const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+                processedPendingIds.add(uniqueId);
                 
                 const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
                 const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
@@ -717,9 +709,9 @@ export const app = {
                      stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
-                // FIX: Robust date parsing
-                let dateTs = parseInt(p.ctime);
-                if (isNaN(dateTs) || dateTs <= 0) dateTs = Date.now();
+                // Robust date parsing using new helper
+                let dateTs = parseTimestamp(p.ctime);
+                if (dateTs <= 0) dateTs = Date.now();
 
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
@@ -758,9 +750,14 @@ export const app = {
             }
 
             // --- Process History Positions (Closed) ---
+            // We need a set of existing IDs from the *current* journal to avoid duplicates,
+            // but we must not check against the "to-be-removed" open positions.
+            const currentJournalForHistoryCheck = get(journalStore);
+            const existingHistoryIds = new Set(currentJournalForHistoryCheck.map(j => String(j.tradeId || j.id)));
+
             for (const p of historyPositions) {
                 const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-                if (existingIds.has(uniqueId)) continue;
+                if (existingHistoryIds.has(uniqueId)) continue;
 
                 const realizedPnl = new Decimal(p.realizedPNL || 0);
                 const funding = new Decimal(p.funding || 0);
@@ -783,9 +780,8 @@ export const app = {
 
                 // Find SL
                 let stopLoss = new Decimal(0);
-                // FIX: Robust time parsing
-                let posTime = parseInt(p.ctime);
-                if (isNaN(posTime)) posTime = 0;
+                // FIX: Robust time parsing implemented
+                const posTime = parseTimestamp(p.ctime);
 
                 const candidates = symbolSlMap[p.symbol];
                 if (candidates && posTime > 0) {
@@ -816,15 +812,15 @@ export const app = {
                     }
                 }
 
-                // FIX: Robust date parsing for Close Time
-                let closeTime = parseInt(p.mtime || p.ctime);
-                if (isNaN(closeTime) || closeTime <= 0) closeTime = Date.now();
+                // Robust date parsing for Close Time using helper
+                let closeTime = parseTimestamp(p.mtime || p.ctime);
+                if (closeTime <= 0) closeTime = Date.now();
 
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
                     tradeId: uniqueId,
                     date: new Date(closeTime).toISOString(), // Close time
-                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined, // FIX: Store Entry Date for Duration
+                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined,
                     symbol: p.symbol,
                     tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
                     status: netPnl.gt(0) ? 'Won' : 'Lost',
@@ -857,11 +853,30 @@ export const app = {
             }
 
 
-            if (addedCount > 0 || currentJournal.length !== get(journalStore).length) {
-                // Combine the filtered journal (without old open positions) with new entries
-                const updatedJournal = [...currentJournal, ...newEntries];
-                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+            // --- SAFE SWAP ---
+            // Now that we have `newEntries` (containing new Open and new History positions),
+            // we perform the swap.
 
+            // 1. Get current state
+            const previousJournal = get(journalStore);
+
+            // 2. Filter out OLD synced Open positions (because we have a fresh list of them in `newEntries`)
+            //    We keep Manual trades and Closed Synced trades.
+            const keptJournal = previousJournal.filter(j => {
+                const isSynced = j.isManual === false;
+                const isOpen = j.status === 'Open';
+                // Remove if it is a Synced Open position
+                return !(isSynced && isOpen);
+            });
+
+            // 3. Combine Kept + New
+            const updatedJournal = [...keptJournal, ...newEntries];
+
+            // 4. Sort
+            updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            // 5. Update Store & Save
+            if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
                 journalStore.set(updatedJournal);
                 app.saveJournal(updatedJournal);
                 uiStore.showFeedback('save', 2000); 
@@ -914,7 +929,9 @@ export const app = {
                 'Realized PnL': 'Realized PnL',
                 'Is Manual': 'Is Manual',
                 'Trade ID': 'Trade ID',
-                'Order ID': 'Order ID'
+                'Order ID': 'Order ID',
+                'Entry Date': 'Einstiegsdatum',
+                'Einstiegsdatum': 'Einstiegsdatum'
             };
 
             // Identify which language/set of headers is present
@@ -990,6 +1007,7 @@ export const app = {
                         tradingFee: parseDecimal(entry['Trading Fee'] || '0'),
                         realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
                         isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
+                        entryDate: entry['Einstiegsdatum'] ? new Date(entry['Einstiegsdatum']).toISOString() : undefined,
                         calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
                     };
                     return importedTrade;
