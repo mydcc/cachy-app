@@ -6,6 +6,7 @@
     import { _ } from '../../locales/i18n';
     
     // Sub-components
+    import PositionsList from './PositionsList.svelte';
     import AccountSummary from './AccountSummary.svelte';
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
