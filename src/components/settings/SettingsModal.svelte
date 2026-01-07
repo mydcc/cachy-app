@@ -205,7 +205,8 @@
     isOpen={$uiStore.showSettingsModal}
     title={$_('settings.title') || 'Settings'}
     on:close={close}
-    extraClasses="!w-full !max-w-lg min-h-[min(600px,85vh)] max-h-[85vh] flex flex-col"
+    extraClasses="!w-auto !max-w-[62vw] max-h-[85vh] flex flex-col"
+    alignment="top"
 >
     <!-- Tabs Header -->
     <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0">
