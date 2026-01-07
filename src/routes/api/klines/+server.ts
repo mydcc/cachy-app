@@ -28,8 +28,7 @@ export async function GET({ url }) {
         return json(data);
     } catch (error) {
         console.error('Error fetching kline data:', error);
-        // Ensure error is treated as an object with a message property or fallback
-        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-        return json({ error: errorMessage }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return json({ error: message }, { status: 500 });
     }
 }

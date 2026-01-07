@@ -18,6 +18,7 @@ export interface Settings {
     autoUpdatePriceInput: boolean;
     autoFetchBalance: boolean;
     showSidebars: boolean;
+    showTechnicals: boolean;
     hideUnfilledOrders: boolean;
     positionViewMode: PositionViewMode; // New
     pnlViewMode: PnlViewMode; // New
@@ -41,6 +42,7 @@ const defaultSettings: Settings = {
     autoUpdatePriceInput: false,
     autoFetchBalance: false,
     showSidebars: true,
+    showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
     pnlViewMode: 'value',
@@ -105,6 +107,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoUpdatePriceInput: settings.autoUpdatePriceInput,
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
+            showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode ?? defaultSettings.pnlViewMode,

@@ -45,6 +45,7 @@
 		"decimal.js": "^10.4.3",
 		"marked": "^17.0.1",
 		"svelte-chartjs": "^3.1.5",
-		"svelte-i18n": "^3.7.4"
+		"svelte-i18n": "^3.7.4",
+		"technicalindicators": "^3.1.0"
 	}
 }

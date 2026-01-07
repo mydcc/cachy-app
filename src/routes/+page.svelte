@@ -35,6 +35,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
+    import TechnicalsPanel from '../components/shared/TechnicalsPanel.svelte'; // Import TechnicalsPanel
     import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
     import { handleGlobalKeydown } from '../services/hotkeyService';
 
@@ -210,6 +211,11 @@ import { trackCustomEvent } from '../services/trackingService';
 
         trackCustomEvent('Backup', 'Click', 'RestoreBackup');
     }
+
+    let isTechnicalsVisible = false;
+    function toggleTechnicals() {
+        isTechnicalsVisible = !isTechnicalsVisible;
+    }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -226,9 +232,21 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
 
         <!-- Right Sidebar: Stacked tiles -->
-        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
+        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300"
+             class:!right-[calc(20rem+1.5rem)]={isTechnicalsVisible && $settingsStore.showTechnicals}>
             <!-- Main current symbol -->
-            <MarketOverview />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
+
+            <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
+            {#if $settingsStore.showTechnicals}
+                <div class="absolute top-0 left-full ml-4 w-80 transition-all duration-300 transform origin-left z-40"
+                     class:scale-0={!isTechnicalsVisible}
+                     class:scale-100={isTechnicalsVisible}
+                     class:opacity-0={!isTechnicalsVisible}
+                     class:opacity-100={isTechnicalsVisible}>
+                    <TechnicalsPanel isVisible={isTechnicalsVisible} />
+                </div>
+            {/if}
 
             <!-- Favorites list -->
             {#if $favoritesStore.length > 0}
@@ -403,8 +421,12 @@ import { trackCustomEvent } from '../services/trackingService';
             <!-- Add PositionsSidebar for Mobile -->
             <PositionsSidebar />
 
-            <MarketOverview />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
             
+            {#if $settingsStore.showTechnicals && isTechnicalsVisible}
+                <TechnicalsPanel isVisible={isTechnicalsVisible} />
+            {/if}
+
             {#if $favoritesStore.length > 0}
                 <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
                 {#each $favoritesStore as fav (fav)}

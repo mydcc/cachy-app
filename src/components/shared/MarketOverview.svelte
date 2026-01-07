@@ -15,6 +15,8 @@
 
     export let customSymbol: string | undefined = undefined;
     export let isFavoriteTile: boolean = false;
+    export let onToggleTechnicals: (() => void) | undefined = undefined;
+    export let isTechnicalsVisible: boolean = false;
 
     // Use custom symbol if provided, otherwise fall back to store symbol
     $: symbol = (customSymbol || $tradeStore.symbol || '').toUpperCase();
@@ -253,16 +255,29 @@
 >
     <!-- WS Indicator Removed -->
 
-    <!-- Absolute Refresh Button (Top Right) -->
-    <button
-        class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)] z-50"
-        title="Refresh Stats"
-        on:click|stopPropagation={() => fetchRestData()}
-        class:animate-spin={restLoading}
-    >
-        {@html icons.refresh ||
-            '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
-    </button>
+    <!-- Absolute Buttons (Top Right) -->
+    <div class="absolute top-2 right-2 flex gap-1 z-50">
+        {#if $settingsStore.showTechnicals && !isFavoriteTile && onToggleTechnicals}
+            <button
+                class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
+                class:text-[var(--accent-color)]={isTechnicalsVisible}
+                title="Toggle Technicals"
+                on:click|stopPropagation={onToggleTechnicals}
+            >
+                {@html icons.chart || '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
+            </button>
+        {/if}
+
+        <button
+            class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
+            title="Refresh Stats"
+            on:click|stopPropagation={() => fetchRestData()}
+            class:animate-spin={restLoading}
+        >
+            {@html icons.refresh ||
+                '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
+        </button>
+    </div>
 
     <div class="flex justify-between items-start">
         <div>
