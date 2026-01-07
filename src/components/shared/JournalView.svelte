@@ -200,11 +200,19 @@
     // Quality Data
     $: qualData = calculator.getQualityData(journal);
     $: winLossChartData = {
-        labels: ['Win', 'Loss'],
+        labels: ['Win Long', 'Win Short', 'Loss Long', 'Loss Short', 'BE Long', 'BE Short'],
         datasets: [{
-            data: qualData.winLossData,
-            backgroundColor: [themeColors.success, themeColors.danger],
-            borderWidth: 0
+            data: qualData.sixSegmentData,
+            backgroundColor: [
+                hexToRgba(themeColors.success, 1),
+                hexToRgba(themeColors.success, 0.5),
+                hexToRgba(themeColors.danger, 1),
+                hexToRgba(themeColors.danger, 0.5),
+                hexToRgba(themeColors.warning, 1),
+                hexToRgba(themeColors.warning, 0.5)
+            ],
+            borderWidth: 0,
+            hoverOffset: 4
         }]
     };
     $: rDistData = {
@@ -696,23 +704,56 @@
                 <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center items-center relative">
-                 <!-- Stats KPI Tile -->
-                 <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
-                     <Tooltip text="Prozentsatz der Gewinn-Trades im Verhältnis zur Gesamtzahl." />
-                 </div>
-                <div class="text-center w-full mb-4">
-                    <div class="text-sm text-[var(--text-secondary)]">Win Rate</div>
-                    <div class="text-3xl font-bold text-[var(--accent-color)]">{qualData.stats.winRate.toFixed(1)}%</div>
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-2 flex flex-col sm:flex-row gap-4 items-center">
+                <!-- Left: Chart -->
+                <div class="h-48 w-48 flex-shrink-0 relative">
+                     <DoughnutChart data={winLossChartData} title="" description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)." />
+                     <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                        <div class="text-center">
+                            <div class="text-xs text-[var(--text-secondary)]">Win Rate</div>
+                            <div class="text-xl font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
+                        </div>
+                     </div>
                 </div>
-                <div class="h-32 w-full">
-                     <DoughnutChart data={winLossChartData} title="" description="Verteilung der gewonnenen vs. verlorenen Trades." />
+
+                <!-- Right: Detailed Stats -->
+                <div class="flex-1 w-full grid grid-cols-2 gap-y-4 gap-x-8 text-sm p-2">
+                     <div class="flex flex-col">
+                        <span class="text-[var(--text-secondary)] text-xs uppercase tracking-wider">Profit Factor</span>
+                        <span class="text-lg font-mono font-bold {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
+                            {qualData.detailedStats.profitFactor.toFixed(2)}
+                        </span>
+                    </div>
+                    <div class="flex flex-col">
+                        <span class="text-[var(--text-secondary)] text-xs uppercase tracking-wider">Expectancy</span>
+                        <span class="text-lg font-mono font-bold {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                            ${qualData.detailedStats.expectancy.toFixed(2)}
+                        </span>
+                    </div>
+
+                    <div class="flex flex-col">
+                         <span class="text-[var(--text-secondary)] text-xs uppercase tracking-wider">Avg Win / Loss</span>
+                         <div class="flex items-baseline gap-2">
+                             <span class="font-bold text-[var(--success-color)]">${qualData.detailedStats.avgWin.toFixed(2)}</span>
+                             <span class="text-[var(--text-secondary)]">/</span>
+                             <span class="font-bold text-[var(--danger-color)]">${qualData.detailedStats.avgLoss.toFixed(2)}</span>
+                         </div>
+                    </div>
+
+                     <div class="flex flex-col">
+                         <span class="text-[var(--text-secondary)] text-xs uppercase tracking-wider">Win Rate L/S</span>
+                         <div class="flex items-baseline gap-2">
+                             <span class="font-bold" style="color: {hexToRgba(themeColors.success, 1)}">L: {qualData.detailedStats.winRateLong.toFixed(0)}%</span>
+                             <span class="text-[var(--text-secondary)]">|</span>
+                             <span class="font-bold" style="color: {hexToRgba(themeColors.success, 0.6)}">S: {qualData.detailedStats.winRateShort.toFixed(0)}%</span>
+                         </div>
+                    </div>
                 </div>
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                 <BarChart data={rDistData} title="R-Multiple Distribution" description="Häufigkeitsverteilung der Ergebnisse gemessen in Risiko-Einheiten (R). Zeigt wie oft du 1R, 2R etc. gewinnst." />
             </div>
-             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-1 md:col-span-3">
                 <LineChart data={cumRData} title="Cumulative R" yLabel="R" description="Summe aller R-Multiples über die Zeit. Zeigt die Performance bereinigt um die Positionsgröße." />
             </div>
         {:else if activePreset === 'direction'}
