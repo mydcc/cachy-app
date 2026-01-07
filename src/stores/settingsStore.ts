@@ -4,8 +4,6 @@ import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
-export type PositionViewMode = 'detailed' | 'focus';
-export type PnlViewMode = 'value' | 'percent' | 'bar';
 
 export interface ApiKeys {
     key: string;
@@ -19,8 +17,6 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     hideUnfilledOrders: boolean;
-    positionViewMode: PositionViewMode; // New
-    pnlViewMode: PnlViewMode; // New
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -42,8 +38,6 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     hideUnfilledOrders: false,
-    positionViewMode: 'detailed',
-    pnlViewMode: 'value',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -106,8 +100,6 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
-            positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
-            pnlViewMode: settings.pnlViewMode ?? defaultSettings.pnlViewMode,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,

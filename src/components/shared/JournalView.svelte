@@ -841,9 +841,8 @@
                     </thead>
                     <tbody>
                         {#each paginatedTrades as trade}
-                            {@const tradeDate = new Date(trade.date)}
                             <tr>
-                                <td>{tradeDate.getFullYear() > 1970 ? tradeDate.toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
+                                <td>{new Date(trade.date).toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
                                 <td>{trade.symbol || '-'}</td>
                                 <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
                                 <td>{trade.entryPrice.toFixed(4)}</td>

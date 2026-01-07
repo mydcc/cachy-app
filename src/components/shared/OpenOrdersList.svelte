@@ -10,29 +10,19 @@
     let hoveredOrder: any = null;
     let tooltipX = 0;
     let tooltipY = 0;
-    let tooltipTimeout: any;
 
     function handleMouseEnter(event: MouseEvent, order: any) {
-        if (tooltipTimeout) clearTimeout(tooltipTimeout);
         hoveredOrder = order;
         updateTooltipPosition(event);
     }
 
     function handleMouseMove(event: MouseEvent) {
-        // No-op for fixed position
+        if (hoveredOrder) {
+            updateTooltipPosition(event);
+        }
     }
 
     function handleMouseLeave() {
-        tooltipTimeout = setTimeout(() => {
-            hoveredOrder = null;
-        }, 200);
-    }
-
-    function handleTooltipEnter() {
-        if (tooltipTimeout) clearTimeout(tooltipTimeout);
-    }
-
-    function handleTooltipLeave() {
         hoveredOrder = null;
     }
 
@@ -164,11 +154,8 @@
 
 {#if hoveredOrder}
     <div
-        class="fixed z-[9999] pointer-events-auto"
+        class="fixed z-[9999] pointer-events-none"
         style="top: {tooltipY}px; left: {tooltipX}px;"
-        on:mouseenter={handleTooltipEnter}
-        on:mouseleave={handleTooltipLeave}
-        role="tooltip"
     >
         <OrderDetailsTooltip order={hoveredOrder} />
     </div>
