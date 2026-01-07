@@ -161,8 +161,77 @@ export const calculator = {
         const won = closedTrades.filter(t => t.status === 'Won').length;
         const lost = closedTrades.filter(t => t.status === 'Lost').length;
 
-        // 1. Win/Loss Distribution
+        // 1. Win/Loss Distribution (Old) - Keep for backward compatibility if needed, but we will use sixSegmentData
         const winLossData = [won, lost];
+
+        // 1b. Enhanced 6-Segment Distribution
+        let winLong = 0, winShort = 0, lossLong = 0, lossShort = 0, beLong = 0, beShort = 0;
+
+        // Detailed Stats calculation vars
+        let totalWin = new Decimal(0);
+        let totalLoss = new Decimal(0); // Absolute value
+        let countWin = 0;
+        let countLoss = 0;
+
+        let countLong = 0;
+        let countLongWin = 0;
+        let countShort = 0;
+        let countShortWin = 0;
+
+        closedTrades.forEach(t => {
+            const pnl = getTradePnL(t);
+            const isLong = t.tradeType?.toLowerCase() === CONSTANTS.TRADE_TYPE_LONG;
+
+            // Stats Aggregation
+            if (isLong) {
+                countLong++;
+                if (pnl.gt(0)) countLongWin++;
+            } else {
+                countShort++;
+                if (pnl.gt(0)) countShortWin++;
+            }
+
+            if (pnl.gt(0)) {
+                totalWin = totalWin.plus(pnl);
+                countWin++;
+            } else if (pnl.lt(0)) {
+                totalLoss = totalLoss.plus(pnl.abs());
+                countLoss++;
+            }
+
+            // Segment Logic
+            if (pnl.gt(0)) {
+                if (isLong) winLong++; else winShort++;
+            } else if (pnl.lt(0)) {
+                if (isLong) lossLong++; else lossShort++;
+            } else {
+                // Break Even (PnL == 0)
+                if (isLong) beLong++; else beShort++;
+            }
+        });
+
+        const sixSegmentData = [winLong, winShort, lossLong, lossShort, beLong, beShort];
+
+        // Detailed Stats
+        const avgWin = countWin > 0 ? totalWin.div(countWin) : new Decimal(0);
+        const avgLoss = countLoss > 0 ? totalLoss.div(countLoss) : new Decimal(0);
+        const profitFactor = totalLoss.gt(0) ? totalWin.div(totalLoss) : (totalWin.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+
+        const winRate = closedTrades.length > 0 ? (countWin / closedTrades.length) : 0;
+        const lossRate = closedTrades.length > 0 ? (countLoss / closedTrades.length) : 0;
+        const expectancy = avgWin.times(winRate).minus(avgLoss.times(lossRate));
+
+        const winRateLong = countLong > 0 ? (countLongWin / countLong) * 100 : 0;
+        const winRateShort = countShort > 0 ? (countShortWin / countShort) * 100 : 0;
+
+        const detailedStats = {
+            profitFactor: profitFactor.toNumber(),
+            avgWin: avgWin.toNumber(),
+            avgLoss: avgLoss.toNumber(),
+            expectancy: expectancy.toNumber(),
+            winRateLong,
+            winRateShort
+        };
 
         // 2. R-Multiple Distribution
         const rMultiples: number[] = [];
@@ -207,7 +276,7 @@ export const calculator = {
         // 4. KPI
         const stats = this.calculateJournalStats(journal);
 
-        return { winLossData, rHistogram: buckets, cumulativeRCurve, stats };
+        return { winLossData, sixSegmentData, detailedStats, rHistogram: buckets, cumulativeRCurve, stats };
     },
 
     getDirectionData(journal: JournalEntry[]) {
