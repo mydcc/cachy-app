@@ -82,10 +82,10 @@
 </script>
 
 {#if showPanel}
-    <div class="technicals-panel bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-xl shadow-lg p-4 flex flex-col gap-4 w-full md:w-80 backdrop-blur-sm bg-opacity-95 transition-all">
+    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-80 transition-all">
 
         <!-- Header -->
-        <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2">
+        <div class="flex justify-between items-center pb-2">
             <h3 class="font-bold text-[var(--text-primary)]">Technicals <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1">{timeframe}</span></h3>
 
             {#if data?.summary}

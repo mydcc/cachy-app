@@ -9,17 +9,11 @@ function getTradePnL(t: JournalEntry): Decimal {
     }
     // Manual trades
     if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
-    if (t.status === 'Lost') {
-        // If explicit PnL is recorded (and non-zero), use it. Otherwise fallback to Risk Amount.
-        const storedPnl = new Decimal(t.totalNetProfit || 0);
-        if (!storedPnl.isZero()) return storedPnl;
-        return new Decimal(t.riskAmount || 0).negated();
-    }
+    if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
     return new Decimal(0);
 }
 
 export const calculator = {
-    getTradePnL, // Expose helper
     calculateBaseMetrics(values: TradeValues, tradeType: string): BaseMetrics | null {
         const riskAmount = values.accountSize.times(values.riskPercentage.div(100));
         const riskPerUnit = values.entryPrice.minus(values.stopLossPrice).abs();

@@ -85,49 +85,26 @@ export const apiService = {
     },
 
     async fetchBitunixKlines(symbol: string, interval: string, limit: number = 15): Promise<Kline[]> {
-        const fetchWithRetry = async (retries = 3, delayMs = 500): Promise<Kline[]> => {
-            try {
-                const normalized = apiService.normalizeSymbol(symbol, 'bitunix');
-                const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
-
-                if (!response.ok) {
-                    // If it's a rate limit status code (e.g. 429), retry
-                    if (response.status === 429 && retries > 0) {
-                        await new Promise(r => setTimeout(r, delayMs));
-                        return fetchWithRetry(retries - 1, delayMs * 1.5);
-                    }
-                    throw new Error('apiErrors.klineError');
-                }
-
-                const res = await response.json();
-
-                if (res.code !== undefined && res.code !== 0) {
-                     // Check for Rate Limit error code 10006
-                     if (String(res.code) === '10006' && retries > 0) {
-                         await new Promise(r => setTimeout(r, delayMs));
-                         return fetchWithRetry(retries - 1, delayMs * 1.5);
-                     }
-                     throw new Error(getBitunixErrorKey(res.code));
-                }
-
-                if (!res.data) {
-                    throw new Error('apiErrors.invalidResponse');
-                }
-
-                // Map the response data to the required Kline interface
-                return res.data.map((kline: { high: string, low: string, close: string }) => ({
-                    high: new Decimal(kline.high),
-                    low: new Decimal(kline.low),
-                    close: new Decimal(kline.close),
-                }));
-            } catch (e) {
-                // If we ran out of retries for specific errors, or it's another error
-                throw e;
-            }
-        };
-
         try {
-            return await fetchWithRetry();
+            const normalized = apiService.normalizeSymbol(symbol, 'bitunix');
+            const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
+            if (!response.ok) throw new Error('apiErrors.klineError');
+            const res = await response.json();
+
+            if (res.code !== undefined && res.code !== 0) {
+                 throw new Error(getBitunixErrorKey(res.code));
+            }
+
+            if (!res.data) {
+                throw new Error('apiErrors.invalidResponse');
+            }
+
+            // Map the response data to the required Kline interface
+            return res.data.map((kline: { high: string, low: string, close: string }) => ({
+                high: new Decimal(kline.high),
+                low: new Decimal(kline.low),
+                close: new Decimal(kline.close),
+            }));
         } catch (e) {
             if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
