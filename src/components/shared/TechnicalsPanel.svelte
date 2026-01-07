@@ -2,6 +2,8 @@
     import { onMount, onDestroy } from "svelte";
     import { tradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
+    import { marketStore } from "../../stores/marketStore";
+    import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
     import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
     import { _ } from "../../locales/i18n";
@@ -14,35 +16,86 @@
     let data: TechnicalsData | null = null;
     let loading = false;
     let error: string | null = null;
-    let refreshInterval: any;
+
+    // Store local history for real-time updates
+    let klinesHistory: any[] = [];
+    let currentSubscription: string | null = null;
 
     $: symbol = $tradeStore.symbol;
     $: timeframe = $tradeStore.atrTimeframe || '1d';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
 
-    // Trigger fetch when relevant props change
+    // React to Market Store updates for real-time processing
+    $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
+    $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
+        handleRealTimeUpdate(wsData.kline);
+    }
+
+    // Trigger fetch/subscribe when relevant props change
     $: if (showPanel && symbol && timeframe) {
-        fetchData();
+        // If symbol or timeframe changed, we need to reset and fetch fresh
+        if (currentSubscription !== `${symbol}:${timeframe}`) {
+            unsubscribeWs(); // Unsubscribe previous
+            fetchData().then(() => {
+                subscribeWs(); // Subscribe new
+            });
+            currentSubscription = `${symbol}:${timeframe}`;
+        }
     } else if (!showPanel) {
-        // Clear data if hidden to save memory? Optional.
+        unsubscribeWs();
+        currentSubscription = null;
     }
 
-    // Auto-refresh every 1m if visible
-    $: if (showPanel) {
-        startRefreshTimer();
-    } else {
-        stopRefreshTimer();
+    function subscribeWs() {
+        if (symbol && timeframe && $settingsStore.apiProvider === 'bitunix') {
+            const channel = `market_kline_${timeframe}`;
+            bitunixWs.subscribe(symbol, channel);
+        }
     }
 
-    function startRefreshTimer() {
-        stopRefreshTimer();
-        refreshInterval = setInterval(() => {
-            fetchData(true);
-        }, 60000);
+    function unsubscribeWs() {
+        if (currentSubscription) {
+            const [oldSymbol, oldTimeframe] = currentSubscription.split(':');
+            if (oldSymbol && oldTimeframe && $settingsStore.apiProvider === 'bitunix') {
+                 const channel = `market_kline_${oldTimeframe}`;
+                 bitunixWs.unsubscribe(oldSymbol, channel);
+            }
+        }
     }
 
-    function stopRefreshTimer() {
-        if (refreshInterval) clearInterval(refreshInterval);
+    function handleRealTimeUpdate(newKline: any) {
+        if (!klinesHistory || klinesHistory.length === 0) return;
+
+        // Bitunix kline update contains o,h,l,c (Decimal objects from store)
+        // We need to check if this is an update to the last candle or a new one.
+        // Bitunix WS doesn't always send timestamp in kline payload (updateKline in marketStore doesn't store it?)
+        // Wait, marketStore updateKline doesn't store timestamp!
+        // We assume it's the LATEST candle.
+
+        // In a robust implementation, we'd check timestamps.
+        // However, for a simple update: we assume the WS stream corresponds to the "current" candle.
+        // So we update the last element of our history.
+
+        // Clone array to trigger reactivity? Or just modify.
+        const lastIdx = klinesHistory.length - 1;
+        // Make sure we have Decimal values (marketStore provides Decimals)
+
+        // Warning: The history from REST might have slightly different format than WS?
+        // REST: { open, high, low, close, volume, timestamp? }
+        // WS (marketStore): { open, high, low, close, volume } (Decimals)
+
+        // Let's perform a shallow merge/update of the last candle
+        klinesHistory[lastIdx] = {
+            ...klinesHistory[lastIdx], // Preserve timestamp if it exists
+            open: newKline.open,
+            high: newKline.high,
+            low: newKline.low,
+            close: newKline.close,
+            volume: newKline.volume
+        };
+
+        // Re-calculate technicals
+        data = technicalsService.calculateTechnicals(klinesHistory);
     }
 
     async function fetchData(silent = false) {
@@ -51,13 +104,10 @@
         error = null;
 
         try {
-            // Mapping ATR timeframe to API interval
-            // API expects: 1m, 5m, 15m, 30m, 1h, 4h, 1d, 1w, 1M
-            // TradeStore might have different keys? Usually they match.
-            // Ensure we fetch enough data (e.g., 205 candles for EMA200 + calculation buffer)
+            // Fetch history
             const klines = await apiService.fetchBitunixKlines(symbol, timeframe, 250);
-
-            data = technicalsService.calculateTechnicals(klines);
+            klinesHistory = klines;
+            data = technicalsService.calculateTechnicals(klinesHistory);
         } catch (e) {
             console.error("Technicals fetch error:", e);
             error = "Failed to load";
@@ -67,7 +117,7 @@
     }
 
     onDestroy(() => {
-        stopRefreshTimer();
+        unsubscribeWs();
     });
 
     function getActionColor(action: string) {

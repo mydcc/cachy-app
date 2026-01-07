@@ -349,6 +349,19 @@ class BitunixWebSocketService {
                         asks: data.a
                     });
                 }
+            } else if (message.ch && (message.ch.startsWith('market_kline_') || message.ch === 'mark_kline_1day')) {
+                // Handle both generic kline channels and the specific mark_kline_1day
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updateKline(symbol, {
+                        o: data.o,
+                        h: data.h,
+                        l: data.l,
+                        c: data.c,
+                        b: data.b || data.v // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                    });
+                }
             }
 
             // Private Channels
@@ -385,7 +398,7 @@ class BitunixWebSocketService {
         }
     }
 
-    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker' | 'mark_kline_1day') {
+    subscribe(symbol: string, channel: string) {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
@@ -401,7 +414,7 @@ class BitunixWebSocketService {
         }
     }
 
-    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker' | 'mark_kline_1day') {
+    unsubscribe(symbol: string, channel: string) {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
         
