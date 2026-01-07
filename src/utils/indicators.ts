@@ -66,7 +66,7 @@ export const indicators = {
         if (data.length < period) return null;
 
         const relevant = data.slice(-period);
-        const sum = relevant.reduce((acc, val) => acc.plus(new Decimal(val)), new Decimal(0));
+        const sum = relevant.reduce((acc: Decimal, val: number | string | Decimal) => acc.plus(new Decimal(val)), new Decimal(0));
 
         return sum.div(period);
     },

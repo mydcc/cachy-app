@@ -135,3 +135,61 @@ export function parseTimestamp(input: string | number | null | undefined | Date)
 
     return 0;
 }
+
+export function normalizeTimeframeInput(input: string): string {
+    if (!input) return '';
+    let val = input.trim();
+
+    // Handle German abbreviations first
+    // 1T -> 1d, 1S -> 1h
+    val = val.replace(/(\d+)\s*[Tt]/, '$1d');
+    val = val.replace(/(\d+)\s*[Ss]/, '$1h');
+
+    // Handle number only -> minutes
+    if (/^\d+$/.test(val)) {
+        val = val + 'm';
+    }
+
+    // Extract number and unit
+    const match = val.match(/^(\d+)\s*([a-zA-Z]+)$/);
+    if (match) {
+        const num = parseInt(match[1]);
+        let unit = match[2].toLowerCase();
+
+        // Normalize unit
+        if (unit.startsWith('m') && unit !== 'm') unit = 'm'; // min -> m
+        if (unit.startsWith('h')) unit = 'h';
+        if (unit.startsWith('d')) unit = 'd';
+        if (unit.startsWith('w')) unit = 'w';
+
+        // Uppercase 'M' for Month if needed, but usually we use lowercase m for minutes.
+        // Bitunix/Binance use '1M' for month, '1m' for minute.
+        // If user typed '1M' (uppercase), we might assume Month if it's explicitly uppercase?
+        // But prompt says "1d, 1D" -> acceptable.
+        // Let's assume standard crypto notation: m=minute, h=hour, d=day, w=week, M=month.
+        // User prompt: "Gibt der User 240m ein wird es in 4h formatiert".
+
+        // Logic for converting minutes to hours/days
+        if (unit === 'm') {
+            if (num % 1440 === 0 && num !== 0) {
+                return (num / 1440) + 'd';
+            }
+            if (num % 60 === 0 && num !== 0) {
+                return (num / 60) + 'h';
+            }
+            return num + 'm';
+        }
+
+        // Logic for converting hours to days
+        if (unit === 'h') {
+             if (num % 24 === 0 && num !== 0) {
+                return (num / 24) + 'd';
+             }
+             return num + 'h';
+        }
+
+        return num + unit;
+    }
+
+    return val;
+}

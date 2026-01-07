@@ -63,6 +63,7 @@ export interface AppState {
     useAtrSl: boolean;
     atrMode: 'manual' | 'auto';
     atrTimeframe: string;
+    analysisTimeframe: string; // Separate timeframe for Analysis/Technicals
     tradeNotes: string;
     tags: string[];
     targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
