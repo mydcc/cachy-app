@@ -5,18 +5,19 @@ import { createHash, randomBytes } from 'crypto';
 const BASE_URL = 'https://fapi.bitunix.com';
 
 export const POST: RequestHandler = async ({ request }) => {
-    const body = await request.json();
-    const { exchange, apiKey, apiSecret, action, params = {} } = body;
-
-    if (!exchange || !apiKey || !apiSecret) {
-        return json({ error: 'Missing credentials or exchange' }, { status: 400 });
-    }
-
-    if (exchange !== 'bitunix') {
-        return json({ error: 'Only Bitunix is supported for TP/SL currently' }, { status: 400 });
-    }
-
+    // Wrap the entire parsing logic in try-catch to handle malformed JSON
     try {
+        const body = await request.json();
+        const { exchange, apiKey, apiSecret, action, params = {} } = body;
+
+        if (!exchange || !apiKey || !apiSecret) {
+            return json({ error: 'Missing credentials or exchange' }, { status: 400 });
+        }
+
+        if (exchange !== 'bitunix') {
+            return json({ error: 'Only Bitunix is supported for TP/SL currently' }, { status: 400 });
+        }
+
         let result = null;
         switch (action) {
             case 'pending':
@@ -36,10 +37,26 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         return json(result);
+
     } catch (e: any) {
-        console.error(`Error processing TP/SL ${action}:`, e);
-        // Return 500 but include the message so the frontend can display it (e.g. "System error")
-        return json({ error: e.message || `Failed to process ${action}` }, { status: 500 });
+        console.error(`Error processing TP/SL request:`, e);
+
+        // Determine appropriate status code
+        let status = 500;
+        let message = e.message || 'Internal Server Error';
+
+        if (message.includes('Bitunix API error')) {
+            status = 502; // Bad Gateway (upstream error)
+            // Or 400 if it's a client error from Bitunix that we want to pass through
+            if (message.includes('code:')) {
+                // If it has a specific code, it might be a logic error (e.g. invalid price)
+                status = 400;
+            }
+        } else if (message.includes('JSON')) {
+            status = 400; // Malformed JSON in request
+        }
+
+        return json({ error: message, stack: process.env.NODE_ENV === 'development' ? e.stack : undefined }, { status });
     }
 };
 
@@ -102,12 +119,18 @@ async function executeBitunixAction(apiKey: string, apiSecret: string, path: str
     // Clean payload
     const cleanPayload: any = {};
     Object.keys(payload).forEach(k => {
-        if (payload[k] !== undefined && payload[k] !== null) cleanPayload[k] = payload[k];
+        if (payload[k] !== undefined && payload[k] !== null) {
+            // Ensure we don't accidentally send empty strings if they should be filtered,
+            // though for POST usually specific keys matter.
+            // Bitunix signature requires exact match of body content.
+            cleanPayload[k] = payload[k];
+        }
     });
 
     const bodyStr = JSON.stringify(cleanPayload);
 
     // Signature for POST: nonce + timestamp + apiKey + queryParams (empty usually) + bodyStr
+    // Note: We assume path does NOT contain query params.
     const digestInput = nonce + timestamp + apiKey + bodyStr;
     const digest = createHash('sha256').update(digestInput).digest('hex');
     const signInput = digest + apiSecret;
