@@ -28,6 +28,7 @@ export async function GET({ url }) {
         return json(data);
     } catch (error) {
         console.error('Error fetching kline data:', error);
-        return json({ error: error.message }, { status: 500 });
+        const message = error instanceof Error ? error.message : 'Unknown error';
+        return json({ error: message }, { status: 500 });
     }
 }
