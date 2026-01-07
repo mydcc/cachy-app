@@ -9,12 +9,19 @@ export async function GET({ url }) {
         return json({ error: 'Symbol is required' }, { status: 400 });
     }
 
-    // Normalize symbol if needed (remove P, .P suffix if Bitunix expects standard)
-    // Bitunix usually expects e.g. BTCUSDT
-    let apiSymbol = symbol.replace('.P', '').replace('P', '');
-    if (!apiSymbol.endsWith('USDT')) {
-         // Handle cases if any
+    // Symbol is already normalized by the frontend service, but let's ensure no legacy suffixes remain.
+    // Only strip .P suffix explicitly if it exists at the end.
+    // We do NOT strip 'P' globally to avoid breaking symbols like XRPUSDT or PEPEUSDT.
+    let apiSymbol = symbol;
+    if (apiSymbol.endsWith('.P')) {
+        apiSymbol = apiSymbol.slice(0, -2);
     }
+    // Also handle trailing 'P' if it's not part of the base symbol name (complex heuristic, but mostly safer to trust frontend)
+    // Legacy support: if symbol is strictly 'USDTP' suffix?
+    // The frontend logic `normalizeSymbol` is robust. We should trust it mostly.
+
+    // Safety check for legacy double-P removal if normalized was incomplete
+    // But importantly, do NOT replace 'P' inside the string (like XRP).
 
     try {
         const apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/kline?symbol=${apiSymbol}&interval=${interval}&limit=${limit}`;
