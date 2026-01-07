@@ -1,6 +1,5 @@
 import { writable } from 'svelte/store';
 import { Decimal } from 'decimal.js';
-import { parseTimestamp } from '../utils/utils';
 
 export interface Position {
     positionId: string;
@@ -55,7 +54,6 @@ function createAccountStore() {
     return {
         subscribe,
         set,
-        update, // Expose update
         reset: () => set(initialState),
 
         // WS Actions
@@ -124,7 +122,7 @@ function createAccountStore() {
                         amount: new Decimal(data.qty || 0),
                         filled: new Decimal(data.dealAmount || 0),
                         status: data.orderStatus,
-                        timestamp: parseTimestamp(data.ctime) || Date.now()
+                        timestamp: parseInt(data.ctime || Date.now())
                     };
 
                     if (index !== -1) {

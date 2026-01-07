@@ -14,14 +14,6 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.96"></a>Version 0.96 (18. Januar 2026)
-- **Neu:** Überarbeitung der Hotkeys für eine intuitivere Bedienung. 'S' setzt jetzt 'Short', 'O' fokussiert den Stop-Loss.
-- **Doku:** Komplett überarbeitete und aktualisierte Anleitung (Guide) für neue Benutzer.
-- **System:** Interne Refactorings für verbesserte Stabilität der Hotkey-Logik.
-- **Test:** Einführung neuer Tests für die Hotkey-Funktionalität.
-
----
-
 ## <a name="v0.94"></a>Version 0.94 (21. Dezember 2025)
 - **Neu:** Einstellung "Seitenleisten anzeigen": Blende die Seitenleiste (Favoriten) und Marktübersicht aus, um Platz zu sparen (Desktop & Mobil).
 - **Verbesserung:** Optimiertes mobiles Layout mit integrierter Positionsansicht.
