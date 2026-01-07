@@ -92,16 +92,14 @@ export const apiService = {
             if (!response.ok) throw new Error('apiErrors.klineError');
             const res = await response.json();
 
-            if (res.code !== undefined && res.code !== 0) {
-                 throw new Error(getBitunixErrorKey(res.code));
-            }
-
-            if (!res.data) {
-                throw new Error('apiErrors.invalidResponse');
+            // Backend returns the mapped array directly
+            if (!Array.isArray(res)) {
+                 if (res.error) throw new Error(res.error);
+                 throw new Error('apiErrors.invalidResponse');
             }
 
             // Map the response data to the required Kline interface
-            return res.data.map((kline: { open: string, high: string, low: string, close: string }) => ({
+            return res.map((kline: { open: string, high: string, low: string, close: string }) => ({
                 open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
