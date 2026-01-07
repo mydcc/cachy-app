@@ -62,6 +62,7 @@
         max-height: 90vh;
         display: flex;
         flex-direction: column;
+        overflow: hidden;
     }
     .modal-header {
         display: flex;
@@ -87,5 +88,6 @@
     .modal-body {
         overflow-y: auto;
         min-height: 0;
+        flex: 1;
     }
 </style>

@@ -1,6 +1,12 @@
 import { marked } from 'marked';
+import markedKatex from 'marked-katex-extension';
 import { locale } from '../locales/i18n';
 import { get } from 'svelte/store';
+
+// Register KaTeX extension
+marked.use(markedKatex({
+    throwOnError: false
+}));
 
 interface InstructionContent {
     html: string;

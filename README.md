@@ -21,7 +21,8 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **ATR Integration:** Automatic fetching of Average True Range (ATR) from Binance or Bitunix for dynamic stop-loss calculations.
 *   **Live Prices:** Real-time price fetching for cryptocurrencies.
 
-### 📊 Market Overview & Favorites
+### 📊 Market Overview & Sidebar
+*   **Real-time Data:** Integration of Bitunix Websockets for ultra-fast updates.
 *   **Market Overview:** Real-time 24h statistics (Price, Change %, Volume, High, Low) for the selected symbol.
 *   **Favorites System:** Save up to 4 favorite symbols for quick access. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
 *   **Auto-Updates:** Configurable update intervals (1s, 1m, 10m) for market data.
@@ -31,13 +32,16 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
 *   **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
-### 📓 Integrated Journal & Presets
+### 📓 Integrated Journal & Performance Tracking (Pro)
 *   **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
+*   **Performance Tracking:** Comprehensive charts for Equity, Drawdown, Monthly PnL, Win Rate, and R-Multiples.
+*   **Deep Dive (Pro):** Advanced analytics including Timing (Hourly/Daily PnL), Asset Performance, Risk Consistency, and Psychology (Streaks).
 *   **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
 *   **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 
 ### ⚙️ Customization & Tech
 *   **Multi-API Support:** Choose between **Bitunix** (Default) and **Binance** as your data source.
+*   **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 *   **API Integration:** Optional API keys for auto-fetching account balance and private data.
 *   **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
 *   **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
@@ -139,10 +143,11 @@ This project is published under the MIT License.
 ---
 
 ## <a name="v0.96"></a>Version 0.96 (January 2026)
-- **New:** Refactored Hotkeys for more intuitive usage. 'S' now sets 'Short', 'O' focuses Stop Loss.
-- **Docs:** Completely revised and updated User Guide (Guide) for new users.
-- **System:** Internal refactoring for improved stability of hotkey logic.
-- **Test:** Added new tests for hotkey functionality.
+- **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
+- **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
+- **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
+- **Improvements:** General stability updates and UI adjustments.
+- **Docs:** Completely revised and updated User Guide (Guide).
 
 ---
 
