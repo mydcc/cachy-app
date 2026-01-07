@@ -1,3 +1,6 @@
+/* Import KaTeX CSS globally - MUST be before Tailwind directives */
+@import 'katex/dist/katex.min.css';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -8,7 +11,7 @@
     font-weight: 400;
     src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
 }
-
+/* ... rest of the file remains unchanged ... */
 @font-face {
     font-family: 'Inter';
     font-style: normal;
