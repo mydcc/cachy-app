@@ -60,5 +60,40 @@ export const indicators = {
         const rsi = new Decimal(100).minus(new Decimal(100).div(new Decimal(1).plus(rs)));
 
         return rsi;
+    },
+
+    calculateSMA(data: (number | string | Decimal)[], period: number): Decimal | null {
+        if (data.length < period) return null;
+
+        const relevant = data.slice(-period);
+        const sum = relevant.reduce((acc, val) => acc.plus(new Decimal(val)), new Decimal(0));
+
+        return sum.div(period);
+    },
+
+    calculateEMA(data: (number | string | Decimal)[], period: number): Decimal | null {
+        if (data.length < period) return null;
+
+        // Start with SMA for first EMA point
+        // But if we just want the LAST EMA value, we can iterate.
+        // Standard EMA initialization: SMA of first 'period' values.
+
+        // We assume 'data' is the full history.
+        // EMA_today = (Value_today * (k)) + (EMA_yesterday * (1-k))
+        // k = 2 / (N + 1)
+
+        // If we don't have infinite history, we start with SMA at index 'period-1'.
+
+        const k = new Decimal(2).div(period + 1);
+
+        let ema = this.calculateSMA(data.slice(0, period), period);
+        if (!ema) return null;
+
+        for (let i = period; i < data.length; i++) {
+            const val = new Decimal(data[i]);
+            ema = val.times(k).plus(ema.times(new Decimal(1).minus(k)));
+        }
+
+        return ema;
     }
 };

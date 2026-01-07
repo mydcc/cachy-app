@@ -22,31 +22,7 @@ describe('indicators', () => {
             expect(rsi?.toNumber()).toBe(100);
         });
 
-        it('should calculate RSI correctly for mixed data (standard verification)', () => {
-            // Example data from a standard RSI calculation example
-            // Using a known sequence
-            // prices:
-            // 1. 44.34
-            // 2. 44.09 (-0.25)
-            // ...
-            // Let's use a simpler known sequence or just trust the logic if it matches Wilder's
-
-            // Data points: 18 points. Period 14.
-            const prices = [
-                100, 102, 104, 106, 105, 104, 103, 102, 101, 102, 103, 104, 106, 108, // 14 points (index 0-13)
-                110, // 15th point (index 14). Change +2.
-                // Initial 14 changes (from 0 to 14):
-                // 2, 2, 2, -1, -1, -1, -1, -1, 1, 1, 1, 2, 2, 2
-                // Gains: 2,2,2, 1,1,1, 2,2,2 = 15 total / 14 = 1.0714
-                // Losses: 1,1,1,1,1 = 5 total / 14 = 0.3571
-                // RS = 3
-                // RSI = 100 - 100/(4) = 75
-            ];
-
-            // Wait, calculateRSI(prices, 14) needs 15 prices to produce 14 changes for the FIRST RSI point?
-            // "If prices.length < period + 1" -> yes. 15 prices needed for 1st RSI.
-
-            // Let's manually verify the logic with code trace for small period
+        it('should calculate RSI correctly for mixed data', () => {
             // Period = 2
             // Prices: 10, 12, 11, 13
             // Changes: +2, -1, +2
@@ -59,6 +35,43 @@ describe('indicators', () => {
             const p = [10, 12, 11, 13];
             const rsi = indicators.calculateRSI(p, 2);
             expect(rsi?.toNumber()).toBeCloseTo(85.714, 2);
+        });
+    });
+
+    describe('calculateSMA', () => {
+        it('should return null if insufficient data', () => {
+            const data = [new Decimal(1), new Decimal(2)];
+            expect(indicators.calculateSMA(data, 3)).toBeNull();
+        });
+
+        it('should calculate SMA correctly', () => {
+            const data = [10, 20, 30, 40, 50].map(n => new Decimal(n));
+            // SMA(3) of last 3: (30+40+50)/3 = 40
+            const sma = indicators.calculateSMA(data, 3);
+            expect(sma?.toNumber()).toBe(40);
+        });
+    });
+
+    describe('calculateEMA', () => {
+        it('should return null if insufficient data', () => {
+            const data = [new Decimal(1), new Decimal(2)];
+            expect(indicators.calculateEMA(data, 3)).toBeNull();
+        });
+
+        it('should calculate EMA correctly', () => {
+            // Period 3. Multiplier k = 2/(3+1) = 0.5
+            // Data: 10, 20, 30
+            // Initial SMA (first 3): (10+20+30)/3 = 20. EMA = 20.
+            const data = [10, 20, 30].map(n => new Decimal(n));
+            const ema1 = indicators.calculateEMA(data, 3);
+            expect(ema1?.toNumber()).toBe(20);
+
+            // Add 40.
+            // EMA_prev = 20. Price = 40.
+            // EMA = (40 - 20) * 0.5 + 20 = 10 + 20 = 30.
+            const data2 = [10, 20, 30, 40].map(n => new Decimal(n));
+            const ema2 = indicators.calculateEMA(data2, 3);
+            expect(ema2?.toNumber()).toBe(30);
         });
     });
 });

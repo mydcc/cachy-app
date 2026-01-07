@@ -1,6 +1,7 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
     import { settingsStore, type ApiKeys, type HotkeyMode } from '../../stores/settingsStore';
+    import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
     import { createBackup, restoreFromBackup } from '../../services/backupService';
@@ -17,6 +18,13 @@
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
 
+    // Timeframe & RSI Sync
+    let favoriteTimeframes: string[] = [];
+    let syncRsiTimeframe: boolean;
+
+    // Indicator Settings
+    let rsiSettings = { ...$indicatorStore.rsi };
+
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
     let binanceKeys: ApiKeys = { key: '', secret: '' };
@@ -31,8 +39,10 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'behavior' | 'system' | 'sidebar' = 'general';
+    let activeTab: 'general' | 'api' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
     let isInitialized = false;
+
+    const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
 
     const themes = [
         { value: 'dark', label: 'Dark (Default)' },
@@ -78,6 +88,11 @@
             hotkeyMode = $settingsStore.hotkeyMode;
             isPro = $settingsStore.isPro;
 
+            favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
+            syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
+
+            rsiSettings = { ...$indicatorStore.rsi };
+
             // Deep copy keys to avoid binding issues
             bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
             binanceKeys = { ...$settingsStore.apiKeys.binance };
@@ -107,6 +122,8 @@
             positionViewMode,
             feePreference,
             hotkeyMode,
+            favoriteTimeframes,
+            syncRsiTimeframe,
             imgbbApiKey,
             imgbbExpiration,
             apiKeys: {
@@ -114,6 +131,8 @@
                 binance: binanceKeys
             }
         }));
+
+        indicatorStore.set({ rsi: rsiSettings });
     }
 
     // Immediate Theme Update
@@ -170,6 +189,22 @@
         if (confirm($_('settings.resetConfirm'))) {
             localStorage.clear();
             window.location.reload();
+        }
+    }
+
+    function toggleTimeframe(tf: string) {
+        if (favoriteTimeframes.includes(tf)) {
+            // Remove (min 1 must remain)
+            if (favoriteTimeframes.length > 1) {
+                favoriteTimeframes = favoriteTimeframes.filter(t => t !== tf);
+            }
+        } else {
+            // Add (max 4)
+            if (favoriteTimeframes.length < 4) {
+                favoriteTimeframes = [...favoriteTimeframes, tf];
+                // Sort by standard order
+                favoriteTimeframes.sort((a, b) => availableTimeframes.indexOf(a) - availableTimeframes.indexOf(b));
+            }
         }
     }
 
@@ -232,6 +267,12 @@
             on:click={() => activeTab = 'sidebar'}
         >
             Sidebar
+        </button>
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'indicators' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'indicators'}
+        >
+            Indicators
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'system' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
@@ -422,6 +463,106 @@
                         <option value="detailed">Detailed (Default)</option>
                         <option value="focus">Focus (Compact)</option>
                     </select>
+                </div>
+            </div>
+
+        {:else if activeTab === 'indicators'}
+            <div class="flex flex-col gap-4">
+                <!-- Timeframe Favorites -->
+                <div class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold">Favorite Timeframes (Max 4)</span>
+                        <span class="text-xs text-[var(--text-secondary)]">{favoriteTimeframes.length}/4</span>
+                    </div>
+                    <div class="grid grid-cols-5 gap-2 mt-1">
+                        {#each availableTimeframes as tf}
+                            <button
+                                class="px-2 py-1 text-xs rounded border transition-colors {favoriteTimeframes.includes(tf) ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
+                                class:opacity-50={!favoriteTimeframes.includes(tf) && favoriteTimeframes.length >= 4}
+                                disabled={!favoriteTimeframes.includes(tf) && favoriteTimeframes.length >= 4}
+                                on:click={() => toggleTimeframe(tf)}
+                            >
+                                {tf}
+                            </button>
+                        {/each}
+                    </div>
+                </div>
+
+                <!-- RSI Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Relative Strength Index (RSI)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-white px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <!-- Sync Toggle -->
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <span class="text-xs font-medium">Sync with Calculator Timeframe</span>
+                        <input type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                    </label>
+
+                    {#if !syncRsiTimeframe}
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Default RSI Timeframe</span>
+                            <select bind:value={rsiSettings.defaultTimeframe} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                {#each availableTimeframes as tf}
+                                    <option value={tf}>{tf}</option>
+                                {/each}
+                            </select>
+                        </div>
+                    {/if}
+
+                    <div class="grid grid-cols-2 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
+                            <input type="number" bind:value={rsiSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
+                            <select bind:value={rsiSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                <option value="close">Close</option>
+                                <option value="open">Open</option>
+                                <option value="high">High</option>
+                                <option value="low">Low</option>
+                                <option value="hl2">HL/2</option>
+                                <option value="hlc3">HLC/3</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-[var(--border-color)] pt-3 mt-1">
+                        <label class="flex items-center gap-2 cursor-pointer mb-2">
+                            <input type="checkbox" bind:checked={rsiSettings.showSignal} class="accent-[var(--accent-color)] h-3 w-3 rounded" disabled={!isPro} />
+                            <span class="text-xs font-medium">Show Signal Line (MA)</span>
+                        </label>
+
+                        {#if rsiSettings.showSignal}
+                             <div class="grid grid-cols-2 gap-3 pl-5">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Type</span>
+                                    <select bind:value={rsiSettings.signalType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="sma">SMA</option>
+                                        <option value="ema">EMA</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
+                                    <input type="number" bind:value={rsiSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                </div>
+                             </div>
+                        {/if}
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI calculation.</p>
+                            </div>
+                         </div>
+                    {/if}
                 </div>
             </div>
 

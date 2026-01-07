@@ -17,6 +17,7 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     hideUnfilledOrders: boolean;
+    positionViewMode?: 'detailed' | 'focus';
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -24,6 +25,10 @@ export interface Settings {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
+    // Indicator & Timeframe Settings
+    favoriteTimeframes: string[];
+    syncRsiTimeframe: boolean;
+
     // ImgBB Settings
     imgbbApiKey: string;
     imgbbExpiration: number; // 0 = never, otherwise seconds
@@ -38,6 +43,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     hideUnfilledOrders: false,
+    positionViewMode: 'detailed',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -45,6 +51,8 @@ const defaultSettings: Settings = {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
     },
+    favoriteTimeframes: ['5m', '15m', '1h', '4h'],
+    syncRsiTimeframe: true,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false
@@ -100,10 +108,13 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
+            positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
             apiKeys: settings.apiKeys,
+            favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
+            syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked

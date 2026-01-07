@@ -3,6 +3,7 @@ import { getBitunixErrorKey } from '../utils/errorUtils';
 
 // Define a type for the kline data object for clarity
 export interface Kline {
+    open: Decimal;
     high: Decimal;
     low: Decimal;
     close: Decimal;
@@ -108,7 +109,8 @@ export const apiService = {
             }
 
             // Map the response data to the required Kline interface
-            return res.data.map((kline: { high: string, low: string, close: string }) => ({
+            return res.data.map((kline: { open: string, high: string, low: string, close: string }) => ({
+                open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
                 close: new Decimal(kline.close),
@@ -153,6 +155,7 @@ export const apiService = {
 
             // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
             return data.map((kline: BinanceKline) => ({
+                open: new Decimal(kline[1]),
                 high: new Decimal(kline[2]),
                 low: new Decimal(kline[3]),
                 close: new Decimal(kline[4]),

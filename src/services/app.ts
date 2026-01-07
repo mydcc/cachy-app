@@ -1178,7 +1178,11 @@ export const app = {
     },
     scanMultiAtr: async (symbol: string): Promise<Record<string, number>> => {
         const settings = get(settingsStore);
-        const timeframes = ['5m', '15m', '1h', '4h'];
+        // Use global favorites (ensure sorted or sort here)
+        const timeframes = settings.favoriteTimeframes && settings.favoriteTimeframes.length > 0
+            ? settings.favoriteTimeframes
+            : ['5m', '15m', '1h', '4h'];
+
         const results: Record<string, number> = {};
 
         const fetchPromise = async (tf: string) => {
@@ -1200,6 +1204,25 @@ export const app = {
 
         await Promise.all(timeframes.map(tf => fetchPromise(tf)));
         return results;
+    },
+
+    // New unified fetch function for Price + ATR + Analysis
+    fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
+        if (!symbol || symbol.length < 3) return;
+
+        // 1. Fetch Price (updateTradeStore handles UI)
+        await app.handleFetchPrice(isAuto);
+
+        // 2. Fetch Multi-ATR (populate tradeStore.atrValues or similar if we stored it,
+        // currently MultiAtr component scans itself usually, but we want to unify).
+        // To unify, we need a store for multi-atr results or let the component access a cache.
+        // Actually, TradeSetupInputs handles the MultiATR scanning when price updates?
+        // No, current logic in TradeSetupInputs calls app.scanMultiAtr independently.
+
+        // We will trigger ATR fetch for the ACTIVE timeframe:
+        if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+             await app.fetchAtr(isAuto);
+        }
     },
 
     adjustTpPercentages: (changedIndex: number | null) => {
