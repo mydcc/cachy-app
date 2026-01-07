@@ -106,6 +106,7 @@ export const apiService = {
                 close: new Decimal(kline.close),
             }));
         } catch (e) {
+            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
             if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
