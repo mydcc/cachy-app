@@ -474,8 +474,13 @@
     $: journalFilterStatus = $tradeStore.journalFilterStatus;
 
     $: processedTrades = $journalStore.filter(trade => {
-        // Text Search
-        const matchesSearch = trade.symbol.toLowerCase().includes(journalSearchQuery.toLowerCase());
+        // Text Search (Symbol, Notes, Tags)
+        const query = journalSearchQuery.toLowerCase();
+        const matchesSearch =
+            trade.symbol.toLowerCase().includes(query) ||
+            (trade.notes && trade.notes.toLowerCase().includes(query)) ||
+            (trade.tags && trade.tags.some(t => t.toLowerCase().includes(query)));
+
         // Status Filter
         const matchesStatus = journalFilterStatus === 'all' || trade.status === journalFilterStatus;
         // Date Filter
@@ -867,13 +872,13 @@
                         <tr>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>Date {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>Symbol {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Type</th>
-                            <th>Entry</th>
-                            <th>SL</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>Type {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>Entry {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>SL {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Funding</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>Funding {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Status</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>Status {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Screenshot</th>
                             <th>Tags</th>
                             <th>Notes</th>
