@@ -13,6 +13,7 @@
 
     export let isVisible: boolean = false;
 
+    let klinesHistory: any[] = [];
     let data: TechnicalsData | null = null;
     let loading = false;
     let error: string | null = null;
