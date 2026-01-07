@@ -21,7 +21,18 @@
 
     let openOrders: any[] = [];
     let historyOrders: any[] = [];
-    let accountInfo: any = { available: 0, margin: 0, totalUnrealizedPnL: 0, marginCoin: 'USDT' };
+    let accountInfo: any = {
+        available: 0,
+        margin: 0,
+        totalUnrealizedPnL: 0,
+        marginCoin: 'USDT',
+        frozen: 0,
+        transfer: 0,
+        bonus: 0,
+        positionMode: '',
+        crossUnrealizedPNL: 0,
+        isolationUnrealizedPNL: 0
+    };
 
     // Loading State
     let loadingPositions = false;
@@ -263,7 +274,11 @@
 
 <svelte:window on:click={closeContextMenu} />
 
-<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 {isMobile ? 'w-full' : 'w-80'}" class:h-auto={isOpen} class:h-12={!isOpen}>
+<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 {isMobile ? 'w-full' : 'w-80'}"
+    class:overflow-hidden={!isOpen}
+    class:h-auto={isOpen}
+    class:h-12={!isOpen}
+>
     <!-- Header / Toggle -->
     <div
         class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
@@ -287,7 +302,13 @@
             available={accountInfo.available} 
             margin={accountInfo.margin} 
             pnl={accountInfo.totalUnrealizedPnL} 
-            currency={accountInfo.marginCoin} 
+            currency={accountInfo.marginCoin}
+            frozen={accountInfo.frozen}
+            transfer={accountInfo.transfer}
+            bonus={accountInfo.bonus}
+            positionMode={accountInfo.positionMode}
+            crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
+            isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
         />
 
         <!-- Tabs -->

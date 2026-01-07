@@ -84,6 +84,12 @@ async function fetchBitunixAccount(apiKey: string, apiSecret: string): Promise<a
         available,
         margin,
         totalUnrealizedPnL: totalPnL,
-        marginCoin: data.marginCoin
+        marginCoin: data.marginCoin,
+        frozen: parseFloat(data.frozen || '0'),
+        transfer: parseFloat(data.transfer || '0'),
+        bonus: parseFloat(data.bonus || '0'),
+        positionMode: data.positionMode,
+        crossUnrealizedPNL: crossPnL,
+        isolationUnrealizedPNL: isoPnL
     };
 }
