@@ -17,6 +17,7 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     hideUnfilledOrders: boolean;
+    positionViewMode: 'detailed' | 'focus';
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -38,6 +39,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     hideUnfilledOrders: false,
+    positionViewMode: 'detailed',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -100,6 +102,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
+            positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,

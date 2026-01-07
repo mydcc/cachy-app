@@ -14,6 +14,7 @@
 </script>
 
 {#if isOpen}
+    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
     <div
         class="modal-overlay visible"
         on:click|self={handleClose}
