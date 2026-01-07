@@ -1,4 +1,5 @@
 import { Decimal } from 'decimal.js';
+import { getBitunixErrorKey } from '../utils/errorUtils';
 
 // Define a type for the kline data object for clarity
 export interface Kline {
@@ -66,14 +67,17 @@ export const apiService = {
             const response = await fetch(`/api/tickers?provider=bitunix&symbols=${normalized}`);
             if (!response.ok) throw new Error('apiErrors.symbolNotFound');
             const res = await response.json();
-            if (res.code !== 0 || !res.data || res.data.length === 0) {
+            if (res.code !== undefined && res.code !== 0) {
+                throw new Error(getBitunixErrorKey(res.code));
+            }
+            if (!res.data || res.data.length === 0) {
                 throw new Error('apiErrors.invalidResponse');
             }
             const data = res.data[0];
             return new Decimal(data.lastPrice);
         } catch (e) {
             // Re-throw custom error messages or a generic one
-            if (e instanceof Error && (e.message === 'apiErrors.symbolNotFound' || e.message === 'apiErrors.invalidResponse')) {
+            if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
@@ -86,7 +90,12 @@ export const apiService = {
             const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
             if (!response.ok) throw new Error('apiErrors.klineError');
             const res = await response.json();
-            if (res.code !== 0 || !res.data) {
+
+            if (res.code !== undefined && res.code !== 0) {
+                 throw new Error(getBitunixErrorKey(res.code));
+            }
+
+            if (!res.data) {
                 throw new Error('apiErrors.invalidResponse');
             }
 
@@ -97,7 +106,7 @@ export const apiService = {
                 close: new Decimal(kline.close),
             }));
         } catch (e) {
-            if (e instanceof Error && (e.message === 'apiErrors.klineError' || e.message === 'apiErrors.invalidResponse')) {
+            if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
@@ -160,7 +169,10 @@ export const apiService = {
             const data = await response.json();
 
             if (provider === 'bitunix') {
-                if (data.code !== 0 || !data.data || data.data.length === 0) {
+                if (data.code !== undefined && data.code !== 0) {
+                    throw new Error(getBitunixErrorKey(data.code));
+                }
+                if (!data.data || data.data.length === 0) {
                     throw new Error('apiErrors.invalidResponse');
                 }
                 const ticker = data.data[0];
@@ -203,7 +215,7 @@ export const apiService = {
 
         } catch (e) {
             console.error("fetchTicker24h error", e);
-             if (e instanceof Error && (e.message === 'apiErrors.symbolNotFound' || e.message === 'apiErrors.invalidResponse')) {
+             if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
