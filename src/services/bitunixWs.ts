@@ -37,38 +37,21 @@ class BitunixWebSocketService {
     
     private isAuthenticated = false;
 
-    private onlineHandler: (() => void) | null = null;
-    private offlineHandler: (() => void) | null = null;
-
     constructor() {
         if (typeof window !== 'undefined') {
-            this.onlineHandler = () => {
+            window.addEventListener('online', () => {
                 console.log('Browser online detected. Reconnecting WebSockets...');
                 this.connect();
-            };
-            this.offlineHandler = () => {
+            });
+            window.addEventListener('offline', () => {
                 console.warn('Browser offline detected. Terminating WebSockets...');
                 wsStatusStore.set('disconnected');
                 this.cleanup('public');
                 this.cleanup('private');
                 if (this.wsPublic) this.wsPublic.close();
                 if (this.wsPrivate) this.wsPrivate.close();
-            };
-
-            window.addEventListener('online', this.onlineHandler);
-            window.addEventListener('offline', this.offlineHandler);
+            });
         }
-    }
-
-    destroy() {
-        if (typeof window !== 'undefined') {
-            if (this.onlineHandler) window.removeEventListener('online', this.onlineHandler);
-            if (this.offlineHandler) window.removeEventListener('offline', this.offlineHandler);
-        }
-        this.cleanup('public');
-        this.cleanup('private');
-        if (this.wsPublic) this.wsPublic.close();
-        if (this.wsPrivate) this.wsPrivate.close();
     }
 
     connect() {

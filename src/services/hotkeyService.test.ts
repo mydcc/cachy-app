@@ -8,7 +8,7 @@ import { get } from 'svelte/store';
 
 // Mock get from svelte/store
 vi.mock('svelte/store', async () => {
-    const actual = await vi.importActual('svelte/store');
+    const actual = await vi.importActual<any>('svelte/store');
     return {
         ...actual,
         get: (store: any) => store.value // simplified mock access
@@ -45,12 +45,15 @@ describe('hotkeyService', () => {
         tradeStore.set({
             tradeType: 'long',
             targets: [],
+            tags: [], // Added missing tags
             accountSize: 1000,
             riskPercentage: 1,
             entryPrice: 100,
             stopLossPrice: 90,
             leverage: 1,
             fees: 0.1,
+            exitFees: 0.1, // Added exitFees
+            feeMode: 'taker_taker', // Added feeMode
             symbol: 'BTCUSDT',
             atrValue: 1,
             atrMultiplier: 1,
@@ -60,15 +63,11 @@ describe('hotkeyService', () => {
             riskAmount: 10,
             isRiskAmountLocked: false,
             isPositionSizeLocked: false,
+            lockedPositionSize: null, // Added lockedPositionSize
             tradeNotes: '',
-            totalPercentSold: 0,
             journalSearchQuery: '',
-            journalSortBy: 'date',
-            journalSortDirection: 'desc',
-            journalFilterStatus: 'all',
-            journalFilterTags: [],
-            journalFilterSymbol: '',
-            journalPage: 1
+            journalFilterStatus: 'all', // Added missing property
+            currentTradeData: null // Added missing property
         });
 
         uiStore.set({
@@ -78,9 +77,11 @@ describe('hotkeyService', () => {
             showSettingsModal: false,
             showChangelogModal: false,
             showGuideModal: false,
+            showPrivacyModal: false, // Added missing property
             showSaveFeedback: false,
             showCopyFeedback: false,
-            errorMessage: null,
+            showErrorMessage: false, // Added missing property
+            errorMessage: '',
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,

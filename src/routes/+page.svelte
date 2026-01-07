@@ -232,14 +232,13 @@ import { trackCustomEvent } from '../services/trackingService';
         </div>
 
         <!-- Right Sidebar: Stacked tiles -->
-        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300"
-             class:!right-[calc(20rem+1.5rem)]={isTechnicalsVisible && $settingsStore.showTechnicals}>
+        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300">
             <!-- Main current symbol -->
             <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
 
             <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
             {#if $settingsStore.showTechnicals}
-                <div class="absolute top-0 left-full ml-4 w-80 transition-all duration-300 transform origin-left z-40"
+                <div class="absolute top-0 left-full ml-2 w-80 transition-all duration-300 transform origin-left z-40"
                      class:scale-0={!isTechnicalsVisible}
                      class:scale-100={isTechnicalsVisible}
                      class:opacity-0={!isTechnicalsVisible}

@@ -80,30 +80,23 @@ function createAccountStore() {
                         unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
                         margin: new Decimal(data.margin || 0),
                         marginMode: data.marginMode ? data.marginMode.toLowerCase() : 'cross',
-                        liquidationPrice: new Decimal(data.liquidationPrice || data.liqPrice || 0),
-                        markPrice: new Decimal(data.markPrice || 0),
-                        breakEvenPrice: new Decimal(data.breakEvenPrice || 0)
+                        liquidationPrice: new Decimal(0),
+                        markPrice: new Decimal(0),
+                        breakEvenPrice: new Decimal(0)
                     };
 
                     if (index !== -1) {
                         // Merge with existing to preserve missing fields
                         const existing = currentPositions[index];
                         if (newPos.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
-
-                        // Only overwrite if new value is > 0, otherwise keep existing
-                        if (newPos.liquidationPrice.isZero()) newPos.liquidationPrice = existing.liquidationPrice;
-                        if (newPos.markPrice.isZero()) newPos.markPrice = existing.markPrice;
-                        if (newPos.breakEvenPrice.isZero()) newPos.breakEvenPrice = existing.breakEvenPrice;
-
+                        newPos.liquidationPrice = existing.liquidationPrice;
+                        newPos.markPrice = existing.markPrice;
+                        newPos.breakEvenPrice = existing.breakEvenPrice;
                         if (!data.side) newPos.side = existing.side;
-                        if (!data.marginMode) newPos.marginMode = existing.marginMode;
                         
                         currentPositions[index] = newPos;
                     } else {
-                        // Only add if it looks valid (has size)
-                        if (!newPos.size.isZero()) {
-                            currentPositions.push(newPos);
-                        }
+                        currentPositions.push(newPos);
                     }
                 }
                 return { ...store, positions: currentPositions };

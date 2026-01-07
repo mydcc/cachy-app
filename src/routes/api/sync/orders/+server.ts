@@ -17,7 +17,7 @@ export const POST: RequestHandler = async ({ request }) => {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
-            console.error('Error fetching regular orders:', err.message || 'Unknown error');
+            console.error('Error fetching regular orders:', err);
             // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
         }
 
@@ -40,8 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         return json({ data: allOrders });
     } catch (e: any) {
-        // Log only the message to prevent leaking sensitive request data (headers/keys)
-        console.error(`Error fetching orders from Bitunix:`, e.message || 'Unknown error');
+        console.error(`Error fetching orders from Bitunix:`, e);
         return json({ error: e.message || 'Failed to fetch orders' }, { status: 500 });
     }
 };

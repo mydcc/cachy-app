@@ -1199,17 +1199,13 @@ export const app = {
         const timeframes = ['5m', '15m', '1h', '4h'];
         const results: Record<string, number> = {};
 
-        const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-        for (const tf of timeframes) {
+        const fetchPromise = async (tf: string) => {
             try {
                 let klines;
                 if (settings.apiProvider === 'binance') {
                     klines = await apiService.fetchBinanceKlines(symbol, tf);
                 } else {
                     klines = await apiService.fetchBitunixKlines(symbol, tf);
-                    // Add delay after Bitunix request to respect rate limits
-                    await delay(300);
                 }
                 const atr = calculator.calculateATR(klines);
                 if (atr.gt(0)) {
@@ -1218,7 +1214,9 @@ export const app = {
             } catch (e) {
                 console.warn(`Failed to fetch ATR for ${tf}`, e);
             }
-        }
+        };
+
+        await Promise.all(timeframes.map(tf => fetchPromise(tf)));
         return results;
     },
 
