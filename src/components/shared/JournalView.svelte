@@ -842,13 +842,14 @@
                     <tbody>
                         {#each paginatedTrades as trade}
                             {@const tradeDate = new Date(trade.date)}
+                            {@const displayedPnL = calculator.getTradePnL(trade)}
                             <tr>
                                 <td>{tradeDate.getFullYear() > 1970 ? tradeDate.toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
                                 <td>{trade.symbol || '-'}</td>
                                 <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
                                 <td>{trade.entryPrice.toFixed(4)}</td>
                                 <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
-                                <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
+                                <td class="{displayedPnL.gt(0) ? 'text-[var(--success-color)]' : displayedPnL.lt(0) ? 'text-[var(--danger-color)]' : ''}">{displayedPnL.toFixed(2)}</td>
                                 <td class="{trade.fundingFee.lt(0) ? 'text-[var(--danger-color)]' : trade.fundingFee.gt(0) ? 'text-[var(--success-color)]' : 'text-[var(--text-secondary)]'}">{trade.fundingFee.toFixed(4)}</td>
                                 <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
                                     {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : '-'}

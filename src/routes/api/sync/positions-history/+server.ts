@@ -13,7 +13,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const positions = await fetchBitunixHistoryPositions(apiKey, apiSecret, limit);
         return json({ data: positions });
     } catch (e: any) {
-        console.error(`Error fetching history positions from Bitunix:`, e);
+        console.error(`Error fetching history positions from Bitunix:`, e.message || 'Unknown error');
         return json({ error: e.message || 'Failed to fetch history positions' }, { status: 500 });
     }
 };

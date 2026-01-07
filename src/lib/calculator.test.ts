@@ -186,6 +186,23 @@ describe('Calculator - Core Functions', () => {
             expect(stats['ETHUSDT'].wonTrades).toBe(0);
             expect(stats['ETHUSDT'].totalProfitLoss.toNumber()).toBe(-10); // Lost 1 risk amount (10)
         });
+
+        it('should use explicit PnL for Manual Lost trades', () => {
+             const journalData = [
+                {
+                    id: 1,
+                    symbol: 'BTCUSDT',
+                    status: 'Lost',
+                    isManual: true,
+                    totalNetProfit: new Decimal(-5), // Only lost 0.5R
+                    riskAmount: new Decimal(10),
+                    tradeType: 'long',
+                    date: '2024-01-01'
+                }
+            ];
+            const stats = calculator.calculateSymbolPerformance(journalData as any);
+            expect(stats['BTCUSDT'].totalProfitLoss.toNumber()).toBe(-5);
+        });
     });
 
 });
