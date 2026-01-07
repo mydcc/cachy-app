@@ -82,7 +82,7 @@
 </script>
 
 {#if showPanel}
-    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-80 transition-all">
+    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all">
 
         <!-- Header -->
         <div class="flex justify-between items-center pb-2">

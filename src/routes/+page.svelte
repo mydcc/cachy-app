@@ -238,7 +238,7 @@ import { trackCustomEvent } from '../services/trackingService';
 
             <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
             {#if $settingsStore.showTechnicals}
-                <div class="absolute top-0 left-full ml-2 w-80 transition-all duration-300 transform origin-left z-40"
+                <div class="absolute top-0 left-full ml-8 w-64 transition-all duration-300 transform origin-left z-40"
                      class:scale-0={!isTechnicalsVisible}
                      class:scale-100={isTechnicalsVisible}
                      class:opacity-0={!isTechnicalsVisible}
