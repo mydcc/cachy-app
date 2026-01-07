@@ -14,6 +14,14 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
+## <a name="v0.96"></a>Version 0.96 (January 18, 2026)
+- **New:** Refactored Hotkeys for more intuitive usage. 'S' now sets 'Short', 'O' focuses Stop Loss.
+- **Docs:** Completely revised and updated User Guide (Guide) for new users.
+- **System:** Internal refactoring for improved stability of hotkey logic.
+- **Test:** Added new tests for hotkey functionality.
+
+---
+
 ## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
 - **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
 - **Improvement:** Enhanced mobile layout with integrated positions view.
