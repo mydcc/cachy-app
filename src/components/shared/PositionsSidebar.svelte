@@ -9,6 +9,8 @@
     import AccountSummary from './AccountSummary.svelte';
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
+    import PositionsList from './PositionsList.svelte';
+    import TpSlList from './TpSlList.svelte';
 
     export let isMobile = false; // Add isMobile prop
 
@@ -49,7 +51,7 @@
     let errorHistory = '';
 
     // Tab State
-    type Tab = 'positions' | 'orders' | 'history';
+    type Tab = 'positions' | 'orders' | 'tpsl' | 'history';
     let activeTab: Tab = 'positions';
 
     async function fetchPositions() {
@@ -251,6 +253,16 @@
             >
                 {$_('dashboard.orders') || 'Orders'} ({openOrders.length})
             </button>
+            <button
+                class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
+                class:text-[var(--accent-color)]={activeTab === 'tpsl'}
+                class:border-[var(--accent-color)]={activeTab === 'tpsl'}
+                class:text-[var(--text-secondary)]={activeTab !== 'tpsl'}
+                class:border-transparent={activeTab !== 'tpsl'}
+                on:click={() => activeTab = 'tpsl'}
+            >
+                TP/SL
+            </button>
             <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
                 class:text-[var(--accent-color)]={activeTab === 'history'}
@@ -320,6 +332,8 @@
                 </div>
             {:else if activeTab === 'orders'}
                 <OpenOrdersList orders={openOrders} loading={loadingOrders} error={errorOrders} />
+            {:else if activeTab === 'tpsl'}
+                <TpSlList isActive={activeTab === 'tpsl'} />
             {:else if activeTab === 'history'}
                 <OrderHistoryList orders={filteredHistoryOrders} loading={loadingHistory} error={errorHistory} />
             {/if}

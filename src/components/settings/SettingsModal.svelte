@@ -30,7 +30,7 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'behavior' | 'system' = 'general';
+    let activeTab: 'general' | 'api' | 'behavior' | 'system' | 'sidebar' = 'general';
     let isInitialized = false;
 
     const themes = [
@@ -225,6 +225,12 @@
             {$_('settings.tabs.behavior')}
         </button>
         <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'sidebar' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'sidebar'}
+        >
+            Sidebar
+        </button>
+        <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'system' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'system'}
         >
@@ -257,15 +263,6 @@
                 </div>
 
                  <!-- UI Toggles -->
-                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
-                    <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
-                    <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
-
-                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
-                    <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
-                    <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
 
                 <!-- Fee Preference -->
                 <div class="flex flex-col gap-1 mt-2">
@@ -400,6 +397,28 @@
                             {/each}
                         </div>
                      </div>
+                </div>
+            </div>
+
+        {:else if activeTab === 'sidebar'}
+            <div class="flex flex-col gap-4">
+                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
+                    <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
+                    <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                <!-- Position View Mode -->
+                <div class="flex flex-col gap-1">
+                    <span class="text-sm font-medium">Position View Mode</span>
+                    <select bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <option value="detailed">Detailed (Default)</option>
+                        <option value="focus">Focus (Compact)</option>
+                    </select>
                 </div>
             </div>
 
