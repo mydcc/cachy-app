@@ -434,29 +434,29 @@
     let expandedGroups: {[key: string]: boolean} = {};
 
     // --- Table Logic ---
-    function sortTrades(trades: any[]) {
+    function sortTrades(trades: any[], field: string, direction: 'asc' | 'desc') {
         return [...trades].sort((a, b) => {
-            let valA = a[sortField];
-            let valB = b[sortField];
+            let valA = a[field];
+            let valB = b[field];
 
             // Handle Decimals
             if (valA instanceof Decimal) valA = valA.toNumber();
             if (valB instanceof Decimal) valB = valB.toNumber();
 
             // Handle Dates
-            if (sortField === 'date') {
+            if (field === 'date') {
                 valA = new Date(valA).getTime();
                 valB = new Date(valB).getTime();
             }
 
             // String comparison
             if (typeof valA === 'string' && typeof valB === 'string') {
-                return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
 
             // Number comparison
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
             return 0;
         });
     }
@@ -488,7 +488,7 @@
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    $: sortedTrades = sortTrades(processedTrades);
+    $: sortedTrades = sortTrades(processedTrades, sortField, sortDirection);
 
     // Grouping Logic
     $: groupedTrades = groupBySymbol ? Object.entries(calculator.calculateSymbolPerformance(processedTrades)).map(([symbol, data]) => ({
