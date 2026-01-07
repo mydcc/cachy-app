@@ -24,7 +24,18 @@
     let positions: any[] = [];
     let openOrders: any[] = [];
     let historyOrders: any[] = [];
-    let accountInfo: any = { available: 0, margin: 0, totalUnrealizedPnL: 0, marginCoin: 'USDT' };
+    let accountInfo: any = {
+        available: 0,
+        margin: 0,
+        totalUnrealizedPnL: 0,
+        marginCoin: 'USDT',
+        frozen: 0,
+        transfer: 0,
+        bonus: 0,
+        positionMode: '',
+        crossUnrealizedPNL: 0,
+        isolationUnrealizedPNL: 0
+    };
 
     // Loading State
     let loadingPositions = false;
@@ -209,7 +220,13 @@
             available={accountInfo.available} 
             margin={accountInfo.margin} 
             pnl={accountInfo.totalUnrealizedPnL} 
-            currency={accountInfo.marginCoin} 
+            currency={accountInfo.marginCoin}
+            frozen={accountInfo.frozen}
+            transfer={accountInfo.transfer}
+            bonus={accountInfo.bonus}
+            positionMode={accountInfo.positionMode}
+            crossUnrealizedPNL={accountInfo.crossUnrealizedPNL}
+            isolationUnrealizedPNL={accountInfo.isolationUnrealizedPNL}
         />
 
         <!-- Tabs -->
