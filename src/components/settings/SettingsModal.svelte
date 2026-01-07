@@ -13,6 +13,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let hideUnfilledOrders: boolean;
+    let positionViewMode: 'detailed' | 'focus';
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
     let positionViewMode: PositionViewMode;

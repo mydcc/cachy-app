@@ -9,6 +9,7 @@
     import { icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import { formatDynamicDecimal } from "../../utils/utils";
+    import { indicators } from "../../utils/indicators";
     import { Decimal } from "decimal.js";
     import DepthBar from "./DepthBar.svelte"; // Import the new DepthBar
 
@@ -44,6 +45,68 @@
 
     // Depth Data
     $: depthData = wsData?.depth;
+
+    // RSI Logic
+    let historyKlines: Decimal[] = [];
+    let rsiValue: Decimal | null = null;
+
+    // Fetch History on Mount/Symbol Change
+    $: if (symbol && provider === 'bitunix') {
+        fetchHistoryKlines();
+    }
+
+    async function fetchHistoryKlines() {
+        try {
+            // Fetch ~30 candles to be safe for RSI 14
+            const klines = await apiService.fetchBitunixKlines(symbol, '1d', 30);
+            // We need CLOSE prices
+            // Bitunix returns oldest first? Or newest first?
+            // Usually APIs return oldest to newest (ascending time).
+            // Let's assume standard ascending.
+            // Our calcRSI expects Old -> New.
+            historyKlines = klines.map(k => k.close);
+        } catch (e) {
+            console.error("Failed to fetch kline history for RSI", e);
+        }
+    }
+
+    // Reactively Calculate RSI
+    $: if (historyKlines.length > 0) {
+        // Combine history with latest from WS
+        // wsData?.kline contains the LATEST (current day) candle
+        let prices = [...historyKlines];
+
+        if (wsData?.kline?.close) {
+             // The history fetch likely includes the current incomplete candle if fetched recently?
+             // Or typically "history" ends at the last closed candle?
+             // Bitunix "Get Kline": "k-lines after this time" or just limit.
+             // Usually it includes the latest one which is still open.
+             // If we just fetched it, it might be close to current price.
+             // Ideally we replace the last element of history with the LIVE price if the timestamps match.
+             // But we didn't store timestamps in `historyKlines`.
+
+             // Simplification: Append live price as the "current" candle close.
+             // Note: CalculateRSI is robust. If we append, we treat it as the next period?
+             // Or is the last element of `historyKlines` actually the current day?
+             // If we fetch 'limit=30', we get the last 30 candles. The last one is the current day (Open).
+             // So we should UPDATE the last element, not append.
+
+             // Let's assume the last element of historyKlines IS the current day.
+             // We update it with the live close.
+             const lastIdx = prices.length - 1;
+             if (lastIdx >= 0) {
+                 prices[lastIdx] = wsData.kline.close;
+             }
+        } else if (currentPrice) {
+             // Fallback if kline channel not yet providing data but we have price
+             const lastIdx = prices.length - 1;
+             if (lastIdx >= 0) {
+                 prices[lastIdx] = currentPrice;
+             }
+        }
+
+        rsiValue = indicators.calculateRSI(prices, 14);
+    }
 
     $: isFavorite = symbol
         ? $favoritesStore.includes(symbol)
@@ -81,6 +144,7 @@
         bitunixWs.subscribe(symbol, 'price');
         bitunixWs.subscribe(symbol, 'ticker'); // Subscribe to 24h ticker
         bitunixWs.subscribe(symbol, 'depth_book5');
+        bitunixWs.subscribe(symbol, 'mark_kline_1day');
     }
 
     // REST Polling for Volume/24h Change (Background)
@@ -137,6 +201,7 @@
              bitunixWs.unsubscribe(symbol, 'price');
              bitunixWs.unsubscribe(symbol, 'ticker');
              bitunixWs.unsubscribe(symbol, 'depth_book5');
+             bitunixWs.unsubscribe(symbol, 'mark_kline_1day');
         }
     });
 
@@ -252,9 +317,20 @@
                     <span class="text-[var(--text-secondary)]">24h Low</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(lowPrice, 4)}</span>
                 </div>
-                <div class="flex flex-col col-span-2 mt-1">
+                <div class="flex flex-col mt-1">
                     <span class="text-[var(--text-secondary)]">Vol ({displaySymbol.replace(/USDT.?$/, "").replace(/P$/, "")})</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(volume, 0)}</span>
+                </div>
+                <!-- RSI Display -->
+                <div class="flex flex-col mt-1 text-right">
+                    <span class="text-[var(--text-secondary)]">RSI (D)</span>
+                    <span class="font-medium transition-colors duration-300"
+                        class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
+                        class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
+                        class:text-[var(--text-primary)]={!rsiValue || (rsiValue.gt(30) && rsiValue.lt(70))}
+                    >
+                        {formatValue(rsiValue, 2)}
+                    </span>
                 </div>
             </div>
             {/if}

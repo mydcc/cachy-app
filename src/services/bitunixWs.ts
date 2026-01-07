@@ -385,7 +385,7 @@ class BitunixWebSocketService {
         }
     }
 
-    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
+    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker' | 'mark_kline_1day') {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
@@ -401,7 +401,7 @@ class BitunixWebSocketService {
         }
     }
 
-    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
+    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker' | 'mark_kline_1day') {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
         
