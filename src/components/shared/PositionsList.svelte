@@ -111,6 +111,8 @@
                             <!-- Header: Symbol | PnL -->
                             <div class="flex justify-between items-center pb-1 border-b border-[var(--border-color)] border-opacity-30">
                                 <div class="flex items-center gap-2 cursor-help"
+                                     role="group"
+                                     aria-label="Position Details"
                                      on:mouseenter={(e) => handleMouseEnter(e, pos)}
                                      on:mousemove={handleMouseMove}
                                      on:mouseleave={handleMouseLeave}>
@@ -186,6 +188,8 @@
 
                              <!-- Symbol -->
                              <div class="flex flex-col items-center px-2 cursor-help"
+                                   role="group"
+                                   aria-label="Symbol Details"
                                    on:mouseenter={(e) => handleMouseEnter(e, pos)}
                                    on:mousemove={handleMouseMove}
                                    on:mouseleave={handleMouseLeave}>
