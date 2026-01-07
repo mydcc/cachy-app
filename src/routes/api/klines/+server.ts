@@ -1,51 +1,33 @@
-import type { RequestHandler } from '@sveltejs/kit';
 import { json } from '@sveltejs/kit';
-import { cache } from '$lib/server/cache';
 
-export const GET: RequestHandler = async ({ url, fetch }) => {
+export async function GET({ url }) {
     const symbol = url.searchParams.get('symbol');
-    const interval = url.searchParams.get('interval');
-    const limit = url.searchParams.get('limit') || '15';
-    const provider = url.searchParams.get('provider') || 'bitunix';
+    const interval = url.searchParams.get('interval') || '1d';
+    const limit = url.searchParams.get('limit') || '50';
 
-    if (!symbol || !interval) {
-        return json({ message: 'Query parameters "symbol" and "interval" are required.' }, { status: 400 });
+    if (!symbol) {
+        return json({ error: 'Symbol is required' }, { status: 400 });
     }
 
-    const cacheKey = `klines:${provider}:${symbol}:${interval}:${limit}`;
+    // Normalize symbol if needed (remove P, .P suffix if Bitunix expects standard)
+    // Bitunix usually expects e.g. BTCUSDT
+    let apiSymbol = symbol.replace('.P', '').replace('P', '');
+    if (!apiSymbol.endsWith('USDT')) {
+         // Handle cases if any
+    }
 
     try {
-        const data = await cache.getOrFetch(cacheKey, async () => {
-            let apiUrl = '';
-            if (provider === 'binance') {
-                // Binance Futures API
-                apiUrl = `https://fapi.binance.com/fapi/v1/klines?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-            } else {
-                 // Bitunix
-                apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/kline?symbol=${symbol}&interval=${interval}&limit=${limit}`;
-            }
+        const apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/kline?symbol=${apiSymbol}&interval=${interval}&limit=${limit}`;
 
-            const response = await fetch(apiUrl);
-
-            if (!response.ok) {
-                const errorText = await response.text();
-                // eslint-disable-next-line no-throw-literal
-                throw { status: response.status, message: errorText };
-            }
-
-            return await response.json();
-        }, 1000); // 1 second TTL
-
-        return json(data);
-
-    } catch (error: any) {
-         if (error && error.status && error.message) {
-             return new Response(error.message, {
-                status: error.status
-            });
+        const response = await fetch(apiUrl);
+        if (!response.ok) {
+            throw new Error(`Bitunix API error: ${response.statusText}`);
         }
 
-        const message = error instanceof Error ? error.message : 'An unknown error occurred.';
-        return json({ message: `Internal server error: ${message}` }, { status: 500 });
+        const data = await response.json();
+        return json(data);
+    } catch (error) {
+        console.error('Error fetching kline data:', error);
+        return json({ error: error.message }, { status: 500 });
     }
-};
+}

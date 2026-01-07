@@ -13,6 +13,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let hideUnfilledOrders: boolean;
+    let positionViewMode: 'detailed' | 'focus';
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
 
@@ -72,6 +73,7 @@
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
+            positionViewMode = $settingsStore.positionViewMode;
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
             isPro = $settingsStore.isPro;
@@ -102,6 +104,7 @@
             autoFetchBalance,
             showSidebars,
             hideUnfilledOrders,
+            positionViewMode,
             feePreference,
             hotkeyMode,
             imgbbApiKey,
