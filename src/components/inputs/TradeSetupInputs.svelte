@@ -35,7 +35,8 @@
 
     function handleFetchPriceClick() {
         trackCustomEvent('Price', 'Fetch', symbol);
-        dispatch('fetchPrice');
+        // Use unified fetch
+        app.fetchAllAnalysisData(symbol, false);
         scanMultiAtr();
     }
 
@@ -43,15 +44,11 @@
         app.updateSymbolSuggestions(symbol);
         // Automatically fetch price and ATR when user stops typing a valid symbol
         if (symbol && symbol.length >= 3) {
-             dispatch('fetchPrice');
-             // Also fetch ATR if in auto mode
-             if (useAtrSl && atrMode === 'auto') {
-                 dispatch('fetchAtr');
-             }
-             // Trigger Multi-ATR Scan automatically
+             // Unified Fetch
+             app.fetchAllAnalysisData(symbol, true);
              scanMultiAtr();
         }
-    }, 500); // Increased debounce to 500ms to avoid fetching while still typing rapidly
+    }, 500);
 
     function selectSuggestion(s: string) {
         trackCustomEvent('Symbol', 'SelectSuggestion', s);
@@ -127,11 +124,10 @@
         }
     }
 
-    const timeframesOrder = ['5m', '15m', '1h', '4h', '1d'];
+    const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
     $: sortedMultiAtrData = Object.entries(multiAtrData).sort((a, b) => {
-        const ia = timeframesOrder.indexOf(a[0]);
-        const ib = timeframesOrder.indexOf(b[0]);
-        // Handle unexpected timeframes by putting them at the end
+        const ia = availableTimeframes.indexOf(a[0]);
+        const ib = availableTimeframes.indexOf(b[0]);
         const valA = ia === -1 ? 999 : ia;
         const valB = ib === -1 ? 999 : ib;
         return valA - valB;
@@ -266,13 +262,20 @@
                 <div class="grid grid-cols-3 gap-2 mt-2 items-end">
                     <div>
                         <label for="atr-timeframe" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrTimeframeLabel')}</label>
-                        <select id="atr-timeframe" bind:value={atrTimeframe} on:change={(e) => dispatch('setAtrTimeframe', e.currentTarget.value)} class="input-field w-full px-4 py-2 rounded-md">
-                            <option value="5m">5m</option>
-                            <option value="15m">15m</option>
-                            <option value="1h">1h</option>
-                            <option value="4h">4h</option>
-                            <option value="1d">1d</option>
-                        </select>
+                        <!-- Dynamic Timeframe Selection based on Favorites -->
+                        <div class="flex gap-1">
+                             {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ['5m', '15m', '1h', '4h'] as tf}
+                                <button
+                                    class="px-2 py-2 text-xs rounded border transition-colors flex-1 text-center {atrTimeframe === tf ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]' : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
+                                    on:click={() => {
+                                        dispatch('setAtrTimeframe', tf);
+                                        trackCustomEvent('ATR', 'ChangeTimeframe', tf);
+                                    }}
+                                >
+                                    {tf}
+                                </button>
+                             {/each}
+                        </div>
                     </div>
                     <div>
                         <label for="atr-value-input-auto" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrLabel')}</label>

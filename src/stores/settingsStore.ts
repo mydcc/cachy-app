@@ -20,8 +20,7 @@ export interface Settings {
     showSidebars: boolean;
     showTechnicals: boolean;
     hideUnfilledOrders: boolean;
-    positionViewMode: PositionViewMode; // New
-    pnlViewMode: PnlViewMode; // New
+    positionViewMode?: 'detailed' | 'focus';
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -29,6 +28,10 @@ export interface Settings {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
+    // Indicator & Timeframe Settings
+    favoriteTimeframes: string[];
+    syncRsiTimeframe: boolean;
+
     // ImgBB Settings
     imgbbApiKey: string;
     imgbbExpiration: number; // 0 = never, otherwise seconds
@@ -45,7 +48,6 @@ const defaultSettings: Settings = {
     showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
-    pnlViewMode: 'value',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -53,6 +55,8 @@ const defaultSettings: Settings = {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
     },
+    favoriteTimeframes: ['5m', '15m', '1h', '4h'],
+    syncRsiTimeframe: true,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false
@@ -110,11 +114,12 @@ function loadSettingsFromLocalStorage(): Settings {
             showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
-            pnlViewMode: settings.pnlViewMode ?? defaultSettings.pnlViewMode,
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
             apiKeys: settings.apiKeys,
+            favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
+            syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked
