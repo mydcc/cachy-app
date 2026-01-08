@@ -23,6 +23,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
+## <a name="v0.96"></a>Version 0.96 (January 07, 2026)
+- **New:** Chat / Side Panel: A new collapsible side panel on the left for taking private notes or chatting globally (requires experimental API).
+- **New:** Enable "Side Panel" in Settings -> Sidebar. Choose between "Private Notes" (local storage only) or "Global Chat" mode.
+- **Improvement:** General stability updates.
+
+---
+
 ## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
 - **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
 - **Improvement:** Enhanced mobile layout with integrated positions view.
