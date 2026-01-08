@@ -530,68 +530,43 @@ export const calculator = {
         const scatterData = trades
             .filter(t => t.status !== 'Open')
             .map(t => {
-                // For synced trades we might only have ctime (exit). We need entry time.
-                // If not available, we can't calculate duration properly.
-                // Assuming `t.date` is exit time. `t.entryDate` or similar would be needed.
-                // Checking types.ts or app.ts... 
-                // Manual trades have `date`. 
-                // Wait, `t.date` is the MAIN date. 
-                // If we don't have entry time, we skip.
-                // However, let's assume `t.date` is entry for manual? No, usually date is entry.
-                // If manual: date is entry? exitDate is exit?
-                // If synced: date is exit (ctime).
-                
-                // Let's try to calculate duration if we have both timestamps.
-                // `entryTime` is not explicitly on JournalEntry interface in memory, 
-                // but `date` is usually the 'relevant' date. 
-                // For manual trades, users set `date` (usually entry). `exitDate` is optional.
-                
-                // Let's assume:
-                // Start = t.date (Manual) or ...
-                // End = t.exitDate (Manual) or t.date (Synced)
-                
-                // Actually, for Synced trades, `date` is exit time. We need to find entry time.
-                // `t.entryTime` might exist if I check the sync logic.
-                // If not available, we return null or filter out.
-                
-                // Let's use a heuristic: if `exitDate` exists and `date` exists: duration = exit - date (Manual).
-                // If synced, we might need to check if `entryTime` property was added.
-                // In `app.ts`, synced trades are created. I'll check if entry time is stored.
-                // If not, I can't do duration.
-                
-                // fallback: duration 0 if unknown.
-                
-                let durationMinutes = 0;
-                let valid = false;
-                
-                // Check if we have both times
-                if (t.exitDate && t.date) {
-                    const start = new Date(t.date).getTime();
-                    const end = new Date(t.exitDate).getTime();
-                    if (!isNaN(start) && !isNaN(end)) {
-                         // If manual trade, date is usually entry.
-                         // If synced trade, date is exit... wait.
-                         // Let's rely on positive duration.
-                         const diff = end - start;
-                         if (diff > 0) {
-                             durationMinutes = diff / 1000 / 60;
-                             valid = true;
-                         } else if (diff < 0) {
-                             // maybe date was exit and exitDate was entry? unlikely naming.
-                             // maybe synced trade: date=exit. entry=?
-                         }
-                    }
-                }
-                
-                if (!valid) return null;
+                let startTs = 0;
+                let endTs = 0;
 
-                const pnl = getTradePnL(t);
-                return {
-                    x: durationMinutes,
-                    y: pnl.toNumber(),
-                    r: 6,
-                    l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
-                };
+                // 1. Determine Start Time
+                // Synced trades: entryDate is Entry
+                // Manual trades: date is usually Entry (or entryDate if available)
+                if (t.entryDate) {
+                    startTs = new Date(t.entryDate).getTime();
+                } else if (t.isManual !== false) {
+                    // Fallback for Manual trades without entryDate
+                    startTs = new Date(t.date).getTime();
+                }
+
+                // 2. Determine End Time
+                // Synced trades: date is Exit (Close Time)
+                // Manual trades: exitDate is Exit
+                if (t.isManual === false) {
+                    endTs = new Date(t.date).getTime();
+                } else {
+                    if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+                }
+
+                // Validate and Calculate Duration
+                if (startTs > 0 && endTs > 0 && !isNaN(startTs) && !isNaN(endTs)) {
+                     const diff = endTs - startTs;
+                     if (diff > 0) {
+                         const durationMinutes = diff / 1000 / 60;
+                         const pnl = getTradePnL(t);
+                         return {
+                             x: durationMinutes,
+                             y: pnl.toNumber(),
+                             r: 6,
+                             l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
+                         };
+                     }
+                }
+                return null;
             })
             .filter(d => d !== null);
 
