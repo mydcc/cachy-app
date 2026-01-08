@@ -9,8 +9,15 @@ export const POST: RequestHandler = async ({ request }) => {
         return json({ error: 'Missing credentials' }, { status: 400 });
     }
 
+    // Validate limit
+    let parsedLimit = 50;
+    if (limit) {
+        parsedLimit = Math.min(Math.max(parseInt(limit), 1), 100);
+        if (isNaN(parsedLimit)) parsedLimit = 50;
+    }
+
     try {
-        const history = await fetchBitunixHistory(apiKey, apiSecret, startTime, endTime, limit);
+        const history = await fetchBitunixHistory(apiKey, apiSecret, startTime, endTime, parsedLimit);
         return json({ data: history });
     } catch (e: any) {
         console.error(`Error fetching history from Bitunix:`, e);
@@ -18,7 +25,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 };
 
-async function fetchBitunixHistory(apiKey: string, apiSecret: string, startTime?: number, endTime?: number, limit: number = 50): Promise<any[]> {
+async function fetchBitunixHistory(apiKey: string, apiSecret: string, startTime?: number, endTime?: number, limit: number = 50): Promise<Record<string, any>[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/trade/get_history_trades';
     

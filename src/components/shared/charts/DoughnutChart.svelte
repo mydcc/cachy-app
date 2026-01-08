@@ -6,13 +6,31 @@
   export let data: any;
   export let title: string = '';
   export let description: string = '';
+  export let options: any = {};
 
-  const options = {
+  const defaultOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { position: 'right' as const },
       title: { display: !!title, text: title }
+    }
+  };
+
+  $: mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    plugins: {
+      ...defaultOptions.plugins,
+      ...(options.plugins || {}),
+      legend: {
+        ...defaultOptions.plugins.legend,
+        ...(options.plugins?.legend || {})
+      },
+      title: {
+        ...defaultOptions.plugins.title,
+        ...(options.plugins?.title || {})
+      }
     }
   };
 </script>
@@ -23,5 +41,5 @@
        <Tooltip text={description} />
     </div>
   {/if}
-  <Doughnut {data} {options} />
+  <Doughnut {data} options={mergedOptions} />
 </div>

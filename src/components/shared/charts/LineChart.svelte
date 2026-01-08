@@ -2,13 +2,14 @@
   import { Line } from 'svelte-chartjs';
   import '../../../lib/chartSetup';
   import Tooltip from '../Tooltip.svelte';
+  import type { ChartOptions } from 'chart.js';
 
   export let data: any;
   export let title: string = '';
   export let yLabel: string = '';
   export let description: string = '';
 
-  const options = {
+  const options: ChartOptions<'line'> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {

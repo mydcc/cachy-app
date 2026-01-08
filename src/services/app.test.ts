@@ -30,6 +30,9 @@ describe('app service - adjustTpPercentages (Prioritized Logic)', () => {
     beforeEach(() => {
         // Deep copy and set initial state for each test to ensure isolation
         const state: AppState = JSON.parse(JSON.stringify(initialTradeState));
+        // Ensure analysisTimeframe is present
+        state.analysisTimeframe = '1h';
+        state.multiAtrData = {};
         tradeStore.set(state);
         // Set up a standard 3-target scenario
         updateTradeStore(state => ({
@@ -47,7 +50,7 @@ describe('app service - adjustTpPercentages (Prioritized Logic)', () => {
         // User decreases TP2 from 30 to 20. Surplus of 10 is distributed
         // between the other unlocked targets (TP1 and TP3).
         const currentTargets = get(tradeStore).targets;
-        currentTargets[1].percent = 20;
+        if (currentTargets[1]) currentTargets[1].percent = 20;
         updateTradeStore(s => ({...s, targets: currentTargets}));
         app.adjustTpPercentages(1);
 
@@ -236,6 +239,14 @@ describe('app service - ATR and Locking Logic', () => {
             high: new Decimal(102 + i * 0.1),
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),
+            open: new Decimal(100),
+            volume: new Decimal(1000),
+            klineOpenTime: 0,
+            klineCloseTime: 0,
+            quoteAssetVolume: new Decimal(1000),
+            trades: 10,
+            takerBuyBaseAssetVolume: new Decimal(500),
+            takerBuyQuoteAssetVolume: new Decimal(500)
         }));
         
         // Since apiService methods are mocked via factory, we should just assign the mock implementation
@@ -360,14 +371,32 @@ describe('app service - ATR and Locking Logic', () => {
     it('should parse trade history date correctly (number and string)', async () => {
         // Mock global fetch
         const originalFetch = global.fetch;
-        const mockFetch = vi.fn().mockResolvedValue({
-            json: () => Promise.resolve({
-                data: [
-                    { tradeId: '1', ctime: 1672531200000, realizedPNL: '10', fee: '1', symbol: 'BTCUSDT', side: 'SELL', price: '20000', qty: '1', leverage: 10, orderId: 'o1' }, // Number
-                    { tradeId: '2', ctime: "1672531200000", realizedPNL: '5', fee: '0.5', symbol: 'ETHUSDT', side: 'BUY', price: '1500', qty: '10', leverage: 10, orderId: 'o2' }  // String
-                ]
-            }),
-            ok: true
+        const mockFetch = vi.fn().mockImplementation((url) => {
+             // Mock endpoints
+             if (url.includes('positions-history')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({
+                        data: [
+                            { positionId: '1', ctime: 1672531200000, realizedPNL: '10', fee: '1', symbol: 'BTCUSDT', side: 'SELL', entryPrice: '20000', maxQty: '1', leverage: 10 }, // Number
+                            { positionId: '2', ctime: "1672531200000", realizedPNL: '5', fee: '0.5', symbol: 'ETHUSDT', side: 'BUY', entryPrice: '1500', maxQty: '10', leverage: 10 }  // String
+                        ]
+                    }),
+                    ok: true
+                 });
+             }
+             if (url.includes('positions-pending')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({ data: [] }),
+                    ok: true
+                 });
+             }
+             if (url.includes('orders')) {
+                 return Promise.resolve({
+                    json: () => Promise.resolve({ data: [] }),
+                    ok: true
+                 });
+             }
+             return Promise.reject('Unknown URL');
         });
         global.fetch = mockFetch;
 

@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { CONSTANTS } from './constants';
+import { parseTimestamp } from '../utils/utils';
 import type { TradeValues, BaseMetrics, IndividualTpResult, TotalMetrics, JournalEntry } from '../stores/types';
 import type { Kline } from '../services/apiService';
 
@@ -161,14 +162,88 @@ export const calculator = {
         const won = closedTrades.filter(t => t.status === 'Won').length;
         const lost = closedTrades.filter(t => t.status === 'Lost').length;
 
-        // 1. Win/Loss Distribution
+        // 1. Win/Loss Distribution (Old) - Keep for backward compatibility if needed, but we will use sixSegmentData
         const winLossData = [won, lost];
 
+        // 1b. Enhanced 6-Segment Distribution
+        let winLong = 0, winShort = 0, lossLong = 0, lossShort = 0, beLong = 0, beShort = 0;
+
+        // Detailed Stats calculation vars
+        let totalWin = new Decimal(0);
+        let totalLoss = new Decimal(0); // Absolute value
+        let countWin = 0;
+        let countLoss = 0;
+
+        let countLong = 0;
+        let countLongWin = 0;
+        let countShort = 0;
+        let countShortWin = 0;
+
+        closedTrades.forEach(t => {
+            const pnl = getTradePnL(t);
+            const isLong = t.tradeType?.toLowerCase() === CONSTANTS.TRADE_TYPE_LONG;
+
+            // Stats Aggregation
+            if (isLong) {
+                countLong++;
+                if (pnl.gt(0)) countLongWin++;
+            } else {
+                countShort++;
+                if (pnl.gt(0)) countShortWin++;
+            }
+
+            if (pnl.gt(0)) {
+                totalWin = totalWin.plus(pnl);
+                countWin++;
+            } else if (pnl.lt(0)) {
+                totalLoss = totalLoss.plus(pnl.abs());
+                countLoss++;
+            }
+
+            // Segment Logic
+            if (pnl.gt(0)) {
+                if (isLong) winLong++; else winShort++;
+            } else if (pnl.lt(0)) {
+                if (isLong) lossLong++; else lossShort++;
+            } else {
+                // Break Even (PnL == 0)
+                if (isLong) beLong++; else beShort++;
+            }
+        });
+
+        const sixSegmentData = [winLong, winShort, lossLong, lossShort, beLong, beShort];
+
+        // Detailed Stats
+        const avgWin = countWin > 0 ? totalWin.div(countWin) : new Decimal(0);
+        const avgLoss = countLoss > 0 ? totalLoss.div(countLoss) : new Decimal(0);
+        const profitFactor = totalLoss.gt(0) ? totalWin.div(totalLoss) : (totalWin.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+
+        const winRate = closedTrades.length > 0 ? (countWin / closedTrades.length) : 0;
+        const lossRate = closedTrades.length > 0 ? (countLoss / closedTrades.length) : 0;
+        const expectancy = avgWin.times(winRate).minus(avgLoss.times(lossRate));
+
+        const winRateLong = countLong > 0 ? (countLongWin / countLong) * 100 : 0;
+        const winRateShort = countShort > 0 ? (countShortWin / countShort) * 100 : 0;
+
+        const detailedStats = {
+            profitFactor: profitFactor.toNumber(),
+            avgWin: avgWin.toNumber(),
+            avgLoss: avgLoss.toNumber(),
+            expectancy: expectancy.toNumber(),
+            winRateLong,
+            winRateShort
+        };
+
         // 2. R-Multiple Distribution
-        const rMultiples = closedTrades.map(t => {
-             if (!t.riskAmount || t.riskAmount.eq(0)) return 0;
-             const pnl = getTradePnL(t);
-             return pnl.div(t.riskAmount).toNumber();
+        const rMultiples: number[] = [];
+
+        closedTrades.forEach(t => {
+            // Only calculate R if riskAmount is present and positive
+            if (t.riskAmount && t.riskAmount.gt(0)) {
+                const pnl = getTradePnL(t);
+                rMultiples.push(pnl.div(t.riskAmount).toNumber());
+            }
+            // If synced trade with no riskAmount (0), we exclude it from distribution to avoid skewing "0R to 1R" bucket with massive count of 0s.
         });
 
         // Bucketing R-Multiples
@@ -189,10 +264,10 @@ export const calculator = {
             if (t.riskAmount && t.riskAmount.gt(0)) {
                 const pnl = getTradePnL(t);
                 r = pnl.div(t.riskAmount);
-            } else if (t.status === 'Won') {
-                r = new Decimal(1); // Fallback if no risk defined, assume 1R win? Or 0. Better 0 to not distort.
-            } else if (t.status === 'Lost') {
-                r = new Decimal(-1);
+            } else {
+                // For trades without risk, do not add arbitrary 1R/-1R as it distorts data.
+                // We add 0R.
+                r = new Decimal(0);
             }
             
             cumulativeR = cumulativeR.plus(r);
@@ -202,7 +277,7 @@ export const calculator = {
         // 4. KPI
         const stats = this.calculateJournalStats(journal);
 
-        return { winLossData, rHistogram: buckets, cumulativeRCurve, stats };
+        return { winLossData, sixSegmentData, detailedStats, rHistogram: buckets, cumulativeRCurve, stats };
     },
 
     getDirectionData(journal: JournalEntry[]) {
@@ -456,68 +531,43 @@ export const calculator = {
         const scatterData = trades
             .filter(t => t.status !== 'Open')
             .map(t => {
-                // For synced trades we might only have ctime (exit). We need entry time.
-                // If not available, we can't calculate duration properly.
-                // Assuming `t.date` is exit time. `t.entryDate` or similar would be needed.
-                // Checking types.ts or app.ts... 
-                // Manual trades have `date`. 
-                // Wait, `t.date` is the MAIN date. 
-                // If we don't have entry time, we skip.
-                // However, let's assume `t.date` is entry for manual? No, usually date is entry.
-                // If manual: date is entry? exitDate is exit?
-                // If synced: date is exit (ctime).
-                
-                // Let's try to calculate duration if we have both timestamps.
-                // `entryTime` is not explicitly on JournalEntry interface in memory, 
-                // but `date` is usually the 'relevant' date. 
-                // For manual trades, users set `date` (usually entry). `exitDate` is optional.
-                
-                // Let's assume:
-                // Start = t.date (Manual) or ...
-                // End = t.exitDate (Manual) or t.date (Synced)
-                
-                // Actually, for Synced trades, `date` is exit time. We need to find entry time.
-                // `t.entryTime` might exist if I check the sync logic.
-                // If not available, we return null or filter out.
-                
-                // Let's use a heuristic: if `exitDate` exists and `date` exists: duration = exit - date (Manual).
-                // If synced, we might need to check if `entryTime` property was added.
-                // In `app.ts`, synced trades are created. I'll check if entry time is stored.
-                // If not, I can't do duration.
-                
-                // fallback: duration 0 if unknown.
-                
-                let durationMinutes = 0;
-                let valid = false;
-                
-                // Check if we have both times
-                if (t.exitDate && t.date) {
-                    const start = new Date(t.date).getTime();
-                    const end = new Date(t.exitDate).getTime();
-                    if (!isNaN(start) && !isNaN(end)) {
-                         // If manual trade, date is usually entry.
-                         // If synced trade, date is exit... wait.
-                         // Let's rely on positive duration.
-                         const diff = end - start;
-                         if (diff > 0) {
-                             durationMinutes = diff / 1000 / 60;
-                             valid = true;
-                         } else if (diff < 0) {
-                             // maybe date was exit and exitDate was entry? unlikely naming.
-                             // maybe synced trade: date=exit. entry=?
-                         }
-                    }
-                }
-                
-                if (!valid) return null;
+                let startTs = 0;
+                let endTs = 0;
 
-                const pnl = getTradePnL(t);
-                return {
-                    x: durationMinutes,
-                    y: pnl.toNumber(),
-                    r: 6,
-                    l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
-                };
+                // 1. Determine Start Time
+                // Synced trades: entryDate is Entry
+                // Manual trades: date is usually Entry (or entryDate if available)
+                if (t.entryDate) {
+                    startTs = new Date(t.entryDate).getTime();
+                } else if (t.isManual !== false) {
+                    // Fallback for Manual trades without entryDate
+                    startTs = new Date(t.date).getTime();
+                }
+
+                // 2. Determine End Time
+                // Synced trades: date is Exit (Close Time)
+                // Manual trades: exitDate is Exit
+                if (t.isManual === false) {
+                    endTs = new Date(t.date).getTime();
+                } else {
+                    if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+                }
+
+                // Validate and Calculate Duration
+                if (startTs > 0 && endTs > 0 && !isNaN(startTs) && !isNaN(endTs)) {
+                     const diff = endTs - startTs;
+                     if (diff > 0) {
+                         const durationMinutes = diff / 1000 / 60;
+                         const pnl = getTradePnL(t);
+                         return {
+                             x: durationMinutes,
+                             y: pnl.toNumber(),
+                             r: 6,
+                             l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(2)}`
+                         };
+                     }
+                }
+                return null;
             })
             .filter(d => d !== null);
 
@@ -757,8 +807,13 @@ export const calculator = {
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-            // Use local date string for simplicity or ISO date part
-            const date = new Date(t.date);
+
+            // Robust parsing using parseTimestamp to handle strings, numbers, ISO, etc.
+            const ts = parseTimestamp(t.date);
+            if (ts <= 0) return; // Skip invalid dates
+
+            const date = new Date(ts);
+            // Use ISO string date part (UTC) to ensure consistency with Heatmap grid generation
             const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
             if (!dailyMap[key]) dailyMap[key] = { pnl: new Decimal(0), count: 0 };

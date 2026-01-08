@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -412,7 +412,7 @@ export const app = {
             return parsedData.map(trade => {
                 const newTrade = { ...trade };
                 Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize'].includes(key)) {
+                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
                         newTrade[key] = new Decimal(newTrade[key] || 0);
                     }
                 });
@@ -445,7 +445,8 @@ export const app = {
             notes: currentAppState.tradeNotes,
             tags: currentAppState.tags || [],
             id: Date.now(),
-            date: new Date().toISOString()
+            date: new Date().toISOString(),
+            entryDate: new Date().toISOString()
         } as JournalEntry;
 
         journalData.push(newTrade);
@@ -579,19 +580,21 @@ export const app = {
         const journalData = get(journalStore);
         if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
-        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
+        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', 'Tags', 'Screenshot',
         // New headers
-        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
          ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
             const notes = trade.notes ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '';
+            const tags = trade.tags && trade.tags.length > 0 ? `"${trade.tags.join(';')}"` : '';
+            const screenshot = trade.screenshot || '';
             const tpData = Array.from({length: 5}, (_, i) => [ (trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2) ]).flat();
             return [ trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
                 (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
-                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
+                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, tags, screenshot,
                 // New values
-                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
                 ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
@@ -613,8 +616,8 @@ export const app = {
         uiStore.update(s => ({ ...s, isPriceFetching: true })); 
 
         try {
-            // 1. Fetch Trades
-            const tradeResponse = await fetch('/api/sync', {
+            // 1. Fetch History Positions (The Truth about closed trades)
+            const historyResponse = await fetch('/api/sync/positions-history', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({
@@ -623,11 +626,25 @@ export const app = {
                     limit: 100
                 })
             });
-            const tradeResult = await tradeResponse.json();
-            if (tradeResult.error) throw new Error(tradeResult.error);
-            const trades = tradeResult.data;
+            const historyResult = await historyResponse.json();
+            if (historyResult.error) throw new Error(historyResult.error);
+            const historyPositions = historyResult.data;
 
-            // 2. Fetch Orders (to get SL and Entry confirmation)
+            // 2. Fetch Pending Positions (Open Trades)
+            const pendingResponse = await fetch('/api/sync/positions-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret
+                })
+            });
+            const pendingResult = await pendingResponse.json();
+            // Pending positions might fail if empty, but we check array
+            const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+
+
+            // 3. Fetch Orders (Still needed to find initial Stop Loss for R-Calc)
             const orderResponse = await fetch('/api/sync/orders', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -648,8 +665,6 @@ export const app = {
                 console.warn("Failed to fetch orders:", err);
             }
 
-            if (!Array.isArray(trades)) throw new Error("Invalid response format for trades");
-
             // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
             const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
 
@@ -659,152 +674,177 @@ export const app = {
                 else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
                 else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
 
-                // Note: o.ctime might not exist on all order objects, check 'createTime' or similar if needed.
-                // Assuming standardized API response or fallback.
-                let t = o.createTime || o.ctime || 0;
-                if (typeof t === 'string') t = parseInt(t, 10);
+                const t = parseTimestamp(o.createTime || o.ctime);
 
                 if (sl.gt(0) && o.symbol) {
                     if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
                     symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
                 }
             });
-
-            // Sort by time ascending
             Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
             // ------------------------------------------------------------------
 
-            let addedCount = 0;
-            const currentJournal = get(journalStore);
-            const existingTradeIds = new Set(currentJournal.map(j => String(j.tradeId || '')).filter(Boolean));
-
+            // Cleanup logic prepared, but we execute it ONLY after we successfully processed the new data
+            // to prevent data loss in case of logic errors during processing.
             const newEntries: JournalEntry[] = [];
+            let addedCount = 0;
 
-            const findOrder = (orderId: string | number) => orders.find((o: any) => String(o.orderId) === String(orderId));
+            // --- Process Pending Positions (Open) ---
+            const processedPendingIds = new Set<string>();
 
-            for (const t of trades) {
-                // Robustly normalize ID to string
-                const currentTradeIdStr = String(t.tradeId);
-                // Skip if already exists
-                if (existingTradeIds.has(currentTradeIdStr)) continue;
+            for (const p of pendingPositions) {
+                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
+                const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+                processedPendingIds.add(uniqueId);
                 
-                const realizedPnl = new Decimal(t.realizedPNL || 0);
-                const fee = new Decimal(t.fee || 0);
+                const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
+                const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const size = new Decimal(p.qty || p.size || 0);
 
-                if (realizedPnl.eq(0)) continue; 
-
-                const tradeId = currentTradeIdStr;
-                const orderId = String(t.orderId);
-                const symbol = t.symbol;
-
-                let timestamp = t.ctime;
-                if (typeof t.ctime === 'string' && /^\d+$/.test(t.ctime)) {
-                    timestamp = parseInt(t.ctime, 10);
-                }
-                const date = new Date(timestamp);
-                if (isNaN(date.getTime())) continue;
-
-                const side = t.side; 
-                
-                let tradeType = 'long'; 
-                if (side.toUpperCase() === 'SELL') tradeType = 'long';
-                else tradeType = 'short';
-
-                const relatedOrder = findOrder(orderId);
-
+                // Find SL for Open Position (Look for recent orders)
                 let stopLoss = new Decimal(0);
-
-                // Strategy 1: Direct link to order
-                if (relatedOrder) {
-                    if (relatedOrder.slPrice) stopLoss = new Decimal(relatedOrder.slPrice);
-                    else if (relatedOrder.stopLossPrice) stopLoss = new Decimal(relatedOrder.stopLossPrice);
-                    else if (relatedOrder.triggerPrice) stopLoss = new Decimal(relatedOrder.triggerPrice);
-                }
-                
-                // Strategy 2: Fallback to last known SL for symbol
-                if (stopLoss.lte(0)) {
-                    const candidates = symbolSlMap[symbol];
-                    if (candidates) {
-                        const tradeTime = date.getTime();
-                        // Find most recent order BEFORE or EQUAL to tradeTime (allowing small clock drift or same-second exec)
-                        // Buffer of 2 seconds
-                        const adjustedTradeTime = tradeTime + 2000;
-
-                        for (let i = candidates.length - 1; i >= 0; i--) {
-                            if (candidates[i].ctime <= adjustedTradeTime) {
-                                stopLoss = candidates[i].slPrice;
-                                break;
-                            }
-                        }
-                    }
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates && candidates.length > 0) {
+                     // Get latest SL
+                     stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
-                const exitPrice = new Decimal(t.price);
-                const qtyDecimal = new Decimal(t.qty || 0); 
-                
-                // Back-calculate Entry Price if possible
-                // PnL = (Exit - Entry) * Qty  (Long)
-                // PnL = (Entry - Exit) * Qty  (Short)
-                let entryPrice = exitPrice;
-                
-                if (qtyDecimal.gt(0)) {
-                    if (tradeType === 'long') {
-                         // Entry = Exit - (PnL / Qty)
-                         entryPrice = exitPrice.minus(realizedPnl.div(qtyDecimal));
-                    } else {
-                         // Entry = PnL / Qty + Exit
-                         entryPrice = realizedPnl.div(qtyDecimal).plus(exitPrice);
-                    }
-                }
-
-                // Calculate realized stats if SL exists
-                let riskAmount = new Decimal(0);
-                let totalRR = new Decimal(0);
-
-                if (stopLoss.gt(0)) {
-                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
-                    if (qtyDecimal.gt(0) && riskPerUnit.gt(0)) {
-                        riskAmount = riskPerUnit.times(qtyDecimal);
-                        
-                        if (riskAmount.gt(0) && !realizedPnl.isZero()) {
-                            totalRR = realizedPnl.div(riskAmount);
-                        }
-                    }
-                }
-
-                let status = 'Open';
-                if (!realizedPnl.isZero()) {
-                    status = realizedPnl.gt(0) ? 'Won' : 'Lost';
-                }
+                // Parse creation time
+                let dateTs = parseTimestamp(p.ctime);
+                if (dateTs <= 0) dateTs = Date.now();
 
                 const entry: JournalEntry = {
-                    id: parseInt(tradeId) || Date.now() + Math.random(),
-                    date: date.toISOString(),
-                    symbol: symbol,
-                    tradeType: tradeType,
-                    status: status,
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(dateTs).toISOString(),
+                    entryDate: new Date(dateTs).toISOString(), // For duration calculation
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short') ? 'short' : 'long',
+                    status: 'Open',
+
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(p.leverage || 0),
+                    fees: new Decimal(0), // Estimated % not known, using absolute below
+
+                    entryPrice: entryPrice,
+                    stopLossPrice: stopLoss,
+
+                    totalRR: new Decimal(0), // Not realized
+                    totalNetProfit: unrealizedPnl.minus(fee).plus(funding), // Unrealized Net
+                    riskAmount: new Decimal(0),
+                    totalFees: fee.abs().plus(funding.abs()), // Total costs so far
+                    maxPotentialProfit: new Decimal(0),
+
+                    notes: `Open Position. Funding: ${funding.toFixed(4)}, Unrealized: ${unrealizedPnl.toFixed(4)}`,
+                    targets: [],
+                    calculatedTpDetails: [],
+
+                    fundingFee: funding,
+                    tradingFee: fee,
+                    realizedPnl: new Decimal(0), // It's unrealized
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+            // --- Process History Positions (Closed) ---
+            // We need a set of existing IDs from the *current* journal to avoid duplicates,
+            // but we must not check against the "to-be-removed" open positions.
+            const currentJournalForHistoryCheck = get(journalStore);
+            const existingHistoryIds = new Set(currentJournalForHistoryCheck.map(j => String(j.tradeId || j.id)));
+
+            for (const p of historyPositions) {
+                const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
+                if (existingHistoryIds.has(uniqueId)) continue;
+
+                const realizedPnl = new Decimal(p.realizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const entryPrice = new Decimal(p.entryPrice || 0);
+                const closePrice = new Decimal(p.closePrice || 0);
+                const qty = new Decimal(p.maxQty || 0); // Approx size
+
+                // Calculate Net PnL = Realized - Fees + Funding (Funding is usually negative if paid, so + (-cost))
+                // Bitunix "funding": "total funding fee". If positive, we received it? If negative we paid?
+                // Usually "Fee" is positive in DB but subtracted. "Funding" is signed.
+                // Let's assume standard PnL math: Net = Realized - Fee + Funding.
+                // Wait, Bitunix API says: "realizedPNL: Realized PnL(exclude funding fee and transaction fee)"
+                // So Net = Realized + Funding - Fee? Or is Fee signed?
+                // Example: fee "0.1", funding "-0.2", realized "102.9".
+                // Net = 102.9 + (-0.2) - 0.1 = 102.6.
+                // We will use: realizedPnl.plus(funding).minus(fee.abs())  (assuming fee string is usually positive number representing cost)
+                
+                const netPnl = realizedPnl.plus(funding).minus(fee.abs());
+
+                // Find SL
+                let stopLoss = new Decimal(0);
+                const posTime = parseTimestamp(p.ctime);
+
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates && posTime > 0) {
+                    // Match by time: Order Ctime <= Position Ctime (Entry)
+                    // Position ctime is creation time.
+                    // Use tolerance
+                    const tolerance = 5000;
+                    for (let i = candidates.length - 1; i >= 0; i--) {
+                        // Find SL set around the time position was created
+                        // Look back window to avoid matching orders from weeks ago
+                        if (Math.abs(candidates[i].ctime - posTime) < 60000 * 60 * 24 * 7) {
+                             if (candidates[i].ctime <= posTime + tolerance) {
+                                 stopLoss = candidates[i].slPrice;
+                                 break;
+                             }
+                        }
+                    }
+                }
+
+                // R-Calc
+                let riskAmount = new Decimal(0);
+                let totalRR = new Decimal(0);
+                if (stopLoss.gt(0) && entryPrice.gt(0) && qty.gt(0)) {
+                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
+                    riskAmount = riskPerUnit.times(qty);
+                    if (riskAmount.gt(0) && !netPnl.isZero()) {
+                        totalRR = netPnl.div(riskAmount);
+                    }
+                }
+
+                // Parse close time (fallback to creation time)
+                let closeTime = parseTimestamp(p.mtime || p.ctime);
+                if (closeTime <= 0) closeTime = Date.now();
+
+                const entry: JournalEntry = {
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(closeTime).toISOString(), // Close time
+                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined,
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
+                    status: netPnl.gt(0) ? 'Won' : 'Lost',
                     
                     accountSize: new Decimal(0),
                     riskPercentage: new Decimal(0),
-                    leverage: new Decimal(t.leverage || relatedOrder?.leverage || 0),
+                    leverage: new Decimal(p.leverage || 0),
                     fees: new Decimal(0),
                     
-                    entryPrice: entryPrice, 
+                    entryPrice: entryPrice,
                     stopLossPrice: stopLoss,
                     
                     totalRR: totalRR,
-                    totalNetProfit: realizedPnl, 
+                    totalNetProfit: netPnl,
                     riskAmount: riskAmount,
-                    totalFees: fee,
+                    totalFees: fee.abs().plus(funding.abs()),
                     maxPotentialProfit: new Decimal(0),
                     
-                    notes: `Imported (Order: ${orderId})`,
+                    notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
                     targets: [],
                     calculatedTpDetails: [],
                     
-                    tradeId: tradeId,
-                    orderId: orderId,
-                    fundingFee: new Decimal(0), 
+                    fundingFee: funding,
                     tradingFee: fee,
                     realizedPnl: realizedPnl,
                     isManual: false
@@ -813,16 +853,37 @@ export const app = {
                 addedCount++;
             }
 
-            if (addedCount > 0) {
-                const updatedJournal = [...currentJournal, ...newEntries];
-                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-                
+
+            // --- SAFE SWAP ---
+            // Now that we have `newEntries` (containing new Open and new History positions),
+            // we perform the swap.
+
+            // 1. Get current state
+            const previousJournal = get(journalStore);
+
+            // 2. Filter out OLD synced Open positions (because we have a fresh list of them in `newEntries`)
+            //    We keep Manual trades and Closed Synced trades.
+            const keptJournal = previousJournal.filter(j => {
+                const isSynced = j.isManual === false;
+                const isOpen = j.status === 'Open';
+                // Remove if it is a Synced Open position
+                return !(isSynced && isOpen);
+            });
+
+            // 3. Combine Kept + New
+            const updatedJournal = [...keptJournal, ...newEntries];
+
+            // 4. Sort
+            updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+            // 5. Update Store & Save
+            if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
                 journalStore.set(updatedJournal);
                 app.saveJournal(updatedJournal);
                 uiStore.showFeedback('save', 2000); 
-                trackCustomEvent('Journal', 'Sync', 'Bitunix', addedCount);
+                trackCustomEvent('Journal', 'Sync', 'Bitunix-Positions', addedCount);
             } else {
-                 uiStore.showError("Keine neuen Trades gefunden.");
+                 uiStore.showError("Keine neuen Positionen gefunden.");
             }
 
         } catch (e: any) {
@@ -843,21 +904,71 @@ export const app = {
                 return;
             }
 
-            const headers = lines[0].split(',').map(h => h.trim());
-            const requiredHeaders = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Einstieg', 'Stop Loss'];
-            const missingHeaders = requiredHeaders.filter(h => !headers.includes(h));
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, ''));
+            // Map possible headers to internal keys
+            const headerMap: { [key: string]: string } = {
+                'ID': 'ID',
+                'Datum': 'Datum', 'Date': 'Datum',
+                'Uhrzeit': 'Uhrzeit', 'Time': 'Uhrzeit',
+                'Symbol': 'Symbol',
+                'Typ': 'Typ', 'Type': 'Typ',
+                'Status': 'Status',
+                'Konto Guthaben': 'Konto Guthaben', 'Account Balance': 'Konto Guthaben',
+                'Risiko %': 'Risiko %', 'Risk %': 'Risiko %',
+                'Hebel': 'Hebel', 'Leverage': 'Hebel',
+                'Gebuehren %': 'Gebuehren %', 'Fees %': 'Gebuehren %',
+                'Einstieg': 'Einstieg', 'Entry Price': 'Einstieg', 'Entry': 'Einstieg',
+                'Stop Loss': 'Stop Loss',
+                'Gewichtetes R/R': 'Gewichtetes R/R', 'Weighted R/R': 'Gewichtetes R/R',
+                'Gesamt Netto-Gewinn': 'Gesamt Netto-Gewinn', 'Total Net Profit': 'Gesamt Netto-Gewinn',
+                'Risiko pro Trade (Waehrung)': 'Risiko pro Trade (Waehrung)', 'Risk Amount': 'Risiko pro Trade (Waehrung)',
+                'Gesamte Gebuehren': 'Gesamte Gebuehren', 'Total Fees': 'Gesamte Gebuehren',
+                'Max. potenzieller Gewinn': 'Max. potenzieller Gewinn', 'Max Potential Profit': 'Max. potenzieller Gewinn',
+                'Notizen': 'Notizen', 'Notes': 'Notizen',
+                'Tags': 'Tags',
+                'Screenshot': 'Screenshot', 'Bild': 'Screenshot', 'Image': 'Screenshot',
+                'Funding Fee': 'Funding Fee',
+                'Trading Fee': 'Trading Fee',
+                'Realized PnL': 'Realized PnL',
+                'Is Manual': 'Is Manual',
+                'Trade ID': 'Trade ID',
+                'Order ID': 'Order ID',
+                'Entry Date': 'Einstiegsdatum',
+                'Einstiegsdatum': 'Einstiegsdatum'
+            };
 
-            if (missingHeaders.length > 0) {
-                uiStore.showError(`CSV-Datei fehlen benötigte Spalten: ${missingHeaders.join(', ')}`);
+            // Identify which language/set of headers is present
+            const requiredKeys = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Einstieg', 'Stop Loss'];
+
+            // Check if we have mapped all required keys
+            const presentMappedKeys = new Set(headers.map(h => headerMap[h]).filter(Boolean));
+            const missingKeys = requiredKeys.filter(k => !presentMappedKeys.has(k));
+
+            if (missingKeys.length > 0) {
+                // If strictly missing required mapped keys
+                uiStore.showError(`CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): ${missingKeys.join(', ')}`);
                 return;
             }
 
             const entries = lines.slice(1).map(line => {
                 const values = line.split(',');
-                const entry: CSVTradeEntry = headers.reduce((obj: Partial<CSVTradeEntry>, header, index) => {
-                    obj[header as keyof CSVTradeEntry] = values[index] ? values[index].trim() : '';
-                    return obj;
-                }, {}) as CSVTradeEntry;
+                // Map values to standardized German keys internally using the header map
+                const entry: Record<string, string> = {};
+                headers.forEach((header, index) => {
+                    const mappedKey = headerMap[header];
+                    if (mappedKey) {
+                        entry[mappedKey] = values[index] ? values[index].trim() : '';
+                    } else if (header.startsWith('TP') && (header.includes('Preis') || header.includes('Price') || header.includes('%'))) {
+                         // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
+                         // We normalize them to "TP{n} Preis" and "TP{n} %"
+                         const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
+                         if (match) {
+                             const num = match[1];
+                             const type = match[2] === '%' ? '%' : 'Preis';
+                             entry[`TP${num} ${type}`] = values[index] ? values[index].trim() : '';
+                         }
+                    }
+                });
 
                 try {
                     const targets = [];
@@ -873,33 +984,35 @@ export const app = {
                         }
                     }
 
-                    const typedEntry = entry as CSVTradeEntry;
                     const importedTrade: JournalEntry = {
-                        id: parseInt(typedEntry.ID, 10),
-                        date: new Date(`${typedEntry.Datum} ${typedEntry.Uhrzeit}`).toISOString(),
-                        symbol: typedEntry.Symbol,
-                        tradeType: typedEntry.Typ.toLowerCase(),
-                        status: typedEntry.Status,
-                        accountSize: parseDecimal(typedEntry['Konto Guthaben'] || '0'),
-                        riskPercentage: parseDecimal(typedEntry['Risiko %'] || '0'),
-                        leverage: parseDecimal(typedEntry.Hebel || '1'),
-                        fees: parseDecimal(typedEntry['Gebuehren %'] || '0.1'),
-                        entryPrice: parseDecimal(typedEntry.Einstieg),
-                        stopLossPrice: parseDecimal(typedEntry['Stop Loss']),
-                        totalRR: parseDecimal(typedEntry['Gewichtetes R/R'] || '0'),
-                        totalNetProfit: parseDecimal(typedEntry['Gesamt Netto-Gewinn'] || '0'),
-                        riskAmount: parseDecimal(typedEntry['Risiko pro Trade (Waehrung)'] || '0'),
-                        totalFees: parseDecimal(typedEntry['Gesamte Gebuehren'] || '0'),
-                        maxPotentialProfit: parseDecimal(typedEntry['Max. potenzieller Gewinn'] || '0'),
-                        notes: typedEntry.Notizen ? typedEntry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
+                        id: parseFloat(entry.ID),
+                        date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
+                        symbol: entry.Symbol,
+                        tradeType: entry.Typ.toLowerCase(),
+                        status: entry.Status,
+                        accountSize: parseDecimal(entry['Konto Guthaben'] || '0'),
+                        riskPercentage: parseDecimal(entry['Risiko %'] || '0'),
+                        leverage: parseDecimal(entry.Hebel || '1'),
+                        fees: parseDecimal(entry['Gebuehren %'] || '0.1'),
+                        entryPrice: parseDecimal(entry.Einstieg),
+                        stopLossPrice: parseDecimal(entry['Stop Loss']),
+                        totalRR: parseDecimal(entry['Gewichtetes R/R'] || '0'),
+                        totalNetProfit: parseDecimal(entry['Gesamt Netto-Gewinn'] || '0'),
+                        riskAmount: parseDecimal(entry['Risiko pro Trade (Waehrung)'] || '0'),
+                        totalFees: parseDecimal(entry['Gesamte Gebuehren'] || '0'),
+                        maxPotentialProfit: parseDecimal(entry['Max. potenzieller Gewinn'] || '0'),
+                        notes: entry.Notizen ? entry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
+                        tags: entry.Tags ? entry.Tags.replace(/"/g, '').split(';').map(t => t.trim()).filter(Boolean) : [],
+                        screenshot: entry.Screenshot || undefined,
                         targets: targets,
                         // New fields
-                        tradeId: typedEntry['Trade ID'] || undefined,
-                        orderId: typedEntry['Order ID'] || undefined,
-                        fundingFee: parseDecimal(typedEntry['Funding Fee'] || '0'),
-                        tradingFee: parseDecimal(typedEntry['Trading Fee'] || '0'),
-                        realizedPnl: parseDecimal(typedEntry['Realized PnL'] || '0'),
-                        isManual: typedEntry['Is Manual'] ? typedEntry['Is Manual'] === 'true' : true,
+                        tradeId: entry['Trade ID'] || undefined,
+                        orderId: entry['Order ID'] || undefined,
+                        fundingFee: parseDecimal(entry['Funding Fee'] || '0'),
+                        tradingFee: parseDecimal(entry['Trading Fee'] || '0'),
+                        realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
+                        isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
+                        entryDate: entry['Einstiegsdatum'] ? new Date(entry['Einstiegsdatum']).toISOString() : undefined,
                         calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
                     };
                     return importedTrade;
@@ -1086,9 +1199,13 @@ export const app = {
             targets: [...state.targets, { price, percent, isLocked }]
         }));
     },
-    scanMultiAtr: async (symbol: string): Promise<Record<string, number>> => {
+    scanMultiAtr: async (symbol: string) => {
         const settings = get(settingsStore);
-        const timeframes = ['5m', '15m', '1h', '4h'];
+        // Use global favorites (ensure sorted or sort here)
+        const timeframes = settings.favoriteTimeframes && settings.favoriteTimeframes.length > 0
+            ? settings.favoriteTimeframes
+            : ['5m', '15m', '1h', '4h'];
+
         const results: Record<string, number> = {};
 
         const fetchPromise = async (tf: string) => {
@@ -1109,7 +1226,23 @@ export const app = {
         };
 
         await Promise.all(timeframes.map(tf => fetchPromise(tf)));
-        return results;
+        updateTradeStore(state => ({ ...state, multiAtrData: results }));
+    },
+
+    // New unified fetch function for Price + ATR + Analysis
+    fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
+        if (!symbol || symbol.length < 3) return;
+
+        // 1. Fetch Price (updateTradeStore handles UI)
+        await app.handleFetchPrice(isAuto);
+
+        // 2. Fetch Multi-ATR
+        app.scanMultiAtr(symbol);
+
+        // We will trigger ATR fetch for the ACTIVE timeframe:
+        if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+             await app.fetchAtr(isAuto);
+        }
     },
 
     adjustTpPercentages: (changedIndex: number | null) => {

@@ -135,7 +135,7 @@ function handleDirectMode(event: KeyboardEvent) {
             event.preventDefault();
             focusElement(IDs.ENTRY_PRICE);
             break;
-        case 's':
+        case 'o':
             event.preventDefault();
             focusElement(IDs.STOP_LOSS);
             break;
@@ -143,7 +143,7 @@ function handleDirectMode(event: KeyboardEvent) {
             event.preventDefault();
             updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
             break;
-        case 'k': // K for Short (Kurz) because S is Stop Loss
+        case 's':
             event.preventDefault();
             updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
             break;
@@ -179,7 +179,7 @@ function handleSafetyMode(event: KeyboardEvent) {
             event.preventDefault();
             focusElement(IDs.ENTRY_PRICE);
             break;
-        case 's':
+        case 'o':
             event.preventDefault();
             focusElement(IDs.STOP_LOSS);
             break;
@@ -187,7 +187,7 @@ function handleSafetyMode(event: KeyboardEvent) {
             event.preventDefault();
             updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
             break;
-        case 'k': // Agreed: Alt+K for Short in this mode
+        case 's':
             event.preventDefault();
             updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
             break;

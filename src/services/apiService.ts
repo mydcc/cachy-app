@@ -1,7 +1,9 @@
 import { Decimal } from 'decimal.js';
+import { getBitunixErrorKey } from '../utils/errorUtils';
 
 // Define a type for the kline data object for clarity
 export interface Kline {
+    open: Decimal;
     high: Decimal;
     low: Decimal;
     close: Decimal;
@@ -40,29 +42,21 @@ export const apiService = {
     normalizeSymbol(symbol: string, provider: 'bitunix' | 'binance'): string {
         if (!symbol) return '';
         let s = symbol.toUpperCase();
-        // Remove .P or P suffix if present for standardization logic, though APIs might need specific handling
-        // Based on user input: "BTCUSDTP" or "BTCUSDT.P".
-        // Based on curl tests: Bitunix wants "BTCUSDT", Binance Futures often wants "BTCUSDT" but checks might vary.
-        // We will try to strip P suffixes to get the base pair, then let the API proxy handle it or pass as is if needed.
-        // Actually, for Bitunix, we saw "BTCUSDT" works and "BTCUSDTP" fails.
 
-        // Simple heuristic: If it ends in "P" or ".P" and isn't just "XRP" (unlikely), strip it.
+        // 1. Strip known Futures suffixes
+        // Handle "BTCUSDT.P" -> "BTCUSDT"
         if (s.endsWith('.P')) {
             s = s.slice(0, -2);
         }
-
-        // If the symbol seems to be just the coin (e.g. "BTC"), append USDT
-        if (!s.includes('USDT') && !s.includes('USD')) {
-            s += 'USDT';
+        // Handle "BTCUSDTP" -> "BTCUSDT"
+        // We only strip 'P' if it follows 'USDT' to avoid accidental stripping of coins ending in P
+        else if (s.endsWith('USDTP')) {
+            s = s.slice(0, -1);
         }
 
-        // If it ends with P but is meant for Bitunix/Binance Futures that prefer standard symbols?
-        // Let's rely on the user input mostly but fix the obvious "P" suffix issue if it fails,
-        // OR just strip it if we know the provider doesn't like it.
-        // Bitunix: BTCUSDT works. BTCUSDTP fails.
-        // Robust fix: Only strip P if it is a suffix on top of standard pair (e.g. USDTP).
-        if (s.endsWith('USDTP')) {
-             s = s.slice(0, -1);
+        // 2. Append base pair if missing (assuming USDT defaults for this context)
+        if (!s.includes('USDT') && !s.includes('USD')) {
+            s += 'USDT';
         }
 
         return s;
@@ -74,14 +68,17 @@ export const apiService = {
             const response = await fetch(`/api/tickers?provider=bitunix&symbols=${normalized}`);
             if (!response.ok) throw new Error('apiErrors.symbolNotFound');
             const res = await response.json();
-            if (res.code !== 0 || !res.data || res.data.length === 0) {
+            if (res.code !== undefined && res.code !== 0) {
+                throw new Error(getBitunixErrorKey(res.code));
+            }
+            if (!res.data || res.data.length === 0) {
                 throw new Error('apiErrors.invalidResponse');
             }
             const data = res.data[0];
             return new Decimal(data.lastPrice);
         } catch (e) {
             // Re-throw custom error messages or a generic one
-            if (e instanceof Error && (e.message === 'apiErrors.symbolNotFound' || e.message === 'apiErrors.invalidResponse')) {
+            if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
@@ -94,18 +91,23 @@ export const apiService = {
             const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
             if (!response.ok) throw new Error('apiErrors.klineError');
             const res = await response.json();
-            if (res.code !== 0 || !res.data) {
-                throw new Error('apiErrors.invalidResponse');
+
+            // Backend returns the mapped array directly
+            if (!Array.isArray(res)) {
+                 if (res.error) throw new Error(res.error);
+                 throw new Error('apiErrors.invalidResponse');
             }
 
             // Map the response data to the required Kline interface
-            return res.data.map((kline: { high: string, low: string, close: string }) => ({
+            return res.map((kline: { open: string, high: string, low: string, close: string }) => ({
+                open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
                 close: new Decimal(kline.close),
             }));
         } catch (e) {
-            if (e instanceof Error && (e.message === 'apiErrors.klineError' || e.message === 'apiErrors.invalidResponse')) {
+            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+            if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
@@ -144,6 +146,7 @@ export const apiService = {
 
             // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
             return data.map((kline: BinanceKline) => ({
+                open: new Decimal(kline[1]),
                 high: new Decimal(kline[2]),
                 low: new Decimal(kline[3]),
                 close: new Decimal(kline[4]),
@@ -168,7 +171,10 @@ export const apiService = {
             const data = await response.json();
 
             if (provider === 'bitunix') {
-                if (data.code !== 0 || !data.data || data.data.length === 0) {
+                if (data.code !== undefined && data.code !== 0) {
+                    throw new Error(getBitunixErrorKey(data.code));
+                }
+                if (!data.data || data.data.length === 0) {
                     throw new Error('apiErrors.invalidResponse');
                 }
                 const ticker = data.data[0];
@@ -211,7 +217,7 @@ export const apiService = {
 
         } catch (e) {
             console.error("fetchTicker24h error", e);
-             if (e instanceof Error && (e.message === 'apiErrors.symbolNotFound' || e.message === 'apiErrors.invalidResponse')) {
+             if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
             throw new Error('apiErrors.generic');
