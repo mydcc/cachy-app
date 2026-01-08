@@ -212,9 +212,8 @@ import { trackCustomEvent } from '../services/trackingService';
         trackCustomEvent('Backup', 'Click', 'RestoreBackup');
     }
 
-    let isTechnicalsVisible = false;
     function toggleTechnicals() {
-        isTechnicalsVisible = !isTechnicalsVisible;
+        $settingsStore.isTechnicalsOpen = !$settingsStore.isTechnicalsOpen;
     }
 </script>
 
@@ -234,16 +233,16 @@ import { trackCustomEvent } from '../services/trackingService';
         <!-- Right Sidebar: Stacked tiles -->
         <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300">
             <!-- Main current symbol -->
-            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={$settingsStore.isTechnicalsOpen} />
 
             <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
             {#if $settingsStore.showTechnicals}
                 <div class="absolute top-0 left-full ml-8 w-64 transition-all duration-300 transform origin-left z-40"
-                     class:scale-0={!isTechnicalsVisible}
-                     class:scale-100={isTechnicalsVisible}
-                     class:opacity-0={!isTechnicalsVisible}
-                     class:opacity-100={isTechnicalsVisible}>
-                    <TechnicalsPanel isVisible={isTechnicalsVisible} />
+                     class:scale-0={!$settingsStore.isTechnicalsOpen}
+                     class:scale-100={$settingsStore.isTechnicalsOpen}
+                     class:opacity-0={!$settingsStore.isTechnicalsOpen}
+                     class:opacity-100={$settingsStore.isTechnicalsOpen}>
+                    <TechnicalsPanel isVisible={$settingsStore.isTechnicalsOpen} />
                 </div>
             {/if}
 
@@ -420,10 +419,10 @@ import { trackCustomEvent } from '../services/trackingService';
             <!-- Add PositionsSidebar for Mobile -->
             <PositionsSidebar />
 
-            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={$settingsStore.isTechnicalsOpen} />
             
-            {#if $settingsStore.showTechnicals && isTechnicalsVisible}
-                <TechnicalsPanel isVisible={isTechnicalsVisible} />
+            {#if $settingsStore.showTechnicals && $settingsStore.isTechnicalsOpen}
+                <TechnicalsPanel isVisible={$settingsStore.isTechnicalsOpen} />
             {/if}
 
             {#if $favoritesStore.length > 0}
