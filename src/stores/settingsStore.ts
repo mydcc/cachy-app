@@ -6,8 +6,6 @@ export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
-export type CandleScaling = 'auto' | 'atr';
-export type CandleStyle = 'classic' | 'solid';
 
 export interface ApiKeys {
     key: string;
@@ -35,14 +33,9 @@ export interface Settings {
     favoriteTimeframes: string[];
     syncRsiTimeframe: boolean;
 
-    // Technicals Candle Settings
-    showTechnicalsCandle: boolean;
-    technicalsCandleScaling: CandleScaling;
-    technicalsCandleStyle: CandleStyle;
-
     // ImgBB Settings
     imgbbApiKey: string;
-    imgbbExpiration: number; // 0 = default/permanent
+    imgbbExpiration: number; // 0 = never, otherwise seconds
     isDeepDiveUnlocked?: boolean; // Persist cheat code state
     imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
 
@@ -69,12 +62,6 @@ const defaultSettings: Settings = {
     },
     favoriteTimeframes: ['5m', '15m', '1h', '4h'],
     syncRsiTimeframe: true,
-
-    // Technicals Candle Defaults
-    showTechnicalsCandle: false,
-    technicalsCandleScaling: 'auto',
-    technicalsCandleStyle: 'solid',
-
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
@@ -141,11 +128,6 @@ function loadSettingsFromLocalStorage(): Settings {
             apiKeys: settings.apiKeys,
             favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
-
-            showTechnicalsCandle: settings.showTechnicalsCandle ?? defaultSettings.showTechnicalsCandle,
-            technicalsCandleScaling: settings.technicalsCandleScaling ?? defaultSettings.technicalsCandleScaling,
-            technicalsCandleStyle: settings.technicalsCandleStyle ?? defaultSettings.technicalsCandleStyle,
-
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
