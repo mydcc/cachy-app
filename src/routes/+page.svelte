@@ -36,6 +36,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
     import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
+    import SidePanel from '../components/shared/SidePanel.svelte';
     import { handleGlobalKeydown } from '../services/hotkeyService';
 
     let fileInput: HTMLInputElement;
@@ -205,6 +206,8 @@ import { trackCustomEvent } from '../services/trackingService';
 <svelte:window on:keydown={handleKeydown} />
 
 <input type="file" class="hidden" bind:this={fileInput} on:change={handleFileSelected} accept=".json,application/json" />
+
+<SidePanel />
 
 <!-- Wrapper for desktop positioning -->
 <div class="relative w-full max-w-4xl mx-auto">

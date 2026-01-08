@@ -7,10 +7,18 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.94](#v0.94)
-2.  [Version 0.92b2](#v0.92b2)
+1.  [Version 0.96](#v0.96)
+2.  [Version 0.94](#v0.94)
+3.  [Version 0.92b2](#v0.92b2)
 3.  [Version 0.92b1](#v0.92b1)
 4.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.96"></a>Version 0.96 (January 07, 2026)
+- **New:** Chat / Side Panel: A new collapsible side panel on the left for taking private notes or chatting globally (requires experimental API).
+- **New:** Enable "Side Panel" in Settings -> Sidebar. Choose between "Private Notes" (local storage only) or "Global Chat" mode.
+- **Improvement:** General stability updates.
 
 ---
 

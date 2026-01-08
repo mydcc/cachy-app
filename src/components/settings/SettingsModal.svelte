@@ -16,6 +16,10 @@
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
 
+    // Side Panel Settings
+    let enableSidePanel: boolean;
+    let sidePanelMode: 'chat' | 'notes';
+
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
     let binanceKeys: ApiKeys = { key: '', secret: '' };
@@ -74,6 +78,8 @@
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
+            enableSidePanel = $settingsStore.enableSidePanel;
+            sidePanelMode = $settingsStore.sidePanelMode;
             isPro = $settingsStore.isPro;
 
             // Deep copy keys to avoid binding issues
@@ -104,6 +110,8 @@
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
+            enableSidePanel,
+            sidePanelMode,
             imgbbApiKey,
             imgbbExpiration,
             apiKeys: {
@@ -239,229 +247,12 @@
     </div>
 
     <!-- Tab Content -->
-    <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
-
-        {#if activeTab === 'general'}
-            <div class="flex flex-col gap-4">
-                <!-- Language & Theme -->
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="flex flex-col gap-1">
-                        <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.language')}</span>
-                        <select bind:value={currentLanguage} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
-                            <option value="en">English</option>
-                            <option value="de">Deutsch</option>
-                        </select>
-                    </div>
-                    <div class="flex flex-col gap-1">
-                         <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.theme')}</span>
-                        <select bind:value={currentTheme} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
-                            {#each themes as theme, index}
-                                <option value={theme.value} disabled={!isPro && index >= 5}>{theme.label} {!isPro && index >= 5 ? '(Pro)' : ''}</option>
-                            {/each}
-                        </select>
-                    </div>
-                </div>
-
-                 <!-- UI Toggles -->
-
-                <!-- Fee Preference -->
-                <div class="flex flex-col gap-1 mt-2">
-                    <span class="text-sm font-medium">{$_('settings.feePreference')}</span>
-                    <div class="flex gap-2">
-                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                            <input type="radio" bind:group={feePreference} value="maker" class="accent-[var(--accent-color)]" />
-                            <span class="text-sm">Maker</span>
-                        </label>
-                        <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                            <input type="radio" bind:group={feePreference} value="taker" class="accent-[var(--accent-color)]" />
-                            <span class="text-sm">Taker</span>
-                        </label>
-                    </div>
-                    <p class="text-xs text-[var(--text-secondary)]">
-                        {$_('settings.feePreferenceDesc')}
-                    </p>
-                </div>
-            </div>
-
-        {:else if activeTab === 'api'}
-            <div class="flex flex-col gap-4">
-                <!-- ImgBB Settings -->
-                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
-                     <div class="flex flex-col gap-1">
-                        <label for="imgbb-key" class="text-xs">{$_('settings.imgbbApiKey')}</label>
-                        <input id="imgbb-key" type="password" bind:value={imgbbApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste ImgBB Key" />
-                    </div>
-                     <div class="flex flex-col gap-1">
-                        <label for="imgbb-exp" class="text-xs">{$_('settings.imgbbExpiration')}</label>
-                         <select id="imgbb-exp" bind:value={imgbbExpiration} class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]">
-                             <option value={0}>{$_('settings.imgbbPermanent')}</option>
-                             <option value={600}>{$_('settings.imgbb10m')}</option>
-                             <option value={3600}>{$_('settings.imgbb1h')}</option>
-                             <option value={86400}>{$_('settings.imgbb1d')}</option>
-                             <option value={604800}>{$_('settings.imgbb1w')}</option>
-                             <option value={2592000}>{$_('settings.imgbb1m')}</option>
-                        </select>
-                    </div>
-                    <p class="text-[10px] text-[var(--text-secondary)]">
-                         {$_('settings.imgbbGetKey')} <a href="https://api.imgbb.com/" target="_blank" class="text-[var(--accent-color)] hover:underline">api.imgbb.com</a>.
-                    </p>
-                </div>
-
-                <!-- Provider Selection -->
-                <div class="flex flex-col gap-1">
-                    <span class="text-sm font-medium">{$_('settings.providerLabel')}</span>
-                    <select bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="bitunix">Bitunix</option>
-                        <option value="binance">Binance Futures</option>
-                    </select>
-                </div>
-
-                <!-- API Keys (Conditional based on provider) -->
-                {#if apiProvider === 'bitunix'}
-                    <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                        <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Bitunix Credentials</h4>
-                        <div class="flex flex-col gap-1">
-                            <label for="bx-key" class="text-xs">API Key</label>
-                            <input id="bx-key" type="password" bind:value={bitunixKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label for="bx-secret" class="text-xs">Secret Key</label>
-                            <input id="bx-secret" type="password" bind:value={bitunixKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
-                        </div>
-                    </div>
-                {:else}
-                    <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                        <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Binance Credentials</h4>
-                        <div class="flex flex-col gap-1">
-                            <label for="bn-key" class="text-xs">API Key</label>
-                            <input id="bn-key" type="password" bind:value={binanceKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
-                        </div>
-                        <div class="flex flex-col gap-1">
-                            <label for="bn-secret" class="text-xs">Secret Key</label>
-                            <input id="bn-secret" type="password" bind:value={binanceKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
-                        </div>
-                    </div>
-                {/if}
-
-                <p class="text-xs text-[var(--text-secondary)] italic">
-                    {$_('settings.securityNote')}
-                </p>
-            </div>
-
-        {:else if activeTab === 'behavior'}
-            <div class="flex flex-col gap-4">
-                <div class="flex flex-col gap-1">
-                    <span class="text-sm font-medium">{$_('settings.intervalLabel')}</span>
-                    <select bind:value={marketDataInterval} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="1s">{$_('settings.interval1s')}</option>
-                        <option value="1m">{$_('settings.interval1m')}</option>
-                        <option value="10m">{$_('settings.interval10m')}</option>
-                    </select>
-                </div>
-
-                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
-                    <div class="flex flex-col">
-                        <span class="text-sm font-medium">{$_('settings.autoUpdatePrice')}</span>
-                        <span class="text-xs text-[var(--text-secondary)]">Overwrite entry price on every update tick</span>
-                    </div>
-                    <input type="checkbox" bind:checked={autoUpdatePriceInput} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
-
-                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
-                     <div class="flex flex-col">
-                        <span class="text-sm font-medium">{$_('settings.autoFetchBalance')}</span>
-                        <span class="text-xs text-[var(--text-secondary)]">Fetch wallet balance on startup</span>
-                    </div>
-                    <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
-
-                <!-- Hotkey Mode Selection -->
-                <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                     <span class="text-sm font-medium">Hotkey Profile</span>
-                     <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="mode2">Safety Mode (Alt + Key) - Default</option>
-                        <option value="mode1">Direct Mode (Fast)</option>
-                        <option value="mode3">Hybrid Mode</option>
-                     </select>
-
-                     <!-- Info Text for Hotkeys -->
-                     <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
-                        <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            {#each hotkeyDescriptions[hotkeyMode] as desc}
-                                <div class="flex justify-between">
-                                    <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
-                                    <span>{desc.action}</span>
-                                </div>
-                            {/each}
-                        </div>
-                     </div>
-                </div>
-            </div>
-
-        {:else if activeTab === 'sidebar'}
-            <div class="flex flex-col gap-4">
-                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
-                    <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
-                    <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
-
-                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
-                    <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
-                    <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
-                </label>
-
-                <!-- Position View Mode -->
-                <div class="flex flex-col gap-1">
-                    <span class="text-sm font-medium">Position View Mode</span>
-                    <select bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="detailed">Detailed (Default)</option>
-                        <option value="focus">Focus (Compact)</option>
-                    </select>
-                </div>
-            </div>
-
-        {:else if activeTab === 'system'}
-            <div class="flex flex-col gap-4">
-                 <!-- Backup -->
-                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                     <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>
-                     <p class="text-xs text-[var(--text-secondary)] mb-2">
-                         Save all your settings, presets, and journal entries to a file.
-                     </p>
-                     <button class="btn btn-secondary text-sm w-full" on:click={handleBackup} disabled={!isPro}>
-                        {$_('app.backupButtonAriaLabel')} {!isPro ? '(Pro only)' : ''}
-                     </button>
-                </div>
-
-                <!-- Restore -->
-                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                    <h4 class="text-sm font-bold">{$_('settings.restore')}</h4>
-                    <p class="text-xs text-[var(--text-secondary)] mb-2">
-                        Overwrite current data with a backup file.
-                    </p>
-                    <label class="btn btn-secondary text-sm w-full cursor-pointer text-center">
-                       {$_('app.restoreButtonAriaLabel')}
-                       <input type="file" accept=".json" class="hidden" on:change={handleRestore} />
-                    </label>
-               </div>
-
-                <!-- Reset -->
-                <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
-                     <button class="text-xs text-[var(--danger-color)] hover:underline" on:click={handleReset}>
-                         {$_('settings.reset')}
-                     </button>
-                </div>
-            </div>
-        {/if}
-
-    </div>
-
-    <!-- Footer Actions -->
-    <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
-        <button class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={close}>
-            {$_('common.ok') || 'OK'}
-        </button>
-    </div>
-</ModalFrame>
+    <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">\n' +
+    '\n' +
+    "        {#if activeTab === 'general'}\n" +
+    '            <div class="flex flex-col gap-4">\n' +
+    '                <!-- Language & Theme -->\n' +
+    '                <div class="grid grid-cols-2 gap-4">\n' +
+    '                    <div class="flex flex-col gap-1">\n' +
+    '                        <span class="text-xs font-medium text-[var'... 13968 more characters
+}

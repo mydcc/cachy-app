@@ -122,7 +122,19 @@ The Market Overview offers a quick look at current market data for the selected 
 
 ---
 
-### 7. Settings
+### 7. Chat & Notes Side Panel
+
+Cachy includes a collapsible Side Panel on the left side for enhanced productivity.
+
+*   **Activation:** Enable the "Side Panel" in **Settings -> Sidebar**.
+*   **Modes:**
+    *   **Private Notes:** A simple, persistent text area for jotting down trading ideas or strategy reminders. Saved locally in your browser.
+    *   **Global Chat:** An experimental chat feature to communicate with other users anonymously. Messages are ephemeral (stored in temporary server memory) and vanish after a server restart or when the limit (50 messages) is reached.
+*   **Usage:** Click the icon on the far left edge to expand or collapse the panel.
+
+---
+
+### 8. Settings
 
 In Settings (gear icon), you can customize Cachy to your needs.
 
