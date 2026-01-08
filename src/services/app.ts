@@ -54,8 +54,6 @@ interface CSVTradeEntry {
 let priceUpdateIntervalId: any = null;
 let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
-let lastCalculationTime = 0;
-const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per second
 
 export const app = {
     calculator: calculator,
@@ -116,13 +114,7 @@ export const app = {
                     // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
                     if (state.entryPrice !== newPrice) {
                         updateTradeStore(s => ({ ...s, entryPrice: newPrice }));
-
-                        // Throttle expensive calculations
-                        const now = Date.now();
-                        if (now - lastCalculationTime > CALCULATION_THROTTLE_MS) {
-                            app.calculateAndDisplay();
-                            lastCalculationTime = now;
-                        }
+                        app.calculateAndDisplay();
                     }
                 }
             }
@@ -701,10 +693,8 @@ export const app = {
             const processedPendingIds = new Set<string>();
 
             for (const p of pendingPositions) {
-                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}-{side}" if no ID
-                // Adding side is critical for Hedge Mode where Long/Short exist on same symbol
-                const side = (p.side || '').toUpperCase();
-                const uniqueId = `OPEN-${p.positionId || `${p.symbol}-${side}`}`;
+                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
+                const uniqueId = `OPEN-${p.positionId || p.symbol}`;
                 processedPendingIds.add(uniqueId);
                 
                 const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
