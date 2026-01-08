@@ -17,36 +17,13 @@ This document serves as a comprehensive technical manual for developers, investo
 ## Table of Contents
 
 1. [Product Philosophy & Core Values](#1-product-philosophy--core-values)
-    - User First: The "Speed of Thought" Interface
-    - Money First: Risk Management as a First-Class Citizen
-    - Community First: The Privacy Manifesto
 2. [System Architecture](#2-system-architecture)
-    - High-Level Overview
-    - Technology Stack
-    - Client-Side State Management (The Store Pattern)
-    - Backend-for-Frontend (BFF) & Proxy Layer
-    - Data Flow & Reactivity
-3. [Core Logic & Mathematics ("The Secret Sauce")](#3-core-logic--mathematics-the-secret-sauce)
-    - Precision Finance (`Decimal.js` Integration)
-    - Dynamic Risk & Position Sizing Engine
-    - PnL Normalization & Fee Structures
-    - Deep Dive Analytics: Algorithms for Trader Psychology
-4. [External Integrations & Data Feeds](#4-external-integrations--data-feeds)
-    - Exchange Connectivity (Bitunix, Binance)
-    - Hybrid Data Strategy: REST Polling vs. WebSocket Streams
-    - The "Safe Swap" Synchronization Protocol
-5. [Security & Privacy Model](#5-security--privacy-model)
-    - Local-First Data Storage
-    - API Key Handling & Proxy Security
-    - No-Database Architecture
-6. [Scalability & Future Roadmap](#6-scalability--future-roadmap)
-    - From Local-First to Sync-Enabled (Optional Cloud)
-    - Mobile Native Adaptation
-    - Institutional Features
-7. [Developer Guide](#7-developer-guide)
-    - Setup & Installation
-    - Testing Strategy
-    - Deployment Pipeline
+3. [Core Logic & Mathematics ("The Heart")](#3-core-logic--mathematics-the-heart)
+4. [The Trade Lifecycle ("The Nervous System")](#4-the-trade-lifecycle-the-nervous-system)
+5. [External Integrations & Data Feeds](#5-external-integrations--data-feeds)
+6. [Security & Privacy Model](#6-security--privacy-model)
+7. [Scalability & Future Roadmap](#7-scalability--future-roadmap)
+8. [Developer Guide](#8-developer-guide)
 
 ---
 
@@ -128,87 +105,109 @@ Located in `src/routes/api/`, this layer acts as a security gateway.
 
 *Note: While secrets travel from Client to Server, the Server is stateless and does not log or store them.*
 
-### Data Flow & Reactivity
-
-The system uses a **Hybrid Push/Pull** model:
-
-1.  **Initialization (Pull)**: On load, the app REST-polls `GET /api/sync/positions` to get the baseline state.
-2.  **Live Updates (Push)**: The app connects to `wss://fapi.bitunix.com`.
-3.  **Reactivity**:
-    ```mermaid
-    graph LR
-    WS[WebSocket Stream] -->|JSON Payload| Service[BitunixWebSocketService]
-    Service -->|Dispatch| Store[accountStore]
-    Store -->|Reactive Update ($)| UI[PositionsSidebar / Dashboard]
-    UI -->|User Action| API[API Proxy]
-    API -->|REST| Exchange[Bitunix Exchange]
-    ```
-
 ---
 
-## 3. Core Logic & Mathematics ("The Secret Sauce")
+## 3. Core Logic & Mathematics ("The Heart")
 
-The heart of Cachy is `src/lib/calculator.ts`. This library transforms raw data into actionable intelligence.
+The mathematical heart of Cachy resides in `src/lib/calculator.ts`. This library is responsible for ensuring that every dollar shown on screen is accurate to the penny, regardless of leverage or fee structures.
 
 ### Precision Finance (Decimal.js Integration)
+In traditional JavaScript, `0.1 + 0.2` equals `0.30000000000000004`. This "floating point drift" is unacceptable in finance. Cachy uses the `Decimal.js` library to treat numbers as arbitrary-precision objects.
 
-JavaScript uses 64-bit floating-point numbers (IEEE 754), which leads to notorious errors (e.g., `0.1 + 0.2 = 0.30000000000000004`). In crypto trading, where asset prices can have 8 decimal places (e.g., PEPE at $0.00000123) and leverage can amplify tiny errors into significant PnL discrepancies, standard math is unacceptable.
-
-Cachy implements **Decimal.js** for all financial calculations.
-
-**Example Implementation:**
+**The Pipeline**:
 ```typescript
-// src/lib/calculator.ts
-const entryFee = orderVolume.times(values.fees.div(100));
-const netLoss = riskAmount.plus(entryFee).plus(slExitFee);
+// Every input is converted immediately
+const risk = new Decimal(values.accountSize).times(values.riskPercentage).div(100);
+// Operations are chained methods
+const positionSize = risk.div(entry.minus(sl).abs());
 ```
-*Every arithmetic operation (addition, multiplication, division) is a method call on a Decimal object, ensuring arbitrary precision is maintained throughout the pipeline.*
 
-### Dynamic Risk & Position Sizing Engine
+### The Risk Engine: A Concrete Example
 
-Cachy reverses the traditional trading input flow. Instead of asking "How much BTC do you want to buy?", it asks "How much $ do you want to risk?".
+Most trading interfaces work forwards: *Buy 1 BTC -> What is my risk?*
+Cachy works backwards: *I want to risk $100 -> How much BTC should I buy?*
 
-**The Algorithm**:
-1.  **Calculate Risk Per Unit**: Distance between Entry Price and Stop Loss Price.
-    $$ \Delta_{price} = | P_{entry} - P_{stoploss} | $$
-2.  **Determine Position Size**:
-    $$ Qty = \frac{R_{dollars}}{\Delta_{price}} $$
-3.  **Calculate Required Margin**:
-    $$ Margin = \frac{Qty \times P_{entry}}{Leverage} $$
+**Scenario**:
+- **Account Size**: $10,000
+- **Risk per Trade**: 1% ($100)
+- **Entry Price**: $50,000
+- **Stop Loss**: $49,000 (2% distance)
 
-This ensures that if the Stop Loss is hit, the loss is *exactly* the user's pre-defined risk amount (plus fees), regardless of the asset's volatility.
+**Calculation Steps**:
+1.  **Determine Distance**:
+    $$ \Delta = | 50,000 - 49,000 | = 1,000 $$
+2.  **Calculate Quantity (Size)**:
+    $$ Qty = \frac{Risk}{\Delta} = \frac{100}{1,000} = 0.1 \text{ BTC} $$
+3.  **Validation**:
+    If price hits $49,000, loss is $0.1 \times 1,000 = \$100$. **The math holds.**
+4.  **Leverage Check**:
+    Value of position is $0.1 \times 50,000 = \$5,000$.
+    If user has 10x leverage, Margin Required = $500.
+    *The system validates that $500 < Available Balance.*
 
-### Deep Dive Analytics: Algorithms for Trader Psychology
+### Deep Dive Analytics: Trader Psychology
 
-Cachy goes beyond simple "Win Rate" metrics to analyze *how* a user trades. These metrics are generated client-side in `calculator.ts` by iterating over the `journalStore`.
+Cachy analyzes the `journalStore` to find behavioral patterns.
 
-#### 1. Timing Analysis (Chronobiology of Trading)
-*Goal: Identify if a trader performs better in the Morning vs. Night.*
-- **Method**: The system buckets all trades into 24 one-hour slots and 7 day-of-week slots.
-- **Data Points**:
-  - `hourlyNetPnl`: Accumulates PnL for each hour (0-23).
-  - `dayGrossProfit/Loss`: Separates wins and losses to see if specific days are "high variance".
-- **Insight**: "You lose 80% of your money on Fridays."
+#### 1. Chronobiological Analysis (Timing)
+*Goal: Do you trade better before lunch?*
+The system iterates through every closed trade and buckets the PnL by Hour of Day (0-23) and Day of Week (0-6).
+- **Implementation**:
+  ```typescript
+  hourlyNetPnl[date.getHours()].plus(trade.pnl);
+  ```
+- **Result**: A heat map showing "Danger Zones" (e.g., Friday Afternoons) where the trader historically loses money.
 
-#### 2. Duration Scatter Logic (Patience vs. Impulsivity)
-*Goal: Visualize the relationship between holding time and profitability.*
-- **Algorithm**:
-  - Timestamp `Start` = `entryDate` (Synced) or `date` (Manual).
-  - Timestamp `End` = `exitDate` (Manual) or `date` (Synced Close Time).
-  - $$ Duration = End - Start $$
-  - Plot points $(x, y)$ where $x = Duration$, $y = PnL$.
-- **Insight**: A cluster of losses in the <5 minute range indicates impulsive "revenge trading".
-
-#### 3. R-Multiple Distribution
-*Goal: Normalize performance across different account sizes.*
-- **Concept**: PnL in dollars is irrelevant if account size changes. PnL in "R" (Risk Units) is universal.
-- **Calculation**:
-  $$ R = \frac{PnL_{realized}}{Risk_{initial}} $$
-- **The "Holy Grail" Metric**: The system calculates `expectancy` (average R per trade). If Expectancy > 0, the strategy is mathematically profitable in the long run.
+#### 2. Impulsivity Index (Duration)
+*Goal: Are you "revenge trading"?*
+The system plots Trade Duration vs. PnL.
+- **Logic**: If a trader has a cluster of losses with duration < 2 minutes immediately following a large loss, this is flagged as impulsive behavior.
 
 ---
 
-## 4. External Integrations & Data Feeds
+## 4. The Trade Lifecycle ("The Nervous System")
+
+To understand how Cachy functions, we trace the lifecycle of a single trade from **Ideation** to **History**.
+
+### Phase 1: Ideation (The Input Layer)
+*Component: `TradeSetupInputs.svelte`*
+1.  **User Input**: User types "BTC".
+2.  **Reactive Fetch**: The component debounces the input (500ms) and calls `app.fetchAllAnalysisData()`.
+3.  **Parallel Execution**:
+    - **WebSocket**: Connects to `ticker` channel for real-time price.
+    - **REST API**: Fetches last 1440 candles (1 day) to calculate ATR (Average True Range).
+4.  **Auto-Fill**: The system uses the ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
+
+### Phase 2: Execution (The Proxy Layer)
+*Component: `TradeSetupInputs.svelte` -> `apiService.ts`*
+1.  **User Action**: Clicks "Long".
+2.  **Payload Construction**: The App bundles Entry, SL, TP, and Size into a standardized JSON.
+3.  **Proxy Call**: `POST /api/orders`.
+4.  **Signing**: The Node.js server signs the request with the user's API Secret.
+5.  **Exchange Confirmation**: Bitunix returns an Order ID.
+
+### Phase 3: Monitoring (The Store Layer)
+*Component: `PositionsSidebar.svelte`*
+1.  **Socket Event**: Bitunix sends a `ORDER_UPDATE` via WebSocket.
+2.  **Store Update**: `accountStore` receives the event. It sees status `FILLED`.
+3.  **Atomic State Change**:
+    - The "Pending Order" is removed from `openOrders`.
+    - A new "Position" is created in `positions`.
+4.  **UI Render**: The Sidebar instantly animates the new position into view.
+
+### Phase 4: Closing & Journaling (The Sync Layer)
+*Component: `app.ts` (Sync Logic)*
+1.  **Closure**: User clicks "Close" or SL is hit.
+2.  **History Fetch**: The app polls `get_history_positions`.
+3.  **The "Safe Swap"**:
+    - The system detects a Position ID in History that matches an active ID in `accountStore`.
+    - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
+    - It moves the object from `accountStore` (Active) to `journalStore` (History).
+    - It persists the new Journal Entry to `localStorage`.
+
+---
+
+## 5. External Integrations & Data Feeds
 
 Cachy aims to be exchange-agnostic but currently optimizes for **Bitunix** (primary) and **Binance** (secondary).
 
@@ -248,7 +247,7 @@ A critical challenge in syncing local state with remote API state is handling up
 
 ---
 
-## 5. Security & Privacy Model
+## 6. Security & Privacy Model
 
 Cachy operates on a **"Trust No One"** architecture.
 
@@ -270,7 +269,7 @@ By removing the database:
 
 ---
 
-## 6. Scalability & Future Roadmap
+## 7. Scalability & Future Roadmap
 
 While the current Local-First model is robust for individual traders, the roadmap includes scaling to support teams and institutional requirements.
 
@@ -290,7 +289,7 @@ While the current Local-First model is robust for individual traders, the roadma
 
 ---
 
-## 7. Developer Guide
+## 8. Developer Guide
 
 ### Setup & Installation
 ```bash
