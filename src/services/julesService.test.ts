@@ -15,7 +15,7 @@ vi.mock('../stores/settingsStore', () => ({
 vi.mock('../stores/tradeStore', () => ({
     tradeStore: {
         subscribe: (fn: any) => {
-            fn({ symbol: 'BTCUSDT', takeProfitTargets: [] });
+            fn({ symbol: 'BTCUSDT', targets: [] });
             return () => {};
         }
     }
@@ -24,7 +24,7 @@ vi.mock('../stores/tradeStore', () => ({
 vi.mock('../stores/uiStore', () => ({
     uiStore: {
         subscribe: (fn: any) => {
-            fn({ theme: 'dark' });
+            fn({ currentTheme: 'dark', showJournalModal: false, showSettingsModal: false });
             return () => {};
         }
     }
@@ -33,7 +33,7 @@ vi.mock('../stores/uiStore', () => ({
 vi.mock('../stores/accountStore', () => ({
     accountStore: {
         subscribe: (fn: any) => {
-            fn({ positions: [], openOrders: [] });
+            fn({ positions: [], openOrders: [], balance: '1000', availableBalance: '1000' });
             return () => {};
         }
     }
@@ -42,7 +42,13 @@ vi.mock('../stores/accountStore', () => ({
 vi.mock('../stores/marketStore', () => ({
     marketStore: {
         subscribe: (fn: any) => {
-            fn({ wsStatus: 'connected' });
+            fn({});
+            return () => {};
+        }
+    },
+    wsStatusStore: {
+        subscribe: (fn: any) => {
+            fn('connected');
             return () => {};
         }
     }
@@ -57,6 +63,7 @@ describe('julesService', () => {
 
         expect(snapshot.settings.apiKeys.bitunix.apiSecret).toBe('***REDACTED***');
         expect(snapshot.tradeState.symbol).toBe('BTCUSDT');
+        expect(snapshot.accountSummary.isConnected).toBe(true);
     });
 
     it('should send a report to the API', async () => {

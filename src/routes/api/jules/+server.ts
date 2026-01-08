@@ -1,15 +1,16 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
-import { JULES_API } from '$env/static/private';
+import { env } from '$env/dynamic/private';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-// Initialize Gemini
-// Note: We create the client inside the handler or globally.
-// Globally is better for reuse, but we need to ensure JULES_API is available.
-const genAI = new GoogleGenerativeAI(JULES_API || '');
+// Access env variable dynamically
+const API_KEY = env.JULES_API;
+
+// Initialize Gemini if key exists
+const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export const POST: RequestHandler = async ({ request }) => {
-    if (!JULES_API) {
+    if (!genAI) {
         console.error('JULES_API key is missing on server.');
         return json({ error: 'System configuration error: API key missing' }, { status: 500 });
     }

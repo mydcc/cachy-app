@@ -3,7 +3,7 @@ import { settingsStore } from '../stores/settingsStore';
 import { tradeStore } from '../stores/tradeStore';
 import { uiStore } from '../stores/uiStore';
 import { accountStore } from '../stores/accountStore';
-import { marketStore } from '../stores/marketStore';
+import { marketStore, wsStatusStore } from '../stores/marketStore'; // Import wsStatusStore separately
 
 interface JulesReportContext {
     settings?: any;
@@ -25,7 +25,7 @@ export const julesService = {
         const trade = get(tradeStore);
         const ui = get(uiStore);
         const account = get(accountStore);
-        const market = get(marketStore);
+        const wsStatus = get(wsStatusStore); // Get WS status from its dedicated store
 
         // Sanitize Settings (remove API Secrets)
         const safeSettings = {
@@ -33,30 +33,29 @@ export const julesService = {
             apiKeys: settings.apiKeys ? Object.fromEntries(
                 Object.entries(settings.apiKeys).map(([provider, keys]) => [
                     provider,
-                    { ...keys, apiSecret: '***REDACTED***' }
+                    { ...(keys as any), apiSecret: '***REDACTED***' }
                 ])
             ) : {}
         };
 
-        // Simplify Trade State (too large)
+        // Simplify Trade State
         const safeTradeState = {
             symbol: trade.symbol,
             entryPrice: trade.entryPrice,
             stopLossPrice: trade.stopLossPrice,
-            takeProfitTargets: trade.takeProfitTargets.length,
-            isLong: trade.isLong,
+            takeProfitTargets: trade.targets ? trade.targets.length : 0,
+            tradeType: trade.tradeType,
             leverage: trade.leverage,
             riskAmount: trade.riskAmount,
-            // Add other relevant fields, exclude massive history arrays if any
         };
 
         // Simplify Account Store
         const safeAccount = {
-            balance: account.balance,
-            availableBalance: account.availableBalance,
-            positionsCount: account.positions.length,
-            ordersCount: account.openOrders.length,
-            isConnected: market.wsStatus === 'connected' // mapping from market/ws store
+            balance: (account as any).balance,
+            availableBalance: (account as any).availableBalance,
+            positionsCount: account.positions ? account.positions.length : 0,
+            ordersCount: account.openOrders ? account.openOrders.length : 0,
+            isConnected: wsStatus === 'connected' // Use the value from wsStatusStore
         };
 
         return {
@@ -64,9 +63,8 @@ export const julesService = {
             tradeState: safeTradeState,
             accountSummary: safeAccount,
             uiState: {
-                theme: ui.theme,
-                isMobile: ui.isMobile,
-                activeModal: ui.activeModal
+                theme: ui.currentTheme,
+                activeModal: ui.showJournalModal ? 'Journal' : ui.showSettingsModal ? 'Settings' : 'None'
             },
             timestamp: new Date().toISOString(),
             userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : 'Server/Test'
@@ -80,8 +78,6 @@ export const julesService = {
         try {
             const context = this.getSystemSnapshot();
 
-            // If manual, we might want to show a loading toast here
-            // logging for now
             console.log(`[JulesService] Sending ${mode} report...`);
 
             const response = await fetch('/api/jules', {
@@ -109,7 +105,7 @@ export const julesService = {
 
         } catch (err) {
             console.error('[JulesService] Failed to report:', err);
-            return null; // Silent fail to not crash the app further
+            return null; // Silent fail
         }
     }
 };
