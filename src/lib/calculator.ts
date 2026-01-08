@@ -1065,5 +1065,121 @@ export const calculator = {
             worstHours,
             worstDays
         };
+    },
+
+    getDurationStats: (journal: JournalEntry[]) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // Buckets: <15m, 15m-1h, 1h-4h, 4h-24h, >24h
+        const buckets = [
+            { label: '< 15m', maxMs: 15 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '15m - 1h', maxMs: 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '1h - 4h', maxMs: 4 * 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '4h - 24h', maxMs: 24 * 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '> 24h', maxMs: Infinity, count: 0, win: 0, pnl: new Decimal(0) }
+        ];
+
+        closedTrades.forEach(t => {
+            let startTs = 0, endTs = 0;
+            if (t.entryDate) startTs = new Date(t.entryDate).getTime();
+            else if (t.isManual !== false) startTs = new Date(t.date).getTime();
+
+            if (t.isManual === false) endTs = new Date(t.date).getTime();
+            else if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+
+            if (startTs > 0 && endTs > 0) {
+                const duration = endTs - startTs;
+                if (duration > 0) {
+                    const bucket = buckets.find(b => duration <= b.maxMs) || buckets[buckets.length - 1];
+                    bucket.count++;
+                    const pnl = getTradePnL(t);
+                    bucket.pnl = bucket.pnl.plus(pnl);
+                    if (t.status === 'Won') bucket.win++;
+                }
+            }
+        });
+
+        const labels = buckets.map(b => b.label);
+        const pnlData = buckets.map(b => b.pnl.toNumber());
+        const winRateData = buckets.map(b => b.count > 0 ? (b.win / b.count) * 100 : 0);
+
+        return { labels, pnlData, winRateData };
+    },
+
+    getTagEvolution: (journal: JournalEntry[]) => {
+        const closedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Identify Top 5 Tags by Abs PnL
+        const tagStats = calculator.getTagData(closedTrades);
+        const topTags = tagStats.labels
+            .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i]) }))
+            .sort((a, b) => b.pnl - a.pnl)
+            .slice(0, 5)
+            .map(t => t.label);
+
+        const datasets = topTags.map(tag => {
+            let cumulative = 0;
+            const data: {x: any, y: number}[] = [];
+
+            closedTrades.forEach(t => {
+                const tags = t.tags && t.tags.length > 0 ? t.tags : ['No Tag'];
+                if (tags.includes(tag)) {
+                    cumulative += getTradePnL(t).toNumber();
+                    data.push({ x: t.date, y: cumulative });
+                }
+            });
+            return { label: tag, data };
+        });
+
+        return { datasets };
+    },
+
+    getConfluenceData: (journal: JournalEntry[]) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 7 days (rows) x 24 hours (cols)
+        // Initialize with null or 0. Using null allows empty check.
+        // We need an array of objects for easier consumption in Svelte {#each}
+        // Structure: rows: [{ day: 'Mon', hours: [ { hour: 0, pnl: 100 }, ... ] }]
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const matrix = Array.from({ length: 7 }, (_, dayIdx) => {
+            return {
+                day: days[dayIdx],
+                hours: Array.from({ length: 24 }, (_, hourIdx) => ({
+                    hour: hourIdx,
+                    pnl: new Decimal(0),
+                    count: 0
+                }))
+            };
+        });
+
+        closedTrades.forEach(t => {
+            const date = new Date(t.date);
+            if (isNaN(date.getTime())) return;
+            const day = date.getDay(); // 0-6
+            const hour = date.getHours(); // 0-23
+
+            const pnl = getTradePnL(t);
+            matrix[day].hours[hour].pnl = matrix[day].hours[hour].pnl.plus(pnl);
+            matrix[day].hours[hour].count++;
+        });
+
+        // Reorder to Mon-Sun
+        const reorderedMatrix = [
+            matrix[1], matrix[2], matrix[3], matrix[4], matrix[5], matrix[6], matrix[0]
+        ];
+
+        // Flatten numeric values for easy consumption
+        return reorderedMatrix.map(row => ({
+            day: row.day,
+            hours: row.hours.map(h => ({
+                hour: h.hour,
+                pnl: h.pnl.toNumber(),
+                count: h.count
+            }))
+        }));
     }
 };

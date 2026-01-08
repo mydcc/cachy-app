@@ -353,6 +353,25 @@
     // --- Deep Dive Data ---
     // Timing
     $: timingData = calculator.getTimingData(journal);
+    $: confluenceData = calculator.getConfluenceData(journal);
+    $: durationStats = calculator.getDurationStats(journal);
+
+    $: durationChartData = {
+        labels: durationStats.labels,
+        datasets: [{
+            label: 'PnL',
+            data: durationStats.pnlData,
+            backgroundColor: durationStats.pnlData.map(d => d >= 0 ? themeColors.success : themeColors.danger),
+            yAxisID: 'y'
+        }, {
+            label: 'Win Rate %',
+            data: durationStats.winRateData,
+            type: 'line',
+            borderColor: themeColors.accent,
+            backgroundColor: hexToRgba(themeColors.accent, 0.1),
+            yAxisID: 'y1'
+        }]
+    };
     
     // Split View for Timing (Green/Red) - SIDE BY SIDE (no stack property)
     $: hourlyPnlData = {
@@ -395,6 +414,18 @@
             data: durationDataRaw.scatterData,
             backgroundColor: durationDataRaw.scatterData.map(d => d.y >= 0 ? themeColors.success : themeColors.danger)
         }]
+    };
+
+    $: tagEvolutionData = calculator.getTagEvolution(journal);
+    $: tagEvolutionChartData = {
+        datasets: tagEvolutionData.datasets.map((ds, i) => ({
+            label: ds.label,
+            data: ds.data,
+            borderColor: [themeColors.success, themeColors.accent, themeColors.warning, themeColors.danger, themeColors.textSecondary][i % 5],
+            fill: false,
+            tension: 0.1,
+            pointRadius: 0
+        }))
     };
 
 
@@ -1243,6 +1274,44 @@
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                     <BubbleChart data={durationScatterData} title="Duration vs PnL" xLabel="Dauer (Min)" yLabel="PnL ($)" description="Verhältnis von Haltedauer zum Gewinn/Verlust. Erkennst du Muster bei kurzen vs. langen Trades?" />
                  </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
+                    <BarChart data={durationChartData} title={$_('journal.deepDive.charts.labels.durationAnalysis')} description={$_('journal.deepDive.charts.descriptions.durationPnl')}
+                        options={{ scales: { y: { type: 'linear', display: true, position: 'left' }, y1: { type: 'linear', display: true, position: 'right', grid: { drawOnChartArea: false } } } }}
+                    />
+                 </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3">
+                    <div class="text-sm font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider">{$_('journal.deepDive.charts.labels.confluence')}</div>
+                    <div class="grid grid-cols-[auto_repeat(24,1fr)] gap-1 text-[10px] overflow-x-auto pb-2">
+                        <!-- Header Row (Hours) -->
+                        <div class="h-6"></div>
+                        {#each Array(24) as _, i}
+                            <div class="text-center text-[var(--text-secondary)]">{i}</div>
+                        {/each}
+
+                        <!-- Data Rows (Days) -->
+                        {#each confluenceData as row}
+                            <div class="font-bold text-[var(--text-primary)] pr-2 flex items-center h-8">{row.day}</div>
+                            {#each row.hours as cell}
+                                <div class="h-8 rounded w-full flex items-center justify-center relative group"
+                                     style="background-color: {cell.pnl > 0 ? `rgba(var(--success-rgb), ${Math.min(cell.pnl/100, 1)})` : cell.pnl < 0 ? `rgba(var(--danger-rgb), ${Math.min(Math.abs(cell.pnl)/100, 1)})` : 'var(--bg-tertiary)'};
+                                            border: 1px solid {cell.count > 0 ? 'transparent' : 'var(--border-color)'}">
+                                    {#if cell.count > 0}
+                                        <span class="text-[9px] font-mono {Math.abs(cell.pnl) > 50 ? 'text-white font-bold' : 'text-[var(--text-primary)]'}">
+                                            {cell.count}
+                                        </span>
+                                        <!-- Tooltip -->
+                                        <div class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 bg-black text-white p-2 rounded text-xs whitespace-nowrap shadow-lg pointer-events-none">
+                                            <div class="font-bold">{row.day} {cell.hour}:00</div>
+                                            <div class="{cell.pnl >= 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">PnL: {cell.pnl.toFixed(2)}</div>
+                                            <div>Trades: {cell.count}</div>
+                                        </div>
+                                    {/if}
+                                </div>
+                            {/each}
+                        {/each}
+                    </div>
+                    <div class="text-xs text-[var(--text-secondary)] mt-1">{$_('journal.deepDive.charts.descriptions.confluenceMatrix')}</div>
+                 </div>
             {:else if activeDeepDivePreset === 'assets'}
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
                     <BubbleChart data={assetBubbleData} title={$_('journal.deepDive.charts.assetBubble')} xLabel="Win Rate (%)" yLabel="Total PnL ($)" description="Asset-Matrix: Oben rechts sind deine besten Coins (hohe Winrate, viel Gewinn). Größe der Blase = Anzahl Trades." />
@@ -1283,6 +1352,9 @@
                      <LineChart data={drawdownData} title={$_('journal.deepDive.charts.recovery')} yLabel="Drawdown ($)" description="Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst." />
                 </div>
             {:else if activeDeepDivePreset === 'strategies'}
+                <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3">
+                    <LineChart data={tagEvolutionChartData} title="Strategy Evolution" description={$_('journal.deepDive.charts.descriptions.tagEvolution')} />
+                </div>
                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2">
                     <BarChart data={tagPnlData} title={$_('journal.deepDive.charts.tagPerformance')} />
                 </div>
