@@ -709,60 +709,50 @@
                 <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between relative">
-                <!-- Top Area: Layered Layout -->
-                <div class="relative flex-1 min-h-[160px] w-full">
-
-                    <!-- Tooltip (Bottom Left of Chart Area) -->
-                    <div class="absolute bottom-1 left-1 z-30">
-                        <Tooltip
-                            text="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
-                            alignment="left"
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between overflow-hidden">
+                <!-- Top Row: Chart (Left) + Stats (Right) -->
+                <div class="flex flex-row items-center justify-between gap-4 flex-1">
+                    <!-- Left: Chart -->
+                    <div class="h-24 w-24 relative flex-shrink-0">
+                        <DoughnutChart
+                            data={winLossChartData}
+                            title=""
+                            description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
+                            options={{ plugins: { legend: { display: false } } }}
                         />
-                    </div>
-
-                    <!-- Layer 0: Chart (Centered & Larger) -->
-                    <div class="absolute inset-0 flex items-center justify-center z-0">
-                        <div class="h-44 w-44 relative">
-                            <DoughnutChart
-                                data={winLossChartData}
-                                title=""
-                                options={{ plugins: { legend: { display: false } } }}
-                            />
-                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                <div class="text-center">
-                                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight">Win Rate</div>
-                                    <div class="text-sm font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
-                                </div>
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <div class="text-center">
+                                <div class="text-[9px] text-[var(--text-secondary)] leading-tight">Win Rate</div>
+                                <div class="text-xs font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- Layer 1: Stats (Right Aligned & Overlaid) -->
-                    <div class="absolute inset-y-0 right-0 flex flex-col justify-center items-end gap-2 text-sm z-10 pointer-events-none">
-                        <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Profit Factor</span>
-                            <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
+                    <!-- Right: Stats (Vertical Column) -->
+                    <div class="flex flex-col gap-2 text-sm flex-1 items-end text-right">
+                        <div class="flex flex-col">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Profit Factor</span>
+                            <span class="font-mono font-bold {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
                                 {qualData.detailedStats.profitFactor.toFixed(2)}
                             </span>
                         </div>
-                        <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Expectancy</span>
-                            <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                        <div class="flex flex-col">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Expectancy</span>
+                            <span class="font-mono font-bold {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
                                 ${qualData.detailedStats.expectancy.toFixed(2)}
                             </span>
                         </div>
-                        <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Avg Win / Loss</span>
-                            <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
+                        <div class="flex flex-col">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Avg Win / Loss</span>
+                            <div class="flex items-baseline justify-end gap-1">
                                 <span class="font-bold text-[var(--success-color)]">${qualData.detailedStats.avgWin.toFixed(2)}</span>
                                 <span class="text-[var(--text-secondary)]">/</span>
                                 <span class="font-bold text-[var(--danger-color)]">${qualData.detailedStats.avgLoss.toFixed(2)}</span>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Win Rate L/S</span>
-                            <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
+                        <div class="flex flex-col">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Win Rate L/S</span>
+                            <div class="flex items-baseline justify-end gap-1">
                                 <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 1)}">L: {qualData.detailedStats.winRateLong.toFixed(0)}%</span>
                                 <span class="text-[var(--text-secondary)]">|</span>
                                 <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 0.6)}">S: {qualData.detailedStats.winRateShort.toFixed(0)}%</span>
@@ -771,8 +761,8 @@
                     </div>
                 </div>
 
-                <!-- Bottom Row: Legend (Full Width, Z-20 to sit above chart if needed) -->
-                <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 pt-2 border-t border-[var(--border-color)] w-full relative z-20 bg-[var(--bg-secondary)]">
+                <!-- Bottom Row: Legend (Full Width) -->
+                <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-3 pt-2 border-t border-[var(--border-color)] w-full">
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
                         <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>Win Long
                     </div>
