@@ -2,6 +2,7 @@
     import { onMount, onDestroy } from "svelte";
     import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
+    import { indicatorStore } from "../../stores/indicatorStore";
     import { marketStore } from "../../stores/marketStore";
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
@@ -26,6 +27,7 @@
     $: symbol = $tradeStore.symbol;
     $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
+    $: indicatorSettings = $indicatorStore;
 
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
@@ -46,6 +48,11 @@
     } else if (!showPanel) {
         unsubscribeWs();
         currentSubscription = null;
+    }
+
+    // Re-calculate when settings change (without re-fetching)
+    $: if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
+        data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
     }
 
     function subscribeWs() {
@@ -96,8 +103,8 @@
             volume: newKline.volume
         };
 
-        // Re-calculate technicals
-        data = technicalsService.calculateTechnicals(klinesHistory);
+        // Re-calculate technicals with settings
+        data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
     }
 
     async function fetchData(silent = false) {
@@ -109,7 +116,7 @@
             // Fetch history
             const klines = await apiService.fetchBitunixKlines(symbol, timeframe, 250);
             klinesHistory = klines;
-            data = technicalsService.calculateTechnicals(klinesHistory);
+            data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
         } catch (e) {
             console.error("Technicals fetch error:", e);
             error = "Failed to load";

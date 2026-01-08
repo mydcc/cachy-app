@@ -10,6 +10,24 @@ export interface IndicatorSettings {
         signalLength: number;
         defaultTimeframe: string; // Used if sync is disabled
     };
+    macd: {
+        fastLength: number;
+        slowLength: number;
+        signalLength: number;
+        source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
+    };
+    stochastic: {
+        kPeriod: number;
+        dPeriod: number;
+    };
+    ema: {
+        ema1Length: number;
+        ema2Length: number;
+        ema3Length: number;
+    };
+    pivots: {
+        type: 'classic' | 'woodie' | 'camarilla' | 'fibonacci';
+    };
 }
 
 const defaultSettings: IndicatorSettings = {
@@ -20,6 +38,24 @@ const defaultSettings: IndicatorSettings = {
         signalType: 'sma',
         signalLength: 14,
         defaultTimeframe: '1d'
+    },
+    macd: {
+        fastLength: 12,
+        slowLength: 26,
+        signalLength: 9,
+        source: 'close'
+    },
+    stochastic: {
+        kPeriod: 14,
+        dPeriod: 3
+    },
+    ema: {
+        ema1Length: 20,
+        ema2Length: 50,
+        ema3Length: 200
+    },
+    pivots: {
+        type: 'classic'
     }
 };
 
@@ -27,7 +63,23 @@ const STORE_KEY = 'cachy_indicator_settings';
 
 function createIndicatorStore() {
     const stored = browser ? localStorage.getItem(STORE_KEY) : null;
-    const initial: IndicatorSettings = stored ? JSON.parse(stored) : defaultSettings;
+
+    // Merge stored settings with defaults to ensure new keys exist
+    let initial: IndicatorSettings = defaultSettings;
+    if (stored) {
+        try {
+            const parsed = JSON.parse(stored);
+            initial = {
+                rsi: { ...defaultSettings.rsi, ...parsed.rsi },
+                macd: { ...defaultSettings.macd, ...parsed.macd },
+                stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },
+                ema: { ...defaultSettings.ema, ...parsed.ema },
+                pivots: { ...defaultSettings.pivots, ...parsed.pivots }
+            };
+        } catch (e) {
+            console.error("Failed to parse indicator settings", e);
+        }
+    }
 
     const { subscribe, set, update } = writable<IndicatorSettings>(initial);
 
