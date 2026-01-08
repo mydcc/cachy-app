@@ -621,7 +621,7 @@
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center items-center relative">
                  <!-- Stats KPI Tile -->
-                 <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
+                 <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
                      <Tooltip text="Prozentsatz der Gewinn-Trades im Verhältnis zur Gesamtzahl." />
                  </div>
                 <div class="text-center w-full mb-4">
