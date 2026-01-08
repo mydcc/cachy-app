@@ -170,7 +170,7 @@
                 on:click={toggleTimeframePopup}
             >
                 Technicals
-                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors">
                     {timeframe}
                 </span>
             </button>
@@ -179,15 +179,15 @@
                 <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
                     <!-- Row 1 -->
                     <div class="grid grid-cols-3 gap-1">
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1m')}>1m</button>
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('5m')}>5m</button>
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('15m')}>15m</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('1m')}>1m</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('5m')}>5m</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('15m')}>15m</button>
                     </div>
                     <!-- Row 2 -->
                     <div class="grid grid-cols-3 gap-1">
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1h')}>1h</button>
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('4h')}>4h</button>
-                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded" on:click={() => setTimeframe('1d')}>1d</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('1h')}>1h</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('4h')}>4h</button>
+                        <button class="btn-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded" on:click={() => setTimeframe('1d')}>1d</button>
                     </div>
                     <!-- Row 3 Custom -->
                     <div class="flex gap-1">
@@ -198,7 +198,7 @@
                             bind:value={customTimeframeInput}
                             on:keydown={(e) => e.key === 'Enter' && handleCustomTimeframeSubmit()}
                         />
-                        <button class="px-2 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded text-xs" on:click={handleCustomTimeframeSubmit}>OK</button>
+                        <button class="px-2 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-xs" on:click={handleCustomTimeframeSubmit}>OK</button>
                     </div>
                 </div>
             {/if}
