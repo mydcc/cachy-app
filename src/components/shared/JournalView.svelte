@@ -734,30 +734,30 @@
                 <BarChart data={monthlyData} title={$_('journal.deepDive.charts.titles.monthlyPnl')} description={$_('journal.deepDive.charts.descriptions.monthlyPnl')} />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between">
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col relative">
 
-                <!-- Header: Win Rate (Top Left) -->
-                <div class="flex flex-col items-start absolute top-4 left-4 z-10">
-                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight uppercase tracking-wider">{$_('journal.deepDive.charts.titles.winRate')}</div>
+                <!-- Title: Centered Top (Simulating Chart.js Title) -->
+                <div class="w-full text-center mb-2">
+                    <span class="text-xs font-bold text-[#94a3b8] uppercase">{$_('journal.deepDive.charts.titles.winRate')}</span>
                 </div>
 
-                <!-- Main Content: Flex Row (Chart Center-Left, Stats Right) -->
-                <div class="flex flex-row items-center w-full flex-1 relative">
+                <!-- Main Content: Chart & Stats -->
+                <div class="flex flex-row items-center justify-between flex-1 w-full relative">
 
-                    <!-- Center: Chart (Takes available space) -->
-                    <div class="flex-1 flex items-center justify-center h-full min-h-[160px]">
+                    <!-- Chart: Centered in remaining space -->
+                    <div class="flex-1 flex items-center justify-center h-full relative">
                         <div class="h-44 w-44">
                             <DoughnutChart
                                 data={winLossChartData}
                                 title=""
-                                description={$_('journal.deepDive.charts.descriptions.winLoss')}
+                                description=""
                                 options={{ plugins: { legend: { display: false } } }}
                             />
                         </div>
                     </div>
 
-                    <!-- Right: Statistics List (Fixed width/content) -->
-                    <div class="flex flex-col justify-center items-end gap-3 text-sm pl-4 border-l border-[var(--border-color)]">
+                    <!-- Stats: Right aligned -->
+                    <div class="flex flex-col justify-center items-end gap-3 text-sm min-w-[100px]">
                          <div class="flex flex-col items-end">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Total Win Rate</span>
                             <span class="font-mono font-bold {qualData.stats.winRate >= 50 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
@@ -793,6 +793,11 @@
                             </div>
                         </div>
                     </div>
+                </div>
+
+                <!-- Tooltip Icon: Absolute Bottom Left of Tile -->
+                <div class="absolute bottom-[-10px] left-[-10px]">
+                    <Tooltip text={$_('journal.deepDive.charts.descriptions.winLoss')} />
                 </div>
 
                 <!-- Bottom Row: Legend -->
