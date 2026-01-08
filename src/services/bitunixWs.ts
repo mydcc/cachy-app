@@ -8,8 +8,8 @@ import CryptoJS from 'crypto-js';
 const WS_PUBLIC_URL = CONSTANTS.BITUNIX_WS_PUBLIC_URL || 'wss://fapi.bitunix.com/public/';
 const WS_PRIVATE_URL = CONSTANTS.BITUNIX_WS_PRIVATE_URL || 'wss://fapi.bitunix.com/private/';
 
-const PING_INTERVAL = 15000; // 15 seconds
-const WATCHDOG_TIMEOUT = 30000; // 30 seconds (increased to avoid false disconnects)
+const PING_INTERVAL = 5000; // 5 seconds (more aggressive ping)
+const WATCHDOG_TIMEOUT = 10000; // 10 seconds (detect silent disconnects faster)
 const RECONNECT_DELAY = 3000; // 3 seconds
 
 interface Subscription {
@@ -37,7 +37,22 @@ class BitunixWebSocketService {
     
     private isAuthenticated = false;
 
-    constructor() {}
+    constructor() {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('online', () => {
+                console.log('Browser online detected. Reconnecting WebSockets...');
+                this.connect();
+            });
+            window.addEventListener('offline', () => {
+                console.warn('Browser offline detected. Terminating WebSockets...');
+                wsStatusStore.set('disconnected');
+                this.cleanup('public');
+                this.cleanup('private');
+                if (this.wsPublic) this.wsPublic.close();
+                if (this.wsPrivate) this.wsPrivate.close();
+            });
+        }
+    }
 
     connect() {
         this.connectPublic();
@@ -334,6 +349,19 @@ class BitunixWebSocketService {
                         asks: data.a
                     });
                 }
+            } else if (message.ch && (message.ch.startsWith('market_kline_') || message.ch === 'mark_kline_1day')) {
+                // Handle both generic kline channels and the specific mark_kline_1day
+                const symbol = message.symbol;
+                const data = message.data;
+                if (symbol && data) {
+                    marketStore.updateKline(symbol, {
+                        o: data.o,
+                        h: data.h,
+                        l: data.l,
+                        c: data.c,
+                        b: data.b || data.v // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                    });
+                }
             }
 
             // Private Channels
@@ -370,7 +398,7 @@ class BitunixWebSocketService {
         }
     }
 
-    subscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
+    subscribe(symbol: string, channel: string) {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
@@ -386,7 +414,7 @@ class BitunixWebSocketService {
         }
     }
 
-    unsubscribe(symbol: string, channel: 'price' | 'depth_book5' | 'ticker') {
+    unsubscribe(symbol: string, channel: string) {
         const normalizedSymbol = symbol.toUpperCase();
         const subKey = `${channel}:${normalizedSymbol}`;
         

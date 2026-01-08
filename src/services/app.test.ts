@@ -30,6 +30,8 @@ describe('app service - adjustTpPercentages (Prioritized Logic)', () => {
     beforeEach(() => {
         // Deep copy and set initial state for each test to ensure isolation
         const state: AppState = JSON.parse(JSON.stringify(initialTradeState));
+        // Ensure analysisTimeframe is present
+        state.analysisTimeframe = '1h';
         tradeStore.set(state);
         // Set up a standard 3-target scenario
         updateTradeStore(state => ({
@@ -47,7 +49,7 @@ describe('app service - adjustTpPercentages (Prioritized Logic)', () => {
         // User decreases TP2 from 30 to 20. Surplus of 10 is distributed
         // between the other unlocked targets (TP1 and TP3).
         const currentTargets = get(tradeStore).targets;
-        currentTargets[1].percent = 20;
+        if (currentTargets[1]) currentTargets[1].percent = 20;
         updateTradeStore(s => ({...s, targets: currentTargets}));
         app.adjustTpPercentages(1);
 
@@ -236,6 +238,14 @@ describe('app service - ATR and Locking Logic', () => {
             high: new Decimal(102 + i * 0.1),
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),
+            open: new Decimal(100),
+            volume: new Decimal(1000),
+            klineOpenTime: 0,
+            klineCloseTime: 0,
+            quoteAssetVolume: new Decimal(1000),
+            trades: 10,
+            takerBuyBaseAssetVolume: new Decimal(500),
+            takerBuyQuoteAssetVolume: new Decimal(500)
         }));
         
         // Since apiService methods are mocked via factory, we should just assign the mock implementation

@@ -200,11 +200,19 @@
     // Quality Data
     $: qualData = calculator.getQualityData(journal);
     $: winLossChartData = {
-        labels: ['Win', 'Loss'],
+        labels: ['Win Long', 'Win Short', 'Loss Long', 'Loss Short', 'BE Long', 'BE Short'],
         datasets: [{
-            data: qualData.winLossData,
-            backgroundColor: [themeColors.success, themeColors.danger],
-            borderWidth: 0
+            data: qualData.sixSegmentData,
+            backgroundColor: [
+                hexToRgba(themeColors.success, 1),
+                hexToRgba(themeColors.success, 0.5),
+                hexToRgba(themeColors.danger, 1),
+                hexToRgba(themeColors.danger, 0.5),
+                hexToRgba(themeColors.warning, 1),
+                hexToRgba(themeColors.warning, 0.5)
+            ],
+            borderWidth: 0,
+            hoverOffset: 4
         }]
     };
     $: rDistData = {
@@ -434,29 +442,29 @@
     let expandedGroups: {[key: string]: boolean} = {};
 
     // --- Table Logic ---
-    function sortTrades(trades: any[]) {
+    function sortTrades(trades: any[], field: string, direction: 'asc' | 'desc') {
         return [...trades].sort((a, b) => {
-            let valA = a[sortField];
-            let valB = b[sortField];
+            let valA = a[field];
+            let valB = b[field];
 
             // Handle Decimals
             if (valA instanceof Decimal) valA = valA.toNumber();
             if (valB instanceof Decimal) valB = valB.toNumber();
 
             // Handle Dates
-            if (sortField === 'date') {
+            if (field === 'date') {
                 valA = new Date(valA).getTime();
                 valB = new Date(valB).getTime();
             }
 
             // String comparison
             if (typeof valA === 'string' && typeof valB === 'string') {
-                return sortDirection === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
+                return direction === 'asc' ? valA.localeCompare(valB) : valB.localeCompare(valA);
             }
 
             // Number comparison
-            if (valA < valB) return sortDirection === 'asc' ? -1 : 1;
-            if (valA > valB) return sortDirection === 'asc' ? 1 : -1;
+            if (valA < valB) return direction === 'asc' ? -1 : 1;
+            if (valA > valB) return direction === 'asc' ? 1 : -1;
             return 0;
         });
     }
@@ -466,8 +474,13 @@
     $: journalFilterStatus = $tradeStore.journalFilterStatus;
 
     $: processedTrades = $journalStore.filter(trade => {
-        // Text Search
-        const matchesSearch = trade.symbol.toLowerCase().includes(journalSearchQuery.toLowerCase());
+        // Text Search (Symbol, Notes, Tags)
+        const query = journalSearchQuery.toLowerCase();
+        const matchesSearch =
+            trade.symbol.toLowerCase().includes(query) ||
+            (trade.notes && trade.notes.toLowerCase().includes(query)) ||
+            (trade.tags && trade.tags.some(t => t.toLowerCase().includes(query)));
+
         // Status Filter
         const matchesStatus = journalFilterStatus === 'all' || trade.status === journalFilterStatus;
         // Date Filter
@@ -483,7 +496,7 @@
         return matchesSearch && matchesStatus && matchesDate;
     });
 
-    $: sortedTrades = sortTrades(processedTrades);
+    $: sortedTrades = sortTrades(processedTrades, sortField, sortDirection);
 
     // Grouping Logic
     $: groupedTrades = groupBySymbol ? Object.entries(calculator.calculateSymbolPerformance(processedTrades)).map(([symbol, data]) => ({
@@ -696,17 +709,81 @@
                 <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center items-center relative">
-                 <!-- Stats KPI Tile -->
-                 <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
-                     <Tooltip text="Prozentsatz der Gewinn-Trades im Verhältnis zur Gesamtzahl." />
-                 </div>
-                <div class="text-center w-full mb-4">
-                    <div class="text-sm text-[var(--text-secondary)]">Win Rate</div>
-                    <div class="text-3xl font-bold text-[var(--accent-color)]">{qualData.stats.winRate.toFixed(1)}%</div>
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between overflow-hidden relative">
+                <!-- Top Area: Layered Layout -->
+                <div class="relative flex-1 min-h-[160px] w-full">
+
+                    <!-- Layer 0: Chart (Centered & Larger) -->
+                    <div class="absolute inset-0 flex items-center justify-center z-0">
+                        <div class="h-44 w-44 relative">
+                            <DoughnutChart
+                                data={winLossChartData}
+                                title=""
+                                description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
+                                options={{ plugins: { legend: { display: false } } }}
+                            />
+                            <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                <div class="text-center">
+                                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight">Win Rate</div>
+                                    <div class="text-sm font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Layer 1: Stats (Right Aligned & Overlaid) -->
+                    <div class="absolute inset-y-0 right-0 flex flex-col justify-center items-end gap-2 text-sm z-10 pointer-events-none">
+                        <div class="flex flex-col items-end pointer-events-auto">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Profit Factor</span>
+                            <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
+                                {qualData.detailedStats.profitFactor.toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-end pointer-events-auto">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Expectancy</span>
+                            <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                                ${qualData.detailedStats.expectancy.toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="flex flex-col items-end pointer-events-auto">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Avg Win / Loss</span>
+                            <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
+                                <span class="font-bold text-[var(--success-color)]">${qualData.detailedStats.avgWin.toFixed(2)}</span>
+                                <span class="text-[var(--text-secondary)]">/</span>
+                                <span class="font-bold text-[var(--danger-color)]">${qualData.detailedStats.avgLoss.toFixed(2)}</span>
+                            </div>
+                        </div>
+                        <div class="flex flex-col items-end pointer-events-auto">
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Win Rate L/S</span>
+                            <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
+                                <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 1)}">L: {qualData.detailedStats.winRateLong.toFixed(0)}%</span>
+                                <span class="text-[var(--text-secondary)]">|</span>
+                                <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 0.6)}">S: {qualData.detailedStats.winRateShort.toFixed(0)}%</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div class="h-32 w-full">
-                     <DoughnutChart data={winLossChartData} title="" description="Verteilung der gewonnenen vs. verlorenen Trades." />
+
+                <!-- Bottom Row: Legend (Full Width, Z-20 to sit above chart if needed) -->
+                <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 pt-2 border-t border-[var(--border-color)] w-full relative z-20 bg-[var(--bg-secondary)]">
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>Win Long
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 0.5)}"></span>Win Short
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 1)}"></span>Loss Long
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 0.5)}"></span>Loss Short
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 1)}"></span>BE Long
+                    </div>
+                    <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 0.5)}"></span>BE Short
+                    </div>
                 </div>
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
@@ -826,13 +903,13 @@
                         <tr>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>Date {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>Symbol {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Type</th>
-                            <th>Entry</th>
-                            <th>SL</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>Type {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>Entry {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>SL {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Funding</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>Funding {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Status</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>Status {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>Screenshot</th>
                             <th>Tags</th>
                             <th>Notes</th>
@@ -841,8 +918,9 @@
                     </thead>
                     <tbody>
                         {#each paginatedTrades as trade}
+                            {@const tradeDate = new Date(trade.date)}
                             <tr>
-                                <td>{new Date(trade.date).toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'})}</td>
+                                <td>{tradeDate.getFullYear() > 1970 ? tradeDate.toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
                                 <td>{trade.symbol || '-'}</td>
                                 <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
                                 <td>{trade.entryPrice.toFixed(4)}</td>

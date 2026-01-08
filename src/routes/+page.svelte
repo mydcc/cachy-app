@@ -35,6 +35,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
+    import TechnicalsPanel from '../components/shared/TechnicalsPanel.svelte'; // Import TechnicalsPanel
     import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
     import SidePanel from '../components/shared/SidePanel.svelte';
     import { handleGlobalKeydown } from '../services/hotkeyService';
@@ -42,6 +43,7 @@ import { trackCustomEvent } from '../services/trackingService';
     let fileInput: HTMLInputElement;
     let changelogContent = '';
     let guideContent = '';
+    let privacyContent = '';
 
     // Initialisierung der App-Logik, sobald die Komponente gemountet ist
     onMount(() => {
@@ -62,10 +64,18 @@ import { trackCustomEvent } from '../services/trackingService';
         });
     }
 
+    // Load privacy content when modal is opened
+    $: if ($uiStore.showPrivacyModal && privacyContent === '') {
+        loadInstruction('privacy').then(content => {
+            privacyContent = content.html;
+        });
+    }
+
     // Reset content when locale changes to force refetch
     $: if ($locale) {
         guideContent = '';
         changelogContent = '';
+        privacyContent = '';
     }
 
     // Reactive statement to trigger app.calculateAndDisplay() when relevant inputs change
@@ -148,6 +158,7 @@ import { trackCustomEvent } from '../services/trackingService';
             event.preventDefault();
             if ($uiStore.showJournalModal) uiStore.toggleJournalModal(false);
             if ($uiStore.showGuideModal) uiStore.toggleGuideModal(false);
+            if ($uiStore.showPrivacyModal) uiStore.togglePrivacyModal(false);
             if ($uiStore.showChangelogModal) uiStore.toggleChangelogModal(false);
             if (get(modalManager).isOpen) modalManager._handleModalConfirm(false);
             return;
@@ -201,6 +212,11 @@ import { trackCustomEvent } from '../services/trackingService';
 
         trackCustomEvent('Backup', 'Click', 'RestoreBackup');
     }
+
+    let isTechnicalsVisible = false;
+    function toggleTechnicals() {
+        isTechnicalsVisible = !isTechnicalsVisible;
+    }
 </script>
 
 <svelte:window on:keydown={handleKeydown} />
@@ -214,14 +230,25 @@ import { trackCustomEvent } from '../services/trackingService';
 
     {#if $settingsStore.showSidebars}
         <!-- Left Sidebar: Positions Table -->
-        <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3">
+        <div class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3 z-50">
             <PositionsSidebar />
         </div>
 
         <!-- Right Sidebar: Stacked tiles -->
-        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3">
+        <div class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300">
             <!-- Main current symbol -->
-            <MarketOverview />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
+
+            <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
+            {#if $settingsStore.showTechnicals}
+                <div class="absolute top-0 left-full ml-8 w-64 transition-all duration-300 transform origin-left z-40"
+                     class:scale-0={!isTechnicalsVisible}
+                     class:scale-100={isTechnicalsVisible}
+                     class:opacity-0={!isTechnicalsVisible}
+                     class:opacity-100={isTechnicalsVisible}>
+                    <TechnicalsPanel isVisible={isTechnicalsVisible} />
+                </div>
+            {/if}
 
             <!-- Favorites list -->
             {#if $favoritesStore.length > 0}
@@ -396,8 +423,12 @@ import { trackCustomEvent } from '../services/trackingService';
             <!-- Add PositionsSidebar for Mobile -->
             <PositionsSidebar />
 
-            <MarketOverview />
+            <MarketOverview onToggleTechnicals={toggleTechnicals} isTechnicalsVisible={isTechnicalsVisible} />
             
+            {#if $settingsStore.showTechnicals && isTechnicalsVisible}
+                <TechnicalsPanel isVisible={isTechnicalsVisible} />
+            {/if}
+
             {#if $favoritesStore.length > 0}
                 <div class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1">{$_('dashboard.favorites') || 'Favorites'}</div>
                 {#each $favoritesStore as fav (fav)}
@@ -415,6 +446,7 @@ import { trackCustomEvent } from '../services/trackingService';
     <span>Version {import.meta.env.VITE_APP_VERSION}</span>
     <button class="text-link" on:click={() => uiStore.toggleGuideModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowGuide' }}>{$_('app.guideButton')}</button>
     <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>Changelog</button>
+    <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>Privacy & Legal</button>
     <button class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}" on:click={() => $settingsStore.isPro = !$settingsStore.isPro}>
         {$settingsStore.isPro ? 'Pro Active' : 'Pro'}
     </button>
@@ -445,5 +477,16 @@ import { trackCustomEvent } from '../services/trackingService';
 >
     <div id="guide-content" class="prose dark:prose-invert">
         {@html guideContent}
+    </div>
+</ModalFrame>
+
+<ModalFrame
+    isOpen={$uiStore.showPrivacyModal}
+    title="Privacy & Legal"
+    on:close={() => uiStore.togglePrivacyModal(false)}
+    extraClasses="modal-size-instructions"
+>
+    <div id="privacy-content" class="prose dark:prose-invert">
+        {@html privacyContent}
     </div>
 </ModalFrame>

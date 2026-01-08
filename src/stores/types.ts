@@ -63,6 +63,7 @@ export interface AppState {
     useAtrSl: boolean;
     atrMode: 'manual' | 'auto';
     atrTimeframe: string;
+    analysisTimeframe: string; // Separate timeframe for Analysis/Technicals
     tradeNotes: string;
     tags: string[];
     targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
@@ -122,6 +123,7 @@ export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics
 export interface JournalEntry {
     id: number;
     date: string;
+    entryDate?: string; // For duration calculation
     exitDate?: string; // New field for duration calculation
     symbol: string;
     tradeType: string;
@@ -148,4 +150,5 @@ export interface JournalEntry {
     realizedPnl?: Decimal;
     isManual?: boolean;
     tags?: string[];
+    screenshot?: string;
 }
