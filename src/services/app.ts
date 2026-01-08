@@ -711,7 +711,7 @@ export const app = {
                      stopLoss = candidates[candidates.length - 1].slPrice;
                 }
 
-                // Robust date parsing using new helper
+                // Parse creation time
                 let dateTs = parseTimestamp(p.ctime);
                 if (dateTs <= 0) dateTs = Date.now();
 
@@ -813,7 +813,7 @@ export const app = {
                     }
                 }
 
-                // Robust date parsing for Close Time using helper
+                // Parse close time
                 let closeTime = parseTimestamp(p.mtime || p.ctime);
                 if (closeTime <= 0) closeTime = Date.now();
 
