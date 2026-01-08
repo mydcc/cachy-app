@@ -536,10 +536,10 @@
             <div class="flex flex-col gap-4 overflow-x-hidden" role="tabpanel" id="tab-indicators">
                 <!-- Two Column Grid for Indicators -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    
+
                     <!-- Left Column -->
                     <div class="flex flex-col gap-4">
-                        
+
                          <!-- History Limit Settings -->
                         <div class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]">
                             <div class="flex justify-between items-center">
@@ -751,7 +751,7 @@
 
                     <!-- Right Column -->
                     <div class="flex flex-col gap-4">
-                        
+
                         <!-- Stochastic Settings -->
                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
