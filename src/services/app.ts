@@ -782,7 +782,6 @@ export const app = {
 
                 // Find SL
                 let stopLoss = new Decimal(0);
-                // FIX: Robust time parsing implemented
                 const posTime = parseTimestamp(p.ctime);
 
                 const candidates = symbolSlMap[p.symbol];
