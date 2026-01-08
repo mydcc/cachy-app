@@ -875,7 +875,7 @@
                     <div class="flex flex-col justify-center items-end gap-3 text-sm min-w-[100px]">
                          <div class="flex flex-col items-end">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Total Win Rate</span>
-                            <span class="font-mono font-bold {qualData.stats.winRate >= 50 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                            <span class="font-mono font-bold {qualData.stats.winRate.gte(50) ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
                                 {qualData.stats.winRate.toFixed(2)}%
                             </span>
                         </div>
