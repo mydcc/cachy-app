@@ -30,19 +30,6 @@ export const POST: RequestHandler = async ({ request }) => {
                     reduceOnly: true
                 };
                 result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
-            } else if (type === 'modify-order') {
-                // Atomic-ish Cancel & Replace
-                const { orderId, newOrder } = body;
-                if (!orderId || !newOrder) throw new Error("Missing orderId or newOrder data for modification");
-
-                // 1. Cancel
-                await cancelBitunixOrder(apiKey, apiSecret, {
-                    symbol: newOrder.symbol,
-                    orderId: orderId
-                });
-
-                // 2. Place new
-                result = await placeBitunixOrder(apiKey, apiSecret, newOrder);
             }
         } else if (exchange === 'binance') {
              result = { orders: [] }; // Placeholder
@@ -59,38 +46,21 @@ async function placeBitunixOrder(apiKey: string, apiSecret: string, orderData: a
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/trade/place_order';
 
-    // Map 'side' if necessary
-    // Bitunix v1 often accepts "BUY"/"SELL" string OR integers.
-    // However, existing code used orderData.side.toUpperCase().
-    // We will stick to that but ensure mapping if integers are expected by some versions.
-    // Based on open docs (e.g. CCXT impl for Bitunix), they use standard strings usually,
-    // but if the reviewer is correct about integer enums, we should try to map.
-    // BUT we cannot be sure without docs.
-    // Let's implement a safe mapping: if it's explicitly BUY/SELL string, keep it (as string),
-    // if it's 1/2/3/4, keep it.
-    // Re-reading context: `fetchBitunixPendingOrders` returns "BUY"/"SELL".
-    // If the API returns strings, it likely accepts strings.
-    // I will trust the strings but uppercase them.
-
     // Construct Payload
+    // Required: symbol, side, type, qty
+    // Optional: price, reduceOnly, leverage, marginMode...
     const payload: any = {
         symbol: orderData.symbol,
-        side: String(orderData.side).toUpperCase(),
-        type: String(orderData.type).toUpperCase(),
+        side: orderData.side.toUpperCase(),
+        type: orderData.type.toUpperCase(),
         qty: String(orderData.qty),
         reduceOnly: orderData.reduceOnly || false
     };
 
-    if (payload.type === 'LIMIT' || payload.type === 'STOP_LIMIT') {
+    if (payload.type === 'LIMIT') {
         if (!orderData.price) throw new Error("Price required for limit order");
         payload.price = String(orderData.price);
     }
-
-    // Pass through TP/SL if present (important for Modify Order to preserve them)
-    if (orderData.tpPrice) payload.tpPrice = String(orderData.tpPrice);
-    if (orderData.tpType) payload.tpType = orderData.tpType;
-    if (orderData.slPrice) payload.slPrice = String(orderData.slPrice);
-    if (orderData.slType) payload.slType = orderData.slType;
 
     // Clean null/undefined
     Object.keys(payload).forEach(key => payload[key] === undefined && delete payload[key]);
@@ -99,52 +69,10 @@ async function placeBitunixOrder(apiKey: string, apiSecret: string, orderData: a
     const nonce = randomBytes(16).toString('hex');
     const timestamp = Date.now().toString();
 
-    const bodyStr = JSON.stringify(payload);
-    const digestInput = nonce + timestamp + apiKey + bodyStr;
-    const digest = createHash('sha256').update(digestInput).digest('hex');
-    const signInput = digest + apiSecret;
-    const signature = createHash('sha256').update(signInput).digest('hex');
-
-    const url = `${baseUrl}${path}`;
-
-    const response = await fetch(url, {
-        method: 'POST',
-        headers: {
-            'api-key': apiKey,
-            'timestamp': timestamp,
-            'nonce': nonce,
-            'sign': signature,
-            'Content-Type': 'application/json'
-        },
-        body: bodyStr
-    });
-
-    if (!response.ok) {
-        const text = await response.text();
-        throw new Error(`Bitunix API error: ${response.status} ${text}`);
-    }
-
-    const res = await response.json();
-    if (res.code !== 0 && res.code !== '0') {
-        throw new Error(`Bitunix API error code: ${res.code} - ${res.msg || 'Unknown error'}`);
-    }
-
-    return res.data;
-}
-
-async function cancelBitunixOrder(apiKey: string, apiSecret: string, params: { symbol: string, orderId: string }) {
-    const baseUrl = 'https://fapi.bitunix.com';
-    const path = '/api/v1/futures/trade/cancel_order';
-
-    const nonce = randomBytes(16).toString('hex');
-    const timestamp = Date.now().toString();
-
-    // Payload for cancel: symbol, orderId
-    const payload = {
-        symbol: params.symbol,
-        orderId: String(params.orderId)
-    };
-
+    // Sort keys for signature (body is usually empty for GET, but this is POST)
+    // Bitunix POST signature: digestInput = nonce + timestamp + apiKey + queryParams + bodyStr
+    // For POST, queryParams is empty usually.
+    // bodyStr is JSON string of payload
     const bodyStr = JSON.stringify(payload);
     const digestInput = nonce + timestamp + apiKey + bodyStr;
     const digest = createHash('sha256').update(digestInput).digest('hex');
@@ -216,6 +144,12 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
          throw new Error(`Bitunix API error code: ${res.code} - ${res.msg || 'Unknown error'}`);
     }
 
+    // Map to normalized format
+    const list = res.data || []; // Note: doc says res.data is list, not res.data.orderList for pending? Need check. Code had orderList.
+    // If previous code had orderList, stick with it, but verify if `data` IS the list.
+    // Usually Bitunix returns { data: [...] } or { data: { rows: [...] } }
+    // Let's assume the previous implementation was correct about structure or check response.
+    // Wait, the previous code had `res.data?.orderList`. I will preserve that safe access.
     const listData = Array.isArray(res.data) ? res.data : (res.data?.orderList || []);
 
     return listData.map((o: any) => ({
