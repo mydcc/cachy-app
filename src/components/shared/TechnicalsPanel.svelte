@@ -29,6 +29,11 @@
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
 
+    // Derived display label for Pivots
+    $: pivotLabel = indicatorSettings?.pivots?.type
+        ? `Pivots (${indicatorSettings.pivots.type.charAt(0).toUpperCase() + indicatorSettings.pivots.type.slice(1)})`
+        : 'Pivots (Classic)';
+
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
     $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
@@ -251,7 +256,7 @@
 
             <!-- Pivots -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Pivots (Classic)</h4>
+                <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">{pivotLabel}</h4>
                 <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                     {#each Object.entries(data.pivots.classic).reverse() as [key, val]}
                         <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
