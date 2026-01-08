@@ -20,7 +20,6 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
 - **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
 - **Improvements:** General stability updates and UI adjustments.
-- **Docs:** Completely revised and updated User Guide (Guide).
 
 ---
 
