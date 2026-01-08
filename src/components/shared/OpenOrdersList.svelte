@@ -4,10 +4,13 @@
     import OrderDetailsTooltip from './OrderDetailsTooltip.svelte';
     import OrderEditModal from './OrderEditModal.svelte';
     import { icons } from '../../lib/constants';
+    import { createEventDispatcher } from 'svelte';
 
     export let orders: any[] = [];
     export let loading: boolean = false;
     export let error: string = '';
+
+    const dispatch = createEventDispatcher();
 
     let hoveredOrder: any = null;
     let tooltipX = 0;
@@ -101,11 +104,7 @@
     }
 
     function handleEditSuccess() {
-        // Here we should probably trigger a refresh of the orders list.
-        // For now, let's dispatch an event so parent can refresh.
-        // Or since 'orders' prop updates from parent, we just rely on next poll?
-        // Better to dispatch.
-        // The modal itself handles the API call.
+        dispatch('refresh');
         showEditModal = false;
         selectedOrderForEdit = null;
     }
@@ -168,18 +167,20 @@
                         <!-- Col 3: Price & Status -->
                         <div class="flex flex-col items-end justify-center pl-1 relative">
                             <div class="flex items-center gap-1">
-                                <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
-                                    {formatDynamicDecimal(order.price)}
-                                </span>
 
-                                <!-- Edit Button (Pencil) -->
+                                <!-- Edit Button (Pencil) - Moved before price for 'left' placement -->
                                 <button
-                                    class="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent-color)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    type="button"
+                                    class="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent-color)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100 z-10"
                                     on:click={(e) => openEditModal(order, e)}
                                     title="Edit Order"
                                 >
                                     {@html icons.edit || '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>'}
                                 </button>
+
+                                <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
+                                    {formatDynamicDecimal(order.price)}
+                                </span>
                             </div>
 
                             <span class="text-[9px] text-[var(--text-tertiary)] uppercase opacity-70 whitespace-nowrap mt-0.5">
