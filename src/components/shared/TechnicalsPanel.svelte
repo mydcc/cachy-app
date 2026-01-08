@@ -7,7 +7,6 @@
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
     import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
-    import { icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import { formatDynamicDecimal, normalizeTimeframeInput } from "../../utils/utils";
     import { Decimal } from "decimal.js";
@@ -199,7 +198,7 @@
 <svelte:window on:click={handleClickOutside} />
 
 {#if showPanel}
-    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative">
+    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-80 transition-all relative">
 
         <!-- Header -->
         <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
@@ -300,47 +299,17 @@
             </div>
 
             <!-- Pivots -->
-            <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                <div class="flex items-center gap-1 group relative w-fit">
-                    <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
-
-                    <!-- Tooltip -->
-                    <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
-                        <Tooltip>
-                            <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                                <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
-                                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                                    <span class="text-[var(--text-secondary)]">High:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
-
-                                    <span class="text-[var(--text-secondary)]">Low:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
-
-                                    <span class="text-[var(--text-secondary)]">Close:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
-
-                                    {#if indicatorSettings?.pivots?.type === 'woodie'}
-                                        <span class="text-[var(--text-secondary)]">Open:</span>
-                                        <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
-                                    {/if}
-                                </div>
-                                {#if indicatorSettings?.pivots?.type === 'fibonacci'}
-                                    <div class="mt-1 pt-1 border-t border-[var(--border-color)] text-[var(--accent-color)]">
-                                        Fibo Levels: 0.382, 0.618, 1.0
-                                    </div>
-                                {/if}
-                            </div>
-                        </Tooltip>
+            {#if data.pivots}
+                <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
+                    <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">{pivotLabel}</h4>
+                    <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        {#each Object.entries(data.pivots.classic).reverse() as [key, val]}
+                            <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
+                            <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
+                        {/each}
                     </div>
                 </div>
-
-                <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mt-1">
-                    {#each Object.entries(data.pivots.classic).reverse() as [key, val]}
-                        <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
-                        <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
-                    {/each}
-                </div>
-            </div>
+            {/if}
 
         {/if}
     </div>

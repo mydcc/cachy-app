@@ -4,6 +4,7 @@ import { browser } from '$app/environment';
 export interface IndicatorSettings {
     historyLimit: number; // Global setting for calculation depth
     rsi: {
+        enabled: boolean;
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
         showSignal: boolean;
@@ -12,38 +13,46 @@ export interface IndicatorSettings {
         defaultTimeframe: string; // Used if sync is disabled
     };
     macd: {
+        enabled: boolean;
         fastLength: number;
         slowLength: number;
         signalLength: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
     };
     stochastic: {
+        enabled: boolean;
         kPeriod: number;
         dPeriod: number;
     };
     cci: {
+        enabled: boolean;
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
         threshold: number; // usually 100 (triggers on > 100 or < -100)
     };
     adx: {
+        enabled: boolean;
         length: number;
         threshold: number; // usually 25
     };
     ao: {
+        enabled: boolean;
         fastLength: number;
         slowLength: number;
     };
     momentum: {
+        enabled: boolean;
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
     };
     ema: {
+        enabled: boolean;
         ema1Length: number;
         ema2Length: number;
         ema3Length: number;
     };
     pivots: {
+        enabled: boolean;
         type: 'classic' | 'woodie' | 'camarilla' | 'fibonacci';
     };
 }
@@ -51,6 +60,7 @@ export interface IndicatorSettings {
 const defaultSettings: IndicatorSettings = {
     historyLimit: 2000,
     rsi: {
+        enabled: true,
         length: 14,
         source: 'close',
         showSignal: true,
@@ -59,38 +69,46 @@ const defaultSettings: IndicatorSettings = {
         defaultTimeframe: '1d'
     },
     macd: {
+        enabled: true,
         fastLength: 12,
         slowLength: 26,
         signalLength: 9,
         source: 'close'
     },
     stochastic: {
+        enabled: true,
         kPeriod: 14,
         dPeriod: 3
     },
     cci: {
+        enabled: true,
         length: 20,
         source: 'close',
         threshold: 100
     },
     adx: {
+        enabled: true,
         length: 14,
         threshold: 25
     },
     ao: {
+        enabled: true,
         fastLength: 5,
         slowLength: 34
     },
     momentum: {
+        enabled: true,
         length: 10,
         source: 'close'
     },
     ema: {
+        enabled: true,
         ema1Length: 20,
         ema2Length: 50,
         ema3Length: 200
     },
     pivots: {
+        enabled: true,
         type: 'classic'
     }
 };

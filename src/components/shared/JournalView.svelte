@@ -528,34 +528,8 @@
 
     // Leakage (Attribution)
     $: leakageData = calculator.getLeakageData(journal);
-
-    // Waterfall Chart Data
-    $: leakageWaterfallChartData = {
-        labels: [
-            $_('journal.deepDive.charts.labels.grossProfit'),
-            $_('journal.deepDive.charts.labels.fees'),
-            $_('journal.deepDive.charts.labels.grossLoss'),
-            $_('journal.deepDive.charts.labels.netResult')
-        ],
-        datasets: [{
-            label: 'PnL Breakdown',
-            data: [
-                leakageData.waterfallData.grossProfit,
-                leakageData.waterfallData.fees,
-                leakageData.waterfallData.grossLoss,
-                leakageData.waterfallData.netResult
-            ],
-            backgroundColor: [
-                themeColors.success,
-                themeColors.warning,
-                themeColors.danger,
-                leakageData.waterfallData.netResult >= 0 ? themeColors.success : themeColors.danger
-            ]
-        }]
-    };
-
     $: leakageTagData = {
-        labels: leakageData.worstTags.map(t => t.label === 'No Tag' ? $_('journal.deepDive.charts.labels.noTag') : t.label),
+        labels: leakageData.worstTags.map(t => t.label),
         datasets: [{
             label: 'PnL',
             data: leakageData.worstTags.map(t => t.pnl),
@@ -851,16 +825,16 @@
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col relative">
 
+                <!-- Title: Centered Top (Simulating Chart.js Title) -->
+                <div class="w-full text-center mb-2">
+                    <span class="text-xs font-bold text-[#94a3b8] uppercase">{$_('journal.deepDive.charts.titles.winRate')}</span>
+                </div>
+
                 <!-- Main Content: Chart & Stats -->
                 <div class="flex flex-row items-center justify-between flex-1 w-full relative">
 
-                    <!-- Chart Area: Title + Chart centered together -->
-                    <div class="flex-1 flex flex-col items-center justify-center h-full relative">
-                        <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
-                        <div class="text-center mb-2">
-                            <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
-                        </div>
-
+                    <!-- Chart: Centered in remaining space -->
+                    <div class="flex-1 flex items-center justify-center h-full relative">
                         <div class="h-44 w-44">
                             <DoughnutChart
                                 data={winLossChartData}
@@ -1224,26 +1198,20 @@
                     {/if}
                  </div>
             {:else if activeDeepDivePreset === 'leakage'}
-                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                    <BarChart data={leakageWaterfallChartData} title={$_('journal.deepDive.charts.labels.profitRetention')} description={$_('journal.deepDive.charts.descriptions.leakageWaterfall') || 'PnL Waterfall'} />
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center">
+                    <div class="flex flex-col items-center gap-2">
+                         <div class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.profitRetention')}</div>
+                         <div class="text-4xl font-bold {leakageData.profitRetention > 50 ? 'text-[var(--success-color)]' : 'text-[var(--warning-color)]'}">
+                             {leakageData.profitRetention.toFixed(1)}%
+                         </div>
+                         <div class="text-xs text-[var(--text-secondary)] mt-2">{$_('journal.deepDive.charts.labels.feeImpact')}: <span class="text-[var(--danger-color)]">-{leakageData.feeImpact.toFixed(1)}%</span></div>
+                    </div>
                  </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                     {#if leakageData.worstTags.length > 0}
-                        <BarChart data={leakageTagData} title="Strategy Leakage" horizontal={true} description={$_('journal.deepDive.charts.descriptions.leakageTags')} />
-                     {:else}
-                         <div class="flex items-center justify-center h-full text-[var(--text-secondary)]">
-                             {$_('journal.noData')} (No Strategy Losses)
-                         </div>
-                     {/if}
+                     <BarChart data={leakageTagData} title="Strategy Leakage" horizontal={true} description={$_('journal.deepDive.charts.descriptions.leakageTags')} />
                  </div>
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                     {#if leakageData.worstHours.length > 0}
-                        <BarChart data={leakageTimingData} title="Time Leakage (Worst Hours)" description={$_('journal.deepDive.charts.descriptions.leakageTiming')} />
-                     {:else}
-                         <div class="flex items-center justify-center h-full text-[var(--text-secondary)]">
-                             {$_('journal.noData')} (No Timing Losses)
-                         </div>
-                     {/if}
+                     <BarChart data={leakageTimingData} title="Time Leakage (Worst Hours)" description={$_('journal.deepDive.charts.descriptions.leakageTiming')} />
                  </div>
             {:else if activeDeepDivePreset === 'timing'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
