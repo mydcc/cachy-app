@@ -21,6 +21,7 @@
     import JournalEntryTags from './JournalEntryTags.svelte';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
+    import { julesService } from '../../services/julesService';
 
     // --- State for Dashboard ---
     let activePreset = 'performance';
@@ -34,18 +35,20 @@
     const CODE_SPACE = 'VIPSPACE2026';
     const CODE_BONUS = 'VIPBONUS2026';
     const CODE_STREAK = 'VIPSTREAK2026';
+    const CODE_REPORT = 'REPORT'; // Jules SDK
 
     const MAX_CODE_LENGTH = Math.max(
         CODE_UNLOCK.length,
         CODE_LOCK.length,
         CODE_SPACE.length,
         CODE_BONUS.length,
-        CODE_STREAK.length
+        CODE_STREAK.length,
+        CODE_REPORT.length
     );
 
     let inputBuffer: string[] = [];
 
-    function handleKeydown(event: KeyboardEvent) {
+    async function handleKeydown(event: KeyboardEvent) {
         // Ignore if user is typing in an input field
         const target = event.target as HTMLElement;
         if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
@@ -84,6 +87,32 @@
                  console.log('VIPSTREAK2026 detected (Placeholder)');
                  inputBuffer = [];
             }
+            // JULES REPORT: Send Snapshot
+            else if (bufferStr.endsWith(CODE_REPORT)) {
+                 await triggerJulesReport();
+                 inputBuffer = [];
+            }
+        }
+    }
+
+    async function triggerJulesReport() {
+        unlockOverlayMessage = "Jules: Analyzing System...";
+        showUnlockOverlay = true;
+
+        try {
+            const message = await julesService.reportToJules(null, 'MANUAL');
+            // Show result
+            unlockOverlayMessage = message ? `Jules: ${message}` : "Jules: No response received.";
+
+            // Keep open longer for reading
+            setTimeout(() => {
+                showUnlockOverlay = false;
+            }, 6000);
+        } catch (e) {
+            unlockOverlayMessage = "Jules: Connection Failed.";
+            setTimeout(() => {
+                showUnlockOverlay = false;
+            }, 2000);
         }
     }
 
