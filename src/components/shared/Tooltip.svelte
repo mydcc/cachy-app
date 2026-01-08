@@ -1,5 +1,6 @@
 <script lang="ts">
   export let text = '';
+  export let alignment: 'center' | 'left' | 'right' = 'center';
   let visible = false;
   let tooltipEl: HTMLElement;
 
@@ -29,7 +30,7 @@
       bind:this={tooltipEl}
       id="tooltip-text"
       role="tooltip"
-      class="tooltip-content"
+      class="tooltip-content {alignment}"
     >
       {text}
     </div>
@@ -68,8 +69,6 @@
     position: absolute;
     z-index: 10;
     bottom: 140%;
-    left: 50%;
-    transform: translateX(-50%);
     font-size: 0.8rem;
     font-weight: 500;
     box-shadow: var(--shadow-tooltip);
@@ -77,14 +76,43 @@
     pointer-events: none;
     text-transform: none;
   }
+
+  .tooltip-content.center {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+
+  .tooltip-content.left {
+    left: -0.5rem;
+    transform: none;
+  }
+
+  .tooltip-content.right {
+    right: -0.5rem;
+    transform: none;
+  }
+
   .tooltip-content::after {
     content: "";
     position: absolute;
     top: 100%;
-    left: 50%;
-    margin-left: -5px;
     border-width: 5px;
     border-style: solid;
     border-color: var(--bg-tertiary) transparent transparent transparent;
+  }
+
+  .tooltip-content.center::after {
+    left: 50%;
+    margin-left: -5px;
+  }
+
+  .tooltip-content.left::after {
+    left: 0.6rem;
+    margin-left: -5px;
+  }
+
+  .tooltip-content.right::after {
+    right: 0.6rem;
+    margin-right: -5px;
   }
 </style>

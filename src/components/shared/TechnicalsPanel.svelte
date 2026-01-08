@@ -170,7 +170,7 @@
                 on:click={toggleTimeframePopup}
             >
                 Technicals
-                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors">
                     {timeframe}
                 </span>
             </button>
@@ -190,15 +190,15 @@
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1d')}>1d</button>
                     </div>
                     <!-- Row 3 Custom -->
-                    <div class="flex gap-1 mt-1">
+                    <div class="flex gap-1">
                         <input
                             type="text"
-                            class="w-full text-sm p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-primary)]"
+                            class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)]"
                             placeholder="e.g. 24m"
                             bind:value={customTimeframeInput}
                             on:keydown={(e) => e.key === 'Enter' && handleCustomTimeframeSubmit()}
                         />
-                        <button class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={handleCustomTimeframeSubmit}>OK</button>
+                        <button class="px-2 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-xs" on:click={handleCustomTimeframeSubmit}>OK</button>
                     </div>
                 </div>
             {/if}

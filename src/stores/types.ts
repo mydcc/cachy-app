@@ -150,5 +150,4 @@ export interface JournalEntry {
     realizedPnl?: Decimal;
     isManual?: boolean;
     tags?: string[];
-    screenshot?: string;
 }
