@@ -53,16 +53,9 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
         limit: limit.toString()
     }).toString();
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
-        headers: {
-            'User-Agent': 'CachyApp/1.0',
-            'Accept': 'application/json'
-        }
-    });
+    const response = await fetch(`${baseUrl}${path}?${queryString}`);
 
     if (!response.ok) {
-        const text = await response.text();
-        console.error(`Bitunix API error ${response.status}: ${text}`);
         throw new Error(`Bitunix API error: ${response.status}`);
     }
 

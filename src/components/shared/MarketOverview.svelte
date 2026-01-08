@@ -457,8 +457,8 @@
                     <!-- Tooltip -->
                     <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50">
                         <Tooltip>
-                            <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                                <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">RSI Settings</div>
+                            <div class="flex flex-col gap-1 text-xs whitespace-nowrap">
+                                <div class="font-bold border-b border-gray-600 pb-1 mb-1">RSI Settings</div>
                                 <div class="flex justify-between gap-4">
                                     <span>Length:</span>
                                     <span class="font-mono">{$indicatorStore.rsi.length}</span>
