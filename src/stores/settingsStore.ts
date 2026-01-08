@@ -37,6 +37,7 @@ export interface Settings {
     imgbbApiKey: string;
     imgbbExpiration: number; // 0 = never, otherwise seconds
     isDeepDiveUnlocked?: boolean; // Persist cheat code state
+    isTechnicalsOpen?: boolean; // Persist Technicals Panel visibility
     imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
 }
 
@@ -47,6 +48,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     showTechnicals: true,
+    isTechnicalsOpen: false,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
     isPro: false,
@@ -113,6 +115,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
+            isTechnicalsOpen: settings.isTechnicalsOpen ?? defaultSettings.isTechnicalsOpen,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode || 'value',
