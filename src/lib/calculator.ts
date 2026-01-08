@@ -772,10 +772,11 @@ export const calculator = {
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-            const tags = t.tags || [];
+            let tags = t.tags || [];
 
-            // If no tags, maybe bucket as 'No Tag'?
-            // if (tags.length === 0) tags.push('Untagged');
+            if (tags.length === 0) {
+                tags = ['No Tag'];
+            }
 
             tags.forEach(tag => {
                 if (!tagStats[tag]) tagStats[tag] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
@@ -1020,6 +1021,14 @@ export const calculator = {
             ? totalFees.div(totalGrossProfit).times(100).toNumber()
             : 0;
 
+        // Waterfall Data
+        const waterfallData = {
+            grossProfit: totalGrossProfit.toNumber(),
+            fees: totalFees.negated().toNumber(), // Negative for visualization
+            grossLoss: totalGrossLoss.negated().toNumber(), // Negative for visualization
+            netResult: totalNetProfit.toNumber()
+        };
+
         // 2. Worst Tags (Strategy Leakage)
         const tagStats = calculator.getTagData(closedTrades);
         const worstTags = tagStats.labels
@@ -1049,6 +1058,7 @@ export const calculator = {
         return {
             profitRetention,
             feeImpact,
+            waterfallData,
             totalFees: totalFees.toNumber(),
             worstTags,
             worstHours,
