@@ -15,6 +15,7 @@
     export let isVisible: boolean = false;
 
     let klinesHistory: any[] = [];
+    let showDebug = false;
     let data: TechnicalsData | null = null;
     let loading = false;
     let error: string | null = null;
@@ -118,8 +119,8 @@
         error = null;
 
         try {
-            // Fetch history
-            const klines = await apiService.fetchBitunixKlines(symbol, timeframe, 250);
+            // Fetch history - Increased to 1000 for better accuracy
+            const klines = await apiService.fetchBitunixKlines(symbol, timeframe, 1000);
             klinesHistory = klines;
             data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
         } catch (e) {
@@ -167,6 +168,30 @@
             showTimeframePopup = false;
         }
     }
+
+    function copyDebugData() {
+        if (!klinesHistory.length) return;
+
+        const debugInfo = {
+            symbol,
+            timeframe,
+            totalCandles: klinesHistory.length,
+            firstCandle: {
+                // Approximate time if we don't have explicit timestamp in all objects
+                idx: 0,
+                close: klinesHistory[0].close.toString()
+            },
+            lastCandle: {
+                idx: klinesHistory.length - 1,
+                close: klinesHistory[klinesHistory.length - 1].close.toString()
+            },
+            indicators: data
+        };
+
+        navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
+            .then(() => alert('Debug data copied to clipboard!'))
+            .catch(err => console.error('Failed to copy', err));
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -176,16 +201,34 @@
 
         <!-- Header -->
         <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
-            <button
-                type="button"
-                class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
-                on:click={toggleTimeframePopup}
-            >
-                Technicals
-                <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
-                    {timeframe}
-                </span>
-            </button>
+            <div class="flex items-center gap-2">
+                <button
+                    type="button"
+                    class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
+                    on:click={toggleTimeframePopup}
+                >
+                    Technicals
+                    <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
+                        {timeframe}
+                    </span>
+                </button>
+
+                <!-- Debug / Info Icon -->
+                 <div class="relative group">
+                    <button class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1" on:click={copyDebugData}>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <line x1="12" y1="16" x2="12" y2="12"></line>
+                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        </svg>
+                    </button>
+                    <!-- Simple tooltip on hover -->
+                     <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] p-1.5 rounded border border-[var(--border-color)]">
+                        Verify: n={klinesHistory.length} <br>
+                        Click to copy debug JSON
+                    </div>
+                </div>
+            </div>
 
             {#if showTimeframePopup}
                 <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
