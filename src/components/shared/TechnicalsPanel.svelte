@@ -197,7 +197,7 @@
 <svelte:window on:click={handleClickOutside} />
 
 {#if showPanel}
-    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-72 transition-all relative">
+    <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-80 transition-all relative">
 
         <!-- Header -->
         <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">

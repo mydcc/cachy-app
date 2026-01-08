@@ -91,7 +91,7 @@ export const technicalsService = {
                 else if (stoch.k > 80 && stoch.d > 80 && stoch.k < stoch.d) stochAction = 'Sell';
             }
             oscillators.push({
-                name: `Stoch %K (${stochK}, ${stochD}, 3)`,
+                name: `Stoch (${stochK}, ${stochD}, 3)`,
                 value: stoch ? stoch.k : 0,
                 action: stochAction
             });
