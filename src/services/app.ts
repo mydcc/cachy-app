@@ -813,7 +813,7 @@ export const app = {
                     }
                 }
 
-                // Parse close time
+                // Parse close time (fallback to creation time)
                 let closeTime = parseTimestamp(p.mtime || p.ctime);
                 if (closeTime <= 0) closeTime = Date.now();
 
