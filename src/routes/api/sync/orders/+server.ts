@@ -46,7 +46,7 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function fetchAllPages(apiKey: string, apiSecret: string, path: string): Promise<any[]> {
-    const maxPages = 5;
+    const maxPages = 20;
     let accumulated: any[] = [];
     let currentEndTime: number | undefined = undefined;
 

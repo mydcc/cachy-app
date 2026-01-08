@@ -6,15 +6,6 @@ import { uiStore } from '../stores/uiStore';
 import { CONSTANTS } from '../lib/constants';
 import { get } from 'svelte/store';
 
-// Mock get from svelte/store
-vi.mock('svelte/store', async () => {
-    const actual = await vi.importActual<any>('svelte/store');
-    return {
-        ...actual,
-        get: (store: any) => store.value // simplified mock access
-    };
-});
-
 describe('hotkeyService', () => {
     let preventDefaultSpy: any;
     let focusSpy: any;

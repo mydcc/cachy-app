@@ -183,7 +183,11 @@ export const apiService = {
                 // We can calculate change % from (last - open) / open * 100
                 const open = new Decimal(ticker.open);
                 const last = new Decimal(ticker.lastPrice);
-                const change = last.minus(open).dividedBy(open).times(100);
+
+                let change = new Decimal(0);
+                if (!open.isZero()) {
+                    change = last.minus(open).dividedBy(open).times(100);
+                }
 
                 return {
                     provider,
