@@ -851,16 +851,16 @@
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col relative">
 
-                <!-- Title: Centered Top (Simulating Chart.js Title) -->
-                <div class="w-full text-center mb-2">
-                    <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
-                </div>
-
                 <!-- Main Content: Chart & Stats -->
                 <div class="flex flex-row items-center justify-between flex-1 w-full relative">
 
-                    <!-- Chart: Centered in remaining space -->
-                    <div class="flex-1 flex items-center justify-center h-full relative">
+                    <!-- Chart Area: Title + Chart centered together -->
+                    <div class="flex-1 flex flex-col items-center justify-center h-full relative">
+                        <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
+                        <div class="text-center mb-2">
+                            <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
+                        </div>
+
                         <div class="h-44 w-44">
                             <DoughnutChart
                                 data={winLossChartData}
