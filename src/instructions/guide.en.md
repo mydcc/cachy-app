@@ -1,133 +1,149 @@
-# Cachy - User Manual
+# Cachy - How-To: A Guide to Using the Trading Calculator
 
-Welcome to Cachy! This guide is your comprehensive manual for using the application effectively for your trading. It covers everything from basic position calculation to advanced performance analysis.
+Welcome to Cachy! This guide explains all the features of the application so you can plan and manage your trades optimally.
 
-**Privacy Note:** Cachy operates entirely client-side. All your data (settings, journal, API keys) is stored locally in your browser (`localStorage`). No data is sent to any external server (except for direct API requests to exchanges you configure).
-
----
-
-## 1. Trading Calculator
-
-The core of Cachy is the precision calculator, designed to help you manage risk and size your positions correctly.
-
-### Inputs
-
-The calculator is divided into three main sections:
-
-#### A. General Inputs
-*   **Long/Short:** Select your trade direction.
-*   **Leverage:** Input your leverage (e.g., `10` for 10x). This affects the **Required Margin**.
-*   **Fees %:** Enter your exchange's fee rate (e.g., `0.06`). This is used to calculate Break-Even prices and estimated costs.
-
-#### B. Portfolio Inputs
-*   **Account Size:** Your total trading capital.
-    *   *Tip:* If you connect your API keys, this can be fetched automatically.
-*   **Risk per Trade (%):** The percentage of your account you are willing to lose if the Stop Loss is hit.
-*   **Risk Amount ($):** The absolute dollar amount you are willing to lose.
-
-**The Locking Mechanism:**
-Cachy allows you to lock specific variables to fit your workflow:
-*   **Lock Risk Amount ($):** Useful if you want to risk a fixed dollar amount (e.g., $50) regardless of the stop loss distance. The calculator will adjust your position size accordingly.
-*   **Lock Position Size:** Useful if you want to trade a fixed quantity (e.g., 1 BTC). The calculator will show you how much risk (%) that entails based on your stop loss.
-
-#### C. Trade Setup
-*   **Symbol:** The trading pair (e.g., `BTCUSDT`).
-*   **Entry Price:** Your planned entry price.
-*   **Stop Loss (SL):** The price where your trade becomes invalid.
-    *   **ATR Mode:** Toggle `Use ATR` to automatically calculate a Stop Loss based on market volatility (Average True Range). You can choose the timeframe (e.g., `15m`, `1h`) and a multiplier (e.g., `1.5` x ATR).
-
-### Formulas
-
-Here is how Cachy calculates the key metrics for you:
-
-**1. Risk Amount**
-$$ \text{Risk Amount} = \text{Account Size} \times \frac{\text{Risk \%}}{100} $$
-
-**2. Risk Per Unit**
-$$ \text{Risk Per Unit} = |\text{Entry Price} - \text{Stop Loss}| $$
-
-**3. Position Size**
-$$ \text{Position Size} = \frac{\text{Risk Amount}}{\text{Risk Per Unit}} $$
-
-**4. Order Volume (Notional Value)**
-$$ \text{Order Volume} = \text{Position Size} \times \text{Entry Price} $$
-
-**5. Required Margin**
-$$ \text{Required Margin} = \frac{\text{Order Volume}}{\text{Leverage}} $$
-
-**6. Break-Even Price (Long)**
-$$ \text{Break Even} = \text{Entry Price} \times \frac{1 + \text{Fee Rate}}{1 - \text{Fee Rate}} $$
+**Important Note on Data Storage:** All your inputs, presets, and journal entries are stored **exclusively locally in your browser**. No data is sent to a server. This means your data is private, but it also means it can be lost if you clear your browser data.
 
 ---
 
-## 2. Market Overview & Sidebar
+### 1. The Basics: Trade Calculation
 
-Cachy provides real-time market awareness tools.
+The main function of Cachy is to calculate your position size and other important metrics based on your risk.
 
-### Market Overview
-Located at the top (or accessible via sidebar on mobile), this panel shows real-time data for the selected symbol:
-*   **Live Price:** Updates in real-time via Websockets (if Bitunix is selected).
-*   **24h Stats:** Change %, High, Low, and Volume.
-*   **Funding Rate:** Current funding rate (green = positive, red = negative).
-*   **Countdown:** Time remaining until the next funding payment.
+**Step 1: General Inputs**
 
-### Favorites
-You can save up to **4 favorite symbols** for quick access.
-*   **Add:** Click the Star icon in the Market Overview.
-*   **Access:** Click on a favorite in the Sidebar (Desktop) or the Favorites Bar (Mobile) to instantly load it into the calculator.
+*   **Long/Short:** Choose the direction of your trade.
+*   **Leverage:** Enter the leverage you want to use (e.g., 10 for 10x).
+*   **Fees %:** Enter the percentage fees of your exchange (e.g., 0.04 for 0.04%).
 
-### Sidebar (Positions)
-The sidebar provides a comprehensive view of your active trading environment:
-*   **Open Positions:** Shows active positions synced from your exchange.
-*   **Open Orders:** Shows pending limit or stop orders.
-*   **History:** Shows recent trade history.
-*   **TP/SL:** Dedicated tab for managing Take-Profit and Stop-Loss orders (Bitunix).
+**Step 2: Portfolio Inputs**
 
----
+*   **Account Size:** Enter the total size of your trading account. You can also have your balance fetched automatically if you have configured your API keys (see Settings).
+*   **Risk/Trade (%):** Determine the maximum percentage of your account you want to risk on this single trade (e.g., 1 for 1% or 1.25 for 1.25%). This field supports up to 2 decimal places.
+*   **Risk Amount:** This field shows the monetary amount calculated from your percentage risk. You can also enter this amount directly and lock it.
 
-## 3. Trade Journal
+**Step 3: Trade Setup**
 
-The Journal is where you track your performance. It supports both manual entry and automatic synchronization.
+*   **Symbol:** Enter the trading pair (e.g., BTCUSDT). Click the arrow button to load the current price.
+*   **Entry Price:** The price at which you open the position.
+*   **Stop Loss (SL):** The price at which your position is automatically closed to limit losses.
+*   **Use ATR Stop Loss:** Enable this toggle to calculate the SL using ATR (Average True Range).
+    *   **Manual:** Enter the ATR value and a multiplier manually.
+    *   **Auto:** Select a timeframe (e.g., 1h, 4h). The current ATR value is automatically fetched.
 
-### Manual vs. Synced
-*   **Manual:** You click "Add to Journal" after calculating a trade. You manually update the status (Won/Lost) and exit price.
-*   **Synced (Bitunix):** If you use Bitunix and have API keys configured, Cachy can automatically import your trade history, including realized PnL and fees.
-
-### Performance Tracking (Pro)
-Users with Pro status have access to advanced analytics in the Journal:
-
-#### Dashboard Charts
-*   **Equity Curve:** Visualizes the growth of your account balance over time.
-*   **Drawdown:** Shows the percentage decline from your account's peak.
-*   **Monthly PnL:** Bar chart of profit/loss aggregated by month.
-
-#### Deep Dive Analytics
-The "Deep Dive" section offers granular insights into your trading behavior:
-*   **Timing:** Analyze which time of day or day of the week is most profitable for you.
-*   **Assets:** A bubble chart showing which coins perform best (Win Rate vs PnL).
-*   **Risk:** Scatter plot correlating Risk Amount vs. Realized PnL. Are you risking too much on losing trades?
-*   **Strategies:** Tag your trades (e.g., "Breakout", "Reversal") and see which strategies yield the best results.
-*   **Psychology:** Tracks winning and losing streaks to help you identify tilt or flow states.
+Once all these fields are filled, you will see the results in the right panel.
 
 ---
 
-## 4. Settings & Configuration
+### 2. Understanding the Results
 
-Access settings via the Gear icon.
+Cachy calculates the following values for you:
 
-### API Provider
-*   **Bitunix (Recommended):** Supports full Websocket integration (real-time data), position syncing, and order management.
-*   **Binance:** Supports market data and basic account balance fetching.
+*   **Position Size:** The amount of the asset you should buy/sell.
+*   **Max Net Loss:** The maximum amount of money you lose if your Stop Loss is hit.
+*   **Required Margin:** The capital blocked from your account for this trade.
+*   **Entry Fee:** The estimated fees for opening the position.
+*   **Est. Liquidation Price:** An estimate of the price at which your position would be liquidated.
+*   **Break Even Price:** The price at which you exit with zero profit or loss.
 
-### Data Backup
-Since Cachy is local-only, your data is your responsibility.
-*   **Backup:** Go to Settings -> System -> **Create Backup**. This downloads a JSON file with all your settings, journal entries, and presets.
-*   **Restore:** Use **Restore from Backup** to load a previously saved JSON file.
-
-### Customization
-*   **Themes:** Choose from over 20 distinct themes (e.g., 'Midnight', 'Dracula', 'Nord').
-*   **Hotkeys:** Customize keyboard shortcuts for speed (e.g., `S` for Short, `L` for Long).
+> **Why is my position size so large?**
+>
+> If your Stop Loss is very close to your entry price, the position size must be very large to reach your defined risk amount (e.g., $10).
+>
+> **Warning: "Insufficient Balance"**
+>
+> If the calculated position size requires more capital (margin) than you have in your account, Cachy displays a red warning. In this case, you must either reduce your risk or increase your leverage (Caution!).
 
 ---
 
-*Happy Trading!*
+### 3. Defining Take-Profit (TP) Targets
+
+You can define up to 5 Take-Profit targets to sell parts of your position at specific prices.
+
+*   **Add Target:** Click the **`+`** button to add a new TP row.
+*   **Price & Percent:** Enter the price and the percentage of the position to be sold for each target.
+*   **Auto-Adjustment:** If you change the percentage of a target, the others (not locked) are automatically adjusted so the total equals 100%.
+*   **Lock Percentage:** Click the lock icon to lock a target's percentage value.
+
+For each valid TP target, you see a detailed breakdown with metrics like **Net Profit** and **Risk-Reward Ratio (RRR)**.
+
+---
+
+### 4. Advanced Features
+
+Cachy offers a range of tools to optimize your workflow.
+
+**Presets**
+
+*   **Save:** Click the Save button (floppy disk icon) to save your current inputs as a preset.
+*   **Load:** Select a saved preset from the dropdown menu to automatically fill all input fields.
+*   **Delete:** Select a preset and click the Delete button (trash can) to remove it.
+
+**Advanced Locking Functions**
+
+Only one lock can be active at a time.
+
+*   **Lock Position Size:** Click the lock icon next to **Position Size**. When active, the position size remains constant. If you change the Stop Loss, your **Risk/Trade (%)** and **Risk Amount** are adjusted instead.
+*   **Lock Risk Amount:** Click the lock icon next to **Risk Amount**. When active, your maximum loss in currency remains constant. If you change the Stop Loss, the **Position Size** and **Risk/Trade (%)** are adjusted.
+
+**Trade Journal**
+
+*   **Add Trade:** Click **"Add Trade to Journal"** to save the calculated trade.
+*   **View Journal:** Click the **"Journal"** button at the top right to view your trades and change their status.
+*   **Import/Export:** In the Journal window, you can **export your journal as a CSV file** or **import** an existing CSV file.
+
+**Other Functions**
+
+*   **Switch Theme:** Use the sun/moon icon to switch the design.
+*   **Switch Language:** Change the interface language at the bottom left.
+*   **Reset All:** The broom button resets all input fields.
+
+---
+
+### 5. Keyboard Shortcuts
+
+*   `Alt + L`: Sets trade type to **Long**.
+*   `Alt + S`: Sets trade type to **Short**.
+*   `Alt + R`: Resets all inputs (**Reset**).
+*   `Alt + J`: Opens or closes the **Journal**.
+
+---
+
+### 6. Market Overview & Favorites
+
+The Market Overview offers a quick look at current market data for the selected symbol.
+
+*   **Display:** Shows current price, 24h price change (in %), 24h High, 24h Low, and 24h Volume.
+*   **Symbol Detection:** Automatically adds a 'P' suffix (e.g., BTCUSDTP) if it's a perpetual future.
+*   **Favorites:** Click the **Star icon** to add the current symbol to your favorites list (maximum 4). Saved favorites appear in the sidebar (desktop) or below the main card (mobile) and can be loaded directly into the calculator by clicking on them.
+*   **Updates:**
+    *   **Manual:** Click the Refresh icon to load data manually.
+    *   **Automatic:** In **Settings**, you can set an interval so data updates automatically in the background.
+
+---
+
+### 7. Chat & Notes Side Panel
+
+Cachy includes a collapsible Side Panel on the left side for enhanced productivity.
+
+*   **Activation:** Enable the "Side Panel" in **Settings -> Sidebar**.
+*   **Modes:**
+    *   **Private Notes:** A simple, persistent text area for jotting down trading ideas or strategy reminders. Saved locally in your browser.
+    *   **Global Chat:** An experimental chat feature to communicate with other users anonymously. Messages are ephemeral (stored in temporary server memory) and vanish after a server restart or when the limit (50 messages) is reached.
+*   **Usage:** Click the icon on the far left edge to expand or collapse the panel.
+
+---
+
+### 8. Settings
+
+In Settings (gear icon), you can customize Cachy to your needs.
+
+*   **Language:** Choose between German and English.
+*   **API Provider:** Choose between **Bitunix** (Default) and **Binance** as the data source for prices and ATR values.
+*   **API Integration:**
+    *   Enter your API Keys for Bitunix or Binance (Key & Secret).
+    *   **Auto-fetch Balance:** If enabled, your account balance is fetched automatically when the app starts (requires API Keys).
+    *   **Auto-update Price Input:** If enabled, the price in the "Entry Price" input is updated regularly as long as you are not editing the field.
+*   **Market Data Update:** Set how often the market overview and prices should update (**1s**, **1m**, **10m**).
+*   **Theme:** Select your preferred design.
+*   **Backup & Restore:** Create a backup of all your data (including journal and presets) as a JSON file or restore data from a file.

@@ -11,23 +11,5 @@ export default defineConfig({
 	},
 	ssr: {
 		noExternal: ['intl-messageformat', '@formatjs/icu-messageformat-parser', '@formatjs/icu-skeleton-parser', 'svelte-i18n']
-	},
-	build: {
-		rollupOptions: {
-			output: {
-				manualChunks: (id) => {
-					if (id.includes('node_modules')) {
-						if (id.includes('chart.js') || id.includes('svelte-chartjs')) {
-							return 'chart-vendor';
-						}
-						if (id.includes('decimal.js') || id.includes('crypto-js')) {
-							return 'math-vendor';
-						}
-						return 'vendor';
-					}
-				}
-			}
-		},
-		chunkSizeWarningLimit: 1000
 	}
 });

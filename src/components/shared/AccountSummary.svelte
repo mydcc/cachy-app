@@ -16,10 +16,21 @@
     export let crossUnrealizedPNL: number = 0;
     export let isolationUnrealizedPNL: number = 0;
 
+    let showDetails = false;
+
+    function handleMouseEnter() {
+        showDetails = true;
+    }
+
+    function handleMouseLeave() {
+        showDetails = false;
+    }
 </script>
 
 <div class="p-3 bg-[var(--bg-tertiary)] border-b border-[var(--border-primary)] flex flex-col gap-2 relative">
     <div class="flex justify-between items-center group cursor-help relative"
+         on:mouseenter={handleMouseEnter}
+         on:mouseleave={handleMouseLeave}
          role="tooltip"
     >
         <div class="flex items-center gap-1">
@@ -27,20 +38,21 @@
         </div>
         <span class="text-sm font-bold text-[var(--text-primary)]">{formatDynamicDecimal(available, 2)} {currency}</span>
 
-        <div class="absolute z-[100] left-0 top-full pt-2 hidden group-hover:block">
-            <AccountTooltip account={{
-                available,
-                margin,
-                marginCoin: currency,
-                frozen,
-                transfer,
-                bonus,
-                positionMode,
-                crossUnrealizedPNL,
-                isolationUnrealizedPNL,
-                totalUnrealizedPnL: pnl
-            }} />
-        </div>
+        {#if showDetails}
+            <div class="absolute z-[100] left-0 top-full mt-2">
+                <AccountTooltip account={{
+                    available,
+                    margin,
+                    marginCoin: currency,
+                    frozen,
+                    transfer,
+                    bonus,
+                    positionMode,
+                    crossUnrealizedPNL,
+                    isolationUnrealizedPNL
+                }} />
+            </div>
+        {/if}
     </div>
     
     <div class="flex justify-between items-center">

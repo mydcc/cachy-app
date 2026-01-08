@@ -4,8 +4,6 @@ import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
-export type PositionViewMode = 'detailed' | 'focus';
-export type PnlViewMode = 'value' | 'percent' | 'bar';
 
 export interface ApiKeys {
     key: string;
@@ -18,10 +16,7 @@ export interface Settings {
     autoUpdatePriceInput: boolean;
     autoFetchBalance: boolean;
     showSidebars: boolean;
-    showTechnicals: boolean;
     hideUnfilledOrders: boolean;
-    positionViewMode?: PositionViewMode;
-    pnlViewMode?: PnlViewMode;
     isPro: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
@@ -29,10 +24,6 @@ export interface Settings {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
-    // Indicator & Timeframe Settings
-    favoriteTimeframes: string[];
-    syncRsiTimeframe: boolean;
-
     // ImgBB Settings
     imgbbApiKey: string;
     imgbbExpiration: number; // 0 = never, otherwise seconds
@@ -50,9 +41,7 @@ const defaultSettings: Settings = {
     autoUpdatePriceInput: false,
     autoFetchBalance: false,
     showSidebars: true,
-    showTechnicals: true,
     hideUnfilledOrders: false,
-    positionViewMode: 'detailed',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -60,8 +49,6 @@ const defaultSettings: Settings = {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
     },
-    favoriteTimeframes: ['5m', '15m', '1h', '4h'],
-    syncRsiTimeframe: true,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
@@ -118,16 +105,11 @@ function loadSettingsFromLocalStorage(): Settings {
             autoUpdatePriceInput: settings.autoUpdatePriceInput,
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
-            showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
-            positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
-            pnlViewMode: settings.pnlViewMode || 'value',
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
             apiKeys: settings.apiKeys,
-            favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
-            syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,

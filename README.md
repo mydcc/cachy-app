@@ -1,6 +1,6 @@
 # Cachy - Position Size & Risk Management
 
-![Version](https://img.shields.io/badge/version-0.96.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.94b2-blue?style=for-the-badge)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -21,8 +21,7 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **ATR Integration:** Automatic fetching of Average True Range (ATR) from Binance or Bitunix for dynamic stop-loss calculations.
 *   **Live Prices:** Real-time price fetching for cryptocurrencies.
 
-### 📊 Market Overview & Sidebar
-*   **Real-time Data:** Integration of Bitunix Websockets for ultra-fast updates.
+### 📊 Market Overview & Favorites
 *   **Market Overview:** Real-time 24h statistics (Price, Change %, Volume, High, Low) for the selected symbol.
 *   **Favorites System:** Save up to 4 favorite symbols for quick access. Favorites are displayed in the sidebar (desktop) or below the main card (mobile).
 *   **Auto-Updates:** Configurable update intervals (1s, 1m, 10m) for market data.
@@ -40,7 +39,6 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 ### ⚙️ Customization & Tech
 *   **Multi-API Support:** Choose between **Bitunix** (Default) and **Binance** as your data source.
-*   **Websocket Integration:** Real-time data feeds for price, order book, and ticker updates (Bitunix).
 *   **API Integration:** Optional API keys for auto-fetching account balance and private data.
 *   **Privacy:** All data (journal, settings, API keys) is stored only in your browser's `localStorage`.
 *   **Backup & Restore:** Easily backup all your settings, presets, and journal entries to a JSON file and restore them anytime.
@@ -131,22 +129,12 @@ This project is published under the MIT License.
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.96](#v0.96)
-2.  [Version 0.94b2](#v0.94b2)
-3.  [Version 0.94b1](#v0.94b1)
-4.  [Version 0.94](#v0.94)
-5.  [Version 0.92b2](#v0.92b2)
-6.  [Version 0.92b1](#v0.92b1)
-7.  [Version 0.92b](#v0.92b)
-
----
-
-## <a name="v0.96"></a>Version 0.96 (January 2026)
-- **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
-- **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
-- **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
-- **Improvements:** General stability updates and UI adjustments.
-- **Docs:** Completely revised and updated User Guide (Guide).
+1.  [Version 0.94b2](#v0.94b2)
+2.  [Version 0.94b1](#v0.94b1)
+3.  [Version 0.94](#v0.94)
+4.  [Version 0.92b2](#v0.92b2)
+5.  [Version 0.92b1](#v0.92b1)
+6.  [Version 0.92b](#v0.92b)
 
 ---
 

@@ -9,8 +9,6 @@ interface BackupData {
   settings: string | null; // Stored as a raw string from localStorage
   presets: string | null;  // Stored as a raw string from localStorage
   journal: string | null;  // Stored as a raw string from localStorage
-  tradeState: string | null; // Stored as a raw string from localStorage
-  theme: string | null;      // Stored as a raw string from localStorage
 }
 
 // The overall structure of the backup file
@@ -45,8 +43,6 @@ export function createBackup() {
       settings: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
       presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
       journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
-      tradeState: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_TRADE_KEY || 'cachy_trade_store'),
-      theme: getDataFromLocalStorage('theme'),
     }
   };
 
@@ -104,12 +100,6 @@ export function restoreFromBackup(jsonContent: string): { success: boolean; mess
     }
     if (backup.data.journal) {
       localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, backup.data.journal);
-    }
-    if (backup.data.tradeState) {
-        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY || 'cachy_trade_store', backup.data.tradeState);
-    }
-    if (backup.data.theme) {
-        localStorage.setItem('theme', backup.data.theme);
     }
 
     // The app will re-initialize with the new data on reload.

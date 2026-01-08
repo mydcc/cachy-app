@@ -10,16 +10,8 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 1.  [Version 0.96](#v0.96)
 2.  [Version 0.94](#v0.94)
 3.  [Version 0.92b2](#v0.92b2)
-4.  [Version 0.92b1](#v0.92b1)
-5.  [Version 0.92b](#v0.92b)
-
----
-
-## <a name="v0.96"></a>Version 0.96 (January 2026)
-- **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
-- **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
-- **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
-- **Improvements:** General stability updates and UI adjustments.
+3.  [Version 0.92b1](#v0.92b1)
+4.  [Version 0.92b](#v0.92b)
 
 ---
 

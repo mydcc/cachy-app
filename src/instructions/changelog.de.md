@@ -7,19 +7,10 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.96](#v0.96)
-2.  [Version 0.94](#v0.94)
-3.  [Version 0.92b2](#v0.92b2)
-4.  [Version 0.92b1](#v0.92b1)
-5.  [Version 0.92b](#v0.92b)
-
----
-
-## <a name="v0.96"></a>Version 0.96 (Januar 2026)
-- **Neu:** Websocket-Integration für Bitunix (Echtzeit-Preise, Orderbuch, Ticker).
-- **Neu:** Performance Tracking (Pro): Erweiterte Diagramme und Deep Dive Analysen im Journal.
-- **Neu:** Marktübersicht & Sidebar: Verbessertes Layout mit Echtzeitdaten und Favoriten.
-- **Verbesserungen:** Allgemeine Stabilitätsupdates und Anpassungen der Benutzeroberfläche.
+1.  [Version 0.94](#v0.94)
+2.  [Version 0.92b2](#v0.92b2)
+3.  [Version 0.92b1](#v0.92b1)
+4.  [Version 0.92b](#v0.92b)
 
 ---
 
