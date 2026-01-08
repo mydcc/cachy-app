@@ -277,6 +277,14 @@
     // Calendar Data
     $: calendarData = calculator.getCalendarData(journal);
 
+    function handleCalendarClick(event: CustomEvent) {
+        const dateStr = event.detail.date;
+        // Set filters to this date
+        filterDateStart = dateStr;
+        filterDateEnd = dateStr;
+        // Optionally scroll to table?
+    }
+
     $: availableYears = (() => {
         const years = new Set<number>();
         years.add(new Date().getFullYear()); // Always include current year
@@ -1139,7 +1147,7 @@
                         </select>
                     </div>
                     <div class="w-full">
-                        <CalendarHeatmap data={calendarData} year={selectedYear} />
+                        <CalendarHeatmap data={calendarData} year={selectedYear} on:click={handleCalendarClick} />
                     </div>
                 </div>
             {/if}
