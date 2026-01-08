@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { CONSTANTS } from './constants';
+import { parseTimestamp } from '../utils/utils';
 import type { TradeValues, BaseMetrics, IndividualTpResult, TotalMetrics, JournalEntry } from '../stores/types';
 import type { Kline } from '../services/apiService';
 
@@ -806,8 +807,13 @@ export const calculator = {
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-            // Use local date string for simplicity or ISO date part
-            const date = new Date(t.date);
+
+            // Robust parsing using parseTimestamp to handle strings, numbers, ISO, etc.
+            const ts = parseTimestamp(t.date);
+            if (ts <= 0) return; // Skip invalid dates
+
+            const date = new Date(ts);
+            // Use ISO string date part (UTC) to ensure consistency with Heatmap grid generation
             const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
             if (!dailyMap[key]) dailyMap[key] = { pnl: new Decimal(0), count: 0 };

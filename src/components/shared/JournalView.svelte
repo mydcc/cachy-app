@@ -277,6 +277,23 @@
     // Calendar Data
     $: calendarData = calculator.getCalendarData(journal);
 
+    $: availableYears = (() => {
+        const years = new Set<number>();
+        years.add(new Date().getFullYear()); // Always include current year
+        calendarData.forEach(d => {
+            const y = new Date(d.date).getFullYear();
+            if (!isNaN(y)) years.add(y);
+        });
+        return Array.from(years).sort((a, b) => b - a);
+    })();
+
+    let selectedYear = new Date().getFullYear();
+    // Auto-select latest year with data if current selection has no data?
+    // Or just default to current year. Let's default to current year, but if user has data in prev years, they can switch.
+    // Actually, let's strictly default to current year, unless we want to be smart.
+    // Let's stick to a simple default, but maybe update if availableYears changes and selected isn't in it?
+    // No, keep it simple. User can select.
+
     // Discipline Data
     $: discData = calculator.getDisciplineData(journal);
     $: hourlyData = {
@@ -1112,9 +1129,18 @@
                      </div>
                 </div>
             {:else if activeDeepDivePreset === 'calendar'}
-                <div class="col-span-1 md:col-span-2 lg:col-span-3">
-                    <h4 class="text-center font-bold mb-4 text-[var(--text-primary)]">{$_('journal.deepDive.charts.heatmap')}</h4>
-                    <CalendarHeatmap data={calendarData} />
+                <div class="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col items-center">
+                    <div class="flex items-center gap-4 mb-4">
+                        <h4 class="font-bold text-[var(--text-primary)]">{$_('journal.deepDive.charts.heatmap')}</h4>
+                        <select bind:value={selectedYear} class="input-field p-1 rounded text-sm bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                            {#each availableYears as year}
+                                <option value={year}>{year}</option>
+                            {/each}
+                        </select>
+                    </div>
+                    <div class="w-full">
+                        <CalendarHeatmap data={calendarData} year={selectedYear} />
+                    </div>
                 </div>
             {/if}
         </div>
