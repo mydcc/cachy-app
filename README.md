@@ -32,10 +32,9 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 *   **Auto-Balancing:** Percentage distribution automatically adjusts to always total 100%.
 *   **Detailed Metrics:** Calculates profit, R/R (Risk/Reward), and net return per target and in total.
 
-### 📓 Integrated Journal & Performance Tracking (Pro)
+### 📓 Integrated Journal, Notes & Presets
 *   **Trade Journal:** Save your trades locally, track status (Open, Won, Lost), and notes.
-*   **Performance Tracking:** Comprehensive charts for Equity, Drawdown, Monthly PnL, Win Rate, and R-Multiples.
-*   **Deep Dive (Pro):** Advanced analytics including Timing (Hourly/Daily PnL), Asset Performance, Risk Consistency, and Psychology (Streaks).
+*   **Chat / Side Panel:** A collapsible side panel for "Private Notes" (local) or "Global Chat" (ephemeral server cache).
 *   **CSV Import/Export:** Full control over your data – export your journal for Excel or import backups.
 *   **Presets:** Save frequently used setups (e.g., "Scalping Strategy") for quick access.
 

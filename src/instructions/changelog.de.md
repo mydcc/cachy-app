@@ -20,7 +20,6 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **Neu:** Performance Tracking (Pro): Erweiterte Diagramme und Deep Dive Analysen im Journal.
 - **Neu:** Marktübersicht & Sidebar: Verbessertes Layout mit Echtzeitdaten und Favoriten.
 - **Verbesserungen:** Allgemeine Stabilitätsupdates und Anpassungen der Benutzeroberfläche.
-- **Doku:** Komplett überarbeitete und aktualisierte Anleitung (Guide).
 
 ---
 
