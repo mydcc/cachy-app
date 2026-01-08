@@ -827,7 +827,7 @@
 
                 <!-- Title: Centered Top (Simulating Chart.js Title) -->
                 <div class="w-full text-center mb-2">
-                    <span class="text-xs font-bold text-[#94a3b8] uppercase">{$_('journal.deepDive.charts.titles.winRate')}</span>
+                    <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
                 </div>
 
                 <!-- Main Content: Chart & Stats -->
