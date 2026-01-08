@@ -803,31 +803,80 @@ export const calculator = {
 
     getCalendarData: (trades: JournalEntry[]) => {
         // Aggregate PnL by day (YYYY-MM-DD)
-        const dailyMap: {[key: string]: { pnl: Decimal, count: number }} = {};
+        const dailyMap: {[key: string]: {
+            pnl: Decimal,
+            count: number,
+            winCount: number,
+            lossCount: number,
+            bestSymbol: string,
+            bestSymbolPnl: Decimal
+        }} = {};
+
+        // Helper to track best symbol per day
+        const daySymbolMap: {[key: string]: {[symbol: string]: Decimal}} = {};
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
 
-            // Robust parsing using parseTimestamp to handle strings, numbers, ISO, etc.
+            // Robust parsing
             const ts = parseTimestamp(t.date);
-            if (ts <= 0) return; // Skip invalid dates
+            if (ts <= 0) return;
 
             const date = new Date(ts);
-            // Use ISO string date part (UTC) to ensure consistency with Heatmap grid generation
             const key = date.toISOString().split('T')[0]; // YYYY-MM-DD
 
-            if (!dailyMap[key]) dailyMap[key] = { pnl: new Decimal(0), count: 0 };
+            if (!dailyMap[key]) {
+                dailyMap[key] = {
+                    pnl: new Decimal(0),
+                    count: 0,
+                    winCount: 0,
+                    lossCount: 0,
+                    bestSymbol: '',
+                    bestSymbolPnl: new Decimal(-Infinity)
+                };
+                daySymbolMap[key] = {};
+            }
 
             const pnl = getTradePnL(t);
             dailyMap[key].pnl = dailyMap[key].pnl.plus(pnl);
             dailyMap[key].count++;
+
+            if (pnl.gt(0)) dailyMap[key].winCount++;
+            else if (pnl.lt(0)) dailyMap[key].lossCount++;
+
+            // Track symbol performance for the day
+            if (t.symbol) {
+                if (!daySymbolMap[key][t.symbol]) daySymbolMap[key][t.symbol] = new Decimal(0);
+                daySymbolMap[key][t.symbol] = daySymbolMap[key][t.symbol].plus(pnl);
+            }
         });
 
-        // Convert to array of objects { date: string, pnl: number, count: number }
+        // Determine best symbol for each day
+        Object.keys(daySymbolMap).forEach(dayKey => {
+            let bestSym = '';
+            let maxPnl = new Decimal(-Infinity);
+
+            Object.entries(daySymbolMap[dayKey]).forEach(([sym, pnl]) => {
+                if (pnl.gt(maxPnl)) {
+                    maxPnl = pnl;
+                    bestSym = sym;
+                }
+            });
+
+            if (bestSym) {
+                dailyMap[dayKey].bestSymbol = bestSym;
+                dailyMap[dayKey].bestSymbolPnl = maxPnl;
+            }
+        });
+
         return Object.entries(dailyMap).map(([date, data]) => ({
             date,
             pnl: data.pnl.toNumber(),
-            count: data.count
+            count: data.count,
+            winCount: data.winCount,
+            lossCount: data.lossCount,
+            bestSymbol: data.bestSymbol,
+            bestSymbolPnl: data.bestSymbolPnl.isFinite() ? data.bestSymbolPnl.toNumber() : 0
         }));
     }
 };
