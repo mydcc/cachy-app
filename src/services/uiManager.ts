@@ -37,7 +37,8 @@ export const uiManager = {
             titleKey = 'app.changelogTitle';
         }
         const translatedTitle = get(_)(titleKey);
-        modalManager.show(translatedTitle, instruction.html, 'alert');
+        // Pass the 'modal-size-instructions' class here to ensure it uses the updated 80vw width
+        modalManager.show(translatedTitle, instruction.html, 'alert', '', 'modal-size-instructions');
     }
 };
 

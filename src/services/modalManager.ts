@@ -9,6 +9,7 @@ export interface ModalState {
     defaultValue?: string;
     isOpen: boolean;
     resolve: ((value: boolean | string) => void) | null;
+    extraClasses?: string;
 }
 
 const modalState = writable<ModalState>({
@@ -18,10 +19,11 @@ const modalState = writable<ModalState>({
     defaultValue: '',
     isOpen: false,
     resolve: null,
+    extraClasses: ''
 });
 
 export const modalManager = {
-    show(title: string, message: string, type: 'alert' | 'confirm' | 'prompt', defaultValue: string = ''): Promise<boolean | string> {
+    show(title: string, message: string, type: 'alert' | 'confirm' | 'prompt', defaultValue: string = '', extraClasses: string = ''): Promise<boolean | string> {
         return new Promise((resolve) => {
             if (!browser) { // Only show modal in browser environment
                 console.warn("Modal cannot be shown in SSR environment.");
@@ -36,6 +38,7 @@ export const modalManager = {
                 defaultValue,
                 isOpen: true,
                 resolve,
+                extraClasses
             });
         });
     },
