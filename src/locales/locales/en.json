@@ -225,6 +225,8 @@
     },
     "deepDive": {
       "title": "Deep Dive",
+      "forecast": "Forecast",
+      "trends": "Trends",
       "timing": "Timing",
       "assets": "Assets",
       "risk": "Risk",
