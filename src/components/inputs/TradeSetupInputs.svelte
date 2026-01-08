@@ -161,7 +161,7 @@
                 <div class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]">
                     {#each symbolSuggestions as s}
                         <div
-                            class="suggestion-item p-2 cursor-pointer hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)]"
+                            class="suggestion-item p-2 cursor-pointer hover:bg-[var(--accent-color)] hover:text-white"
                             on:click={() => selectSuggestion(s)}
                             on:keydown={(e) => handleKeyDownSuggestion(e, s)}
                             role="button"
@@ -320,7 +320,7 @@
             <div class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]">
                 {#if sortedMultiAtrData.length > 0}
                     {#each sortedMultiAtrData as [tf, val]}
-                         <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors border border-[var(--border-color)]"
+                         <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
                              on:click={() => applyAtr(tf, val)}
                              title="Apply {tf} ATR"
                          >
