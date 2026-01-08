@@ -1485,7 +1485,7 @@ input[type=number] { -moz-appearance: textfield; }
 .atr-toggle-track { background-color: var(--toggle-bg-off); transition: background-color 0.3s; }
 input[type="checkbox"]:checked + .atr-toggle-track { background-color: var(--toggle-bg-on); }
 .atr-toggle-track::after { background-color: var(--toggle-circle-bg); border-color: var(--border-color); transition: transform 0.3s, background-color 0.3s, border-color 0.3s; }
-input[type="checkbox"]:checked + .atr-toggle-track::after { transform: translateX(calc(100% + 2px)); border-color: var(--toggle-circle-bg); }
+input[type="checkbox"]:checked + .atr-toggle-track::after { transform: translateX(calc(100% + 2px)); border-color: var(--toggle-circle-bg-on) !important; background-color: var(--toggle-circle-bg-on) !important; }
 
 .copy-btn, .price-fetch-btn { background: none; border: none; color: var(--text-secondary); cursor: pointer; transition: color 0.2s; padding-right: 0.25rem; }
 .copy-btn:hover, .price-fetch-btn:hover { color: var(--success-color); }
