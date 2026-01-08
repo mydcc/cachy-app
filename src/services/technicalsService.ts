@@ -22,6 +22,12 @@ export interface TechnicalsData {
             s3: number;
         };
     };
+    pivotBasis?: {
+        high: number;
+        low: number;
+        close: number;
+        open: number;
+    };
     summary: {
         buy: number;
         sell: number;
@@ -266,6 +272,13 @@ export const technicalsService = {
             classic: { p, r1, r2, r3, s1, s2, s3 }
         };
 
+        const pivotBasis = {
+            high: prevHigh,
+            low: prevLow,
+            close: prevClose,
+            open: prevOpen
+        };
+
         // --- Summary ---
         let buy = 0;
         let sell = 0;
@@ -285,6 +298,7 @@ export const technicalsService = {
             oscillators,
             movingAverages,
             pivots,
+            pivotBasis,
             summary: { buy, sell, neutral, action: summaryAction }
         };
     },
@@ -302,6 +316,7 @@ export const technicalsService = {
             pivots: {
                 classic: { p: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 }
             },
+            pivotBasis: { high: 0, low: 0, close: 0, open: 0 },
             summary: { buy: 0, sell: 0, neutral: 0, action: 'Neutral' }
         };
     }
