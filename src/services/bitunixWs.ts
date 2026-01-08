@@ -8,8 +8,8 @@ import CryptoJS from 'crypto-js';
 const WS_PUBLIC_URL = CONSTANTS.BITUNIX_WS_PUBLIC_URL || 'wss://fapi.bitunix.com/public/';
 const WS_PRIVATE_URL = CONSTANTS.BITUNIX_WS_PRIVATE_URL || 'wss://fapi.bitunix.com/private/';
 
-const PING_INTERVAL = 5000; // 5 seconds (more aggressive ping)
-const WATCHDOG_TIMEOUT = 10000; // 10 seconds (detect silent disconnects faster)
+const PING_INTERVAL = 20000; // 20 seconds (standard interval)
+const WATCHDOG_TIMEOUT = 30000; // 30 seconds (safe buffer above ping interval)
 const RECONNECT_DELAY = 3000; // 3 seconds
 
 interface Subscription {
@@ -345,12 +345,15 @@ class BitunixWebSocketService {
             }
 
             if (!message) return;
-            if (message.op === 'ping') return;
+
+            // Check for Pong BEFORE checking for Ping, because Bitunix sends op:'ping' in the Pong response!
             if (message.op === 'pong' || message.pong) {
                 if (type === 'public') this.awaitingPongPublic = false;
                 else this.awaitingPongPrivate = false;
                 return;
             }
+
+            if (message.op === 'ping') return;
 
             // Handle Data Push
             // Public Channels
