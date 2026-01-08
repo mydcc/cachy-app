@@ -275,40 +275,58 @@
     alignment="top"
 >
     <!-- Tabs Header -->
-    <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0">
+    <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0" role="tablist">
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'general' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'general'}
+            role="tab"
+            aria-selected={activeTab === 'general'}
+            aria-controls="tab-general"
         >
             {$_('settings.tabs.general')}
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'api' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'api'}
+            role="tab"
+            aria-selected={activeTab === 'api'}
+            aria-controls="tab-api"
         >
             {$_('settings.tabs.api')}
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'behavior' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'behavior'}
+            role="tab"
+            aria-selected={activeTab === 'behavior'}
+            aria-controls="tab-behavior"
         >
             {$_('settings.tabs.behavior')}
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'sidebar' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'sidebar'}
+            role="tab"
+            aria-selected={activeTab === 'sidebar'}
+            aria-controls="tab-sidebar"
         >
             Sidebar
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'indicators' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'indicators'}
+            role="tab"
+            aria-selected={activeTab === 'indicators'}
+            aria-controls="tab-indicators"
         >
             Indicators
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'system' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'system'}
+            role="tab"
+            aria-selected={activeTab === 'system'}
+            aria-controls="tab-system"
         >
             {$_('settings.tabs.system')}
         </button>
@@ -318,7 +336,7 @@
     <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
 
         {#if activeTab === 'general'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-general" aria-labelledby="tab-general-label">
                 <!-- Language & Theme -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
@@ -360,7 +378,7 @@
             </div>
 
         {:else if activeTab === 'api'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
                 <!-- ImgBB Settings -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
@@ -426,7 +444,7 @@
             </div>
 
         {:else if activeTab === 'behavior'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">{$_('settings.intervalLabel')}</span>
                     <select bind:value={marketDataInterval} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
@@ -477,7 +495,7 @@
             </div>
 
         {:else if activeTab === 'sidebar'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
                     <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
@@ -504,7 +522,7 @@
             </div>
 
         {:else if activeTab === 'indicators'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-indicators">
                 <!-- Timeframe Favorites -->
                 <div class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]">
                     <div class="flex justify-between items-center">
@@ -751,7 +769,7 @@
             </div>
 
         {:else if activeTab === 'system'}
-            <div class="flex flex-col gap-4">
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
                  <!-- Backup -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>
