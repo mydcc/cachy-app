@@ -736,50 +736,50 @@
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between">
 
-                <!-- Main Content: Flex Row (Chart Left, Stats Right) -->
-                <div class="flex flex-row items-center justify-center gap-8 flex-1">
+                <!-- Header: Win Rate (Top Left) -->
+                <div class="flex flex-col items-start mb-2">
+                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight uppercase tracking-wider">{$_('journal.deepDive.charts.titles.winRate')}</div>
+                    <div class="text-2xl font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
+                </div>
 
-                    <!-- Left: Win Rate & Chart -->
-                    <div class="flex flex-col items-center gap-2">
-                        <div class="text-center">
-                            <div class="text-[10px] text-[var(--text-secondary)] leading-tight">{$_('journal.deepDive.charts.titles.winRate')}</div>
-                            <div class="text-xl font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
-                        </div>
-                        <div class="h-40 w-40">
-                            <DoughnutChart
-                                data={winLossChartData}
-                                title=""
-                                description={$_('journal.deepDive.charts.descriptions.winLoss')}
-                                options={{ plugins: { legend: { display: false } } }}
-                            />
-                        </div>
+                <!-- Main Content: Flex Row (Chart Left, Stats Right) -->
+                <div class="flex flex-row items-center justify-center gap-6 flex-1">
+
+                    <!-- Left: Chart -->
+                    <div class="h-40 w-40">
+                        <DoughnutChart
+                            data={winLossChartData}
+                            title=""
+                            description={$_('journal.deepDive.charts.descriptions.winLoss')}
+                            options={{ plugins: { legend: { display: false } } }}
+                        />
                     </div>
 
                     <!-- Right: Statistics List -->
-                    <div class="flex flex-col justify-center items-end gap-3 text-sm">
-                        <div class="flex flex-col items-end">
+                    <div class="flex flex-col justify-center items-start gap-3 text-sm">
+                        <div class="flex flex-col items-start">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.profitFactor')}</span>
                             <span class="font-mono font-bold {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
                                 {qualData.detailedStats.profitFactor.toFixed(2)}
                             </span>
                         </div>
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-start">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.expectancy')}</span>
                             <span class="font-mono font-bold {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
                                 ${qualData.detailedStats.expectancy.toFixed(2)}
                             </span>
                         </div>
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-start">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.avgWinLoss')}</span>
-                            <div class="flex items-baseline justify-end gap-1">
+                            <div class="flex items-baseline justify-start gap-1">
                                 <span class="font-bold text-[var(--success-color)]">${qualData.detailedStats.avgWin.toFixed(2)}</span>
                                 <span class="text-[var(--text-secondary)]">/</span>
                                 <span class="font-bold text-[var(--danger-color)]">${qualData.detailedStats.avgLoss.toFixed(2)}</span>
                             </div>
                         </div>
-                        <div class="flex flex-col items-end">
+                        <div class="flex flex-col items-start">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.winRateLS')}</span>
-                            <div class="flex items-baseline justify-end gap-1">
+                            <div class="flex items-baseline justify-start gap-1">
                                 <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 1)}">L: {qualData.detailedStats.winRateLong.toFixed(0)}%</span>
                                 <span class="text-[var(--text-secondary)]">|</span>
                                 <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 0.6)}">S: {qualData.detailedStats.winRateShort.toFixed(0)}%</span>
