@@ -2,6 +2,8 @@
     import { _ } from '../../locales/i18n';
     import { formatDynamicDecimal } from '../../utils/utils';
     import OrderDetailsTooltip from './OrderDetailsTooltip.svelte';
+    import OrderEditModal from './OrderEditModal.svelte';
+    import { icons } from '../../lib/constants';
 
     export let orders: any[] = [];
     export let loading: boolean = false;
@@ -11,6 +13,10 @@
     let tooltipX = 0;
     let tooltipY = 0;
     let tooltipTimeout: any;
+
+    // Modal State
+    let showEditModal = false;
+    let selectedOrderForEdit: any = null;
 
     function handleMouseEnter(event: MouseEvent, order: any) {
         if (tooltipTimeout) clearTimeout(tooltipTimeout);
@@ -87,6 +93,22 @@
         console.log('Cancel order', orderId);
         // Placeholder for future cancel logic
     }
+
+    function openEditModal(order: any, e: MouseEvent) {
+        e.stopPropagation(); // Prevent tooltip or other triggers
+        selectedOrderForEdit = order;
+        showEditModal = true;
+    }
+
+    function handleEditSuccess() {
+        // Here we should probably trigger a refresh of the orders list.
+        // For now, let's dispatch an event so parent can refresh.
+        // Or since 'orders' prop updates from parent, we just rely on next poll?
+        // Better to dispatch.
+        // The modal itself handles the API call.
+        showEditModal = false;
+        selectedOrderForEdit = null;
+    }
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
@@ -144,10 +166,21 @@
                         </div>
 
                         <!-- Col 3: Price & Status -->
-                        <div class="flex flex-col items-end justify-center pl-1">
-                            <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
-                                {formatDynamicDecimal(order.price)}
-                            </span>
+                        <div class="flex flex-col items-end justify-center pl-1 relative">
+                            <div class="flex items-center gap-1">
+                                <span class="text-xs font-mono text-[var(--text-primary)] mb-0.5">
+                                    {formatDynamicDecimal(order.price)}
+                                </span>
+
+                                <!-- Edit Button (Pencil) -->
+                                <button
+                                    class="p-0.5 text-[var(--text-tertiary)] hover:text-[var(--accent-color)] transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+                                    on:click={(e) => openEditModal(order, e)}
+                                    title="Edit Order"
+                                >
+                                    {@html icons.edit || '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>'}
+                                </button>
+                            </div>
 
                             <span class="text-[9px] text-[var(--text-tertiary)] uppercase opacity-70 whitespace-nowrap mt-0.5">
                                 {order.status}
@@ -162,7 +195,7 @@
     {/if}
 </div>
 
-{#if hoveredOrder}
+{#if hoveredOrder && !showEditModal}
     <div
         class="fixed z-[9999] pointer-events-auto"
         style="top: {tooltipY}px; left: {tooltipX}px;"
@@ -172,4 +205,12 @@
     >
         <OrderDetailsTooltip order={hoveredOrder} />
     </div>
+{/if}
+
+{#if showEditModal && selectedOrderForEdit}
+    <OrderEditModal
+        order={selectedOrderForEdit}
+        on:close={() => { showEditModal = false; selectedOrderForEdit = null; }}
+        on:success={handleEditSuccess}
+    />
 {/if}
