@@ -37,6 +37,7 @@ import { trackCustomEvent } from '../services/trackingService';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
     import TechnicalsPanel from '../components/shared/TechnicalsPanel.svelte'; // Import TechnicalsPanel
     import ConnectionStatus from '../components/shared/ConnectionStatus.svelte'; // Import ConnectionStatus
+    import SidePanel from '../components/shared/SidePanel.svelte';
     import { handleGlobalKeydown } from '../services/hotkeyService';
 
     let fileInput: HTMLInputElement;
@@ -221,6 +222,8 @@ import { trackCustomEvent } from '../services/trackingService';
 <svelte:window on:keydown={handleKeydown} />
 
 <input type="file" class="hidden" bind:this={fileInput} on:change={handleFileSelected} accept=".json,application/json" />
+
+<SidePanel />
 
 <!-- Wrapper for desktop positioning -->
 <div class="relative w-full max-w-4xl mx-auto">
@@ -440,12 +443,12 @@ import { trackCustomEvent } from '../services/trackingService';
 </div>
 
 <footer class="w-full max-w-4xl mx-auto text-center py-4 text-sm text-gray-500 flex justify-center items-center gap-4">
-    <span>Version {import.meta.env.VITE_APP_VERSION}</span>
+    <span>{$_('app.version')} {import.meta.env.VITE_APP_VERSION}</span>
     <button class="text-link" on:click={() => uiStore.toggleGuideModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowGuide' }}>{$_('app.guideButton')}</button>
-    <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>Changelog</button>
-    <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>Privacy & Legal</button>
+    <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>{$_('app.changelogTitle')}</button>
+    <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>{$_('app.privacyLegal')}</button>
     <button class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}" on:click={() => $settingsStore.isPro = !$settingsStore.isPro}>
-        {$settingsStore.isPro ? 'Pro Active' : 'Pro'}
+        {$settingsStore.isPro ? $_('app.proActive') : $_('app.pro')}
     </button>
 </footer>
 
@@ -479,7 +482,7 @@ import { trackCustomEvent } from '../services/trackingService';
 
 <ModalFrame
     isOpen={$uiStore.showPrivacyModal}
-    title="Privacy & Legal"
+    title={$_('app.privacyLegal')}
     on:close={() => uiStore.togglePrivacyModal(false)}
     extraClasses="modal-size-instructions"
 >

@@ -112,6 +112,8 @@ export interface AppState {
     remoteMarginMode?: string;
     remoteMakerFee?: number;
     remoteTakerFee?: number;
+
+    multiAtrData: Record<string, number>;
 }
 
 export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics {
@@ -150,4 +152,5 @@ export interface JournalEntry {
     realizedPnl?: Decimal;
     isManual?: boolean;
     tags?: string[];
+    screenshot?: string;
 }

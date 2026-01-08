@@ -41,7 +41,9 @@ describe('hotkeyService', () => {
             syncRsiTimeframe: true,
             imgbbApiKey: '',
             imgbbExpiration: 0,
-            apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } }
+            apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } },
+            enableSidePanel: true,
+            sidePanelMode: 'chat'
         });
 
         tradeStore.set({
@@ -74,7 +76,8 @@ describe('hotkeyService', () => {
             remoteLeverage: undefined,
             remoteMarginMode: undefined,
             remoteMakerFee: undefined,
-            remoteTakerFee: undefined
+            remoteTakerFee: undefined,
+            multiAtrData: {}
         });
 
         uiStore.set({
