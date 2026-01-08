@@ -267,17 +267,17 @@
                                 <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
                                 <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
                                     <span class="text-[var(--text-secondary)]">High:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis.high)}</span>
+                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
 
                                     <span class="text-[var(--text-secondary)]">Low:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis.low)}</span>
+                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
 
                                     <span class="text-[var(--text-secondary)]">Close:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis.close)}</span>
+                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
 
                                     {#if indicatorSettings?.pivots?.type === 'woodie'}
                                         <span class="text-[var(--text-secondary)]">Open:</span>
-                                        <span class="font-mono text-right">{formatVal(data.pivotBasis.open)}</span>
+                                        <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
                                     {/if}
                                 </div>
                                 {#if indicatorSettings?.pivots?.type === 'fibonacci'}
