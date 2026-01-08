@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 
 export interface IndicatorSettings {
+    historyLimit: number; // Global setting for calculation depth
     rsi: {
         enabled: boolean;
         length: number;
@@ -57,6 +58,7 @@ export interface IndicatorSettings {
 }
 
 const defaultSettings: IndicatorSettings = {
+    historyLimit: 2000,
     rsi: {
         enabled: true,
         length: 14,
@@ -122,6 +124,7 @@ function createIndicatorStore() {
         try {
             const parsed = JSON.parse(stored);
             initial = {
+                historyLimit: parsed.historyLimit || defaultSettings.historyLimit,
                 rsi: { ...defaultSettings.rsi, ...parsed.rsi },
                 macd: { ...defaultSettings.macd, ...parsed.macd },
                 stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },

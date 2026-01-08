@@ -119,8 +119,9 @@
         error = null;
 
         try {
-            // Fetch history - Increased to 1000 for better accuracy
-            const klines = await apiService.fetchBitunixKlines(symbol, timeframe, 1000);
+            // Fetch history based on settings
+            const limit = indicatorSettings?.historyLimit || 2000;
+            const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
             klinesHistory = klines;
             data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
         } catch (e) {
