@@ -736,16 +736,16 @@
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col relative">
 
-                <!-- Title: Centered Top (Simulating Chart.js Title) -->
-                <div class="w-full text-center mb-2">
-                    <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
-                </div>
-
                 <!-- Main Content: Chart & Stats -->
                 <div class="flex flex-row items-center justify-between flex-1 w-full relative">
 
-                    <!-- Chart: Centered in remaining space -->
-                    <div class="flex-1 flex items-center justify-center h-full relative">
+                    <!-- Chart Area: Title + Chart centered together -->
+                    <div class="flex-1 flex flex-col items-center justify-center h-full relative">
+                        <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
+                        <div class="text-center mb-2">
+                            <span class="text-xs font-bold text-[#94a3b8]">{$_('journal.deepDive.charts.titles.winRate')}</span>
+                        </div>
+
                         <div class="h-44 w-44">
                             <DoughnutChart
                                 data={winLossChartData}
@@ -760,7 +760,7 @@
                     <div class="flex flex-col justify-center items-end gap-3 text-sm min-w-[100px]">
                          <div class="flex flex-col items-end">
                             <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider">Total Win Rate</span>
-                            <span class="font-mono font-bold {qualData.stats.winRate >= 50 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                            <span class="font-mono font-bold {qualData.stats.winRate.gte(50) ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
                                 {qualData.stats.winRate.toFixed(2)}%
                             </span>
                         </div>
