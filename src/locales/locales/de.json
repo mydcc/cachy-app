@@ -296,9 +296,14 @@
             "lossStreak": "Häufigkeit von Verlustserien unterschiedlicher Länge.",
             "drawdownRecovery": "Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst.",
             "tagPerformance": "Gewinn/Verlust pro Strategie-Tag.",
-            "heatmap": "Kalenderansicht der täglichen PnL-Performance."
+            "heatmap": "Kalenderansicht der täglichen PnL-Performance.",
+            "forecast": "Simuliert 100 mögliche Zukünfte basierend auf deinen historischen Trades. Der Kegel zeigt den Bereich zwischen Worst-Case (10% Perzentil) und Best-Case (90% Perzentil).",
+            "rollingWinRate": "Deine Winrate über die jeweils letzten 20 Trades. Zeigt, ob du gerade 'heiß' oder 'kalt' läufst.",
+            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel."
         },
         "labels": {
+            "forecast": "Forecast",
+            "trends": "Trends",
             "equity": "Equity",
             "pnl": "PnL ($)",
             "pnlY": "PnL",
@@ -324,7 +329,14 @@
             "riskAmount": "Risiko ($)",
             "realizedPnl": "Realisierter PnL ($)",
             "topAsset": "Top Asset",
-            "mostProfitableStrategy": "Beste Strategie"
+            "mostProfitableStrategy": "Beste Strategie",
+            "simBest": "90. Perzentil (Best)",
+            "simMedian": "Median",
+            "simWorst": "10. Perzentil (Worst)",
+            "simRandom": "Sim #",
+            "rollingWinRate": "Rolling Win Rate (20)",
+            "rollingPF": "Rolling Profit Factor (20)",
+            "equityChange": "Equity Veränderung ($)"
         }
       }
     }

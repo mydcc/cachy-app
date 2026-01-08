@@ -878,5 +878,108 @@ export const calculator = {
             bestSymbol: data.bestSymbol,
             bestSymbolPnl: data.bestSymbolPnl.isFinite() ? data.bestSymbolPnl.toNumber() : 0
         }));
+    },
+
+    getMonteCarloData: (journal: JournalEntry[], simulations: number = 100, horizon: number = 100) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+        const pnlDistribution = closedTrades.map(t => getTradePnL(t).toNumber());
+
+        if (pnlDistribution.length < 5) return null; // Need enough data
+
+        const paths: number[][] = [];
+        const finalEquityValues: number[] = [];
+
+        // Run Simulations
+        for (let s = 0; s < simulations; s++) {
+            let currentEquity = 0; // Relative to start of simulation
+            const path: number[] = [0];
+
+            for (let h = 0; h < horizon; h++) {
+                // Random sample with replacement
+                const randomIndex = Math.floor(Math.random() * pnlDistribution.length);
+                const randomPnL = pnlDistribution[randomIndex];
+                currentEquity += randomPnL;
+                path.push(currentEquity);
+            }
+
+            paths.push(path);
+            finalEquityValues.push(currentEquity);
+        }
+
+        // Calculate Percentiles per Step for the "Cone"
+        const upperPath: number[] = []; // 90th percentile
+        const medianPath: number[] = []; // 50th percentile
+        const lowerPath: number[] = []; // 10th percentile
+
+        for (let h = 0; h <= horizon; h++) {
+            const valuesAtStep = paths.map(p => p[h]).sort((a, b) => a - b);
+
+            const idx10 = Math.floor(simulations * 0.1);
+            const idx50 = Math.floor(simulations * 0.5);
+            const idx90 = Math.floor(simulations * 0.9);
+
+            lowerPath.push(valuesAtStep[idx10]);
+            medianPath.push(valuesAtStep[idx50]);
+            upperPath.push(valuesAtStep[idx90]);
+        }
+
+        // We can also return a few random paths for visualization flavor
+        const randomPaths = paths.slice(0, 3);
+
+        return {
+            labels: Array.from({length: horizon + 1}, (_, i) => i),
+            upperPath,
+            medianPath,
+            lowerPath,
+            randomPaths
+        };
+    },
+
+    getRollingData: (journal: JournalEntry[], windowSize: number = 20) => {
+        const sortedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        if (sortedTrades.length < windowSize) return null;
+
+        const labels: string[] = [];
+        const winRates: number[] = [];
+        const profitFactors: number[] = [];
+
+        for (let i = windowSize; i <= sortedTrades.length; i++) {
+            const windowTrades = sortedTrades.slice(i - windowSize, i);
+
+            // Calculate Win Rate
+            const wins = windowTrades.filter(t => t.status === 'Won').length;
+            winRates.push((wins / windowSize) * 100);
+
+            // Calculate Profit Factor (or Net PnL sum)
+            let grossWin = new Decimal(0);
+            let grossLoss = new Decimal(0);
+            windowTrades.forEach(t => {
+                const pnl = getTradePnL(t);
+                if (pnl.gt(0)) grossWin = grossWin.plus(pnl);
+                else grossLoss = grossLoss.plus(pnl.abs());
+            });
+
+            // Handle Infinity
+            let pf = 0;
+            if (grossLoss.isZero()) {
+                 pf = grossWin.gt(0) ? 10 : 0; // Cap at 10 for visualization
+            } else {
+                 pf = grossWin.div(grossLoss).toNumber();
+            }
+            profitFactors.push(pf);
+
+            // Label: use the date of the last trade in the window
+            const date = new Date(windowTrades[windowTrades.length - 1].date);
+            labels.push(date.toLocaleDateString());
+        }
+
+        return {
+            labels,
+            winRates,
+            profitFactors
+        };
     }
 };
