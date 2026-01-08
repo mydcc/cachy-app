@@ -34,24 +34,42 @@ class BitunixWebSocketService {
 
     private isReconnectingPublic = false;
     private isReconnectingPrivate = false;
+
+    private awaitingPongPublic = false;
+    private awaitingPongPrivate = false;
     
     private isAuthenticated = false;
 
+    private handleOnline = () => {
+        console.log('Browser online detected. Reconnecting WebSockets...');
+        this.connect();
+    };
+
+    private handleOffline = () => {
+        console.warn('Browser offline detected. Terminating WebSockets...');
+        wsStatusStore.set('disconnected');
+        this.cleanup('public');
+        this.cleanup('private');
+        if (this.wsPublic) this.wsPublic.close();
+        if (this.wsPrivate) this.wsPrivate.close();
+    };
+
     constructor() {
         if (typeof window !== 'undefined') {
-            window.addEventListener('online', () => {
-                console.log('Browser online detected. Reconnecting WebSockets...');
-                this.connect();
-            });
-            window.addEventListener('offline', () => {
-                console.warn('Browser offline detected. Terminating WebSockets...');
-                wsStatusStore.set('disconnected');
-                this.cleanup('public');
-                this.cleanup('private');
-                if (this.wsPublic) this.wsPublic.close();
-                if (this.wsPrivate) this.wsPrivate.close();
-            });
+            window.addEventListener('online', this.handleOnline);
+            window.addEventListener('offline', this.handleOffline);
         }
+    }
+
+    destroy() {
+        if (typeof window !== 'undefined') {
+            window.removeEventListener('online', this.handleOnline);
+            window.removeEventListener('offline', this.handleOffline);
+        }
+        this.cleanup('public');
+        this.cleanup('private');
+        if (this.wsPublic) this.wsPublic.close();
+        if (this.wsPrivate) this.wsPrivate.close();
     }
 
     connect() {
@@ -197,12 +215,29 @@ class BitunixWebSocketService {
         // Clear existing ping timer if any (though usually handled by cleanup)
         if (type === 'public') {
             if (this.pingTimerPublic) clearInterval(this.pingTimerPublic);
+            this.awaitingPongPublic = false;
         } else {
             if (this.pingTimerPrivate) clearInterval(this.pingTimerPrivate);
+            this.awaitingPongPrivate = false;
         }
 
         const timer = setInterval(() => {
             if (ws && ws.readyState === WebSocket.OPEN) {
+                // Check if previous ping was answered
+                if (type === 'public' && this.awaitingPongPublic) {
+                    console.warn('Bitunix Public WS: Pong timeout. Reconnecting...');
+                    ws.close(); // Force reconnect
+                    return;
+                }
+                if (type === 'private' && this.awaitingPongPrivate) {
+                    console.warn('Bitunix Private WS: Pong timeout. Reconnecting...');
+                    ws.close();
+                    return;
+                }
+
+                if (type === 'public') this.awaitingPongPublic = true;
+                else this.awaitingPongPrivate = true;
+
                 const pingPayload = {
                     op: 'ping',
                     ping: Math.floor(Date.now() / 1000)
@@ -311,7 +346,11 @@ class BitunixWebSocketService {
 
             if (!message) return;
             if (message.op === 'ping') return;
-            if (message.op === 'pong' || message.pong) return;
+            if (message.op === 'pong' || message.pong) {
+                if (type === 'public') this.awaitingPongPublic = false;
+                else this.awaitingPongPrivate = false;
+                return;
+            }
 
             // Handle Data Push
             // Public Channels

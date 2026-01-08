@@ -10,7 +10,7 @@ export default defineConfig({
 		include: ['intl-messageformat']
 	},
 	ssr: {
-		noExternal: ['intl-messageformat', '@formatjs/icu-messageformat-parser', '@formatjs/icu-skeleton-parser', 'svelte-i18n']
+		noExternal: ['intl-messageformat', '@formatjs/icu-messageformat-parser', '@formatjs/icu-skeleton-parser', '@formatjs/fast-memoize', 'svelte-i18n']
 	},
 	build: {
 		rollupOptions: {
