@@ -513,7 +513,7 @@
                     <!-- Display Tags Preview -->
                     <div class="flex flex-wrap gap-2 mt-2">
                         {#each favoriteTimeframes as tf}
-                             <span class="px-2 py-1 text-xs rounded bg-[var(--accent-color)] text-white border border-[var(--accent-color)]">
+                             <span class="px-2 py-1 text-xs rounded bg-[var(--accent-color)] text-[var(--btn-accent-text)] border border-[var(--accent-color)]">
                                 {tf}
                              </span>
                         {/each}
@@ -525,7 +525,7 @@
                     <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                         <h4 class="text-sm font-bold">Relative Strength Index (RSI)</h4>
                         {#if !isPro}
-                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-white px-2 py-0.5 rounded-full">PRO Feature</span>
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                         {/if}
                     </div>
 
@@ -636,7 +636,7 @@
 
     <!-- Footer Actions -->
     <div class="flex justify-end gap-3 mt-6 pt-4 border-t border-[var(--border-color)] shrink-0">
-        <button class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-white rounded hover:opacity-90 transition-opacity" on:click={close}>
+        <button class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity" on:click={close}>
             {$_('common.ok') || 'OK'}
         </button>
     </div>
