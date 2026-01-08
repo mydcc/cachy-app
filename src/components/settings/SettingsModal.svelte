@@ -27,6 +27,10 @@
 
     // Indicator Settings
     let rsiSettings = { ...$indicatorStore.rsi };
+    let macdSettings = { ...$indicatorStore.macd };
+    let stochSettings = { ...$indicatorStore.stochastic };
+    let emaSettings = { ...$indicatorStore.ema };
+    let pivotSettings = { ...$indicatorStore.pivots };
 
     // Side Panel Settings
     let enableSidePanel: boolean;
@@ -103,6 +107,10 @@
             syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
 
             rsiSettings = { ...$indicatorStore.rsi };
+            macdSettings = { ...$indicatorStore.macd };
+            stochSettings = { ...$indicatorStore.stochastic };
+            emaSettings = { ...$indicatorStore.ema };
+            pivotSettings = { ...$indicatorStore.pivots };
 
             // Deep copy keys to avoid binding issues
             bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
@@ -145,7 +153,13 @@
             }
         }));
 
-        indicatorStore.set({ rsi: rsiSettings });
+        indicatorStore.set({
+            rsi: rsiSettings,
+            macd: macdSettings,
+            stochastic: stochSettings,
+            ema: emaSettings,
+            pivots: pivotSettings
+        });
     }
 
     // Immediate Theme Update
@@ -592,6 +606,144 @@
                             <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
                                 <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
                                 <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI calculation.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- MACD Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">MACD (Moving Average Convergence Divergence)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Fast Length</span>
+                            <input type="number" bind:value={macdSettings.fastLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Slow Length</span>
+                            <input type="number" bind:value={macdSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Signal Length</span>
+                            <input type="number" bind:value={macdSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
+                            <select bind:value={macdSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                <option value="close">Close</option>
+                                <option value="open">Open</option>
+                                <option value="high">High</option>
+                                <option value="low">Low</option>
+                                <option value="hl2">HL/2</option>
+                                <option value="hlc3">HLC/3</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize MACD.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- Stochastic Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Stochastic Oscillator</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">%K Length (Period)</span>
+                            <input type="number" bind:value={stochSettings.kPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">%D Smoothing (Signal)</span>
+                            <input type="number" bind:value={stochSettings.dPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize Stochastic.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- EMA Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Moving Averages (EMA)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 1</span>
+                            <input type="number" bind:value={emaSettings.ema1Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 2</span>
+                            <input type="number" bind:value={emaSettings.ema2Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 3</span>
+                            <input type="number" bind:value={emaSettings.ema3Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize EMAs.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- Pivots Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Pivot Points</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="flex flex-col gap-1 mt-1">
+                        <span class="text-xs font-medium text-[var(--text-secondary)]">Type</span>
+                        <select bind:value={pivotSettings.type} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                            <option value="classic">Classic</option>
+                            <option value="woodie">Woodie</option>
+                            <option value="camarilla">Camarilla</option>
+                            <option value="fibonacci">Fibonacci</option>
+                        </select>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize Pivots.</p>
                             </div>
                          </div>
                     {/if}
