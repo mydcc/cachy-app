@@ -62,8 +62,11 @@
     >
         <!-- Toggle Strip (Visible when collapsed) -->
         <div
-            class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto"
+            role="button"
+            tabindex="0"
+            class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
             on:click={toggle}
+            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle()}
             title={$settingsStore.sidePanelMode === 'chat' ? 'Open Chat' : 'Open Notes'}
         >
             <div class="mb-4 text-[var(--text-primary)]">
