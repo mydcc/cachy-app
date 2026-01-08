@@ -38,10 +38,6 @@ export interface Settings {
     imgbbExpiration: number; // 0 = never, otherwise seconds
     isDeepDiveUnlocked?: boolean; // Persist cheat code state
     imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
-
-    // Side Panel Settings
-    enableSidePanel: boolean;
-    sidePanelMode: 'chat' | 'notes';
 }
 
 const defaultSettings: Settings = {
@@ -64,9 +60,7 @@ const defaultSettings: Settings = {
     syncRsiTimeframe: true,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
-    isDeepDiveUnlocked: false,
-    enableSidePanel: false,
-    sidePanelMode: 'notes'
+    isDeepDiveUnlocked: false
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -130,9 +124,7 @@ function loadSettingsFromLocalStorage(): Settings {
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
-            isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
-            enableSidePanel: settings.enableSidePanel ?? defaultSettings.enableSidePanel,
-            sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode
+            isDeepDiveUnlocked: settings.isDeepDiveUnlocked
         };
 
         return cleanSettings;

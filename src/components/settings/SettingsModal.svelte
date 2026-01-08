@@ -28,10 +28,6 @@
     // Indicator Settings
     let rsiSettings = { ...$indicatorStore.rsi };
 
-    // Side Panel Settings
-    let enableSidePanel: boolean;
-    let sidePanelMode: 'chat' | 'notes';
-
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
     let binanceKeys: ApiKeys = { key: '', secret: '' };
@@ -94,8 +90,6 @@
             positionViewMode = $settingsStore.positionViewMode || 'detailed';
             feePreference = $settingsStore.feePreference;
             hotkeyMode = $settingsStore.hotkeyMode;
-            enableSidePanel = $settingsStore.enableSidePanel;
-            sidePanelMode = $settingsStore.sidePanelMode;
             isPro = $settingsStore.isPro;
 
             favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
@@ -133,8 +127,6 @@
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
-            enableSidePanel,
-            sidePanelMode,
             favoriteTimeframes,
             syncRsiTimeframe,
             imgbbApiKey,
