@@ -709,9 +709,17 @@
                 <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
             </div>
         {:else if activePreset === 'quality'}
-            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between overflow-hidden relative">
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between relative">
                 <!-- Top Area: Layered Layout -->
                 <div class="relative flex-1 min-h-[160px] w-full">
+
+                    <!-- Tooltip (Bottom Left of Chart Area) -->
+                    <div class="absolute bottom-1 left-1 z-30">
+                        <Tooltip
+                            text="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
+                            alignment="left"
+                        />
+                    </div>
 
                     <!-- Layer 0: Chart (Centered & Larger) -->
                     <div class="absolute inset-0 flex items-center justify-center z-0">
@@ -719,7 +727,6 @@
                             <DoughnutChart
                                 data={winLossChartData}
                                 title=""
-                                description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
                                 options={{ plugins: { legend: { display: false } } }}
                             />
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
