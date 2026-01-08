@@ -981,5 +981,78 @@ export const calculator = {
             winRates,
             profitFactors
         };
+    },
+
+    getLeakageData: (journal: JournalEntry[]) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        let totalGrossProfit = new Decimal(0);
+        let totalGrossLoss = new Decimal(0); // Absolute value
+        let totalFees = new Decimal(0);
+
+        closedTrades.forEach(t => {
+            const pnl = getTradePnL(t);
+            const fees = (t.totalFees || new Decimal(0)).plus(t.fundingFee || new Decimal(0)).plus(t.tradingFee || new Decimal(0));
+
+            // Reconstruct Gross PnL from Net PnL + Fees
+            // Net = Gross - Fees  => Gross = Net + Fees
+            const grossPnl = pnl.plus(fees);
+
+            if (grossPnl.gt(0)) {
+                totalGrossProfit = totalGrossProfit.plus(grossPnl);
+            } else {
+                totalGrossLoss = totalGrossLoss.plus(grossPnl.abs());
+            }
+
+            totalFees = totalFees.plus(fees);
+        });
+
+        // 1. Fee Efficiency
+        // How much of Gross Profit is kept? (Net Profit / Gross Profit)
+        // If Gross Profit is 0, retention is 0 (or undefined)
+        const totalNetProfit = totalGrossProfit.minus(totalGrossLoss).minus(totalFees);
+        const profitRetention = totalGrossProfit.gt(0)
+            ? totalNetProfit.div(totalGrossProfit).times(100).toNumber()
+            : 0;
+
+        // How much is lost to fees relative to Gross Profit?
+        const feeImpact = totalGrossProfit.gt(0)
+            ? totalFees.div(totalGrossProfit).times(100).toNumber()
+            : 0;
+
+        // 2. Worst Tags (Strategy Leakage)
+        const tagStats = calculator.getTagData(closedTrades);
+        const worstTags = tagStats.labels
+            .map((label, i) => ({ label, pnl: tagStats.pnlData[i] }))
+            .filter(item => item.pnl < 0)
+            .sort((a, b) => a.pnl - b.pnl) // Ascending (most negative first)
+            .slice(0, 5); // Bottom 5
+
+        // 3. Worst Times (Timing Leakage)
+        const timingStats = calculator.getTimingData(closedTrades);
+
+        // Worst Hours (by Gross Loss)
+        // timingStats.hourlyGrossLoss contains positive numbers representing magnitude of loss
+        const worstHours = timingStats.hourlyGrossLoss
+            .map((loss, hour) => ({ hour, loss }))
+            .sort((a, b) => b.loss - a.loss) // Descending (largest loss first)
+            .slice(0, 5)
+            .filter(h => h.loss > 0);
+
+        // Worst Days
+        const worstDays = timingStats.dayLabels
+            .map((day, i) => ({ day, loss: timingStats.dayOfWeekGrossLoss[i] }))
+            .sort((a, b) => b.loss - a.loss)
+            .slice(0, 3)
+            .filter(d => d.loss > 0);
+
+        return {
+            profitRetention,
+            feeImpact,
+            totalFees: totalFees.toNumber(),
+            worstTags,
+            worstHours,
+            worstDays
+        };
     }
 };

@@ -227,6 +227,7 @@
       "title": "Deep Dive",
       "forecast": "Prognose",
       "trends": "Trends",
+      "leakage": "Verluste",
       "timing": "Zeit",
       "assets": "Assets",
       "risk": "Risiko",
@@ -273,6 +274,8 @@
             "heatmap": "Täglicher PnL Kalender"
         },
         "descriptions": {
+            "leakageTags": "Strategien oder Tags, die den größten Verlust verursachen.",
+            "leakageTiming": "Zeiten, in denen die größten Verluste auftreten.",
             "equityCurve": "Verlauf des Gesamtkapitals basierend auf allen abgeschlossenen Trades.",
             "drawdown": "Zeigt den Rückgang vom letzten Höchststand des Kapitals (Equity High).",
             "monthlyPnl": "Aggregierter Gewinn/Verlust pro Kalendermonat.",
@@ -306,6 +309,9 @@
         "labels": {
             "forecast": "Forecast",
             "trends": "Trends",
+            "leakage": "Leakage",
+            "profitRetention": "Profit Retention",
+            "feeImpact": "Fee Impact",
             "equity": "Equity",
             "pnl": "PnL ($)",
             "pnlY": "PnL",

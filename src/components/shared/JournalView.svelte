@@ -526,6 +526,25 @@
         }]
     } : null;
 
+    // Leakage (Attribution)
+    $: leakageData = calculator.getLeakageData(journal);
+    $: leakageTagData = {
+        labels: leakageData.worstTags.map(t => t.label),
+        datasets: [{
+            label: 'PnL',
+            data: leakageData.worstTags.map(t => t.pnl),
+            backgroundColor: themeColors.danger
+        }]
+    };
+    $: leakageTimingData = {
+        labels: leakageData.worstHours.map(h => `${h.hour}h`),
+        datasets: [{
+            label: 'Gross Loss',
+            data: leakageData.worstHours.map(h => h.loss), // Absolute positive values for display
+            backgroundColor: themeColors.danger
+        }]
+    };
+
     // --- Table State ---
     let currentPage = 1;
     let itemsPerPage = 10;
@@ -1137,6 +1156,7 @@
             presets={[
                 { id: 'forecast', label: $_('journal.deepDive.forecast') },
                 { id: 'trends', label: $_('journal.deepDive.trends') },
+                { id: 'leakage', label: $_('journal.deepDive.leakage') },
                 { id: 'timing', label: $_('journal.deepDive.timing') },
                 { id: 'assets', label: $_('journal.deepDive.assets') },
                 { id: 'risk', label: $_('journal.deepDive.risk') },
@@ -1176,6 +1196,22 @@
                              {$_('journal.noData')} (Min 20 Trades)
                          </div>
                     {/if}
+                 </div>
+            {:else if activeDeepDivePreset === 'leakage'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center">
+                    <div class="flex flex-col items-center gap-2">
+                         <div class="text-[10px] text-[var(--text-secondary)] uppercase tracking-wider">{$_('journal.deepDive.charts.labels.profitRetention')}</div>
+                         <div class="text-4xl font-bold {leakageData.profitRetention > 50 ? 'text-[var(--success-color)]' : 'text-[var(--warning-color)]'}">
+                             {leakageData.profitRetention.toFixed(1)}%
+                         </div>
+                         <div class="text-xs text-[var(--text-secondary)] mt-2">{$_('journal.deepDive.charts.labels.feeImpact')}: <span class="text-[var(--danger-color)]">-{leakageData.feeImpact.toFixed(1)}%</span></div>
+                    </div>
+                 </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                     <BarChart data={leakageTagData} title="Strategy Leakage" horizontal={true} description={$_('journal.deepDive.charts.descriptions.leakageTags')} />
+                 </div>
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
+                     <BarChart data={leakageTimingData} title="Time Leakage (Worst Hours)" description={$_('journal.deepDive.charts.descriptions.leakageTiming')} />
                  </div>
             {:else if activeDeepDivePreset === 'timing'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
