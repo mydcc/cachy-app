@@ -433,15 +433,15 @@
             {#if highPrice || tickerData}
             <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
                 <div class="flex flex-col">
-                    <span class="text-[var(--text-secondary)]">24h High</span>
+                    <span class="text-[var(--text-secondary)]">{$_('marketOverview.24hHigh')}</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(highPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col text-right">
-                    <span class="text-[var(--text-secondary)]">24h Low</span>
+                    <span class="text-[var(--text-secondary)]">{$_('marketOverview.24hLow')}</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(lowPrice, 4)}</span>
                 </div>
                 <div class="flex flex-col mt-1">
-                    <span class="text-[var(--text-secondary)]">Vol ({displaySymbol.replace(/USDT.?$/, "").replace(/P$/, "")})</span>
+                    <span class="text-[var(--text-secondary)]">{$_('marketOverview.vol')} ({displaySymbol.replace(/USDT.?$/, "").replace(/P$/, "")})</span>
                     <span class="font-medium text-[var(--text-primary)]">{formatValue(volume, 0)}</span>
                 </div>
                 <!-- RSI Display -->
@@ -460,16 +460,16 @@
                             <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
                                 <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">RSI Settings</div>
                                 <div class="flex justify-between gap-4">
-                                    <span>Length:</span>
+                                    <span>{$_('marketOverview.length')}:</span>
                                     <span class="font-mono">{$indicatorStore.rsi.length}</span>
                                 </div>
                                 <div class="flex justify-between gap-4">
-                                    <span>Source:</span>
+                                    <span>{$_('marketOverview.source')}:</span>
                                     <span class="font-mono capitalize">{$indicatorStore.rsi.source}</span>
                                 </div>
                                 {#if $indicatorStore.rsi.showSignal && signalValue}
                                 <div class="flex justify-between gap-4 text-[var(--accent-color)]">
-                                    <span>Signal ({$indicatorStore.rsi.signalType.toUpperCase()}):</span>
+                                    <span>{$_('marketOverview.signal')} ({$indicatorStore.rsi.signalType.toUpperCase()}):</span>
                                     <span class="font-mono">{formatValue(signalValue, 2)}</span>
                                 </div>
                                 {/if}

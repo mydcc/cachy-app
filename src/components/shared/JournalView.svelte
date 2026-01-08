@@ -90,7 +90,7 @@
     function unlockDeepDive() {
         if ($settingsStore.isDeepDiveUnlocked) return;
         $settingsStore.isDeepDiveUnlocked = true;
-        unlockOverlayMessage = 'freigeschaltet';
+        unlockOverlayMessage = $_('journal.messages.unlocked');
         showUnlockOverlay = true;
         inputBuffer = []; // Reset buffer
         setTimeout(() => {
@@ -101,7 +101,7 @@
     function lockDeepDive() {
         if (!$settingsStore.isDeepDiveUnlocked) return;
         $settingsStore.isDeepDiveUnlocked = false;
-        unlockOverlayMessage = 'deaktivert';
+        unlockOverlayMessage = $_('journal.messages.deactivated');
         showUnlockOverlay = true;
         inputBuffer = []; // Reset buffer
         setTimeout(() => {
@@ -110,7 +110,7 @@
     }
 
     function activateVipSpace() {
-        unlockOverlayMessage = '🚀 VIP Space freigeschaltet';
+        unlockOverlayMessage = $_('journal.messages.vipSpaceUnlocked');
         showUnlockOverlay = true;
         inputBuffer = [];
         setTimeout(() => {
@@ -700,13 +700,13 @@
     <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 min-h-[250px]">
         {#if activePreset === 'performance'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={equityData} title="Equity Curve" yLabel="PnL ($)" description="Verlauf des Gesamtkapitals basierend auf allen abgeschlossenen Trades." />
+                <LineChart data={equityData} title={$_('journal.deepDive.charts.titles.equityCurve')} yLabel={$_('journal.deepDive.charts.labels.pnl')} description={$_('journal.deepDive.charts.descriptions.equityCurve')} />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={drawdownData} title="Drawdown" yLabel="$" description="Zeigt den Rückgang vom letzten Höchststand des Kapitals (Equity High)." />
+                <LineChart data={drawdownData} title={$_('journal.deepDive.charts.titles.drawdown')} yLabel="$" description={$_('journal.deepDive.charts.descriptions.drawdown')} />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={monthlyData} title="Monthly PnL" description="Aggregierter Gewinn/Verlust pro Kalendermonat." />
+                <BarChart data={monthlyData} title={$_('journal.deepDive.charts.titles.monthlyPnl')} description={$_('journal.deepDive.charts.descriptions.monthlyPnl')} />
             </div>
         {:else if activePreset === 'quality'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-between overflow-hidden relative">
@@ -719,12 +719,12 @@
                             <DoughnutChart
                                 data={winLossChartData}
                                 title=""
-                                description="Detaillierte Verteilung der Trades (Long/Short, Win/Loss/BE)."
+                                description={$_('journal.deepDive.charts.descriptions.winLoss')}
                                 options={{ plugins: { legend: { display: false } } }}
                             />
                             <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
                                 <div class="text-center">
-                                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight">Win Rate</div>
+                                    <div class="text-[10px] text-[var(--text-secondary)] leading-tight">{$_('journal.deepDive.charts.titles.winRate')}</div>
                                     <div class="text-sm font-bold text-[var(--text-primary)]">{qualData.stats.winRate.toFixed(1)}%</div>
                                 </div>
                             </div>
@@ -734,19 +734,19 @@
                     <!-- Layer 1: Stats (Right Aligned & Overlaid) -->
                     <div class="absolute inset-y-0 right-0 flex flex-col justify-center items-end gap-2 text-sm z-10 pointer-events-none">
                         <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Profit Factor</span>
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">{$_('journal.deepDive.charts.labels.profitFactor')}</span>
                             <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.profitFactor >= 1.5 ? 'text-[var(--success-color)]' : qualData.detailedStats.profitFactor >= 1 ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
                                 {qualData.detailedStats.profitFactor.toFixed(2)}
                             </span>
                         </div>
                         <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Expectancy</span>
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">{$_('journal.deepDive.charts.labels.expectancy')}</span>
                             <span class="font-mono font-bold drop-shadow-md {qualData.detailedStats.expectancy > 0 ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
                                 ${qualData.detailedStats.expectancy.toFixed(2)}
                             </span>
                         </div>
                         <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Avg Win / Loss</span>
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">{$_('journal.deepDive.charts.labels.avgWinLoss')}</span>
                             <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
                                 <span class="font-bold text-[var(--success-color)]">${qualData.detailedStats.avgWin.toFixed(2)}</span>
                                 <span class="text-[var(--text-secondary)]">/</span>
@@ -754,7 +754,7 @@
                             </div>
                         </div>
                         <div class="flex flex-col items-end pointer-events-auto">
-                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">Win Rate L/S</span>
+                            <span class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider drop-shadow-md">{$_('journal.deepDive.charts.labels.winRateLS')}</span>
                             <div class="flex items-baseline justify-end gap-1 drop-shadow-md">
                                 <span class="font-bold whitespace-nowrap" style="color: {hexToRgba(themeColors.success, 1)}">L: {qualData.detailedStats.winRateLong.toFixed(0)}%</span>
                                 <span class="text-[var(--text-secondary)]">|</span>
@@ -767,47 +767,47 @@
                 <!-- Bottom Row: Legend (Full Width, Z-20 to sit above chart if needed) -->
                 <div class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 pt-2 border-t border-[var(--border-color)] w-full relative z-20 bg-[var(--bg-secondary)]">
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>Win Long
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 1)}"></span>{$_('journal.deepDive.charts.labels.winLong')}
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 0.5)}"></span>Win Short
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.success, 0.5)}"></span>{$_('journal.deepDive.charts.labels.winShort')}
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 1)}"></span>Loss Long
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 1)}"></span>{$_('journal.deepDive.charts.labels.lossLong')}
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 0.5)}"></span>Loss Short
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.danger, 0.5)}"></span>{$_('journal.deepDive.charts.labels.lossShort')}
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 1)}"></span>BE Long
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 1)}"></span>{$_('journal.deepDive.charts.labels.beLong')}
                     </div>
                     <div class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
-                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 0.5)}"></span>BE Short
+                        <span class="w-2.5 h-2.5 rounded-full" style="background: {hexToRgba(themeColors.warning, 0.5)}"></span>{$_('journal.deepDive.charts.labels.beShort')}
                     </div>
                 </div>
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={rDistData} title="R-Multiple Distribution" description="Häufigkeitsverteilung der Ergebnisse gemessen in Risiko-Einheiten (R). Zeigt wie oft du 1R, 2R etc. gewinnst." />
+                <BarChart data={rDistData} title={$_('journal.deepDive.charts.titles.rMultipleDist')} description={$_('journal.deepDive.charts.descriptions.rMultipleDist')} />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={cumRData} title="Cumulative R" yLabel="R" description="Summe aller R-Multiples über die Zeit. Zeigt die Performance bereinigt um die Positionsgröße." />
+                <LineChart data={cumRData} title={$_('journal.deepDive.charts.titles.cumulativeR')} yLabel="R" description={$_('journal.deepDive.charts.descriptions.cumulativeR')} />
             </div>
         {:else if activePreset === 'direction'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={longShortData} title="Long vs Short PnL" description="Vergleich der Netto-Gewinne zwischen Long- und Short-Positionen." />
+                <BarChart data={longShortData} title={$_('journal.deepDive.charts.titles.longVsShort')} description={$_('journal.deepDive.charts.descriptions.longVsShort')} />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={topSymbolData} title="Top 5 Symbols" horizontal={true} description="Die 5 profitabelsten Trading-Paare." />
+                <BarChart data={topSymbolData} title={$_('journal.deepDive.charts.titles.topSymbols')} horizontal={true} description={$_('journal.deepDive.charts.descriptions.topSymbols')} />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={bottomSymbolData} title="Bottom 5 Symbols" horizontal={true} description="Die 5 Trading-Paare mit den größten Verlusten." />
+                <BarChart data={bottomSymbolData} title={$_('journal.deepDive.charts.titles.bottomSymbols')} horizontal={true} description={$_('journal.deepDive.charts.descriptions.bottomSymbols')} />
             </div>
         {:else if activePreset === 'discipline'}
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={hourlyData} title="Hourly Performance (PnL)" description="Netto-Gewinn/Verlust aggregiert nach Tageszeit (Stunde)." />
+                <BarChart data={hourlyData} title={$_('journal.deepDive.charts.titles.hourlyPnl')} description={$_('journal.deepDive.charts.descriptions.hourlyPnl')} />
             </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={riskData} title="Risk Consistency" description="Zeigt, wie konsistent dein Risiko pro Trade (in % des Accounts) ist." />
+                <BarChart data={riskData} title={$_('journal.deepDive.charts.titles.riskConsistency')} description={$_('journal.deepDive.charts.descriptions.riskConsistency')} />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center gap-4">
                  <div class="text-center">
@@ -821,13 +821,13 @@
             </div>
         {:else if activePreset === 'costs'}
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <BarChart data={grossNetData} title="Gross vs Net PnL" description="Vergleich des Gewinns vor (Gross) und nach (Net) Gebühren." />
+                <BarChart data={grossNetData} title={$_('journal.deepDive.charts.titles.grossVsNet')} description={$_('journal.deepDive.charts.descriptions.grossVsNet')} />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <LineChart data={feeCurveData} title="Cumulative Fees" yLabel="$" description="Die Summe aller gezahlten Gebühren über die Zeit." />
+                <LineChart data={feeCurveData} title={$_('journal.deepDive.charts.titles.cumulativeFees')} yLabel="$" description={$_('journal.deepDive.charts.descriptions.cumulativeFees')} />
             </div>
              <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
-                <DoughnutChart data={feeStructureData} title="Fee Breakdown" description="Aufteilung der Kosten in Handelsgebühren und Funding-Gebühren." />
+                <DoughnutChart data={feeStructureData} title={$_('journal.deepDive.charts.titles.feeBreakdown')} description={$_('journal.deepDive.charts.descriptions.feeBreakdown')} />
             </div>
         {/if}
     </div>
@@ -836,11 +836,11 @@
     <!-- Filter & Toolbar -->
     <div class="flex flex-wrap gap-4 my-4 items-end bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
         <div class="flex-1 min-w-[200px]">
-            <label for="journal-search" class="text-xs text-[var(--text-secondary)] block mb-1">Search</label>
+            <label for="journal-search" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.search')}</label>
             <input id="journal-search" type="text" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}>
         </div>
         <div class="w-32">
-             <label for="journal-status" class="text-xs text-[var(--text-secondary)] block mb-1">Status</label>
+             <label for="journal-status" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.status')}</label>
             <select id="journal-status" class="input-field w-full px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}>
                 <option value="all">{$_('journal.filterAll')}</option>
                 <option value="Open">{$_('journal.filterOpen')}</option>
@@ -849,18 +849,18 @@
             </select>
         </div>
         <div class="w-36">
-             <label for="journal-date-start" class="text-xs text-[var(--text-secondary)] block mb-1">From</label>
+             <label for="journal-date-start" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.from')}</label>
              <input id="journal-date-start" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateStart} />
         </div>
          <div class="w-36">
-             <label for="journal-date-end" class="text-xs text-[var(--text-secondary)] block mb-1">To</label>
+             <label for="journal-date-end" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.to')}</label>
              <input id="journal-date-end" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
         </div>
 
         <div class="flex items-center gap-2 pb-2">
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
                 <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
-                <span class="text-sm font-bold">Pivot Mode</span>
+                <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
         </div>
     </div>
@@ -872,10 +872,10 @@
              <table class="journal-table w-full">
                 <thead>
                     <tr>
-                        <th class="text-left p-3">Symbol</th>
-                        <th class="text-right p-3">Trades</th>
-                        <th class="text-right p-3">Win Rate</th>
-                        <th class="text-right p-3">Total P/L</th>
+                        <th class="text-left p-3">{$_('journal.table.symbol')}</th>
+                        <th class="text-right p-3">{$_('journal.deepDive.charts.labels.trades')}</th>
+                        <th class="text-right p-3">{$_('journal.deepDive.charts.titles.winRate')}</th>
+                        <th class="text-right p-3">{$_('journal.totalPL')}</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -890,7 +890,7 @@
                         </tr>
                     {/each}
                     {#if paginatedTrades.length === 0}
-                        <tr><td colspan="4" class="text-center p-8 text-[var(--text-secondary)]">No data matches filters.</td></tr>
+                        <tr><td colspan="4" class="text-center p-8 text-[var(--text-secondary)]">{$_('journal.noData')}</td></tr>
                     {/if}
                 </tbody>
              </table>
@@ -901,19 +901,19 @@
                 <table class="journal-table w-full">
                     <thead>
                         <tr>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>Date {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>Symbol {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>Type {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>Entry {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>SL {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>P/L {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>Funding {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>R/R {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>Status {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>Screenshot</th>
-                            <th>Tags</th>
-                            <th>Notes</th>
-                            <th>Action</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>{$_('journal.table.date')} {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>{$_('journal.table.symbol')} {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>{$_('journal.table.type')} {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>{$_('journal.table.entry')} {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>{$_('journal.table.sl')} {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>{$_('journal.table.pnl')} {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>{$_('journal.table.funding')} {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>{$_('journal.table.rr')} {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>{$_('journal.table.status')} {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            <th>{$_('journal.table.screenshot')}</th>
+                            <th>{$_('journal.table.tags')}</th>
+                            <th>{$_('journal.table.notes')}</th>
+                            <th>{$_('journal.table.action')}</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -965,7 +965,7 @@
                                     {:else}
                                         <!-- svelte-ignore a11y-click-events-have-key-events -->
                                         <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                        <label class="icon-btn cursor-pointer block w-full h-full" title="Upload Screenshot">
+                                        <label class="icon-btn cursor-pointer block w-full h-full" title="{$_('journal.labels.uploadScreenshot')}">
                                             <!-- svelte-ignore svelte/no-at-html-tags -->
                                             {@html icons.plus || '+'}
                                             <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
@@ -998,7 +998,7 @@
     {#if !groupBySymbol && processedTrades.length > 0}
         <div class="flex justify-between items-center mt-4 text-sm text-[var(--text-secondary)]">
             <div class="flex items-center gap-2">
-                <span>Rows:</span>
+                <span>{$_('journal.pagination.rows')}</span>
                 <select bind:value={itemsPerPage} class="input-field p-1 rounded">
                     <option value={10}>10</option>
                     <option value={20}>20</option>
@@ -1008,11 +1008,11 @@
             </div>
             <div class="flex items-center gap-2">
                 <button disabled={currentPage === 1} on:click={() => currentPage--} class="p-1 px-3 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] disabled:opacity-50 hover:bg-[var(--bg-primary)]">
-                    &lt; Prev
+                    &lt; {$_('journal.pagination.prev')}
                 </button>
-                <span>Page {currentPage} of {Math.ceil(processedTrades.length / itemsPerPage)}</span>
+                <span>{$_('journal.pagination.page')} {currentPage} {$_('journal.pagination.of')} {Math.ceil(processedTrades.length / itemsPerPage)}</span>
                 <button disabled={currentPage >= Math.ceil(processedTrades.length / itemsPerPage)} on:click={() => currentPage++} class="p-1 px-3 rounded bg-[var(--bg-secondary)] border border-[var(--border-color)] disabled:opacity-50 hover:bg-[var(--bg-primary)]">
-                    Next &gt;
+                    {$_('journal.pagination.next')} &gt;
                 </button>
             </div>
         </div>
@@ -1133,9 +1133,9 @@
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">
         {#if $settingsStore.isPro}
-             <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="Sync from Bitunix" on:click={app.syncBitunixHistory}>
+             <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="{$_('journal.syncBitunix')}" on:click={app.syncBitunixHistory}>
                 <!-- svelte-ignore svelte/no-at-html-tags -->
-                {@html icons.refresh}<span class="hidden sm:inline">Sync Bitunix</span></button>
+                {@html icons.refresh}<span class="hidden sm:inline">{$_('journal.syncBitunix')}</span></button>
         {/if}
         <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>
             <!-- svelte-ignore svelte/no-at-html-tags -->

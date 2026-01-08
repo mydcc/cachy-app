@@ -32,6 +32,7 @@ describe('app service - adjustTpPercentages (Prioritized Logic)', () => {
         const state: AppState = JSON.parse(JSON.stringify(initialTradeState));
         // Ensure analysisTimeframe is present
         state.analysisTimeframe = '1h';
+        state.multiAtrData = {};
         tradeStore.set(state);
         // Set up a standard 3-target scenario
         updateTradeStore(state => ({

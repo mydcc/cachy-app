@@ -74,7 +74,8 @@ describe('hotkeyService', () => {
             remoteLeverage: undefined,
             remoteMarginMode: undefined,
             remoteMakerFee: undefined,
-            remoteTakerFee: undefined
+            remoteTakerFee: undefined,
+            multiAtrData: {}
         });
 
         uiStore.set({
