@@ -296,9 +296,14 @@
             "lossStreak": "Frequency of losing streaks of different lengths.",
             "drawdownRecovery": "History of your drawdowns. Shows how quickly you recover from losses.",
             "tagPerformance": "Profit/Loss per strategy tag.",
-            "heatmap": "Calendar view of daily PnL performance."
+            "heatmap": "Calendar view of daily PnL performance.",
+            "forecast": "Simulates 100 possible futures based on your historical trades. The cone shows the range between Worst-Case (10th percentile) and Best-Case (90th percentile).",
+            "rollingWinRate": "Your win rate over the last 20 trades. Shows if you are running 'hot' or 'cold'.",
+            "rollingPF": "Your Profit Factor over the last 20 trades. Values above 1.0 are profitable."
         },
         "labels": {
+            "forecast": "Forecast",
+            "trends": "Trends",
             "equity": "Equity",
             "pnl": "PnL ($)",
             "pnlY": "PnL",
@@ -324,7 +329,14 @@
             "riskAmount": "Risk Amount ($)",
             "realizedPnl": "Realized PnL ($)",
             "topAsset": "Top Asset",
-            "mostProfitableStrategy": "Most Profitable Strategy"
+            "mostProfitableStrategy": "Most Profitable Strategy",
+            "simBest": "90th Percentile (Best)",
+            "simMedian": "Median",
+            "simWorst": "10th Percentile (Worst)",
+            "simRandom": "Sim #",
+            "rollingWinRate": "Rolling Win Rate (20)",
+            "rollingPF": "Rolling Profit Factor (20)",
+            "equityChange": "Equity Change ($)"
         },
         "hourlyPnl": "PnL by Hour of Day",
         "dayOfWeekPnl": "PnL by Day of Week",

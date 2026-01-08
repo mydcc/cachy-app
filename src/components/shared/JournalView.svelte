@@ -456,6 +456,76 @@
         }]
     };
 
+    // --- New Extrapolated Data ---
+    // Forecast (Monte Carlo)
+    $: monteCarloData = calculator.getMonteCarloData(journal);
+    $: monteCarloChartData = monteCarloData ? {
+        labels: monteCarloData.labels,
+        datasets: [
+            {
+                label: '90th Percentile (Best)',
+                data: monteCarloData.upperPath,
+                borderColor: themeColors.success,
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 1,
+                pointRadius: 0
+            },
+            {
+                label: 'Median',
+                data: monteCarloData.medianPath,
+                borderColor: themeColors.accent,
+                backgroundColor: 'transparent',
+                borderWidth: 2,
+                pointRadius: 0
+            },
+            {
+                label: '10th Percentile (Worst)',
+                data: monteCarloData.lowerPath,
+                borderColor: themeColors.danger,
+                backgroundColor: 'transparent',
+                borderDash: [5, 5],
+                borderWidth: 1,
+                pointRadius: 0
+            },
+            // Add a few random paths for "flavor"
+            ...monteCarloData.randomPaths.map((path, i) => ({
+                label: `Sim #${i+1}`,
+                data: path,
+                borderColor: hexToRgba(themeColors.textSecondary, 0.2),
+                backgroundColor: 'transparent',
+                borderWidth: 1,
+                pointRadius: 0
+            }))
+        ]
+    } : null;
+
+    // Trends (Rolling Stats)
+    $: rollingData = calculator.getRollingData(journal);
+    $: rollingWinRateData = rollingData ? {
+        labels: rollingData.labels,
+        datasets: [{
+            label: 'Rolling Win Rate (20)',
+            data: rollingData.winRates,
+            borderColor: themeColors.success,
+            backgroundColor: hexToRgba(themeColors.success, 0.1),
+            fill: true,
+            tension: 0.3
+        }]
+    } : null;
+
+    $: rollingPFData = rollingData ? {
+        labels: rollingData.labels,
+        datasets: [{
+            label: 'Rolling Profit Factor (20)',
+            data: rollingData.profitFactors,
+            borderColor: themeColors.warning,
+            backgroundColor: hexToRgba(themeColors.warning, 0.1),
+            fill: true,
+            tension: 0.3
+        }]
+    } : null;
+
     // --- Table State ---
     let currentPage = 1;
     let itemsPerPage = 10;
@@ -1053,6 +1123,8 @@
         <DashboardNav 
             activePreset={activeDeepDivePreset} 
             presets={[
+                { id: 'forecast', label: $_('journal.deepDive.labels.forecast') },
+                { id: 'trends', label: $_('journal.deepDive.labels.trends') },
                 { id: 'timing', label: $_('journal.deepDive.timing') },
                 { id: 'assets', label: $_('journal.deepDive.assets') },
                 { id: 'risk', label: $_('journal.deepDive.risk') },
@@ -1065,7 +1137,35 @@
         />
 
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4">
-            {#if activeDeepDivePreset === 'timing'}
+            {#if activeDeepDivePreset === 'forecast'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3">
+                    {#if monteCarloChartData}
+                         <LineChart data={monteCarloChartData} title={$_('journal.deepDive.labels.forecast')} yLabel={$_('journal.deepDive.labels.equityChange')} description={$_('journal.deepDive.descriptions.forecast')} />
+                    {:else}
+                         <div class="flex items-center justify-center h-full text-[var(--text-secondary)]">
+                             {$_('journal.noData')} (Min 5 Trades)
+                         </div>
+                    {/if}
+                 </div>
+            {:else if activeDeepDivePreset === 'trends'}
+                 <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3 lg:col-span-3">
+                    {#if rollingWinRateData}
+                        <div class="mb-4 h-64">
+                            <LineChart data={rollingWinRateData} title={$_('journal.deepDive.labels.rollingWinRate')} yLabel="%" description={$_('journal.deepDive.descriptions.rollingWinRate')} />
+                        </div>
+                    {/if}
+                    {#if rollingPFData}
+                        <div class="h-64">
+                            <LineChart data={rollingPFData} title={$_('journal.deepDive.labels.rollingPF')} yLabel="PF" description={$_('journal.deepDive.descriptions.rollingPF')} />
+                        </div>
+                    {/if}
+                     {#if !rollingWinRateData}
+                         <div class="flex items-center justify-center h-full text-[var(--text-secondary)]">
+                             {$_('journal.noData')} (Min 20 Trades)
+                         </div>
+                    {/if}
+                 </div>
+            {:else if activeDeepDivePreset === 'timing'}
                  <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                     <BarChart data={hourlyPnlData} title={$_('journal.deepDive.charts.hourlyPnl')} description="Brutto-Gewinne (Grün) und Brutto-Verluste (Rot) pro Tageszeit. Hilft zu erkennen, wann du profitabel bist und wann du Geld verlierst." />
                 </div>
