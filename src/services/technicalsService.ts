@@ -1,4 +1,4 @@
-import { RSI, MACD, EMA, Stochastic } from 'technicalindicators';
+import { RSI, MACD, EMA, Stochastic, CCI, ADX, AwesomeOscillator } from 'technicalindicators';
 import { Decimal } from 'decimal.js';
 import type { IndicatorSettings } from '../stores/indicatorStore';
 
@@ -70,7 +70,101 @@ export const technicalsService = {
             action: this.getRsiAction(rsi)
         });
 
-        // MACD
+        // Stochastic
+        const stochK = settings?.stochastic?.kPeriod || 14;
+        const stochD = settings?.stochastic?.dPeriod || 3;
+
+        const stochValues = Stochastic.calculate({
+            high: highs,
+            low: lows,
+            close: closes,
+            period: stochK,
+            signalPeriod: stochD
+        });
+        const stoch = stochValues[stochValues.length - 1];
+        let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (stoch) {
+             if (stoch.k < 20 && stoch.d < 20 && stoch.k > stoch.d) stochAction = 'Buy';
+             else if (stoch.k > 80 && stoch.d > 80 && stoch.k < stoch.d) stochAction = 'Sell';
+        }
+        oscillators.push({
+            name: `Stoch %K (${stochK}, ${stochD}, 3)`,
+            value: stoch ? stoch.k : 0,
+            action: stochAction
+        });
+
+        // CCI (Commodity Channel Index)
+        const cciLen = settings?.cci?.length || 20;
+        const cciThreshold = settings?.cci?.threshold || 100;
+        const cciValues = CCI.calculate({ high: highs, low: lows, close: closes, period: cciLen });
+        const cci = cciValues[cciValues.length - 1];
+        let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (cci !== undefined) {
+            if (cci < -cciThreshold) cciAction = 'Buy';
+            else if (cci > cciThreshold) cciAction = 'Sell';
+        }
+        oscillators.push({
+            name: `CCI (${cciLen})`,
+            value: cci !== undefined ? cci : 0,
+            action: cciAction
+        });
+
+        // ADX (Average Directional Index)
+        const adxLen = settings?.adx?.length || 14;
+        const adxThreshold = settings?.adx?.threshold || 25;
+        const adxValues = ADX.calculate({ high: highs, low: lows, close: closes, period: adxLen });
+        const adx = adxValues[adxValues.length - 1];
+        let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (adx) {
+            // ADX indicates trend strength. Used with DI+ / DI- for direction.
+            // Buy: ADX > 25 && DI+ > DI-
+            // Sell: ADX > 25 && DI- > DI+
+            if (adx.adx > adxThreshold) {
+                if (adx.pdi > adx.mdi) adxAction = 'Buy';
+                else if (adx.mdi > adx.pdi) adxAction = 'Sell';
+            }
+        }
+        oscillators.push({
+            name: `ADX (${adxLen})`,
+            value: adx ? adx.adx : 0,
+            action: adxAction
+        });
+
+        // Awesome Oscillator
+        const aoFast = settings?.ao?.fastLength || 5;
+        const aoSlow = settings?.ao?.slowLength || 34;
+        const aoValues = AwesomeOscillator.calculate({ high: highs, low: lows, fastPeriod: aoFast, slowPeriod: aoSlow });
+        const ao = aoValues[aoValues.length - 1];
+        let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (ao !== undefined) {
+            if (ao > 0) aoAction = 'Buy';
+            else if (ao < 0) aoAction = 'Sell';
+        }
+        oscillators.push({
+            name: `Awesome Osc.`, // Shortened name
+            value: ao !== undefined ? ao : 0,
+            action: aoAction
+        });
+
+        // Momentum
+        const momLen = settings?.momentum?.length || 10;
+        const momSource = getSource(settings?.momentum?.source || 'close');
+        let mom = 0;
+        let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (momSource.length > momLen) {
+            const current = momSource[momSource.length - 1];
+            const prev = momSource[momSource.length - 1 - momLen];
+            mom = current - prev;
+            if (mom > 0) momAction = 'Buy';
+            else if (mom < 0) momAction = 'Sell';
+        }
+        oscillators.push({
+            name: `Momentum (${momLen})`,
+            value: mom,
+            action: momAction
+        });
+
+        // MACD (Moved down to match order or keep grouped? Keeping grouped.)
         const macdFast = settings?.macd?.fastLength || 12;
         const macdSlow = settings?.macd?.slowLength || 26;
         const macdSig = settings?.macd?.signalLength || 9;
@@ -94,29 +188,6 @@ export const technicalsService = {
             name: `MACD (${macdFast}, ${macdSlow})`,
             value: macd && macd.MACD !== undefined ? macd.MACD : 0,
             action: macdAction
-        });
-
-        // Stochastic
-        const stochK = settings?.stochastic?.kPeriod || 14;
-        const stochD = settings?.stochastic?.dPeriod || 3;
-
-        const stochValues = Stochastic.calculate({
-            high: highs,
-            low: lows,
-            close: closes,
-            period: stochK,
-            signalPeriod: stochD
-        });
-        const stoch = stochValues[stochValues.length - 1];
-        let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        if (stoch) {
-             if (stoch.k < 20 && stoch.d < 20 && stoch.k > stoch.d) stochAction = 'Buy';
-             else if (stoch.k > 80 && stoch.d > 80 && stoch.k < stoch.d) stochAction = 'Sell';
-        }
-        oscillators.push({
-            name: `Stoch %K (${stochK}, ${stochD}, 3)`,
-            value: stoch ? stoch.k : 0,
-            action: stochAction
         });
 
 

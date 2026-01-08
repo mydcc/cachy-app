@@ -1,0 +1,65 @@
+import { describe, it, expect } from 'vitest';
+import { technicalsService } from './technicalsService';
+import { Decimal } from 'decimal.js';
+
+function generateKlines(count: number) {
+    const klines = [];
+    let price = 100;
+    for (let i = 0; i < count; i++) {
+        if (i < 20) price += 1;
+        else if (i < 30) price -= 2;
+        else price += 2;
+
+        klines.push({
+            open: new Decimal(price - 1),
+            high: new Decimal(price + 2),
+            low: new Decimal(price - 2),
+            close: new Decimal(price),
+            volume: new Decimal(1000)
+        });
+    }
+    return klines;
+}
+
+describe('technicalsService', () => {
+    it('should calculate new oscillators correctly', () => {
+        const klines = generateKlines(250);
+        const result = technicalsService.calculateTechnicals(klines);
+
+        expect(result).toBeDefined();
+        expect(result.oscillators).toBeDefined();
+
+        const cci = result.oscillators.find(o => o.name.includes('CCI'));
+        expect(cci).toBeDefined();
+        expect(cci?.value).toBeTypeOf('number');
+
+        const adx = result.oscillators.find(o => o.name.includes('ADX'));
+        expect(adx).toBeDefined();
+        expect(adx?.value).toBeTypeOf('number');
+
+        const ao = result.oscillators.find(o => o.name.includes('Awesome Osc'));
+        expect(ao).toBeDefined();
+        expect(ao?.value).toBeTypeOf('number');
+
+        const mom = result.oscillators.find(o => o.name.includes('Momentum'));
+        expect(mom).toBeDefined();
+        expect(mom?.value).toBeTypeOf('number');
+    });
+
+    it('should respect custom settings', () => {
+        const klines = generateKlines(250);
+        const settings: any = {
+            cci: { length: 10, threshold: 50 },
+            adx: { length: 10, threshold: 20 },
+            ao: { fastLength: 2, slowLength: 5 },
+            momentum: { length: 5, source: 'close' }
+        };
+
+        const result = technicalsService.calculateTechnicals(klines, settings);
+        const names = result.oscillators.map(o => o.name);
+
+        expect(names.some(n => n.includes('CCI (10)'))).toBe(true);
+        expect(names.some(n => n.includes('ADX (10)'))).toBe(true);
+        expect(names.some(n => n.includes('Momentum (5)'))).toBe(true);
+    });
+});

@@ -20,6 +20,23 @@ export interface IndicatorSettings {
         kPeriod: number;
         dPeriod: number;
     };
+    cci: {
+        length: number;
+        source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
+        threshold: number; // usually 100 (triggers on > 100 or < -100)
+    };
+    adx: {
+        length: number;
+        threshold: number; // usually 25
+    };
+    ao: {
+        fastLength: number;
+        slowLength: number;
+    };
+    momentum: {
+        length: number;
+        source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
+    };
     ema: {
         ema1Length: number;
         ema2Length: number;
@@ -49,6 +66,23 @@ const defaultSettings: IndicatorSettings = {
         kPeriod: 14,
         dPeriod: 3
     },
+    cci: {
+        length: 20,
+        source: 'close',
+        threshold: 100
+    },
+    adx: {
+        length: 14,
+        threshold: 25
+    },
+    ao: {
+        fastLength: 5,
+        slowLength: 34
+    },
+    momentum: {
+        length: 10,
+        source: 'close'
+    },
     ema: {
         ema1Length: 20,
         ema2Length: 50,
@@ -73,6 +107,10 @@ function createIndicatorStore() {
                 rsi: { ...defaultSettings.rsi, ...parsed.rsi },
                 macd: { ...defaultSettings.macd, ...parsed.macd },
                 stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },
+                cci: { ...defaultSettings.cci, ...parsed.cci },
+                adx: { ...defaultSettings.adx, ...parsed.adx },
+                ao: { ...defaultSettings.ao, ...parsed.ao },
+                momentum: { ...defaultSettings.momentum, ...parsed.momentum },
                 ema: { ...defaultSettings.ema, ...parsed.ema },
                 pivots: { ...defaultSettings.pivots, ...parsed.pivots }
             };

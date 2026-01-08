@@ -141,7 +141,7 @@
     }
 
     function formatVal(val: number) {
-        return new Decimal(val).toDecimalPlaces(2).toString();
+        return new Decimal(val).toDecimalPlaces(4).toString();
     }
 
     function toggleTimeframePopup() {
