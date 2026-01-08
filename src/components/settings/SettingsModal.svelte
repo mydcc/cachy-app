@@ -29,6 +29,10 @@
     let rsiSettings = { ...$indicatorStore.rsi };
     let macdSettings = { ...$indicatorStore.macd };
     let stochSettings = { ...$indicatorStore.stochastic };
+    let cciSettings = { ...$indicatorStore.cci };
+    let adxSettings = { ...$indicatorStore.adx };
+    let aoSettings = { ...$indicatorStore.ao };
+    let momentumSettings = { ...$indicatorStore.momentum };
     let emaSettings = { ...$indicatorStore.ema };
     let pivotSettings = { ...$indicatorStore.pivots };
 
@@ -157,6 +161,10 @@
             rsi: rsiSettings,
             macd: macdSettings,
             stochastic: stochSettings,
+            cci: cciSettings,
+            adx: adxSettings,
+            ao: aoSettings,
+            momentum: momentumSettings,
             ema: emaSettings,
             pivots: pivotSettings
         });
@@ -699,6 +707,114 @@
                             <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
                                 <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
                                 <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize Stochastic.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- CCI Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Commodity Channel Index (CCI)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
+                            <input type="number" bind:value={cciSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize CCI.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- ADX Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Average Directional Index (ADX)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
+                            <input type="number" bind:value={adxSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize ADX.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- Awesome Oscillator Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Awesome Oscillator (AO)</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Fast Period</span>
+                            <input type="number" bind:value={aoSettings.fastLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                         <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Slow Period</span>
+                            <input type="number" bind:value={aoSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize AO.</p>
+                            </div>
+                         </div>
+                    {/if}
+                </div>
+
+                <!-- Momentum Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                    <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
+                        <h4 class="text-sm font-bold">Momentum</h4>
+                        {#if !isPro}
+                             <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
+                        {/if}
+                    </div>
+
+                    <div class="grid grid-cols-1 gap-3 mt-1">
+                        <div class="flex flex-col gap-1">
+                            <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
+                            <input type="number" bind:value={momentumSettings.length} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                        </div>
+                    </div>
+
+                    {#if !isPro}
+                         <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
+                            <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
+                                <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
+                                <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize Momentum.</p>
                             </div>
                          </div>
                     {/if}
