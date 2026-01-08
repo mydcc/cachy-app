@@ -2,6 +2,7 @@
     import { createEventDispatcher } from 'svelte';
     import { getComputedColor } from '../../../utils/colors';
     import { _ } from '../../../locales/i18n';
+    import { tooltip } from '../../../lib/actions/tooltip';
 
     export let data: { date: string, pnl: number, count: number, winCount?: number, lossCount?: number, bestSymbol?: string, bestSymbolPnl?: number }[] = [];
     export let year: number = new Date().getFullYear();
@@ -24,7 +25,7 @@
     $: dataMap = data.reduce((acc, d) => {
         acc[d.date] = d;
         return acc;
-    }, {} as Record<string, { date: string, pnl: number, count: number }>);
+    }, {} as Record<string, { date: string, pnl: number, count: number, winCount?: number, lossCount?: number, bestSymbol?: string, bestSymbolPnl?: number }>);
 
     function getColor(dateStr: string) {
         const entry = dataMap[dateStr];
@@ -64,24 +65,41 @@
         dispatch('click', { date: dateStr });
     }
 
-    function getTooltipText(entry: any, dateStr: string) {
-        if (!entry) return `${dateStr}: No trades`;
+    function getTooltipHtml(entry: any, dateStr: string) {
+        if (!entry) return null; // No tooltip for empty days? or just date? user request image shows active day tooltip
 
-        let text = `${dateStr}\n`;
-        text += `PnL: $${entry.pnl.toFixed(2)}\n`;
-        text += `Trades: ${entry.count}`;
+        const pnlColor = entry.pnl > 0 ? 'var(--success-color, #10b981)' : entry.pnl < 0 ? 'var(--danger-color, #ef4444)' : 'var(--text-secondary, #94a3b8)';
+
+        let html = `
+            <div class="text-left">
+                <div class="text-[var(--text-secondary)] text-xs mb-1">${dateStr}</div>
+                <div class="font-bold mb-1" style="color: ${pnlColor}">
+                    PnL: $${entry.pnl.toFixed(2)}
+                </div>
+                <div class="text-[var(--text-primary)] text-xs">
+                    Trades: ${entry.count}
+        `;
 
         if (entry.winCount !== undefined && entry.lossCount !== undefined) {
-             text += ` (${entry.winCount}W / ${entry.lossCount}L)`;
+             html += ` <span class="text-[var(--text-tertiary)]">(${entry.winCount}W / ${entry.lossCount}L)</span>`;
         }
 
+        html += `</div>`;
+
         if (entry.bestSymbol) {
-             text += `\nTop: ${entry.bestSymbol}`;
+             html += `
+                <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
+                    Top: <span class="font-semibold">${entry.bestSymbol}</span>
+            `;
              if (entry.bestSymbolPnl) {
-                 text += ` ($${entry.bestSymbolPnl.toFixed(2)})`;
+                 const symPnlColor = entry.bestSymbolPnl > 0 ? 'var(--success-color)' : entry.bestSymbolPnl < 0 ? 'var(--danger-color)' : 'inherit';
+                 html += ` <span style="color: ${symPnlColor}">($${entry.bestSymbolPnl.toFixed(2)})</span>`;
              }
+             html += `</div>`;
         }
-        return text;
+
+        html += `</div>`;
+        return html;
     }
 </script>
 
@@ -114,13 +132,14 @@
                 {#each Array(getDaysInMonth(mIndex, year)) as _, dIndex}
                     {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
                     {@const entry = dataMap[dateStr]}
+                    {@const tooltipContent = getTooltipHtml(entry, dateStr)}
                     <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <div
                         role="button"
                         tabindex="0"
                         class="day-cell w-full aspect-square rounded-sm relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
                         style="background-color: {getColor(dateStr)}; opacity: {getOpacity(dateStr)}"
-                        title="{getTooltipText(entry, dateStr)}"
+                        use:tooltip={tooltipContent ? { content: tooltipContent, allowHtml: true, placement: 'top' } : { content: dateStr, placement: 'top' }}
                         on:click={() => entry && handleDayClick(dateStr)}
                     >
                     </div>

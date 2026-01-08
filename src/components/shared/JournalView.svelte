@@ -1140,11 +1140,19 @@
                 <div class="col-span-1 md:col-span-2 lg:col-span-3 flex flex-col items-center">
                     <div class="flex items-center gap-4 mb-4">
                         <h4 class="font-bold text-[var(--text-primary)]">{$_('journal.deepDive.charts.heatmap')}</h4>
-                        <select bind:value={selectedYear} class="input-field p-1 rounded text-sm bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                        <div class="flex gap-2">
                             {#each availableYears as year}
-                                <option value={year}>{year}</option>
+                                <button
+                                    class="px-3 py-1 text-sm rounded-full transition-colors border border-[var(--border-color)]
+                                           {selectedYear === year
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-bold'
+                                                : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]'}"
+                                    on:click={() => selectedYear = year}
+                                >
+                                    {year}
+                                </button>
                             {/each}
-                        </select>
+                        </div>
                     </div>
                     <div class="w-full">
                         <CalendarHeatmap data={calendarData} year={selectedYear} on:click={handleCalendarClick} />
