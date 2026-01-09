@@ -65,7 +65,9 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             'timestamp': timestamp,
             'nonce': nonce,
             'sign': signature,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+             // Add User-Agent to avoid potential blocking
+            'User-Agent': 'CachyApp/1.0'
         }
     });
 
@@ -81,7 +83,6 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
     }
 
     // Normalized Position Object
-    // Bitunix response structure needs to be verified. Assuming data.data is the list.
     const rawPositions = Array.isArray(data.data) ? data.data : [];
 
     return rawPositions.map((p: any) => {
@@ -144,6 +145,7 @@ async function fetchBinancePositions(apiKey: string, apiSecret: string): Promise
         size: Math.abs(parseFloat(p.positionAmt)),
         entryPrice: parseFloat(p.entryPrice),
         markPrice: parseFloat(p.markPrice),
+        liquidationPrice: parseFloat(p.liquidationPrice), // Ensure consistency
         unrealizedPnL: parseFloat(p.unRealizedProfit),
         leverage: parseFloat(p.leverage),
         marginType: p.marginType
