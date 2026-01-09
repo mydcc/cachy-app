@@ -98,9 +98,20 @@ Format responses with Markdown.`;
                 const endpoint = `/api/ai/${provider}`;
 
                 let apiKey = '';
-                if (provider === 'openai') apiKey = settings.openaiApiKey;
-                if (provider === 'gemini') apiKey = settings.geminiApiKey;
-                if (provider === 'anthropic') apiKey = settings.anthropicApiKey;
+                let model = '';
+
+                if (provider === 'openai') {
+                    apiKey = settings.openaiApiKey;
+                    model = settings.openaiModel;
+                }
+                if (provider === 'gemini') {
+                    apiKey = settings.geminiApiKey;
+                    model = settings.geminiModel;
+                }
+                if (provider === 'anthropic') {
+                    apiKey = settings.anthropicApiKey;
+                    model = settings.anthropicModel;
+                }
 
                 if (!apiKey) {
                     throw new Error(`API Key for ${provider} is missing in Settings.`);
@@ -129,7 +140,8 @@ Format responses with Markdown.`;
                         'x-api-key': apiKey
                     },
                     body: JSON.stringify({
-                        messages: apiMessages
+                        messages: apiMessages,
+                        model: model // Pass the model from settings
                     })
                 });
 

@@ -44,8 +44,11 @@
     // AI Settings
     let aiProviderState: AiProvider;
     let openaiApiKey: string;
+    let openaiModel: string;
     let geminiApiKey: string;
+    let geminiModel: string;
     let anthropicApiKey: string;
+    let anthropicModel: string;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -115,8 +118,11 @@
 
             aiProviderState = $settingsStore.aiProvider || 'gemini';
             openaiApiKey = $settingsStore.openaiApiKey || '';
+            openaiModel = $settingsStore.openaiModel || 'gpt-4o';
             geminiApiKey = $settingsStore.geminiApiKey || '';
+            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash';
             anthropicApiKey = $settingsStore.anthropicApiKey || '';
+            anthropicModel = $settingsStore.anthropicModel || 'claude-3-5-sonnet-20240620';
 
             favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
             favoriteTimeframesInput = favoriteTimeframes.join(', '); // Init text input
@@ -165,9 +171,12 @@
             imgbbApiKey,
             imgbbExpiration,
             aiProvider: aiProviderState,
-            openaiApiKey: openaiApiKey,
-            geminiApiKey: geminiApiKey,
-            anthropicApiKey: anthropicApiKey,
+            openaiApiKey,
+            openaiModel,
+            geminiApiKey,
+            geminiModel,
+            anthropicApiKey,
+            anthropicModel,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -492,33 +501,51 @@
                         </select>
                     </div>
 
-                    <div class="flex flex-col gap-3 pt-2 border-t border-[var(--border-color)]">
-                        <div class="flex flex-col gap-1">
-                            <label for="openai-key" class="text-xs flex items-center gap-2">
-                                <span>OpenAI API Key</span>
+                    <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
+                        <!-- OpenAI Section -->
+                        <div class="flex flex-col gap-2">
+                            <label for="openai-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>OpenAI</span>
                                 {#if aiProviderState === 'openai'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="sk-..." />
+                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
+                            </div>
                         </div>
 
-                        <div class="flex flex-col gap-1">
-                            <label for="gemini-key" class="text-xs flex items-center gap-2">
-                                <span>Google Gemini API Key</span>
+                        <!-- Gemini Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="gemini-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Google Gemini</span>
                                 {#if aiProviderState === 'gemini'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="AIza..." />
+                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash" />
+                            </div>
+                            <p class="text-[10px] text-[var(--text-secondary)] italic">
+                                Use <code>gemini-1.5-flash</code> if <code>gemini-2.0-flash</code> is rate limited.
+                            </p>
                         </div>
 
-                        <div class="flex flex-col gap-1">
-                            <label for="anthropic-key" class="text-xs flex items-center gap-2">
-                                <span>Anthropic API Key</span>
+                        <!-- Anthropic Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="anthropic-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Anthropic</span>
                                 {#if aiProviderState === 'anthropic'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="sk-ant-..." />
+                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
+                            </div>
                         </div>
                     </div>
 
-                    <p class="text-[10px] text-[var(--text-secondary)] mt-1 italic">
+                    <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic border-t border-[var(--border-color)] pt-2">
                         Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
                     </p>
                 </div>

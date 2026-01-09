@@ -47,8 +47,11 @@ export interface Settings {
     // AI Chat Settings
     aiProvider: AiProvider;
     openaiApiKey: string;
+    openaiModel: string;
     geminiApiKey: string;
+    geminiModel: string;
     anthropicApiKey: string;
+    anthropicModel: string;
 
     // Legal
     disclaimerAccepted: boolean;
@@ -77,10 +80,16 @@ const defaultSettings: Settings = {
     isDeepDiveUnlocked: false,
     enableSidePanel: false,
     sidePanelMode: 'notes',
+
+    // AI Defaults
     aiProvider: 'gemini',
     openaiApiKey: '',
+    openaiModel: 'gpt-4o',
     geminiApiKey: '',
+    geminiModel: 'gemini-2.0-flash', // Defaulting to 2.0-flash as requested, but user can change it
     anthropicApiKey: '',
+    anthropicModel: 'claude-3-5-sonnet-20240620',
+
     disclaimerAccepted: false
 };
 
@@ -129,8 +138,13 @@ function loadSettingsFromLocalStorage(): Settings {
         // 4. Ensure AI Settings defaults
         if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
         if (!settings.openaiApiKey) settings.openaiApiKey = defaultSettings.openaiApiKey;
+        if (!settings.openaiModel) settings.openaiModel = defaultSettings.openaiModel;
+
         if (!settings.geminiApiKey) settings.geminiApiKey = defaultSettings.geminiApiKey;
+        if (!settings.geminiModel) settings.geminiModel = defaultSettings.geminiModel;
+
         if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
+        if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
 
 
         // Clean up keys not in interface
@@ -157,8 +171,11 @@ function loadSettingsFromLocalStorage(): Settings {
             sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode,
             aiProvider: settings.aiProvider,
             openaiApiKey: settings.openaiApiKey,
+            openaiModel: settings.openaiModel,
             geminiApiKey: settings.geminiApiKey,
+            geminiModel: settings.geminiModel,
             anthropicApiKey: settings.anthropicApiKey,
+            anthropicModel: settings.anthropicModel,
             disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
         };
 
