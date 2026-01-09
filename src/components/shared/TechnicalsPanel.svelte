@@ -358,10 +358,18 @@
                     <!-- Left: Candles Visualization (Dual) -->
                     <div class="flex gap-1 bg-[var(--bg-tertiary)]/20 rounded p-1" bind:clientHeight={pivotHeight} style="min-width: 40px;">
 
-                        {#if prevCandle && currCandle && pivotHeight > 0}
-                            <!-- Calculate Scale Basis (Combined High/Low) -->
-                            {@const maxH = Math.max(Number(prevCandle.high), Number(currCandle.high))}
-                            {@const minL = Math.min(Number(prevCandle.low), Number(currCandle.low))}
+                        {#if prevCandle && currCandle && pivotHeight > 0 && data?.pivots?.classic}
+                            <!--
+                                Scaling Logic:
+                                The user wants the candles to be relative to the "Pivot Section".
+                                The Pivot Section is defined by the range from S3 to R3 (or S1-R1 if that's all we have).
+                                We must include the candles themselves in the range so they don't clip if they go beyond pivots.
+                            -->
+                            {@const r3 = data.pivots.classic.r3 || -Infinity}
+                            {@const s3 = data.pivots.classic.s3 || Infinity}
+
+                            {@const maxH = Math.max(Number(prevCandle.high), Number(currCandle.high), r3)}
+                            {@const minL = Math.min(Number(prevCandle.low), Number(currCandle.low), s3)}
                             {@const totalRange = (maxH - minL) || 1}
 
                             <!-- Pre-calc Previous Candle Metrics -->
