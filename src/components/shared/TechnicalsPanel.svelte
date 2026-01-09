@@ -15,6 +15,7 @@
 
     export let isVisible: boolean = false;
 
+    let pivotHeight = 0; // Declare early to avoid scope issues
     let klinesHistory: any[] = [];
     let showDebug = false;
     let data: TechnicalsData | null = null;
@@ -30,6 +31,10 @@
     $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
+
+    // Calculate last candle properties for the mini-chart
+    $: lastCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
+    $: candleColor = lastCandle && Number(lastCandle.close) >= Number(lastCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
 
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
@@ -109,6 +114,9 @@
             close: newKline.close,
             volume: newKline.volume
         };
+
+        // Force reactivity update for Svelte 4
+        klinesHistory = klinesHistory;
 
         // Re-calculate technicals with settings
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
