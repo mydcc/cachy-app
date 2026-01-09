@@ -55,6 +55,8 @@ interface CSVTradeEntry {
 let priceUpdateIntervalId: any = null;
 let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
+let lastCalculationTime = 0;
+const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per second
 
 export const app = {
     calculator: calculator,
@@ -115,7 +117,13 @@ export const app = {
                     // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
                     if (state.entryPrice !== newPrice) {
                         updateTradeStore(s => ({ ...s, entryPrice: newPrice }));
-                        app.calculateAndDisplay();
+
+                        // Throttle expensive calculations
+                        const now = Date.now();
+                        if (now - lastCalculationTime > CALCULATION_THROTTLE_MS) {
+                            app.calculateAndDisplay();
+                            lastCalculationTime = now;
+                        }
                     }
                 }
             }
