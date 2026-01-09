@@ -105,17 +105,17 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
             // entryPrice: "avgOpenPrice" as per docs.
             entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
-            // Added liquidationPrice as per user stacktrace hint (was missing in my read?)
+
+            // Fixed Duplicate Keys Issue:
             liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
-            markPrice: parseFloat(p.markPrice || '0'),
+            markPrice: parseFloat(p.markPrice || p.mark_price || '0'),
+            margin: parseFloat(p.margin || p.positionMargin || p.maintMargin || '0'),
+
             // unrealizedPnL: "unrealizedPNL" as per docs.
             unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
             leverage: parseFloat(p.leverage || '0'),
             // marginType: "ISOLATION" | "CROSS" as per docs.
-            marginMode: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated',
-            liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
-            markPrice: parseFloat(p.markPrice || p.mark_price || '0'),
-            margin: parseFloat(p.margin || p.positionMargin || p.maintMargin || '0')
+            marginMode: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated'
         };
     }).filter((p: any) => p.size !== 0);
 }
@@ -150,8 +150,9 @@ async function fetchBinancePositions(apiKey: string, apiSecret: string): Promise
         entryPrice: parseFloat(p.entryPrice),
         markPrice: parseFloat(p.markPrice),
         liquidationPrice: parseFloat(p.liquidationPrice), // Ensure consistency
+        margin: parseFloat(p.margin || '0'), // Fallback
         unrealizedPnL: parseFloat(p.unRealizedProfit),
         leverage: parseFloat(p.leverage),
-        marginType: p.marginType
+        marginMode: p.marginType // Normalize to marginMode? User code had marginMode
     }));
 }

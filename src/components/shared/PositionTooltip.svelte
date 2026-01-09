@@ -19,8 +19,7 @@
     <div class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-1">
         <span class="font-bold text-sm flex items-center gap-1">
              {position.symbol}
-             <span class="text-[10px] font-bold px-1 rounded"
-                   style="background-color: var(--{position.side.toLowerCase() === 'long' ? 'success' : 'danger'}-color); color: var(--bg-primary);">
+             <span class="text-[10px] font-normal text-[var(--text-secondary)] bg-[var(--bg-primary)] px-1 rounded border border-[var(--border-color)]">
                 {position.side.toUpperCase()} {position.leverage}x
              </span>
         </span>
@@ -65,12 +64,12 @@
 
         <div class="flex justify-between">
             <span class="text-[var(--text-secondary)]">Margin:</span>
-            <span>{formatDynamicDecimal(position.margin, 4, 4)}</span>
+            <span>{formatDynamicDecimal(position.margin)}</span>
         </div>
         <div class="flex justify-between">
              <span class="text-[var(--text-secondary)]">Liq. Price:</span>
              {#if position.liquidationPrice && new Decimal(position.liquidationPrice).gt(0)}
-                <span class="text-[var(--warning-color)]">{formatDynamicDecimal(position.liquidationPrice, 4, 4)}</span>
+                <span class="text-[var(--warning-color)]">{formatDynamicDecimal(position.liquidationPrice)}</span>
              {:else}
                 <span>-</span>
              {/if}

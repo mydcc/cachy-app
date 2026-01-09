@@ -51,9 +51,9 @@
     function getPnlDisplay(pos: any, mode: 'value' | 'percent' | 'bar') {
         const val = new Decimal(pos.unrealizedPnl || 0);
         if (mode === 'percent' || mode === 'bar') {
-             if (!pos.margin || new Decimal(pos.margin).isZero()) return '0.0000%';
+             if (!pos.margin || new Decimal(pos.margin).isZero()) return '0%';
              const roi = val.div(pos.margin).mul(100);
-             return `${formatDynamicDecimal(roi, 4, 4)}%`;
+             return `${roi.toFixed(2)}%`;
         }
         return `${val.gt(0) ? '+' : ''}${formatDynamicDecimal(val)}`;
     }
@@ -118,7 +118,8 @@
                                      on:mouseleave={handleMouseLeave}>
                                     <span class="font-bold text-sm text-[var(--text-primary)]">{pos.symbol}</span>
                                     <span class="text-[9px] px-1 py-0.5 rounded font-bold uppercase tracking-wider"
-                                          style="background-color: var(--{pos.side.toLowerCase() === 'long' ? 'success' : 'danger'}-color); color: var(--bg-primary);">
+                                          class:bg-green-900={pos.side.toLowerCase() === 'long'} class:text-green-300={pos.side.toLowerCase() === 'long'}
+                                          class:bg-red-900={pos.side.toLowerCase() === 'short'} class:text-red-300={pos.side.toLowerCase() === 'short'}>
                                         {pos.leverage}x
                                     </span>
                                 </div>
