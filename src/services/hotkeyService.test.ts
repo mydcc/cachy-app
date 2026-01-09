@@ -35,7 +35,7 @@ describe('hotkeyService', () => {
             apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } },
             enableSidePanel: true,
             sidePanelMode: 'chat',
-            disclaimerAccepted: true
+            disclaimerAccepted: false
         });
 
         tradeStore.set({

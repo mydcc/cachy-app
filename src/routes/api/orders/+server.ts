@@ -60,6 +60,9 @@ async function placeBitunixOrder(apiKey: string, apiSecret: string, orderData: a
     if (payload.type === 'LIMIT') {
         if (!orderData.price) throw new Error("Price required for limit order");
         payload.price = String(orderData.price);
+    } else {
+        // Ensure no price is sent for MARKET orders, as it might cause errors
+        delete payload.price;
     }
 
     // Clean null/undefined
