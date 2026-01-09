@@ -36,24 +36,21 @@
     // prevCandle: The COMPLETED candle used for calculation basis (usually history[last] or history[last-1] depending on state)
     // currCandle: The LIVE candle (`visualCandle` from WS)
 
-    $: prevCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
+    // Helper to get the last candle from history
+    $: lastHistoryCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
 
-    // Default current to previous if no live data yet
-    $: currCandle = prevCandle;
+    // Determine Current Candle (Live)
+    // Use WebSocket data if available, otherwise fall back to the last known history candle
+    $: currCandle = wsData?.kline
+        ? { ...wsData.kline, time: wsData.kline.time || Date.now() }
+        : lastHistoryCandle;
 
-    // Override visual candle with real-time WS data if available
-    $: if (wsData?.kline) {
-        currCandle = {
-            ...wsData.kline,
-            time: wsData.kline.time || Date.now()
-        };
-
-        // If the live candle has a newer timestamp than history, it means history is "previous"
-        // If timestamps match, history IS current, so we need the one before that as "previous"
-        if (prevCandle && currCandle.time && prevCandle.time && currCandle.time === prevCandle.time) {
-             prevCandle = klinesHistory.length > 1 ? klinesHistory[klinesHistory.length - 2] : null;
-        }
-    }
+    // Determine Previous Candle (Context)
+    // Logic: If Current Candle matches the Last History Candle (by time), then "Previous" is the one BEFORE Last History.
+    //        If Current Candle is NEWER than Last History, then "Previous" IS the Last History Candle.
+    $: prevCandle = (currCandle && lastHistoryCandle && currCandle.time === (lastHistoryCandle.time || lastHistoryCandle.ts))
+        ? (klinesHistory.length > 1 ? klinesHistory[klinesHistory.length - 2] : null)
+        : lastHistoryCandle;
 
     $: prevColor = prevCandle && Number(prevCandle.close) >= Number(prevCandle.open) ? 'var(--text-secondary)' : 'var(--danger-color)'; // Grey/Red for history context
     $: currColor = currCandle && Number(currCandle.close) >= Number(currCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
