@@ -41,9 +41,6 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
     let formatted = dec.toFixed(maxPlaces);
 
     // If minPlaces is 0, we can use the original logic (stripping all trailing zeros)
-    // but we must be careful not to strip significant zeros if we want to respect maxPlaces.
-    // Actually, the original logic was aggressive.
-
     if (minPlaces === 0) {
          // If it's a whole number after formatting, return it without decimals.
         if (new Decimal(formatted).isInteger()) {
@@ -53,30 +50,25 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
         return formatted.replace(/0+$/, '').replace(/\.$/, '');
     }
 
-    // If minPlaces > 0, we need to ensure we keep at least that many decimals.
-    // First, strip excessive zeros beyond minPlaces
-    // e.g. max=4, min=2. value=2.5000 -> 2.50. value=2.1234 -> 2.1234.
-
-    // We can use a regex to strip zeros but stop at minPlaces.
-    // Alternatively, simple loop or string manipulation.
-
-    // Helper: find decimal point
+    // If minPlaces > 0, ensure we respect it
     const decimalIndex = formatted.indexOf('.');
+
     if (decimalIndex === -1) {
         // No decimals, add minPlaces
-        if (minPlaces > 0) return formatted + '.' + '0'.repeat(minPlaces);
-        return formatted;
+        return formatted + '.' + '0'.repeat(minPlaces);
     }
 
     // We have decimals.
-    // Strip trailing zeros, but check length.
+    // Strip trailing zeros, but stop when we reach minPlaces count
     while (formatted.endsWith('0')) {
-        const decimals = formatted.length - decimalIndex - 1;
-        if (decimals <= minPlaces) break;
+        const currentDecimals = formatted.length - decimalIndex - 1;
+        if (currentDecimals <= minPlaces) break;
         formatted = formatted.slice(0, -1);
     }
 
-    // Remove trailing dot if we stripped all zeros and minPlaces was 0 (covered above via loop check)
+    // Remove trailing dot if appropriate (though minPlaces > 0 ensures we keep decimals usually)
+    // If minPlaces was > 0, we shouldn't have removed all decimals above.
+    // But safely check:
     if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
 
     return formatted;
