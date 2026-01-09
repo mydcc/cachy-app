@@ -303,11 +303,33 @@ export const calculator = {
          const topSymbols = sortedSymbols.slice(0, 5);
          const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
 
+         // 3. Direction Evolution (Cumulative PnL)
+         let cumLong = new Decimal(0);
+         let cumShort = new Decimal(0);
+         const longCurve: {x: any, y: number}[] = [];
+         const shortCurve: {x: any, y: number}[] = [];
+
+         // Sort trades by date for evolution
+         const sortedByDate = [...closedTrades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+         sortedByDate.forEach(t => {
+             const pnl = getTradePnL(t);
+             if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
+                 cumLong = cumLong.plus(pnl);
+             } else {
+                 cumShort = cumShort.plus(pnl);
+             }
+             longCurve.push({ x: t.date, y: cumLong.toNumber() });
+             shortCurve.push({ x: t.date, y: cumShort.toNumber() });
+         });
+
          return {
              longPnl: longPnl.toNumber(),
              shortPnl: shortPnl.toNumber(),
              topSymbols: { labels: topSymbols.map(s => s[0]), data: topSymbols.map(s => s[1].toNumber()) },
-             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) }
+             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) },
+             longCurve,
+             shortCurve
          };
     },
 
@@ -946,6 +968,7 @@ export const calculator = {
         const labels: string[] = [];
         const winRates: number[] = [];
         const profitFactors: number[] = [];
+        const sqnValues: number[] = [];
 
         for (let i = windowSize; i <= sortedTrades.length; i++) {
             const windowTrades = sortedTrades.slice(i - windowSize, i);
@@ -957,10 +980,23 @@ export const calculator = {
             // Calculate Profit Factor (or Net PnL sum)
             let grossWin = new Decimal(0);
             let grossLoss = new Decimal(0);
+
+            // For SQN
+            const rMultiples: number[] = [];
+
             windowTrades.forEach(t => {
                 const pnl = getTradePnL(t);
                 if (pnl.gt(0)) grossWin = grossWin.plus(pnl);
                 else grossLoss = grossLoss.plus(pnl.abs());
+
+                // Calculate R
+                if (t.riskAmount && t.riskAmount.gt(0)) {
+                    rMultiples.push(pnl.div(t.riskAmount).toNumber());
+                } else {
+                    // Fallback if no risk info, use 0 or skip?
+                    // To avoid breaking SQN, we skip or use a proxy.
+                    // Let's assume normalized if risk is missing? No, safer to skip.
+                }
             });
 
             // Handle Infinity
@@ -972,6 +1008,20 @@ export const calculator = {
             }
             profitFactors.push(pf);
 
+            // Calculate SQN
+            let sqn = 0;
+            if (rMultiples.length > 0) {
+                const sumR = rMultiples.reduce((a, b) => a + b, 0);
+                const avgR = sumR / rMultiples.length; // Expectancy (in R)
+                const variance = rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) / rMultiples.length;
+                const stdDev = Math.sqrt(variance);
+
+                if (stdDev > 0) {
+                    sqn = (avgR / stdDev) * Math.sqrt(rMultiples.length);
+                }
+            }
+            sqnValues.push(sqn);
+
             // Label: use the date of the last trade in the window
             const date = new Date(windowTrades[windowTrades.length - 1].date);
             labels.push(date.toLocaleDateString());
@@ -980,7 +1030,8 @@ export const calculator = {
         return {
             labels,
             winRates,
-            profitFactors
+            profitFactors,
+            sqnValues
         };
     },
 
@@ -1064,5 +1115,121 @@ export const calculator = {
             worstHours,
             worstDays
         };
+    },
+
+    getDurationStats: (journal: JournalEntry[]) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // Buckets: <15m, 15m-1h, 1h-4h, 4h-24h, >24h
+        const buckets = [
+            { label: '< 15m', maxMs: 15 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '15m - 1h', maxMs: 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '1h - 4h', maxMs: 4 * 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '4h - 24h', maxMs: 24 * 60 * 60 * 1000, count: 0, win: 0, pnl: new Decimal(0) },
+            { label: '> 24h', maxMs: Infinity, count: 0, win: 0, pnl: new Decimal(0) }
+        ];
+
+        closedTrades.forEach(t => {
+            let startTs = 0, endTs = 0;
+            if (t.entryDate) startTs = new Date(t.entryDate).getTime();
+            else if (t.isManual !== false) startTs = new Date(t.date).getTime();
+
+            if (t.isManual === false) endTs = new Date(t.date).getTime();
+            else if (t.exitDate) endTs = new Date(t.exitDate).getTime();
+
+            if (startTs > 0 && endTs > 0) {
+                const duration = endTs - startTs;
+                if (duration > 0) {
+                    const bucket = buckets.find(b => duration <= b.maxMs) || buckets[buckets.length - 1];
+                    bucket.count++;
+                    const pnl = getTradePnL(t);
+                    bucket.pnl = bucket.pnl.plus(pnl);
+                    if (t.status === 'Won') bucket.win++;
+                }
+            }
+        });
+
+        const labels = buckets.map(b => b.label);
+        const pnlData = buckets.map(b => b.pnl.toNumber());
+        const winRateData = buckets.map(b => b.count > 0 ? (b.win / b.count) * 100 : 0);
+
+        return { labels, pnlData, winRateData };
+    },
+
+    getTagEvolution: (journal: JournalEntry[]) => {
+        const closedTrades = journal
+            .filter(t => t.status === 'Won' || t.status === 'Lost')
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+        // Identify Top 5 Tags by Abs PnL
+        const tagStats = calculator.getTagData(closedTrades);
+        const topTags = tagStats.labels
+            .map((label, i) => ({ label, pnl: Math.abs(tagStats.pnlData[i]) }))
+            .sort((a, b) => b.pnl - a.pnl)
+            .slice(0, 5)
+            .map(t => t.label);
+
+        const datasets = topTags.map(tag => {
+            let cumulative = 0;
+            const data: {x: any, y: number}[] = [];
+
+            closedTrades.forEach(t => {
+                const tags = t.tags && t.tags.length > 0 ? t.tags : ['No Tag'];
+                if (tags.includes(tag)) {
+                    cumulative += getTradePnL(t).toNumber();
+                    data.push({ x: t.date, y: cumulative });
+                }
+            });
+            return { label: tag, data };
+        });
+
+        return { datasets };
+    },
+
+    getConfluenceData: (journal: JournalEntry[]) => {
+        const closedTrades = journal.filter(t => t.status === 'Won' || t.status === 'Lost');
+
+        // 7 days (rows) x 24 hours (cols)
+        // Initialize with null or 0. Using null allows empty check.
+        // We need an array of objects for easier consumption in Svelte {#each}
+        // Structure: rows: [{ day: 'Mon', hours: [ { hour: 0, pnl: 100 }, ... ] }]
+
+        const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        const matrix = Array.from({ length: 7 }, (_, dayIdx) => {
+            return {
+                day: days[dayIdx],
+                hours: Array.from({ length: 24 }, (_, hourIdx) => ({
+                    hour: hourIdx,
+                    pnl: new Decimal(0),
+                    count: 0
+                }))
+            };
+        });
+
+        closedTrades.forEach(t => {
+            const date = new Date(t.date);
+            if (isNaN(date.getTime())) return;
+            const day = date.getDay(); // 0-6
+            const hour = date.getHours(); // 0-23
+
+            const pnl = getTradePnL(t);
+            matrix[day].hours[hour].pnl = matrix[day].hours[hour].pnl.plus(pnl);
+            matrix[day].hours[hour].count++;
+        });
+
+        // Reorder to Mon-Sun
+        const reorderedMatrix = [
+            matrix[1], matrix[2], matrix[3], matrix[4], matrix[5], matrix[6], matrix[0]
+        ];
+
+        // Flatten numeric values for easy consumption
+        return reorderedMatrix.map(row => ({
+            day: row.day,
+            hours: row.hours.map(h => ({
+                hour: h.hour,
+                pnl: h.pnl.toNumber(),
+                count: h.count
+            }))
+        }));
     }
 };
