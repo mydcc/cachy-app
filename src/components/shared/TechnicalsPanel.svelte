@@ -43,8 +43,13 @@
 
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
+
+    // Add a local timestamp to verify updates
+    let lastUpdateTs = 0;
+
     $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
         handleRealTimeUpdate(wsData.kline);
+        lastUpdateTs = Date.now();
     }
 
     // Trigger fetch/subscribe when relevant props change
@@ -106,7 +111,7 @@
         // WS (marketStore): { open, high, low, close, volume } (Decimals)
 
         // Let's perform a shallow merge/update of the last candle
-        klinesHistory[lastIdx] = {
+        const updatedCandle = {
             ...klinesHistory[lastIdx], // Preserve timestamp if it exists
             open: newKline.open,
             high: newKline.high,
@@ -115,8 +120,10 @@
             volume: newKline.volume
         };
 
-        // Force reactivity update for Svelte 4
-        klinesHistory = klinesHistory;
+        // Use array spread to guarantee reactivity in Svelte 4
+        const newHistory = [...klinesHistory];
+        newHistory[lastIdx] = updatedCandle;
+        klinesHistory = newHistory;
 
         // Re-calculate technicals with settings
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
@@ -332,6 +339,11 @@
                     <div class="flex flex-col flex-1">
                         <div class="flex items-center gap-1 group relative w-fit mb-1">
                             <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
+
+                    <!-- Pulse indicator for live updates -->
+                    {#key lastUpdateTs}
+                        <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-ping ml-1" title="Live Update"></div>
+                    {/key}
 
                             <!-- Tooltip -->
                             <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
