@@ -22,7 +22,7 @@ export const GET: RequestHandler = async ({ url }) => {
         }
         return json(klines);
     } catch (e: any) {
-        console.error(`Error fetching klines from ${provider}:`, e);
+        console.error(`Error fetching klines from ${provider}:`, e.message || String(e));
         return json({ error: e.message || 'Failed to fetch klines' }, { status: 500 });
     }
 };
