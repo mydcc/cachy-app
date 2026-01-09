@@ -50,6 +50,21 @@
 <svelte:head>
     <title>Cachy - Crypto Risk Calculator</title>
     <meta name="description" content="Advanced Crypto Risk Management & Trading Journal" />
+    {@html `<script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "Cachy",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "0",
+        "priceCurrency": "USD"
+      },
+      "description": "Advanced Crypto Risk Management & Trading Journal Calculator. Optimize your position sizing and manage risk effectively."
+    }
+    </script>`}
 </svelte:head>
 
 <div class="app-container">
