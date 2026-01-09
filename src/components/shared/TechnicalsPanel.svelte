@@ -31,12 +31,6 @@
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
 
-    // Calculate last candle properties for the mini-chart
-    $: lastCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
-    $: candleColor = lastCandle && Number(lastCandle.close) >= Number(lastCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
-    // Heights are calculated inline based on container height
-    let pivotHeight = 0;
-
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
         ? `Pivots (${indicatorSettings.pivots.type.charAt(0).toUpperCase() + indicatorSettings.pivots.type.slice(1)})`
@@ -115,9 +109,6 @@
             close: newKline.close,
             volume: newKline.volume
         };
-
-        // Force reactivity update for Svelte 4
-        klinesHistory = klinesHistory;
 
         // Re-calculate technicals with settings
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);

@@ -40,13 +40,38 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
     // Format to a fixed number of decimal places, then remove trailing zeros
     const formatted = dec.toFixed(maxPlaces);
 
-    // If it's a whole number after formatting, return it without decimals.
-    if (new Decimal(formatted).isInteger()) {
-        return new Decimal(formatted).toFixed(0);
+    // If minPlaces is 0, we can use the original logic (stripping all trailing zeros)
+    if (minPlaces === 0) {
+         // If it's a whole number after formatting, return it without decimals.
+        if (new Decimal(formatted).isInteger()) {
+            return new Decimal(formatted).toFixed(0);
+        }
+        // Remove trailing zeros
+        return formatted.replace(/0+$/, '').replace(/\.$/, '');
     }
 
-    // Otherwise, remove only the trailing zeros and the decimal point if it's the last char
-    return formatted.replace(/0+$/, '').replace(/\.$/, '');
+    // If minPlaces > 0, ensure we respect it
+    const decimalIndex = formatted.indexOf('.');
+
+    if (decimalIndex === -1) {
+        // No decimals, add minPlaces
+        return formatted + '.' + '0'.repeat(minPlaces);
+    }
+
+    // We have decimals.
+    // Strip trailing zeros, but stop when we reach minPlaces count
+    while (formatted.endsWith('0')) {
+        const currentDecimals = formatted.length - decimalIndex - 1;
+        if (currentDecimals <= minPlaces) break;
+        formatted = formatted.slice(0, -1);
+    }
+
+    // Remove trailing dot if appropriate (though minPlaces > 0 ensures we keep decimals usually)
+    // If minPlaces was > 0, we shouldn't have removed all decimals above.
+    // But safely check:
+    if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
+
+    return formatted;
 }
 
 /**
