@@ -105,13 +105,14 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
             // entryPrice: "avgOpenPrice" as per docs.
             entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
+            // Added liquidationPrice as per user stacktrace hint (was missing in my read?)
+            liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
+            markPrice: parseFloat(p.markPrice || '0'),
             // unrealizedPnL: "unrealizedPNL" as per docs.
             unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
             leverage: parseFloat(p.leverage || '0'),
             // marginType: "ISOLATION" | "CROSS" as per docs.
-            marginMode: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated',
-            liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
-            markPrice: parseFloat(p.markPrice || '0')
+            marginType: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated'
         };
     }).filter((p: any) => p.size !== 0);
 }

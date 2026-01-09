@@ -51,11 +51,11 @@
     function getPnlDisplay(pos: any, mode: 'value' | 'percent' | 'bar') {
         const val = new Decimal(pos.unrealizedPnl || 0);
         if (mode === 'percent' || mode === 'bar') {
-             if (!pos.margin || new Decimal(pos.margin).isZero()) return '0.00%';
+             if (!pos.margin || new Decimal(pos.margin).isZero()) return '0%';
              const roi = val.div(pos.margin).mul(100);
              return `${roi.toFixed(2)}%`;
         }
-        return `${val.gt(0) ? '+' : ''}${formatDynamicDecimal(val, 4, 4)}`;
+        return `${val.gt(0) ? '+' : ''}${formatDynamicDecimal(val)}`;
     }
 
     function togglePnlMode() {
@@ -154,9 +154,9 @@
                                     <span class="font-mono">{formatDynamicDecimal(pos.size)}</span>
                                 </div>
                                 <div class="flex items-center gap-1 text-[var(--text-tertiary)] text-[10px]">
-                                    <span class="font-mono text-[var(--text-primary)]">{formatDynamicDecimal(pos.entryPrice, 4, 4)}</span>
+                                    <span class="font-mono text-[var(--text-primary)]">{formatDynamicDecimal(pos.entryPrice)}</span>
                                     <span>→</span>
-                                    <span class="font-mono text-[var(--text-primary)]">{formatDynamicDecimal(pos.markPrice, 4, 4)}</span>
+                                    <span class="font-mono text-[var(--text-primary)]">{formatDynamicDecimal(pos.markPrice)}</span>
                                 </div>
                             </div>
 

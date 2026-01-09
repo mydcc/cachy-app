@@ -34,10 +34,8 @@
     // Calculate last candle properties for the mini-chart
     $: lastCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
     $: candleColor = lastCandle && Number(lastCandle.close) >= Number(lastCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
-    $: candleHeight = lastCandle ? Math.abs(Number(lastCandle.close) - Number(lastCandle.open)) : 0;
-    $: candleWickHeight = lastCandle ? Number(lastCandle.high) - Number(lastCandle.low) : 0;
-    // Normalize heights for visualization (just scaling factor, max height e.g. 20px)
-    // This is tricky without relative context. We'll use a fixed representation style.
+    // Heights are calculated inline based on container height
+    let pivotHeight = 0;
 
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
@@ -158,44 +156,13 @@
         return new Decimal(val).toDecimalPlaces(4).toString();
     }
 
-    const availableTimeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
-
     function toggleTimeframePopup() {
         showTimeframePopup = !showTimeframePopup;
     }
 
-    function applyTimeframe(tf: string) {
-        updateTradeStore(s => ({ ...s, analysisTimeframe: tf }));
-    }
-
     function setTimeframe(tf: string) {
-        applyTimeframe(tf);
+        updateTradeStore(s => ({ ...s, analysisTimeframe: tf }));
         showTimeframePopup = false;
-    }
-
-    function handleWheel(event: WheelEvent) {
-        if (!showPanel) return;
-        event.preventDefault();
-
-        // Current timeframe might be custom, check if it's in our standard list
-        let currentIndex = availableTimeframes.indexOf(timeframe);
-
-        // If custom/unknown, default to matching nearest or just start from 1h (index 3) logic?
-        // Or simply do nothing if custom? Let's default to index 0 if not found for safety, or better:
-        if (currentIndex === -1) currentIndex = 3; // Default to 1h if unknown
-
-        let nextIndex;
-        // deltaY < 0 is scrolling UP (away from user) -> Increase Timeframe (Next in list)
-        // deltaY > 0 is scrolling DOWN (towards user) -> Decrease Timeframe (Prev in list)
-        if (event.deltaY < 0) {
-            nextIndex = Math.min(currentIndex + 1, availableTimeframes.length - 1);
-        } else {
-            nextIndex = Math.max(currentIndex - 1, 0);
-        }
-
-        if (nextIndex !== currentIndex) {
-            applyTimeframe(availableTimeframes[nextIndex]);
-        }
     }
 
     function handleCustomTimeframeSubmit() {
@@ -244,14 +211,7 @@
     <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative">
 
         <!-- Header -->
-        <div
-            class="flex justify-between items-center pb-2 timeframe-selector-container relative"
-            on:mouseenter={() => showTimeframePopup = true}
-            on:mouseleave={() => showTimeframePopup = false}
-            on:wheel={handleWheel}
-            role="group"
-            aria-label="Timeframe Selector"
-        >
+        <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
             <div class="flex items-center gap-2">
                 <button
                     type="button"
@@ -310,23 +270,8 @@
             {/if}
 
             {#if data?.summary}
-                <div class="flex items-center gap-3">
-                    <!-- Mini Candle Visualization -->
-                    {#if lastCandle}
-                        <div class="flex items-center justify-center h-6 w-3 relative" title="Real-time Candle">
-                             <!-- Wick -->
-                             <div class="absolute w-[1px] bg-current h-full" style="color: {candleColor}; height: 100%; top: 0;"></div>
-                             <!-- Body -->
-                             <div class="absolute w-1" style="background-color: {candleColor};
-                                  height: {Math.max(2, (Math.abs(Number(lastCandle.close) - Number(lastCandle.open)) / (Number(lastCandle.high) - Number(lastCandle.low) || 1)) * 24)}px;
-                                  top: {(Number(lastCandle.high) - Math.max(Number(lastCandle.open), Number(lastCandle.close))) / (Number(lastCandle.high) - Number(lastCandle.low) || 1) * 24}px;">
-                             </div>
-                        </div>
-                    {/if}
-
-                    <div class="flex items-center gap-2 text-sm font-bold">
-                        <span class={getActionColor(data.summary.action)}>{data.summary.action.toUpperCase()}</span>
-                    </div>
+                <div class="flex items-center gap-2 text-sm font-bold">
+                    <span class={getActionColor(data.summary.action)}>{data.summary.action.toUpperCase()}</span>
                 </div>
             {/if}
         </div>
@@ -365,44 +310,67 @@
 
             <!-- Pivots -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                <div class="flex items-center gap-1 group relative w-fit">
-                    <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
+                <div class="flex gap-3">
+                    <!-- Left: Real-time Candle Visualization (Tall) -->
+                    <div class="w-4 relative bg-[var(--bg-tertiary)]/20 rounded flex items-center justify-center" bind:clientHeight={pivotHeight} title="Real-time Candle">
+                        {#if lastCandle && pivotHeight > 0}
+                            {@const range = (Number(lastCandle.high) - Number(lastCandle.low)) || 1}
+                            {@const bodyHeight = Math.abs(Number(lastCandle.close) - Number(lastCandle.open))}
+                            {@const bodyTop = Number(lastCandle.high) - Math.max(Number(lastCandle.open), Number(lastCandle.close))}
 
-                    <!-- Tooltip -->
-                    <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
-                        <Tooltip>
-                            <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                                <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
-                                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                                    <span class="text-[var(--text-secondary)]">High:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
+                            <!-- Wick -->
+                            <div class="absolute w-[1px] bg-current h-full opacity-60" style="color: {candleColor};"></div>
 
-                                    <span class="text-[var(--text-secondary)]">Low:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
-
-                                    <span class="text-[var(--text-secondary)]">Close:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
-
-                                    {#if indicatorSettings?.pivots?.type === 'woodie'}
-                                        <span class="text-[var(--text-secondary)]">Open:</span>
-                                        <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
-                                    {/if}
-                                </div>
-                                {#if indicatorSettings?.pivots?.type === 'fibonacci'}
-                                    <div class="mt-1 pt-1 border-t border-[var(--border-color)] text-[var(--accent-color)]">
-                                        Fibo Levels: 0.382, 0.618, 1.0
-                                    </div>
-                                {/if}
+                            <!-- Body -->
+                            <div class="absolute w-2 rounded-[1px]" style="background-color: {candleColor};
+                                height: {Math.max(2, (bodyHeight / range) * pivotHeight)}px;
+                                top: {(bodyTop / range) * pivotHeight}px;">
                             </div>
-                        </Tooltip>
+                        {/if}
                     </div>
-                </div>
 
-                <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mt-1">
-                    {#each Object.entries(data.pivots.classic).reverse() as [key, val]}
-                        <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
-                        <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
-                    {/each}
+                    <!-- Right: Title + List -->
+                    <div class="flex flex-col flex-1">
+                        <div class="flex items-center gap-1 group relative w-fit mb-1">
+                            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
+
+                            <!-- Tooltip -->
+                            <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
+                                <Tooltip>
+                                    <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
+                                        <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
+                                        <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
+                                            <span class="text-[var(--text-secondary)]">High:</span>
+                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
+
+                                            <span class="text-[var(--text-secondary)]">Low:</span>
+                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
+
+                                            <span class="text-[var(--text-secondary)]">Close:</span>
+                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
+
+                                            {#if indicatorSettings?.pivots?.type === 'woodie'}
+                                                <span class="text-[var(--text-secondary)]">Open:</span>
+                                                <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
+                                            {/if}
+                                        </div>
+                                        {#if indicatorSettings?.pivots?.type === 'fibonacci'}
+                                            <div class="mt-1 pt-1 border-t border-[var(--border-color)] text-[var(--accent-color)]">
+                                                Fibo Levels: 0.382, 0.618, 1.0
+                                            </div>
+                                        {/if}
+                                    </div>
+                                </Tooltip>
+                            </div>
+                        </div>
+
+                        <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                            {#each Object.entries(data.pivots.classic).sort((a, b) => b[1] - a[1]) as [key, val]}
+                                <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
+                                <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
+                            {/each}
+                        </div>
+                    </div>
                 </div>
             </div>
 
