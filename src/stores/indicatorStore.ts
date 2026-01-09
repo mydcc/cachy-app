@@ -45,6 +45,7 @@ export interface IndicatorSettings {
     };
     pivots: {
         type: 'classic' | 'woodie' | 'camarilla' | 'fibonacci';
+        viewMode: 'integrated' | 'separated' | 'abstract';
     };
 }
 
@@ -91,7 +92,8 @@ const defaultSettings: IndicatorSettings = {
         ema3Length: 200
     },
     pivots: {
-        type: 'classic'
+        type: 'classic',
+        viewMode: 'integrated'
     }
 };
 

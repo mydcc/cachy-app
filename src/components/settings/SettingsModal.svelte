@@ -934,6 +934,15 @@
                                 </select>
                             </div>
 
+                            <div class="flex flex-col gap-1 mt-1">
+                                <span class="text-xs font-medium text-[var(--text-secondary)]">View Mode</span>
+                                <select bind:value={pivotSettings.viewMode} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                    <option value="integrated">Integrated (Recommended)</option>
+                                    <option value="separated">Separated</option>
+                                    <option value="abstract">Abstract (Gauge)</option>
+                                </select>
+                            </div>
+
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">

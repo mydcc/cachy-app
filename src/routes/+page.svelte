@@ -456,8 +456,6 @@ import { trackCustomEvent } from '../services/trackingService';
 
 <CustomModal />
 
-<SettingsModal />
-
 <ModalFrame
     isOpen={$uiStore.showChangelogModal}
     title={$_('app.changelogTitle')}
