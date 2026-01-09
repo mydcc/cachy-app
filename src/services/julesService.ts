@@ -78,8 +78,6 @@ export const julesService = {
         try {
             const context = this.getSystemSnapshot();
 
-            console.log(`[JulesService] Sending ${mode} report...`);
-
             const response = await fetch('/api/jules', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
@@ -100,7 +98,6 @@ export const julesService = {
 
             const result = await response.json();
 
-            console.log('[JulesService] Response:', result.message);
             return result.message;
 
         } catch (err) {

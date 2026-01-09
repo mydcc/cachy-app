@@ -45,7 +45,6 @@ class BitunixWebSocketService {
     private isAuthenticated = false;
 
     private handleOnline = () => {
-        console.log('Browser online detected. Reconnecting WebSockets...');
         this.connect();
     };
 
@@ -89,7 +88,6 @@ class BitunixWebSocketService {
         }
 
         wsStatusStore.set('connecting');
-        console.log('Connecting to Bitunix Public WebSocket...');
 
         try {
             this.wsPublic = new WebSocket(WS_PUBLIC_URL);
@@ -112,7 +110,6 @@ class BitunixWebSocketService {
         this.wsPublic.onopen = () => {
             if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
 
-            console.log('Bitunix Public WebSocket connected.');
             wsStatusStore.set('connected');
             this.isReconnectingPublic = false;
 
@@ -137,7 +134,6 @@ class BitunixWebSocketService {
         };
 
         this.wsPublic.onclose = () => {
-            console.log('Bitunix Public WebSocket closed.');
             this.cleanup('public');
             this.scheduleReconnect('public');
         };
@@ -153,7 +149,6 @@ class BitunixWebSocketService {
         const apiSecret = settings.apiKeys?.bitunix?.secret;
 
         if (!apiKey || !apiSecret) {
-            console.log("Skipping Bitunix Private WS: No API keys found.");
             return;
         }
 
@@ -162,8 +157,6 @@ class BitunixWebSocketService {
                  return;
              }
         }
-
-        console.log('Connecting to Bitunix Private WebSocket...');
 
         try {
             this.wsPrivate = new WebSocket(WS_PRIVATE_URL);
@@ -186,7 +179,6 @@ class BitunixWebSocketService {
         this.wsPrivate.onopen = () => {
             if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
 
-            console.log('Bitunix Private WebSocket connected.');
             this.isReconnectingPrivate = false;
             if (this.wsPrivate) {
                 this.startHeartbeat(this.wsPrivate, 'private');
@@ -207,7 +199,6 @@ class BitunixWebSocketService {
         };
 
         this.wsPrivate.onclose = () => {
-             console.log('Bitunix Private WebSocket closed.');
              this.isAuthenticated = false;
              this.cleanup('private');
              this.scheduleReconnect('private');
@@ -350,7 +341,6 @@ class BitunixWebSocketService {
                 }]
             };
 
-            console.log('Sending Login to Bitunix...');
             this.wsPrivate.send(JSON.stringify(payload));
         } catch (error) {
             console.error("Error during Bitunix login construction/sending:", error);
@@ -363,7 +353,6 @@ class BitunixWebSocketService {
 
             if (message && message.event === 'login') {
                 if (message.code === 0 || message.msg === 'success') {
-                    console.log('Bitunix Login Successful.');
                     this.isAuthenticated = true;
                     this.subscribePrivate();
                 } else {

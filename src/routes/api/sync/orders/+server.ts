@@ -17,8 +17,8 @@ export const POST: RequestHandler = async ({ request }) => {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
-            console.error('Error fetching regular orders:', err);
-            // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
+            console.error('Error fetching regular orders:', err.message || err);
+            throw new Error(`Failed to fetch Regular Orders: ${err.message || 'Unknown error'}`);
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
