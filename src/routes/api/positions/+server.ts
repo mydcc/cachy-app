@@ -110,7 +110,8 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             // marginType: "ISOLATION" | "CROSS" as per docs.
             marginMode: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated',
             liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
-            markPrice: parseFloat(p.markPrice || '0')
+            markPrice: parseFloat(p.markPrice || p.mark_price || '0'),
+            margin: parseFloat(p.margin || p.positionMargin || p.maintMargin || '0')
         };
     }).filter((p: any) => p.size !== 0);
 }
