@@ -303,11 +303,33 @@ export const calculator = {
          const topSymbols = sortedSymbols.slice(0, 5);
          const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
 
+         // 3. Direction Evolution (Cumulative PnL)
+         let cumLong = new Decimal(0);
+         let cumShort = new Decimal(0);
+         const longCurve: {x: any, y: number}[] = [];
+         const shortCurve: {x: any, y: number}[] = [];
+
+         // Sort trades by date for evolution
+         const sortedByDate = [...closedTrades].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+         sortedByDate.forEach(t => {
+             const pnl = getTradePnL(t);
+             if (t.tradeType === CONSTANTS.TRADE_TYPE_LONG) {
+                 cumLong = cumLong.plus(pnl);
+             } else {
+                 cumShort = cumShort.plus(pnl);
+             }
+             longCurve.push({ x: t.date, y: cumLong.toNumber() });
+             shortCurve.push({ x: t.date, y: cumShort.toNumber() });
+         });
+
          return {
              longPnl: longPnl.toNumber(),
              shortPnl: shortPnl.toNumber(),
              topSymbols: { labels: topSymbols.map(s => s[0]), data: topSymbols.map(s => s[1].toNumber()) },
-             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) }
+             bottomSymbols: { labels: bottomSymbols.map(s => s[0]), data: bottomSymbols.map(s => s[1].toNumber()) },
+             longCurve,
+             shortCurve
          };
     },
 
@@ -946,6 +968,7 @@ export const calculator = {
         const labels: string[] = [];
         const winRates: number[] = [];
         const profitFactors: number[] = [];
+        const sqnValues: number[] = [];
 
         for (let i = windowSize; i <= sortedTrades.length; i++) {
             const windowTrades = sortedTrades.slice(i - windowSize, i);
@@ -957,10 +980,23 @@ export const calculator = {
             // Calculate Profit Factor (or Net PnL sum)
             let grossWin = new Decimal(0);
             let grossLoss = new Decimal(0);
+
+            // For SQN
+            const rMultiples: number[] = [];
+
             windowTrades.forEach(t => {
                 const pnl = getTradePnL(t);
                 if (pnl.gt(0)) grossWin = grossWin.plus(pnl);
                 else grossLoss = grossLoss.plus(pnl.abs());
+
+                // Calculate R
+                if (t.riskAmount && t.riskAmount.gt(0)) {
+                    rMultiples.push(pnl.div(t.riskAmount).toNumber());
+                } else {
+                    // Fallback if no risk info, use 0 or skip?
+                    // To avoid breaking SQN, we skip or use a proxy.
+                    // Let's assume normalized if risk is missing? No, safer to skip.
+                }
             });
 
             // Handle Infinity
@@ -972,6 +1008,20 @@ export const calculator = {
             }
             profitFactors.push(pf);
 
+            // Calculate SQN
+            let sqn = 0;
+            if (rMultiples.length > 0) {
+                const sumR = rMultiples.reduce((a, b) => a + b, 0);
+                const avgR = sumR / rMultiples.length; // Expectancy (in R)
+                const variance = rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) / rMultiples.length;
+                const stdDev = Math.sqrt(variance);
+
+                if (stdDev > 0) {
+                    sqn = (avgR / stdDev) * Math.sqrt(rMultiples.length);
+                }
+            }
+            sqnValues.push(sqn);
+
             // Label: use the date of the last trade in the window
             const date = new Date(windowTrades[windowTrades.length - 1].date);
             labels.push(date.toLocaleDateString());
@@ -980,7 +1030,8 @@ export const calculator = {
         return {
             labels,
             winRates,
-            profitFactors
+            profitFactors,
+            sqnValues
         };
     },
 

@@ -557,6 +557,18 @@
         }]
     } : null;
 
+    $: rollingSQNData = rollingData ? {
+        labels: rollingData.labels,
+        datasets: [{
+            label: 'Rolling SQN (20)',
+            data: rollingData.sqnValues,
+            borderColor: themeColors.accent,
+            backgroundColor: hexToRgba(themeColors.accent, 0.1),
+            fill: true,
+            tension: 0.3
+        }]
+    } : null;
+
     // Leakage (Attribution)
     $: leakageData = calculator.getLeakageData(journal);
 
@@ -963,6 +975,9 @@
                 <LineChart data={cumRData} title={$_('journal.deepDive.charts.titles.cumulativeR')} yLabel="R" description={$_('journal.deepDive.charts.descriptions.cumulativeR')} />
             </div>
         {:else if activePreset === 'direction'}
+            <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3">
+                <LineChart data={directionEvolutionData} title="Long vs Short Evolution" description={$_('journal.deepDive.charts.descriptions.directionEvolution')} />
+            </div>
             <div class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]">
                 <BarChart data={longShortData} title={$_('journal.deepDive.charts.titles.longVsShort')} description={$_('journal.deepDive.charts.descriptions.longVsShort')} />
             </div>
@@ -1202,6 +1217,7 @@
                 { id: 'forecast', label: $_('journal.deepDive.forecast') },
                 { id: 'trends', label: $_('journal.deepDive.trends') },
                 { id: 'leakage', label: $_('journal.deepDive.leakage') },
+                { id: 'direction', label: 'Direction' },
                 { id: 'timing', label: $_('journal.deepDive.timing') },
                 { id: 'assets', label: $_('journal.deepDive.assets') },
                 { id: 'risk', label: $_('journal.deepDive.risk') },
@@ -1232,8 +1248,13 @@
                         </div>
                     {/if}
                     {#if rollingPFData}
-                        <div class="h-64">
+                        <div class="h-64 mb-4">
                             <LineChart data={rollingPFData} title={$_('journal.deepDive.charts.labels.rollingPF')} yLabel="PF" description={$_('journal.deepDive.charts.descriptions.rollingPF')} />
+                        </div>
+                    {/if}
+                    {#if rollingSQNData}
+                        <div class="h-64">
+                            <LineChart data={rollingSQNData} title={$_('journal.deepDive.charts.labels.rollingSQN')} yLabel="SQN" description={$_('journal.deepDive.charts.descriptions.rollingSQN')} />
                         </div>
                     {/if}
                      {#if !rollingWinRateData}

@@ -307,7 +307,9 @@
             "heatmap": "Kalenderansicht der täglichen PnL-Performance.",
             "forecast": "Simuliert 100 mögliche Zukünfte basierend auf deinen historischen Trades. Der Kegel zeigt den Bereich zwischen Worst-Case (10% Perzentil) und Best-Case (90% Perzentil).",
             "rollingWinRate": "Deine Winrate über die jeweils letzten 20 Trades. Zeigt, ob du gerade 'heiß' oder 'kalt' läufst.",
-            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel."
+            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel.",
+            "rollingSQN": "System Quality Number (SQN) über 20 Trades. > 2.0 ist gut, > 5.0 ist exzellent.",
+            "directionEvolution": "Kumulierter Gewinn getrennt nach Long und Short."
         },
         "labels": {
             "forecast": "Forecast",
@@ -354,6 +356,7 @@
             "simRandom": "Sim #",
             "rollingWinRate": "Rolling Win Rate (20)",
             "rollingPF": "Rolling Profit Factor (20)",
+            "rollingSQN": "Rolling SQN (20)",
             "equityChange": "Equity Veränderung ($)"
         }
       }
