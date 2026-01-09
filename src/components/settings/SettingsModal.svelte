@@ -517,6 +517,31 @@
                     <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
 
+                 <!-- Side Panel Toggle -->
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium">{$_('settings.enableSidePanel')}</span>
+                        <span class="text-xs text-[var(--text-secondary)]">{$_('settings.sidePanelDesc')}</span>
+                    </div>
+                    <input type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                {#if enableSidePanel}
+                    <div class="flex flex-col gap-1 ml-4 border-l-2 border-[var(--border-color)] pl-4">
+                        <span class="text-sm font-medium">{$_('settings.sidePanelMode')}</span>
+                        <div class="flex gap-2">
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="notes" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">{$_('settings.modeNotes')}</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">{$_('settings.modeChat')}</span>
+                            </label>
+                        </div>
+                    </div>
+                {/if}
+
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
                     <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
