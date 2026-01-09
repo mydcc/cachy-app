@@ -6,8 +6,9 @@
     import { marketStore } from "../../stores/marketStore";
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
-    import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
-    import { formatDynamicDecimal, normalizeTimeframeInput } from "../../utils/utils";
+    import { technicalsService } from "../../services/technicalsService";
+    import type { TechnicalsData } from "../../services/technicalsTypes"; // Import strict types
+    import { normalizeTimeframeInput } from "../../utils/utils";
     import { Decimal } from "decimal.js";
     import Tooltip from "../shared/Tooltip.svelte";
 
@@ -137,6 +138,7 @@
     function updateTechnicals() {
         if (!klinesHistory.length) return;
         // Calculate technicals using the FULL history including live candle.
+        // The Service now handles Data normalization and Decimal conversion internally.
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
     }
 
@@ -168,8 +170,9 @@
         return 'text-[var(--text-secondary)]';
     }
 
-    function formatVal(val: number) {
-        return new Decimal(val).toDecimalPlaces(4).toString();
+    function formatVal(val: Decimal) {
+        // val is now strictly a Decimal object
+        return val.toDecimalPlaces(4).toString();
     }
 
     function toggleTimeframePopup() {
@@ -307,7 +310,7 @@
                     {indicatorSettings?.pivots?.type ? `Pivots (${indicatorSettings.pivots.type})` : 'Pivots'}
                 </h4>
                 <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
-                    {#each Object.entries(data.pivots.classic).sort((a, b) => b[1] - a[1]) as [key, val]}
+                    {#each Object.entries(data.pivots.classic).sort((a, b) => b[1].minus(a[1]).toNumber()) as [key, val]}
                         <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
                         <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
                     {/each}
