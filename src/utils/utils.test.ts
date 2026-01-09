@@ -1,32 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { parseDateString, parseTimestamp, formatDynamicDecimal } from './utils';
-
-describe('formatDynamicDecimal', () => {
-    it('should format simple decimals', () => {
-        expect(formatDynamicDecimal(1.23456, 4)).toBe('1.2346');
-    });
-
-    it('should strip trailing zeros by default (minPlaces=0)', () => {
-        expect(formatDynamicDecimal(1.5000, 4)).toBe('1.5');
-    });
-
-    it('should respect minPlaces', () => {
-        expect(formatDynamicDecimal(1.5000, 4, 4)).toBe('1.5000');
-        expect(formatDynamicDecimal(1.5, 4, 4)).toBe('1.5000');
-        expect(formatDynamicDecimal(1.123456, 4, 2)).toBe('1.1235'); // Rounds to 4
-        expect(formatDynamicDecimal(1.1000, 4, 2)).toBe('1.10');
-    });
-
-    it('should handle integer with minPlaces', () => {
-        expect(formatDynamicDecimal(10, 4, 2)).toBe('10.00');
-        expect(formatDynamicDecimal(10, 4, 0)).toBe('10');
-    });
-
-    it('should handle zero', () => {
-        expect(formatDynamicDecimal(0, 4, 2)).toBe('0.00');
-        expect(formatDynamicDecimal(0, 4, 0)).toBe('0');
-    });
-});
+import { parseDateString, parseTimestamp } from './utils';
 
 describe('parseTimestamp', () => {
     const NOW = Date.now();

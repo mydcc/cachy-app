@@ -31,14 +31,14 @@ export function parseDecimal(value: string | number | null | undefined): Decimal
     return new Decimal(stringValue);
 }
 
-export function formatDynamicDecimal(value: Decimal | string | number | null | undefined, maxPlaces = 4, minPlaces = 0): string {
+export function formatDynamicDecimal(value: Decimal | string | number | null | undefined, maxPlaces = 4): string {
     if (value === null || value === undefined) return '-';
 
     const dec = new Decimal(value);
     if (dec.isNaN()) return '-';
 
-    // Format to a fixed number of decimal places
-    let formatted = dec.toFixed(maxPlaces);
+    // Format to a fixed number of decimal places, then remove trailing zeros
+    const formatted = dec.toFixed(maxPlaces);
 
     // If minPlaces is 0, we can use the original logic (stripping all trailing zeros)
     if (minPlaces === 0) {
