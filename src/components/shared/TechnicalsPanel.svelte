@@ -56,9 +56,26 @@
         handleRealTimeUpdate(wsData.kline);
     }
 
+    const bitunixIntervalMap: Record<string, string> = {
+        '1m': '1min',
+        '5m': '5min',
+        '15m': '15min',
+        '30m': '30min',
+        '1h': '60min',
+        '4h': '4h',
+        '1d': '1day',
+        '1w': '1week',
+        '1M': '1month'
+    };
+
+    function getBitunixChannel(tf: string): string {
+        const mapped = bitunixIntervalMap[tf] || tf;
+        return `market_kline_${mapped}`;
+    }
+
     function subscribeWs() {
         if (symbol && timeframe && $settingsStore.apiProvider === 'bitunix') {
-            const channel = `market_kline_${timeframe}`;
+            const channel = getBitunixChannel(timeframe);
             bitunixWs.subscribe(symbol, channel);
         }
     }
@@ -67,7 +84,7 @@
         if (currentSubscription) {
             const [oldSymbol, oldTimeframe] = currentSubscription.split(':');
             if (oldSymbol && oldTimeframe && $settingsStore.apiProvider === 'bitunix') {
-                 const channel = `market_kline_${oldTimeframe}`;
+                 const channel = getBitunixChannel(oldTimeframe);
                  bitunixWs.unsubscribe(oldSymbol, channel);
             }
         }
