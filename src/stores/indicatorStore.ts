@@ -49,7 +49,7 @@ export interface IndicatorSettings {
 }
 
 const defaultSettings: IndicatorSettings = {
-    historyLimit: 2000,
+    historyLimit: 750,
     rsi: {
         length: 14,
         source: 'close',

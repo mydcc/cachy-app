@@ -71,36 +71,22 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
          throw new Error(`Bitunix API error: ${data.msg}`);
     }
 
-    // Bitunix Data Format:
-    // { "data": [ { "o": "...", "c": "...", "h": "...", "l": "...", "v": "...", "ts": ... }, ... ] }
-    // OR sometimes array of arrays? Doc says:
-    // Response: [{"id":1606963500,"open":19216.5,"close":19221.5,"low":19203.5,"high":19233.0,"vol":301.782}, ...]
-    // But let's check what I implemented before or check docs.
-    // Doc says: Get Kline -> Response data list of objects?
-    // Let's assume the previous implementation was correct or robust.
-
-    // Previous implementation assumed data.data is the array.
     const results = data.data || [];
 
+    // Optimize: Return plain strings to reduce payload size and serialization overhead
     return results.map((k: any) => ({
-        // Bitunix usually returns object keys or array.
-        // Based on typical Bitunix API, it's objects: open, close, high, low, vol
-        // But let's handle potential "o", "c" etc.
-        open: new Decimal(k.open || k.o || 0),
-        high: new Decimal(k.high || k.h || 0),
-        low: new Decimal(k.low || k.l || 0),
-        close: new Decimal(k.close || k.c || 0),
-        volume: new Decimal(k.vol || k.v || 0),
+        open: new Decimal(k.open || k.o || 0).toString(),
+        high: new Decimal(k.high || k.h || 0).toString(),
+        low: new Decimal(k.low || k.l || 0).toString(),
+        close: new Decimal(k.close || k.c || 0).toString(),
+        volume: new Decimal(k.vol || k.v || 0).toString(),
         timestamp: k.id || k.ts || k.time || 0
-    })).sort((a: any, b: any) => a.timestamp - b.timestamp); // Ensure ascending
+    })).sort((a: any, b: any) => a.timestamp - b.timestamp);
 }
 
 async function fetchBinanceKlines(symbol: string, interval: string, limit: number) {
     const baseUrl = 'https://fapi.binance.com';
     const path = '/fapi/v1/klines';
-
-    // Binance: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
-    // App: 1m, 5m, 15m, 1h, 4h, 1d matches exactly mostly.
 
     const queryString = new URLSearchParams({
         symbol: symbol.toUpperCase(),
@@ -115,15 +101,14 @@ async function fetchBinanceKlines(symbol: string, interval: string, limit: numbe
     }
 
     const data = await response.json();
-    // Binance Data Format: Array of Arrays
-    // [ [ Open Time, Open, High, Low, Close, Volume, Close Time, ... ], ... ]
 
+    // Optimize: Binance returns strings for prices, pass them directly
     return data.map((k: any[]) => ({
         timestamp: k[0],
-        open: new Decimal(k[1]),
-        high: new Decimal(k[2]),
-        low: new Decimal(k[3]),
-        close: new Decimal(k[4]),
-        volume: new Decimal(k[5])
+        open: k[1],
+        high: k[2],
+        low: k[3],
+        close: k[4],
+        volume: k[5]
     })).sort((a: any, b: any) => a.timestamp - b.timestamp);
 }

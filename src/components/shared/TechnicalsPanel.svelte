@@ -121,7 +121,7 @@
 
         try {
             // Fetch history based on settings
-            const limit = indicatorSettings?.historyLimit || 2000;
+            const limit = indicatorSettings?.historyLimit || 750;
             const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
             klinesHistory = klines;
             data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
