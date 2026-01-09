@@ -216,7 +216,8 @@ export const calculator = {
         // Detailed Stats
         const avgWin = countWin > 0 ? totalWin.div(countWin) : new Decimal(0);
         const avgLoss = countLoss > 0 ? totalLoss.div(countLoss) : new Decimal(0);
-        const profitFactor = totalLoss.gt(0) ? totalWin.div(totalLoss) : (totalWin.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+        const profitFactorRaw = totalLoss.gt(0) ? totalWin.div(totalLoss) : (totalWin.gt(0) ? new Decimal(100) : new Decimal(0));
+        const profitFactor = profitFactorRaw.isFinite() ? profitFactorRaw : new Decimal(100);
 
         const winRate = closedTrades.length > 0 ? (countWin / closedTrades.length) : 0;
         const lossRate = closedTrades.length > 0 ? (countLoss / closedTrades.length) : 0;
@@ -345,7 +346,8 @@ export const calculator = {
         
         const totalProfit = wonTrades.reduce((sum, t) => sum.plus(new Decimal(t.totalNetProfit || 0)), new Decimal(0));
         const totalLoss = lostTrades.reduce((sum, t) => sum.plus(new Decimal(t.riskAmount || 0)), new Decimal(0));
-        const profitFactor = totalLoss.gt(0) ? totalProfit.dividedBy(totalLoss) : totalProfit.gt(0) ? new Decimal(Infinity) : new Decimal(0);
+        const profitFactorRaw = totalLoss.gt(0) ? totalProfit.dividedBy(totalLoss) : totalProfit.gt(0) ? new Decimal(100) : new Decimal(0);
+        const profitFactor = profitFactorRaw.isFinite() ? profitFactorRaw : new Decimal(100);
         
         const avgRR = totalTrades > 0 ? closedTrades.reduce((sum, t) => sum.plus(new Decimal(t.totalRR || 0)), new Decimal(0)).dividedBy(totalTrades) : new Decimal(0);
         const avgWin = wonTrades.length > 0 ? totalProfit.dividedBy(wonTrades.length) : new Decimal(0);
@@ -756,7 +758,8 @@ export const calculator = {
 
         const totalTrades = wonTrades + lostTrades;
         const winRate = totalTrades > 0 ? (wonTrades / totalTrades) * 100 : 0;
-        const profitFactor = totalLossPnl.gt(0) ? totalWinPnl.div(totalLossPnl) : (totalWinPnl.gt(0) ? new Decimal(Infinity) : new Decimal(0));
+        const profitFactorRaw = totalLossPnl.gt(0) ? totalWinPnl.div(totalLossPnl) : (totalWinPnl.gt(0) ? new Decimal(100) : new Decimal(0));
+        const profitFactor = profitFactorRaw.isFinite() ? profitFactorRaw : new Decimal(100);
         const avgTrade = totalTrades > 0 ? totalNetProfit.div(totalTrades) : new Decimal(0);
 
         return {

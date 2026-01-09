@@ -40,7 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         return json({ data: allOrders });
     } catch (e: any) {
-        console.error(`Error fetching orders from Bitunix:`, e);
+        console.error(`Error fetching orders from Bitunix:`, e.message || e);
         return json({ error: e.message || 'Failed to fetch orders' }, { status: 500 });
     }
 };

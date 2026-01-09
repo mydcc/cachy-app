@@ -1172,9 +1172,7 @@
                                     on:drop={(e) => handleDrop(trade.id, e)}
                                 >
                                     {#if trade.screenshot}
-                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                        <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                        <button class="icon-btn" aria-label="{$_('journal.labels.viewScreenshot')}" on:click={() => window.open(trade.screenshot, '_blank')}>
                                             <!-- svelte-ignore svelte/no-at-html-tags -->
                                             {@html icons.camera || '📷'}
                                         </button>
@@ -1182,9 +1180,8 @@
                                             <img src={trade.screenshot} alt="Trade Screenshot" />
                                         </div>
                                     {:else}
-                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
                                         <label class="icon-btn cursor-pointer block w-full h-full" title="{$_('journal.labels.uploadScreenshot')}">
+                                            <span class="sr-only">{$_('journal.labels.uploadScreenshot')}</span>
                                             <!-- svelte-ignore svelte/no-at-html-tags -->
                                             {@html icons.plus || '+'}
                                             <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
@@ -1196,9 +1193,7 @@
                                     <JournalEntryTags tags={trade.tags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
                                 </td>
 
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
+                                <td class="notes-cell" title="{$_('journal.clickToExpand')}" role="button" tabindex="0" on:click={toggleNoteExpand} on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggleNoteExpand(e)}>{trade.notes || ''}</td>
                                 <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => app.deleteTrade(trade.id)}>
                                     <!-- svelte-ignore svelte/no-at-html-tags -->
                                     {@html icons.delete}</button></td>
