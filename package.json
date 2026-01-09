@@ -44,7 +44,6 @@
 	"type": "module",
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.4",
-		"@google/generative-ai": "^0.24.1",
 		"chart.js": "^4.5.1",
 		"crypto-js": "^4.2.0",
 		"decimal.js": "^10.4.3",
@@ -54,7 +53,6 @@
 		"marked-katex-extension": "^5.1.6",
 		"svelte-chartjs": "^3.1.5",
 		"svelte-i18n": "^3.7.4",
-		"technicalindicators": "^3.1.0",
-		"undici": "^7.18.2"
+		"technicalindicators": "^3.1.0"
 	}
 }

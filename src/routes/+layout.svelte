@@ -14,7 +14,10 @@
 
 	import { CONSTANTS } from '../lib/constants';
 
+    let mounted = false;
+
 	onMount(() => {
+        mounted = true;
 		// The server provides a theme from the cookie.
 		// On the client, we prioritize localStorage as it might be more up-to-date
 		// if the cookie failed to set for any reason.
@@ -43,31 +46,13 @@
 </script>
 
 <svelte:head>
-    <title>Cachy - Crypto Risk Calculator</title>
-    <meta name="description" content="Advanced Crypto Risk Management & Trading Journal" />
+	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="app-container">
-    <slot />
-
-    <!-- Global Modals -->
-    <JournalView />
-    <SettingsModal />
-    <!-- ConfirmationModal Removed as not found -->
-    <!-- ToastManager Removed as not found -->
-    <!-- LoadingSpinner Removed as not found -->
-
-    <!-- Jules Report Overlay -->
-    {#if showJulesOverlay}
-    <div class="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
-        <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center border border-[var(--accent-color)]">
-            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">🤖 Jules SDK</div>
-            <div class="text-lg whitespace-pre-wrap max-w-lg">{julesOverlayMessage}</div>
-        </div>
-    </div>
-    {/if}
+<div class="px-4">
+	<slot />
 </div>
 
-{#if !$settingsStore.disclaimerAccepted}
+{#if mounted && !$settingsStore.disclaimerAccepted}
     <DisclaimerModal />
 {/if}

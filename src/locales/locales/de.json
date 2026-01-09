@@ -306,15 +306,10 @@
             "lossStreak": "Häufigkeit von Verlustserien unterschiedlicher Länge.",
             "drawdownRecovery": "Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst.",
             "tagPerformance": "Gewinn/Verlust pro Strategie-Tag.",
-            "tagEvolution": "Kumulierter Gewinn der Top 5 Strategien im Zeitverlauf.",
-            "durationPnl": "Ergebnis und Winrate gruppiert nach Haltedauer der Trades.",
-            "confluenceMatrix": "Heatmap der Handelsergebnisse nach Wochentag und Uhrzeit.",
             "heatmap": "Kalenderansicht der täglichen PnL-Performance.",
             "forecast": "Simuliert 100 mögliche Zukünfte basierend auf deinen historischen Trades. Der Kegel zeigt den Bereich zwischen Worst-Case (10% Perzentil) und Best-Case (90% Perzentil).",
             "rollingWinRate": "Deine Winrate über die jeweils letzten 20 Trades. Zeigt, ob du gerade 'heiß' oder 'kalt' läufst.",
-            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel.",
-            "rollingSQN": "System Quality Number (SQN) über 20 Trades. > 2.0 ist gut, > 5.0 ist exzellent.",
-            "directionEvolution": "Kumulierter Gewinn getrennt nach Long und Short."
+            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel."
         },
         "labels": {
             "forecast": "Forecast",
@@ -322,11 +317,6 @@
             "leakage": "Leakage",
             "profitRetention": "Profit Retention",
             "feeImpact": "Fee Impact",
-            "noTag": "Kein Tag",
-            "grossProfit": "Brutto Gewinn",
-            "fees": "Gebühren",
-            "grossLoss": "Brutto Verlust",
-            "netResult": "Netto Ergebnis",
             "equity": "Equity",
             "pnl": "PnL ($)",
             "pnlY": "PnL",
@@ -353,15 +343,12 @@
             "realizedPnl": "Realisierter PnL ($)",
             "topAsset": "Top Asset",
             "mostProfitableStrategy": "Beste Strategie",
-            "durationAnalysis": "Dauer Analyse",
-            "confluence": "Konfluenz Matrix",
             "simBest": "90. Perzentil (Best)",
             "simMedian": "Median",
             "simWorst": "10. Perzentil (Worst)",
             "simRandom": "Sim #",
             "rollingWinRate": "Rolling Win Rate (20)",
             "rollingPF": "Rolling Profit Factor (20)",
-            "rollingSQN": "Rolling SQN (20)",
             "equityChange": "Equity Veränderung ($)"
         }
       }

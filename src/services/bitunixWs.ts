@@ -37,10 +37,6 @@ class BitunixWebSocketService {
 
     private awaitingPongPublic = false;
     private awaitingPongPrivate = false;
-
-    private connectionTimeoutPublic: any = null;
-    private connectionTimeoutPrivate: any = null;
-    private readonly CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
     
     private isAuthenticated = false;
 
@@ -93,16 +89,6 @@ class BitunixWebSocketService {
 
         try {
             this.wsPublic = new WebSocket(WS_PUBLIC_URL);
-
-            // Set connection timeout to detect hanging initial connections
-            if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
-            this.connectionTimeoutPublic = setTimeout(() => {
-                if (this.wsPublic && this.wsPublic.readyState !== WebSocket.OPEN) {
-                    console.warn('Bitunix Public WS Connection Timeout. Closing to trigger retry.');
-                    this.wsPublic.close();
-                }
-            }, this.CONNECTION_TIMEOUT_MS);
-
         } catch (e) {
             console.error('Failed to create Public WS:', e);
             this.scheduleReconnect('public');
@@ -110,8 +96,6 @@ class BitunixWebSocketService {
         }
 
         this.wsPublic.onopen = () => {
-            if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
-
             console.log('Bitunix Public WebSocket connected.');
             wsStatusStore.set('connected');
             this.isReconnectingPublic = false;
@@ -167,16 +151,6 @@ class BitunixWebSocketService {
 
         try {
             this.wsPrivate = new WebSocket(WS_PRIVATE_URL);
-
-            // Set connection timeout
-            if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
-            this.connectionTimeoutPrivate = setTimeout(() => {
-                if (this.wsPrivate && this.wsPrivate.readyState !== WebSocket.OPEN) {
-                    console.warn('Bitunix Private WS Connection Timeout. Closing to trigger retry.');
-                    this.wsPrivate.close();
-                }
-            }, this.CONNECTION_TIMEOUT_MS);
-
         } catch (e) {
             console.error('Failed to create Private WS:', e);
             this.scheduleReconnect('private');
@@ -184,8 +158,6 @@ class BitunixWebSocketService {
         }
 
         this.wsPrivate.onopen = () => {
-            if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
-
             console.log('Bitunix Private WebSocket connected.');
             this.isReconnectingPrivate = false;
             if (this.wsPrivate) {
