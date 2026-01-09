@@ -33,8 +33,19 @@
     $: indicatorSettings = $indicatorStore;
 
     // Calculate last candle properties for the mini-chart
-    $: lastCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
-    $: candleColor = lastCandle && Number(lastCandle.close) >= Number(lastCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
+    $: visualCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
+
+    // Override visual candle with real-time WS data if available and fresher
+    $: if (wsData?.kline) {
+        // Simple check: if WS data exists, use it as the "latest" tip of the spear
+        // We rely on handleRealTimeUpdate to manage history, but for immediate rendering we prefer wsData
+        visualCandle = {
+            ...wsData.kline,
+            time: wsData.kline.time || Date.now()
+        };
+    }
+
+    $: candleColor = visualCandle && Number(visualCandle.close) >= Number(visualCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
 
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
@@ -335,10 +346,10 @@
                 <div class="flex gap-3">
                     <!-- Left: Real-time Candle Visualization (Tall) -->
                     <div class="w-4 relative bg-[var(--bg-tertiary)]/20 rounded flex items-center justify-center" bind:clientHeight={pivotHeight} title="Real-time Candle">
-                        {#if lastCandle && pivotHeight > 0}
-                            {@const range = (Number(lastCandle.high) - Number(lastCandle.low)) || 1}
-                            {@const bodyHeight = Math.abs(Number(lastCandle.close) - Number(lastCandle.open))}
-                            {@const bodyTop = Number(lastCandle.high) - Math.max(Number(lastCandle.open), Number(lastCandle.close))}
+                        {#if visualCandle && pivotHeight > 0}
+                            {@const range = (Number(visualCandle.high) - Number(visualCandle.low)) || 1}
+                            {@const bodyHeight = Math.abs(Number(visualCandle.close) - Number(visualCandle.open))}
+                            {@const bodyTop = Number(visualCandle.high) - Math.max(Number(visualCandle.open), Number(visualCandle.close))}
 
                             <!-- Wick -->
                             <div class="absolute w-[1px] bg-current h-full opacity-60" style="color: {candleColor};"></div>
