@@ -42,6 +42,9 @@ export interface Settings {
     // Side Panel Settings
     enableSidePanel: boolean;
     sidePanelMode: 'chat' | 'notes';
+
+    // Legal
+    disclaimerAccepted: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -66,7 +69,8 @@ const defaultSettings: Settings = {
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
     enableSidePanel: false,
-    sidePanelMode: 'notes'
+    sidePanelMode: 'notes',
+    disclaimerAccepted: false
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -132,7 +136,8 @@ function loadSettingsFromLocalStorage(): Settings {
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
             enableSidePanel: settings.enableSidePanel ?? defaultSettings.enableSidePanel,
-            sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode
+            sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode,
+            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
         };
 
         return cleanSettings;

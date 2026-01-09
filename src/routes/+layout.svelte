@@ -2,6 +2,8 @@
 	import favicon from '../assets/favicon.svg';
 	import { tradeStore } from '../stores/tradeStore';
 	import { uiStore } from '../stores/uiStore';
+    import { settingsStore } from '../stores/settingsStore';
+    import DisclaimerModal from '../components/shared/DisclaimerModal.svelte';
 	import { onMount } from 'svelte';
 
 	// Removed Svelte 5 $props() and children destructuring
@@ -47,3 +49,7 @@
 <div class="px-4">
 	<slot />
 </div>
+
+{#if !$settingsStore.disclaimerAccepted}
+    <DisclaimerModal />
+{/if}
