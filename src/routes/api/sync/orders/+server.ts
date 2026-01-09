@@ -46,7 +46,7 @@ export const POST: RequestHandler = async ({ request }) => {
 };
 
 async function fetchAllPages(apiKey: string, apiSecret: string, path: string): Promise<any[]> {
-    const maxPages = 20;
+    const maxPages = 100; // Increased from 20 to support deeper history (approx 10k orders)
     let accumulated: any[] = [];
     let currentEndTime: number | undefined = undefined;
 
@@ -69,13 +69,16 @@ async function fetchAllPages(apiKey: string, apiSecret: string, path: string): P
         const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
         // Ensure we have a valid time field before parsing
-        if (timeField && !isNaN(parseInt(timeField, 10))) {
-            currentEndTime = parseInt(timeField, 10);
+        if (timeField !== undefined && timeField !== null) {
+            const parsedTime = parseInt(String(timeField), 10);
 
-            // Safety break: if the timestamp is 0 or very old/invalid, stop
-            if (currentEndTime <= 0) break;
+            if (!isNaN(parsedTime) && parsedTime > 0) {
+                currentEndTime = parsedTime;
+            } else {
+                break; // Invalid timestamp, stop paging
+            }
         } else {
-            break;
+            break; // No time field, stop paging
         }
     }
     return accumulated;
