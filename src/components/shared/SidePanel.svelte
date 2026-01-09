@@ -79,9 +79,14 @@
 
 {#if $settingsStore.enableSidePanel}
     <div
-        class="fixed left-0 top-0 h-full z-[60] flex transition-all duration-300 pointer-events-none"
-        class:w-80={isOpen}
-        class:w-10={!isOpen}
+        class="fixed z-[60] flex transition-all duration-300 pointer-events-none"
+        class:left-0={!isFloating}
+        class:top-0={!isFloating}
+        class:h-full={!isFloating}
+        class:bottom-4={isFloating}
+        class:left-4={isFloating}
+        class:items-end={isFloating}
+        class:flex-col-reverse={isFloating}
     >
         <!-- Toggle Strip (Visible when collapsed) -->
         <div
@@ -122,11 +127,26 @@
         <!-- Expanded Content Panel -->
         {#if isOpen}
             <div
-                transition:fly={{ x: -200, duration: 200 }}
-                class="flex-1 h-full bg-[var(--bg-primary)] shadow-2xl flex flex-col border-r border-[var(--border-color)] pointer-events-auto"
+                transition:fly={transitionParams}
+                class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden"
+                class:w-80={!isFloating}
+                class:h-full={!isFloating}
+                class:w-96={isFloating}
+                class:max-h-[38vh]={isFloating}
+                class:rounded-lg={isFloating}
+                class:mb-2={isFloating}
+                class:bg-[var(--bg-tertiary)]={isStandard}
+                class:backdrop-blur-md={isTransparent}
+                class:bg-black={isTransparent}
+                class:bg-opacity-50={isTransparent}
+                class:bg-[var(--bg-secondary)]={isFloating}
+                style={isTransparent ? 'background-color: rgba(0,0,0,0.6);' : ''}
             >
                 <!-- Header -->
-                <div class="h-12 border-b border-[var(--border-color)] flex items-center justify-between px-4 bg-[var(--bg-secondary)]">
+                <div class="h-12 border-b border-[var(--border-color)] flex items-center justify-between px-4"
+                     class:bg-[var(--bg-secondary)]={isStandard}
+                     class:bg-transparent={isTransparent}
+                >
                     <h3 class="font-bold text-[var(--text-primary)]">
                         {getPanelTitle($settingsStore.sidePanelMode)}
                     </h3>
