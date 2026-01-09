@@ -49,7 +49,6 @@ class BitunixWebSocketService {
     };
 
     private handleOffline = () => {
-        console.warn('Browser offline detected. Terminating WebSockets...');
         wsStatusStore.set('disconnected');
         this.cleanup('public');
         this.cleanup('private');
