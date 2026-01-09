@@ -94,41 +94,44 @@
     // Core Logic for Updating Data and Pivots
     function handleRealTimeUpdate(newKline: any) {
         if (!klinesHistory || klinesHistory.length === 0) return;
+        if (!newKline) return;
+
+        // Strict Validation: Ensure incoming data is valid
+        // Check timestamps and prices to prevent corruption (e.g. 0 values)
+        const time = newKline.time || 0;
+        const close = newKline.close ? new Decimal(newKline.close) : new Decimal(0);
+
+        if (time <= 0 || close.lte(0)) {
+            // Invalid data packet, ignore
+            return;
+        }
 
         const lastIdx = klinesHistory.length - 1;
         const lastHistoryCandle = klinesHistory[lastIdx];
-
         const lastTime = lastHistoryCandle.time || lastHistoryCandle.ts || 0;
-        const newTime = newKline.time || 0;
+
+        // Ensure we handle Decimal objects or strings/numbers correctly for history
+        // marketStore already sends Decimals for prices, but we double-check just in case.
+        const newCandleObj = {
+            open: newKline.open ? new Decimal(newKline.open) : new Decimal(0),
+            high: newKline.high ? new Decimal(newKline.high) : new Decimal(0),
+            low: newKline.low ? new Decimal(newKline.low) : new Decimal(0),
+            close: close,
+            volume: newKline.volume ? new Decimal(newKline.volume) : new Decimal(0),
+            time: time
+        };
 
         // Determine if newKline is the SAME candle as the last one in history, or a NEW one
-        if (newTime > lastTime && lastTime > 0) {
+        if (time > lastTime && lastTime > 0) {
             // New candle started!
-            const newCandleObj = {
-                open: newKline.open,
-                high: newKline.high,
-                low: newKline.low,
-                close: newKline.close,
-                volume: newKline.volume,
-                time: newTime
-            };
             klinesHistory = [...klinesHistory, newCandleObj];
             if (klinesHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
                 klinesHistory.shift();
             }
-        } else if (newTime === lastTime) {
+        } else if (time === lastTime) {
             // It's an update to the last candle.
-            const updatedCandle = {
-                ...lastHistoryCandle,
-                open: newKline.open,
-                high: newKline.high,
-                low: newKline.low,
-                close: newKline.close,
-                volume: newKline.volume,
-                time: newTime
-            };
             const newHistory = [...klinesHistory];
-            newHistory[lastIdx] = updatedCandle;
+            newHistory[lastIdx] = newCandleObj;
             klinesHistory = newHistory;
         }
 
