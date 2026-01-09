@@ -92,37 +92,53 @@
     function handleRealTimeUpdate(newKline: any) {
         if (!klinesHistory || klinesHistory.length === 0) return;
 
-        // Bitunix kline update contains o,h,l,c (Decimal objects from store)
-        // We need to check if this is an update to the last candle or a new one.
-        // Bitunix WS doesn't always send timestamp in kline payload (updateKline in marketStore doesn't store it?)
-        // Wait, marketStore updateKline doesn't store timestamp!
-        // We assume it's the LATEST candle.
-
-        // In a robust implementation, we'd check timestamps.
-        // However, for a simple update: we assume the WS stream corresponds to the "current" candle.
-        // So we update the last element of our history.
-
-        // Clone array to trigger reactivity? Or just modify.
         const lastIdx = klinesHistory.length - 1;
-        // Make sure we have Decimal values (marketStore provides Decimals)
+        const lastCandle = klinesHistory[lastIdx];
 
-        // Warning: The history from REST might have slightly different format than WS?
-        // REST: { open, high, low, close, volume, timestamp? }
-        // WS (marketStore): { open, high, low, close, volume } (Decimals)
+        // Ensure we have timestamps to compare
+        // Note: fetchBitunixKlines should provide 'time' or 'ts'. marketStore provides 'time'.
+        // If timestamps are missing, we default to updating the last candle (fallback).
+        const lastTime = lastCandle.time || lastCandle.ts || 0;
+        const newTime = newKline.time || 0;
 
-        // Let's perform a shallow merge/update of the last candle
-        const updatedCandle = {
-            ...klinesHistory[lastIdx], // Preserve timestamp if it exists
-            open: newKline.open,
-            high: newKline.high,
-            low: newKline.low,
-            close: newKline.close,
-            volume: newKline.volume
-        };
+        let newHistory = [...klinesHistory];
 
-        // Use array spread to guarantee reactivity in Svelte 4
-        const newHistory = [...klinesHistory];
-        newHistory[lastIdx] = updatedCandle;
+        if (newTime > lastTime && lastTime > 0) {
+            // New candle started! Push it.
+            const newCandleObj = {
+                open: newKline.open,
+                high: newKline.high,
+                low: newKline.low,
+                close: newKline.close,
+                volume: newKline.volume,
+                time: newTime
+            };
+            newHistory.push(newCandleObj);
+
+            // Optionally remove oldest candle to keep history size constant (performance)
+            if (newHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
+                newHistory.shift();
+            }
+        } else {
+            // Update existing candle (same time or no time info)
+            // If newTime < lastTime, we ignore it (stale data), unless lastTime is 0.
+            if (newTime > 0 && newTime < lastTime) {
+                return; // Ignore stale data
+            }
+
+            const updatedCandle = {
+                ...lastCandle,
+                open: newKline.open,
+                high: newKline.high,
+                low: newKline.low,
+                close: newKline.close,
+                volume: newKline.volume,
+                // Preserve original time if newKline doesn't have it, or update it
+                time: newTime || lastTime
+            };
+            newHistory[lastIdx] = updatedCandle;
+        }
+
         klinesHistory = newHistory;
 
         // Re-calculate technicals with settings

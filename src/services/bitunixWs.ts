@@ -429,7 +429,8 @@ class BitunixWebSocketService {
                         h: data.h,
                         l: data.l,
                         c: data.c,
-                        b: data.b || data.v // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                        b: data.b || data.v, // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                        t: data.t || Date.now() // data.t is usually the kline start time
                     });
                 }
             }
