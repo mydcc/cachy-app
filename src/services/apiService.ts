@@ -7,6 +7,8 @@ export interface Kline {
     high: Decimal;
     low: Decimal;
     close: Decimal;
+    time?: number; // Optional timestamp
+    ts?: number;   // Fallback timestamp
 }
 
 export interface Ticker24h {
@@ -99,11 +101,12 @@ export const apiService = {
             }
 
             // Map the response data to the required Kline interface
-            return res.map((kline: { open: string, high: string, low: string, close: string }) => ({
+            return res.map((kline: { open: string, high: string, low: string, close: string, time: number, ts: number }) => ({
                 open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
                 close: new Decimal(kline.close),
+                time: kline.time || kline.ts // Backend usually returns 'time' or 'ts'
             }));
         } catch (e) {
             console.error(`fetchBitunixKlines error for ${symbol}:`, e);
