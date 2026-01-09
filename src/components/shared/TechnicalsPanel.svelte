@@ -31,6 +31,14 @@
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
 
+    // Calculate last candle properties for the mini-chart
+    $: lastCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
+    $: candleColor = lastCandle && Number(lastCandle.close) >= Number(lastCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
+    $: candleHeight = lastCandle ? Math.abs(Number(lastCandle.close) - Number(lastCandle.open)) : 0;
+    $: candleWickHeight = lastCandle ? Number(lastCandle.high) - Number(lastCandle.low) : 0;
+    // Normalize heights for visualization (just scaling factor, max height e.g. 20px)
+    // This is tricky without relative context. We'll use a fixed representation style.
+
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
         ? `Pivots (${indicatorSettings.pivots.type.charAt(0).toUpperCase() + indicatorSettings.pivots.type.slice(1)})`
@@ -109,6 +117,9 @@
             close: newKline.close,
             volume: newKline.volume
         };
+
+        // Force reactivity update for Svelte 4
+        klinesHistory = klinesHistory;
 
         // Re-calculate technicals with settings
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
@@ -299,8 +310,23 @@
             {/if}
 
             {#if data?.summary}
-                <div class="flex items-center gap-2 text-sm font-bold">
-                    <span class={getActionColor(data.summary.action)}>{data.summary.action.toUpperCase()}</span>
+                <div class="flex items-center gap-3">
+                    <!-- Mini Candle Visualization -->
+                    {#if lastCandle}
+                        <div class="flex items-center justify-center h-6 w-3 relative" title="Real-time Candle">
+                             <!-- Wick -->
+                             <div class="absolute w-[1px] bg-current h-full" style="color: {candleColor}; height: 100%; top: 0;"></div>
+                             <!-- Body -->
+                             <div class="absolute w-1" style="background-color: {candleColor};
+                                  height: {Math.max(2, (Math.abs(Number(lastCandle.close) - Number(lastCandle.open)) / (Number(lastCandle.high) - Number(lastCandle.low) || 1)) * 24)}px;
+                                  top: {(Number(lastCandle.high) - Math.max(Number(lastCandle.open), Number(lastCandle.close))) / (Number(lastCandle.high) - Number(lastCandle.low) || 1) * 24}px;">
+                             </div>
+                        </div>
+                    {/if}
+
+                    <div class="flex items-center gap-2 text-sm font-bold">
+                        <span class={getActionColor(data.summary.action)}>{data.summary.action.toUpperCase()}</span>
+                    </div>
                 </div>
             {/if}
         </div>
