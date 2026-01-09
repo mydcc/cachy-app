@@ -147,13 +147,44 @@
         return new Decimal(val).toDecimalPlaces(4).toString();
     }
 
+    const availableTimeframes = ['1m', '5m', '15m', '1h', '4h', '1d'];
+
     function toggleTimeframePopup() {
         showTimeframePopup = !showTimeframePopup;
     }
 
-    function setTimeframe(tf: string) {
+    function applyTimeframe(tf: string) {
         updateTradeStore(s => ({ ...s, analysisTimeframe: tf }));
+    }
+
+    function setTimeframe(tf: string) {
+        applyTimeframe(tf);
         showTimeframePopup = false;
+    }
+
+    function handleWheel(event: WheelEvent) {
+        if (!showPanel) return;
+        event.preventDefault();
+
+        // Current timeframe might be custom, check if it's in our standard list
+        let currentIndex = availableTimeframes.indexOf(timeframe);
+
+        // If custom/unknown, default to matching nearest or just start from 1h (index 3) logic?
+        // Or simply do nothing if custom? Let's default to index 0 if not found for safety, or better:
+        if (currentIndex === -1) currentIndex = 3; // Default to 1h if unknown
+
+        let nextIndex;
+        // deltaY < 0 is scrolling UP (away from user) -> Increase Timeframe (Next in list)
+        // deltaY > 0 is scrolling DOWN (towards user) -> Decrease Timeframe (Prev in list)
+        if (event.deltaY < 0) {
+            nextIndex = Math.min(currentIndex + 1, availableTimeframes.length - 1);
+        } else {
+            nextIndex = Math.max(currentIndex - 1, 0);
+        }
+
+        if (nextIndex !== currentIndex) {
+            applyTimeframe(availableTimeframes[nextIndex]);
+        }
     }
 
     function handleCustomTimeframeSubmit() {
@@ -202,7 +233,14 @@
     <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative">
 
         <!-- Header -->
-        <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
+        <div
+            class="flex justify-between items-center pb-2 timeframe-selector-container relative"
+            on:mouseenter={() => showTimeframePopup = true}
+            on:mouseleave={() => showTimeframePopup = false}
+            on:wheel={handleWheel}
+            role="group"
+            aria-label="Timeframe Selector"
+        >
             <div class="flex items-center gap-2">
                 <button
                     type="button"
