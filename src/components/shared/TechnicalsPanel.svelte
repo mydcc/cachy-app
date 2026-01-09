@@ -32,28 +32,50 @@
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
 
-    // --- Candle Logic ---
-    // prevCandle: The COMPLETED candle used for calculation basis (usually history[last] or history[last-1] depending on state)
-    // currCandle: The LIVE candle (`visualCandle` from WS)
+    // --- View Logic ---
+    type ViewMode = 'dual' | 'live' | 'context';
+    let viewMode: ViewMode = 'dual';
 
-    // Helper to get the last candle from history
-    $: lastHistoryCandle = klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null;
+    function cycleViewMode() {
+        if (viewMode === 'dual') viewMode = 'live';
+        else if (viewMode === 'live') viewMode = 'context';
+        else viewMode = 'dual';
+    }
 
-    // Determine Current Candle (Live)
-    // Use WebSocket data if available, otherwise fall back to the last known history candle
-    $: currCandle = wsData?.kline
+    // --- Data Logic (Refactored for Robustness) ---
+
+    // 1. Pivot Basis Candle (Context)
+    // Always the LAST COMPLETED candle from history.
+    // If the history contains the current LIVE candle (incomplete), we must take length-2.
+    // We detect if history[last] is live by comparing it to wsData time.
+    $: isHistoryLastLive = wsData?.kline && klinesHistory.length > 0 &&
+                           (wsData.kline.time === (klinesHistory[klinesHistory.length - 1].time || klinesHistory[klinesHistory.length - 1].ts));
+
+    $: pivotBasisCandle = klinesHistory.length > 0
+        ? (isHistoryLastLive && klinesHistory.length > 1 ? klinesHistory[klinesHistory.length - 2] : klinesHistory[klinesHistory.length - 1])
+        : null;
+
+    // 2. Live Candle (Action)
+    // Always prefers WebSocket data. Falls back to history[last] if no WS data.
+    $: liveCandle = wsData?.kline
         ? { ...wsData.kline, time: wsData.kline.time || Date.now() }
-        : lastHistoryCandle;
+        : (klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null);
 
-    // Determine Previous Candle (Context)
-    // Logic: If Current Candle matches the Last History Candle (by time), then "Previous" is the one BEFORE Last History.
-    //        If Current Candle is NEWER than Last History, then "Previous" IS the Last History Candle.
-    $: prevCandle = (currCandle && lastHistoryCandle && currCandle.time === (lastHistoryCandle.time || lastHistoryCandle.ts))
-        ? (klinesHistory.length > 1 ? klinesHistory[klinesHistory.length - 2] : null)
-        : lastHistoryCandle;
+    // 3. Technicals Calculation
+    // MUST rely on pivotBasisCandle to ensure Pivots are stable.
+    // We only recalculate if pivotBasisCandle changes (new period started).
+    $: if (pivotBasisCandle && showPanel && indicatorSettings) {
+        // We pass a sliced history ending at pivotBasisCandle to the service
+        // This simulates "the state at the end of the previous period"
+        const basisIndex = klinesHistory.indexOf(pivotBasisCandle);
+        if (basisIndex >= 0) {
+            const stableHistory = klinesHistory.slice(0, basisIndex + 1);
+            data = technicalsService.calculateTechnicals(stableHistory, indicatorSettings);
+        }
+    }
 
-    $: prevColor = prevCandle && Number(prevCandle.close) >= Number(prevCandle.open) ? 'var(--text-secondary)' : 'var(--danger-color)'; // Grey/Red for history context
-    $: currColor = currCandle && Number(currCandle.close) >= Number(currCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
+    $: prevColor = pivotBasisCandle && Number(pivotBasisCandle.close) >= Number(pivotBasisCandle.open) ? 'var(--text-tertiary)' : 'var(--text-secondary)'; // Muted gray/darker for context
+    $: currColor = liveCandle && Number(liveCandle.close) >= Number(liveCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
 
     // Derived display label for Pivots
     $: pivotLabel = indicatorSettings?.pivots?.type
@@ -352,60 +374,68 @@
             <!-- Pivots -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                 <div class="flex gap-3">
-                    <!-- Left: Candles Visualization (Dual) -->
-                    <div class="flex gap-1 bg-[var(--bg-tertiary)]/20 rounded p-1" bind:clientHeight={pivotHeight} style="min-width: 40px;">
+                    <!-- Left: Candles Visualization -->
+                    <div class="flex gap-1 bg-[var(--bg-tertiary)]/20 rounded p-1 cursor-pointer hover:bg-[var(--bg-tertiary)]/40 transition-colors"
+                         bind:clientHeight={pivotHeight}
+                         style="min-width: 48px;"
+                         on:click={cycleViewMode}
+                         on:keypress={cycleViewMode}
+                         role="button"
+                         tabindex="0"
+                         title="Click to switch view: Dual / Live / Context">
 
-                        {#if prevCandle && currCandle && pivotHeight > 0 && data?.pivots?.classic}
+                        {#if pivotBasisCandle && liveCandle && pivotHeight > 0 && data?.pivots?.classic}
                             <!--
-                                Scaling Logic:
-                                The user wants the candles to be relative to the "Pivot Section".
-                                The Pivot Section is defined by the range from S3 to R3 (or S1-R1 if that's all we have).
-                                We must include the candles themselves in the range so they don't clip if they go beyond pivots.
+                                Robust Scaling Logic:
+                                Define Viewport based on Pivots (S3 to R3) to ensure context.
+                                Expand viewport if candles go outside.
                             -->
                             {@const r3 = data.pivots.classic.r3 || -Infinity}
                             {@const s3 = data.pivots.classic.s3 || Infinity}
 
-                            {@const maxH = Math.max(Number(prevCandle.high), Number(currCandle.high), r3)}
-                            {@const minL = Math.min(Number(prevCandle.low), Number(currCandle.low), s3)}
+                            {@const maxH = Math.max(Number(pivotBasisCandle.high), Number(liveCandle.high), r3)}
+                            {@const minL = Math.min(Number(pivotBasisCandle.low), Number(liveCandle.low), s3)}
                             {@const totalRange = (maxH - minL) || 1}
 
-                            <!-- Pre-calc Previous Candle Metrics -->
-                            {@const pBodyH = Math.abs(Number(prevCandle.close) - Number(prevCandle.open))}
-                            {@const pTopOffset = (maxH - Number(prevCandle.high)) / totalRange * pivotHeight}
-                            {@const pHeight = (Number(prevCandle.high) - Number(prevCandle.low)) / totalRange * pivotHeight}
-                            {@const pBodyTopRelative = (Number(prevCandle.high) - Math.max(Number(prevCandle.open), Number(prevCandle.close))) / totalRange * pivotHeight}
+                            <!-- Previous Candle (Context) -->
+                            {#if viewMode === 'dual' || viewMode === 'context'}
+                                {@const pBodyH = Math.abs(Number(pivotBasisCandle.close) - Number(pivotBasisCandle.open))}
+                                {@const pTopOffset = (maxH - Number(pivotBasisCandle.high)) / totalRange * pivotHeight}
+                                {@const pHeight = (Number(pivotBasisCandle.high) - Number(pivotBasisCandle.low)) / totalRange * pivotHeight}
+                                {@const pBodyTopRelative = (Number(pivotBasisCandle.high) - Math.max(Number(pivotBasisCandle.open), Number(pivotBasisCandle.close))) / totalRange * pivotHeight}
 
-                            <!-- Pre-calc Current Candle Metrics -->
-                            {@const cBodyH = Math.abs(Number(currCandle.close) - Number(currCandle.open))}
-                            {@const cTopOffset = (maxH - Number(currCandle.high)) / totalRange * pivotHeight}
-                            {@const cHeight = (Number(currCandle.high) - Number(currCandle.low)) / totalRange * pivotHeight}
-                            {@const cBodyTopRelative = (Number(currCandle.high) - Math.max(Number(currCandle.open), Number(currCandle.close))) / totalRange * pivotHeight}
-
-                            <!-- Previous Candle (Left, Context) -->
-                            <div class="w-4 relative h-full flex justify-center" title="Previous Candle (Basis)">
-                                <div class="absolute w-full" style="top: {pTopOffset}px; height: {pHeight}px;">
-                                     <!-- Wick -->
-                                     <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2 opacity-40" style="color: {prevColor}; height: 100%;"></div>
-                                     <!-- Body -->
-                                     <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px] opacity-60" style="background-color: {prevColor};
-                                          height: {Math.max(2, (pBodyH / totalRange) * pivotHeight)}px;
-                                          top: {pBodyTopRelative}px;">
-                                     </div>
+                                <div class="w-4 relative h-full flex justify-center {viewMode === 'context' ? 'mx-auto' : ''}" title="Pivot Basis (Previous)">
+                                    <div class="absolute w-full" style="top: {pTopOffset}px; height: {pHeight}px;">
+                                         <!-- Wick -->
+                                         <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2 opacity-40" style="color: {prevColor}; height: 100%;"></div>
+                                         <!-- Body -->
+                                         <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px] opacity-60" style="background-color: {prevColor};
+                                              height: {Math.max(1, (pBodyH / totalRange) * pivotHeight)}px;
+                                              top: {pBodyTopRelative}px;">
+                                         </div>
+                                    </div>
                                 </div>
-                            </div>
+                            {/if}
 
-                            <!-- Current Candle (Right, Live) -->
-                            <div class="w-4 relative h-full flex justify-center" title="Current Live Candle">
-                                <div class="absolute w-full" style="top: {cTopOffset}px; height: {cHeight}px;">
-                                     <!-- Wick -->
-                                     <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2" style="color: {currColor}; height: 100%;"></div>
-                                     <!-- Body -->
-                                     <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px]" style="background-color: {currColor};
-                                          height: {Math.max(2, (cBodyH / totalRange) * pivotHeight)}px;
-                                          top: {cBodyTopRelative}px;">
-                                     </div>
+                            <!-- Current Candle (Live) -->
+                            {#if viewMode === 'dual' || viewMode === 'live'}
+                                {@const cBodyH = Math.abs(Number(liveCandle.close) - Number(liveCandle.open))}
+                                {@const cTopOffset = (maxH - Number(liveCandle.high)) / totalRange * pivotHeight}
+                                {@const cHeight = (Number(liveCandle.high) - Number(liveCandle.low)) / totalRange * pivotHeight}
+                                {@const cBodyTopRelative = (Number(liveCandle.high) - Math.max(Number(liveCandle.open), Number(liveCandle.close))) / totalRange * pivotHeight}
+
+                                <div class="w-4 relative h-full flex justify-center {viewMode === 'live' ? 'mx-auto' : ''}" title="Live Price Action">
+                                    <div class="absolute w-full" style="top: {cTopOffset}px; height: {cHeight}px;">
+                                         <!-- Wick -->
+                                         <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2" style="color: {currColor}; height: 100%;"></div>
+                                         <!-- Body -->
+                                         <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px]" style="background-color: {currColor};
+                                              height: {Math.max(1, (cBodyH / totalRange) * pivotHeight)}px;
+                                              top: {cBodyTopRelative}px;">
+                                         </div>
+                                    </div>
                                 </div>
-                            </div>
+                            {/if}
                         {/if}
                     </div>
 
