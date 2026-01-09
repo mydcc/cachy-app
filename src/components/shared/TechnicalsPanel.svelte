@@ -118,6 +118,9 @@
             volume: newKline.volume
         };
 
+        // Force reactivity update for Svelte 4
+        klinesHistory = klinesHistory;
+
         // Re-calculate technicals with settings
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
     }
