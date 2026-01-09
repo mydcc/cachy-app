@@ -9,14 +9,43 @@ export type { Kline, TechnicalsData, IndicatorResult };
 export const technicalsService = {
     calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): TechnicalsData {
         // 1. Normalize Data to strict Kline format with Decimals
-        const klines: Kline[] = rawKlines.map(k => ({
-            open: new Decimal(k.open?.toString() || 0),
-            high: new Decimal(k.high?.toString() || 0),
-            low: new Decimal(k.low?.toString() || 0),
-            close: new Decimal(k.close?.toString() || 0),
-            volume: new Decimal(k.volume?.toString() || 0),
-            time: Number(k.time || k.ts || 0)
-        }));
+        // Robust handling: Accept string, number, or existing Decimal objects.
+        // Also implements "Zero-Order Hold" via carry-forward if a value is effectively 0 or missing,
+        // to prevent indicator crashes (though main validation should happen upstream).
+
+        const klines: Kline[] = [];
+        let prevClose = new Decimal(0);
+
+        rawKlines.forEach((k, index) => {
+            const time = Number(k.time || k.ts || 0);
+
+            // Helper to safe convert
+            const toDec = (val: any, fallback: Decimal): Decimal => {
+                if (val instanceof Decimal) return val;
+                if (val === undefined || val === null || val === '') return fallback;
+                const d = new Decimal(val);
+                return d.isFinite() ? d : fallback;
+            };
+
+            // Use previous close as fallback if current is bad (basic gap filling)
+            // Ideally upstream handles this, but this is a safety net.
+            const close = toDec(k.close, prevClose);
+            // If even prevClose is 0 (start of array), try open or 0.
+            const safeClose = close.isZero() && !prevClose.isZero() ? prevClose : close;
+
+            const open = toDec(k.open, safeClose);
+            const high = toDec(k.high, safeClose);
+            const low = toDec(k.low, safeClose);
+            const volume = toDec(k.volume, new Decimal(0));
+
+            // Only add valid candles
+            if (!safeClose.isZero()) {
+                 klines.push({
+                    open, high, low, close: safeClose, volume, time
+                });
+                prevClose = safeClose;
+            }
+        });
 
         if (klines.length < 2) {
             return this.getEmptyData();
@@ -279,8 +308,14 @@ export const technicalsService = {
 
         if (klines.length < 2) return emptyResult;
 
-        // "Previous Completed Candle" is at index -2
+        // "Previous Completed Candle" is typically at index -2 if index -1 is the live candle.
+        // We assume the caller sends [..., Completed, Live].
+        // Ideally we would check timestamps against current time, but simpler is to trust structure.
         const prev = klines[klines.length - 2];
+
+        // Safeguard: If previous candle has 0 values (should be filtered out by normalize, but double check)
+        if (prev.close.isZero()) return emptyResult;
+
         const high = prev.high;
         const low = prev.low;
         const close = prev.close;
