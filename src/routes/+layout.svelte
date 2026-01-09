@@ -4,6 +4,8 @@
 	import { uiStore } from '../stores/uiStore';
     import { settingsStore } from '../stores/settingsStore';
     import DisclaimerModal from '../components/shared/DisclaimerModal.svelte';
+    import JournalView from '../components/shared/JournalView.svelte';
+    import SettingsModal from '../components/settings/SettingsModal.svelte';
 	import { onMount } from 'svelte';
 
 	// Removed Svelte 5 $props() and children destructuring
@@ -13,6 +15,9 @@
 	import '../app.css';
 
 	import { CONSTANTS } from '../lib/constants';
+
+    let showJulesOverlay = false;
+    let julesOverlayMessage = '';
 
 	onMount(() => {
 		// The server provides a theme from the cookie.
