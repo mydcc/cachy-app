@@ -31,22 +31,55 @@ export function parseDecimal(value: string | number | null | undefined): Decimal
     return new Decimal(stringValue);
 }
 
-export function formatDynamicDecimal(value: Decimal | string | number | null | undefined, maxPlaces = 4): string {
+export function formatDynamicDecimal(value: Decimal | string | number | null | undefined, maxPlaces = 4, minPlaces = 0): string {
     if (value === null || value === undefined) return '-';
 
     const dec = new Decimal(value);
     if (dec.isNaN()) return '-';
 
-    // Format to a fixed number of decimal places, then remove trailing zeros
-    const formatted = dec.toFixed(maxPlaces);
+    // Format to a fixed number of decimal places
+    let formatted = dec.toFixed(maxPlaces);
 
-    // If it's a whole number after formatting, return it without decimals.
-    if (new Decimal(formatted).isInteger()) {
-        return new Decimal(formatted).toFixed(0);
+    // If minPlaces is 0, we can use the original logic (stripping all trailing zeros)
+    // but we must be careful not to strip significant zeros if we want to respect maxPlaces.
+    // Actually, the original logic was aggressive.
+
+    if (minPlaces === 0) {
+         // If it's a whole number after formatting, return it without decimals.
+        if (new Decimal(formatted).isInteger()) {
+            return new Decimal(formatted).toFixed(0);
+        }
+        // Remove trailing zeros
+        return formatted.replace(/0+$/, '').replace(/\.$/, '');
     }
 
-    // Otherwise, remove only the trailing zeros and the decimal point if it's the last char
-    return formatted.replace(/0+$/, '').replace(/\.$/, '');
+    // If minPlaces > 0, we need to ensure we keep at least that many decimals.
+    // First, strip excessive zeros beyond minPlaces
+    // e.g. max=4, min=2. value=2.5000 -> 2.50. value=2.1234 -> 2.1234.
+
+    // We can use a regex to strip zeros but stop at minPlaces.
+    // Alternatively, simple loop or string manipulation.
+
+    // Helper: find decimal point
+    const decimalIndex = formatted.indexOf('.');
+    if (decimalIndex === -1) {
+        // No decimals, add minPlaces
+        if (minPlaces > 0) return formatted + '.' + '0'.repeat(minPlaces);
+        return formatted;
+    }
+
+    // We have decimals.
+    // Strip trailing zeros, but check length.
+    while (formatted.endsWith('0')) {
+        const decimals = formatted.length - decimalIndex - 1;
+        if (decimals <= minPlaces) break;
+        formatted = formatted.slice(0, -1);
+    }
+
+    // Remove trailing dot if we stripped all zeros and minPlaces was 0 (covered above via loop check)
+    if (formatted.endsWith('.')) formatted = formatted.slice(0, -1);
+
+    return formatted;
 }
 
 /**
