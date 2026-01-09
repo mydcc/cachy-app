@@ -65,7 +65,9 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             'timestamp': timestamp,
             'nonce': nonce,
             'sign': signature,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+             // Add User-Agent to avoid potential blocking
+            'User-Agent': 'CachyApp/1.0'
         }
     });
 
@@ -81,7 +83,6 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
     }
 
     // Normalized Position Object
-    // Bitunix response structure needs to be verified. Assuming data.data is the list.
     const rawPositions = Array.isArray(data.data) ? data.data : [];
 
     return rawPositions.map((p: any) => {
@@ -104,12 +105,14 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             size: parseFloat(p.qty || p.positionAmount || p.holdVolume || '0'),
             // entryPrice: "avgOpenPrice" as per docs.
             entryPrice: parseFloat(p.avgOpenPrice || p.openAvgPrice || p.avgPrice || '0'),
+            // Added liquidationPrice as per user stacktrace hint (was missing in my read?)
+            liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
             markPrice: parseFloat(p.markPrice || '0'),
             // unrealizedPnL: "unrealizedPNL" as per docs.
             unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
             leverage: parseFloat(p.leverage || '0'),
             // marginType: "ISOLATION" | "CROSS" as per docs.
-            marginType: (p.marginMode === 'CROSS' || p.marginMode === 1) ? 'cross' : 'isolated'
+            marginType: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated'
         };
     }).filter((p: any) => p.size !== 0);
 }
@@ -143,6 +146,7 @@ async function fetchBinancePositions(apiKey: string, apiSecret: string): Promise
         size: Math.abs(parseFloat(p.positionAmt)),
         entryPrice: parseFloat(p.entryPrice),
         markPrice: parseFloat(p.markPrice),
+        liquidationPrice: parseFloat(p.liquidationPrice), // Ensure consistency
         unrealizedPnL: parseFloat(p.unRealizedProfit),
         leverage: parseFloat(p.leverage),
         marginType: p.marginType
