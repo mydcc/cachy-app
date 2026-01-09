@@ -772,10 +772,11 @@ export const calculator = {
 
         trades.forEach(t => {
             if (t.status === 'Open') return;
-            const tags = t.tags || [];
+            let tags = t.tags || [];
 
-            // If no tags, maybe bucket as 'No Tag'?
-            // if (tags.length === 0) tags.push('Untagged');
+            if (tags.length === 0) {
+                tags = ['No Tag'];
+            }
 
             tags.forEach(tag => {
                 if (!tagStats[tag]) tagStats[tag] = { win: 0, loss: 0, pnl: new Decimal(0), count: 0 };
@@ -1020,6 +1021,14 @@ export const calculator = {
             ? totalFees.div(totalGrossProfit).times(100).toNumber()
             : 0;
 
+        // Waterfall Data
+        const waterfallData = {
+            grossProfit: totalGrossProfit.toNumber(),
+            fees: totalFees.negated().toNumber(), // Negative for visualization
+            grossLoss: totalGrossLoss.negated().toNumber(), // Negative for visualization
+            netResult: totalNetProfit.toNumber()
+        };
+
         // 2. Worst Tags (Strategy Leakage)
         const tagStats = calculator.getTagData(closedTrades);
         const worstTags = tagStats.labels
@@ -1032,24 +1041,24 @@ export const calculator = {
         const timingStats = calculator.getTimingData(closedTrades);
 
         // Worst Hours (by Gross Loss)
-        // timingStats.hourlyGrossLoss contains NEGATIVE numbers (PnL values for losses)
-        // We want to find the hours with the most negative PnL.
+        // timingStats.hourlyGrossLoss contains positive numbers representing magnitude of loss
         const worstHours = timingStats.hourlyGrossLoss
-            .map((loss, hour) => ({ hour, loss: Math.abs(loss) })) // Convert to absolute for sorting magnitude
-            .filter(h => h.loss > 0) // Only keep non-zero losses
-            .sort((a, b) => b.loss - a.loss) // Largest loss first
-            .slice(0, 5);
+            .map((loss, hour) => ({ hour, loss }))
+            .sort((a, b) => b.loss - a.loss) // Descending (largest loss first)
+            .slice(0, 5)
+            .filter(h => h.loss > 0);
 
         // Worst Days
         const worstDays = timingStats.dayLabels
-            .map((day, i) => ({ day, loss: Math.abs(timingStats.dayOfWeekGrossLoss[i]) }))
-            .filter(d => d.loss > 0)
+            .map((day, i) => ({ day, loss: timingStats.dayOfWeekGrossLoss[i] }))
             .sort((a, b) => b.loss - a.loss)
-            .slice(0, 3);
+            .slice(0, 3)
+            .filter(d => d.loss > 0);
 
         return {
             profitRetention,
             feeImpact,
+            waterfallData,
             totalFees: totalFees.toNumber(),
             worstTags,
             worstHours,

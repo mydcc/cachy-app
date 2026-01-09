@@ -21,7 +21,13 @@ export interface TechnicalsData {
             s2: number;
             s3: number;
         };
-    } | null;
+    };
+    pivotBasis?: {
+        high: number;
+        low: number;
+        close: number;
+        open: number;
+    };
     summary: {
         buy: number;
         sell: number;
@@ -59,173 +65,157 @@ export const technicalsService = {
         const oscillators: IndicatorResult[] = [];
 
         // RSI
-        if (settings?.rsi?.enabled !== false) {
-            const rsiLen = settings?.rsi?.length || 14;
-            const rsiSource = getSource(settings?.rsi?.source || 'close');
+        const rsiLen = settings?.rsi?.length || 14;
+        const rsiSource = getSource(settings?.rsi?.source || 'close');
 
-            const rsiValues = RSI.calculate({ values: rsiSource, period: rsiLen });
-            const rsi = rsiValues[rsiValues.length - 1];
-            oscillators.push({
-                name: `RSI (${rsiLen})`,
-                value: rsi,
-                action: this.getRsiAction(rsi)
-            });
-        }
+        const rsiValues = RSI.calculate({ values: rsiSource, period: rsiLen });
+        const rsi = rsiValues[rsiValues.length - 1];
+        oscillators.push({
+            name: `RSI (${rsiLen})`,
+            value: rsi,
+            action: this.getRsiAction(rsi)
+        });
 
         // Stochastic
-        if (settings?.stochastic?.enabled !== false) {
-            const stochK = settings?.stochastic?.kPeriod || 14;
-            const stochD = settings?.stochastic?.dPeriod || 3;
+        const stochK = settings?.stochastic?.kPeriod || 14;
+        const stochD = settings?.stochastic?.dPeriod || 3;
 
-            const stochValues = Stochastic.calculate({
-                high: highs,
-                low: lows,
-                close: closes,
-                period: stochK,
-                signalPeriod: stochD
-            });
-            const stoch = stochValues[stochValues.length - 1];
-            let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (stoch) {
-                if (stoch.k < 20 && stoch.d < 20 && stoch.k > stoch.d) stochAction = 'Buy';
-                else if (stoch.k > 80 && stoch.d > 80 && stoch.k < stoch.d) stochAction = 'Sell';
-            }
-            oscillators.push({
-                name: `Stoch (${stochK}, ${stochD}, 3)`,
-                value: stoch ? stoch.k : 0,
-                action: stochAction
-            });
+        const stochValues = Stochastic.calculate({
+            high: highs,
+            low: lows,
+            close: closes,
+            period: stochK,
+            signalPeriod: stochD
+        });
+        const stoch = stochValues[stochValues.length - 1];
+        let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (stoch) {
+             if (stoch.k < 20 && stoch.d < 20 && stoch.k > stoch.d) stochAction = 'Buy';
+             else if (stoch.k > 80 && stoch.d > 80 && stoch.k < stoch.d) stochAction = 'Sell';
         }
+        oscillators.push({
+            name: `Stoch %K (${stochK}, ${stochD}, 3)`,
+            value: stoch ? stoch.k : 0,
+            action: stochAction
+        });
 
         // CCI (Commodity Channel Index)
-        if (settings?.cci?.enabled !== false) {
-            const cciLen = settings?.cci?.length || 20;
-            const cciThreshold = settings?.cci?.threshold || 100;
-            const cciValues = CCI.calculate({ high: highs, low: lows, close: closes, period: cciLen });
-            const cci = cciValues[cciValues.length - 1];
-            let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (cci !== undefined) {
-                if (cci < -cciThreshold) cciAction = 'Buy';
-                else if (cci > cciThreshold) cciAction = 'Sell';
-            }
-            oscillators.push({
-                name: `CCI (${cciLen})`,
-                value: cci !== undefined ? cci : 0,
-                action: cciAction
-            });
+        const cciLen = settings?.cci?.length || 20;
+        const cciThreshold = settings?.cci?.threshold || 100;
+        const cciValues = CCI.calculate({ high: highs, low: lows, close: closes, period: cciLen });
+        const cci = cciValues[cciValues.length - 1];
+        let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (cci !== undefined) {
+            if (cci < -cciThreshold) cciAction = 'Buy';
+            else if (cci > cciThreshold) cciAction = 'Sell';
         }
+        oscillators.push({
+            name: `CCI (${cciLen})`,
+            value: cci !== undefined ? cci : 0,
+            action: cciAction
+        });
 
         // ADX (Average Directional Index)
-        if (settings?.adx?.enabled !== false) {
-            const adxLen = settings?.adx?.length || 14;
-            const adxThreshold = settings?.adx?.threshold || 25;
-            const adxValues = ADX.calculate({ high: highs, low: lows, close: closes, period: adxLen });
-            const adx = adxValues[adxValues.length - 1];
-            let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (adx) {
-                // ADX indicates trend strength. Used with DI+ / DI- for direction.
-                // Buy: ADX > 25 && DI+ > DI-
-                // Sell: ADX > 25 && DI- > DI+
-                if (adx.adx > adxThreshold) {
-                    if (adx.pdi > adx.mdi) adxAction = 'Buy';
-                    else if (adx.mdi > adx.pdi) adxAction = 'Sell';
-                }
+        const adxLen = settings?.adx?.length || 14;
+        const adxThreshold = settings?.adx?.threshold || 25;
+        const adxValues = ADX.calculate({ high: highs, low: lows, close: closes, period: adxLen });
+        const adx = adxValues[adxValues.length - 1];
+        let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (adx) {
+            // ADX indicates trend strength. Used with DI+ / DI- for direction.
+            // Buy: ADX > 25 && DI+ > DI-
+            // Sell: ADX > 25 && DI- > DI+
+            if (adx.adx > adxThreshold) {
+                if (adx.pdi > adx.mdi) adxAction = 'Buy';
+                else if (adx.mdi > adx.pdi) adxAction = 'Sell';
             }
-            oscillators.push({
-                name: `ADX (${adxLen})`,
-                value: adx ? adx.adx : 0,
-                action: adxAction
-            });
         }
+        oscillators.push({
+            name: `ADX (${adxLen})`,
+            value: adx ? adx.adx : 0,
+            action: adxAction
+        });
 
         // Awesome Oscillator
-        if (settings?.ao?.enabled !== false) {
-            const aoFast = settings?.ao?.fastLength || 5;
-            const aoSlow = settings?.ao?.slowLength || 34;
-            const aoValues = AwesomeOscillator.calculate({ high: highs, low: lows, fastPeriod: aoFast, slowPeriod: aoSlow });
-            const ao = aoValues[aoValues.length - 1];
-            let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (ao !== undefined) {
-                if (ao > 0) aoAction = 'Buy';
-                else if (ao < 0) aoAction = 'Sell';
-            }
-            oscillators.push({
-                name: `Awesome Osc.`, // Shortened name
-                value: ao !== undefined ? ao : 0,
-                action: aoAction
-            });
+        const aoFast = settings?.ao?.fastLength || 5;
+        const aoSlow = settings?.ao?.slowLength || 34;
+        const aoValues = AwesomeOscillator.calculate({ high: highs, low: lows, fastPeriod: aoFast, slowPeriod: aoSlow });
+        const ao = aoValues[aoValues.length - 1];
+        let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (ao !== undefined) {
+            if (ao > 0) aoAction = 'Buy';
+            else if (ao < 0) aoAction = 'Sell';
         }
+        oscillators.push({
+            name: `Awesome Osc.`, // Shortened name
+            value: ao !== undefined ? ao : 0,
+            action: aoAction
+        });
 
         // Momentum
-        if (settings?.momentum?.enabled !== false) {
-            const momLen = settings?.momentum?.length || 10;
-            const momSource = getSource(settings?.momentum?.source || 'close');
-            let mom = 0;
-            let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (momSource.length > momLen) {
-                const current = momSource[momSource.length - 1];
-                const prev = momSource[momSource.length - 1 - momLen];
-                mom = current - prev;
-                if (mom > 0) momAction = 'Buy';
-                else if (mom < 0) momAction = 'Sell';
-            }
-            oscillators.push({
-                name: `Momentum (${momLen})`,
-                value: mom,
-                action: momAction
-            });
+        const momLen = settings?.momentum?.length || 10;
+        const momSource = getSource(settings?.momentum?.source || 'close');
+        let mom = 0;
+        let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (momSource.length > momLen) {
+            const current = momSource[momSource.length - 1];
+            const prev = momSource[momSource.length - 1 - momLen];
+            mom = current - prev;
+            if (mom > 0) momAction = 'Buy';
+            else if (mom < 0) momAction = 'Sell';
         }
+        oscillators.push({
+            name: `Momentum (${momLen})`,
+            value: mom,
+            action: momAction
+        });
 
-        // MACD
-        if (settings?.macd?.enabled !== false) {
-            const macdFast = settings?.macd?.fastLength || 12;
-            const macdSlow = settings?.macd?.slowLength || 26;
-            const macdSig = settings?.macd?.signalLength || 9;
-            const macdSource = getSource(settings?.macd?.source || 'close');
+        // MACD (Moved down to match order or keep grouped? Keeping grouped.)
+        const macdFast = settings?.macd?.fastLength || 12;
+        const macdSlow = settings?.macd?.slowLength || 26;
+        const macdSig = settings?.macd?.signalLength || 9;
+        const macdSource = getSource(settings?.macd?.source || 'close');
 
-            const macdValues = MACD.calculate({
-                values: macdSource,
-                fastPeriod: macdFast,
-                slowPeriod: macdSlow,
-                signalPeriod: macdSig,
-                SimpleMAOscillator: false,
-                SimpleMASignal: false
-            });
-            const macd = macdValues[macdValues.length - 1];
-            let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (macd && macd.MACD !== undefined && macd.signal !== undefined) {
-                if (macd.MACD > macd.signal) macdAction = 'Buy';
-                else if (macd.MACD < macd.signal) macdAction = 'Sell';
-            }
-            oscillators.push({
-                name: `MACD (${macdFast}, ${macdSlow})`,
-                value: macd && macd.MACD !== undefined ? macd.MACD : 0,
-                action: macdAction
-            });
+        const macdValues = MACD.calculate({
+            values: macdSource,
+            fastPeriod: macdFast,
+            slowPeriod: macdSlow,
+            signalPeriod: macdSig,
+            SimpleMAOscillator: false,
+            SimpleMASignal: false
+        });
+        const macd = macdValues[macdValues.length - 1];
+        let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+        if (macd && macd.MACD !== undefined && macd.signal !== undefined) {
+            if (macd.MACD > macd.signal) macdAction = 'Buy';
+            else if (macd.MACD < macd.signal) macdAction = 'Sell';
         }
+        oscillators.push({
+            name: `MACD (${macdFast}, ${macdSlow})`,
+            value: macd && macd.MACD !== undefined ? macd.MACD : 0,
+            action: macdAction
+        });
 
 
         // --- Moving Averages ---
         const movingAverages: IndicatorResult[] = [];
-        if (settings?.ema?.enabled !== false) {
-            const ema1 = settings?.ema?.ema1Length || 20;
-            const ema2 = settings?.ema?.ema2Length || 50;
-            const ema3 = settings?.ema?.ema3Length || 200;
+        const ema1 = settings?.ema?.ema1Length || 20;
+        const ema2 = settings?.ema?.ema2Length || 50;
+        const ema3 = settings?.ema?.ema3Length || 200;
 
-            const periods = [ema1, ema2, ema3];
+        const periods = [ema1, ema2, ema3];
 
-            periods.forEach(period => {
-                const emaValues = EMA.calculate({ values: closes, period: period });
-                const ema = emaValues[emaValues.length - 1];
-                if (ema) {
-                    movingAverages.push({
-                        name: `EMA (${period})`,
-                        value: ema,
-                        action: currentPrice > ema ? 'Buy' : 'Sell'
-                    });
-                }
-            });
-        }
+        periods.forEach(period => {
+            const emaValues = EMA.calculate({ values: closes, period: period });
+            const ema = emaValues[emaValues.length - 1];
+            if (ema) {
+                movingAverages.push({
+                    name: `EMA (${period})`,
+                    value: ema,
+                    action: currentPrice > ema ? 'Buy' : 'Sell'
+                });
+            }
+        });
 
         // --- Pivots ---
         // Pivots are calculated on the PREVIOUS complete candle (High, Low, Close).
@@ -236,46 +226,28 @@ export const technicalsService = {
 
         let p = 0, r1 = 0, r2 = 0, r3 = 0, s1 = 0, s2 = 0, s3 = 0;
 
-        // Only calculate/return pivots if enabled (or return zeros if we want to hide it completely in UI)
-        // If disabled, we might return empty pivot object or handle in UI.
-        // Let's assume the UI hides it if settings say so, OR we return zeroed data.
-        // But for the sake of consistency, let's calculate anyway but maybe the UI should check 'enabled'.
-        // Wait, the requirement says "in den settings kann der user auch die indikatoren einzels ausschalten".
-        // The service returns the data structure. If I return zeros, it might look like 0.0000.
-        // I should probably return a flag or null, but the interface is strict.
-        // Let's just calculate it for now, and rely on the UI hiding logic if I can add it there, OR better:
-        // The Service should control the data. The UI renders what it gets.
-        // But the `TechnicalsData` interface expects pivots.
-        // I will just calculate pivots as usual since hiding the entire "Pivots" section might be handled by `enabled` check in UI if I expose settings there too?
-        // Actually, for consistency with oscillators, I should probably return an empty pivot object if disabled?
-        // But `pivots` is a required field in `TechnicalsData`.
-        // I'll calculate it, but if I want to hide it, I might need to change the UI to respect the setting directly, OR update the interface to make pivots optional.
-        // Let's update the interface to make pivots optional? No, that breaks other things.
-        // Let's just calculate it. The user specifically asked to switch off indicators.
-        // If they switch off pivots, the entire section should ideally vanish.
-        // I'll stick to calculating it here, and if the user wants to hide it, I should probably handle the display logic in the UI or return a special "disabled" state.
-        // Actually, let's keep it simple: Calculate pivots always for now, as they are a separate section.
-        // The oscillators/MAs are arrays, so easy to filter. Pivots are an object.
-
         const pivotType = settings?.pivots?.type || 'classic';
 
         if (pivotType === 'woodie') {
-             p = (prevHigh + prevLow + 2 * prevClose) / 4;
+             p = (prevHigh + prevLow + 2 * prevClose) / 4; // Or (H+L+2*OpenCurrent)? Woodie usually uses Open of current session, but often simplified.
+             // Strictly Woodie: (H + L + 2 * Close) / 4
              r1 = (2 * p) - prevLow;
              r2 = p + prevHigh - prevLow;
              s1 = (2 * p) - prevHigh;
              s2 = p - prevHigh + prevLow;
-             r3 = prevHigh + 2 * (p - prevLow);
+             // R3/S3 not standard in basic Woodie, but we can extrapolate or leave 0
+             r3 = prevHigh + 2 * (p - prevLow); // Fallback to classic-like extension
              s3 = prevLow - 2 * (prevHigh - p);
         } else if (pivotType === 'camarilla') {
              const range = prevHigh - prevLow;
              r3 = prevClose + range * 1.1 / 4;
              r2 = prevClose + range * 1.1 / 6;
              r1 = prevClose + range * 1.1 / 12;
-             p = prevClose;
+             p = prevClose; // Camarilla doesn't use standard P but we need to fill it?
              s1 = prevClose - range * 1.1 / 12;
              s2 = prevClose - range * 1.1 / 6;
              s3 = prevClose - range * 1.1 / 4;
+             // R4/S4 are major breakout levels in Camarilla, but our interface supports 3 levels.
         } else if (pivotType === 'fibonacci') {
              p = (prevHigh + prevLow + prevClose) / 3;
              const range = prevHigh - prevLow;
@@ -296,9 +268,16 @@ export const technicalsService = {
              s3 = prevLow - 2 * (prevHigh - p);
         }
 
-        const pivots = settings?.pivots?.enabled !== false ? {
+        const pivots = {
             classic: { p, r1, r2, r3, s1, s2, s3 }
-        } : null;
+        };
+
+        const pivotBasis = {
+            high: prevHigh,
+            low: prevLow,
+            close: prevClose,
+            open: prevOpen
+        };
 
         // --- Summary ---
         let buy = 0;
@@ -319,6 +298,7 @@ export const technicalsService = {
             oscillators,
             movingAverages,
             pivots,
+            pivotBasis,
             summary: { buy, sell, neutral, action: summaryAction }
         };
     },
@@ -336,6 +316,7 @@ export const technicalsService = {
             pivots: {
                 classic: { p: 0, r1: 0, r2: 0, r3: 0, s1: 0, s2: 0, s3: 0 }
             },
+            pivotBasis: { high: 0, low: 0, close: 0, open: 0 },
             summary: { buy: 0, sell: 0, neutral: 0, action: 'Neutral' }
         };
     }
