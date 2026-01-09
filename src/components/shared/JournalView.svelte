@@ -263,6 +263,28 @@
         }]
     };
 
+    $: directionEvolutionData = {
+        labels: dirData.longCurve.map(d => new Date(d.x).toLocaleDateString()),
+        datasets: [
+            {
+                label: 'Long Cumulative PnL',
+                data: dirData.longCurve.map(d => d.y),
+                borderColor: themeColors.success,
+                backgroundColor: hexToRgba(themeColors.success, 0.1),
+                fill: true,
+                tension: 0.1
+            },
+            {
+                label: 'Short Cumulative PnL',
+                data: dirData.shortCurve.map(d => d.y),
+                borderColor: themeColors.danger,
+                backgroundColor: hexToRgba(themeColors.danger, 0.1),
+                fill: true,
+                tension: 0.1
+            }
+        ]
+    };
+
     // Strategies (Tags)
     $: tagData = calculator.getTagData(journal);
     $: tagPnlData = {
