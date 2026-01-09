@@ -62,6 +62,7 @@
         "price": "0",
         "priceCurrency": "USD"
       },
+      "image": "https://www.cachy.app/og-image.jpg",
       "description": "Advanced Crypto Risk Management & Trading Journal Calculator. Optimize your position sizing and manage risk effectively."
     }
     </script>`}
