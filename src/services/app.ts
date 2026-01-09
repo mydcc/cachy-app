@@ -414,6 +414,14 @@ export const app = {
 
     getJournal: (): JournalEntry[] => {
         if (!browser) return [];
+        // Optimisation: Read from store memory instead of parsing localStorage on every call
+        // This dramatically reduces I/O blocking on main thread for large datasets
+        const fromStore = get(journalStore);
+        if (fromStore && fromStore.length > 0) {
+            return fromStore;
+        }
+
+        // Fallback: Initial Load or Empty Store
         try {
             const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || '[]';
             const parsedData = JSON.parse(d);
