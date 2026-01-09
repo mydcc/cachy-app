@@ -39,11 +39,11 @@
 
         <div class="flex justify-between">
             <span class="text-[var(--text-secondary)]">Entry:</span>
-            <span>{formatDynamicDecimal(position.entryPrice)}</span>
+            <span>{formatDynamicDecimal(position.entryPrice, 4, 4)}</span>
         </div>
         <div class="flex justify-between">
             <span class="text-[var(--text-secondary)]">Mark:</span>
-            <span>{formatDynamicDecimal(position.markPrice)}</span>
+            <span>{formatDynamicDecimal(position.markPrice, 4, 4)}</span>
         </div>
 
         <div class="col-span-2 border-t border-[var(--border-color)] my-1"></div>
@@ -52,7 +52,7 @@
         <div class="flex justify-between">
             <span class="text-[var(--text-secondary)]">PnL:</span>
             <span class:text-[var(--success-color)]={position.unrealizedPnl > 0} class:text-[var(--danger-color)]={position.unrealizedPnl < 0}>
-                {formatDynamicDecimal(position.unrealizedPnl)} USDT
+                {formatDynamicDecimal(position.unrealizedPnl, 4, 4)} USDT
             </span>
         </div>
         <div class="flex justify-between">

@@ -109,7 +109,9 @@ async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise
             unrealizedPnL: parseFloat(p.unrealizedPNL || p.unrealizedPnL || p.openLoss || '0'),
             leverage: parseFloat(p.leverage || '0'),
             // marginType: "ISOLATION" | "CROSS" as per docs.
-            marginType: (p.marginMode === 'CROSS' || p.marginMode === 1) ? 'cross' : 'isolated'
+            marginMode: (p.marginMode === 'CROSS' || p.marginMode === 'cross' || p.marginMode === 1 || p.marginMode === '1') ? 'cross' : 'isolated',
+            liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || '0'),
+            markPrice: parseFloat(p.markPrice || '0')
         };
     }).filter((p: any) => p.size !== 0);
 }

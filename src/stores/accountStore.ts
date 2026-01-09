@@ -80,8 +80,8 @@ function createAccountStore() {
                         unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
                         margin: new Decimal(data.margin || 0),
                         marginMode: data.marginMode ? data.marginMode.toLowerCase() : 'cross',
-                        liquidationPrice: new Decimal(0),
-                        markPrice: new Decimal(0),
+                        liquidationPrice: new Decimal(data.liqPrice || data.liquidationPrice || 0),
+                        markPrice: new Decimal(data.markPrice || 0),
                         breakEvenPrice: new Decimal(0)
                     };
 
@@ -89,8 +89,9 @@ function createAccountStore() {
                         // Merge with existing to preserve missing fields
                         const existing = currentPositions[index];
                         if (newPos.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
-                        newPos.liquidationPrice = existing.liquidationPrice;
-                        newPos.markPrice = existing.markPrice;
+                        if (newPos.liquidationPrice.isZero()) newPos.liquidationPrice = existing.liquidationPrice;
+                        if (newPos.markPrice.isZero()) newPos.markPrice = existing.markPrice;
+
                         newPos.breakEvenPrice = existing.breakEvenPrice;
                         if (!data.side) newPos.side = existing.side;
                         
