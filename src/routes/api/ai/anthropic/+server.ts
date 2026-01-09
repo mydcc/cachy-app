@@ -10,7 +10,6 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: 'Missing API Key' }, { status: 401 });
         }
 
-        // Anthropic System Prompt is a top-level parameter, not a message in the array
         let systemPrompt = '';
         const anthropicMessages = messages.filter((m: any) => {
             if (m.role === 'system') {
@@ -31,7 +30,8 @@ export const POST: RequestHandler = async ({ request }) => {
                 model: model || 'claude-3-5-sonnet-20240620',
                 max_tokens: 2000,
                 system: systemPrompt,
-                messages: anthropicMessages
+                messages: anthropicMessages,
+                stream: true
             })
         });
 
@@ -40,20 +40,13 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: err.error?.message || 'Anthropic API Error' }, { status: response.status });
         }
 
-        const data = await response.json();
-
-        // Normalize to OpenAI format
-        const text = data.content?.[0]?.text || '';
-        const normalized = {
-            choices: [{
-                message: {
-                    role: 'assistant',
-                    content: text
-                }
-            }]
-        };
-
-        return json(normalized);
+        return new Response(response.body, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            }
+        });
 
     } catch (e: any) {
         console.error('Anthropic Proxy Error:', e);

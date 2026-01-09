@@ -5,6 +5,7 @@ import { tradeStore } from './tradeStore';
 import { marketStore } from './marketStore';
 import { accountStore } from './accountStore';
 import { journalStore } from './journalStore';
+import type { JournalEntry } from './types';
 
 export interface AiMessage {
     id: string;
@@ -78,7 +79,6 @@ function createAiStore() {
                 const context = gatherContext();
 
                 // 3. Prepare Messages (History + System + User)
-                // We don't send the full context in every message, but as a System Prompt
                 const systemPrompt = `You are a helpful trading assistant in the Cachy app.
 
 CURRENT MARKET CONTEXT:
@@ -90,8 +90,8 @@ Format responses with Markdown.`;
 
                 const apiMessages = [
                     { role: 'system', content: systemPrompt },
-                    ...state.messages.map(m => ({ role: m.role, content: m.content })), // History
-                    { role: 'user', content: text } // Current
+                    ...state.messages.map(m => ({ role: m.role, content: m.content })),
+                    { role: 'user', content: text }
                 ];
 
                 const provider = settings.aiProvider || 'gemini';
@@ -106,7 +106,22 @@ Format responses with Markdown.`;
                     throw new Error(`API Key for ${provider} is missing in Settings.`);
                 }
 
-                // 4. Call API
+                // 4. Init Placeholder for Assistant Message
+                const aiMsgId = crypto.randomUUID();
+                const aiMsg: AiMessage = {
+                    id: aiMsgId,
+                    role: 'assistant',
+                    content: '', // Start empty for streaming
+                    timestamp: Date.now(),
+                    provider
+                };
+
+                update(s => {
+                     const newMsgs = [...s.messages, aiMsg];
+                     return { ...s, messages: newMsgs, isStreaming: true };
+                });
+
+                // 5. Call API with Stream Handling
                 const res = await fetch(endpoint, {
                     method: 'POST',
                     headers: {
@@ -114,8 +129,7 @@ Format responses with Markdown.`;
                         'x-api-key': apiKey
                     },
                     body: JSON.stringify({
-                        messages: apiMessages,
-                        // Model can be customizable later
+                        messages: apiMessages
                     })
                 });
 
@@ -124,22 +138,61 @@ Format responses with Markdown.`;
                     throw new Error(err.error || 'Failed to fetch AI response');
                 }
 
-                const data = await res.json();
-                const aiText = data.choices?.[0]?.message?.content || 'No response';
+                if (!res.body) throw new Error('No response body');
 
-                // 5. Add Assistant Message
-                const aiMsg: AiMessage = {
-                    id: crypto.randomUUID(),
-                    role: 'assistant',
-                    content: aiText,
-                    timestamp: Date.now(),
-                    provider
-                };
+                const reader = res.body.getReader();
+                const decoder = new TextDecoder();
+                let fullContent = '';
+
+                while (true) {
+                    const { done, value } = await reader.read();
+                    if (done) break;
+
+                    const chunk = decoder.decode(value);
+                    const lines = chunk.split('\n');
+
+                    for (const line of lines) {
+                        const trimmed = line.trim();
+                        if (!trimmed || trimmed === 'data: [DONE]') continue;
+                        if (trimmed.startsWith('data: ')) {
+                            const dataStr = trimmed.slice(6);
+                            try {
+                                const data = JSON.parse(dataStr);
+                                let delta = '';
+
+                                if (provider === 'openai') {
+                                    delta = data.choices?.[0]?.delta?.content || '';
+                                } else if (provider === 'gemini') {
+                                    // Gemini SSE format usually: data: {"candidates": [{"content": {"parts": [{"text": "..."}]}}]}
+                                    delta = data.candidates?.[0]?.content?.parts?.[0]?.text || '';
+                                } else if (provider === 'anthropic') {
+                                    if (data.type === 'content_block_delta') {
+                                        delta = data.delta?.text || '';
+                                    }
+                                }
+
+                                if (delta) {
+                                    fullContent += delta;
+                                    // Update Store incrementally
+                                    update(s => {
+                                        const msgs = [...s.messages];
+                                        const last = msgs[msgs.length - 1];
+                                        if (last.id === aiMsgId) {
+                                            last.content = fullContent;
+                                        }
+                                        return { ...s, messages: msgs };
+                                    });
+                                }
+                            } catch (e) {
+                                // Ignore parse errors for partial chunks
+                            }
+                        }
+                    }
+                }
 
                 update(s => {
-                    const newMsgs = [...s.messages, aiMsg].slice(-MAX_MESSAGES);
-                    const newState = { ...s, messages: newMsgs, isStreaming: false };
-                    save(newState);
+                    const newState = { ...s, isStreaming: false };
+                    save(newState); // Save full conversation at end
                     return newState;
                 });
 
@@ -160,11 +213,23 @@ function gatherContext() {
     const trade = get(tradeStore);
     const market = get(marketStore);
     const account = get(accountStore);
-    // const journal = get(journalStore); // Too large to send fully
+    const journal: JournalEntry[] = get(journalStore);
 
     // Extract relevant bits
     const symbol = trade.symbol;
     const marketData = symbol ? market[symbol] : null;
+
+    // Get last 5 trades from Journal
+    // The journal store is an array of JournalEntry
+    const recentTrades = journal
+        .slice(0, 5)
+        .map(t => ({
+            symbol: t.symbol,
+            entry: t.entryDate,
+            exit: t.exitDate,
+            pnl: t.totalNetProfit?.toNumber() || 0,
+            won: (t.totalNetProfit?.toNumber() || 0) > 0
+        }));
 
     return {
         activeSymbol: symbol,
@@ -173,12 +238,12 @@ function gatherContext() {
         openPositions: account.positions.map(p => ({
             symbol: p.symbol,
             side: p.side,
-            size: p.size.toString(), // Correct property name 'size' (from Decimal)
-            entry: p.entryPrice.toString(), // Correct property name 'entryPrice'
-            pnl: p.unrealizedPnl.toString(), // Correct property name 'unrealizedPnl'
-            // ROI is not directly in Position interface, calculate it?
+            size: p.size.toString(),
+            entry: p.entryPrice.toString(),
+            pnl: p.unrealizedPnl.toString(),
             roi: !p.entryPrice.isZero() && !p.size.isZero() ? p.unrealizedPnl.div(p.entryPrice.times(p.size).div(p.leverage)).times(100).toFixed(2) + '%' : 'N/A'
         })),
+        recentHistory: recentTrades,
         tradeSetup: {
             entry: trade.entryPrice,
             sl: trade.stopLossPrice,

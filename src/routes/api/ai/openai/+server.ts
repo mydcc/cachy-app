@@ -17,9 +17,10 @@ export const POST: RequestHandler = async ({ request }) => {
                 'Authorization': `Bearer ${apiKey}`
             },
             body: JSON.stringify({
-                model: model || 'gpt-4o', // Default to GPT-4o if not specified
+                model: model || 'gpt-4o',
                 messages: messages,
-                max_tokens: 2000
+                max_tokens: 2000,
+                stream: true // Enable streaming
             })
         });
 
@@ -28,8 +29,14 @@ export const POST: RequestHandler = async ({ request }) => {
             return json({ error: err.error?.message || 'OpenAI API Error' }, { status: response.status });
         }
 
-        const data = await response.json();
-        return json(data);
+        // Return the stream directly
+        return new Response(response.body, {
+            headers: {
+                'Content-Type': 'text/event-stream',
+                'Cache-Control': 'no-cache',
+                'Connection': 'keep-alive'
+            }
+        });
 
     } catch (e: any) {
         console.error('OpenAI Proxy Error:', e);
