@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type SidePanelLayout } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
@@ -39,8 +39,16 @@
 
     // Side Panel Settings
     let enableSidePanel: boolean;
-    let sidePanelMode: 'chat' | 'notes';
-    let sidePanelLayout: SidePanelLayout;
+    let sidePanelMode: 'chat' | 'notes' | 'ai';
+
+    // AI Settings
+    let aiProviderState: AiProvider;
+    let openaiApiKey: string;
+    let openaiModel: string;
+    let geminiApiKey: string;
+    let geminiModel: string;
+    let anthropicApiKey: string;
+    let anthropicModel: string;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -56,7 +64,7 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
+    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
     let isInitialized = false;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
@@ -108,6 +116,14 @@
             sidePanelMode = $settingsStore.sidePanelMode;
             isPro = $settingsStore.isPro;
 
+            aiProviderState = $settingsStore.aiProvider || 'gemini';
+            openaiApiKey = $settingsStore.openaiApiKey || '';
+            openaiModel = $settingsStore.openaiModel || 'gpt-4o';
+            geminiApiKey = $settingsStore.geminiApiKey || '';
+            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash';
+            anthropicApiKey = $settingsStore.anthropicApiKey || '';
+            anthropicModel = $settingsStore.anthropicModel || 'claude-3-5-sonnet-20240620';
+
             favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
             favoriteTimeframesInput = favoriteTimeframes.join(', '); // Init text input
             syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
@@ -155,6 +171,13 @@
             syncRsiTimeframe,
             imgbbApiKey,
             imgbbExpiration,
+            aiProvider: aiProviderState,
+            openaiApiKey,
+            openaiModel,
+            geminiApiKey,
+            geminiModel,
+            anthropicApiKey,
+            anthropicModel,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -308,6 +331,15 @@
             {$_('settings.tabs.api')}
         </button>
         <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'ai' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'ai'}
+            role="tab"
+            aria-selected={activeTab === 'ai'}
+            aria-controls="tab-ai"
+        >
+            AI Chat
+        </button>
+        <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'behavior' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'behavior'}
             role="tab"
@@ -456,6 +488,70 @@
                 </p>
             </div>
 
+        {:else if activeTab === 'ai'}
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
+                    <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
+
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium">Default Provider</span>
+                        <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                            <option value="openai">OpenAI (ChatGPT)</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
+                        <!-- OpenAI Section -->
+                        <div class="flex flex-col gap-2">
+                            <label for="openai-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>OpenAI</span>
+                                {#if aiProviderState === 'openai'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
+                            </div>
+                        </div>
+
+                        <!-- Gemini Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="gemini-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Google Gemini</span>
+                                {#if aiProviderState === 'gemini'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash" />
+                            </div>
+                            <p class="text-[10px] text-[var(--text-secondary)] italic">
+                                Use <code>gemini-1.5-flash</code> if <code>gemini-2.0-flash</code> is rate limited.
+                            </p>
+                        </div>
+
+                        <!-- Anthropic Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="anthropic-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Anthropic</span>
+                                {#if aiProviderState === 'anthropic'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic border-t border-[var(--border-color)] pt-2">
+                        Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
+                    </p>
+                </div>
+            </div>
+
         {:else if activeTab === 'behavior'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                 <div class="flex flex-col gap-1">
@@ -540,6 +636,10 @@
                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
                                 <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
                                 <span class="text-sm">{$_('settings.modeChat')}</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">AI Chat</span>
                             </label>
                         </div>
                     </div>

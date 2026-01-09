@@ -6,7 +6,7 @@ export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
-export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
+export type AiProvider = 'openai' | 'gemini' | 'anthropic';
 
 export interface ApiKeys {
     key: string;
@@ -42,8 +42,16 @@ export interface Settings {
 
     // Side Panel Settings
     enableSidePanel: boolean;
-    sidePanelMode: 'chat' | 'notes';
-    sidePanelLayout?: SidePanelLayout;
+    sidePanelMode: 'chat' | 'notes' | 'ai';
+
+    // AI Chat Settings
+    aiProvider: AiProvider;
+    openaiApiKey: string;
+    openaiModel: string;
+    geminiApiKey: string;
+    geminiModel: string;
+    anthropicApiKey: string;
+    anthropicModel: string;
 
     // Legal
     disclaimerAccepted: boolean;
@@ -72,7 +80,16 @@ const defaultSettings: Settings = {
     isDeepDiveUnlocked: false,
     enableSidePanel: false,
     sidePanelMode: 'notes',
-    sidePanelLayout: 'standard',
+
+    // AI Defaults
+    aiProvider: 'gemini',
+    openaiApiKey: '',
+    openaiModel: 'gpt-4o',
+    geminiApiKey: '',
+    geminiModel: 'gemini-2.0-flash', // Defaulting to 2.0-flash as requested, but user can change it
+    anthropicApiKey: '',
+    anthropicModel: 'claude-3-5-sonnet-20240620',
+
     disclaimerAccepted: false
 };
 
@@ -118,6 +135,18 @@ function loadSettingsFromLocalStorage(): Settings {
              settings.imgbbExpiration = defaultSettings.imgbbExpiration;
         }
 
+        // 4. Ensure AI Settings defaults
+        if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
+        if (!settings.openaiApiKey) settings.openaiApiKey = defaultSettings.openaiApiKey;
+        if (!settings.openaiModel) settings.openaiModel = defaultSettings.openaiModel;
+
+        if (!settings.geminiApiKey) settings.geminiApiKey = defaultSettings.geminiApiKey;
+        if (!settings.geminiModel) settings.geminiModel = defaultSettings.geminiModel;
+
+        if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
+        if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
+
+
         // Clean up keys not in interface
         const cleanSettings: Settings = {
             apiProvider: settings.apiProvider,
@@ -140,7 +169,13 @@ function loadSettingsFromLocalStorage(): Settings {
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
             enableSidePanel: settings.enableSidePanel ?? defaultSettings.enableSidePanel,
             sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode,
-            sidePanelLayout: settings.sidePanelLayout ?? defaultSettings.sidePanelLayout,
+            aiProvider: settings.aiProvider,
+            openaiApiKey: settings.openaiApiKey,
+            openaiModel: settings.openaiModel,
+            geminiApiKey: settings.geminiApiKey,
+            geminiModel: settings.geminiModel,
+            anthropicApiKey: settings.anthropicApiKey,
+            anthropicModel: settings.anthropicModel,
             disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
         };
 

@@ -1,5 +1,6 @@
 import { Decimal } from 'decimal.js';
 import { getBitunixErrorKey } from '../utils/errorUtils';
+import { parseTimestamp } from '../utils/utils';
 
 // Define a type for the kline data object for clarity
 export interface Kline {
@@ -7,8 +8,7 @@ export interface Kline {
     high: Decimal;
     low: Decimal;
     close: Decimal;
-    time?: number; // Optional timestamp
-    ts?: number;   // Fallback timestamp
+    time: number; // Standardized timestamp in milliseconds
 }
 
 export interface Ticker24h {
@@ -101,12 +101,14 @@ export const apiService = {
             }
 
             // Map the response data to the required Kline interface
-            return res.map((kline: { open: string, high: string, low: string, close: string, time: number, ts: number }) => ({
+            return res.map((kline: { open: string, high: string, low: string, close: string, timestamp?: number, time?: number, ts?: number }) => ({
                 open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
                 close: new Decimal(kline.close),
-                time: kline.time || kline.ts // Backend usually returns 'time' or 'ts'
+                // Backend sends 'timestamp', but we also fallback to 'time' or 'ts' just in case.
+                // parseTimestamp handles seconds/milliseconds normalization.
+                time: parseTimestamp(kline.timestamp || kline.time || kline.ts)
             }));
         } catch (e) {
             console.error(`fetchBitunixKlines error for ${symbol}:`, e);
@@ -153,6 +155,7 @@ export const apiService = {
                 high: new Decimal(kline[2]),
                 low: new Decimal(kline[3]),
                 close: new Decimal(kline[4]),
+                time: parseTimestamp(kline[0])
             }));
         } catch (e) {
             if (e instanceof Error && (e.message === 'apiErrors.klineError' || e.message === 'apiErrors.invalidResponse')) {

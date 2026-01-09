@@ -84,7 +84,6 @@
     }
 
     function handleCancel(orderId: string) {
-        console.log('Cancel order', orderId);
         // Placeholder for future cancel logic
     }
 </script>
