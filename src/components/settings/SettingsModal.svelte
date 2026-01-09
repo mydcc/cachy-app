@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type SidePanelLayout } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
@@ -40,6 +40,7 @@
     // Side Panel Settings
     let enableSidePanel: boolean;
     let sidePanelMode: 'chat' | 'notes';
+    let sidePanelLayout: SidePanelLayout;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -149,6 +150,7 @@
             hotkeyMode,
             enableSidePanel,
             sidePanelMode,
+            sidePanelLayout,
             favoriteTimeframes,
             syncRsiTimeframe,
             imgbbApiKey,
@@ -526,8 +528,9 @@
                     <input type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
 
-                {#if enableSidePanel}
-                    <div class="flex flex-col gap-1 ml-4 border-l-2 border-[var(--border-color)] pl-4">
+                <div class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {enableSidePanel ? 'opacity-100' : 'opacity-50 pointer-events-none'}">
+
+                    <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">{$_('settings.sidePanelMode')}</span>
                         <div class="flex gap-2">
                              <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
@@ -540,7 +543,34 @@
                             </label>
                         </div>
                     </div>
-                {/if}
+
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium">{$_('settings.sidePanelLayout')}</span>
+                        <div class="flex flex-col gap-2">
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="standard" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutStandard')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutStandardDesc')}</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="transparent" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutTransparent')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutTransparentDesc')}</span>
+                                </div>
+                            </label>
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="floating" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutFloating')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutFloatingDesc')}</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>

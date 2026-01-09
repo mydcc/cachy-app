@@ -52,44 +52,95 @@
     function toggle() {
         isOpen = !isOpen;
     }
+
+    // Reactive Layout Vars
+    $: layout = $settingsStore.sidePanelLayout || 'standard';
+    $: isFloating = layout === 'floating';
+    $: isTransparent = layout === 'transparent';
+    $: isStandard = layout === 'standard';
+
+    // Helper for transition params
+    $: transitionParams = isFloating
+        ? { y: 20, duration: 200 }
+        : { x: -200, duration: 200 };
+
 </script>
 
 {#if $settingsStore.enableSidePanel}
     <div
-        class="fixed left-0 top-0 h-full z-[60] flex transition-all duration-300 pointer-events-none"
-        class:w-80={isOpen}
-        class:w-10={!isOpen}
+        class="fixed z-[60] flex transition-all duration-300 pointer-events-none"
+        class:left-0={!isFloating}
+        class:top-0={!isFloating}
+        class:h-full={!isFloating}
+        class:bottom-4={isFloating}
+        class:left-4={isFloating}
+        class:items-end={isFloating}
+        class:flex-col-reverse={isFloating}
     >
-        <!-- Toggle Strip (Visible when collapsed) -->
-        <div
-            role="button"
-            tabindex="0"
-            class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
-            on:click={toggle}
-            on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle()}
-            title={$settingsStore.sidePanelMode === 'chat' ? 'Open Chat' : 'Open Notes'}
-        >
-            <div class="mb-4 text-[var(--text-primary)]">
-                {#if $settingsStore.sidePanelMode === 'chat'}
-                    {@html icons.messageSquare || '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
-                {:else}
-                    {@html icons.edit || '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
-                {/if}
-            </div>
+        <!-- Trigger Button -->
+        {#if !isOpen}
+            <!-- Standard/Transparent Trigger: Vertical Strip -->
+            {#if !isFloating}
+                <div
+                    role="button"
+                    tabindex="0"
+                    class="h-full w-10 border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
+                    class:bg-[var(--bg-tertiary)]={true}
+                    on:click={toggle}
+                    on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle()}
+                    title={$settingsStore.sidePanelMode === 'chat' ? 'Open Chat' : 'Open Notes'}
+                >
+                    <div class="mb-4 text-[var(--text-primary)]">
+                        {#if $settingsStore.sidePanelMode === 'chat'}
+                            {@html icons.messageSquare || '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
+                        {:else}
+                            {@html icons.edit || '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
+                        {/if}
+                    </div>
 
-            <div class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180">
-                {$settingsStore.sidePanelMode === 'chat' ? 'CHAT' : 'NOTES'}
-            </div>
-        </div>
+                    <div class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180">
+                        {$settingsStore.sidePanelMode === 'chat' ? 'CHAT' : 'NOTES'}
+                    </div>
+                </div>
+            {:else}
+                <!-- Floating Trigger: Circle Icon -->
+                <button
+                    class="w-12 h-12 rounded-full bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg flex items-center justify-center hover:opacity-90 transition-all pointer-events-auto z-[61]"
+                    on:click={toggle}
+                    title="Open {$settingsStore.sidePanelMode === 'chat' ? 'Chat' : 'Notes'}"
+                >
+                    {#if $settingsStore.sidePanelMode === 'chat'}
+                        {@html icons.messageSquare || '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
+                    {:else}
+                         {@html icons.edit || '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
+                    {/if}
+                </button>
+            {/if}
+        {/if}
 
         <!-- Expanded Content Panel -->
         {#if isOpen}
             <div
-                transition:fly={{ x: -200, duration: 200 }}
-                class="flex-1 h-full bg-[var(--bg-primary)] shadow-2xl flex flex-col border-r border-[var(--border-color)] pointer-events-auto"
+                transition:fly={transitionParams}
+                class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden"
+                class:w-80={!isFloating}
+                class:h-full={!isFloating}
+                class:w-96={isFloating}
+                class:max-h-[38vh]={isFloating}
+                class:rounded-lg={isFloating}
+                class:mb-2={isFloating}
+                class:bg-[var(--bg-tertiary)]={isStandard}
+                class:backdrop-blur-md={isTransparent}
+                class:bg-black={isTransparent}
+                class:bg-opacity-50={isTransparent}
+                class:bg-[var(--bg-secondary)]={isFloating}
+                style={isTransparent ? 'background-color: rgba(0,0,0,0.6);' : ''}
             >
                 <!-- Header -->
-                <div class="h-12 border-b border-[var(--border-color)] flex items-center justify-between px-4 bg-[var(--bg-secondary)]">
+                <div class="h-12 border-b border-[var(--border-color)] flex items-center justify-between px-4"
+                     class:bg-[var(--bg-secondary)]={isStandard}
+                     class:bg-transparent={isTransparent}
+                >
                     <h3 class="font-bold text-[var(--text-primary)]">
                         {$settingsStore.sidePanelMode === 'chat' ? 'Global Chat' : 'My Notes'}
                     </h3>
@@ -100,10 +151,11 @@
                     </button>
                 </div>
 
-                <!-- Messages Area (Blank Background as requested) -->
+                <!-- Messages Area -->
                 <div
                     bind:this={messagesContainer}
-                    class="flex-1 overflow-y-auto p-4 flex flex-col gap-2 bg-[var(--bg-primary)]"
+                    class="flex-1 overflow-y-auto p-4 flex flex-col gap-2"
+                    class:bg-transparent={isTransparent || isFloating}
                 >
                     {#each $chatStore.messages as msg (msg.id)}
                         <div class="flex flex-col animate-fade-in text-sm">
@@ -112,7 +164,9 @@
                                     {new Date(msg.timestamp).toLocaleTimeString()}
                                 </span>
                             </div>
-                            <div class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] break-words">
+                            <div class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] break-words"
+                                 class:bg-opacity-80={isTransparent}
+                            >
                                 {msg.text}
                             </div>
                         </div>
@@ -126,7 +180,10 @@
                 </div>
 
                 <!-- Input Area -->
-                <div class="p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                <div class="p-3 border-t border-[var(--border-color)]"
+                     class:bg-[var(--bg-secondary)]={isStandard || isFloating}
+                     class:bg-transparent={isTransparent}
+                >
                     {#if errorMessage}
                         <div class="text-xs text-[var(--danger-color)] mb-2 animate-pulse">{errorMessage}</div>
                     {/if}
@@ -134,7 +191,10 @@
                         <input
                             bind:this={inputEl}
                             type="text"
-                            class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-color)] pr-10"
+                            class="w-full border border-[var(--border-color)] rounded px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-color)] pr-10"
+                            class:bg-[var(--bg-primary)]={!isTransparent}
+                            class:bg-black={isTransparent}
+                            class:bg-opacity-50={isTransparent}
                             placeholder="Type a message (max 140)..."
                             maxlength="140"
                             bind:value={messageText}

@@ -6,6 +6,7 @@ export type MarketDataInterval = '1s' | '1m' | '10m';
 export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
+export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
 
 export interface ApiKeys {
     key: string;
@@ -42,6 +43,7 @@ export interface Settings {
     // Side Panel Settings
     enableSidePanel: boolean;
     sidePanelMode: 'chat' | 'notes';
+    sidePanelLayout?: SidePanelLayout;
 
     // Legal
     disclaimerAccepted: boolean;
@@ -70,6 +72,7 @@ const defaultSettings: Settings = {
     isDeepDiveUnlocked: false,
     enableSidePanel: false,
     sidePanelMode: 'notes',
+    sidePanelLayout: 'standard',
     disclaimerAccepted: false
 };
 
@@ -137,6 +140,7 @@ function loadSettingsFromLocalStorage(): Settings {
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
             enableSidePanel: settings.enableSidePanel ?? defaultSettings.enableSidePanel,
             sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode,
+            sidePanelLayout: settings.sidePanelLayout ?? defaultSettings.sidePanelLayout,
             disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
         };
 
