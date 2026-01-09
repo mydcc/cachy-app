@@ -532,3 +532,72 @@ export function getTimingData(trades: JournalEntry[]) {
         dayLabels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
     };
 }
+
+export function getDisciplineData(journal: JournalEntry[]) {
+    // Reuse timing data for hourly PnL
+    const timing = getTimingData(journal);
+
+    // Calculate Streaks
+    const sortedTrades = journal
+        .filter(t => t.status === 'Won' || t.status === 'Lost')
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+    let maxWinStreak = 0;
+    let maxLossStreak = 0;
+    let curWin = 0;
+    let curLoss = 0;
+
+    sortedTrades.forEach(t => {
+        if (t.status === 'Won') {
+            curWin++;
+            curLoss = 0;
+            if (curWin > maxWinStreak) maxWinStreak = curWin;
+        } else if (t.status === 'Lost') {
+            curLoss++;
+            curWin = 0;
+            if (curLoss > maxLossStreak) maxLossStreak = curLoss;
+        }
+    });
+
+    // Risk Consistency Buckets
+    const riskBuckets: {[key: string]: number} = {};
+    const risks = sortedTrades
+        .filter(t => t.riskAmount && t.riskAmount.gt(0))
+        .map(t => t.riskAmount!.toNumber());
+
+    if (risks.length > 0) {
+        const minRisk = Math.min(...risks);
+        const maxRisk = Math.max(...risks);
+
+        if (Math.abs(maxRisk - minRisk) < 0.01) {
+             riskBuckets[`$${maxRisk.toFixed(2)}`] = risks.length;
+        } else {
+             // Create 5 bins
+             const binCount = 5;
+             const range = maxRisk - minRisk;
+             const step = range / binCount;
+
+             risks.forEach(r => {
+                 // Determine bin index
+                 let idx = Math.floor((r - minRisk) / step);
+                 if (idx >= binCount) idx = binCount - 1; // Handle max value case
+
+                 const low = minRisk + (idx * step);
+                 const high = minRisk + ((idx + 1) * step);
+
+                 // Format: $10 - $20
+                 const label = `$${low.toFixed(0)} - $${high.toFixed(0)}`;
+                 riskBuckets[label] = (riskBuckets[label] || 0) + 1;
+             });
+        }
+    }
+
+    return {
+        hourlyPnl: timing.hourlyPnl,
+        streak: {
+            win: maxWinStreak,
+            loss: maxLossStreak
+        },
+        riskBuckets
+    };
+}
