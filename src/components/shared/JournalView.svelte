@@ -77,11 +77,9 @@
             }
             // Placeholders
             else if (bufferStr.endsWith(CODE_BONUS)) {
-                console.log('VIPBONUS2026 detected (Placeholder)');
                 inputBuffer = [];
             }
             else if (bufferStr.endsWith(CODE_STREAK)) {
-                 console.log('VIPSTREAK2026 detected (Placeholder)');
                  inputBuffer = [];
             }
         }
