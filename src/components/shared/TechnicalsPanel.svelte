@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onDestroy } from "svelte";
     import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
     import { indicatorStore } from "../../stores/indicatorStore";
@@ -7,91 +7,37 @@
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
     import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
-    import { icons } from "../../lib/constants";
-    import { _ } from "../../locales/i18n";
     import { formatDynamicDecimal, normalizeTimeframeInput } from "../../utils/utils";
     import { Decimal } from "decimal.js";
     import Tooltip from "../shared/Tooltip.svelte";
 
     export let isVisible: boolean = false;
 
-    let pivotHeight = 0; // Declare early to avoid scope issues
     let klinesHistory: any[] = [];
-    let showDebug = false;
     let data: TechnicalsData | null = null;
     let loading = false;
     let error: string | null = null;
-    let refreshInterval: any;
     let showTimeframePopup = false;
     let customTimeframeInput = "";
     let currentSubscription: string | null = null;
+    let pivotHeight = 0;
 
-    // Use analysisTimeframe for Technicals, NOT atrTimeframe
+    // Use analysisTimeframe for Technicals
     $: symbol = $tradeStore.symbol;
     $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
-
-    // --- View Logic ---
-    type ViewMode = 'dual' | 'live' | 'context';
-    let viewMode: ViewMode = 'dual';
-
-    function cycleViewMode() {
-        if (viewMode === 'dual') viewMode = 'live';
-        else if (viewMode === 'live') viewMode = 'context';
-        else viewMode = 'dual';
-    }
-
-    // --- Data Logic (Refactored for Robustness) ---
-
-    // 1. Pivot Basis Candle (Context)
-    // Always the LAST COMPLETED candle from history.
-    // If the history contains the current LIVE candle (incomplete), we must take length-2.
-    // We detect if history[last] is live by comparing it to wsData time.
-    $: isHistoryLastLive = wsData?.kline && klinesHistory.length > 0 &&
-                           (wsData.kline.time === (klinesHistory[klinesHistory.length - 1].time || klinesHistory[klinesHistory.length - 1].ts));
-
-    $: pivotBasisCandle = klinesHistory.length > 0
-        ? (isHistoryLastLive && klinesHistory.length > 1 ? klinesHistory[klinesHistory.length - 2] : klinesHistory[klinesHistory.length - 1])
-        : null;
-
-    // 2. Live Candle (Action)
-    // Always prefers WebSocket data. Falls back to history[last] if no WS data.
-    $: liveCandle = wsData?.kline
-        ? { ...wsData.kline, time: wsData.kline.time || Date.now() }
-        : (klinesHistory.length > 0 ? klinesHistory[klinesHistory.length - 1] : null);
-
-    // 3. Technicals Calculation
-    // MUST rely on pivotBasisCandle to ensure Pivots are stable.
-    // We only recalculate if pivotBasisCandle changes (new period started).
-    $: if (pivotBasisCandle && showPanel && indicatorSettings) {
-        // We pass a sliced history ending at pivotBasisCandle to the service
-        // This simulates "the state at the end of the previous period"
-        const basisIndex = klinesHistory.indexOf(pivotBasisCandle);
-        if (basisIndex >= 0) {
-            const stableHistory = klinesHistory.slice(0, basisIndex + 1);
-            data = technicalsService.calculateTechnicals(stableHistory, indicatorSettings);
-        }
-    }
-
-    $: prevColor = pivotBasisCandle && Number(pivotBasisCandle.close) >= Number(pivotBasisCandle.open) ? 'var(--text-tertiary)' : 'var(--text-secondary)'; // Muted gray/darker for context
-    $: currColor = liveCandle && Number(liveCandle.close) >= Number(liveCandle.open) ? 'var(--success-color)' : 'var(--danger-color)';
-
-    // Derived display label for Pivots
-    $: pivotLabel = indicatorSettings?.pivots?.type
-        ? `Pivots (${indicatorSettings.pivots.type.charAt(0).toUpperCase() + indicatorSettings.pivots.type.slice(1)})`
-        : 'Pivots (Classic)';
+    $: viewMode = $indicatorStore.pivots.viewMode || 'integrated';
 
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
 
-    // Add a local timestamp to verify updates
-    let lastUpdateTs = 0;
+    // Typed Keys for Abstract View
+    const abstractKeys = ['s2', 's1', 'p', 'r1', 'r2'] as const;
 
-    $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
-        handleRealTimeUpdate(wsData.kline);
-        lastUpdateTs = Date.now();
-    }
+    // Local state for live candle
+    let liveCandle: any = null;
+    let pivotBasisCandle: any = null;
 
     // Trigger fetch/subscribe when relevant props change
     $: if (showPanel && symbol && timeframe) {
@@ -110,7 +56,14 @@
 
     // Re-calculate when settings change (without re-fetching)
     $: if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
-        data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
+        // When settings change, we just recalculate based on existing history + live
+        // But we want to ensure we don't double-add live candles or shift basis incorrectly.
+        updateTechnicals();
+    }
+
+    // Handle Real-Time Updates
+    $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
+        handleRealTimeUpdate(wsData.kline);
     }
 
     function subscribeWs() {
@@ -130,22 +83,22 @@
         }
     }
 
+    // Core Logic for Updating Data and Pivots
     function handleRealTimeUpdate(newKline: any) {
         if (!klinesHistory || klinesHistory.length === 0) return;
 
         const lastIdx = klinesHistory.length - 1;
-        const lastCandle = klinesHistory[lastIdx];
+        const lastHistoryCandle = klinesHistory[lastIdx];
 
-        // Ensure we have timestamps to compare
-        // Note: fetchBitunixKlines should provide 'time' or 'ts'. marketStore provides 'time'.
-        // If timestamps are missing, we default to updating the last candle (fallback).
-        const lastTime = lastCandle.time || lastCandle.ts || 0;
+        const lastTime = lastHistoryCandle.time || lastHistoryCandle.ts || 0;
         const newTime = newKline.time || 0;
 
-        let newHistory = [...klinesHistory];
-
+        // Determine if newKline is the SAME candle as the last one in history, or a NEW one
         if (newTime > lastTime && lastTime > 0) {
-            // New candle started! Push it.
+            // New candle started!
+            // The previous 'live' candle is now completed history.
+            // We should push it to history (or the confirmed version of it).
+            // NOTE: In a robust system, we'd wait for a 'closed' flag. Here we just rely on time.
             const newCandleObj = {
                 open: newKline.open,
                 high: newKline.high,
@@ -154,36 +107,58 @@
                 volume: newKline.volume,
                 time: newTime
             };
-            newHistory.push(newCandleObj);
-
-            // Optionally remove oldest candle to keep history size constant (performance)
-            if (newHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
-                newHistory.shift();
+            klinesHistory = [...klinesHistory, newCandleObj];
+            if (klinesHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
+                klinesHistory.shift();
             }
-        } else {
-            // Update existing candle (same time or no time info)
-            // If newTime < lastTime, we ignore it (stale data), unless lastTime is 0.
-            if (newTime > 0 && newTime < lastTime) {
-                return; // Ignore stale data
-            }
-
+        } else if (newTime === lastTime) {
+            // It's an update to the last candle.
+            // But wait! If we modify klinesHistory[last] directly with live data,
+            // then 'technicalsService' will use klinesHistory[last-1] as the pivot basis.
+            // This is actually CORRECT for the *current* live candle.
+            // The pivots for the current live candle (T) are based on T-1.
+            // So if klinesHistory contains [..., T-1, T(live)],
+            // And technicalsService uses length-2 (T-1) for calculation,
+            // Then Pivots will be based on T-1. Correct.
+            //
+            // HOWEVER: We must ensure T-1 is STABLE.
+            // If T is live, T-1 must be completed.
+            //
+            // Problem: If we just fetched history via REST, the last candle might be the *incomplete* live candle.
+            // If API returns [..., T(incomplete)], and we treat it as T, it works.
+            // But if we then receive WS updates for T, we update it.
+            // T-1 remains the same.
+            //
+            // So, updating klinesHistory in place is fine IF the basis (T-1) doesn't change.
             const updatedCandle = {
-                ...lastCandle,
+                ...lastHistoryCandle,
                 open: newKline.open,
                 high: newKline.high,
                 low: newKline.low,
                 close: newKline.close,
                 volume: newKline.volume,
-                // Preserve original time if newKline doesn't have it, or update it
-                time: newTime || lastTime
+                time: newTime
             };
+            const newHistory = [...klinesHistory];
             newHistory[lastIdx] = updatedCandle;
+            klinesHistory = newHistory;
         }
 
-        klinesHistory = newHistory;
+        updateTechnicals();
+    }
 
-        // Re-calculate technicals with settings
+    function updateTechnicals() {
+        if (!klinesHistory.length) return;
+
+        // Calculate technicals using the FULL history including live candle.
+        // technicalsService uses length-2 as pivot basis.
+        // So pivots will be derived from the candle BEFORE the last one.
+        // If last one is Live (T), pivots are from T-1. Correct.
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
+
+        // Identify Pivot Basis and Live Candle for Visualization
+        liveCandle = klinesHistory[klinesHistory.length - 1];
+        pivotBasisCandle = klinesHistory[klinesHistory.length - 2];
     }
 
     async function fetchData(silent = false) {
@@ -192,11 +167,10 @@
         error = null;
 
         try {
-            // Fetch history based on settings
             const limit = indicatorSettings?.historyLimit || 750;
             const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
             klinesHistory = klines;
-            data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
+            updateTechnicals();
         } catch (e) {
             console.error("Technicals fetch error:", e);
             error = "Failed to load";
@@ -245,25 +219,16 @@
 
     function copyDebugData() {
         if (!klinesHistory.length) return;
-
         const debugInfo = {
             symbol,
             timeframe,
             totalCandles: klinesHistory.length,
-            firstCandle: {
-                // Approximate time if we don't have explicit timestamp in all objects
-                idx: 0,
-                close: klinesHistory[0].close.toString()
-            },
-            lastCandle: {
-                idx: klinesHistory.length - 1,
-                close: klinesHistory[klinesHistory.length - 1].close.toString()
-            },
+            liveCandle,
+            pivotBasisCandle,
             indicators: data
         };
-
         navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
-            .then(() => alert('Debug data copied to clipboard!'))
+            .then(() => alert('Debug data copied!'))
             .catch(err => console.error('Failed to copy', err));
     }
 </script>
@@ -287,7 +252,6 @@
                     </span>
                 </button>
 
-                <!-- Debug / Info Icon -->
                  <div class="relative group">
                     <button class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1" on:click={copyDebugData}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -296,29 +260,21 @@
                             <line x1="12" y1="8" x2="12.01" y2="8"></line>
                         </svg>
                     </button>
-                    <!-- Simple tooltip on hover -->
-                     <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] p-1.5 rounded border border-[var(--border-color)]">
-                        Verify: n={klinesHistory.length} <br>
-                        Click to copy debug JSON
-                    </div>
                 </div>
             </div>
 
             {#if showTimeframePopup}
                 <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
-                    <!-- Row 1 -->
                     <div class="grid grid-cols-3 gap-2">
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1m')}>1m</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('5m')}>5m</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('15m')}>15m</button>
                     </div>
-                    <!-- Row 2 -->
                     <div class="grid grid-cols-3 gap-2">
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1h')}>1h</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('4h')}>4h</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1d')}>1d</button>
                     </div>
-                    <!-- Row 3 Custom -->
                     <div class="flex gap-1 mt-1">
                         <input
                             type="text"
@@ -346,8 +302,7 @@
         {:else if error}
             <div class="text-[var(--danger-color)] text-center text-sm py-4">{error}</div>
         {:else if data}
-
-            <!-- Oscillators -->
+            <!-- Oscillators & MAs (Standard) -->
             <div class="flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Oscillators</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
@@ -358,8 +313,6 @@
                     {/each}
                 </div>
             </div>
-
-            <!-- Moving Averages -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Moving Averages</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
@@ -371,130 +324,173 @@
                 </div>
             </div>
 
-            <!-- Pivots -->
+            <!-- Pivots Section -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                <div class="flex gap-3">
-                    <!-- Left: Candles Visualization -->
-                    <div class="flex gap-1 bg-[var(--bg-tertiary)]/20 rounded p-1 cursor-pointer hover:bg-[var(--bg-tertiary)]/40 transition-colors"
-                         bind:clientHeight={pivotHeight}
-                         style="min-width: 48px;"
-                         on:click={cycleViewMode}
-                         on:keypress={cycleViewMode}
-                         role="button"
-                         tabindex="0"
-                         title="Click to switch view: Dual / Live / Context">
+                <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                    {indicatorSettings?.pivots?.type ? `Pivots (${indicatorSettings.pivots.type})` : 'Pivots'}
+                </h4>
 
-                        {#if pivotBasisCandle && liveCandle && pivotHeight > 0 && data?.pivots?.classic}
-                            <!--
-                                Robust Scaling Logic:
-                                Define Viewport based on Pivots (S3 to R3) to ensure context.
-                                Expand viewport if candles go outside.
-                            -->
-                            {@const r3 = data.pivots.classic.r3 || -Infinity}
-                            {@const s3 = data.pivots.classic.s3 || Infinity}
+                <!-- MODE A: INTEGRATED (Default) -->
+                {#if viewMode === 'integrated' && pivotBasisCandle && liveCandle}
+                    {@const pivots = data.pivots.classic}
+                    {@const r3 = pivots.r3 || 0}
+                    {@const s3 = pivots.s3 || 0}
+                    {@const maxH = Math.max(Number(pivotBasisCandle.high), Number(liveCandle.high), r3)}
+                    {@const minL = Math.min(Number(pivotBasisCandle.low), Number(liveCandle.low), s3)}
+                    {@const range = maxH - minL || 1}
+                    {@const height = 180}
 
-                            {@const maxH = Math.max(Number(pivotBasisCandle.high), Number(liveCandle.high), r3)}
-                            {@const minL = Math.min(Number(pivotBasisCandle.low), Number(liveCandle.low), s3)}
-                            {@const totalRange = (maxH - minL) || 1}
+                    <!-- Pre-calculate Candle 1 (Previous) values -->
+                    {@const pO = Number(pivotBasisCandle.open)}
+                    {@const pC = Number(pivotBasisCandle.close)}
+                    {@const pH = Number(pivotBasisCandle.high)}
+                    {@const pL = Number(pivotBasisCandle.low)}
+                    {@const pColor = pC >= pO ? 'var(--text-tertiary)' : 'var(--text-secondary)'}
+                    {@const pTop = height - ((pH - minL) / range * height)}
+                    {@const pBottom = height - ((pL - minL) / range * height)}
+                    {@const pBodyTop = height - ((Math.max(pO, pC) - minL) / range * height)}
+                    {@const pBodyHeight = Math.abs(pO - pC) / range * height}
 
-                            <!-- Previous Candle (Context) -->
-                            {#if viewMode === 'dual' || viewMode === 'context'}
-                                {@const pBodyH = Math.abs(Number(pivotBasisCandle.close) - Number(pivotBasisCandle.open))}
-                                {@const pTopOffset = (maxH - Number(pivotBasisCandle.high)) / totalRange * pivotHeight}
-                                {@const pHeight = (Number(pivotBasisCandle.high) - Number(pivotBasisCandle.low)) / totalRange * pivotHeight}
-                                {@const pBodyTopRelative = (Number(pivotBasisCandle.high) - Math.max(Number(pivotBasisCandle.open), Number(pivotBasisCandle.close))) / totalRange * pivotHeight}
+                    <!-- Pre-calculate Candle 2 (Live) values -->
+                    {@const lO = Number(liveCandle.open)}
+                    {@const lC = Number(liveCandle.close)}
+                    {@const lH = Number(liveCandle.high)}
+                    {@const lL = Number(liveCandle.low)}
+                    {@const lColor = lC >= lO ? 'var(--success-color)' : 'var(--danger-color)'}
+                    {@const lTop = height - ((lH - minL) / range * height)}
+                    {@const lBottom = height - ((lL - minL) / range * height)}
+                    {@const lBodyTop = height - ((Math.max(lO, lC) - minL) / range * height)}
+                    {@const lBodyHeight = Math.abs(lO - lC) / range * height}
 
-                                <div class="w-4 relative h-full flex justify-center {viewMode === 'context' ? 'mx-auto' : ''}" title="Pivot Basis (Previous)">
-                                    <div class="absolute w-full" style="top: {pTopOffset}px; height: {pHeight}px;">
-                                         <!-- Wick -->
-                                         <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2 opacity-40" style="color: {prevColor}; height: 100%;"></div>
-                                         <!-- Body -->
-                                         <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px] opacity-60" style="background-color: {prevColor};
-                                              height: {Math.max(1, (pBodyH / totalRange) * pivotHeight)}px;
-                                              top: {pBodyTopRelative}px;">
-                                         </div>
-                                    </div>
+                    <div class="relative w-full bg-[var(--bg-tertiary)]/20 rounded border border-[var(--border-color)]" style="height: {height}px;">
+                        <!-- Pivot Lines -->
+                        {#each Object.entries(pivots) as [key, val]}
+                            {@const y = height - ((val - minL) / range * height)}
+                            {#if y >= 0 && y <= height}
+                                <div class="absolute w-full border-t border-[var(--text-tertiary)] opacity-30 text-[9px] text-[var(--text-secondary)] flex items-center" style="top: {y}px;">
+                                    <span class="ml-1 -mt-3 uppercase opacity-70">{key}</span>
+                                    <span class="ml-auto mr-1 -mt-3 opacity-50">{formatVal(val)}</span>
                                 </div>
                             {/if}
+                        {/each}
 
-                            <!-- Current Candle (Live) -->
-                            {#if viewMode === 'dual' || viewMode === 'live'}
-                                {@const cBodyH = Math.abs(Number(liveCandle.close) - Number(liveCandle.open))}
-                                {@const cTopOffset = (maxH - Number(liveCandle.high)) / totalRange * pivotHeight}
-                                {@const cHeight = (Number(liveCandle.high) - Number(liveCandle.low)) / totalRange * pivotHeight}
-                                {@const cBodyTopRelative = (Number(liveCandle.high) - Math.max(Number(liveCandle.open), Number(liveCandle.close))) / totalRange * pivotHeight}
-
-                                <div class="w-4 relative h-full flex justify-center {viewMode === 'live' ? 'mx-auto' : ''}" title="Live Price Action">
-                                    <div class="absolute w-full" style="top: {cTopOffset}px; height: {cHeight}px;">
-                                         <!-- Wick -->
-                                         <div class="absolute w-[1px] bg-current left-1/2 -translate-x-1/2" style="color: {currColor}; height: 100%;"></div>
-                                         <!-- Body -->
-                                         <div class="absolute w-2 left-1/2 -translate-x-1/2 rounded-[1px]" style="background-color: {currColor};
-                                              height: {Math.max(1, (cBodyH / totalRange) * pivotHeight)}px;
-                                              top: {cBodyTopRelative}px;">
-                                         </div>
-                                    </div>
-                                </div>
-                            {/if}
-                        {/if}
-                    </div>
-
-                    <!-- Right: Title + List -->
-                    <div class="flex flex-col flex-1">
-                        <div class="flex items-center gap-1 group relative w-fit mb-1">
-                            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
-
-                    <!-- Pulse indicator for live updates -->
-                    {#key lastUpdateTs}
-                        <div class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-ping ml-1" title="Live Update"></div>
-                    {/key}
-
-                            <!-- Tooltip -->
-                            <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
-                                <Tooltip>
-                                    <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                                        <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
-                                        <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                                            <span class="text-[var(--text-secondary)]">High:</span>
-                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
-
-                                            <span class="text-[var(--text-secondary)]">Low:</span>
-                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
-
-                                            <span class="text-[var(--text-secondary)]">Close:</span>
-                                            <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
-
-                                            {#if indicatorSettings?.pivots?.type === 'woodie'}
-                                                <span class="text-[var(--text-secondary)]">Open:</span>
-                                                <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
-                                            {/if}
-                                        </div>
-                                        {#if indicatorSettings?.pivots?.type === 'fibonacci'}
-                                            <div class="mt-1 pt-1 border-t border-[var(--border-color)] text-[var(--accent-color)]">
-                                                Fibo Levels: 0.382, 0.618, 1.0
-                                            </div>
-                                        {/if}
-                                    </div>
-                                </Tooltip>
-                            </div>
+                        <!-- Candle 1 Visual -->
+                        <div class="absolute left-[30%] -translate-x-1/2 w-3" style="top: {pTop}px; height: {pBottom - pTop}px;">
+                            <div class="absolute top-0 bottom-0 left-1/2 w-[1px] bg-current opacity-40" style="color: {pColor};"></div>
+                            <div class="absolute left-0 right-0 opacity-40 rounded-[1px]" style="background-color: {pColor}; top: {pBodyTop - pTop}px; height: {Math.max(1, pBodyHeight)}px;"></div>
                         </div>
 
-                        <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        <!-- Candle 2 Visual -->
+                        <div class="absolute left-[70%] -translate-x-1/2 w-3" style="top: {lTop}px; height: {lBottom - lTop}px;">
+                            <div class="absolute top-0 bottom-0 left-1/2 w-[1px] bg-current" style="color: {lColor};"></div>
+                            <div class="absolute left-0 right-0 rounded-[1px]" style="background-color: {lColor}; top: {lBodyTop - lTop}px; height: {Math.max(1, lBodyHeight)}px;"></div>
+                            <!-- Live Indicator Dot -->
+                            <div class="absolute -right-3 top-[50%] w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-ping"></div>
+                        </div>
+
+                        <!-- Legend -->
+                        <div class="absolute bottom-1 left-2 text-[9px] text-[var(--text-secondary)] opacity-50">PREV</div>
+                        <div class="absolute bottom-1 right-2 text-[9px] text-[var(--text-secondary)] font-bold">LIVE</div>
+                    </div>
+
+                <!-- MODE B: SEPARATED -->
+                {:else if viewMode === 'separated'}
+                    <div class="flex gap-4">
+                        <!-- Left: List -->
+                        <div class="flex-1 text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                             {#each Object.entries(data.pivots.classic).sort((a, b) => b[1] - a[1]) as [key, val]}
                                 <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
                                 <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
                             {/each}
                         </div>
-                    </div>
-                </div>
-            </div>
+                        <!-- Right: Simple Micro Chart -->
+                        {#if pivotBasisCandle && liveCandle}
+                             <!-- Reuse calc logic slightly simplified -->
+                             {@const maxH = Math.max(Number(pivotBasisCandle.high), Number(liveCandle.high))}
+                             {@const minL = Math.min(Number(pivotBasisCandle.low), Number(liveCandle.low))}
+                             {@const range = maxH - minL || 1}
 
+                             <!-- Prev -->
+                             {@const pC = Number(pivotBasisCandle.close)}
+                             {@const pO = Number(pivotBasisCandle.open)}
+                             {@const pH = Number(pivotBasisCandle.high)}
+                             {@const pL = Number(pivotBasisCandle.low)}
+                             {@const pH_px = (pH - minL) / range * 100}
+                             {@const pL_px = (pL - minL) / range * 100}
+                             {@const pO_px = (pO - minL) / range * 100}
+                             {@const pC_px = (pC - minL) / range * 100}
+
+                             <!-- Live -->
+                             {@const lC = Number(liveCandle.close)}
+                             {@const lO = Number(liveCandle.open)}
+                             {@const lH = Number(liveCandle.high)}
+                             {@const lL = Number(liveCandle.low)}
+                             {@const lH_px = (lH - minL) / range * 100}
+                             {@const lL_px = (lL - minL) / range * 100}
+                             {@const lO_px = (lO - minL) / range * 100}
+                             {@const lC_px = (lC - minL) / range * 100}
+                             {@const lColor = lC >= lO ? 'var(--success-color)' : 'var(--danger-color)'}
+
+                             <div class="w-16 h-32 relative border-l border-b border-[var(--border-color)]">
+                                <div class="absolute left-2 w-3 bg-[var(--text-secondary)] opacity-50"
+                                     style="bottom: {Math.min(pO_px, pC_px)}%; height: {Math.max(1, Math.abs(pC_px - pO_px))}%;"></div>
+                                <div class="absolute left-[1.1rem] w-[1px] bg-[var(--text-secondary)] opacity-50"
+                                     style="bottom: {pL_px}%; height: {pH_px - pL_px}%;"></div>
+
+                                <div class="absolute right-2 w-3"
+                                     style="background-color: {lColor}; bottom: {Math.min(lO_px, lC_px)}%; height: {Math.max(1, Math.abs(lC_px - lO_px))}%;"></div>
+                                <div class="absolute right-[0.9rem] w-[1px]"
+                                     style="background-color: {lColor}; bottom: {lL_px}%; height: {lH_px - lL_px}%;"></div>
+                             </div>
+                        {/if}
+                    </div>
+
+                <!-- MODE C: ABSTRACT (Gauge) -->
+                {:else if viewMode === 'abstract'}
+                    {@const pivots = data.pivots.classic}
+                    {@const livePrice = Number(liveCandle?.close || 0)}
+                    {@const rangeMin = pivots.s3 || 0}
+                    {@const rangeMax = pivots.r3 || 100}
+                    {@const fullRange = rangeMax - rangeMin || 1}
+                    {@const pct = Math.max(0, Math.min(100, (livePrice - rangeMin) / fullRange * 100))}
+
+                    <div class="flex flex-col gap-4 py-2">
+                        <!-- Gauge Bar -->
+                        <div class="h-6 w-full bg-[var(--bg-secondary)] rounded relative border border-[var(--border-color)]">
+                             <!-- Markers -->
+                             {#each abstractKeys as key}
+                                {@const val = pivots[key]}
+                                {@const pos = (val - rangeMin) / fullRange * 100}
+                                <div class="absolute h-full w-[1px] bg-[var(--text-tertiary)]" style="left: {pos}%">
+                                    <span class="absolute -top-4 -translate-x-1/2 text-[9px] uppercase text-[var(--text-secondary)]">{key}</span>
+                                </div>
+                             {/each}
+
+                             <!-- Live Position -->
+                             <div class="absolute top-0 bottom-0 w-1 bg-[var(--accent-color)] shadow-[0_0_8px_var(--accent-color)] transition-all duration-300" style="left: {pct}%"></div>
+                        </div>
+                        <div class="flex justify-between text-xs text-[var(--text-secondary)] font-mono">
+                            <span>S3: {formatVal(pivots.s3)}</span>
+                            <span class="text-[var(--text-primary)] font-bold">{formatVal(livePrice)}</span>
+                            <span>R3: {formatVal(pivots.r3)}</span>
+                        </div>
+                    </div>
+
+                <!-- Fallback / Default Text Only (shouldn't happen with view modes) -->
+                {:else}
+                    <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                        {#each Object.entries(data.pivots.classic).sort((a, b) => b[1] - a[1]) as [key, val]}
+                            <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
+                            <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
+                        {/each}
+                    </div>
+                {/if}
+            </div>
         {/if}
     </div>
 {/if}
 
 <style>
-    /* Ensure it doesn't get too wide on mobile */
     .technicals-panel {
         max-width: 100%;
     }

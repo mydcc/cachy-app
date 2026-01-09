@@ -219,6 +219,12 @@ export const technicalsService = {
 
         // --- Pivots ---
         // Pivots are calculated on the PREVIOUS complete candle (High, Low, Close).
+        // Since technicals are usually calculated for the "Current" or "Next" candle based on history,
+        // we need to be careful.
+        // If we want Pivots for the candle at index [length-1] (the last one in the array),
+        // we must use data from [length-2].
+        // If the caller wants stable pivots for the "Live" session (where the live candle is appended at length-1),
+        // then using length-2 (Last Completed) is correct.
         const prevHigh = highs[highs.length - 2];
         const prevLow = lows[lows.length - 2];
         const prevClose = closes[closes.length - 2];
