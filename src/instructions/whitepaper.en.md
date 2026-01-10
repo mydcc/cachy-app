@@ -149,7 +149,13 @@ Cachy works backwards: *I want to risk $100 -> How much BTC should I buy?*
 
 Cachy analyzes the `journalStore` to find behavioral patterns.
 
-#### 1. Chronobiological Analysis (Timing)
+#### 1. Multi-Timeframe ATR Scanning
+*Goal: What is the true market volatility right now?*
+Cachy doesn't just calculate one ATR. It executes a **Parallel Scan** of the user's favorite timeframes (e.g., 5m, 15m, 1h, 4h).
+- **Architecture**: It uses `Promise.all` to fetch klines for all timeframes simultaneously, calculating the ATR for each.
+- **Benefit**: The user sees a "Volatility Matrix" in the Trade Setup, allowing them to choose a Stop Loss based on short-term noise (5m) or trend reversal (4h).
+
+#### 2. Chronobiological Analysis (Timing)
 *Goal: Do you trade better before lunch?*
 The system iterates through every closed trade and buckets the PnL by Hour of Day (0-23) and Day of Week (0-6).
 - **Implementation**:
@@ -158,7 +164,7 @@ The system iterates through every closed trade and buckets the PnL by Hour of Da
   ```
 - **Result**: A heat map showing "Danger Zones" (e.g., Friday Afternoons) where the trader historically loses money.
 
-#### 2. Impulsivity Index (Duration)
+#### 3. Impulsivity Index (Duration)
 *Goal: Are you "revenge trading"?*
 The system plots Trade Duration vs. PnL.
 - **Logic**: If a trader has a cluster of losses with duration < 2 minutes immediately following a large loss, this is flagged as impulsive behavior.
@@ -172,11 +178,13 @@ To understand how Cachy functions, we trace the lifecycle of a single trade from
 ### Phase 1: Ideation (The Input Layer)
 *Component: `TradeSetupInputs.svelte`*
 1.  **User Input**: User types "BTC".
-2.  **Reactive Fetch**: The component debounces the input (500ms) and calls `app.fetchAllAnalysisData()`.
+2.  **Unified Analysis Fetch**: The component calls `app.fetchAllAnalysisData()`, which triggers a coordinated data harvest.
 3.  **Parallel Execution**:
     - **WebSocket**: Connects to `ticker` channel for real-time price.
-    - **REST API**: Fetches last 1440 candles (1 day) to calculate ATR (Average True Range).
-4.  **Auto-Fill**: The system uses the ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
+    - **REST API (Price)**: Fetches the latest price snapshot.
+    - **REST API (ATR)**: Fetches 1440 minutes of Kline history for the *primary* timeframe.
+    - **Multi-ATR Scan**: Simultaneously fetches klines for *secondary* timeframes (1h, 4h) in the background.
+4.  **Auto-Fill**: The system uses the primary ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
 
 ### Phase 2: Execution (The Proxy Layer)
 *Component: `TradeSetupInputs.svelte` -> `apiService.ts`*
@@ -198,7 +206,7 @@ To understand how Cachy functions, we trace the lifecycle of a single trade from
 ### Phase 4: Closing & Journaling (The Sync Layer)
 *Component: `app.ts` (Sync Logic)*
 1.  **Closure**: User clicks "Close" or SL is hit.
-2.  **History Fetch**: The app polls `get_history_positions`.
+2.  **History Fetch**: The app polls `get_history_positions` (for closed trades) and `get_pending_positions` (for status updates).
 3.  **The "Safe Swap"**:
     - The system detects a Position ID in History that matches an active ID in `accountStore`.
     - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
@@ -255,6 +263,12 @@ Cachy operates on a **"Trust No One"** architecture.
 - **Mechanism**: Data is stored in `localStorage` using the keys `cachy_trade_store` (drafts), `tradeJournal` (history), and `cryptoCalculatorSettings` (config).
 - **Benefit**: Even if the Cachy hosting server is compromised or taken offline, the user's data remains safe on their device.
 - **Portability**: Users can export their entire database as a JSON/CSV file via the "Backup" feature in Settings.
+
+### Bilingual Data Portability (CSV Import/Export)
+To support the "Community First" principle, Cachy ensures user data is never locked in.
+- **Universal Export**: Users can export their Journal to CSV at any time.
+- **Intelligent Import**: The `importFromCSV` service includes a bilingual translation layer. It detects German headers (e.g., `Gewinn`, `Datum`) or English headers (e.g., `Profit`, `Date`) and normalizes them into the internal data structure.
+- **Media Support**: Screenshot URLs and Tags are preserved during the import/export cycle, ensuring no "soft data" is lost.
 
 ### API Key Handling & Proxy Security
 Cachy acts as a pass-through entity.
