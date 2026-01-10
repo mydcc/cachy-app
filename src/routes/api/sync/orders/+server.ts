@@ -11,46 +11,72 @@ export const POST: RequestHandler = async ({ request }) => {
 
     try {
         let allOrders: any[] = [];
+        const startTime = Date.now();
+        const TIMEOUT_MS = 50000; // 50s timeout safety for serverless functions
+
+        let isPartial = false;
+
+        // Helper to check timeout
+        const checkTimeout = () => {
+            if (Date.now() - startTime > TIMEOUT_MS) {
+                console.warn('Sync orders timeout reached. Returning partial data.');
+                isPartial = true;
+                return true;
+            }
+            return false;
+        };
 
         // 1. Fetch Regular Orders
         try {
-            const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders');
+            const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
-            console.error('Error fetching regular orders:', err);
-            // If regular orders fail, we still try others, but if ALL fail, we might want to throw.
+            console.error('Error fetching regular orders:', err.message || 'Unknown error');
+            // Don't throw here, partial success is allowed
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
-        // Documentation: /api/v1/futures/tpsl/get_history_orders
-        try {
-            const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders');
-            allOrders = allOrders.concat(tpslOrders);
-        } catch (err: any) {
-            console.warn('Error fetching TP/SL orders:', err.message);
+        if (!checkTimeout()) {
+            try {
+                const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout);
+                allOrders = allOrders.concat(tpslOrders);
+            } catch (err: any) {
+                console.warn('Error fetching TP/SL orders:', err.message);
+            }
         }
 
         // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
-        try {
-            const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders');
-            allOrders = allOrders.concat(planOrders);
-        } catch (err: any) {
-            console.warn('Error fetching plan orders:', err.message);
+        if (!checkTimeout()) {
+             try {
+                const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout);
+                allOrders = allOrders.concat(planOrders);
+            } catch (err: any) {
+                console.warn('Error fetching plan orders:', err.message);
+            }
         }
 
-        return json({ data: allOrders });
+        return json({ data: allOrders, isPartial });
     } catch (e: any) {
-        console.error(`Error fetching orders from Bitunix:`, e);
+        // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
+        console.error(`Error fetching orders from Bitunix:`, e.message || 'Unknown error');
         return json({ error: e.message || 'Failed to fetch orders' }, { status: 500 });
     }
 };
 
-async function fetchAllPages(apiKey: string, apiSecret: string, path: string): Promise<any[]> {
-    const maxPages = 20;
+async function fetchAllPages(
+    apiKey: string,
+    apiSecret: string,
+    path: string,
+    checkTimeout: () => boolean
+): Promise<any[]> {
+    const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
     let accumulated: any[] = [];
     let currentEndTime: number | undefined = undefined;
 
     for (let i = 0; i < maxPages; i++) {
+        if (checkTimeout()) break;
+
+        // Fetch batch
         const batch = await fetchBitunixData(apiKey, apiSecret, path, 100, currentEndTime);
 
         if (!batch || batch.length === 0) {
@@ -69,13 +95,16 @@ async function fetchAllPages(apiKey: string, apiSecret: string, path: string): P
         const timeField = lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
         // Ensure we have a valid time field before parsing
-        if (timeField && !isNaN(parseInt(timeField, 10))) {
-            currentEndTime = parseInt(timeField, 10);
+        if (timeField !== undefined && timeField !== null) {
+            const parsedTime = parseInt(String(timeField), 10);
 
-            // Safety break: if the timestamp is 0 or very old/invalid, stop
-            if (currentEndTime <= 0) break;
+            if (!isNaN(parsedTime) && parsedTime > 0) {
+                currentEndTime = parsedTime;
+            } else {
+                break; // Invalid timestamp, stop paging
+            }
         } else {
-            break;
+            break; // No time field, stop paging
         }
     }
     return accumulated;
@@ -123,19 +152,29 @@ async function fetchBitunixData(apiKey: string, apiSecret: string, path: string,
             'timestamp': timestamp,
             'nonce': nonce,
             'sign': signature,
-            'Content-Type': 'application/json'
+            'Content-Type': 'application/json',
+            'User-Agent': 'CachyApp/1.0'
         }
     });
 
     if (!response.ok) {
         const text = await response.text();
+        // Try to parse JSON error from text
+        try {
+            const jsonError = JSON.parse(text);
+            if (jsonError.msg) {
+                 throw new Error(jsonError.msg); // Pass upstream message
+            }
+        } catch (e) {
+            // ignore
+        }
         throw new Error(`Bitunix API error [${path}]: ${response.status} ${text}`);
     }
 
     const data = await response.json();
     
     if (data.code !== 0 && data.code !== '0') {
-         throw new Error(`Bitunix API error code [${path}]: ${data.code} - ${data.msg || 'Unknown error'}`);
+         throw new Error(data.msg || `Bitunix API error code [${path}]: ${data.code}`);
     }
 
     // Robustly find the list in the response

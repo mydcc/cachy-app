@@ -228,7 +228,6 @@
     // Actions
     async function handleClosePosition(event: CustomEvent) {
         const pos = event.detail;
-        console.log("Closing Position:", pos);
 
         try {
             const response = await fetch('/api/orders', {
@@ -258,7 +257,6 @@
 
     async function handleTpSl(event: CustomEvent) {
         const pos = event.detail;
-        console.log("Edit TP/SL for:", pos);
         // Placeholder: Could open a modal or just pre-fill trade inputs
         // For now, let's load it into the Trade Inputs
         tradeStore.update(s => ({

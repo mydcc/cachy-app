@@ -17,8 +17,14 @@
     "fileReadError": "Fehler beim Lesen der ausgewählten Datei.",
     "version": "Version",
     "privacyLegal": "Datenschutz & Rechtliches",
+    "whitepaper": "Whitepaper",
     "pro": "Pro",
     "proActive": "Pro Aktiv"
+  },
+  "legal": {
+    "disclaimerTitle": "Rechtlicher Hinweis",
+    "disclaimerBody": "<p><strong>Keine Finanzberatung:</strong> Diese Anwendung ('Cachy') ist ein Software-Tool, das ausschließlich zu Bildungs-, Informations- und Simulationszwecken bereitgestellt wird. Die Berechnungen, Ergebnisse und Signale, die von dieser Anwendung generiert werden, sind hypothetischer Natur und stellen keine finanzielle, investitionsbezogene, rechtliche oder steuerliche Beratung dar.</p><p><strong>Nutzung auf eigenes Risiko:</strong> Der Handel mit Kryptowährungen und Derivaten ist mit einem hohen Risiko verbunden und kann zum Verlust Ihres gesamten Kapitals führen. Sie sind allein verantwortlich für Ihre Handelsentscheidungen und die Konfiguration dieses Tools. Die Entwickler von Cachy übernehmen keine Haftung für finanzielle Verluste oder Schäden, die aus der Nutzung dieser Anwendung entstehen, einschließlich, aber nicht beschränkt auf Softwarefehler, Datenungenauigkeiten oder Verbindungsprobleme.</p><p>Mit Klick auf 'Verstanden und akzeptiert' bestätigen Sie, diesen Haftungsausschluss gelesen zu haben und die Anwendung auf eigenes Risiko zu nutzen.</p>",
+    "accept": "Verstanden und akzeptiert"
   },
   "dashboard": {
     "presetLoad": "Preset laden...",
@@ -301,10 +307,15 @@
             "lossStreak": "Häufigkeit von Verlustserien unterschiedlicher Länge.",
             "drawdownRecovery": "Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst.",
             "tagPerformance": "Gewinn/Verlust pro Strategie-Tag.",
+            "tagEvolution": "Kumulierter Gewinn der Top 5 Strategien im Zeitverlauf.",
+            "durationPnl": "Ergebnis und Winrate gruppiert nach Haltedauer der Trades.",
+            "confluenceMatrix": "Heatmap der Handelsergebnisse nach Wochentag und Uhrzeit.",
             "heatmap": "Kalenderansicht der täglichen PnL-Performance.",
             "forecast": "Simuliert 100 mögliche Zukünfte basierend auf deinen historischen Trades. Der Kegel zeigt den Bereich zwischen Worst-Case (10% Perzentil) und Best-Case (90% Perzentil).",
             "rollingWinRate": "Deine Winrate über die jeweils letzten 20 Trades. Zeigt, ob du gerade 'heiß' oder 'kalt' läufst.",
-            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel."
+            "rollingPF": "Dein Profit Faktor über die letzten 20 Trades. Werte über 1.0 sind profitabel.",
+            "rollingSQN": "System Quality Number (SQN) über 20 Trades. > 2.0 ist gut, > 5.0 ist exzellent.",
+            "directionEvolution": "Kumulierter Gewinn getrennt nach Long und Short."
         },
         "labels": {
             "forecast": "Forecast",
@@ -343,12 +354,15 @@
             "realizedPnl": "Realisierter PnL ($)",
             "topAsset": "Top Asset",
             "mostProfitableStrategy": "Beste Strategie",
+            "durationAnalysis": "Dauer Analyse",
+            "confluence": "Konfluenz Matrix",
             "simBest": "90. Perzentil (Best)",
             "simMedian": "Median",
             "simWorst": "10. Perzentil (Worst)",
             "simRandom": "Sim #",
             "rollingWinRate": "Rolling Win Rate (20)",
             "rollingPF": "Rolling Profit Factor (20)",
+            "rollingSQN": "Rolling SQN (20)",
             "equityChange": "Equity Veränderung ($)"
         }
       }
@@ -394,6 +408,18 @@
     "interval10m": "Alle 10 Minuten",
     "missingApiKeys": "Bitte hinterlege deine API-Keys in den Einstellungen.",
     "showSidebars": "Seitenleisten anzeigen (Tabelle & Kacheln)",
+    "enableSidePanel": "Side Panel (Chat/Notizen) aktivieren",
+    "sidePanelMode": "Side Panel Modus",
+    "modeNotes": "Meine Notizen",
+    "modeChat": "Globaler Chat",
+    "sidePanelLayout": "Layout",
+    "layoutStandard": "Standard (Farbig)",
+    "layoutStandardDesc": "Fix links, solider Hintergrund",
+    "layoutTransparent": "Transparentes Overlay",
+    "layoutTransparentDesc": "Unter der Sidebar, transparenter Hintergrund",
+    "layoutFloating": "Schwebende Blase",
+    "layoutFloatingDesc": "Ausklappbare Chatbox (max 38vh)",
+    "sidePanelDesc": "Ausklappbares Panel am linken Rand.",
     "showTechnicals": "Technicals-Panel anzeigen",
     "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
     "feePreference": "Gebühren-Präferenz",

@@ -22,6 +22,7 @@ export interface MarketData {
         low: Decimal;
         close: Decimal;
         volume: Decimal;
+        time: number;
     };
 }
 
@@ -105,7 +106,7 @@ function createMarketStore() {
                 };
             });
         },
-        updateKline: (symbol: string, data: { o: string, h: string, l: string, c: string, b: string }) => {
+        updateKline: (symbol: string, data: { o: string, h: string, l: string, c: string, b: string, t: number }) => {
             update(store => {
                 const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
                 return {
@@ -117,7 +118,8 @@ function createMarketStore() {
                             high: new Decimal(data.h),
                             low: new Decimal(data.l),
                             close: new Decimal(data.c),
-                            volume: new Decimal(data.b)
+                            volume: new Decimal(data.b),
+                            time: data.t
                         }
                     }
                 };

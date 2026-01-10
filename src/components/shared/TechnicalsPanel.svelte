@@ -1,46 +1,35 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onDestroy } from "svelte";
     import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
     import { indicatorStore } from "../../stores/indicatorStore";
     import { marketStore } from "../../stores/marketStore";
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
-    import { technicalsService, type TechnicalsData } from "../../services/technicalsService";
-    import { icons } from "../../lib/constants";
-    import { _ } from "../../locales/i18n";
-    import { formatDynamicDecimal, normalizeTimeframeInput } from "../../utils/utils";
+    import { technicalsService } from "../../services/technicalsService";
+    import type { TechnicalsData } from "../../services/technicalsTypes"; // Import strict types
+    import { normalizeTimeframeInput, parseTimestamp, getIntervalMs } from "../../utils/utils";
     import { Decimal } from "decimal.js";
     import Tooltip from "../shared/Tooltip.svelte";
 
     export let isVisible: boolean = false;
 
     let klinesHistory: any[] = [];
-    let showDebug = false;
     let data: TechnicalsData | null = null;
     let loading = false;
     let error: string | null = null;
-    let refreshInterval: any;
     let showTimeframePopup = false;
     let customTimeframeInput = "";
     let currentSubscription: string | null = null;
 
-    // Use analysisTimeframe for Technicals, NOT atrTimeframe
+    // Use analysisTimeframe for Technicals
     $: symbol = $tradeStore.symbol;
     $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
 
-    // Derived display label for Pivots
-    $: pivotLabel = indicatorSettings?.pivots?.type
-        ? `Pivots (${indicatorSettings.pivots.type.charAt(0).toUpperCase() + indicatorSettings.pivots.type.slice(1)})`
-        : 'Pivots (Classic)';
-
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
-    $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
-        handleRealTimeUpdate(wsData.kline);
-    }
 
     // Trigger fetch/subscribe when relevant props change
     $: if (showPanel && symbol && timeframe) {
@@ -59,12 +48,35 @@
 
     // Re-calculate when settings change (without re-fetching)
     $: if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
-        data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
+        // When settings change, we just recalculate based on existing history + live
+        updateTechnicals();
+    }
+
+    // Handle Real-Time Updates
+    $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
+        handleRealTimeUpdate(wsData.kline);
+    }
+
+    const bitunixIntervalMap: Record<string, string> = {
+        '1m': '1min',
+        '5m': '5min',
+        '15m': '15min',
+        '30m': '30min',
+        '1h': '60min',
+        '4h': '4h',
+        '1d': '1day',
+        '1w': '1week',
+        '1M': '1month'
+    };
+
+    function getBitunixChannel(tf: string): string {
+        const mapped = bitunixIntervalMap[tf] || tf;
+        return `market_kline_${mapped}`;
     }
 
     function subscribeWs() {
         if (symbol && timeframe && $settingsStore.apiProvider === 'bitunix') {
-            const channel = `market_kline_${timeframe}`;
+            const channel = getBitunixChannel(timeframe);
             bitunixWs.subscribe(symbol, channel);
         }
     }
@@ -73,44 +85,70 @@
         if (currentSubscription) {
             const [oldSymbol, oldTimeframe] = currentSubscription.split(':');
             if (oldSymbol && oldTimeframe && $settingsStore.apiProvider === 'bitunix') {
-                 const channel = `market_kline_${oldTimeframe}`;
+                 const channel = getBitunixChannel(oldTimeframe);
                  bitunixWs.unsubscribe(oldSymbol, channel);
             }
         }
     }
 
+    // Core Logic for Updating Data and Pivots
     function handleRealTimeUpdate(newKline: any) {
         if (!klinesHistory || klinesHistory.length === 0) return;
+        if (!newKline) return;
 
-        // Bitunix kline update contains o,h,l,c (Decimal objects from store)
-        // We need to check if this is an update to the last candle or a new one.
-        // Bitunix WS doesn't always send timestamp in kline payload (updateKline in marketStore doesn't store it?)
-        // Wait, marketStore updateKline doesn't store timestamp!
-        // We assume it's the LATEST candle.
+        // Strict Validation: Ensure incoming data is valid
+        // Use parseTimestamp to ensure seconds/ms consistency with REST history
+        const rawTime = parseTimestamp(newKline.time);
+        const close = newKline.close ? new Decimal(newKline.close) : new Decimal(0);
 
-        // In a robust implementation, we'd check timestamps.
-        // However, for a simple update: we assume the WS stream corresponds to the "current" candle.
-        // So we update the last element of our history.
+        if (rawTime <= 0 || close.lte(0)) {
+            // Invalid data packet, ignore
+            return;
+        }
 
-        // Clone array to trigger reactivity? Or just modify.
+        // --- ALIGNMENT FIX ---
+        // Even if WebSocket sends a timestamp like "12:07:33", we MUST snap it to "12:00:00" for 15m candle.
+        // This prevents creating ghost candles if the WS sends event time instead of kline start time.
+        const intervalMs = getIntervalMs(timeframe);
+        const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
+
         const lastIdx = klinesHistory.length - 1;
-        // Make sure we have Decimal values (marketStore provides Decimals)
+        const lastHistoryCandle = klinesHistory[lastIdx];
+        const lastTime = lastHistoryCandle.time || lastHistoryCandle.ts || 0; // Already parsed by apiService
 
-        // Warning: The history from REST might have slightly different format than WS?
-        // REST: { open, high, low, close, volume, timestamp? }
-        // WS (marketStore): { open, high, low, close, volume } (Decimals)
-
-        // Let's perform a shallow merge/update of the last candle
-        klinesHistory[lastIdx] = {
-            ...klinesHistory[lastIdx], // Preserve timestamp if it exists
-            open: newKline.open,
-            high: newKline.high,
-            low: newKline.low,
-            close: newKline.close,
-            volume: newKline.volume
+        // Ensure we handle Decimal objects or strings/numbers correctly for history
+        const newCandleObj = {
+            open: newKline.open ? new Decimal(newKline.open) : new Decimal(0),
+            high: newKline.high ? new Decimal(newKline.high) : new Decimal(0),
+            low: newKline.low ? new Decimal(newKline.low) : new Decimal(0),
+            close: close,
+            volume: newKline.volume ? new Decimal(newKline.volume) : new Decimal(0),
+            time: alignedTime // Use ALIGNED time for the object too
         };
 
-        // Re-calculate technicals with settings
+        // Determine if newKline is the SAME candle as the last one in history, or a NEW one
+        // Using strict time comparison after alignment
+        if (alignedTime > lastTime && lastTime > 0) {
+            // New candle started!
+            klinesHistory = [...klinesHistory, newCandleObj];
+            if (klinesHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
+                klinesHistory.shift();
+            }
+        } else if (alignedTime === lastTime) {
+            // It's an update to the last candle.
+            const newHistory = [...klinesHistory];
+            newHistory[lastIdx] = newCandleObj;
+            klinesHistory = newHistory;
+        }
+        // If alignedTime < lastTime, it's an old update (out of order), ignore it to protect history.
+
+        updateTechnicals();
+    }
+
+    function updateTechnicals() {
+        if (!klinesHistory.length) return;
+        // Calculate technicals using the FULL history including live candle.
+        // The Service now handles Data normalization and Decimal conversion internally.
         data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
     }
 
@@ -120,11 +158,10 @@
         error = null;
 
         try {
-            // Fetch history based on settings
-            const limit = indicatorSettings?.historyLimit || 2000;
+            const limit = indicatorSettings?.historyLimit || 750;
             const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
             klinesHistory = klines;
-            data = technicalsService.calculateTechnicals(klinesHistory, indicatorSettings);
+            updateTechnicals();
         } catch (e) {
             console.error("Technicals fetch error:", e);
             error = "Failed to load";
@@ -143,8 +180,9 @@
         return 'text-[var(--text-secondary)]';
     }
 
-    function formatVal(val: number) {
-        return new Decimal(val).toDecimalPlaces(4).toString();
+    function formatVal(val: Decimal) {
+        // val is now strictly a Decimal object
+        return val.toDecimalPlaces(4).toString();
     }
 
     function toggleTimeframePopup() {
@@ -173,25 +211,14 @@
 
     function copyDebugData() {
         if (!klinesHistory.length) return;
-
         const debugInfo = {
             symbol,
             timeframe,
             totalCandles: klinesHistory.length,
-            firstCandle: {
-                // Approximate time if we don't have explicit timestamp in all objects
-                idx: 0,
-                close: klinesHistory[0].close.toString()
-            },
-            lastCandle: {
-                idx: klinesHistory.length - 1,
-                close: klinesHistory[klinesHistory.length - 1].close.toString()
-            },
             indicators: data
         };
-
         navigator.clipboard.writeText(JSON.stringify(debugInfo, null, 2))
-            .then(() => alert('Debug data copied to clipboard!'))
+            .then(() => alert('Debug data copied!'))
             .catch(err => console.error('Failed to copy', err));
     }
 </script>
@@ -215,7 +242,6 @@
                     </span>
                 </button>
 
-                <!-- Debug / Info Icon -->
                  <div class="relative group">
                     <button class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1" on:click={copyDebugData}>
                         <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -224,29 +250,21 @@
                             <line x1="12" y1="8" x2="12.01" y2="8"></line>
                         </svg>
                     </button>
-                    <!-- Simple tooltip on hover -->
-                     <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] p-1.5 rounded border border-[var(--border-color)]">
-                        Verify: n={klinesHistory.length} <br>
-                        Click to copy debug JSON
-                    </div>
                 </div>
             </div>
 
             {#if showTimeframePopup}
                 <div class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2">
-                    <!-- Row 1 -->
                     <div class="grid grid-cols-3 gap-2">
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1m')}>1m</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('5m')}>5m</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('15m')}>15m</button>
                     </div>
-                    <!-- Row 2 -->
                     <div class="grid grid-cols-3 gap-2">
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1h')}>1h</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('4h')}>4h</button>
                         <button class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium" on:click={() => setTimeframe('1d')}>1d</button>
                     </div>
-                    <!-- Row 3 Custom -->
                     <div class="flex gap-1 mt-1">
                         <input
                             type="text"
@@ -274,8 +292,7 @@
         {:else if error}
             <div class="text-[var(--danger-color)] text-center text-sm py-4">{error}</div>
         {:else if data}
-
-            <!-- Oscillators -->
+            <!-- Oscillators & MAs (Standard) -->
             <div class="flex flex-col gap-2">
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Oscillators</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
@@ -286,8 +303,6 @@
                     {/each}
                 </div>
             </div>
-
-            <!-- Moving Averages -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Moving Averages</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
@@ -299,55 +314,23 @@
                 </div>
             </div>
 
-            <!-- Pivots -->
+            <!-- Pivots Section -->
             <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                <div class="flex items-center gap-1 group relative w-fit">
-                    <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase cursor-help border-b border-dotted border-[var(--text-secondary)]">{pivotLabel}</h4>
-
-                    <!-- Tooltip -->
-                    <div class="absolute left-0 bottom-full mb-2 hidden group-hover:block z-50 w-max">
-                        <Tooltip>
-                            <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                                <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Calculation Basis (Previous Candle)</div>
-                                <div class="grid grid-cols-[auto_1fr] gap-x-3 gap-y-0.5">
-                                    <span class="text-[var(--text-secondary)]">High:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.high || 0)}</span>
-
-                                    <span class="text-[var(--text-secondary)]">Low:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.low || 0)}</span>
-
-                                    <span class="text-[var(--text-secondary)]">Close:</span>
-                                    <span class="font-mono text-right">{formatVal(data.pivotBasis?.close || 0)}</span>
-
-                                    {#if indicatorSettings?.pivots?.type === 'woodie'}
-                                        <span class="text-[var(--text-secondary)]">Open:</span>
-                                        <span class="font-mono text-right">{formatVal(data.pivotBasis?.open || 0)}</span>
-                                    {/if}
-                                </div>
-                                {#if indicatorSettings?.pivots?.type === 'fibonacci'}
-                                    <div class="mt-1 pt-1 border-t border-[var(--border-color)] text-[var(--accent-color)]">
-                                        Fibo Levels: 0.382, 0.618, 1.0
-                                    </div>
-                                {/if}
-                            </div>
-                        </Tooltip>
-                    </div>
-                </div>
-
-                <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1 mt-1">
-                    {#each Object.entries(data.pivots.classic).reverse() as [key, val]}
+                <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
+                    {indicatorSettings?.pivots?.type ? `Pivots (${indicatorSettings.pivots.type})` : 'Pivots'}
+                </h4>
+                <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+                    {#each Object.entries(data.pivots.classic).sort((a, b) => b[1].minus(a[1]).toNumber()) as [key, val]}
                         <span class="text-[var(--text-secondary)] w-6 uppercase">{key}</span>
                         <span class="text-right text-[var(--text-primary)] font-mono">{formatVal(val)}</span>
                     {/each}
                 </div>
             </div>
-
         {/if}
     </div>
 {/if}
 
 <style>
-    /* Ensure it doesn't get too wide on mobile */
     .technicals-panel {
         max-width: 100%;
     }

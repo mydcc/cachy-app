@@ -45,11 +45,12 @@ export interface IndicatorSettings {
     };
     pivots: {
         type: 'classic' | 'woodie' | 'camarilla' | 'fibonacci';
+        viewMode: 'integrated' | 'separated' | 'abstract';
     };
 }
 
 const defaultSettings: IndicatorSettings = {
-    historyLimit: 2000,
+    historyLimit: 750,
     rsi: {
         length: 14,
         source: 'close',
@@ -91,7 +92,8 @@ const defaultSettings: IndicatorSettings = {
         ema3Length: 200
     },
     pivots: {
-        type: 'classic'
+        type: 'classic',
+        viewMode: 'integrated'
     }
 };
 

@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider, type SidePanelLayout } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
@@ -39,7 +39,17 @@
 
     // Side Panel Settings
     let enableSidePanel: boolean;
-    let sidePanelMode: 'chat' | 'notes';
+    let sidePanelMode: 'chat' | 'notes' | 'ai';
+    let sidePanelLayout: SidePanelLayout;
+
+    // AI Settings
+    let aiProviderState: AiProvider;
+    let openaiApiKey: string;
+    let openaiModel: string;
+    let geminiApiKey: string;
+    let geminiModel: string;
+    let anthropicApiKey: string;
+    let anthropicModel: string;
 
     // Separate API keys per provider
     let bitunixKeys: ApiKeys = { key: '', secret: '' };
@@ -55,7 +65,7 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
+    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
     let isInitialized = false;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
@@ -105,7 +115,16 @@
             hotkeyMode = $settingsStore.hotkeyMode;
             enableSidePanel = $settingsStore.enableSidePanel;
             sidePanelMode = $settingsStore.sidePanelMode;
+            sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
             isPro = $settingsStore.isPro;
+
+            aiProviderState = $settingsStore.aiProvider || 'gemini';
+            openaiApiKey = $settingsStore.openaiApiKey || '';
+            openaiModel = $settingsStore.openaiModel || 'gpt-4o';
+            geminiApiKey = $settingsStore.geminiApiKey || '';
+            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash';
+            anthropicApiKey = $settingsStore.anthropicApiKey || '';
+            anthropicModel = $settingsStore.anthropicModel || 'claude-3-5-sonnet-20240620';
 
             favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
             favoriteTimeframesInput = favoriteTimeframes.join(', '); // Init text input
@@ -149,10 +168,18 @@
             hotkeyMode,
             enableSidePanel,
             sidePanelMode,
+            sidePanelLayout,
             favoriteTimeframes,
             syncRsiTimeframe,
             imgbbApiKey,
             imgbbExpiration,
+            aiProvider: aiProviderState,
+            openaiApiKey,
+            openaiModel,
+            geminiApiKey,
+            geminiModel,
+            anthropicApiKey,
+            anthropicModel,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -306,6 +333,15 @@
             {$_('settings.tabs.api')}
         </button>
         <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'ai' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'ai'}
+            role="tab"
+            aria-selected={activeTab === 'ai'}
+            aria-controls="tab-ai"
+        >
+            AI Chat
+        </button>
+        <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'behavior' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'behavior'}
             role="tab"
@@ -454,6 +490,70 @@
                 </p>
             </div>
 
+        {:else if activeTab === 'ai'}
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
+                    <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
+
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium">Default Provider</span>
+                        <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                            <option value="openai">OpenAI (ChatGPT)</option>
+                            <option value="gemini">Google Gemini</option>
+                            <option value="anthropic">Anthropic (Claude)</option>
+                        </select>
+                    </div>
+
+                    <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
+                        <!-- OpenAI Section -->
+                        <div class="flex flex-col gap-2">
+                            <label for="openai-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>OpenAI</span>
+                                {#if aiProviderState === 'openai'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
+                            </div>
+                        </div>
+
+                        <!-- Gemini Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="gemini-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Google Gemini</span>
+                                {#if aiProviderState === 'gemini'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.5-flash" />
+                            </div>
+                            <p class="text-[10px] text-[var(--text-secondary)] italic">
+                                Use <code>gemini-1.5-flash</code> if the 2.5 version is unavailable.
+                            </p>
+                        </div>
+
+                        <!-- Anthropic Section -->
+                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                            <label for="anthropic-key" class="text-xs font-bold flex items-center gap-2">
+                                <span>Anthropic</span>
+                                {#if aiProviderState === 'anthropic'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
+                            </label>
+                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
+                            <div class="flex items-center gap-2">
+                                <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
+                                <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic border-t border-[var(--border-color)] pt-2">
+                        Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
+                    </p>
+                </div>
+            </div>
+
         {:else if activeTab === 'behavior'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                 <div class="flex flex-col gap-1">
@@ -516,6 +616,63 @@
                     <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
                     <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
+
+                 <!-- Side Panel Toggle -->
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium">{$_('settings.enableSidePanel')}</span>
+                        <span class="text-xs text-[var(--text-secondary)]">{$_('settings.sidePanelDesc')}</span>
+                    </div>
+                    <input type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+
+                <div class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {enableSidePanel ? 'opacity-100' : 'opacity-50 pointer-events-none'}">
+
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium">{$_('settings.sidePanelMode')}</span>
+                        <div class="flex gap-2">
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="notes" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">{$_('settings.modeNotes')}</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">{$_('settings.modeChat')}</span>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
+                                <span class="text-sm">AI Chat</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-col gap-1">
+                        <span class="text-sm font-medium">{$_('settings.sidePanelLayout')}</span>
+                        <div class="flex flex-col gap-2">
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="standard" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutStandard')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutStandardDesc')}</span>
+                                </div>
+                            </label>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="transparent" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutTransparent')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutTransparentDesc')}</span>
+                                </div>
+                            </label>
+                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                                <input type="radio" bind:group={sidePanelLayout} value="floating" class="accent-[var(--accent-color)]" />
+                                <div class="flex flex-col">
+                                    <span class="text-sm">{$_('settings.layoutFloating')}</span>
+                                    <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutFloatingDesc')}</span>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+                </div>
 
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
@@ -909,6 +1066,15 @@
                                 </select>
                             </div>
 
+                            <div class="flex flex-col gap-1 mt-1">
+                                <span class="text-xs font-medium text-[var(--text-secondary)]">View Mode</span>
+                                <select bind:value={pivotSettings.viewMode} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                    <option value="integrated">Integrated (Recommended)</option>
+                                    <option value="separated">Separated</option>
+                                    <option value="abstract">Abstract (Gauge)</option>
+                                </select>
+                            </div>
+
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -924,6 +1090,17 @@
 
         {:else if activeTab === 'system'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
+                <!-- CachyLog Test -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                     <h4 class="text-sm font-bold">CachyLog Debug</h4>
+                     <p class="text-xs text-[var(--text-secondary)] mb-2">
+                         Trigger a test log on the server to verify browser console logging (CL: prefix).
+                     </p>
+                     <button class="btn btn-secondary text-sm w-full" on:click={() => fetch('/api/test-log', { method: 'POST' })}>
+                        Trigger Server Log
+                     </button>
+                </div>
+
                  <!-- Backup -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>

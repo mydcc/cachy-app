@@ -44,6 +44,7 @@ import { trackCustomEvent } from '../services/trackingService';
     let changelogContent = '';
     let guideContent = '';
     let privacyContent = '';
+    let whitepaperContent = '';
 
     // Initialisierung der App-Logik, sobald die Komponente gemountet ist
     onMount(() => {
@@ -71,11 +72,19 @@ import { trackCustomEvent } from '../services/trackingService';
         });
     }
 
+    // Load whitepaper content when modal is opened
+    $: if ($uiStore.showWhitepaperModal && whitepaperContent === '') {
+        loadInstruction('whitepaper').then(content => {
+            whitepaperContent = content.html;
+        });
+    }
+
     // Reset content when locale changes to force refetch
     $: if ($locale) {
         guideContent = '';
         changelogContent = '';
         privacyContent = '';
+        whitepaperContent = '';
     }
 
     // Reactive statement to trigger app.calculateAndDisplay() when relevant inputs change
@@ -159,6 +168,7 @@ import { trackCustomEvent } from '../services/trackingService';
             if ($uiStore.showJournalModal) uiStore.toggleJournalModal(false);
             if ($uiStore.showGuideModal) uiStore.toggleGuideModal(false);
             if ($uiStore.showPrivacyModal) uiStore.togglePrivacyModal(false);
+            if ($uiStore.showWhitepaperModal) uiStore.toggleWhitepaperModal(false);
             if ($uiStore.showChangelogModal) uiStore.toggleChangelogModal(false);
             if (get(modalManager).isOpen) modalManager._handleModalConfirm(false);
             return;
@@ -447,6 +457,7 @@ import { trackCustomEvent } from '../services/trackingService';
     <button class="text-link" on:click={() => uiStore.toggleGuideModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowGuide' }}>{$_('app.guideButton')}</button>
     <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>{$_('app.changelogTitle')}</button>
     <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>{$_('app.privacyLegal')}</button>
+    <button class="text-link" on:click={() => uiStore.toggleWhitepaperModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowWhitepaper' }}>{$_('app.whitepaper')}</button>
     <button class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}" on:click={() => $settingsStore.isPro = !$settingsStore.isPro}>
         {$settingsStore.isPro ? $_('app.proActive') : $_('app.pro')}
     </button>
@@ -455,8 +466,6 @@ import { trackCustomEvent } from '../services/trackingService';
 <JournalView />
 
 <CustomModal />
-
-<SettingsModal />
 
 <ModalFrame
     isOpen={$uiStore.showChangelogModal}
@@ -488,5 +497,16 @@ import { trackCustomEvent } from '../services/trackingService';
 >
     <div id="privacy-content" class="prose dark:prose-invert">
         {@html privacyContent}
+    </div>
+</ModalFrame>
+
+<ModalFrame
+    isOpen={$uiStore.showWhitepaperModal}
+    title={$_('app.whitepaper')}
+    on:close={() => uiStore.toggleWhitepaperModal(false)}
+    extraClasses="modal-size-instructions"
+>
+    <div id="whitepaper-content" class="prose dark:prose-invert">
+        {@html whitepaperContent}
     </div>
 </ModalFrame>

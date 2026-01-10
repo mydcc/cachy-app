@@ -71,6 +71,25 @@ Located at the top (or accessible via sidebar on mobile), this panel shows real-
 *   **Funding Rate:** Current funding rate (green = positive, red = negative).
 *   **Countdown:** Time remaining until the next funding payment.
 
+### Technicals Panel
+This panel provides deeper technical analysis (Oscillators & Pivots).
+
+**What data is shown there?**
+In the "Technicals" Panel you will see two types of indicators:
+*   **Oscillators (RSI, Stochastic, CCI...):** These measure the "momentum" of the price. They indicate whether a market is "overbought" (too expensive, could fall -> Sell) or "oversold" (too cheap, could rise -> Buy). These values may change live, but not erratically.
+*   **Pivots (P, R1, S1...):** These are static price levels that serve as Support (S) or Resistance (R).
+
+**How and why are Pivot Points calculated?**
+Pivot Points serve as a guide. Traders use them to find targets for profits (Take Profit at R1/R2) or entries. They are calculated purely mathematically from the previous candle (which is why they must be fixed as long as the current candle is running).
+
+**The Basic Formula (Classic):**
+*   **P (Pivot Point):** The average price of the last period.
+    $$ P = \frac{\text{High} + \text{Low} + \text{Close}}{3} $$
+*   **R1 (First Resistance):**
+    $$ R1 = (2 \times P) - \text{Low} $$
+*   **S1 (First Support):**
+    $$ S1 = (2 \times P) - \text{High} $$
+
 ### Favorites
 You can save up to **4 favorite symbols** for quick access.
 *   **Add:** Click the Star icon in the Market Overview.
