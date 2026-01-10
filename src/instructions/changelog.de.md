@@ -7,11 +7,20 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.96](#v0.96)
-2.  [Version 0.94](#v0.94)
-3.  [Version 0.92b2](#v0.92b2)
-4.  [Version 0.92b1](#v0.92b1)
-5.  [Version 0.92b](#v0.92b)
+1.  [Version 0.98](#v0.98)
+2.  [Version 0.96](#v0.96)
+3.  [Version 0.94](#v0.94)
+4.  [Version 0.92b2](#v0.92b2)
+5.  [Version 0.92b1](#v0.92b1)
+6.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.98"></a>Version 0.98 (Februar 2025)
+- **Neu:** **Jules API**: Intelligentes KI-gestütztes Fehleranalyse- und Berichtssystem für sofortige Diagnosen.
+- **Neu:** **Technicals Panel**: Erweitertes Chart-Overlay mit RSI, MACD, Stochastic und Auto-Pivots (powered by `technicalindicators`).
+- **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat (erfordert experimentelle API).
+- **Architektur:** Verbesserter "Jules Service" für sichere System-Snapshots und Telemetrie ohne Beeinträchtigung der Privatsphäre.
 
 ---
 
@@ -19,6 +28,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **Neu:** Websocket-Integration für Bitunix (Echtzeit-Preise, Orderbuch, Ticker).
 - **Neu:** Performance Tracking (Pro): Erweiterte Diagramme und Deep Dive Analysen im Journal.
 - **Neu:** Marktübersicht & Sidebar: Verbessertes Layout mit Echtzeitdaten und Favoriten.
+- **Neu:** Einstellung "Side Panel" unter Einstellungen -> Sidebar. Wähle zwischen "Privaten Notizen" (nur lokaler Speicher) oder "Globaler Chat".
 - **Verbesserungen:** Allgemeine Stabilitätsupdates und Anpassungen der Benutzeroberfläche.
 
 ---

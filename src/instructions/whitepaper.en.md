@@ -1,5 +1,5 @@
 # Cachy Technical Whitepaper
-**Version:** 0.96.0
+**Version:** 0.98.0
 **Date:** February 2025
 
 ---
@@ -58,7 +58,7 @@ In an era of data breaches, Cachy takes a radical stance: **We don't want your d
 Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 
 - **Frontend**: A rich Single Page Application (SPA) powered by SvelteKit. It handles 95% of the logic, including data processing, chart rendering, and state management.
-- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to sign requests for exchanges (Bitunix/Binance) securely without exposing API Secrets to the client, and to handle CORS issues.
+- **Backend (Serverless/Node)**: A lightweight API Proxy layer hosted within SvelteKit (`src/routes/api/`). Its primary purpose is to sign requests for exchanges (Bitunix/Binance) securely without exposing API Secrets to the client, and to handle AI-driven diagnostics.
 
 ### Technology Stack
 
@@ -70,6 +70,7 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **State** | **Svelte Stores** | Native, lightweight state management that scales well for real-time frequency data. |
 | **Math** | **Decimal.js** | IEEE 754 floating-point arithmetic (standard JS numbers) is unsafe for finance (e.g., `0.1 + 0.2 !== 0.3`). Decimal.js ensures arbitrary precision. |
 | **Charts** | **Chart.js** | Canvas-based rendering for high-performance visualizations (Equity Curves, Scatter Plots) capable of handling thousands of data points. |
+| **Analysis** | **TechnicalIndicators** | Modular library for calculating complex indicators (RSI, MACD, ADX) on the client side. |
 | **Testing** | **Vitest** | Blazing fast unit testing framework that shares configuration with Vite. |
 
 ### Client-Side State Management (The Store Pattern)
@@ -88,6 +89,17 @@ Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reacti
 4.  **`journalStore.ts`**: The Historical Record.
     -   *Tracks*: Array of `JournalEntry` objects (closed trades).
     -   *Analytics*: Serves as the raw dataset for the `calculator.ts` analytics engine.
+
+### AI-Assisted Telemetry (Jules Service)
+
+Cachy implements an intelligent diagnostic layer known as **Jules API**.
+
+- **Purpose**: To provide real-time, context-aware error analysis without compromising user privacy.
+- **Workflow**:
+    1. When a critical error occurs (or upon manual report), `julesService.ts` captures a **System Snapshot**.
+    2. **Sanitization**: All API Secrets and sensitive keys are redacted on the client side before transmission.
+    3. **Analysis**: The snapshot is sent to the backend (`/api/jules`), which forwards the context to a Large Language Model (Gemini).
+    4. **Result**: The AI analyzes the state (e.g., "WebSocket disconnected while Order was Pending") and returns a natural-language diagnosis to the user.
 
 ### Backend-for-Frontend (BFF) & Proxy Layer
 
@@ -155,7 +167,15 @@ Cachy doesn't just calculate one ATR. It executes a **Parallel Scan** of the use
 - **Architecture**: It uses `Promise.all` to fetch klines for all timeframes simultaneously, calculating the ATR for each.
 - **Benefit**: The user sees a "Volatility Matrix" in the Trade Setup, allowing them to choose a Stop Loss based on short-term noise (5m) or trend reversal (4h).
 
-#### 2. Chronobiological Analysis (Timing)
+#### 2. Technical Analysis Engine
+*Goal: Provide standard indicators without external charting libraries.*
+The `technicalsService.ts` leverages the `technicalindicators` library to compute:
+- **Oscillators**: RSI, Stochastic, CCI, Awesome Oscillator, ADX.
+- **Trend**: SMA, EMA, MACD.
+- **Pivot Points**: Calculated manually from the previous day's High/Low/Close.
+This data is visualized in the **Technicals Panel**, a dedicated overlay for rapid market assessment.
+
+#### 3. Chronobiological Analysis (Timing)
 *Goal: Do you trade better before lunch?*
 The system iterates through every closed trade and buckets the PnL by Hour of Day (0-23) and Day of Week (0-6).
 - **Implementation**:
@@ -163,11 +183,6 @@ The system iterates through every closed trade and buckets the PnL by Hour of Da
   hourlyNetPnl[date.getHours()].plus(trade.pnl);
   ```
 - **Result**: A heat map showing "Danger Zones" (e.g., Friday Afternoons) where the trader historically loses money.
-
-#### 3. Impulsivity Index (Duration)
-*Goal: Are you "revenge trading"?*
-The system plots Trade Duration vs. PnL.
-- **Logic**: If a trader has a cluster of losses with duration < 2 minutes immediately following a large loss, this is flagged as impulsive behavior.
 
 ---
 

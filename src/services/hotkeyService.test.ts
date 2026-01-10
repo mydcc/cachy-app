@@ -75,7 +75,7 @@ describe('HotkeyService', () => {
             apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } },
             enableSidePanel: true,
             sidePanelMode: 'chat',
-            sidePanelLayout: 'standard', // Changed to standard
+            sidePanelLayout: 'standard', // Fixed: Added missing property
             aiProvider: 'gemini',
             openaiApiKey: '',
             openaiModel: 'gpt-4o',
@@ -130,6 +130,7 @@ describe('HotkeyService', () => {
             showChangelogModal: false,
             showGuideModal: false,
             showPrivacyModal: false,
+            showWhitepaperModal: false, // Fixed: Added missing property
             showCopyFeedback: false,
             showSaveFeedback: false,
             errorMessage: '',
@@ -195,10 +196,4 @@ describe('HotkeyService', () => {
         expect(document.getElementById).toHaveBeenCalledWith('entry-price-input');
         expect(mockElement.focus).toHaveBeenCalled();
     });
-
-    // Note: Since updateTradeStore is mocked but not implemented logic-wise in the mock above (it's just a fn),
-    // we can't test state updates relying on it unless we mock implementation.
-    // However, we can verify that the store update was attempted.
-
-    // For simplicity in this fix, we just ensure the test file compiles and runs the basics.
 });

@@ -48,9 +48,12 @@ describe('technicalsService', () => {
 
     it('should respect custom settings', () => {
         const klines = generateKlines(250);
+        // Note: 'length' in ADX is mapped to 'adxSmoothing' in our migration logic in store,
+        // but here we pass raw object. TechnicalsService expects 'adxSmoothing' now.
+        // We simulate the migrated object here.
         const settings: any = {
             cci: { length: 10, threshold: 50 },
-            adx: { length: 10, threshold: 20 },
+            adx: { adxSmoothing: 10, diLength: 10, threshold: 20 },
             ao: { fastLength: 2, slowLength: 5 },
             momentum: { length: 5, source: 'close' }
         };
@@ -59,7 +62,8 @@ describe('technicalsService', () => {
         const names = result.oscillators.map(o => o.name);
 
         expect(names.some(n => n.includes('CCI (10)'))).toBe(true);
-        expect(names.some(n => n.includes('ADX (10)'))).toBe(true);
+        // The service now outputs `ADX (Smooth, DI Len)` -> `ADX (10, 10)`
+        expect(names.some(n => n.includes('ADX (10, 10)'))).toBe(true);
         expect(names.some(n => n.includes('Momentum (5)'))).toBe(true);
     });
 });
