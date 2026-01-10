@@ -72,6 +72,7 @@ async function fetchAllPages(
 ): Promise<any[]> {
     const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
     let accumulated: any[] = [];
+    const seenIds = new Set<string>(); // For deduplication
     let currentEndTime: number | undefined = undefined;
 
     for (let i = 0; i < maxPages; i++) {
@@ -84,7 +85,19 @@ async function fetchAllPages(
             break;
         }
 
-        accumulated = accumulated.concat(batch);
+        // Deduplicate and add
+        let newItemsCount = 0;
+        for (const item of batch) {
+            const id = String(item.orderId || item.id || item.planOrderId || Math.random());
+            if (!seenIds.has(id)) {
+                seenIds.add(id);
+                accumulated.push(item);
+                newItemsCount++;
+            }
+        }
+
+        // If we found no new items in this batch, we might be looping or done
+        if (newItemsCount === 0) break;
 
         // Pagination logic: use the creation time of the last item
         const lastItem = batch[batch.length - 1];
@@ -100,9 +113,14 @@ async function fetchAllPages(
             const parsedTime = parseInt(String(timeField), 10);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                // Subtract 1ms (or 1s) to prevent overlap if the API is inclusive
-                // Bitunix usually uses milliseconds. Safe to subtract 1.
-                currentEndTime = parsedTime - 1;
+                // Bitunix pagination is usually inclusive or exclusive depending on endpoint,
+                // but utilizing deduplication allows us to be safer by NOT subtracting 1ms,
+                // or just using the exact time to catch same-ms orders.
+                // However, infinite loops are a risk if the backend returns the same page endlessly.
+                // We'll stick to the timestamp.
+                // Since we deduplicate, using the exact timestamp is safer than subtracting if it's exclusive,
+                // but if it's inclusive, we get the last item again (handled by dedup).
+                currentEndTime = parsedTime;
             } else {
                 break; // Invalid timestamp, stop paging
             }
@@ -148,17 +166,32 @@ async function fetchBitunixData(apiKey: string, apiSecret: string, path: string,
     // 6. Build Query String for URL
     const queryString = new URLSearchParams(params).toString();
 
-    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
-        method: 'GET',
-        headers: {
-            'api-key': apiKey,
-            'timestamp': timestamp,
-            'nonce': nonce,
-            'sign': signature,
-            'Content-Type': 'application/json',
-            'User-Agent': 'CachyApp/1.0'
+    // Add AbortController for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per request
+
+    let response;
+    try {
+        response = await fetch(`${baseUrl}${path}?${queryString}`, {
+            method: 'GET',
+            headers: {
+                'api-key': apiKey,
+                'timestamp': timestamp,
+                'nonce': nonce,
+                'sign': signature,
+                'Content-Type': 'application/json',
+                'User-Agent': 'CachyApp/1.0'
+            },
+            signal: controller.signal
+        });
+    } catch (error: any) {
+        if (error.name === 'AbortError') {
+             throw new Error(`Request timed out for ${path}`);
         }
-    });
+        throw error;
+    } finally {
+        clearTimeout(timeoutId);
+    }
 
     if (!response.ok) {
         const text = await response.text();

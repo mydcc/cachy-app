@@ -355,6 +355,7 @@ class BitunixWebSocketService {
              this.wsPublic = null;
         } else {
              this.wsPrivate = null;
+             this.isAuthenticated = false; // Ensure auth state is reset on cleanup
         }
     }
 
