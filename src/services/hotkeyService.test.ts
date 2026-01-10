@@ -139,7 +139,8 @@ describe('HotkeyService', () => {
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,
-            loadingMessage: ''
+            loadingMessage: '',
+            showWhitepaperModal: false // Added missing property
         });
 
         // hotkeyService doesn't have an init(), it's likely initialized in App or Layout
