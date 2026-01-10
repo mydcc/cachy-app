@@ -31,19 +31,19 @@ describe('technicalsService', () => {
 
         const cci = result.oscillators.find(o => o.name.includes('CCI'));
         expect(cci).toBeDefined();
-        expect(cci?.value).toBeTypeOf('number');
+        expect(Decimal.isDecimal(cci?.value)).toBe(true);
 
         const adx = result.oscillators.find(o => o.name.includes('ADX'));
         expect(adx).toBeDefined();
-        expect(adx?.value).toBeTypeOf('number');
+        expect(Decimal.isDecimal(adx?.value)).toBe(true);
 
         const ao = result.oscillators.find(o => o.name.includes('Awesome Osc'));
         expect(ao).toBeDefined();
-        expect(ao?.value).toBeTypeOf('number');
+        expect(Decimal.isDecimal(ao?.value)).toBe(true);
 
         const mom = result.oscillators.find(o => o.name.includes('Momentum'));
         expect(mom).toBeDefined();
-        expect(mom?.value).toBeTypeOf('number');
+        expect(Decimal.isDecimal(mom?.value)).toBe(true);
     });
 
     it('should respect custom settings', () => {
