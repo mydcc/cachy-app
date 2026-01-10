@@ -103,7 +103,7 @@
     }
 </script>
 
-<div class="calendar-heatmap-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+<div class="calendar-heatmap-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
     {#each months as monthName, mIndex}
         {@const stats = calculateMonthStats(mIndex, year)}
         <div class="month-card bg-[var(--bg-primary)] p-2 rounded border border-[var(--border-color)] flex flex-col">
