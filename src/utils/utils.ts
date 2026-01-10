@@ -50,6 +50,30 @@ export function formatDynamicDecimal(value: Decimal | string | number | null | u
 }
 
 /**
+ * Formats a timestamp into a readable date string (e.g., DD.MM.YYYY HH:mm).
+ * Uses german locale logic or generic fallback.
+ */
+export function formatDate(timestamp: string | number | undefined, includeTime = true): string {
+    if (!timestamp) return '';
+    const date = new Date(timestamp);
+    if (isNaN(date.getTime())) return String(timestamp);
+
+    const day = String(date.getDate()).padStart(2, '0');
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const year = date.getFullYear();
+
+    let dateStr = `${day}.${month}.${year}`;
+
+    if (includeTime) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        dateStr += ` ${hours}:${minutes}`;
+    }
+
+    return dateStr;
+}
+
+/**
  * Parses a date string which might be in German format (DD.MM.YYYY) into a Date object.
  * @param dateStr Date string (e.g., "23.12.2025" or "2025-12-23")
  * @param timeStr Time string (e.g., "19:40:08")
