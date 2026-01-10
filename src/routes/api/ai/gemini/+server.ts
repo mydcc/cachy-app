@@ -24,8 +24,8 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         }
 
-        // Use 'gemini-1.5-flash' as the stable default for free tier
-        const selectedModel = model || 'gemini-1.5-flash';
+        // Use 'gemini-2.5-flash' as the current stable version
+        const selectedModel = model || 'gemini-2.5-flash';
 
         // Use streamGenerateContent?alt=sse for Server-Sent Events
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;

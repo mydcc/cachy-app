@@ -89,7 +89,7 @@ const defaultSettings: Settings = {
     openaiApiKey: '',
     openaiModel: 'gpt-4o',
     geminiApiKey: '',
-    geminiModel: 'gemini-2.0-flash', // Defaulting to 2.0-flash as requested, but user can change it
+    geminiModel: 'gemini-2.5-flash', // Defaulting to 2.5-flash as the stable version
     anthropicApiKey: '',
     anthropicModel: 'claude-3-5-sonnet-20240620',
 
