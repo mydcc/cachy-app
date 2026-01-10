@@ -423,7 +423,7 @@ export const app = {
             return parsedData.map(trade => {
                 const newTrade = { ...trade };
                 Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
+                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl', 'mae', 'mfe', 'efficiency'].includes(key)) {
                         newTrade[key] = new Decimal(newTrade[key] || 0);
                     }
                 });
@@ -594,6 +594,7 @@ export const app = {
         const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', 'Tags', 'Screenshot',
         // New headers
         'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
+        'Exit Price', 'Position Size', 'Margin Mode', 'Order Type', 'Role', 'MAE %', 'MFE %', 'Efficiency %', 'Duration (ms)',
          ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
@@ -606,6 +607,8 @@ export const app = {
                 (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, tags, screenshot,
                 // New values
                 trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
+                // New Fields Export
+                (trade.exitPrice || new Decimal(0)).toFixed(4), (trade.positionSize || new Decimal(0)).toFixed(4), trade.marginMode || '', trade.orderType || '', trade.role || '', (trade.mae || new Decimal(0)).toFixed(2), (trade.mfe || new Decimal(0)).toFixed(2), (trade.efficiency || new Decimal(0)).toFixed(1), trade.duration || 0,
                 ...tpData ].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
@@ -660,7 +663,17 @@ export const app = {
                 'Trade ID': 'Trade ID',
                 'Order ID': 'Order ID',
                 'Entry Date': 'Einstiegsdatum',
-                'Einstiegsdatum': 'Einstiegsdatum'
+                'Einstiegsdatum': 'Einstiegsdatum',
+                // New Fields Import
+                'Exit Price': 'Exit Price', 'Exit': 'Exit Price',
+                'Position Size': 'Position Size', 'Size': 'Position Size',
+                'Margin Mode': 'Margin Mode',
+                'Order Type': 'Order Type',
+                'Role': 'Role',
+                'MAE %': 'MAE %', 'MAE': 'MAE %',
+                'MFE %': 'MFE %', 'MFE': 'MFE %',
+                'Efficiency %': 'Efficiency %', 'Efficiency': 'Efficiency %',
+                'Duration (ms)': 'Duration (ms)', 'Duration': 'Duration (ms)'
             };
 
             // Identify which language/set of headers is present
@@ -739,6 +752,18 @@ export const app = {
                         realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
                         isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
                         entryDate: entry['Einstiegsdatum'] ? new Date(entry['Einstiegsdatum']).toISOString() : undefined,
+
+                        // New Fields Import
+                        exitPrice: entry['Exit Price'] ? parseDecimal(entry['Exit Price']) : undefined,
+                        positionSize: entry['Position Size'] ? parseDecimal(entry['Position Size']) : undefined,
+                        marginMode: entry['Margin Mode'],
+                        orderType: entry['Order Type'],
+                        role: entry['Role'],
+                        mae: entry['MAE %'] ? parseDecimal(entry['MAE %']) : undefined,
+                        mfe: entry['MFE %'] ? parseDecimal(entry['MFE %']) : undefined,
+                        efficiency: entry['Efficiency %'] ? parseDecimal(entry['Efficiency %']) : undefined,
+                        duration: entry['Duration (ms)'] ? parseFloat(entry['Duration (ms)']) : undefined,
+
                         calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
                     };
                     return importedTrade;

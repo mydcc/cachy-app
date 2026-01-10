@@ -87,10 +87,21 @@ export const apiService = {
         }
     },
 
-    async fetchBitunixKlines(symbol: string, interval: string, limit: number = 15): Promise<Kline[]> {
+    async fetchBitunixKlines(symbol: string, interval: string, limit: number = 15, startTime?: number, endTime?: number): Promise<Kline[]> {
         try {
             const normalized = apiService.normalizeSymbol(symbol, 'bitunix');
-            const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
+
+            // Build Query Params
+            const params = new URLSearchParams({
+                provider: 'bitunix',
+                symbol: normalized,
+                interval: interval,
+                limit: limit.toString()
+            });
+            if (startTime) params.append('start', startTime.toString());
+            if (endTime) params.append('end', endTime.toString());
+
+            const response = await fetch(`/api/klines?${params.toString()}`);
             if (!response.ok) throw new Error('apiErrors.klineError');
             const res = await response.json();
 
