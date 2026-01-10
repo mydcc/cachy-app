@@ -27,6 +27,7 @@
 
     // Indicator Settings
     let historyLimit = $indicatorStore.historyLimit || 2000;
+    let showParamsInLabel = $indicatorStore.showParamsInLabel ?? true;
     let rsiSettings = { ...$indicatorStore.rsi };
     let macdSettings = { ...$indicatorStore.macd };
     let stochSettings = { ...$indicatorStore.stochastic };
@@ -131,6 +132,7 @@
             syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
 
             historyLimit = $indicatorStore.historyLimit || 2000;
+            showParamsInLabel = $indicatorStore.showParamsInLabel ?? true;
             rsiSettings = { ...$indicatorStore.rsi };
             macdSettings = { ...$indicatorStore.macd };
             stochSettings = { ...$indicatorStore.stochastic };
@@ -192,6 +194,7 @@
 
         indicatorStore.set({
             historyLimit,
+            showParamsInLabel,
             rsi: rsiSettings,
             macd: macdSettings,
             stochastic: stochSettings,
@@ -316,9 +319,9 @@
     extraClasses="!w-auto !max-w-[62vw] max-h-[85vh] flex flex-col"
     alignment="top"
 >
-    <!-- ... [Tabs Header kept same] ... -->
     <!-- Tabs Header -->
     <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0" role="tablist">
+        <!-- [Existing Tabs Code...] -->
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'general' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'general'}
@@ -387,8 +390,8 @@
     <!-- Tab Content -->
     <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
 
+        <!-- [General, API, AI, Behavior, Sidebar tabs content kept same...] -->
         {#if activeTab === 'general'}
-            <!-- ... [General tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-general" aria-labelledby="tab-general-label">
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
@@ -426,7 +429,6 @@
             </div>
 
         {:else if activeTab === 'api'}
-            <!-- ... [API tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
@@ -487,7 +489,6 @@
             </div>
 
         {:else if activeTab === 'ai'}
-            <!-- ... [AI tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
@@ -544,7 +545,6 @@
             </div>
 
         {:else if activeTab === 'behavior'}
-            <!-- ... [Behavior tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">{$_('settings.intervalLabel')}</span>
@@ -590,7 +590,6 @@
             </div>
 
         {:else if activeTab === 'sidebar'}
-            <!-- ... [Sidebar tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
@@ -667,6 +666,21 @@
 
         {:else if activeTab === 'indicators'}
             <div class="flex flex-col gap-4 overflow-x-hidden" role="tabpanel" id="tab-indicators">
+
+                <!-- NEW: Global Indicator Settings -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                    <div class="flex justify-between items-center">
+                        <span class="text-sm font-bold">General Indicator Settings</span>
+                    </div>
+                    <label class="flex items-center justify-between cursor-pointer">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium">Show Parameters in Label</span>
+                            <span class="text-[10px] text-[var(--text-secondary)]">Example: 'RSI (14, 14)' vs 'RSI'</span>
+                        </div>
+                        <input type="checkbox" bind:checked={showParamsInLabel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                    </label>
+                </div>
+
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     <!-- Left Column -->
@@ -1123,7 +1137,7 @@
             </div>
 
         {:else if activeTab === 'system'}
-            <!-- ... [System tab content same as read file] ... -->
+            <!-- ... [System tab content kept same...] -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">CachyLog Debug</h4>

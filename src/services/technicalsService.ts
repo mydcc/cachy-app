@@ -43,6 +43,8 @@ export const technicalsService = {
             return this.getEmptyData();
         }
 
+        const showParams = settings?.showParamsInLabel ?? true;
+
         // Helper to get source array based on config (returns Decimal[])
         const getSource = (sourceType: string): Decimal[] => {
             switch (sourceType) {
@@ -67,7 +69,7 @@ export const technicalsService = {
         const rsiVal = indicators.calculateRSI(rsiSource, rsiLen);
 
         oscillators.push({
-            name: `RSI (${rsiLen}, ${rsiSigLen})`,
+            name: showParams ? `RSI (${rsiLen}, ${rsiSigLen})` : 'RSI',
             value: rsiVal ?? new Decimal(0),
             action: this.getRsiAction(rsiVal)
         });
@@ -126,7 +128,7 @@ export const technicalsService = {
         else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal)) stochAction = 'Sell';
 
         oscillators.push({
-            name: `Stoch (${stochK}, ${stochKSmooth}, ${stochD})`,
+            name: showParams ? `Stoch (${stochK}, ${stochKSmooth}, ${stochD})` : 'Stoch',
             value: stochKVal,
             action: stochAction
         });
@@ -171,7 +173,7 @@ export const technicalsService = {
         else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
 
         oscillators.push({
-            name: `CCI (${cciLen}, ${cciSmoothLen})`,
+            name: showParams ? `CCI (${cciLen}, ${cciSmoothLen})` : 'CCI',
             value: cciVal,
             signal: cciSignalVal,
             action: cciAction
@@ -194,7 +196,7 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `ADX (${adxSmooth}, ${diLen})`,
+            name: showParams ? `ADX (${adxSmooth}, ${diLen})` : 'ADX',
             value: adxVal,
             action: adxAction
         });
@@ -212,7 +214,7 @@ export const technicalsService = {
         else if (aoVal.lt(0)) aoAction = 'Sell';
 
         oscillators.push({
-            name: `Awesome Osc. (${aoFast}, ${aoSlow})`,
+            name: showParams ? `Awesome Osc. (${aoFast}, ${aoSlow})` : 'Awesome Osc.',
             value: aoVal,
             action: aoAction
         });
@@ -233,7 +235,7 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `Momentum (${momLen})`,
+            name: showParams ? `Momentum (${momLen})` : 'Momentum',
             value: momVal,
             action: momAction
         });
@@ -267,7 +269,7 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `MACD (${macdFast}, ${macdSlow}, ${macdSig})`,
+            name: showParams ? `MACD (${macdFast}, ${macdSlow}, ${macdSig})` : 'MACD',
             value: macdVal,
             signal: macdSignalVal,
             action: macdAction
@@ -287,7 +289,7 @@ export const technicalsService = {
 
             if (emaVal) {
                 movingAverages.push({
-                    name: `EMA (${period})`,
+                    name: showParams ? `EMA (${period})` : `EMA`,
                     value: emaVal,
                     action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
                 });
