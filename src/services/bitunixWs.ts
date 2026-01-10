@@ -72,6 +72,13 @@ class BitunixWebSocketService {
             window.removeEventListener('online', this.handleOnline);
             window.removeEventListener('offline', this.handleOffline);
         }
+
+        // Clear all timers including connection and reconnection timers
+        if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
+        if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
+        if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
+        if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
+
         this.cleanup('public');
         this.cleanup('private');
         if (this.wsPublic) this.wsPublic.close();
