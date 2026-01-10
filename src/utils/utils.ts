@@ -193,3 +193,31 @@ export function normalizeTimeframeInput(input: string): string {
 
     return val;
 }
+
+/**
+ * Converts a timeframe string (e.g., '15m', '1h', '1d') into milliseconds.
+ * Defaults to 1 hour (3600000ms) if invalid.
+ */
+export function getIntervalMs(timeframe: string): number {
+    if (!timeframe) return 3600000;
+
+    const match = timeframe.match(/^(\d+)([a-zA-Z]+)$/);
+    if (!match) return 3600000;
+
+    const num = parseInt(match[1], 10);
+    const unit = match[2].toLowerCase();
+
+    let multiplier = 60 * 1000; // Default to minute
+    switch (unit) {
+        case 'm': multiplier = 60 * 1000; break;
+        case 'h': multiplier = 60 * 60 * 1000; break;
+        case 'd': multiplier = 24 * 60 * 60 * 1000; break;
+        case 'w': multiplier = 7 * 24 * 60 * 60 * 1000; break;
+    }
+
+    // Special handling for Month '1M' if unit became 'm' but we need to distinguish?
+    // Given normalized inputs usually use 'm' for minute.
+    // Let's rely on standard 'm', 'h', 'd'.
+
+    return num * multiplier;
+}

@@ -8,7 +8,7 @@
     import { apiService } from "../../services/apiService";
     import { technicalsService } from "../../services/technicalsService";
     import type { TechnicalsData } from "../../services/technicalsTypes"; // Import strict types
-    import { normalizeTimeframeInput, parseTimestamp } from "../../utils/utils";
+    import { normalizeTimeframeInput, parseTimestamp, getIntervalMs } from "../../utils/utils";
     import { Decimal } from "decimal.js";
     import Tooltip from "../shared/Tooltip.svelte";
 
@@ -98,13 +98,19 @@
 
         // Strict Validation: Ensure incoming data is valid
         // Use parseTimestamp to ensure seconds/ms consistency with REST history
-        const time = parseTimestamp(newKline.time);
+        const rawTime = parseTimestamp(newKline.time);
         const close = newKline.close ? new Decimal(newKline.close) : new Decimal(0);
 
-        if (time <= 0 || close.lte(0)) {
+        if (rawTime <= 0 || close.lte(0)) {
             // Invalid data packet, ignore
             return;
         }
+
+        // --- ALIGNMENT FIX ---
+        // Even if WebSocket sends a timestamp like "12:07:33", we MUST snap it to "12:00:00" for 15m candle.
+        // This prevents creating ghost candles if the WS sends event time instead of kline start time.
+        const intervalMs = getIntervalMs(timeframe);
+        const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
 
         const lastIdx = klinesHistory.length - 1;
         const lastHistoryCandle = klinesHistory[lastIdx];
@@ -117,24 +123,24 @@
             low: newKline.low ? new Decimal(newKline.low) : new Decimal(0),
             close: close,
             volume: newKline.volume ? new Decimal(newKline.volume) : new Decimal(0),
-            time: time
+            time: alignedTime // Use ALIGNED time for the object too
         };
 
         // Determine if newKline is the SAME candle as the last one in history, or a NEW one
-        // Using strict time comparison after normalization
-        if (time > lastTime && lastTime > 0) {
+        // Using strict time comparison after alignment
+        if (alignedTime > lastTime && lastTime > 0) {
             // New candle started!
             klinesHistory = [...klinesHistory, newCandleObj];
             if (klinesHistory.length > (indicatorSettings?.historyLimit || 1000) + 50) {
                 klinesHistory.shift();
             }
-        } else if (time === lastTime) {
+        } else if (alignedTime === lastTime) {
             // It's an update to the last candle.
             const newHistory = [...klinesHistory];
             newHistory[lastIdx] = newCandleObj;
             klinesHistory = newHistory;
         }
-        // If time < lastTime, it's an old update (out of order), ignore it to protect history.
+        // If alignedTime < lastTime, it's an old update (out of order), ignore it to protect history.
 
         updateTechnicals();
     }
