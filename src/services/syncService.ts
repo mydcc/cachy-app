@@ -63,6 +63,9 @@ export const syncService = {
             let orders: any[] = [];
             try {
                 const orderResult = await orderResponse.json();
+                if (orderResult.isPartial) {
+                    uiStore.showError('sync.partialDataWarning');
+                }
                 if (!orderResult.error && Array.isArray(orderResult.data)) {
                     orders = orderResult.data;
                 }
