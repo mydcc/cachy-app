@@ -26,6 +26,50 @@
 		const storedTheme = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY);
 		const themeToSet = storedTheme || data.theme; // Use localStorage theme, fallback to cookie theme
 		uiStore.setTheme(themeToSet);
+
+        // --- CachyLog Integration ---
+        // Connect to Server-Sent Events stream for real-time server logs
+        let evtSource: EventSource | null = null;
+
+        if (typeof EventSource !== 'undefined') {
+            try {
+                evtSource = new EventSource('/api/stream-logs');
+
+                evtSource.onmessage = (event) => {
+                    try {
+                        const logEntry = JSON.parse(event.data);
+                        // Styling for console
+                        const clStyle = 'background: #333; color: #00ff9d; padding: 2px 5px; border-radius: 3px; font-weight: bold;';
+                        const levelStyle = logEntry.level === 'error' ? 'color: #ff4444;' :
+                                           logEntry.level === 'warn' ? 'color: #ffbb33;' : 'color: #88ccff;';
+
+                        // "CL: [LEVEL] Message"
+                        // Note: console.log supports format specifiers like %c
+                        console.log(
+                            `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+                            clStyle,
+                            levelStyle,
+                            logEntry.data ? logEntry.data : ''
+                        );
+                    } catch (e) {
+                        console.log('%cCL:%c [RAW]', 'background: #333; color: #00ff9d;', '', event.data);
+                    }
+                };
+
+                evtSource.onerror = (err) => {
+                    // Quietly fail or retry, don't spam console
+                    // console.error('CL: EventSource failed:', err);
+                };
+            } catch (e) {
+                console.error('CL: Failed to init EventSource', e);
+            }
+        }
+
+        return () => {
+            if (evtSource) {
+                evtSource.close();
+            }
+        };
 	});
 
 	// Dynamic theme color for PWA/Android status bar
