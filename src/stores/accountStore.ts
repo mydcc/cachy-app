@@ -70,10 +70,17 @@ function createAccountStore() {
                     }
                 } else {
                     // OPEN or UPDATE
+                    // Prepare partial data, defaulting only if this is a NEW position
+                    const existing = index !== -1 ? currentPositions[index] : null;
+
+                    // Safety: If it's a new position, we need a side. If missing, we warn and default to long (unlikely for OPEN events)
+                    // If it's an update, we use existing side if data.side is missing.
+                    let side = data.side ? data.side.toLowerCase() : (existing ? existing.side : 'long');
+
                     const newPos: Position = {
                         positionId: data.positionId,
                         symbol: data.symbol,
-                        side: data.side ? data.side.toLowerCase() : 'long', 
+                        side: side,
                         size: new Decimal(data.qty || 0),
                         entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0), 
                         leverage: new Decimal(data.leverage || 0),
@@ -85,15 +92,19 @@ function createAccountStore() {
                         breakEvenPrice: new Decimal(0)
                     };
 
-                    if (index !== -1) {
+                    if (existing) {
                         // Merge with existing to preserve missing fields
-                        const existing = currentPositions[index];
                         if (newPos.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
+
+                        // Preserve calculation fields if not in payload
                         newPos.liquidationPrice = existing.liquidationPrice;
                         newPos.markPrice = existing.markPrice;
                         newPos.breakEvenPrice = existing.breakEvenPrice;
-                        if (!data.side) newPos.side = existing.side;
                         
+                        // Preserve structural fields if not in payload
+                        if (!data.marginMode) newPos.marginMode = existing.marginMode;
+                        if (!data.leverage) newPos.leverage = existing.leverage;
+
                         currentPositions[index] = newPos;
                     } else {
                         currentPositions.push(newPos);

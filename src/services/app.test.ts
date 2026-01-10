@@ -236,6 +236,7 @@ describe('app service - ATR and Locking Logic', () => {
     it('should fetch ATR and update the trade store', async () => {
         // Arrange
         const mockKlines: Kline[] = Array(15).fill(0).map((_, i) => ({
+            time: 1625097600000 + i * 3600000, // Added time property
             high: new Decimal(102 + i * 0.1),
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),

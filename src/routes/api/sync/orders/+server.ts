@@ -99,7 +99,9 @@ async function fetchAllPages(
             const parsedTime = parseInt(String(timeField), 10);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                currentEndTime = parsedTime;
+                // Subtract 1ms (or 1s) to prevent overlap if the API is inclusive
+                // Bitunix usually uses milliseconds. Safe to subtract 1.
+                currentEndTime = parsedTime - 1;
             } else {
                 break; // Invalid timestamp, stop paging
             }

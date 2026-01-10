@@ -75,6 +75,7 @@ describe('HotkeyService', () => {
             apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } },
             enableSidePanel: true,
             sidePanelMode: 'chat',
+            sidePanelLayout: 'standard', // Changed to standard
             aiProvider: 'gemini',
             openaiApiKey: '',
             openaiModel: 'gpt-4o',
@@ -137,7 +138,8 @@ describe('HotkeyService', () => {
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,
-            loadingMessage: ''
+            loadingMessage: '',
+            showWhitepaperModal: false // Added missing property
         });
 
         // hotkeyService doesn't have an init(), it's likely initialized in App or Layout
