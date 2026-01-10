@@ -318,7 +318,7 @@
 >
     <!-- Main Flex Container: Horizontal on Desktop, Vertical on Mobile -->
     <div class="flex flex-col md:flex-row h-full overflow-hidden">
-
+        
         <!-- Sidebar (Tabs) -->
         <div class="flex md:flex-col border-b md:border-b-0 md:border-r border-[var(--border-color)] overflow-x-auto md:overflow-x-hidden md:overflow-y-auto shrink-0 md:w-48 bg-[var(--bg-secondary)]" role="tablist">
             <button

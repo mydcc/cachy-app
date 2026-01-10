@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 
 export interface IndicatorSettings {
     historyLimit: number; // Global setting for calculation depth
+    showParamsInLabel: boolean; // Global setting to show/hide params in indicator names
     rsi: {
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
@@ -57,6 +58,7 @@ export interface IndicatorSettings {
 
 const defaultSettings: IndicatorSettings = {
     historyLimit: 750,
+    showParamsInLabel: true,
     rsi: {
         length: 14,
         source: 'close',
@@ -128,6 +130,7 @@ function createIndicatorStore() {
 
             initial = {
                 historyLimit: parsed.historyLimit || defaultSettings.historyLimit,
+                showParamsInLabel: parsed.showParamsInLabel !== undefined ? parsed.showParamsInLabel : defaultSettings.showParamsInLabel,
                 rsi: { ...defaultSettings.rsi, ...parsed.rsi },
                 macd: { ...defaultSettings.macd, ...parsed.macd },
                 stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },

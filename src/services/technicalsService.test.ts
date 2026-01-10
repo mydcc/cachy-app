@@ -46,26 +46,47 @@ describe('technicalsService', () => {
         expect(Decimal.isDecimal(mom?.value)).toBe(true);
     });
 
-    it('should respect custom settings', () => {
+    it('should respect custom settings and showParamsInLabel=true (default)', () => {
         const klines = generateKlines(250);
-        // Note: 'length' in ADX is mapped to 'adxSmoothing' in our migration logic in store,
-        // but here we pass raw object. TechnicalsService expects 'adxSmoothing' now.
-        // We simulate the migrated object here.
+        // showParamsInLabel defaults to true if missing in settings object passed (based on store default, but here service uses local logic)
+        // Service logic: `const showParams = settings?.showParamsInLabel ?? true;`
         const settings: any = {
             cci: { length: 10, threshold: 50 },
             adx: { adxSmoothing: 10, diLength: 10, threshold: 20 },
             ao: { fastLength: 2, slowLength: 5 },
-            momentum: { length: 5, source: 'close' }
+            momentum: { length: 5, source: 'close' },
+            showParamsInLabel: true
         };
 
         const result = technicalsService.calculateTechnicals(klines, settings);
         const names = result.oscillators.map(o => o.name);
 
-        // Updated expectations to match new naming convention (Value, Smoothing/Signal)
-        // CCI default smoothing is 14 if not provided
         expect(names.some(n => n.includes('CCI (10, 14)'))).toBe(true);
         expect(names.some(n => n.includes('ADX (10, 10)'))).toBe(true);
         expect(names.some(n => n.includes('Momentum (5)'))).toBe(true);
         expect(names.some(n => n.includes('Awesome Osc. (2, 5)'))).toBe(true);
+    });
+
+    it('should respect showParamsInLabel=false', () => {
+        const klines = generateKlines(250);
+        const settings: any = {
+            cci: { length: 10, threshold: 50 },
+            adx: { adxSmoothing: 10, diLength: 10, threshold: 20 },
+            ao: { fastLength: 2, slowLength: 5 },
+            momentum: { length: 5, source: 'close' },
+            showParamsInLabel: false
+        };
+
+        const result = technicalsService.calculateTechnicals(klines, settings);
+        const names = result.oscillators.map(o => o.name);
+
+        // Check for simplified names
+        expect(names.some(n => n === 'CCI')).toBe(true);
+        expect(names.some(n => n === 'ADX')).toBe(true);
+        expect(names.some(n => n === 'Momentum')).toBe(true);
+        expect(names.some(n => n === 'Awesome Osc.')).toBe(true);
+
+        // Ensure no parameters are present
+        expect(names.some(n => n.includes('('))).toBe(false);
     });
 });
