@@ -133,6 +133,12 @@
                 ? { ...$settingsStore.hotkeyBindings }
                 : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
 
+            // Initialize Hotkey Bindings
+            // Ensure we have a valid object even if store is old
+            hotkeyBindings = $settingsStore.hotkeyBindings
+                ? { ...$settingsStore.hotkeyBindings }
+                : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
+
             aiProviderState = $settingsStore.aiProvider || 'gemini';
             openaiApiKey = $settingsStore.openaiApiKey || '';
             openaiModel = $settingsStore.openaiModel || 'gpt-4o';

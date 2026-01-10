@@ -165,11 +165,6 @@ function loadSettingsFromLocalStorage(): Settings {
         if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
         if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
 
-        // 5. Ensure visibleColumns is populated if empty or missing
-        if (!settings.visibleColumns || !Array.isArray(settings.visibleColumns) || settings.visibleColumns.length === 0) {
-            settings.visibleColumns = defaultSettings.visibleColumns;
-        }
-
         // 5. Hotkey Migration: If hotkeyBindings are missing, init from mode
         if (!settings.hotkeyBindings) {
             const mode = settings.hotkeyMode || 'mode2';
