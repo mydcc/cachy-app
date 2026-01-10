@@ -1,6 +1,6 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider, type SidePanelLayout } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
@@ -40,6 +40,7 @@
     // Side Panel Settings
     let enableSidePanel: boolean;
     let sidePanelMode: 'chat' | 'notes' | 'ai';
+    let sidePanelLayout: SidePanelLayout;
 
     // AI Settings
     let aiProviderState: AiProvider;
@@ -114,6 +115,7 @@
             hotkeyMode = $settingsStore.hotkeyMode;
             enableSidePanel = $settingsStore.enableSidePanel;
             sidePanelMode = $settingsStore.sidePanelMode;
+            sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
             isPro = $settingsStore.isPro;
 
             aiProviderState = $settingsStore.aiProvider || 'gemini';
