@@ -37,8 +37,8 @@ if (!(global as any)._isConsolePatched) {
 
 const loggingHandler: Handle = async ({ event, resolve }) => {
     const start = Date.now();
-    const { method, url } = event.request;
-    const path = url.pathname;
+    const { method } = event.request;
+    const path = event.url.pathname;
 
     // Ignoriere den Log-Stream selbst, um Endlos-Schleifen zu vermeiden
     if (path.includes('/api/stream-logs')) {
