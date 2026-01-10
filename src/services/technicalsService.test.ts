@@ -61,9 +61,11 @@ describe('technicalsService', () => {
         const result = technicalsService.calculateTechnicals(klines, settings);
         const names = result.oscillators.map(o => o.name);
 
-        expect(names.some(n => n.includes('CCI (10)'))).toBe(true);
-        // The service now outputs `ADX (Smooth, DI Len)` -> `ADX (10, 10)`
+        // Updated expectations to match new naming convention (Value, Smoothing/Signal)
+        // CCI default smoothing is 14 if not provided
+        expect(names.some(n => n.includes('CCI (10, 14)'))).toBe(true);
         expect(names.some(n => n.includes('ADX (10, 10)'))).toBe(true);
         expect(names.some(n => n.includes('Momentum (5)'))).toBe(true);
+        expect(names.some(n => n.includes('Awesome Osc. (2, 5)'))).toBe(true);
     });
 });

@@ -62,11 +62,12 @@ export const technicalsService = {
 
         // 1. RSI
         const rsiLen = settings?.rsi?.length || 14;
+        const rsiSigLen = settings?.rsi?.signalLength || 14;
         const rsiSource = getSource(settings?.rsi?.source || 'close');
         const rsiVal = indicators.calculateRSI(rsiSource, rsiLen);
 
         oscillators.push({
-            name: `RSI (${rsiLen})`,
+            name: `RSI (${rsiLen}, ${rsiSigLen})`,
             value: rsiVal ?? new Decimal(0),
             action: this.getRsiAction(rsiVal)
         });
@@ -170,7 +171,7 @@ export const technicalsService = {
         else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
 
         oscillators.push({
-            name: `CCI (${cciLen})`,
+            name: `CCI (${cciLen}, ${cciSmoothLen})`,
             value: cciVal,
             signal: cciSignalVal,
             action: cciAction
@@ -211,7 +212,7 @@ export const technicalsService = {
         else if (aoVal.lt(0)) aoAction = 'Sell';
 
         oscillators.push({
-            name: `Awesome Osc.`,
+            name: `Awesome Osc. (${aoFast}, ${aoSlow})`,
             value: aoVal,
             action: aoAction
         });
@@ -266,7 +267,7 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `MACD (${macdFast}, ${macdSlow})`,
+            name: `MACD (${macdFast}, ${macdSlow}, ${macdSig})`,
             value: macdVal,
             signal: macdSignalVal,
             action: macdAction
