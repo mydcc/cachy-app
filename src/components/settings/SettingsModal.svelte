@@ -1090,6 +1090,17 @@
 
         {:else if activeTab === 'system'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
+                <!-- CachyLog Test -->
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
+                     <h4 class="text-sm font-bold">CachyLog Debug</h4>
+                     <p class="text-xs text-[var(--text-secondary)] mb-2">
+                         Trigger a test log on the server to verify browser console logging (CL: prefix).
+                     </p>
+                     <button class="btn btn-secondary text-sm w-full" on:click={() => fetch('/api/test-log', { method: 'POST' })}>
+                        Trigger Server Log
+                     </button>
+                </div>
+
                  <!-- Backup -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>
