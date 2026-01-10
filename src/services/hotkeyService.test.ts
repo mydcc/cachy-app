@@ -1,62 +1,50 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import * as HotkeyModule from './hotkeyService'; // Import as module to access exported function
+import { describe, it, expect, beforeEach, vi, type Mock } from 'vitest';
+import { handleGlobalKeydown } from './hotkeyService';
 import { settingsStore } from '../stores/settingsStore';
 import { tradeStore } from '../stores/tradeStore';
 import { uiStore } from '../stores/uiStore';
+import { app } from './app';
 import { get } from 'svelte/store';
 import { CONSTANTS } from '../lib/constants';
+import { DEFAULT_HOTKEY_MAPS } from './hotkeyConfig';
+import { Decimal } from 'decimal.js';
 
-// Mock dependencies
-vi.mock('../stores/settingsStore', () => {
-    const { writable } = require('svelte/store');
-    return {
-        settingsStore: writable({})
-    };
-});
+// Mock app service functions
+vi.mock('./app', () => ({
+    app: {
+        addTakeProfitRow: vi.fn(),
+        selectSymbolSuggestion: vi.fn(),
+        adjustTpPercentages: vi.fn()
+    }
+}));
 
-vi.mock('../stores/tradeStore', () => {
-    const { writable } = require('svelte/store');
-    return {
-        tradeStore: writable({}),
-        updateTradeStore: vi.fn(), // Mock the exported helper
-    };
-});
+// Mock DOM elements
+const mockFocus = vi.fn();
+const mockSelect = vi.fn();
+const getElementById = vi.fn();
+document.getElementById = getElementById;
 
-vi.mock('../stores/uiStore', () => {
-    const { writable } = require('svelte/store');
-    return {
-        uiStore: writable({
-            showSettingsModal: false,
-            // activeInputId not in UI store, removed
-        })
-    };
-});
-
-// Mock document for focus management
-const mockElement = {
-    focus: vi.fn(),
-    select: vi.fn(),
-    click: vi.fn(),
-    tagName: 'DIV',
-    getAttribute: vi.fn()
-};
-
-global.document.getElementById = vi.fn().mockReturnValue(mockElement);
-// @ts-ignore - activeElement is readonly in TS lib but writable in JSDOM/Tests usually
-Object.defineProperty(global.document, 'activeElement', {
-  value: document.body,
-  writable: true
-});
-
-describe('HotkeyService', () => {
-
+describe('Hotkey Service', () => {
     beforeEach(() => {
-        // Reset mocks
         vi.clearAllMocks();
+
+        // Setup default DOM mock behavior
+        getElementById.mockImplementation((id: string) => {
+            if (id === 'entry-price-input' || id === 'stop-loss-price-input' || id.startsWith('tp-price-')) {
+                return {
+                    focus: mockFocus,
+                    select: mockSelect,
+                    tagName: 'INPUT',
+                    value: ''
+                };
+            }
+            return null;
+        });
 
         // Reset stores to default state
         settingsStore.set({
             hotkeyMode: 'mode1', // Default to Direct Mode for testing
+            hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode1'],
             apiProvider: 'bitunix',
             marketDataInterval: '1m',
             autoUpdatePriceInput: true,
@@ -75,7 +63,7 @@ describe('HotkeyService', () => {
             apiKeys: { bitunix: { key: '', secret: '' }, binance: { key: '', secret: '' } },
             enableSidePanel: true,
             sidePanelMode: 'chat',
-            sidePanelLayout: 'standard', // Fixed: Added missing property
+            sidePanelLayout: 'standard',
             aiProvider: 'gemini',
             openaiApiKey: '',
             openaiModel: 'gpt-4o',
@@ -89,50 +77,43 @@ describe('HotkeyService', () => {
         });
 
         tradeStore.set({
-            // Minimal required mock properties for tradeStore
+            symbol: 'BTCUSDT',
+            entryPrice: 0,
+            stopLossPrice: 0,
             targets: [],
+            tradeType: 'long',
+            accountSize: 1000,
             riskPercentage: 1,
             leverage: 10,
-            tradeType: 'long',
-            multiAtrData: {},
-            // Add other required properties to satisfy TS if needed, or cast
-            symbol: 'BTCUSDT',
-            accountSize: 1000,
-            entryPrice: null,
-            stopLossPrice: null,
-            fees: 0.1,
-            exitFees: 0.1,
+            fees: 0.04,
+            exitFees: 0.04,
             feeMode: 'maker_taker',
-            atrValue: null,
+            useAtrSl: false,
+            atrValue: 0,
             atrMultiplier: 1.5,
-            useAtrSl: true,
             atrMode: 'auto',
-            atrTimeframe: '1h',
-            analysisTimeframe: '1h',
+            atrTimeframe: '5m',
+            multiAtrData: {},
             tradeNotes: '',
             tags: [],
+            analysisTimeframe: '15m',
             isPositionSizeLocked: false,
-            lockedPositionSize: null,
+            lockedPositionSize: new Decimal(0),
             isRiskAmountLocked: false,
-            riskAmount: null,
+            riskAmount: 0,
             journalSearchQuery: '',
             journalFilterStatus: 'all',
-            currentTradeData: null,
-            remoteLeverage: undefined,
-            remoteMarginMode: undefined,
-            remoteMakerFee: undefined,
-            remoteTakerFee: undefined
+            currentTradeData: null
         });
 
         uiStore.set({
-            showSettingsModal: false,
-            // activeInputId: null // Removed
             currentTheme: 'dark',
             showJournalModal: false,
             showChangelogModal: false,
             showGuideModal: false,
             showPrivacyModal: false,
-            showWhitepaperModal: false, // Fixed: Added missing property
+            showWhitepaperModal: false,
+            showSettingsModal: false,
             showCopyFeedback: false,
             showSaveFeedback: false,
             errorMessage: '',
@@ -141,60 +122,115 @@ describe('HotkeyService', () => {
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,
-            loadingMessage: ''
+            loadingMessage: '',
+        });
+    });
+
+    // Helper to create keyboard events
+    function createEvent(key: string, modifiers: { alt?: boolean, shift?: boolean, ctrl?: boolean, meta?: boolean } = {}) {
+        return {
+            key,
+            altKey: !!modifiers.alt,
+            shiftKey: !!modifiers.shift,
+            ctrlKey: !!modifiers.ctrl,
+            metaKey: !!modifiers.meta,
+            preventDefault: vi.fn(),
+            target: document.body
+        } as unknown as KeyboardEvent;
+    }
+
+    describe('Mode 1 (Direct Mode)', () => {
+        beforeEach(() => {
+            settingsStore.update(s => ({ ...s, hotkeyMode: 'mode1', hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode1'] }));
         });
 
-        // hotkeyService doesn't have an init(), it's likely initialized in App or Layout
-        // We test handleGlobalKeydown directly
+        it('should trigger add TP on +', () => {
+            const event = createEvent('+');
+            handleGlobalKeydown(event);
+            expect(app.addTakeProfitRow).toHaveBeenCalled();
+            expect(event.preventDefault).toHaveBeenCalled();
+        });
+
+        it('should focus entry on e', () => {
+            const event = createEvent('e');
+            handleGlobalKeydown(event);
+            expect(getElementById).toHaveBeenCalledWith('entry-price-input');
+            expect(mockFocus).toHaveBeenCalled();
+        });
+
+        it('should NOT trigger when input is active (e.g. typing in notes)', () => {
+            // Mock active element as textarea
+            const originalActiveElement = document.activeElement;
+            Object.defineProperty(document, 'activeElement', {
+                value: { tagName: 'TEXTAREA' },
+                configurable: true
+            });
+
+            const event = createEvent('e');
+            handleGlobalKeydown(event);
+            expect(mockFocus).not.toHaveBeenCalled();
+
+            // Cleanup
+            Object.defineProperty(document, 'activeElement', {
+                value: originalActiveElement,
+                configurable: true
+            });
+        });
     });
 
-    it('should ignore hotkeys when input is focused', () => {
-        // Mock input being focused
-        const inputElement = { ...mockElement, tagName: 'INPUT' };
-        // @ts-ignore
-        global.document.activeElement = inputElement;
+    describe('Mode 2 (Safety Mode)', () => {
+        beforeEach(() => {
+            settingsStore.update(s => ({ ...s, hotkeyMode: 'mode2', hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode2'] }));
+        });
 
-        const event = new KeyboardEvent('keydown', { key: 't' });
-        const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+        it('should NOT trigger on simple key press', () => {
+            const event = createEvent('e');
+            handleGlobalKeydown(event);
+            expect(mockFocus).not.toHaveBeenCalled();
+        });
 
-        HotkeyModule.handleGlobalKeydown(event);
+        it('should trigger on Alt + Key', () => {
+            const event = createEvent('e', { alt: true });
+            handleGlobalKeydown(event);
+            expect(getElementById).toHaveBeenCalledWith('entry-price-input');
+            expect(mockFocus).toHaveBeenCalled();
+        });
 
-        expect(preventDefaultSpy).not.toHaveBeenCalled();
+        it('should trigger even if input is active (Safety Mode is global)', () => {
+             // Mock active element as textarea
+             const originalActiveElement = document.activeElement;
+             Object.defineProperty(document, 'activeElement', {
+                 value: { tagName: 'TEXTAREA' },
+                 configurable: true
+             });
+
+             const event = createEvent('e', { alt: true });
+             handleGlobalKeydown(event);
+             expect(mockFocus).toHaveBeenCalled();
+
+             // Cleanup
+             Object.defineProperty(document, 'activeElement', {
+                 value: originalActiveElement,
+                 configurable: true
+             });
+        });
     });
 
-    it('should handle Direct Mode (Mode 1) hotkeys', () => {
-        settingsStore.update(s => ({ ...s, hotkeyMode: 'mode1' }));
-        // @ts-ignore
-        global.document.activeElement = document.body;
+    describe('Store Interactions', () => {
+        it('should switch trade type to Short on S key', () => {
+             settingsStore.update(s => ({ ...s, hotkeyMode: 'mode1', hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode1'] }));
+             const event = createEvent('s');
+             handleGlobalKeydown(event);
 
-        const event = new KeyboardEvent('keydown', { key: 'e' });
-        const preventDefaultSpy = vi.spyOn(event, 'preventDefault');
+             expect(get(tradeStore).tradeType).toBe('short');
+        });
 
-        HotkeyModule.handleGlobalKeydown(event);
+        it('should open journal on J key', () => {
+            settingsStore.update(s => ({ ...s, hotkeyMode: 'mode1', hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode1'] }));
+            const event = createEvent('j');
+            handleGlobalKeydown(event);
 
-        expect(preventDefaultSpy).toHaveBeenCalled();
-        expect(document.getElementById).toHaveBeenCalledWith('entry-price-input');
-        expect(mockElement.focus).toHaveBeenCalled();
-    });
-
-    it('should handle Safety Mode (Mode 2) hotkeys', () => {
-        settingsStore.update(s => ({ ...s, hotkeyMode: 'mode2' }));
-        // @ts-ignore
-        global.document.activeElement = document.body;
-
-        // Press 'E' without Alt -> Should do nothing
-        const event1 = new KeyboardEvent('keydown', { key: 'e', altKey: false });
-        HotkeyModule.handleGlobalKeydown(event1);
-        expect(mockElement.focus).not.toHaveBeenCalled();
-
-        // Press 'Alt + E' -> Should focus
-        const event2 = new KeyboardEvent('keydown', { key: 'e', altKey: true });
-        const preventDefaultSpy = vi.spyOn(event2, 'preventDefault');
-
-        HotkeyModule.handleGlobalKeydown(event2);
-
-        expect(preventDefaultSpy).toHaveBeenCalled();
-        expect(document.getElementById).toHaveBeenCalledWith('entry-price-input');
-        expect(mockElement.focus).toHaveBeenCalled();
+            expect(get(uiStore).showJournalModal).toBe(true);
+       });
     });
 });

@@ -82,24 +82,24 @@ function createAccountStore() {
                         symbol: data.symbol,
                         side: side,
                         size: new Decimal(data.qty || 0),
-                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0), 
+                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || data.entryPrice || 0),
                         leverage: new Decimal(data.leverage || 0),
                         unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
                         margin: new Decimal(data.margin || 0),
                         marginMode: data.marginMode ? data.marginMode.toLowerCase() : 'cross',
-                        liquidationPrice: new Decimal(0),
-                        markPrice: new Decimal(0),
-                        breakEvenPrice: new Decimal(0)
+                        liquidationPrice: new Decimal(data.liquidationPrice || data.liqPrice || 0),
+                        markPrice: new Decimal(data.markPrice || 0),
+                        breakEvenPrice: new Decimal(data.breakEvenPrice || 0)
                     };
 
                     if (existing) {
                         // Merge with existing to preserve missing fields
                         if (newPos.entryPrice.isZero()) newPos.entryPrice = existing.entryPrice;
 
-                        // Preserve calculation fields if not in payload
-                        newPos.liquidationPrice = existing.liquidationPrice;
-                        newPos.markPrice = existing.markPrice;
-                        newPos.breakEvenPrice = existing.breakEvenPrice;
+                        // Preserve calculation fields if not in payload (and payload was 0/missing)
+                        if (newPos.liquidationPrice.isZero()) newPos.liquidationPrice = existing.liquidationPrice;
+                        if (newPos.markPrice.isZero()) newPos.markPrice = existing.markPrice;
+                        if (newPos.breakEvenPrice.isZero()) newPos.breakEvenPrice = existing.breakEvenPrice;
                         
                         // Preserve structural fields if not in payload
                         if (!data.marginMode) newPos.marginMode = existing.marginMode;

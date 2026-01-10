@@ -45,14 +45,18 @@
 
                         // "CL: [LEVEL] Message"
                         // Note: console.log supports format specifiers like %c
+                        // Removed verbose logging for production cleanup
+                        /*
                         console.log(
                             `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
                             clStyle,
                             levelStyle,
                             logEntry.data ? logEntry.data : ''
                         );
+                        */
                     } catch (e) {
-                        console.log('%cCL:%c [RAW]', 'background: #333; color: #00ff9d;', '', event.data);
+                        // Removed raw logging to reduce console noise
+                        // console.log('%cCL:%c [RAW]', 'background: #333; color: #00ff9d;', '', event.data);
                     }
                 };
 

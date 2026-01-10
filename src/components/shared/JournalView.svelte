@@ -4,7 +4,6 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
-    import { pdfService } from '../../services/pdfService';
     import { imgbbService } from '../../services/imgbbService';
     import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
@@ -1044,27 +1043,27 @@
 
                             <!-- New Columns -->
                             {#if visibleColumns.includes('role')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('role')}>Role {sortField === 'role' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('role')}>{$_('journal.table.role')} {sortField === 'role' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('marginMode')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('marginMode')}>Margin {sortField === 'marginMode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('marginMode')}>{$_('journal.table.margin')} {sortField === 'marginMode' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('leverage')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('leverage')}>Lev {sortField === 'leverage' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('leverage')}>{$_('journal.table.leverage')} {sortField === 'leverage' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
 
                             {#if visibleColumns.includes('entryPrice')}
                                 <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>{$_('journal.table.entry')} {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('exitPrice')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('exitPrice')}>Exit {sortField === 'exitPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('exitPrice')}>{$_('journal.table.exit')} {sortField === 'exitPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('stopLossPrice')}
                                 <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>{$_('journal.table.sl')} {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
 
                             {#if visibleColumns.includes('positionSize')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('positionSize')}>Size {sortField === 'positionSize' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('positionSize')}>{$_('journal.table.size')} {sortField === 'positionSize' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
 
                             {#if visibleColumns.includes('totalNetProfit')}
@@ -1079,16 +1078,16 @@
 
                             <!-- Advanced Metrics -->
                             {#if visibleColumns.includes('mae')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('mae')}>MAE % {sortField === 'mae' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('mae')}>{$_('journal.table.mae')} {sortField === 'mae' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('mfe')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('mfe')}>MFE % {sortField === 'mfe' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('mfe')}>{$_('journal.table.mfe')} {sortField === 'mfe' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('efficiency')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('efficiency')}>Eff % {sortField === 'efficiency' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('efficiency')}>{$_('journal.table.efficiency')} {sortField === 'efficiency' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
                             {#if visibleColumns.includes('duration')}
-                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('duration')}>Dur {sortField === 'duration' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('duration')}>{$_('journal.table.duration')} {sortField === 'duration' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             {/if}
 
                             {#if visibleColumns.includes('status')}
