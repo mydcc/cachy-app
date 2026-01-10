@@ -16,18 +16,24 @@ export interface IndicatorSettings {
         slowLength: number;
         signalLength: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
+        oscillatorMaType: 'ema' | 'sma';
+        signalMaType: 'ema' | 'sma';
     };
     stochastic: {
         kPeriod: number;
+        kSmoothing: number;
         dPeriod: number;
     };
     cci: {
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
         threshold: number; // usually 100 (triggers on > 100 or < -100)
+        smoothingType: 'sma' | 'ema';
+        smoothingLength: number;
     };
     adx: {
-        length: number;
+        adxSmoothing: number; // Was 'length'
+        diLength: number;
         threshold: number; // usually 25
     };
     ao: {
@@ -63,19 +69,25 @@ const defaultSettings: IndicatorSettings = {
         fastLength: 12,
         slowLength: 26,
         signalLength: 9,
-        source: 'close'
+        source: 'close',
+        oscillatorMaType: 'ema',
+        signalMaType: 'ema'
     },
     stochastic: {
         kPeriod: 14,
+        kSmoothing: 1,
         dPeriod: 3
     },
     cci: {
         length: 20,
         source: 'close',
-        threshold: 100
+        threshold: 100,
+        smoothingType: 'sma',
+        smoothingLength: 14
     },
     adx: {
-        length: 14,
+        adxSmoothing: 14,
+        diLength: 14,
         threshold: 25
     },
     ao: {
@@ -107,13 +119,20 @@ function createIndicatorStore() {
     if (stored) {
         try {
             const parsed = JSON.parse(stored);
+
+            // Migration for ADX 'length' to 'adxSmoothing'
+            let adxParsed = { ...defaultSettings.adx, ...(parsed.adx || {}) };
+            if (parsed.adx && parsed.adx.length !== undefined && parsed.adx.adxSmoothing === undefined) {
+                adxParsed.adxSmoothing = parsed.adx.length;
+            }
+
             initial = {
                 historyLimit: parsed.historyLimit || defaultSettings.historyLimit,
                 rsi: { ...defaultSettings.rsi, ...parsed.rsi },
                 macd: { ...defaultSettings.macd, ...parsed.macd },
                 stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },
                 cci: { ...defaultSettings.cci, ...parsed.cci },
-                adx: { ...defaultSettings.adx, ...parsed.adx },
+                adx: adxParsed,
                 ao: { ...defaultSettings.ao, ...parsed.ao },
                 momentum: { ...defaultSettings.momentum, ...parsed.momentum },
                 ema: { ...defaultSettings.ema, ...parsed.ema },

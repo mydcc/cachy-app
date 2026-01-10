@@ -134,6 +134,10 @@
             rsiSettings = { ...$indicatorStore.rsi };
             macdSettings = { ...$indicatorStore.macd };
             stochSettings = { ...$indicatorStore.stochastic };
+            cciSettings = { ...$indicatorStore.cci };
+            adxSettings = { ...$indicatorStore.adx };
+            aoSettings = { ...$indicatorStore.ao };
+            momentumSettings = { ...$indicatorStore.momentum };
             emaSettings = { ...$indicatorStore.ema };
             pivotSettings = { ...$indicatorStore.pivots };
 
@@ -312,6 +316,7 @@
     extraClasses="!w-auto !max-w-[62vw] max-h-[85vh] flex flex-col"
     alignment="top"
 >
+    <!-- ... [Tabs Header kept same] ... -->
     <!-- Tabs Header -->
     <div class="flex border-b border-[var(--border-color)] mb-4 overflow-x-auto shrink-0" role="tablist">
         <button
@@ -383,8 +388,8 @@
     <div class="flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar flex-1 min-h-0">
 
         {#if activeTab === 'general'}
+            <!-- ... [General tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-general" aria-labelledby="tab-general-label">
-                <!-- Language & Theme -->
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
                         <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.language')}</span>
@@ -402,10 +407,6 @@
                         </select>
                     </div>
                 </div>
-
-                 <!-- UI Toggles -->
-
-                <!-- Fee Preference -->
                 <div class="flex flex-col gap-1 mt-2">
                     <span class="text-sm font-medium">{$_('settings.feePreference')}</span>
                     <div class="flex gap-2">
@@ -425,8 +426,8 @@
             </div>
 
         {:else if activeTab === 'api'}
+            <!-- ... [API tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
-                <!-- ImgBB Settings -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
                      <div class="flex flex-col gap-1">
@@ -448,8 +449,6 @@
                          {$_('settings.imgbbGetKey')} <a href="https://api.imgbb.com/" target="_blank" class="text-[var(--accent-color)] hover:underline">api.imgbb.com</a>.
                     </p>
                 </div>
-
-                <!-- Provider Selection -->
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">{$_('settings.providerLabel')}</span>
                     <select bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
@@ -457,8 +456,6 @@
                         <option value="binance">Binance Futures</option>
                     </select>
                 </div>
-
-                <!-- API Keys (Conditional based on provider) -->
                 {#if apiProvider === 'bitunix'}
                     <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                         <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Bitunix Credentials</h4>
@@ -484,17 +481,16 @@
                         </div>
                     </div>
                 {/if}
-
                 <p class="text-xs text-[var(--text-secondary)] italic">
                     {$_('settings.securityNote')}
                 </p>
             </div>
 
         {:else if activeTab === 'ai'}
+            <!-- ... [AI tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
-
                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">Default Provider</span>
                         <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
@@ -503,9 +499,7 @@
                             <option value="anthropic">Anthropic (Claude)</option>
                         </select>
                     </div>
-
                     <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
-                        <!-- OpenAI Section -->
                         <div class="flex flex-col gap-2">
                             <label for="openai-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>OpenAI</span>
@@ -517,8 +511,6 @@
                                 <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
                             </div>
                         </div>
-
-                        <!-- Gemini Section -->
                         <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
                             <label for="gemini-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>Google Gemini</span>
@@ -533,8 +525,6 @@
                                 Use <code>gemini-1.5-flash</code> for stability if the experimental version fails.
                             </p>
                         </div>
-
-                        <!-- Anthropic Section -->
                         <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
                             <label for="anthropic-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>Anthropic</span>
@@ -547,7 +537,6 @@
                             </div>
                         </div>
                     </div>
-
                     <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic border-t border-[var(--border-color)] pt-2">
                         Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
                     </p>
@@ -555,6 +544,7 @@
             </div>
 
         {:else if activeTab === 'behavior'}
+            <!-- ... [Behavior tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">{$_('settings.intervalLabel')}</span>
@@ -564,7 +554,6 @@
                         <option value="10m">{$_('settings.interval10m')}</option>
                     </select>
                 </div>
-
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium">{$_('settings.autoUpdatePrice')}</span>
@@ -572,7 +561,6 @@
                     </div>
                     <input type="checkbox" bind:checked={autoUpdatePriceInput} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
                      <div class="flex flex-col">
                         <span class="text-sm font-medium">{$_('settings.autoFetchBalance')}</span>
@@ -580,8 +568,6 @@
                     </div>
                     <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
-                <!-- Hotkey Mode Selection -->
                 <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                      <span class="text-sm font-medium">Hotkey Profile</span>
                      <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
@@ -589,8 +575,6 @@
                         <option value="mode1">Direct Mode (Fast)</option>
                         <option value="mode3">Hybrid Mode</option>
                      </select>
-
-                     <!-- Info Text for Hotkeys -->
                      <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
                         <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
                         <div class="grid grid-cols-2 gap-x-4 gap-y-1">
@@ -606,18 +590,16 @@
             </div>
 
         {:else if activeTab === 'sidebar'}
+            <!-- ... [Sidebar tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
                     <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
                     <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
-                 <!-- Side Panel Toggle -->
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <div class="flex flex-col">
                         <span class="text-sm font-medium">{$_('settings.enableSidePanel')}</span>
@@ -625,9 +607,7 @@
                     </div>
                     <input type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
                 <div class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {enableSidePanel ? 'opacity-100' : 'opacity-50 pointer-events-none'}">
-
                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">{$_('settings.sidePanelMode')}</span>
                         <div class="flex gap-2">
@@ -645,7 +625,6 @@
                             </label>
                         </div>
                     </div>
-
                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">{$_('settings.sidePanelLayout')}</span>
                         <div class="flex flex-col gap-2">
@@ -673,13 +652,10 @@
                         </div>
                     </div>
                 </div>
-
                  <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
                     <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
-
-                <!-- Position View Mode -->
                 <div class="flex flex-col gap-1">
                     <span class="text-sm font-medium">Position View Mode</span>
                     <select bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
@@ -691,7 +667,6 @@
 
         {:else if activeTab === 'indicators'}
             <div class="flex flex-col gap-4 overflow-x-hidden" role="tabpanel" id="tab-indicators">
-                <!-- Two Column Grid for Indicators -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     <!-- Left Column -->
@@ -739,7 +714,6 @@
                                     Enter up to 4 comma-separated timeframes. Inputs like '60m' or '1S' are automatically normalized.
                                 </p>
                             </div>
-                            <!-- Display Tags Preview -->
                             <div class="flex flex-wrap gap-2 mt-2">
                                 {#each favoriteTimeframes as tf}
                                      <span class="px-2 py-1 text-xs rounded bg-[var(--accent-color)] text-[var(--btn-accent-text)] border border-[var(--accent-color)]">
@@ -758,7 +732,6 @@
                                 {/if}
                             </div>
 
-                            <!-- Sync Toggle -->
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-medium">Sync with Calculator Timeframe</span>
                                 <input type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
@@ -860,6 +833,23 @@
                                     </select>
                                 </div>
                             </div>
+                            <!-- NEW: MA Types -->
+                            <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-[var(--border-color)]">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Oscillator MA Type</span>
+                                    <select bind:value={macdSettings.oscillatorMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="ema">EMA</option>
+                                        <option value="sma">SMA</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Signal MA Type</span>
+                                    <select bind:value={macdSettings.signalMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="ema">EMA</option>
+                                        <option value="sma">SMA</option>
+                                    </select>
+                                </div>
+                            </div>
 
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
@@ -918,13 +908,17 @@
                                 {/if}
                             </div>
 
-                            <div class="grid grid-cols-2 gap-3 mt-1">
+                            <div class="grid grid-cols-3 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-xs font-medium text-[var(--text-secondary)]">%K Length (Period)</span>
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">%K Length</span>
                                     <input type="number" bind:value={stochSettings.kPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-xs font-medium text-[var(--text-secondary)]">%D Smoothing (Signal)</span>
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">%K Smooth</span>
+                                    <input type="number" bind:value={stochSettings.kSmoothing} min="1" max="50" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">%D Smooth</span>
                                     <input type="number" bind:value={stochSettings.dPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
@@ -948,10 +942,35 @@
                                 {/if}
                             </div>
 
-                            <div class="grid grid-cols-1 gap-3 mt-1">
+                            <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
                                     <input type="number" bind:value={cciSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
+                                    <select bind:value={cciSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="close">Close</option>
+                                        <option value="open">Open</option>
+                                        <option value="high">High</option>
+                                        <option value="low">Low</option>
+                                        <option value="hl2">HL/2</option>
+                                        <option value="hlc3">HLC/3</option>
+                                    </select>
+                                </div>
+                            </div>
+
+                            <div class="border-t border-[var(--border-color)] pt-3 mt-1 grid grid-cols-2 gap-3">
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Type</span>
+                                    <select bind:value={cciSettings.smoothingType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="sma">SMA</option>
+                                        <option value="ema">EMA</option>
+                                    </select>
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Len</span>
+                                    <input type="number" bind:value={cciSettings.smoothingLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
 
@@ -974,10 +993,14 @@
                                 {/if}
                             </div>
 
-                            <div class="grid grid-cols-1 gap-3 mt-1">
+                            <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
-                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
-                                    <input type="number" bind:value={adxSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">ADX Smoothing</span>
+                                    <input type="number" bind:value={adxSettings.adxSmoothing} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">DI Length</span>
+                                    <input type="number" bind:value={adxSettings.diLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
 
@@ -1030,10 +1053,21 @@
                                 {/if}
                             </div>
 
-                            <div class="grid grid-cols-1 gap-3 mt-1">
+                            <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
                                     <input type="number" bind:value={momentumSettings.length} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                </div>
+                                <div class="flex flex-col gap-1">
+                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
+                                    <select bind:value={momentumSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <option value="close">Close</option>
+                                        <option value="open">Open</option>
+                                        <option value="high">High</option>
+                                        <option value="low">Low</option>
+                                        <option value="hl2">HL/2</option>
+                                        <option value="hlc3">HLC/3</option>
+                                    </select>
                                 </div>
                             </div>
 
@@ -1089,8 +1123,8 @@
             </div>
 
         {:else if activeTab === 'system'}
+            <!-- ... [System tab content same as read file] ... -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
-                <!-- CachyLog Test -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">CachyLog Debug</h4>
                      <p class="text-xs text-[var(--text-secondary)] mb-2">
@@ -1100,8 +1134,6 @@
                         Trigger Server Log
                      </button>
                 </div>
-
-                 <!-- Backup -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>
                      <p class="text-xs text-[var(--text-secondary)] mb-2">
@@ -1111,8 +1143,6 @@
                         {$_('app.backupButtonAriaLabel')} {!isPro ? '(Pro only)' : ''}
                      </button>
                 </div>
-
-                <!-- Restore -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                     <h4 class="text-sm font-bold">{$_('settings.restore')}</h4>
                     <p class="text-xs text-[var(--text-secondary)] mb-2">
@@ -1123,8 +1153,6 @@
                        <input type="file" accept=".json" class="hidden" on:change={handleRestore} />
                     </label>
                </div>
-
-                <!-- Reset -->
                 <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
                      <button class="text-xs text-[var(--danger-color)] hover:underline" on:click={handleReset}>
                          {$_('settings.reset')}
