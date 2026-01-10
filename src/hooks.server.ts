@@ -3,6 +3,38 @@ import type { Handle } from '@sveltejs/kit';
 import { CONSTANTS } from './lib/constants';
 import { logger } from '$lib/server/logger';
 
+// --- Global Console Interceptor for CachyLog ---
+// Redirects all server-side console logs to the centralized logger and SSE stream
+if (!(global as any)._isConsolePatched) {
+    (global as any)._isConsolePatched = true;
+
+    const originalLog = console.log;
+    const originalWarn = console.warn;
+    const originalError = console.error;
+
+    console.log = (...args: any[]) => {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        // Prevent infinite loop if logger calls console.log (it shouldn't, but safety first)
+        // We use a specific prefix if we wanted to detect our own logs, but logger.ts is clean.
+        logger.info(msg);
+        originalLog.apply(console, args);
+    };
+
+    console.warn = (...args: any[]) => {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        logger.warn(msg);
+        originalWarn.apply(console, args);
+    };
+
+    console.error = (...args: any[]) => {
+        const msg = args.map(a => typeof a === 'object' ? JSON.stringify(a) : String(a)).join(' ');
+        logger.error(msg);
+        originalError.apply(console, args);
+    };
+
+    logger.info('Global console patched for CachyLog');
+}
+
 const loggingHandler: Handle = async ({ event, resolve }) => {
     const start = Date.now();
     const { method, url } = event.request;
