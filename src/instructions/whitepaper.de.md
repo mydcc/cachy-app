@@ -1,5 +1,5 @@
 # Cachy Technisches Whitepaper
-**Version:** 0.96.0
+**Version:** 0.98.0
 **Datum:** Februar 2025
 
 ---
@@ -58,7 +58,7 @@ In einer Ära von Datenlecks bezieht Cachy eine radikale Position: **Wir wollen 
 Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 
 - **Frontend**: Eine umfangreiche Single Page Application (SPA), angetrieben von SvelteKit. Sie handhabt 95% der Logik, einschließlich Datenverarbeitung, Chart-Rendering und Zustandsverwaltung.
-- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, Anfragen für Börsen (Bitunix/Binance) sicher zu signieren, ohne API-Geheimnisse an den Client preiszugeben, und CORS-Probleme zu behandeln.
+- **Backend (Serverless/Node)**: Eine leichtgewichtige API-Proxy-Schicht innerhalb von SvelteKit (\`src/routes/api/\`). Ihr Hauptzweck ist es, Anfragen für Börsen (Bitunix/Binance) sicher zu signieren, ohne API-Geheimnisse an den Client preiszugeben, und KI-gestützte Diagnosen durchzuführen.
 
 ### Technologie-Stack
 
@@ -70,6 +70,7 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Zustand** | **Svelte Stores** | Natives, leichtgewichtiges Zustandsmanagement, das gut für Echtzeit-Frequenzdaten skaliert. |
 | **Mathe** | **Decimal.js** | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts** | **Chart.js** | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können. |
+| **Analyse** | **TechnicalIndicators** | Modulare Bibliothek zur clientseitigen Berechnung komplexer Indikatoren (RSI, MACD, ADX). |
 | **Testing** | **Vitest** | Blitzschnelles Unit-Testing-Framework, das die Konfiguration mit Vite teilt. |
 
 ### Client-seitiges Zustandsmanagement (Das Store-Muster)
@@ -88,6 +89,17 @@ Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes r
 4.  **\`journalStore.ts\`**: Die Historische Aufzeichnung.
     -   *Verfolgt*: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
     -   *Analytik*: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
+
+### KI-gestützte Telemetrie (Jules Service)
+
+Cachy implementiert eine intelligente Diagnoseschicht, bekannt als **Jules API**.
+
+- **Zweck**: Bereitstellung von kontextbezogener Fehleranalyse in Echtzeit, ohne die Privatsphäre der Benutzer zu gefährden.
+- **Ablauf**:
+    1. Wenn ein kritischer Fehler auftritt (oder bei manueller Meldung), erfasst \`julesService.ts\` einen **System-Snapshot**.
+    2. **Bereinigung**: Alle API-Geheimnisse und sensiblen Schlüssel werden auf der Client-Seite vor der Übertragung geschwärzt.
+    3. **Analyse**: Der Snapshot wird an das Backend (\`/api/jules\`) gesendet, das den Kontext an ein Large Language Model (Gemini) weiterleitet.
+    4. **Ergebnis**: Die KI analysiert den Zustand (z. B. "WebSocket getrennt, während Order ausstehend war") und gibt eine natürlichsprachliche Diagnose an den Benutzer zurück.
 
 ### Backend-for-Frontend (BFF) & Proxy-Schicht
 
@@ -155,7 +167,15 @@ Cachy berechnet nicht nur einen ATR. Es führt einen **Parallelen Scan** der fav
 - **Architektur**: Es verwendet \`Promise.all\`, um Kerzen (Klines) für alle Zeitrahmen gleichzeitig abzurufen und den ATR für jeden zu berechnen.
 - **Nutzen**: Der Benutzer sieht eine "Volatilitäts-Matrix" im Trade Setup, die es ihm ermöglicht, einen Stop Loss basierend auf kurzfristigem Rauschen (5m) oder Trendumkehr (4h) zu wählen.
 
-#### 2. Chronobiologische Analyse (Timing)
+#### 2. Technische Analyse-Engine
+*Ziel: Bereitstellung von Standardindikatoren ohne externe Charting-Bibliotheken.*
+Der \`technicalsService.ts\` nutzt die \`technicalindicators\`-Bibliothek zur Berechnung von:
+- **Oszillatoren**: RSI, Stochastic, CCI, Awesome Oscillator, ADX.
+- **Trend**: SMA, EMA, MACD.
+- **Pivot Points**: Manuell berechnet aus den High/Low/Close-Werten des Vortages.
+Diese Daten werden im **Technicals Panel** visualisiert, einem dedizierten Overlay für schnelle Marktbewertungen.
+
+#### 3. Chronobiologische Analyse (Timing)
 *Ziel: Tradest du besser vor dem Mittagessen?*
 Das System iteriert durch jeden geschlossenen Trade und gruppiert die PnL nach Tageszeit (Stunde 0-23) und Wochentag (0-6).
 - **Implementierung**:
@@ -163,11 +183,6 @@ Das System iteriert durch jeden geschlossenen Trade und gruppiert die PnL nach T
   hourlyNetPnl[date.getHours()].plus(trade.pnl);
   \`\`\`
 - **Ergebnis**: Eine Heatmap, die "Gefahrenzonen" (z. B. Freitagnachmittage) zeigt, in denen der Trader historisch Geld verliert.
-
-#### 3. Impulsivitäts-Index (Dauer)
-*Ziel: Betreibst du "Rache-Trading"?*
-Das System plottet Trade-Dauer gegen PnL.
-- **Logik**: Wenn ein Trader eine Häufung von Verlusten mit einer Dauer von < 2 Minuten unmittelbar nach einem großen Verlust hat, wird dies als impulsives Verhalten markiert.
 
 ---
 
@@ -224,7 +239,7 @@ Cachy zielt darauf ab, börsenunabhängig zu sein, optimiert aber derzeit für *
 Die Konnektivität wird über die Abstraktionsschicht \`src/services/apiService.ts\` gehandhabt. Dies ermöglicht der UI, \`fetchTicker('BTCUSDT')\` anzufordern, ohne zu wissen, *welche* Börse die Daten liefert.
 
 **Normalisierungsstrategie**:
-- Börsen formatieren Daten unterschiedlich (z. B. Bitunix verwendet \`lastPrice\`, Binance verwendet \`price\`).
+- Börsen formatieren Daten unterschiedlich (z. B. Bitunix verwendet \`lastPrice`, Binance verwendet \`price`).
 - Die Service-Schicht normalisiert alle Antworten in eine Standard-\`Ticker24h\`- oder \`Kline\`-Schnittstelle, bevor Daten an die UI übergeben werden.
 - *Spezielle Handhabung*: Bitunix-Futures-Symbole enden oft auf \`.P\` oder \`USDTP\`. Der Normalisierer entfernt diese Suffixe strikt, um saubere UI-Symbole zu erhalten (z. B. \`BTCUSDT\`).
 

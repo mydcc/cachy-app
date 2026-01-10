@@ -7,11 +7,20 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Table of Contents
-1.  [Version 0.96](#v0.96)
-2.  [Version 0.94](#v0.94)
-3.  [Version 0.92b2](#v0.92b2)
-4.  [Version 0.92b1](#v0.92b1)
-5.  [Version 0.92b](#v0.92b)
+1.  [Version 0.98](#v0.98)
+2.  [Version 0.96](#v0.96)
+3.  [Version 0.94](#v0.94)
+4.  [Version 0.92b2](#v0.92b2)
+5.  [Version 0.92b1](#v0.92b1)
+6.  [Version 0.92b](#v0.92b)
+
+---
+
+## <a name="v0.98"></a>Version 0.98 (February 2025)
+- **New:** **Jules API**: Intelligent AI-driven error analysis and reporting system for instant diagnostics.
+- **New:** **Technicals Panel**: Advanced charting overlay with RSI, MACD, Stochastic, and Auto-Pivots (powered by `technicalindicators`).
+- **New:** **Chat / Side Panel**: Collapsible side panel for private notes or global chat (requires experimental API).
+- **Architecture:** Enhanced "Jules Service" for secure system snapshots and telemetry without compromising privacy.
 
 ---
 
@@ -19,14 +28,8 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
 - **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
 - **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
-- **Improvements:** General stability updates and UI adjustments.
-
----
-
-## <a name="v0.96"></a>Version 0.96 (January 07, 2026)
-- **New:** Chat / Side Panel: A new collapsible side panel on the left for taking private notes or chatting globally (requires experimental API).
 - **New:** Enable "Side Panel" in Settings -> Sidebar. Choose between "Private Notes" (local storage only) or "Global Chat" mode.
-- **Improvement:** General stability updates.
+- **Improvements:** General stability updates and UI adjustments.
 
 ---
 
