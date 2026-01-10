@@ -122,7 +122,7 @@
             openaiApiKey = $settingsStore.openaiApiKey || '';
             openaiModel = $settingsStore.openaiModel || 'gpt-4o';
             geminiApiKey = $settingsStore.geminiApiKey || '';
-            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash';
+            geminiModel = $settingsStore.geminiModel || 'gemini-1.5-flash';
             anthropicApiKey = $settingsStore.anthropicApiKey || '';
             anthropicModel = $settingsStore.anthropicModel || 'claude-3-5-sonnet-20240620';
 
@@ -527,10 +527,10 @@
                             <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash" />
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-1.5-flash" />
                             </div>
                             <p class="text-[10px] text-[var(--text-secondary)] italic">
-                                Use <code>gemini-1.5-flash</code> if <code>gemini-2.0-flash</code> is rate limited.
+                                You can try <code>gemini-2.0-flash</code> for newer features if available.
                             </p>
                         </div>
 
