@@ -84,6 +84,7 @@ Pivot-Punkte dienen als Orientierungshilfe. Trader nutzen sie, um Ziele für Gew
 
 **Die Basis-Formel (Classic):**
 *   **P (Pivot Point):** Der Durchschnittspreis der letzten Periode.
+
     $$ P = \frac{\text{High} + \text{Low} + \text{Close}}{3} $$
 *   **R1 (Erster Widerstand):**
     $$ R1 = (2 \times P) - \text{Low} $$

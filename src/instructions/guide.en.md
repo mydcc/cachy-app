@@ -84,6 +84,7 @@ Pivot Points serve as a guide. Traders use them to find targets for profits (Tak
 
 **The Basic Formula (Classic):**
 *   **P (Pivot Point):** The average price of the last period.
+
     $$ P = \frac{\text{High} + \text{Low} + \text{Close}}{3} $$
 *   **R1 (First Resistance):**
     $$ R1 = (2 \times P) - \text{Low} $$
