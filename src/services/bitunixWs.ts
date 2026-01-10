@@ -418,7 +418,9 @@ class BitunixWebSocketService {
                         l: data.l,
                         c: data.c,
                         b: data.b || data.v, // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
-                        t: data.t || Date.now() // data.t is usually the kline start time
+                        // Use data.id (often timestamp in Bitunix) or data.ts as fallbacks.
+                        // Only use Date.now() as a last resort to prevent infinite candle generation if timestamp is missing.
+                        t: data.t || data.id || data.ts || Date.now()
                     });
                 }
             }
