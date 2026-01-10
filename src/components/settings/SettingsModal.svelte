@@ -66,6 +66,9 @@
     let currentLanguage: string;
     let isPro: boolean;
 
+    // Journal Settings
+    let enableAdvancedMetrics: boolean;
+
     // Track active tab
     let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
     let isInitialized = false;
@@ -122,6 +125,13 @@
             sidePanelMode = $settingsStore.sidePanelMode;
             sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
             isPro = $settingsStore.isPro;
+            enableAdvancedMetrics = $settingsStore.enableAdvancedMetrics || false;
+
+            // Initialize Hotkey Bindings
+            // Ensure we have a valid object even if store is old
+            hotkeyBindings = $settingsStore.hotkeyBindings
+                ? { ...$settingsStore.hotkeyBindings }
+                : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
 
             // Initialize Hotkey Bindings
             // Ensure we have a valid object even if store is old
@@ -197,6 +207,7 @@
             geminiModel,
             anthropicApiKey,
             anthropicModel,
+            enableAdvancedMetrics,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -654,6 +665,21 @@
                             </div>
                             <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                         </label>
+
+                        <!-- Advanced Metrics Toggle -->
+                        <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium flex items-center gap-2">
+                                    {$_('journal.advancedMetrics') || 'Enable Advanced Metrics'}
+                                    {#if !isPro}
+                                        <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO</span>
+                                    {/if}
+                                </span>
+                                <span class="text-xs text-[var(--text-secondary)]">Calculate MAE, MFE, and Efficiency for synced trades (requires historical data)</span>
+                            </div>
+                            <input type="checkbox" bind:checked={enableAdvancedMetrics} disabled={!isPro} class="accent-[var(--accent-color)] h-4 w-4 rounded disabled:opacity-50" />
+                        </label>
+
                         <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                             <span class="text-sm font-medium">Hotkey Configuration</span>
 

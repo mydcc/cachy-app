@@ -59,6 +59,10 @@ export interface Settings {
 
     // Legal
     disclaimerAccepted: boolean;
+
+    // Journal Settings (New)
+    enableAdvancedMetrics: boolean;
+    visibleColumns: string[];
 }
 
 const defaultSettings: Settings = {
@@ -96,7 +100,11 @@ const defaultSettings: Settings = {
     anthropicApiKey: '',
     anthropicModel: 'claude-3-5-sonnet-20240620',
 
-    disclaimerAccepted: false
+    disclaimerAccepted: false,
+
+    // Journal Defaults
+    enableAdvancedMetrics: false,
+    visibleColumns: ['date', 'symbol', 'tradeType', 'entryPrice', 'stopLossPrice', 'totalNetProfit', 'fundingFee', 'totalRR', 'status', 'screenshot', 'tags', 'notes', 'action']
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -194,7 +202,9 @@ function loadSettingsFromLocalStorage(): Settings {
             geminiModel: settings.geminiModel,
             anthropicApiKey: settings.anthropicApiKey,
             anthropicModel: settings.anthropicModel,
-            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
+            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
+            enableAdvancedMetrics: settings.enableAdvancedMetrics ?? defaultSettings.enableAdvancedMetrics,
+            visibleColumns: settings.visibleColumns
         };
 
         return cleanSettings;

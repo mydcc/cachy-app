@@ -71,7 +71,9 @@ describe('Hotkey Service', () => {
             geminiModel: 'gemini-2.0-flash',
             anthropicApiKey: '',
             anthropicModel: 'claude-3-5-sonnet-20240620',
-            disclaimerAccepted: true
+            disclaimerAccepted: true,
+            enableAdvancedMetrics: false,
+            visibleColumns: []
         });
 
         tradeStore.set({
