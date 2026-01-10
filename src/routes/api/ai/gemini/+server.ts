@@ -24,8 +24,13 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         }
 
-        // Use 'gemini-2.5-flash' as the current stable version
-        const selectedModel = model || 'gemini-2.5-flash';
+        // Use 'gemini-2.0-flash-exp' as the experimental version (stable 2.0 alias can be flaky)
+        let selectedModel = model || 'gemini-2.0-flash-exp';
+
+        // Fallback/Upgrade for deprecated/unstable aliases
+        if (selectedModel === 'gemini-2.0-flash' || selectedModel === 'gemini-2.5-flash') {
+            selectedModel = 'gemini-2.0-flash-exp';
+        }
 
         // Use streamGenerateContent?alt=sse for Server-Sent Events
         const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
@@ -35,17 +40,27 @@ export const POST: RequestHandler = async ({ request }) => {
             payload.systemInstruction = systemInstruction;
         }
 
+        console.log(`Gemini Proxy: Sending request to ${url} with model ${selectedModel}`);
         const response = await fetch(url, {
             method: 'POST',
             headers: {
-                'Content-Type': 'application/json'
+                'Content-Type': 'application/json',
+                'User-Agent': 'CachyApp/1.0 (SvelteKit)'
             },
             body: JSON.stringify(payload)
         });
 
         if (!response.ok) {
-            const err = await response.json();
-            return json({ error: err.error?.message || 'Gemini API Error' }, { status: response.status });
+            const errText = await response.text();
+            console.error(`Gemini API Error (${response.status}):`, errText);
+            let errMsg = 'Gemini API Error';
+            try {
+                const errJson = JSON.parse(errText);
+                errMsg = errJson.error?.message || errMsg;
+            } catch (e) {
+                errMsg = errText.slice(0, 200); // Fallback to text if not JSON
+            }
+            return json({ error: errMsg }, { status: response.status });
         }
 
         return new Response(response.body, {

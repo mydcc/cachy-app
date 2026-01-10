@@ -527,10 +527,10 @@
                             <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.5-flash" />
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash-exp" />
                             </div>
                             <p class="text-[10px] text-[var(--text-secondary)] italic">
-                                Use <code>gemini-1.5-flash</code> if the 2.5 version is unavailable.
+                                Use <code>gemini-1.5-flash</code> for stability if the experimental version fails.
                             </p>
                         </div>
 
