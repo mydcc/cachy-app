@@ -75,6 +75,13 @@
             return text;
         }
     }
+
+    // Reactive layout variables
+    $: isFloating = $settingsStore.sidePanelLayout === 'floating';
+    $: isStandard = $settingsStore.sidePanelLayout === 'standard' || !$settingsStore.sidePanelLayout;
+    $: isTransparent = $settingsStore.sidePanelLayout === 'transparent';
+
+    const transitionParams = { x: 300, duration: 300 };
 </script>
 
 {#if $settingsStore.enableSidePanel}
