@@ -49,8 +49,6 @@
 		"crypto-js": "^4.2.0",
 		"decimal.js": "^10.4.3",
 		"intl-messageformat": "^11.0.9",
-		"jspdf": "^4.0.0",
-		"jspdf-autotable": "^5.0.7",
 		"katex": "^0.16.27",
 		"marked": "^17.0.1",
 		"marked-katex-extension": "^5.1.6",

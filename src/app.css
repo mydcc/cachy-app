@@ -1710,6 +1710,7 @@ input[type="checkbox"]:checked + .atr-toggle-track::after { transform: translate
 }
 .modal-size-instructions {
     width: 80vw;
+    max-width: 1000px;
     aspect-ratio: 3 / 2;
 }
 

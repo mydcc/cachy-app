@@ -4,7 +4,6 @@
     import { journalStore } from '../../stores/journalStore';
     import { uiStore } from '../../stores/uiStore';
     import { app } from '../../services/app';
-    import { pdfService } from '../../services/pdfService';
     import { imgbbService } from '../../services/imgbbService';
     import { calculator } from '../../lib/calculator';
     import { _, locale } from '../../locales/i18n';
@@ -1472,10 +1471,6 @@
                 <!-- svelte-ignore svelte/no-at-html-tags -->
                 {@html icons.refresh}<span class="hidden sm:inline">{$_('journal.syncBitunix')}</span></button>
         {/if}
-        <button id="export-pdf-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="PDF Export" on:click={() => pdfService.generateJournalReport(sortedTrades, { period: filterDateStart && filterDateEnd ? `${filterDateStart} - ${filterDateEnd}` : 'All Time' })}>
-            <!-- svelte-ignore svelte/no-at-html-tags -->
-            {@html icons.download}<span class="hidden sm:inline">PDF</span>
-        </button>
         <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>
             <!-- svelte-ignore svelte/no-at-html-tags -->
             {@html icons.export}<span class="hidden sm:inline">{$_('journal.export')}</span></button>
