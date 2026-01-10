@@ -76,24 +76,32 @@ export const app = {
         if (!browser) return;
 
         // Watch for symbol changes to manage WS subscriptions
+        let symbolDebounceTimer: any = null;
+
         tradeStore.subscribe((state) => {
             const settings = get(settingsStore);
             if (settings.apiProvider !== 'bitunix') return;
 
             const newSymbol = state.symbol ? state.symbol.toUpperCase() : '';
-            if (newSymbol && newSymbol.length >= 3) {
-                 if (currentSubscribedSymbol !== newSymbol) {
-                    if (currentSubscribedSymbol) {
-                        bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+
+            // Clear existing timer
+            if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
+
+            symbolDebounceTimer = setTimeout(() => {
+                if (newSymbol && newSymbol.length >= 3) {
+                    if (currentSubscribedSymbol !== newSymbol) {
+                        if (currentSubscribedSymbol) {
+                            bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                        }
+                        bitunixWs.subscribe(newSymbol, 'price');
+                        currentSubscribedSymbol = newSymbol;
                     }
-                    bitunixWs.subscribe(newSymbol, 'price');
-                    currentSubscribedSymbol = newSymbol;
-                 }
-            } else if (currentSubscribedSymbol) {
-                // Symbol cleared or invalid
-                bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
-                currentSubscribedSymbol = null;
-            }
+                } else if (currentSubscribedSymbol) {
+                    // Symbol cleared or invalid
+                    bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                    currentSubscribedSymbol = null;
+                }
+            }, 500); // 500ms debounce to prevent rapid sub/unsub during typing
         });
 
         // Watch for Market Data updates (from WS)
@@ -779,7 +787,7 @@ export const app = {
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
             
             // Only show feedback on manual fetch
-            if (!isAuto) uiStore.showFeedback('copy', 700);
+            if (!isAuto) uiStore.showFeedback('save', 700); // Use 'save' (checkmark) instead of 'copy'
             
             app.calculateAndDisplay();
         } catch (error) {
@@ -842,7 +850,7 @@ export const app = {
             updateTradeStore(state => ({ ...state, atrValue: atr.toDP(4).toNumber() }));
             app.calculateAndDisplay();
             
-            if (!isAuto) uiStore.showFeedback('copy', 700);
+            if (!isAuto) uiStore.showFeedback('save', 700);
         } catch (error) {
              if (!isAuto) {
                 const message = error instanceof Error ? error.message : String(error);
