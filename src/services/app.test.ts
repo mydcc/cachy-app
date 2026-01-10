@@ -235,12 +235,13 @@ describe('app service - ATR and Locking Logic', () => {
 
     it('should fetch ATR and update the trade store', async () => {
         // Arrange
-        const mockKlines: Kline[] = Array(15).fill(0).map((_, i) => ({
+        const mockKlines = Array(15).fill(0).map((_, i) => ({
             high: new Decimal(102 + i * 0.1),
             low: new Decimal(98 - i * 0.1),
             close: new Decimal(100 + i * 0.2),
             open: new Decimal(100),
             volume: new Decimal(1000),
+            time: Date.now(), // Correct property
             klineOpenTime: 0,
             klineCloseTime: 0,
             quoteAssetVolume: new Decimal(1000),

@@ -13,7 +13,7 @@ interface InstructionContent {
     title: string;
 }
 
-export async function loadInstruction(name: 'dashboard' | 'journal' | 'changelog' | 'guide' | 'privacy'): Promise<InstructionContent> {
+export async function loadInstruction(name: 'dashboard' | 'journal' | 'changelog' | 'guide' | 'privacy' | 'whitepaper'): Promise<InstructionContent> {
     const currentLocale = get(locale);
     const filePath = `/instructions/${name}.${currentLocale}.md`;
 
