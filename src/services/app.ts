@@ -11,7 +11,7 @@ import { presetStore, updatePresetStore } from '../stores/presetStore';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
 import { settingsStore } from '../stores/settingsStore';
-import { marketStore } from '../stores/marketStore'; // Import marketStore
+import { marketStore, wsStatusStore } from '../stores/marketStore'; // Import marketStore and wsStatusStore
 import { bitunixWs } from './bitunixWs'; // Import WS Service
 import { syncService } from './syncService';
 import type { JournalEntry, TradeValues, IndividualTpResult, BaseMetrics } from '../stores/types';
@@ -161,31 +161,17 @@ export const app = {
             const uiState = get(uiStore);
 
             if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
-                 // Fallback REST polling
-                 // If using Bitunix and WS is connected, maybe we skip REST price update to save bandwidth?
-                 // But for robustness (and Binance support), we keep it.
-                 // Also, 'autoUpdatePriceInput' logic is handled here for non-WS or fallback.
-                 
-                 // If we have fresh WS data, maybe skip this REST call for price? 
-                 // We can check if `bitunixWs` is connected.
-                 // For now, let's keep it simple: run both. The store update handles deduplication somewhat.
-                 // But to avoid overwriting WS data with potentially slightly stale REST data,
-                 // we might want to prioritize WS.
-                 
                  // 1. Auto Update Price Input (REST Fallback)
                  if (settings.autoUpdatePriceInput) {
                      // If provider is Binance, we MUST use REST (no WS impl yet).
-                     // If Bitunix, we prefer WS.
                      if (settings.apiProvider === 'binance') {
                         app.handleFetchPrice(true);
                      } else {
-                         // Bitunix: Check if WS is active?
-                         // For now, allow REST as backup. It might cause slight jitter if rates differ.
-                         // But usually REST and WS are close.
-                         // Let's rely on handleFetchPrice.
-                         // Optimization: If we just updated via WS < 1s ago, skip?
-                         // Too complex for now.
-                         app.handleFetchPrice(true);
+                         // Bitunix: Use REST only if WS is NOT connected to avoid race conditions/jitter
+                         const wsStatus = get(wsStatusStore);
+                         if (wsStatus !== 'connected') {
+                            app.handleFetchPrice(true);
+                         }
                      }
                  }
 

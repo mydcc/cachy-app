@@ -3,12 +3,24 @@ import { CONSTANTS } from '../constants';
 import type { TradeValues, BaseMetrics, IndividualTpResult, TotalMetrics, JournalEntry } from '../../stores/types';
 
 export function getTradePnL(t: JournalEntry): Decimal {
+    // If we have a calculated totalNetProfit, use it preferably (even for manual trades if available)
+    if (t.totalNetProfit !== undefined && t.totalNetProfit !== null) {
+        const val = new Decimal(t.totalNetProfit);
+        if (!val.isZero()) return val;
+    }
+
     if (t.isManual === false) {
         return new Decimal(t.totalNetProfit || 0);
     }
-    // Manual trades
+
+    // Manual trades fallback logic based on Status
     if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
-    if (t.status === 'Lost') return new Decimal(t.riskAmount || 0).negated();
+    // For Lost manual trades, if net profit is 0/undefined, assume loss of full risk amount
+    if (t.status === 'Lost') {
+         const risk = new Decimal(t.riskAmount || 0);
+         // If risk is 0, we can't guess the loss.
+         return risk.negated();
+    }
     return new Decimal(0);
 }
 

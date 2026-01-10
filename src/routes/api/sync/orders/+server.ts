@@ -14,10 +14,13 @@ export const POST: RequestHandler = async ({ request }) => {
         const startTime = Date.now();
         const TIMEOUT_MS = 50000; // 50s timeout safety for serverless functions
 
+        let isPartial = false;
+
         // Helper to check timeout
         const checkTimeout = () => {
             if (Date.now() - startTime > TIMEOUT_MS) {
                 console.warn('Sync orders timeout reached. Returning partial data.');
+                isPartial = true;
                 return true;
             }
             return false;
@@ -28,7 +31,7 @@ export const POST: RequestHandler = async ({ request }) => {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
-            console.error('Error fetching regular orders:', err);
+            console.error('Error fetching regular orders:', err.message || 'Unknown error');
             // Don't throw here, partial success is allowed
         }
 
@@ -52,9 +55,10 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         }
 
-        return json({ data: allOrders });
+        return json({ data: allOrders, isPartial });
     } catch (e: any) {
-        console.error(`Error fetching orders from Bitunix:`, e);
+        // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
+        console.error(`Error fetching orders from Bitunix:`, e.message || 'Unknown error');
         return json({ error: e.message || 'Failed to fetch orders' }, { status: 500 });
     }
 };
