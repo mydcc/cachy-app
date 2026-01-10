@@ -455,16 +455,21 @@ class BitunixWebSocketService {
                 const symbol = message.symbol;
                 const data = message.data;
                 if (symbol && data) {
-                    marketStore.updateKline(symbol, {
-                        o: data.o,
-                        h: data.h,
-                        l: data.l,
-                        c: data.c,
-                        b: data.b || data.v, // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
-                        // Use data.id (often timestamp in Bitunix) or data.ts as fallbacks.
-                        // Only use Date.now() as a last resort to prevent infinite candle generation if timestamp is missing.
-                        t: data.t || data.id || data.ts || Date.now()
-                    });
+                    // Use data.id (often timestamp in Bitunix) or data.ts as fallbacks.
+                    // STRICT: Do NOT use Date.now(). If timestamp is missing, data is likely garbage/incomplete.
+                    const rawTimestamp = data.t || data.id || data.ts;
+                    const timestamp = typeof rawTimestamp === 'number' ? rawTimestamp : Number(rawTimestamp);
+
+                    if (!isNaN(timestamp) && timestamp > 0) {
+                        marketStore.updateKline(symbol, {
+                            o: data.o,
+                            h: data.h,
+                            l: data.l,
+                            c: data.c,
+                            b: data.b || data.v, // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
+                            t: timestamp
+                        });
+                    }
                 }
             }
 

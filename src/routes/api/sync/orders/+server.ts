@@ -27,12 +27,13 @@ export const POST: RequestHandler = async ({ request }) => {
         };
 
         // 1. Fetch Regular Orders
+        // CRITICAL: This is the primary data source. If this fails, the entire sync is invalid.
         try {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
             console.error('Error fetching regular orders:', err.message || 'Unknown error');
-            // Don't throw here, partial success is allowed
+            throw new Error(`Primary order fetch failed: ${err.message}`);
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
