@@ -20,6 +20,9 @@ interface UiState {
     // Loading State
     isLoading: boolean;
     loadingMessage: string;
+    // Overlay State (for Cheat Codes etc)
+    showUnlockOverlay: boolean;
+    unlockOverlayMessage: string;
 }
 
 const initialUiState: UiState = {
@@ -39,6 +42,8 @@ const initialUiState: UiState = {
     showSymbolSuggestions: false,
     isLoading: false,
     loadingMessage: '',
+    showUnlockOverlay: false,
+    unlockOverlayMessage: ''
 };
 
 function createUiStore() {
@@ -84,6 +89,14 @@ function createUiStore() {
         // Added methods for loading state
         showLoading: (message = 'Loading...') => update(state => ({ ...state, isLoading: true, loadingMessage: message })),
         hideLoading: () => update(state => ({ ...state, isLoading: false, loadingMessage: '' })),
+        // Overlay Methods
+        showOverlay: (message: string, duration = 2000) => {
+            update(state => ({ ...state, showUnlockOverlay: true, unlockOverlayMessage: message }));
+            if (duration > 0) {
+                setTimeout(() => update(state => ({ ...state, showUnlockOverlay: false })), duration);
+            }
+        },
+        hideOverlay: () => update(state => ({ ...state, showUnlockOverlay: false })),
     };
 }
 

@@ -39,15 +39,9 @@ describe('settingsStore', async () => {
     });
 
     it('should initialize with default settings when localStorage is empty', () => {
-        // Since store is singleton and already initialized on import,
-        // we might test default values.
-        // Note: For a true init test we'd need to re-import or isolate modules,
-        // but checking default state is okay.
-
-        // If the store was initialized with empty localStorage (which it was in the import above if not present),
-        // it should have defaults.
         const current = get(settingsStore);
         expect(current.disclaimerAccepted).toBe(false);
+        expect(current.accountTier).toBe('free'); // Check new default
     });
 
     it('should update and persist disclaimerAccepted', () => {
@@ -64,11 +58,12 @@ describe('settingsStore', async () => {
     });
 
     it('should preserve other settings when updating', () => {
-        settingsStore.update(s => ({ ...s, isPro: true }));
+        // Use new accountTier instead of isPro
+        settingsStore.update(s => ({ ...s, accountTier: 'pro' }));
         settingsStore.update(s => ({ ...s, disclaimerAccepted: true }));
 
         const current = get(settingsStore);
-        expect(current.isPro).toBe(true);
+        expect(current.accountTier).toBe('pro');
         expect(current.disclaimerAccepted).toBe(true);
     });
 });
