@@ -25,7 +25,7 @@
 		<meta property="twitter:description" content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis." />
 		<meta property="twitter:image" content="https://www.cachy.app/twitter-image.jpg" /> <!-- Replace with your actual image URL -->
 
-		<link rel="manifest" href="/site.webmanifest" />
+		<link rel="manifest" href="/manifest.json" />
 		<link rel="apple-touch-icon" href="/icon-192.png" />
 		<meta name="theme-color" content="#0f172a" />
 		<meta name="mobile-web-app-capable" content="yes" />
@@ -33,11 +33,22 @@
 		<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
 
 		%sveltekit.head%
+
+		<!-- Matomo Tag Manager -->
+		<script>
+		  var _mtm = window._mtm = window._mtm || [];
+		  _mtm.push({'mtm.startTime': (new Date().getTime()), 'event': 'mtm.Start'});
+		  (function() {
+			var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+			g.async=true; g.src='https://s.cachy.app/js/container_h6eaMUR9.js'; s.parentNode.insertBefore(g,s);
+		  })();
+		</script>
+		<!-- End Matomo Tag Manager -->
 	</head>
 	<body class="flex items-center justify-center min-h-screen p-4" data-sveltekit-preload-data="hover">
-		<!-- Matomo (noscript) -->
-		<noscript><p><img src="https://s.cachy.app/matomo.php?idsite=13&amp;rec=1" style="border:0;" alt="" /></p></noscript>
-		<!-- End Matomo (noscript) -->
+		<!-- Matomo Tag Manager (noscript) -->
+		<noscript><iframe src="https://s.cachy.app/ns.html?id=h6eaMUR9" height="0" width="0" style="display:none;visibility:hidden;"></iframe></noscript>
+		<!-- End Matomo Tag Manager (noscript) -->
 		<div style="display: contents">%sveltekit.body%</div>
 	</body>
 </html>

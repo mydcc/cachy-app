@@ -2,27 +2,6 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createHash, randomBytes } from 'crypto';
 
-interface BitunixOrder {
-    orderId?: string | number;
-    id?: string | number;
-    planOrderId?: string | number;
-    ctime?: number | string;
-    createTime?: number | string;
-    updateTime?: number | string;
-    symbol: string;
-    side: string;
-    type: string;
-    price?: string | number;
-    avgPrice?: string | number;
-    volume?: string | number;
-    dealVolume?: string | number;
-    status?: string | number;
-    profit?: string | number;
-    fee?: string | number;
-    // Add index signature to allow other properties but enforce known ones
-    [key: string]: any;
-}
-
 export const POST: RequestHandler = async ({ request }) => {
     const { apiKey, apiSecret, limit } = await request.json();
 
@@ -31,7 +10,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        let allOrders: BitunixOrder[] = [];
+        let allOrders: any[] = [];
         const startTime = Date.now();
         const TIMEOUT_MS = 50000; // 50s timeout safety for serverless functions
 
@@ -48,19 +27,15 @@ export const POST: RequestHandler = async ({ request }) => {
         };
 
         // 1. Fetch Regular Orders
-        // CRITICAL: This is the primary data source. If this fails, the entire sync is invalid.
         try {
             const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
             console.error('Error fetching regular orders:', err.message || 'Unknown error');
-            // If we have some orders, return what we have instead of throwing, if appropriate
-            // But since this is the primary source, failing here usually means we have nothing.
-            throw new Error(`Primary order fetch failed: ${err.message}`);
+            // Don't throw here, partial success is allowed
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
-        // Check timeout but also ensure we don't abort immediately if close to edge
         if (!checkTimeout()) {
             try {
                 const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout);
@@ -80,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         }
 
-        return json({ data: allOrders, isPartial: isPartial || checkTimeout() });
+        return json({ data: allOrders, isPartial });
     } catch (e: any) {
         // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
         console.error(`Error fetching orders from Bitunix:`, e.message || 'Unknown error');
@@ -93,10 +68,9 @@ async function fetchAllPages(
     apiSecret: string,
     path: string,
     checkTimeout: () => boolean
-): Promise<BitunixOrder[]> {
-    const maxPages = 15; // Limit to ~1500 orders per sync cycle to prevent timeouts
-    let accumulated: BitunixOrder[] = [];
-    const seenIds = new Set<string>(); // For deduplication
+): Promise<any[]> {
+    const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
+    let accumulated: any[] = [];
     let currentEndTime: number | undefined = undefined;
 
     for (let i = 0; i < maxPages; i++) {
@@ -109,19 +83,7 @@ async function fetchAllPages(
             break;
         }
 
-        // Deduplicate and add
-        let newItemsCount = 0;
-        for (const item of batch) {
-            const id = String(item.orderId || item.id || item.planOrderId || Math.random());
-            if (!seenIds.has(id)) {
-                seenIds.add(id);
-                accumulated.push(item);
-                newItemsCount++;
-            }
-        }
-
-        // If we found no new items in this batch, we might be looping or done
-        if (newItemsCount === 0) break;
+        accumulated = accumulated.concat(batch);
 
         // Pagination logic: use the creation time of the last item
         const lastItem = batch[batch.length - 1];
@@ -137,17 +99,9 @@ async function fetchAllPages(
             const parsedTime = parseInt(String(timeField), 10);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                // STRICT LOOP PREVENTION:
-                // If the new timestamp is GREATER than or EQUAL to the previous one (descending sort order assumed but sometimes mixed),
-                // we might be stuck. But Bitunix returns descending usually (newest first).
-                // So the `currentEndTime` (which serves as `endTime` param) should DECREASE or stay same (if multiple items have same ms).
-                // If we get the same timestamp as last loop, and we already saw this ID, we are looping.
-                // Since we used `seenIds` to check for new items count above, we are already safe from pure duplicate loops.
-
-                // If `currentEndTime` is updated to `parsedTime`, check if it actually helps us progress.
-                // The API expects `endTime` to filter orders *before* that time.
-                // We just set it.
-                currentEndTime = parsedTime;
+                // Subtract 1ms (or 1s) to prevent overlap if the API is inclusive
+                // Bitunix usually uses milliseconds. Safe to subtract 1.
+                currentEndTime = parsedTime - 1;
             } else {
                 break; // Invalid timestamp, stop paging
             }
@@ -158,7 +112,7 @@ async function fetchAllPages(
     return accumulated;
 }
 
-async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<BitunixOrder[]> {
+async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     
     // Params for the request
@@ -193,32 +147,17 @@ async function fetchBitunixData(apiKey: string, apiSecret: string, path: string,
     // 6. Build Query String for URL
     const queryString = new URLSearchParams(params).toString();
 
-    // Add AbortController for timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout per request
-
-    let response;
-    try {
-        response = await fetch(`${baseUrl}${path}?${queryString}`, {
-            method: 'GET',
-            headers: {
-                'api-key': apiKey,
-                'timestamp': timestamp,
-                'nonce': nonce,
-                'sign': signature,
-                'Content-Type': 'application/json',
-                'User-Agent': 'CachyApp/1.0'
-            },
-            signal: controller.signal
-        });
-    } catch (error: any) {
-        if (error.name === 'AbortError') {
-             throw new Error(`Request timed out for ${path}`);
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+        method: 'GET',
+        headers: {
+            'api-key': apiKey,
+            'timestamp': timestamp,
+            'nonce': nonce,
+            'sign': signature,
+            'Content-Type': 'application/json',
+            'User-Agent': 'CachyApp/1.0'
         }
-        throw error;
-    } finally {
-        clearTimeout(timeoutId);
-    }
+    });
 
     if (!response.ok) {
         const text = await response.text();

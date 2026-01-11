@@ -7,8 +7,7 @@ export const GET: RequestHandler = async ({ url }) => {
     const interval = url.searchParams.get('interval') || '1d';
     const limitParam = url.searchParams.get('limit');
     const provider = url.searchParams.get('provider') || 'bitunix';
-    let limit = limitParam ? parseInt(limitParam) : 50;
-    if (isNaN(limit)) limit = 50;
+    const limit = limitParam ? parseInt(limitParam) : 50;
 
     if (!symbol) {
         return json({ error: 'Symbol is required' }, { status: 400 });
@@ -24,9 +23,7 @@ export const GET: RequestHandler = async ({ url }) => {
         return json(klines);
     } catch (e: any) {
         console.error(`Error fetching klines from ${provider}:`, e);
-        return json({
-            error: e.message || 'Failed to fetch klines'
-        }, { status: 500 });
+        return json({ error: e.message || 'Failed to fetch klines' }, { status: 500 });
     }
 };
 
@@ -66,7 +63,7 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
     if (!response.ok) {
         const text = await response.text();
         console.error(`Bitunix API error ${response.status}: ${text}`);
-        throw new Error(`Bitunix API error: ${response.status} - ${text.substring(0, 100)}`);
+        throw new Error(`Bitunix API error: ${response.status}`);
     }
 
     const data = await response.json();
@@ -77,22 +74,14 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
     const results = data.data || [];
 
     // Optimize: Return plain strings to reduce payload size and serialization overhead
-    return results.map((k: any) => {
-        if (!k) return null;
-        try {
-            return {
-                open: new Decimal(k.open || k.o || 0).toString(),
-                high: new Decimal(k.high || k.h || 0).toString(),
-                low: new Decimal(k.low || k.l || 0).toString(),
-                close: new Decimal(k.close || k.c || 0).toString(),
-                volume: new Decimal(k.vol || k.v || 0).toString(),
-                timestamp: k.id || k.ts || k.time || 0
-            };
-        } catch (err) {
-            console.warn('Skipping invalid kline:', k, err);
-            return null;
-        }
-    }).filter((k: any) => k !== null).sort((a: any, b: any) => a.timestamp - b.timestamp);
+    return results.map((k: any) => ({
+        open: new Decimal(k.open || k.o || 0).toString(),
+        high: new Decimal(k.high || k.h || 0).toString(),
+        low: new Decimal(k.low || k.l || 0).toString(),
+        close: new Decimal(k.close || k.c || 0).toString(),
+        volume: new Decimal(k.vol || k.v || 0).toString(),
+        timestamp: k.id || k.ts || k.time || 0
+    })).sort((a: any, b: any) => a.timestamp - b.timestamp);
 }
 
 async function fetchBinanceKlines(symbol: string, interval: string, limit: number) {
