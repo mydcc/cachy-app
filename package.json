@@ -17,7 +17,7 @@
 		"@playwright/test": "^1.57.0",
 		"@sveltejs/adapter-auto": "^7.0.0",
 		"@sveltejs/adapter-node": "^5.4.0",
-		"@sveltejs/kit": "^2.49.3",
+		"@sveltejs/kit": "^2.49.4",
 		"@sveltejs/vite-plugin-svelte": "^3.1.2",
 		"@testing-library/svelte": "^5.3.1",
 		"@types/crypto-js": "^4.2.2",
