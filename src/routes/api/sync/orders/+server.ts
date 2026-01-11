@@ -70,7 +70,7 @@ async function fetchAllPages(
     path: string,
     checkTimeout: () => boolean
 ): Promise<any[]> {
-    const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
+    const maxPages = 15; // Limit to ~1500 orders per sync cycle to prevent timeouts
     let accumulated: any[] = [];
     const seenIds = new Set<string>(); // For deduplication
     let currentEndTime: number | undefined = undefined;
@@ -113,13 +113,16 @@ async function fetchAllPages(
             const parsedTime = parseInt(String(timeField), 10);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                // Bitunix pagination is usually inclusive or exclusive depending on endpoint,
-                // but utilizing deduplication allows us to be safer by NOT subtracting 1ms,
-                // or just using the exact time to catch same-ms orders.
-                // However, infinite loops are a risk if the backend returns the same page endlessly.
-                // We'll stick to the timestamp.
-                // Since we deduplicate, using the exact timestamp is safer than subtracting if it's exclusive,
-                // but if it's inclusive, we get the last item again (handled by dedup).
+                // STRICT LOOP PREVENTION:
+                // If the new timestamp is GREATER than or EQUAL to the previous one (descending sort order assumed but sometimes mixed),
+                // we might be stuck. But Bitunix returns descending usually (newest first).
+                // So the `currentEndTime` (which serves as `endTime` param) should DECREASE or stay same (if multiple items have same ms).
+                // If we get the same timestamp as last loop, and we already saw this ID, we are looping.
+                // Since we used `seenIds` to check for new items count above, we are already safe from pure duplicate loops.
+
+                // If `currentEndTime` is updated to `parsedTime`, check if it actually helps us progress.
+                // The API expects `endTime` to filter orders *before* that time.
+                // We just set it.
                 currentEndTime = parsedTime;
             } else {
                 break; // Invalid timestamp, stop paging
