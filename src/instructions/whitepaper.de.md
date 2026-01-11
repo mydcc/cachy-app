@@ -89,6 +89,9 @@ Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes r
 4.  **\`journalStore.ts\`**: Die Historische Aufzeichnung.
     -   *Verfolgt*: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
     -   *Analytik*: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
+5.  **\`chatStore.ts\`**: Verwaltet den Zustand der Seitenleiste.
+    -   *Verfolgt*: Benutzernotizen ("Meine Notizen") und Global Chat Nachrichten.
+    -   *Persistenz*: Synchronisiert Notizen mit `localStorage` für Datenschutz.
 
 ### KI-gestützte Telemetrie (Jules Service)
 
@@ -105,17 +108,17 @@ Cachy implementiert eine intelligente Diagnoseschicht, bekannt als **Jules API**
 
 Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-Gateway.
 
-**Das Problem**: Börsen-APIs (Bitunix) erfordern, dass Anfragen mit einem \`API_SECRET\` signiert werden. Wenn wir diese Anfragen vom Browser aus stellen, müssten wir das Geheimnis den DevTools des Benutzers preisgeben.
+**Das Problem**: Browser erzwingen **CORS** (Cross-Origin Resource Sharing), was direkte Aufrufe an manche Börsen-APIs verhindert. Zudem ist eine zentrale Fehlerbehandlung auf einem Server sauberer.
 
 **Die Lösung**:
 1.  Der Client sendet eine Anfrage an \`GET /api/sync/orders\`.
-2.  Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
+2.  Der Client fügt \`API_KEY\` und \`API_SECRET\` in sicheren HTTPS-Headern hinzu.
 3.  Der Server (Node.js-Kontext) empfängt die Header.
 4.  Der Server konstruiert die Payload und generiert die SHA256-Signatur mit dem Geheimnis.
 5.  Der Server ruft die Bitunix-API auf.
 6.  Der Server gibt das JSON-Ergebnis an den Client zurück.
 
-*Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zustandslos und protokolliert oder speichert sie nicht.*
+*Hinweis: Da Cachy "Local-First" ist, liegen die API-Schlüssel im Speicher des Clients und werden für REST-Calls sicher (HTTPS) an diesen Proxy übertragen.*
 
 ---
 
@@ -221,7 +224,7 @@ Um zu verstehen, wie Cachy funktioniert, verfolgen wir den Lebenszyklus eines ei
 ### Phase 4: Schließen & Journalisieren (Die Sync-Schicht)
 *Komponente: \`app.ts\` (Sync-Logik)*
 1.  **Schließung**: Benutzer klickt auf "Schließen" oder SL wird getroffen.
-2.  **Historien-Abruf**: Die App pollt \`get_history_positions\` (für geschlossene Trades) und \`get_pending_positions\` (für Status-Updates).
+2.  **Historien-Abruf**: Die App pollt `get_history_positions` (für geschlossene Trades) und `get_pending_positions` (für Status-Updates).
 3.  **Der "Safe Swap"**:
     - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
     - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
@@ -252,8 +255,8 @@ Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet
     - Ruft 1440 Minuten Kerzenhistorie ab (für RSI/ATR-Berechnung).
 2.  **Echtzeit (WebSocket)**:
     - **Öffentliche Kanäle**: \`ticker\`, \`depth\`, \`trade\`. Verwendet für Charting und Preisaktualisierungen.
-    - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Verwendet zur Aktualisierung des Benutzer-Dashboards.
-    - *Heartbeat-Logik*: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
+    - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Authentifiziert via lokale \`crypto-js\` Signaturen.
+    - *Heartbeat-Logik*: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 30 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
 
 ### Das "Safe Swap" Synchronisations-Protokoll
 
@@ -285,11 +288,10 @@ Um das "Community First"-Prinzip zu unterstützen, stellt Cachy sicher, dass Ben
 - **Intelligenter Import**: Der \`importFromCSV\`-Service enthält eine zweisprachige Übersetzungsschicht. Er erkennt deutsche Header (z. B. \`Gewinn\`, \`Datum\`) oder englische Header (z. B. \`Profit\`, \`Date\`) und normalisiert sie in die interne Datenstruktur.
 - **Medienunterstützung**: Screenshot-URLs und Tags bleiben während des Import/Export-Zyklus erhalten, was sicherstellt, dass keine "weichen Daten" verloren gehen.
 
-### API-Schlüssel-Handhabung & Proxy-Sicherheit
-Cachy fungiert als Durchgangsinstanz.
-- **Client-seitig**: API-Schlüssel werden im Browser gespeichert. Sie werden *niemals* zur Speicherung an den Cachy-Server gesendet.
-- **Übertragung**: Schlüssel werden nur in den HTTP-Headern spezifischer API-Anfragen gesendet.
-- **Server-seitig**: Der Node.js-Proxy empfängt die Anfrage, signiert sie mit dem Geheimnis, leitet sie an Bitunix weiter und verwirft die Anmeldeinformationen sofort aus dem Speicher. Es werden keine Protokolle geführt.
+### API-Schlüssel-Handhabung & Hybride Authentifizierung
+Cachy nutzt eine Dual-Strategie, um Sicherheit und Echtzeit-Performance auszubalancieren.
+1.  **REST API (via Proxy)**: Schlüssel werden sicher über HTTPS-Header an den Cachy-Proxy gesendet, der die Anfrage signiert und weiterleitet. Der Proxy ist zustandslos und protokolliert keine Zugangsdaten.
+2.  **WebSocket (Client-seitig)**: Für private Echtzeitdaten (Orders/Positionen) erfolgt die Authentifizierung **vollständig Client-seitig**. Die App nutzt \`crypto-js\`, um SHA256-Signaturen lokal mit dem gespeicherten Geheimnis zu generieren. Dies stellt sicher, dass die WebSocket-Verbindung direkt vom Gerät des Benutzers ausgeht, ohne Mittelsmann.
 
 ### Datenbanklose Architektur
 Durch das Entfernen der Datenbank:
