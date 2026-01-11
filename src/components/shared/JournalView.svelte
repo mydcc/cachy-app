@@ -1098,6 +1098,10 @@
                 <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
+            <button class="p-2 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="{$_('settings.title')}">
+                <!-- svelte-ignore svelte/no-at-html-tags -->
+                {@html icons.settings}
+            </button>
         </div>
     </div>
 
