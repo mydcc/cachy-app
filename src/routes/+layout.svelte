@@ -6,6 +6,7 @@
     import DisclaimerModal from '../components/shared/DisclaimerModal.svelte';
     import JournalView from '../components/shared/JournalView.svelte';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
+    import { initCheatCodes } from '../services/cheatCodeService';
 	import { onMount } from 'svelte';
 
 	// Removed Svelte 5 $props() and children destructuring
@@ -26,6 +27,9 @@
 		const storedTheme = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY);
 		const themeToSet = storedTheme || data.theme; // Use localStorage theme, fallback to cookie theme
 		uiStore.setTheme(themeToSet);
+
+        // Initialize Global Cheat Codes
+        const cleanupCheatCodes = initCheatCodes();
 
         // --- CachyLog Integration ---
         // Connect to Server-Sent Events stream for real-time server logs
@@ -73,6 +77,7 @@
             if (evtSource) {
                 evtSource.close();
             }
+            cleanupCheatCodes();
         };
 	});
 
@@ -135,6 +140,18 @@
     <!-- ConfirmationModal Removed as not found -->
     <!-- ToastManager Removed as not found -->
     <!-- LoadingSpinner Removed as not found -->
+
+    <!-- Global Unlock Overlay (Cheat Codes) -->
+    {#if $uiStore.showUnlockOverlay}
+    <div class="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none">
+        <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center border border-[var(--accent-color)]">
+            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">
+                {$settingsStore.accountTier === 'vip' ? '🦆' : '🔓'} Unlocked
+            </div>
+            <div class="text-lg whitespace-pre-wrap max-w-lg">{$uiStore.unlockOverlayMessage}</div>
+        </div>
+    </div>
+    {/if}
 
     <!-- Jules Report Overlay -->
     {#if showJulesOverlay}

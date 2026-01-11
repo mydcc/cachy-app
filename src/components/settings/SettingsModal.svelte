@@ -8,6 +8,7 @@
     import { trackCustomEvent } from '../../services/trackingService';
     import { normalizeTimeframeInput } from '../../utils/utils';
     import { DEFAULT_HOTKEY_MAPS, HOTKEY_ACTIONS, type HotkeyMap, type KeyBinding } from '../../services/hotkeyConfig';
+    import { app } from '../../services/app'; // For export (Admin)
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -64,7 +65,11 @@
     // UI state
     let currentTheme: string;
     let currentLanguage: string;
-    let isPro: boolean;
+
+    // Tier helpers
+    $: isPro = ['pro', 'vip', 'admin'].includes($settingsStore.accountTier);
+    $: isVip = ['vip', 'admin'].includes($settingsStore.accountTier);
+    $: isAdmin = $settingsStore.accountTier === 'admin';
 
     // Journal Settings
     let enableAdvancedMetrics: boolean;
@@ -124,17 +129,9 @@
             enableSidePanel = $settingsStore.enableSidePanel;
             sidePanelMode = $settingsStore.sidePanelMode;
             sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
-            isPro = $settingsStore.isPro;
             enableAdvancedMetrics = $settingsStore.enableAdvancedMetrics || false;
 
             // Initialize Hotkey Bindings
-            // Ensure we have a valid object even if store is old
-            hotkeyBindings = $settingsStore.hotkeyBindings
-                ? { ...$settingsStore.hotkeyBindings }
-                : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
-
-            // Initialize Hotkey Bindings
-            // Ensure we have a valid object even if store is old
             hotkeyBindings = $settingsStore.hotkeyBindings
                 ? { ...$settingsStore.hotkeyBindings }
                 : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
@@ -143,7 +140,7 @@
             openaiApiKey = $settingsStore.openaiApiKey || '';
             openaiModel = $settingsStore.openaiModel || 'gpt-4o';
             geminiApiKey = $settingsStore.geminiApiKey || '';
-            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash';
+            geminiModel = $settingsStore.geminiModel || 'gemini-2.0-flash-exp';
             anthropicApiKey = $settingsStore.anthropicApiKey || '';
             anthropicModel = $settingsStore.anthropicModel || 'claude-3-5-sonnet-20240620';
 
@@ -399,6 +396,10 @@
         FOCUS_LAST_TP: 'Focus Last TP'
     };
 
+    function exportFullState() {
+        createBackup('cachy_full_export');
+    }
+
 </script>
 
 <svelte:window on:keydown={recordingAction ? handleKeyDownRecording : undefined} />
@@ -438,8 +439,10 @@
                 role="tab"
                 aria-selected={activeTab === 'ai'}
                 aria-controls="tab-ai"
+                disabled={!isVip}
+                title={!isVip ? 'VIP Feature' : ''}
             >
-                AI Chat
+                AI Chat {!isVip ? '🔒' : ''}
             </button>
             <button
                 class="px-4 py-3 text-sm font-medium transition-colors whitespace-nowrap {activeTab === 'behavior' ? 'border-b-2 md:border-b-0 md:border-r-2 border-[var(--accent-color)] text-[var(--accent-color)] bg-[var(--bg-tertiary)]' : 'border-b-2 md:border-b-0 md:border-r-2 border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]'} md:text-left text-center"
@@ -586,6 +589,7 @@
                 {:else if activeTab === 'ai'}
                     <!-- ... [AI tab content] ... -->
                     <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
+                        {#if isVip}
                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
                             <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
                             <div class="flex flex-col gap-1">
@@ -638,6 +642,15 @@
                                 Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
                             </p>
                         </div>
+                        {:else}
+                            <div class="flex flex-col items-center justify-center h-64 text-center p-8 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)]">
+                                <span class="text-4xl mb-4">🦆</span>
+                                <h3 class="text-lg font-bold mb-2">VIP Feature</h3>
+                                <p class="text-[var(--text-secondary)] text-sm max-w-xs">
+                                    The AI Chat assistant is exclusively available to VIP members. Unlock VIP status to configure AI providers.
+                                </p>
+                            </div>
+                        {/if}
                     </div>
 
                 {:else if activeTab === 'behavior'}
@@ -765,9 +778,9 @@
                                         <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
                                         <span class="text-sm">{$_('settings.modeChat')}</span>
                                     </label>
-                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                        <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
-                                        <span class="text-sm">AI Chat</span>
+                                    <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] {isVip ? '' : 'opacity-50 cursor-not-allowed'}">
+                                        <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" disabled={!isVip} />
+                                        <span class="text-sm flex items-center gap-1">AI Chat {!isVip ? '🔒' : ''}</span>
                                     </label>
                                 </div>
                             </div>
@@ -1271,15 +1284,23 @@
                 {:else if activeTab === 'system'}
                     <!-- ... [System tab content same as read file] ... -->
                     <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
-                        <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
-                            <h4 class="text-sm font-bold">CachyLog Debug</h4>
-                            <p class="text-xs text-[var(--text-secondary)] mb-2">
-                                Trigger a test log on the server to verify browser console logging (CL: prefix).
-                            </p>
-                            <button class="btn btn-secondary text-sm w-full" on:click={() => fetch('/api/test-log', { method: 'POST' })}>
-                                Trigger Server Log
-                            </button>
+
+                        {#if isAdmin}
+                        <div class="p-3 border border-[var(--danger-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2 relative overflow-hidden">
+                            <div class="absolute -top-1 -right-1 bg-[var(--danger-color)] text-white text-[10px] px-2 py-0.5 rounded-bl">ADMIN</div>
+                            <h4 class="text-sm font-bold text-[var(--danger-color)]">Debug & Admin Tools</h4>
+
+                            <div class="grid grid-cols-2 gap-2">
+                                <button class="btn btn-secondary text-xs" on:click={() => fetch('/api/test-log', { method: 'POST' })}>
+                                    Trigger Server Log
+                                </button>
+                                <button class="btn btn-secondary text-xs" on:click={exportFullState}>
+                                    Export Full State (JSON)
+                                </button>
+                            </div>
                         </div>
+                        {/if}
+
                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                             <h4 class="text-sm font-bold">{$_('settings.backup')}</h4>
                             <p class="text-xs text-[var(--text-secondary)] mb-2">

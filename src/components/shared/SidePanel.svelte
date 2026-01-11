@@ -26,6 +26,20 @@
         chatStore.init();
     });
 
+    // Reactive layout variables
+    $: isFloating = $settingsStore.sidePanelLayout === 'floating';
+    $: isStandard = $settingsStore.sidePanelLayout === 'standard' || !$settingsStore.sidePanelLayout;
+    $: isTransparent = $settingsStore.sidePanelLayout === 'transparent';
+
+    // Tier helpers
+    $: isVip = ['vip', 'admin'].includes($settingsStore.accountTier);
+
+    // Fallback if mode is AI but user is not VIP
+    $: if ($settingsStore.sidePanelMode === 'ai' && !isVip) {
+        // This shouldn't happen via UI but for safety
+        // We avoid auto-writing to store here to prevent loops, but the UI should block it.
+    }
+
     async function handleSend() {
         if (!messageText.trim()) return;
 
@@ -35,6 +49,7 @@
 
         try {
             if (mode === 'ai') {
+                if (!isVip) throw new Error("AI Chat requires VIP status.");
                 await aiStore.sendMessage(messageText);
             } else {
                 await chatStore.sendMessage(messageText);
@@ -75,11 +90,6 @@
             return text;
         }
     }
-
-    // Reactive layout variables
-    $: isFloating = $settingsStore.sidePanelLayout === 'floating';
-    $: isStandard = $settingsStore.sidePanelLayout === 'standard' || !$settingsStore.sidePanelLayout;
-    $: isTransparent = $settingsStore.sidePanelLayout === 'transparent';
 
     const transitionParams = { x: 300, duration: 300 };
 </script>
@@ -182,38 +192,46 @@
                     class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[var(--bg-primary)]"
                 >
                     {#if $settingsStore.sidePanelMode === 'ai'}
-                         <!-- AI Messages -->
-                         {#each $aiStore.messages as msg (msg.id)}
-                            <div class="flex flex-col animate-fade-in text-sm {msg.role === 'user' ? 'items-end' : 'items-start'}">
-                                <div class="max-w-[85%] p-2 rounded break-words {msg.role === 'user' ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]'}">
-                                     {#if msg.role === 'assistant'}
-                                        <div class="markdown-content">
-                                            {@html renderMarkdown(msg.content)}
-                                        </div>
-                                     {:else}
-                                        {msg.content}
-                                     {/if}
-                                </div>
-                                <span class="text-[10px] text-[var(--text-tertiary)] mt-1">
-                                    {new Date(msg.timestamp).toLocaleTimeString()}
-                                </span>
+                         {#if !isVip}
+                            <div class="flex flex-col items-center justify-center h-full text-center p-4">
+                                <span class="text-3xl mb-2">🔒</span>
+                                <p class="text-sm font-bold">VIP Only</p>
+                                <p class="text-xs text-[var(--text-secondary)]">AI Chat requires VIP status.</p>
                             </div>
-                         {/each}
-
-                         {#if $aiStore.isStreaming}
-                            <div class="flex flex-col items-start animate-pulse">
-                                <div class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]">
-                                    <span class="text-xs italic">Thinking...</span>
+                         {:else}
+                             <!-- AI Messages -->
+                             {#each $aiStore.messages as msg (msg.id)}
+                                <div class="flex flex-col animate-fade-in text-sm {msg.role === 'user' ? 'items-end' : 'items-start'}">
+                                    <div class="max-w-[85%] p-2 rounded break-words {msg.role === 'user' ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]' : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]'}">
+                                         {#if msg.role === 'assistant'}
+                                            <div class="markdown-content">
+                                                {@html renderMarkdown(msg.content)}
+                                            </div>
+                                         {:else}
+                                            {msg.content}
+                                         {/if}
+                                    </div>
+                                    <span class="text-[10px] text-[var(--text-tertiary)] mt-1">
+                                        {new Date(msg.timestamp).toLocaleTimeString()}
+                                    </span>
                                 </div>
-                            </div>
-                         {/if}
+                             {/each}
 
-                         {#if $aiStore.messages.length === 0}
-                             <div class="text-center text-[var(--text-secondary)] text-xs mt-10">
-                                <p class="mb-2 font-bold">Trading Assistant</p>
-                                <p class="italic">I can analyze your trades, explain market data, or chat about strategy.</p>
-                                <p class="mt-4 text-[10px]">Using {$settingsStore.aiProvider || 'Unknown Provider'}</p>
-                             </div>
+                             {#if $aiStore.isStreaming}
+                                <div class="flex flex-col items-start animate-pulse">
+                                    <div class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]">
+                                        <span class="text-xs italic">Thinking...</span>
+                                    </div>
+                                </div>
+                             {/if}
+
+                             {#if $aiStore.messages.length === 0}
+                                 <div class="text-center text-[var(--text-secondary)] text-xs mt-10">
+                                    <p class="mb-2 font-bold">Trading Assistant</p>
+                                    <p class="italic">I can analyze your trades, explain market data, or chat about strategy.</p>
+                                    <p class="mt-4 text-[10px]">Using {$settingsStore.aiProvider || 'Unknown Provider'}</p>
+                                 </div>
+                             {/if}
                          {/if}
 
                     {:else}
@@ -253,12 +271,12 @@
                             maxlength={$settingsStore.sidePanelMode === 'ai' ? 1000 : 140}
                             bind:value={messageText}
                             on:keydown={handleKeydown}
-                            disabled={isSending || ($settingsStore.sidePanelMode === 'ai' && $aiStore.isStreaming)}
+                            disabled={isSending || ($settingsStore.sidePanelMode === 'ai' && ($aiStore.isStreaming || !isVip))}
                         />
                         <button
                             class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] disabled:opacity-50"
                             on:click={handleSend}
-                            disabled={!messageText.trim() || isSending || ($settingsStore.sidePanelMode === 'ai' && $aiStore.isStreaming)}
+                            disabled={!messageText.trim() || isSending || ($settingsStore.sidePanelMode === 'ai' && ($aiStore.isStreaming || !isVip))}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="22" y1="2" x2="11" y2="13"></line>

@@ -9,6 +9,7 @@ export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
 export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
 export type AiProvider = 'openai' | 'gemini' | 'anthropic';
+export type AccountTier = 'free' | 'pro' | 'vip' | 'admin';
 
 export interface ApiKeys {
     key: string;
@@ -25,7 +26,7 @@ export interface Settings {
     hideUnfilledOrders: boolean;
     positionViewMode?: PositionViewMode;
     pnlViewMode?: PnlViewMode;
-    isPro: boolean;
+    accountTier: AccountTier; // Replaces isPro
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
     hotkeyBindings: HotkeyMap; // New: Custom bindings
@@ -74,7 +75,7 @@ const defaultSettings: Settings = {
     showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
-    isPro: false,
+    accountTier: 'free',
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
     hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode2'], // Initialize with Mode 2 defaults
@@ -140,8 +141,19 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.autoUpdatePriceInput = false;
             }
         }
+
+        // 3. Migration: isPro -> accountTier
+        // Only if accountTier is not explicitly set (or stuck at default 'free' from merge but isPro was true)
+        // Check if `accountTier` exists in parsed. If not, we migrate.
+        if (parsed.accountTier === undefined) {
+            if (parsed.isPro === true) {
+                settings.accountTier = 'pro';
+            } else {
+                settings.accountTier = 'free';
+            }
+        }
         
-        // 3. Ensure ImgBB defaults if missing (even if other settings existed)
+        // 4. Ensure ImgBB defaults if missing (even if other settings existed)
         if (!settings.imgbbApiKey) {
             settings.imgbbApiKey = defaultSettings.imgbbApiKey;
         }
@@ -149,7 +161,7 @@ function loadSettingsFromLocalStorage(): Settings {
              settings.imgbbExpiration = defaultSettings.imgbbExpiration;
         }
 
-        // 4. Ensure AI Settings defaults
+        // 5. Ensure AI Settings defaults
         if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
         if (!settings.openaiApiKey) settings.openaiApiKey = defaultSettings.openaiApiKey;
         if (!settings.openaiModel) settings.openaiModel = defaultSettings.openaiModel;
@@ -165,7 +177,7 @@ function loadSettingsFromLocalStorage(): Settings {
         if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
         if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
 
-        // 5. Hotkey Migration: If hotkeyBindings are missing, init from mode
+        // 6. Hotkey Migration: If hotkeyBindings are missing, init from mode
         if (!settings.hotkeyBindings) {
             const mode = settings.hotkeyMode || 'mode2';
             settings.hotkeyBindings = { ...DEFAULT_HOTKEY_MAPS[mode] };
@@ -182,7 +194,7 @@ function loadSettingsFromLocalStorage(): Settings {
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode || 'value',
-            isPro: settings.isPro ?? defaultSettings.isPro,
+            accountTier: settings.accountTier ?? defaultSettings.accountTier,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
             hotkeyBindings: settings.hotkeyBindings,

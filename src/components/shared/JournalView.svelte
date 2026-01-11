@@ -21,117 +21,16 @@
     import JournalEntryTags from './JournalEntryTags.svelte';
     import ColumnSelector from '../../components/journal/ColumnSelector.svelte'; // Import ColumnSelector
     import { Decimal } from 'decimal.js';
-    import { onMount, onDestroy } from 'svelte';
 
     // --- State for Dashboard ---
     let activePreset = 'performance';
     let activeDeepDivePreset = 'timing';
-    let showUnlockOverlay = false;
-    let unlockOverlayMessage = '';
     let showColumnSelector = false; // State for Column Selector
 
-    // --- Cheat Code Logic ---
-    const CODE_UNLOCK = 'VIPENTE2026';
-    const CODE_LOCK = 'VIPDEEPDIVE';
-    const CODE_SPACE = 'VIPSPACE2026';
-    const CODE_BONUS = 'VIPBONUS2026';
-    const CODE_STREAK = 'VIPSTREAK2026';
-
-    const MAX_CODE_LENGTH = Math.max(
-        CODE_UNLOCK.length,
-        CODE_LOCK.length,
-        CODE_SPACE.length,
-        CODE_BONUS.length,
-        CODE_STREAK.length
-    );
-
-    let inputBuffer: string[] = [];
-
-    function handleKeydown(event: KeyboardEvent) {
-        // Ignore if user is typing in an input field
-        const target = event.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-        const key = event.key.toUpperCase();
-        if (key.length === 1) {
-            inputBuffer.push(key);
-            if (inputBuffer.length > MAX_CODE_LENGTH) {
-                inputBuffer.shift();
-            }
-
-            const bufferStr = inputBuffer.join('');
-
-            // VIPENTE2026: Pro Active + VIP Theme Active => Unlock Charts
-            if (bufferStr.endsWith(CODE_UNLOCK)) {
-                if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
-                    unlockDeepDive();
-                }
-            }
-            // VIPDEEPDIVE: Lock Charts (Always works if matched)
-            else if (bufferStr.endsWith(CODE_LOCK)) {
-                lockDeepDive();
-            }
-            // VIPSPACE2026: Pro Active + VIP Theme Active => Space Dialog + Link
-            else if (bufferStr.endsWith(CODE_SPACE)) {
-                 if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
-                    activateVipSpace();
-                }
-            }
-            // Placeholders
-            else if (bufferStr.endsWith(CODE_BONUS)) {
-                inputBuffer = [];
-            }
-            else if (bufferStr.endsWith(CODE_STREAK)) {
-                 inputBuffer = [];
-            }
-        }
-    }
-
-    function unlockDeepDive() {
-        if ($settingsStore.isDeepDiveUnlocked) return;
-        $settingsStore.isDeepDiveUnlocked = true;
-        unlockOverlayMessage = $_('journal.messages.unlocked');
-        showUnlockOverlay = true;
-        inputBuffer = []; // Reset buffer
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
-    }
-
-    function lockDeepDive() {
-        if (!$settingsStore.isDeepDiveUnlocked) return;
-        $settingsStore.isDeepDiveUnlocked = false;
-        unlockOverlayMessage = $_('journal.messages.deactivated');
-        showUnlockOverlay = true;
-        inputBuffer = []; // Reset buffer
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
-    }
-
-    function activateVipSpace() {
-        unlockOverlayMessage = $_('journal.messages.vipSpaceUnlocked');
-        showUnlockOverlay = true;
-        inputBuffer = [];
-        setTimeout(() => {
-            showUnlockOverlay = false;
-            if (browser) {
-                window.open('https://metaverse.bitunix.cyou', '_blank');
-            }
-        }, 2000);
-    }
-
-    onMount(() => {
-        if (browser) {
-            window.addEventListener('keydown', handleKeydown);
-        }
-    });
-
-    onDestroy(() => {
-        if (browser) {
-            window.removeEventListener('keydown', handleKeydown);
-        }
-    });
+    // Derived helpers
+    $: isPro = ['pro', 'vip', 'admin'].includes($settingsStore.accountTier);
+    // Deep Dive is unlocked if Pro+ AND cheat code flag is true
+    $: isDeepDiveVisible = isPro && $settingsStore.isDeepDiveUnlocked;
 
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
@@ -926,9 +825,7 @@
     />
 
     <!-- Dashboard Section -->
-    {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
-    <!-- (Existing Dashboard Code Omitted for brevity, it's unchanged) -->
-    <!-- ... -->
+    {#if isDeepDiveVisible}
     <DashboardNav {activePreset} on:select={(e) => activePreset = e.detail} />
      <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 min-h-[250px]">
         {#if activePreset === 'performance'}
@@ -1097,7 +994,7 @@
 
         <div class="flex items-center gap-4 pb-2">
             <!-- Advanced Metrics Toggle -->
-            {#if $settingsStore.isPro}
+            {#if isPro}
                 <label class="flex items-center gap-2 cursor-pointer select-none">
                      <input type="checkbox" bind:checked={$settingsStore.enableAdvancedMetrics} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0" />
                      <span class="text-sm font-bold flex items-center gap-1">
@@ -1107,8 +1004,8 @@
                 </label>
             {/if}
 
-            <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
-                <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
+            <label class="flex items-center gap-2 select-none {!isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
+                <input type="checkbox" bind:checked={groupBySymbol} disabled={!isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
 
@@ -1401,7 +1298,7 @@
     {/if}
 
     <!-- Deep Dive Section -->
-    {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
+    {#if isDeepDiveVisible}
     <!-- ... (Keep existing Deep Dive code) ... -->
     <!-- REPEATING DEEP DIVE SECTION FROM ABOVE (Wait, I pasted it twice in previous read, I should avoid duplication) -->
     <!-- I will ensure I only paste the modified parts or the whole file correctly. -->
@@ -1647,7 +1544,7 @@
 
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">
-        {#if $settingsStore.isPro}
+        {#if isPro}
              <button id="sync-bitunix-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]" title="{$_('journal.syncBitunix')}" on:click={app.syncBitunixHistory}>
                 <!-- svelte-ignore svelte/no-at-html-tags -->
                 {@html icons.refresh}<span class="hidden sm:inline">{$_('journal.syncBitunix')}</span></button>
