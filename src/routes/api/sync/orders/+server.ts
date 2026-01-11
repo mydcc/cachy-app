@@ -2,6 +2,27 @@ import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createHash, randomBytes } from 'crypto';
 
+interface BitunixOrder {
+    orderId?: string | number;
+    id?: string | number;
+    planOrderId?: string | number;
+    ctime?: number | string;
+    createTime?: number | string;
+    updateTime?: number | string;
+    symbol: string;
+    side: string;
+    type: string;
+    price?: string | number;
+    avgPrice?: string | number;
+    volume?: string | number;
+    dealVolume?: string | number;
+    status?: string | number;
+    profit?: string | number;
+    fee?: string | number;
+    // Add index signature to allow other properties but enforce known ones
+    [key: string]: any;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
     const { apiKey, apiSecret, limit } = await request.json();
 
@@ -10,7 +31,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        let allOrders: any[] = [];
+        let allOrders: BitunixOrder[] = [];
         const startTime = Date.now();
         const TIMEOUT_MS = 50000; // 50s timeout safety for serverless functions
 
@@ -69,9 +90,9 @@ async function fetchAllPages(
     apiSecret: string,
     path: string,
     checkTimeout: () => boolean
-): Promise<any[]> {
+): Promise<BitunixOrder[]> {
     const maxPages = 15; // Limit to ~1500 orders per sync cycle to prevent timeouts
-    let accumulated: any[] = [];
+    let accumulated: BitunixOrder[] = [];
     const seenIds = new Set<string>(); // For deduplication
     let currentEndTime: number | undefined = undefined;
 
@@ -134,7 +155,7 @@ async function fetchAllPages(
     return accumulated;
 }
 
-async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<any[]> {
+async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<BitunixOrder[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     
     // Params for the request

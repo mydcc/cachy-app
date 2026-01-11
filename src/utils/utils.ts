@@ -154,7 +154,14 @@ export function normalizeTimeframeInput(input: string): string {
     const match = val.match(/^(\d+)\s*([a-zA-Z]+)$/);
     if (match) {
         const num = parseInt(match[1]);
-        let unit = match[2].toLowerCase();
+        let unit = match[2];
+
+        // Handle Case-Sensitivity for Month (M) vs Minute (m)
+        if (unit === 'M') {
+             return num + 'M';
+        }
+
+        unit = unit.toLowerCase();
 
         // Normalize unit
         if (unit.startsWith('m') && unit !== 'm') unit = 'm'; // min -> m
@@ -205,19 +212,22 @@ export function getIntervalMs(timeframe: string): number {
     if (!match) return 3600000;
 
     const num = parseInt(match[1], 10);
-    const unit = match[2].toLowerCase();
+    const unitRaw = match[2];
+    const unit = unitRaw.toLowerCase();
 
     let multiplier = 60 * 1000; // Default to minute
-    switch (unit) {
-        case 'm': multiplier = 60 * 1000; break;
-        case 'h': multiplier = 60 * 60 * 1000; break;
-        case 'd': multiplier = 24 * 60 * 60 * 1000; break;
-        case 'w': multiplier = 7 * 24 * 60 * 60 * 1000; break;
-    }
 
-    // Special handling for Month '1M' if unit became 'm' but we need to distinguish?
-    // Given normalized inputs usually use 'm' for minute.
-    // Let's rely on standard 'm', 'h', 'd'.
+    // Check strict case for Month
+    if (unitRaw === 'M') {
+         multiplier = 30 * 24 * 60 * 60 * 1000; // Approx 30 days
+    } else {
+        switch (unit) {
+            case 'm': multiplier = 60 * 1000; break;
+            case 'h': multiplier = 60 * 60 * 1000; break;
+            case 'd': multiplier = 24 * 60 * 60 * 1000; break;
+            case 'w': multiplier = 7 * 24 * 60 * 60 * 1000; break;
+        }
+    }
 
     return num * multiplier;
 }
