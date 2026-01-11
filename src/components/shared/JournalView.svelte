@@ -642,9 +642,26 @@
     let filterDateStart = '';
     let filterDateEnd = '';
     let groupBySymbol = false;
+    let showAdvancedMetrics = false;
     let expandedGroups: {[key: string]: boolean} = {};
 
     // --- Table Logic ---
+    function formatDuration(start: string | undefined, end: string | undefined): string {
+        if (!start || !end) return '-';
+        const s = new Date(start).getTime();
+        const e = new Date(end).getTime();
+        if (isNaN(s) || isNaN(e)) return '-';
+
+        // If start > end (e.g. slight clock skew or manual entry error), swap? No, just abs.
+        // Usually entry < exit.
+
+        const diffMs = Math.max(0, e - s);
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (diffHours > 0) return `${diffHours}h ${diffMinutes}m`;
+        return `${diffMinutes}m`;
+    }
     function sortTrades(trades: any[], field: string, direction: 'asc' | 'desc') {
         return [...trades].sort((a, b) => {
             let valA = a[field];
@@ -1076,6 +1093,10 @@
 
         <div class="flex items-center gap-2 pb-2">
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
+                <input type="checkbox" bind:checked={showAdvancedMetrics} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
+                <span class="text-sm font-bold">{$_('journal.advancedMetrics')}</span>
+            </label>
+            <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
                 <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
@@ -1122,10 +1143,22 @@
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>{$_('journal.table.symbol')} {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>{$_('journal.table.type')} {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>{$_('journal.table.entry')} {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {#if showAdvancedMetrics}
+                                <th>{$_('journal.table.exit')}</th>
+                            {/if}
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>{$_('journal.table.sl')} {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {#if showAdvancedMetrics}
+                                <th>{$_('journal.table.size')}</th>
+                            {/if}
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>{$_('journal.table.pnl')} {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>{$_('journal.table.funding')} {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>{$_('journal.table.rr')} {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {#if showAdvancedMetrics}
+                                <th>{$_('journal.table.mae')}</th>
+                                <th>{$_('journal.table.mfe')}</th>
+                                <th>{$_('journal.table.efficiency')}</th>
+                                <th>{$_('journal.table.duration')}</th>
+                            {/if}
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>{$_('journal.table.status')} {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
                             <th>{$_('journal.table.screenshot')}</th>
                             <th>{$_('journal.table.tags')}</th>
@@ -1141,12 +1174,24 @@
                                 <td>{trade.symbol || '-'}</td>
                                 <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
                                 <td>{trade.entryPrice.toFixed(4)}</td>
+                                {#if showAdvancedMetrics}
+                                    <td>-</td>
+                                {/if}
                                 <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
+                                {#if showAdvancedMetrics}
+                                    <td>-</td>
+                                {/if}
                                 <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
                                 <td class="{trade.fundingFee.lt(0) ? 'text-[var(--danger-color)]' : trade.fundingFee.gt(0) ? 'text-[var(--success-color)]' : 'text-[var(--text-secondary)]'}">{trade.fundingFee.toFixed(4)}</td>
                                 <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
                                     {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : '-'}
                                 </td>
+                                {#if showAdvancedMetrics}
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>-</td>
+                                    <td>{formatDuration(trade.entryDate, trade.date)}</td>
+                                {/if}
                                 <td>
                                     {#if trade.isManual === false}
                                         <span class="px-2 py-1 rounded text-xs font-bold
@@ -1203,7 +1248,7 @@
                             </tr>
                         {/each}
                         {#if paginatedTrades.length === 0}
-                             <tr><td colspan="10" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
+                             <tr><td colspan="{showAdvancedMetrics ? 19 : 13}" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
                         {/if}
                     </tbody>
                 </table>
