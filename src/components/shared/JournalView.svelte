@@ -546,6 +546,7 @@
     let filterDateStart = '';
     let filterDateEnd = '';
     let groupBySymbol = false;
+    let showAdvancedMetrics = false;
     let expandedGroups: {[key: string]: boolean} = {};
 
     // Use settings store for visible columns
@@ -556,6 +557,22 @@
     }
 
     // --- Table Logic ---
+    function formatDuration(start: string | undefined, end: string | undefined): string {
+        if (!start || !end) return '-';
+        const s = new Date(start).getTime();
+        const e = new Date(end).getTime();
+        if (isNaN(s) || isNaN(e)) return '-';
+
+        // If start > end (e.g. slight clock skew or manual entry error), swap? No, just abs.
+        // Usually entry < exit.
+
+        const diffMs = Math.max(0, e - s);
+        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffMinutes = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+
+        if (diffHours > 0) return `${diffHours}h ${diffMinutes}m`;
+        return `${diffMinutes}m`;
+    }
     function sortTrades(trades: any[], field: string, direction: 'asc' | 'desc') {
         return [...trades].sort((a, b) => {
             let valA = a[field];
