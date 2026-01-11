@@ -34,10 +34,26 @@ export const app = {
 
     init: () => {
         if (browser) {
+            app.destroy(); // Ensure clean slate
             app.populatePresetLoader();
             app.calculateAndDisplay();
             app.setupPriceUpdates();
             app.setupRealtimeUpdates(); // Initialize WS updates
+        }
+    },
+
+    destroy: () => {
+        if (priceUpdateIntervalId) {
+            clearInterval(priceUpdateIntervalId);
+            priceUpdateIntervalId = null;
+        }
+        if (marketStoreUnsubscribe) {
+            marketStoreUnsubscribe();
+            marketStoreUnsubscribe = null;
+        }
+        if (currentSubscribedSymbol) {
+             bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+             currentSubscribedSymbol = null;
         }
     },
 
