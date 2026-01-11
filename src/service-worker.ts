@@ -13,10 +13,36 @@ self.addEventListener('install', (event) => {
     // Create a new cache and add all files to it
     async function addFilesToCache() {
         const cache = await caches.open(CACHE);
-        await cache.addAll(ASSETS);
+        try {
+            await cache.addAll(ASSETS);
+        } catch (error) {
+            console.error('PWA Install: Failed to cache assets. This prevents WebAPK generation.', error);
+            // Fallback: Try caching critical assets only if full bulk fails
+            // This is crucial because if one file (like a large image) fails,
+            // the whole SW fails, and the app becomes just a Shortcut (white splash).
+             const criticalAssets = ASSETS.filter(file =>
+                file.endsWith('.html') ||
+                file.endsWith('.js') ||
+                file.endsWith('.css') ||
+                file.endsWith('.json') ||
+                file.endsWith('.webmanifest') ||
+                file.includes('icon')
+            );
+
+            // Try forcing critical assets
+            for (const asset of criticalAssets) {
+                try {
+                    await cache.add(asset);
+                } catch (e) {
+                    console.warn(`Failed to cache critical asset: ${asset}`, e);
+                }
+            }
+        }
     }
 
     event.waitUntil(addFilesToCache());
+    // Force the waiting service worker to become the active service worker.
+    self.skipWaiting();
 });
 
 self.addEventListener('activate', (event) => {
@@ -28,14 +54,19 @@ self.addEventListener('activate', (event) => {
     }
 
     event.waitUntil(deleteOldCaches());
+    // Claim any clients immediately, so that the page will be controlled by the service worker immediately.
+    self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
     // ignore POST requests etc
     if (event.request.method !== 'GET') return;
 
+    // Ignore chrome-extension schemes etc
+    const url = new URL(event.request.url);
+    if (!url.protocol.startsWith('http')) return;
+
     async function respond() {
-        const url = new URL(event.request.url);
         const cache = await caches.open(CACHE);
 
         // Serve build assets from the cache
@@ -66,7 +97,6 @@ self.addEventListener('fetch', (event) => {
             }
 
             // if there's no cache, then just error out
-            // as there is nothing we can do to respond to this request
             throw err;
         }
     }
