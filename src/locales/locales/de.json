@@ -208,7 +208,9 @@
       "to": "Bis",
       "pivotMode": "Pivot Modus",
       "uploadScreenshot": "Screenshot hochladen",
-      "advancedMetrics": "Erweiterte Metriken"
+      "advancedMetrics": "Erweiterte Metriken",
+      "showScreenshots": "Screenshots anzeigen",
+      "tableSettings": "Tabelleneinstellungen"
     },
     "table": {
       "date": "Datum",

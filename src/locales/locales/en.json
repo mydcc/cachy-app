@@ -208,7 +208,9 @@
       "to": "To",
       "pivotMode": "Pivot Mode",
       "uploadScreenshot": "Upload Screenshot",
-      "advancedMetrics": "Advanced Metrics"
+      "advancedMetrics": "Advanced Metrics",
+      "showScreenshots": "Show Screenshots",
+      "tableSettings": "Table Settings"
     },
     "table": {
       "date": "Date",
