@@ -66,10 +66,13 @@ describe('backupService', () => {
     });
 
     it('should fail if the JSON is invalid', () => {
+      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
       const result = restoreFromBackup('not a json');
       expect(result.success).toBe(false);
       expect(result.message).toContain('not a valid backup file');
       expect(Object.keys(localStorageMock.getStore()).length).toBe(0);
+      expect(consoleSpy).toHaveBeenCalled();
+      consoleSpy.mockRestore();
     });
 
     it('should fail if the app name is incorrect', () => {
