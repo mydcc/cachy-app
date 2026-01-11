@@ -98,6 +98,16 @@
 <svelte:head>
     <title>Cachy - Crypto Risk Calculator</title>
     <meta name="description" content="Advanced Crypto Risk Management & Trading Journal" />
+    <!-- Matomo Tag Manager -->
+    <script>
+        var _mtm = window._mtm = window._mtm || [];
+        _mtm.push({'mtm.startTime': (new Date().getTime()), 'event': 'mtm.Start'});
+        (function() {
+          var d=document, g=d.createElement('script'), s=d.getElementsByTagName('script')[0];
+          g.async=true; g.src='https://s.cachy.app/js/container_h6eaMUR9.js'; s.parentNode.insertBefore(g,s);
+        })();
+    </script>
+    <!-- End Matomo Tag Manager -->
     {@html `<script type="application/ld+json">
     {
       "@context": "https://schema.org",
