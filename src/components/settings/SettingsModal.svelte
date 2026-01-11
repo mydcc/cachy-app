@@ -397,7 +397,7 @@
     };
 
     function exportFullState() {
-        createBackup('cachy_full_export');
+        createBackup();
     }
 
 </script>

@@ -54,7 +54,7 @@ describe('Hotkey Service', () => {
             hideUnfilledOrders: false,
             positionViewMode: 'detailed',
             pnlViewMode: 'value',
-            isPro: true,
+            accountTier: 'pro',
             feePreference: 'maker',
             favoriteTimeframes: [],
             syncRsiTimeframe: true,
@@ -123,6 +123,8 @@ describe('Hotkey Service', () => {
             showSymbolSuggestions: false,
             isLoading: false,
             loadingMessage: '',
+            showUnlockOverlay: false,
+            unlockOverlayMessage: ''
         });
     });
 
