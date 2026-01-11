@@ -73,7 +73,12 @@ describe('Hotkey Service', () => {
             anthropicModel: 'claude-3-5-sonnet-20240620',
             disclaimerAccepted: true,
             enableAdvancedMetrics: false,
-            visibleColumns: []
+            visibleColumns: [],
+            tradeListSettings: {
+                minTradeValue: 0,
+                maxTradeAgeSeconds: 600,
+                maxTradeCount: 10
+            }
         });
 
         tradeStore.set({

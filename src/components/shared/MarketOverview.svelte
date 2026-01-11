@@ -14,17 +14,35 @@
     import { Decimal } from "decimal.js";
     import DepthBar from "./DepthBar.svelte"; // Import the new DepthBar
     import Tooltip from "./Tooltip.svelte";
+    import { enhancedInput } from "../../lib/actions/inputEnhancements";
 
     export let customSymbol: string | undefined = undefined;
     export let isFavoriteTile: boolean = false;
     export let onToggleTechnicals: (() => void) | undefined = undefined;
     export let isTechnicalsVisible: boolean = false;
 
+    // View Mode State: 'depth' or 'trades'
+    let viewMode: 'depth' | 'trades' = 'depth';
+    let isTradeSettingsOpen = false;
+
     // Use custom symbol if provided, otherwise fall back to store symbol
     $: symbol = (customSymbol || $tradeStore.symbol || '').toUpperCase();
     $: normalizedSymbolForWs = symbol.replace('.P', '').replace('P', ''); // Basic normalization for WS
     $: provider = $settingsStore.apiProvider;
     $: displaySymbol = getDisplaySymbol(symbol);
+
+    // Trade List Settings
+    $: tradeListSettings = $settingsStore.tradeListSettings;
+
+    function updateTradeSetting(key: string, value: number) {
+        settingsStore.update(s => ({
+            ...s,
+            tradeListSettings: {
+                ...s.tradeListSettings,
+                [key]: value
+            }
+        }));
+    }
 
     // REST Data (24h Stats, Volume, Change)
     let tickerData: Ticker24h | null = null;
@@ -49,6 +67,23 @@
 
     // Depth Data
     $: depthData = wsData?.depth;
+
+    // Trade Data Processing
+    $: filteredTrades = (wsData?.trades || [])
+        .filter(t => {
+            const now = Date.now();
+            const ageSeconds = (now - t.time) / 1000;
+            const minValue = new Decimal(tradeListSettings.minTradeValue);
+
+            // Age Filter
+            if (ageSeconds > tradeListSettings.maxTradeAgeSeconds) return false;
+
+            // Value Filter
+            if (t.value.lt(minValue)) return false;
+
+            return true;
+        })
+        .slice(0, tradeListSettings.maxTradeCount);
 
     // RSI Logic
     let historyKlines: Kline[] = [];
@@ -254,6 +289,7 @@
         bitunixWs.subscribe(symbol, 'price');
         bitunixWs.subscribe(symbol, 'ticker'); // Subscribe to 24h ticker
         bitunixWs.subscribe(symbol, 'depth_book5');
+        bitunixWs.subscribe(symbol, 'trade'); // Subscribe to trade channel
         // Kline subscription handled above dynamically
     }
 
@@ -311,6 +347,7 @@
              bitunixWs.unsubscribe(symbol, 'price');
              bitunixWs.unsubscribe(symbol, 'ticker');
              bitunixWs.unsubscribe(symbol, 'depth_book5');
+             bitunixWs.unsubscribe(symbol, 'trade');
              if (currentWsChannel) bitunixWs.unsubscribe(symbol, currentWsChannel as any);
         }
     });
@@ -424,9 +461,121 @@
                 {/if}
             </div>
             
-            <!-- Depth Visualization -->
-            {#if depthData}
-                <DepthBar bids={depthData.bids} asks={depthData.asks} />
+            <!-- View Toggle & Settings -->
+            <div class="flex justify-end items-center gap-1 mt-1 -mb-1 relative z-30">
+                 <!-- Settings for Trade List (Only visible in Trade Mode) -->
+                 {#if viewMode === 'trades'}
+                    <div class="relative group">
+                         <button
+                            class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-0.5 rounded"
+                            on:click|stopPropagation={() => isTradeSettingsOpen = !isTradeSettingsOpen}
+                            title="Filter Trades"
+                         >
+                            {@html icons.settings || '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>'}
+                         </button>
+
+                         {#if isTradeSettingsOpen}
+                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                            <div
+                                class="absolute right-0 top-full mt-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] p-3 rounded shadow-xl w-48 z-50 text-xs"
+                                on:click|stopPropagation
+                                on:keydown|stopPropagation
+                                role="dialog"
+                                aria-label="Trade List Settings"
+                            >
+                                <div class="flex flex-col gap-2">
+                                    <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">Trade List Filters</div>
+
+                                    <div class="flex flex-col gap-1">
+                                        <label for="min-trade-val" class="text-[var(--text-secondary)]">Min Value ($)</label>
+                                        <input
+                                            id="min-trade-val"
+                                            type="number"
+                                            class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-1 py-0.5 w-full focus:outline-none focus:border-[var(--accent-color)]"
+                                            value={tradeListSettings.minTradeValue}
+                                            on:input={(e) => updateTradeSetting('minTradeValue', Number(e.currentTarget.value))}
+                                            use:enhancedInput
+                                        />
+                                    </div>
+
+                                    <div class="flex flex-col gap-1">
+                                        <label for="max-trade-age" class="text-[var(--text-secondary)]">Max Age (sec)</label>
+                                        <input
+                                            id="max-trade-age"
+                                            type="number"
+                                            class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-1 py-0.5 w-full focus:outline-none focus:border-[var(--accent-color)]"
+                                            value={tradeListSettings.maxTradeAgeSeconds}
+                                            on:input={(e) => updateTradeSetting('maxTradeAgeSeconds', Number(e.currentTarget.value))}
+                                            use:enhancedInput
+                                        />
+                                    </div>
+
+                                    <div class="flex flex-col gap-1">
+                                        <label for="max-trade-cnt" class="text-[var(--text-secondary)]">Count</label>
+                                        <input
+                                            id="max-trade-cnt"
+                                            type="number"
+                                            class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-1 py-0.5 w-full focus:outline-none focus:border-[var(--accent-color)]"
+                                            value={tradeListSettings.maxTradeCount}
+                                            on:input={(e) => updateTradeSetting('maxTradeCount', Number(e.currentTarget.value))}
+                                            use:enhancedInput
+                                        />
+                                    </div>
+
+                                    <button
+                                        class="mt-1 bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border-color)] rounded py-1 transition-colors"
+                                        on:click={() => isTradeSettingsOpen = false}
+                                    >
+                                        Close
+                                    </button>
+                                </div>
+                            </div>
+                         {/if}
+                    </div>
+                 {/if}
+
+                <button
+                    class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-0.5 rounded text-xs uppercase font-bold tracking-wider"
+                    on:click|stopPropagation={() => viewMode = viewMode === 'depth' ? 'trades' : 'depth'}
+                    title={viewMode === 'depth' ? "Switch to Trade List" : "Switch to Depth Bar"}
+                >
+                    {viewMode === 'depth' ? 'Depth' : 'Trades'}
+                </button>
+            </div>
+
+            <!-- Visualization Area -->
+            {#if viewMode === 'depth' && depthData}
+                <div class="mt-1">
+                     <DepthBar bids={depthData.bids} asks={depthData.asks} />
+                </div>
+            {:else if viewMode === 'trades'}
+                <div class="flex flex-col gap-0.5 mt-1 text-[10px] min-h-[24px]">
+                    {#if filteredTrades.length === 0}
+                        <div class="text-center text-[var(--text-secondary)] italic py-1">Waiting for trades...</div>
+                    {:else}
+                        <div class="grid grid-cols-3 text-[var(--text-secondary)] px-1 pb-0.5 border-b border-[var(--border-color)] opacity-70">
+                            <span>Time</span>
+                            <span class="text-center">Price</span>
+                            <span class="text-right">Val ($)</span>
+                        </div>
+                        {#each filteredTrades as trade (trade.time + trade.price.toString() + trade.value.toString())}
+                            <div class="grid grid-cols-3 px-1 hover:bg-[var(--bg-tertiary)] rounded transition-colors">
+                                <span class="text-[var(--text-secondary)] font-mono">
+                                    {new Date(trade.time).toLocaleTimeString([], { hour12: false, hour: '2-digit', minute:'2-digit', second:'2-digit' })}
+                                </span>
+                                <span class="text-center font-medium font-mono"
+                                      class:text-[var(--success-color)]={trade.side === 'buy'}
+                                      class:text-[var(--danger-color)]={trade.side === 'sell'}
+                                >
+                                    {formatDynamicDecimal(trade.price, 2)}
+                                </span>
+                                <span class="text-right font-mono text-[var(--text-primary)]">
+                                    {formatDynamicDecimal(trade.value, 0)}
+                                </span>
+                            </div>
+                        {/each}
+                    {/if}
+                </div>
             {/if}
 
             <!-- 24h Stats (WS or REST) -->

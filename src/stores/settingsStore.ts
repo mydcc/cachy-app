@@ -63,6 +63,13 @@ export interface Settings {
     // Journal Settings (New)
     enableAdvancedMetrics: boolean;
     visibleColumns: string[];
+
+    // Trade List Settings
+    tradeListSettings: {
+        minTradeValue: number;
+        maxTradeAgeSeconds: number;
+        maxTradeCount: number;
+    };
 }
 
 const defaultSettings: Settings = {
@@ -104,7 +111,14 @@ const defaultSettings: Settings = {
 
     // Journal Defaults
     enableAdvancedMetrics: false,
-    visibleColumns: ['date', 'symbol', 'tradeType', 'entryPrice', 'stopLossPrice', 'totalNetProfit', 'fundingFee', 'totalRR', 'status', 'screenshot', 'tags', 'notes', 'action']
+    visibleColumns: ['date', 'symbol', 'tradeType', 'entryPrice', 'stopLossPrice', 'totalNetProfit', 'fundingFee', 'totalRR', 'status', 'screenshot', 'tags', 'notes', 'action'],
+
+    // Trade List Defaults
+    tradeListSettings: {
+        minTradeValue: 0,
+        maxTradeAgeSeconds: 600, // 10 minutes
+        maxTradeCount: 10
+    }
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -204,7 +218,8 @@ function loadSettingsFromLocalStorage(): Settings {
             anthropicModel: settings.anthropicModel,
             disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
             enableAdvancedMetrics: settings.enableAdvancedMetrics ?? defaultSettings.enableAdvancedMetrics,
-            visibleColumns: settings.visibleColumns
+            visibleColumns: settings.visibleColumns,
+            tradeListSettings: settings.tradeListSettings || defaultSettings.tradeListSettings
         };
 
         return cleanSettings;

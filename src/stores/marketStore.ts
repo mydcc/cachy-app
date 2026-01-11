@@ -1,6 +1,14 @@
 import { writable } from 'svelte/store';
 import { Decimal } from 'decimal.js';
 
+export interface TradeData {
+    time: number;
+    price: Decimal;
+    quantity: Decimal;
+    side: 'buy' | 'sell';
+    value: Decimal; // price * quantity
+}
+
 export interface MarketData {
     symbol: string;
     lastPrice: Decimal | null;
@@ -24,6 +32,7 @@ export interface MarketData {
         volume: Decimal;
         time: number;
     };
+    trades?: TradeData[];
 }
 
 export type WSStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
@@ -60,6 +69,40 @@ function createMarketStore() {
                         indexPrice: new Decimal(data.indexPrice),
                         fundingRate: new Decimal(data.fundingRate),
                         nextFundingTime: nft
+                    }
+                };
+            });
+        },
+        updateTrades: (symbol: string, newTrades: { t: number, p: string, v: string, s: string }[]) => {
+            update(store => {
+                const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
+                const currentTrades = current.trades || [];
+
+                const processedTrades: TradeData[] = newTrades.map(t => {
+                    const price = new Decimal(t.p);
+                    const quantity = new Decimal(t.v);
+                    return {
+                        time: t.t, // Assumes pre-parsed timestamp
+                        price,
+                        quantity,
+                        side: t.s as 'buy' | 'sell',
+                        value: price.times(quantity)
+                    };
+                });
+
+                // Prepend new trades (newest first)
+                let updatedTrades = [...processedTrades, ...currentTrades];
+
+                // Keep buffer size limited (e.g. 100) to avoid memory issues
+                if (updatedTrades.length > 100) {
+                    updatedTrades = updatedTrades.slice(0, 100);
+                }
+
+                return {
+                    ...store,
+                    [symbol]: {
+                        ...current,
+                        trades: updatedTrades
                     }
                 };
             });

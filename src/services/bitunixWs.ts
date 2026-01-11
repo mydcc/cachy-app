@@ -394,6 +394,28 @@ class BitunixWebSocketService {
         try {
             // Watchdog reset is handled in onmessage handler to catch ALL events
 
+            // Handle Push Data for Trade Channel
+            if (message && message.ch === 'trade') {
+                const symbol = message.symbol;
+                const data = message.data; // Array of trade objects
+                if (symbol && data && Array.isArray(data)) {
+                    // Pre-process timestamp if needed
+                    const processedData = data.map(d => {
+                        let t = d.t;
+                        // Handle ISO string vs Timestamp
+                        if (typeof t === 'string' && t.includes('T')) {
+                             t = new Date(t).getTime();
+                        } else {
+                             t = Number(t);
+                        }
+                        return { ...d, t };
+                    });
+
+                    marketStore.updateTrades(symbol, processedData);
+                }
+                return;
+            }
+
             if (message && message.event === 'login') {
                 if (message.code === 0 || message.msg === 'success') {
                     this.isAuthenticated = true;
