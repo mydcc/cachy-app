@@ -94,7 +94,8 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
     let tradesWithRisk = 0;
     closedTrades.forEach(trade => {
         if (trade.riskAmount && new Decimal(trade.riskAmount).gt(0)) {
-            const rMultiple = trade.status === 'Won' ? (new Decimal(trade.totalNetProfit || 0)).dividedBy(new Decimal(trade.riskAmount)) : new Decimal(-1);
+            const pnl = getTradePnL(trade);
+            const rMultiple = pnl.dividedBy(new Decimal(trade.riskAmount));
             totalRMultiples = totalRMultiples.plus(rMultiple);
             tradesWithRisk++;
         }

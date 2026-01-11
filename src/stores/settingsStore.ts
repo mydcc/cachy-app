@@ -1,9 +1,10 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { CONSTANTS } from '../lib/constants';
+import { DEFAULT_HOTKEY_MAPS, type HotkeyMap, type HotkeyMode } from '../services/hotkeyConfig';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
-export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
+export type { HotkeyMode }; // Export from Config to avoid circular dep if needed, or just re-export type
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
 export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
@@ -29,6 +30,7 @@ export interface Settings {
     isPro: boolean; // Deprecated but kept for compatibility, syncs with accountTier
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
+    hotkeyBindings: HotkeyMap; // New: Custom bindings
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -59,6 +61,10 @@ export interface Settings {
 
     // Legal
     disclaimerAccepted: boolean;
+
+    // Journal Settings (New)
+    enableAdvancedMetrics: boolean;
+    visibleColumns: string[];
 }
 
 const defaultSettings: Settings = {
@@ -74,6 +80,7 @@ const defaultSettings: Settings = {
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
+    hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode2'], // Initialize with Mode 2 defaults
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -96,7 +103,11 @@ const defaultSettings: Settings = {
     anthropicApiKey: '',
     anthropicModel: 'claude-3-5-sonnet-20240620',
 
-    disclaimerAccepted: false
+    disclaimerAccepted: false,
+
+    // Journal Defaults
+    enableAdvancedMetrics: false,
+    visibleColumns: ['date', 'symbol', 'tradeType', 'entryPrice', 'stopLossPrice', 'totalNetProfit', 'fundingFee', 'totalRR', 'status', 'screenshot', 'tags', 'notes', 'action']
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -168,6 +179,11 @@ function loadSettingsFromLocalStorage(): Settings {
         // Force sync isPro to accountTier
         settings.isPro = settings.accountTier !== 'free';
 
+        // 6. Hotkey Migration: If hotkeyBindings are missing, init from mode
+        if (!settings.hotkeyBindings) {
+            const mode = settings.hotkeyMode || 'mode2';
+            settings.hotkeyBindings = { ...DEFAULT_HOTKEY_MAPS[mode] };
+        }
 
         // Clean up keys not in interface
         const cleanSettings: Settings = {
@@ -184,6 +200,7 @@ function loadSettingsFromLocalStorage(): Settings {
             isPro: settings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
+            hotkeyBindings: settings.hotkeyBindings,
             apiKeys: settings.apiKeys,
             favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
@@ -200,7 +217,9 @@ function loadSettingsFromLocalStorage(): Settings {
             geminiModel: settings.geminiModel,
             anthropicApiKey: settings.anthropicApiKey,
             anthropicModel: settings.anthropicModel,
-            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
+            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
+            enableAdvancedMetrics: settings.enableAdvancedMetrics ?? defaultSettings.enableAdvancedMetrics,
+            visibleColumns: settings.visibleColumns
         };
 
         return cleanSettings;

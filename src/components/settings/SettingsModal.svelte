@@ -10,6 +10,7 @@
     import { tradeStore } from '../../stores/tradeStore';
     import { journalStore } from '../../stores/journalStore';
     import { presetStore } from '../../stores/presetStore';
+    import { DEFAULT_HOTKEY_MAPS, HOTKEY_ACTIONS, type HotkeyMap, type KeyBinding } from '../../services/hotkeyConfig';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -21,6 +22,7 @@
     let hideUnfilledOrders: boolean;
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
+    let hotkeyBindings: HotkeyMap; // Local state for bindings
     let positionViewMode: PositionViewMode;
 
     // Timeframe & RSI Sync
@@ -69,9 +71,15 @@
     let isPro: boolean;
     let accountTier: AccountTier;
 
+    // Journal Settings
+    let enableAdvancedMetrics: boolean;
+
     // Track active tab
     let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' | 'admin' = 'general';
     let isInitialized = false;
+
+    // Hotkey Recording State
+    let recordingAction: string | null = null;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
 
@@ -122,12 +130,19 @@
             sidePanelMode = $settingsStore.sidePanelMode;
             sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
             isPro = $settingsStore.isPro;
+            enableAdvancedMetrics = $settingsStore.enableAdvancedMetrics || false;
             accountTier = $settingsStore.accountTier;
 
             // Enforce UI state consistency for non-pro
             if (!isPro) {
                 showTechnicals = false;
             }
+
+            // Initialize Hotkey Bindings
+            // Ensure we have a valid object even if store is old
+            hotkeyBindings = $settingsStore.hotkeyBindings
+                ? { ...$settingsStore.hotkeyBindings }
+                : { ...DEFAULT_HOTKEY_MAPS[hotkeyMode || 'mode2'] };
 
             aiProviderState = $settingsStore.aiProvider || 'gemini';
             openaiApiKey = $settingsStore.openaiApiKey || '';
@@ -167,6 +182,7 @@
         }
     } else {
         isInitialized = false;
+        recordingAction = null; // Reset recording state on close
     }
 
     // Reactive update for settings (Immediate Save)
@@ -182,6 +198,7 @@
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
+            hotkeyBindings, // Save bindings
             enableSidePanel,
             sidePanelMode,
             sidePanelLayout,
@@ -196,6 +213,7 @@
             geminiModel,
             anthropicApiKey,
             anthropicModel,
+            enableAdvancedMetrics,
             apiKeys: {
                 bitunix: bitunixKeys,
                 binance: binanceKeys
@@ -329,35 +347,105 @@
         }
     }
 
-    const hotkeyDescriptions = {
-        mode1: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus Next Take Profit' },
-            { keys: '+ / -', action: 'Add / Remove Take Profit' },
-            { keys: 'E', action: 'Focus Entry Price' },
-            { keys: 'O', action: 'Focus Stop Loss' },
-            { keys: 'L / S', action: 'Set Long / Short' },
-            { keys: 'J', action: 'Open Journal' }
-        ],
-        mode2: [
-            { keys: 'Alt + 1-4', action: 'Load Favorites' },
-            { keys: 'Alt + T', action: 'Add Take Profit' },
-            { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
-            { keys: 'Alt + E', action: 'Focus Entry Price' },
-            { keys: 'Alt + O', action: 'Focus Stop Loss' },
-            { keys: 'Alt + L / S', action: 'Set Long / Short' },
-            { keys: 'Alt + J', action: 'Open Journal' }
-        ],
-        mode3: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus TP 1' },
-            { keys: 'Shift + T', action: 'Focus Last TP' },
-            { keys: '+ / -', action: 'Add / Remove TP' }
-        ]
+    $: hasVipPrivilege = accountTier === 'vip' || accountTier === 'admin';
+
+    // --- Hotkey Logic ---
+
+    function handlePresetChange() {
+        // When preset dropdown changes, reload bindings from default map
+        if (confirm('Apply preset hotkeys? This will overwrite your custom bindings.')) {
+            hotkeyBindings = JSON.parse(JSON.stringify(DEFAULT_HOTKEY_MAPS[hotkeyMode]));
+        }
+    }
+
+    function formatKeyBinding(binding: KeyBinding | undefined): string {
+        if (!binding || !binding.key) return 'Not bound';
+        const parts = [];
+        if (binding.ctrlKey) parts.push('Ctrl');
+        if (binding.altKey) parts.push('Alt');
+        if (binding.shiftKey) parts.push('Shift');
+        if (binding.metaKey) parts.push('Cmd');
+
+        let k = binding.key.toUpperCase();
+        if (k === ' ') k = 'Space';
+        parts.push(k);
+
+        return parts.join(' + ');
+    }
+
+    function startRecording(actionKey: string) {
+        recordingAction = actionKey;
+    }
+
+    function cancelRecording() {
+        recordingAction = null;
+    }
+
+    function handleKeyDownRecording(event: KeyboardEvent) {
+        if (!recordingAction) return;
+
+        event.preventDefault();
+        event.stopPropagation();
+
+        const key = event.key;
+
+        // Ignore standalone modifier presses
+        if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) return;
+
+        // Escape cancels recording
+        if (key === 'Escape') {
+            cancelRecording();
+            return;
+        }
+
+        const newBinding: KeyBinding = {
+            key: key,
+            ctrlKey: event.ctrlKey,
+            altKey: event.altKey,
+            shiftKey: event.shiftKey,
+            metaKey: event.metaKey,
+            requiresInputInactive: true // Default to safe mode
+        };
+
+        // Update state
+        hotkeyBindings = {
+            ...hotkeyBindings,
+            [recordingAction]: newBinding
+        };
+
+        recordingAction = null;
+    }
+
+    function clearBinding(actionKey: string) {
+        hotkeyBindings = {
+            ...hotkeyBindings,
+            [actionKey]: { key: '' } // Clear key
+        };
+    }
+
+    // Helper to get friendly name for actions
+    const actionLabels: Record<string, string> = {
+        LOAD_FAVORITE_1: 'Load Favorite 1',
+        LOAD_FAVORITE_2: 'Load Favorite 2',
+        LOAD_FAVORITE_3: 'Load Favorite 3',
+        LOAD_FAVORITE_4: 'Load Favorite 4',
+        FOCUS_NEXT_TP: 'Focus Next Take Profit',
+        FOCUS_PREV_TP: 'Focus Previous TP',
+        ADD_TP: 'Add Take Profit Row',
+        REMOVE_LAST_TP: 'Remove Last TP Row',
+        FOCUS_ENTRY: 'Focus Entry Price',
+        FOCUS_SL: 'Focus Stop Loss',
+        SET_LONG: 'Set Trade Type Long',
+        SET_SHORT: 'Set Trade Type Short',
+        OPEN_JOURNAL: 'Open Journal',
+        RESET_INPUTS: 'Reset All Inputs',
+        FOCUS_FIRST_TP: 'Focus First TP',
+        FOCUS_LAST_TP: 'Focus Last TP'
     };
 
-    $: hasVipPrivilege = accountTier === 'vip' || accountTier === 'admin';
 </script>
+
+<svelte:window on:keydown={recordingAction ? handleKeyDownRecording : undefined} />
 
 <ModalFrame
     isOpen={$uiStore.showSettingsModal}
@@ -675,24 +763,73 @@
                     </div>
                     <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
+
+                <!-- Advanced Metrics Toggle -->
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium flex items-center gap-2">
+                            {$_('journal.advancedMetrics') || 'Enable Advanced Metrics'}
+                            {#if !isPro}
+                                <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO</span>
+                            {/if}
+                        </span>
+                        <span class="text-xs text-[var(--text-secondary)]">Calculate MAE, MFE, and Efficiency for synced trades (requires historical data)</span>
+                    </div>
+                    <input type="checkbox" bind:checked={enableAdvancedMetrics} disabled={!isPro} class="accent-[var(--accent-color)] h-4 w-4 rounded disabled:opacity-50" />
+                </label>
+
                 <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                     <span class="text-sm font-medium">Hotkey Profile</span>
-                     <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="mode2">Safety Mode (Alt + Key) - Default</option>
-                        <option value="mode1">Direct Mode (Fast)</option>
-                        <option value="mode3">Hybrid Mode</option>
-                     </select>
-                     <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
-                        <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            {#each hotkeyDescriptions[hotkeyMode] as desc}
-                                <div class="flex justify-between">
-                                    <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
-                                    <span>{desc.action}</span>
-                                </div>
-                            {/each}
+                     <span class="text-sm font-medium">Hotkey Configuration</span>
+
+                     <div class="flex gap-2 items-end">
+                        <div class="flex flex-col gap-1 flex-1">
+                            <span class="text-xs text-[var(--text-secondary)]">Load Preset</span>
+                            <select bind:value={hotkeyMode} on:change={handlePresetChange} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
+                                <option value="mode2">Safety Mode (Alt + Key)</option>
+                                <option value="mode1">Direct Mode (Fast)</option>
+                                <option value="mode3">Hybrid Mode</option>
+                            </select>
                         </div>
-                     </div>
+                    </div>
+
+                    <div class="bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] divide-y divide-[var(--border-color)] max-h-80 overflow-y-auto custom-scrollbar mt-2">
+                        {#each Object.entries(HOTKEY_ACTIONS) as [actionKey, actionId]}
+                            <div class="p-2 flex items-center justify-between hover:bg-[var(--bg-secondary)] transition-colors">
+                                <span class="text-xs font-medium">{actionLabels[actionId] || actionId}</span>
+
+                                <div class="flex items-center gap-2">
+                                    {#if recordingAction === actionId}
+                                        <button
+                                            class="px-3 py-1 text-xs bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded animate-pulse"
+                                            on:click|stopPropagation={cancelRecording}
+                                        >
+                                            Recording... (Esc to cancel)
+                                        </button>
+                                    {:else}
+                                        <button
+                                            class="min-w-[4rem] px-2 py-1 text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded hover:border-[var(--accent-color)] transition-colors font-mono"
+                                            on:click={() => startRecording(actionId)}
+                                        >
+                                            {formatKeyBinding(hotkeyBindings[actionId])}
+                                        </button>
+                                        {#if hotkeyBindings[actionId]?.key}
+                                            <button
+                                                class="p-1 hover:text-[var(--danger-color)]"
+                                                title="Clear Hotkey"
+                                                on:click={() => clearBinding(actionId)}
+                                            >
+                                                <svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                                            </button>
+                                        {/if}
+                                    {/if}
+                                </div>
+                            </div>
+                        {/each}
+                    </div>
+
+                    <p class="text-[10px] text-[var(--text-secondary)] italic">
+                        Click a button to record a new hotkey. Press <code>Esc</code> to cancel recording.
+                    </p>
                 </div>
             </div>
 
@@ -861,7 +998,7 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-                            <!-- ... RSI params ... -->
+
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-medium">Sync with Calculator Timeframe</span>
                                 <input type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
@@ -923,7 +1060,7 @@
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
                                         <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
-                                        <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI.</p>
+                                        <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI calculation.</p>
                                     </div>
                                  </div>
                             {/if}
@@ -1235,7 +1372,6 @@
             </div>
 
         {:else if activeTab === 'system'}
-            <!-- ... [System tab content kept same...] -->
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                      <h4 class="text-sm font-bold">CachyLog Debug</h4>
