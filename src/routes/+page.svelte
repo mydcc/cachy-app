@@ -4,7 +4,6 @@
     import TagInputs from '../components/inputs/TagInputs.svelte';
     import TradeSetupInputs from '../components/inputs/TradeSetupInputs.svelte';
     import TakeProfitTargets from '../components/inputs/TakeProfitTargets.svelte';
-    import CustomModal from '../components/shared/CustomModal.svelte';
     import VisualBar from '../components/shared/VisualBar.svelte';
     import { CONSTANTS, themes, themeIcons, icons } from '../lib/constants';
     import { app } from '../services/app';
@@ -28,11 +27,9 @@ import { trackCustomEvent } from '../services/trackingService';
     import SummaryResults from '../components/results/SummaryResults.svelte';
     import LanguageSwitcher from '../components/shared/LanguageSwitcher.svelte';
     import Tooltip from '../components/shared/Tooltip.svelte';
-    import JournalView from '../components/shared/JournalView.svelte';
     import CachyIcon from '../components/shared/CachyIcon.svelte';
     import ModalFrame from '../components/shared/ModalFrame.svelte';
     import SettingsButton from '../components/settings/SettingsButton.svelte';
-    import SettingsModal from '../components/settings/SettingsModal.svelte';
     import MarketOverview from '../components/shared/MarketOverview.svelte';
     import PositionsSidebar from '../components/shared/PositionsSidebar.svelte';
     import TechnicalsPanel from '../components/shared/TechnicalsPanel.svelte'; // Import TechnicalsPanel
@@ -462,10 +459,6 @@ import { trackCustomEvent } from '../services/trackingService';
         {$settingsStore.isPro ? $_('app.proActive') : $_('app.pro')}
     </button>
 </footer>
-
-<JournalView />
-
-<CustomModal />
 
 <ModalFrame
     isOpen={$uiStore.showChangelogModal}
