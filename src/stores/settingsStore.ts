@@ -1,13 +1,15 @@
 import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { CONSTANTS } from '../lib/constants';
+import { DEFAULT_HOTKEY_MAPS, type HotkeyMap, type HotkeyMode } from '../services/hotkeyConfig';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
-export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
+export type { HotkeyMode }; // Export from Config to avoid circular dep if needed, or just re-export type
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
 export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
 export type AiProvider = 'openai' | 'gemini' | 'anthropic';
+export type AccountTier = 'free' | 'pro' | 'vip' | 'admin';
 
 export interface ApiKeys {
     key: string;
@@ -24,9 +26,12 @@ export interface Settings {
     hideUnfilledOrders: boolean;
     positionViewMode?: PositionViewMode;
     pnlViewMode?: PnlViewMode;
-    isPro: boolean;
+    accountTier: AccountTier;
+    // Legacy support for isPro access until all references migrated
+    isPro?: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
+    hotkeyBindings: HotkeyMap; // New: Custom bindings
     apiKeys: {
         bitunix: ApiKeys;
         binance: ApiKeys;
@@ -34,6 +39,7 @@ export interface Settings {
     // Indicator & Timeframe Settings
     favoriteTimeframes: string[];
     syncRsiTimeframe: boolean;
+    hideIndicatorParams: boolean;
 
     // ImgBB Settings
     imgbbApiKey: string;
@@ -57,6 +63,10 @@ export interface Settings {
 
     // Legal
     disclaimerAccepted: boolean;
+
+    // Journal Settings (New)
+    enableAdvancedMetrics: boolean;
+    visibleColumns: string[];
 }
 
 const defaultSettings: Settings = {
@@ -68,15 +78,17 @@ const defaultSettings: Settings = {
     showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
-    isPro: false,
+    accountTier: 'free',
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
+    hotkeyBindings: DEFAULT_HOTKEY_MAPS['mode2'], // Initialize with Mode 2 defaults
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
     },
     favoriteTimeframes: ['5m', '15m', '1h', '4h'],
     syncRsiTimeframe: true,
+    hideIndicatorParams: false,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
@@ -93,7 +105,11 @@ const defaultSettings: Settings = {
     anthropicApiKey: '',
     anthropicModel: 'claude-3-5-sonnet-20240620',
 
-    disclaimerAccepted: false
+    disclaimerAccepted: false,
+
+    // Journal Defaults
+    enableAdvancedMetrics: false,
+    visibleColumns: ['date', 'symbol', 'tradeType', 'entryPrice', 'stopLossPrice', 'totalNetProfit', 'fundingFee', 'totalRR', 'status', 'screenshot', 'tags', 'notes', 'action']
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -129,8 +145,22 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.autoUpdatePriceInput = false;
             }
         }
+
+        // 3. Migration: isPro -> accountTier
+        // Only if accountTier is not explicitly set (or stuck at default 'free' from merge but isPro was true)
+        // Check if `accountTier` exists in parsed. If not, we migrate.
+        if (parsed.accountTier === undefined) {
+            if (parsed.isPro === true) {
+                settings.accountTier = 'pro';
+            } else {
+                settings.accountTier = 'free';
+            }
+        }
+
+        // Computed property for legacy support (not stored, but useful if code checks settings.isPro)
+        settings.isPro = ['pro', 'vip', 'admin'].includes(settings.accountTier);
         
-        // 3. Ensure ImgBB defaults if missing (even if other settings existed)
+        // 4. Ensure ImgBB defaults if missing (even if other settings existed)
         if (!settings.imgbbApiKey) {
             settings.imgbbApiKey = defaultSettings.imgbbApiKey;
         }
@@ -138,7 +168,7 @@ function loadSettingsFromLocalStorage(): Settings {
              settings.imgbbExpiration = defaultSettings.imgbbExpiration;
         }
 
-        // 4. Ensure AI Settings defaults
+        // 5. Ensure AI Settings defaults
         if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
         if (!settings.openaiApiKey) settings.openaiApiKey = defaultSettings.openaiApiKey;
         if (!settings.openaiModel) settings.openaiModel = defaultSettings.openaiModel;
@@ -154,6 +184,11 @@ function loadSettingsFromLocalStorage(): Settings {
         if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
         if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
 
+        // 6. Hotkey Migration: If hotkeyBindings are missing, init from mode
+        if (!settings.hotkeyBindings) {
+            const mode = settings.hotkeyMode || 'mode2';
+            settings.hotkeyBindings = { ...DEFAULT_HOTKEY_MAPS[mode] };
+        }
 
         // Clean up keys not in interface
         const cleanSettings: Settings = {
@@ -166,12 +201,14 @@ function loadSettingsFromLocalStorage(): Settings {
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode || 'value',
-            isPro: settings.isPro ?? defaultSettings.isPro,
+            accountTier: settings.accountTier ?? defaultSettings.accountTier,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
+            hotkeyBindings: settings.hotkeyBindings,
             apiKeys: settings.apiKeys,
             favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
+            hideIndicatorParams: settings.hideIndicatorParams ?? defaultSettings.hideIndicatorParams,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
@@ -185,7 +222,9 @@ function loadSettingsFromLocalStorage(): Settings {
             geminiModel: settings.geminiModel,
             anthropicApiKey: settings.anthropicApiKey,
             anthropicModel: settings.anthropicModel,
-            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
+            disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
+            enableAdvancedMetrics: settings.enableAdvancedMetrics ?? defaultSettings.enableAdvancedMetrics,
+            visibleColumns: settings.visibleColumns
         };
 
         return cleanSettings;
