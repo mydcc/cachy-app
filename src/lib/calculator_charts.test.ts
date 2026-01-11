@@ -44,7 +44,7 @@ describe('Calculator - Deep Dive & Dashboard Charts', () => {
         it('should calculate equity curve correctly for manual trades', () => {
             const trades = [
                 createTrade({ date: '2023-01-01T10:00:00Z', status: 'Won', totalNetProfit: new Decimal(100) }),
-                createTrade({ date: '2023-01-02T10:00:00Z', status: 'Lost', riskAmount: new Decimal(50), totalNetProfit: new Decimal(0) })
+                createTrade({ date: '2023-01-02T10:00:00Z', status: 'Lost', riskAmount: new Decimal(50) })
             ];
             const data = calculator.getPerformanceData(trades);
 
@@ -58,8 +58,8 @@ describe('Calculator - Deep Dive & Dashboard Charts', () => {
         it('should calculate drawdown correctly', () => {
             const trades = [
                 createTrade({ date: '2023-01-01', status: 'Won', totalNetProfit: new Decimal(100) }), // Peak 100
-                createTrade({ date: '2023-01-02', status: 'Lost', riskAmount: new Decimal(50), totalNetProfit: new Decimal(0) }),    // Peak 100, Curr 50 -> DD -50
-                createTrade({ date: '2023-01-03', status: 'Lost', riskAmount: new Decimal(20), totalNetProfit: new Decimal(0) }),    // Peak 100, Curr 30 -> DD -70
+                createTrade({ date: '2023-01-02', status: 'Lost', riskAmount: new Decimal(50) }),    // Peak 100, Curr 50 -> DD -50
+                createTrade({ date: '2023-01-03', status: 'Lost', riskAmount: new Decimal(20) }),    // Peak 100, Curr 30 -> DD -70
                 createTrade({ date: '2023-01-04', status: 'Won', totalNetProfit: new Decimal(80) })  // Peak 110, Curr 110 -> DD 0
             ];
             const data = calculator.getPerformanceData(trades);
@@ -116,7 +116,7 @@ describe('Calculator - Deep Dive & Dashboard Charts', () => {
         it('should handle R-Multiples correctly', () => {
              const trades = [
                 createTrade({ status: 'Won', riskAmount: new Decimal(50), totalNetProfit: new Decimal(100) }), // 2R
-                createTrade({ status: 'Lost', riskAmount: new Decimal(50), totalNetProfit: new Decimal(0) }) // -1R
+                createTrade({ status: 'Lost', riskAmount: new Decimal(50) }) // -1R
             ];
             const data = calculator.getQualityData(trades);
             // 2R -> '2R to 3R' (since <2 is false, and <3 is true)

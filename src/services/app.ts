@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -11,21 +11,49 @@ import { presetStore, updatePresetStore } from '../stores/presetStore';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
 import { settingsStore } from '../stores/settingsStore';
-import { marketStore, wsStatusStore } from '../stores/marketStore'; // Import marketStore and wsStatusStore
+import { marketStore } from '../stores/marketStore'; // Import marketStore
 import { bitunixWs } from './bitunixWs'; // Import WS Service
-import { syncService } from './syncService';
-import { csvService } from './csvService';
 import type { JournalEntry, TradeValues, IndividualTpResult, BaseMetrics } from '../stores/types';
 import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
 import { trackCustomEvent } from './trackingService';
 import { onboardingService } from './onboardingService';
 
+interface CSVTradeEntry {
+    'ID': string;
+    'Datum': string;
+    'Uhrzeit': string;
+    'Symbol': string;
+    'Typ': string;
+    'Status': string;
+    'Konto Guthaben': string;
+    'Risiko %': string;
+    'Hebel': string;
+    'Gebuehren %': string;
+    'Einstieg': string;
+    'Stop Loss': string;
+    'Gewichtetes R/R': string;
+    'Gesamt Netto-Gewinn': string;
+    'Risiko pro Trade (Waehrung)': string;
+    'Gesamte Gebuehren': string;
+    'Max. potenzieller Gewinn': string;
+    'Notizen': string;
+    'TP1 Preis'?: string;
+    'TP1 %'?: string;
+    'TP2 Preis'?: string;
+    'TP2 %'?: string;
+    'TP3 Preis'?: string;
+    'TP3 %'?: string;
+    'TP4 Preis'?: string;
+    'TP4 %'?: string;
+    'TP5 Preis'?: string;
+    'TP5 %'?: string;
+    [key: string]: string | undefined;
+}
+
 let priceUpdateIntervalId: any = null;
 let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
-let lastCalculationTime = 0;
-const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per second
 
 export const app = {
     calculator: calculator,
@@ -34,7 +62,6 @@ export const app = {
 
     init: () => {
         if (browser) {
-            app.destroy(); // Ensure clean slate
             app.populatePresetLoader();
             app.calculateAndDisplay();
             app.setupPriceUpdates();
@@ -42,51 +69,28 @@ export const app = {
         }
     },
 
-    destroy: () => {
-        if (priceUpdateIntervalId) {
-            clearInterval(priceUpdateIntervalId);
-            priceUpdateIntervalId = null;
-        }
-        if (marketStoreUnsubscribe) {
-            marketStoreUnsubscribe();
-            marketStoreUnsubscribe = null;
-        }
-        if (currentSubscribedSymbol) {
-             bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
-             currentSubscribedSymbol = null;
-        }
-    },
-
     setupRealtimeUpdates: () => {
         if (!browser) return;
 
         // Watch for symbol changes to manage WS subscriptions
-        let symbolDebounceTimer: any = null;
-
         tradeStore.subscribe((state) => {
             const settings = get(settingsStore);
             if (settings.apiProvider !== 'bitunix') return;
 
             const newSymbol = state.symbol ? state.symbol.toUpperCase() : '';
-
-            // Clear existing timer
-            if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
-
-            symbolDebounceTimer = setTimeout(() => {
-                if (newSymbol && newSymbol.length >= 3) {
-                    if (currentSubscribedSymbol !== newSymbol) {
-                        if (currentSubscribedSymbol) {
-                            bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
-                        }
-                        bitunixWs.subscribe(newSymbol, 'price');
-                        currentSubscribedSymbol = newSymbol;
+            if (newSymbol && newSymbol.length >= 3) {
+                 if (currentSubscribedSymbol !== newSymbol) {
+                    if (currentSubscribedSymbol) {
+                        bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
                     }
-                } else if (currentSubscribedSymbol) {
-                    // Symbol cleared or invalid
-                    bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
-                    currentSubscribedSymbol = null;
-                }
-            }, 500); // 500ms debounce to prevent rapid sub/unsub during typing
+                    bitunixWs.subscribe(newSymbol, 'price');
+                    currentSubscribedSymbol = newSymbol;
+                 }
+            } else if (currentSubscribedSymbol) {
+                // Symbol cleared or invalid
+                bitunixWs.unsubscribe(currentSubscribedSymbol, 'price');
+                currentSubscribedSymbol = null;
+            }
         });
 
         // Watch for Market Data updates (from WS)
@@ -110,13 +114,7 @@ export const app = {
                     // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
                     if (state.entryPrice !== newPrice) {
                         updateTradeStore(s => ({ ...s, entryPrice: newPrice }));
-
-                        // Throttle expensive calculations
-                        const now = Date.now();
-                        if (now - lastCalculationTime > CALCULATION_THROTTLE_MS) {
-                            app.calculateAndDisplay();
-                            lastCalculationTime = now;
-                        }
+                        app.calculateAndDisplay();
                     }
                 }
             }
@@ -154,17 +152,31 @@ export const app = {
             const uiState = get(uiStore);
 
             if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
+                 // Fallback REST polling
+                 // If using Bitunix and WS is connected, maybe we skip REST price update to save bandwidth?
+                 // But for robustness (and Binance support), we keep it.
+                 // Also, 'autoUpdatePriceInput' logic is handled here for non-WS or fallback.
+
+                 // If we have fresh WS data, maybe skip this REST call for price?
+                 // We can check if `bitunixWs` is connected.
+                 // For now, let's keep it simple: run both. The store update handles deduplication somewhat.
+                 // But to avoid overwriting WS data with potentially slightly stale REST data,
+                 // we might want to prioritize WS.
+
                  // 1. Auto Update Price Input (REST Fallback)
                  if (settings.autoUpdatePriceInput) {
                      // If provider is Binance, we MUST use REST (no WS impl yet).
+                     // If Bitunix, we prefer WS.
                      if (settings.apiProvider === 'binance') {
                         app.handleFetchPrice(true);
                      } else {
-                         // Bitunix: Use REST only if WS is NOT connected to avoid race conditions/jitter
-                         const wsStatus = get(wsStatusStore);
-                         if (wsStatus !== 'connected') {
-                            app.handleFetchPrice(true);
-                         }
+                         // Bitunix: Check if WS is active?
+                         // For now, allow REST as backup. It might cause slight jitter if rates differ.
+                         // But usually REST and WS are close.
+                         // Let's rely on handleFetchPrice.
+                         // Optimization: If we just updated via WS < 1s ago, skip?
+                         // Too complex for now.
+                         app.handleFetchPrice(true);
                      }
                  }
 
@@ -393,14 +405,6 @@ export const app = {
 
     getJournal: (): JournalEntry[] => {
         if (!browser) return [];
-        // Optimisation: Read from store memory instead of parsing localStorage on every call
-        // This dramatically reduces I/O blocking on main thread for large datasets
-        const fromStore = get(journalStore);
-        if (fromStore && fromStore.length > 0) {
-            return fromStore;
-        }
-
-        // Fallback: Initial Load or Empty Store
         try {
             const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || '[]';
             const parsedData = JSON.parse(d);
@@ -408,7 +412,7 @@ export const app = {
             return parsedData.map(trade => {
                 const newTrade = { ...trade };
                 Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'exitPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl', 'mae', 'mfe', 'efficiency'].includes(key)) {
+                    if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
                         newTrade[key] = new Decimal(newTrade[key] || 0);
                     }
                 });
@@ -441,8 +445,7 @@ export const app = {
             notes: currentAppState.tradeNotes,
             tags: currentAppState.tags || [],
             id: Date.now(),
-            date: new Date().toISOString(),
-            entryDate: new Date().toISOString()
+            date: new Date().toISOString()
         } as JournalEntry;
 
         journalData.push(newTrade);
@@ -573,14 +576,444 @@ export const app = {
     },
     exportToCSV: () => {
         if (!browser) return;
-        csvService.exportToCSV();
+        const journalData = get(journalStore);
+        if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
+        trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
+        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen',
+        // New headers
+        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual',
+         ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
+        const rows = journalData.map(trade => {
+            const date = new Date(trade.date);
+            const notes = trade.notes ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '';
+            const tpData = Array.from({length: 5}, (_, i) => [ (trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2) ]).flat();
+            return [ trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
+                (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
+                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes,
+                // New values
+                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false',
+                ...tpData ].join(',');
+        });
+        const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
+        const link = document.createElement("a");
+        link.href = encodeURI(csvContent);
+        link.download = "TradeJournal.csv";
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     },
     syncBitunixHistory: async () => {
-        await syncService.syncBitunixPositions();
+        const settings = get(settingsStore);
+        if (!settings.isPro) return;
+        if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
+            uiStore.showError('settings.apiKeysRequired');
+            return;
+        }
+
+        uiStore.update(s => ({ ...s, isPriceFetching: true }));
+
+        try {
+            // 1. Fetch History Positions (The Truth about closed trades)
+            const historyResponse = await fetch('/api/sync/positions-history', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret,
+                    limit: 100
+                })
+            });
+            const historyResult = await historyResponse.json();
+            if (historyResult.error) throw new Error(historyResult.error);
+            const historyPositions = historyResult.data;
+
+            // 2. Fetch Pending Positions (Open Trades)
+            const pendingResponse = await fetch('/api/sync/positions-pending', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret
+                })
+            });
+            const pendingResult = await pendingResponse.json();
+            // Pending positions might fail if empty, but we check array
+            const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+
+
+            // 3. Fetch Orders (Still needed to find initial Stop Loss for R-Calc)
+            const orderResponse = await fetch('/api/sync/orders', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    apiKey: settings.apiKeys.bitunix.key,
+                    apiSecret: settings.apiKeys.bitunix.secret,
+                    limit: 100
+                })
+            });
+
+            let orders: any[] = [];
+            try {
+                const orderResult = await orderResponse.json();
+                if (!orderResult.error && Array.isArray(orderResult.data)) {
+                    orders = orderResult.data;
+                }
+            } catch (err) {
+                console.warn("Failed to fetch orders:", err);
+            }
+
+            // --- Pre-process orders to create a Symbol -> Orders(SL) lookup ---
+            const symbolSlMap: Record<string, Array<{ ctime: number, slPrice: Decimal }>> = {};
+
+            orders.forEach((o: any) => {
+                let sl = new Decimal(0);
+                if (o.slPrice) sl = new Decimal(o.slPrice);
+                else if (o.stopLossPrice) sl = new Decimal(o.stopLossPrice);
+                else if (o.triggerPrice) sl = new Decimal(o.triggerPrice);
+
+                let t = o.createTime || o.ctime || 0;
+                if (typeof t === 'string') t = parseInt(t, 10);
+
+                if (sl.gt(0) && o.symbol) {
+                    if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
+                    symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
+                }
+            });
+            Object.values(symbolSlMap).forEach(list => list.sort((a, b) => a.ctime - b.ctime));
+            // ------------------------------------------------------------------
+
+            // Cleanup: Remove existing "Open" synced trades to avoid duplicates/stale data.
+            // We assume that if we are running a sync, we want a fresh snapshot of Open positions.
+            // FIX: Explicitly check for isManual === false to identify synced trades, and status === 'Open'
+            const currentJournal = get(journalStore).filter(j => {
+                const isSynced = j.isManual === false;
+                const isOpen = j.status === 'Open';
+                // Keep if it's manual OR if it's synced but NOT open (i.e., closed history)
+                return !isSynced || !isOpen;
+            });
+
+            // Re-build existing ID set based on the filtered journal (Closed history remains)
+            const existingIds = new Set(currentJournal.map(j => String(j.tradeId || j.id)));
+
+            const newEntries: JournalEntry[] = [];
+            let addedCount = 0;
+
+            // --- Process Pending Positions (Open) ---
+            for (const p of pendingPositions) {
+                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
+                const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+
+                const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
+                const unrealizedPnl = new Decimal(p.unrealizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const size = new Decimal(p.qty || p.size || 0);
+
+                // Find SL for Open Position (Look for recent orders)
+                let stopLoss = new Decimal(0);
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates && candidates.length > 0) {
+                     // Get latest SL
+                     stopLoss = candidates[candidates.length - 1].slPrice;
+                }
+
+                // FIX: Robust date parsing
+                let dateTs = parseInt(p.ctime);
+                if (isNaN(dateTs) || dateTs <= 0) dateTs = Date.now();
+
+                const entry: JournalEntry = {
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(dateTs).toISOString(),
+                    entryDate: new Date(dateTs).toISOString(), // For duration calculation
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short') ? 'short' : 'long',
+                    status: 'Open',
+
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(p.leverage || 0),
+                    fees: new Decimal(0), // Estimated % not known, using absolute below
+
+                    entryPrice: entryPrice,
+                    stopLossPrice: stopLoss,
+
+                    totalRR: new Decimal(0), // Not realized
+                    totalNetProfit: unrealizedPnl.minus(fee).plus(funding), // Unrealized Net
+                    riskAmount: new Decimal(0),
+                    totalFees: fee.abs().plus(funding.abs()), // Total costs so far
+                    maxPotentialProfit: new Decimal(0),
+
+                    notes: `Open Position. Funding: ${funding.toFixed(4)}, Unrealized: ${unrealizedPnl.toFixed(4)}`,
+                    targets: [],
+                    calculatedTpDetails: [],
+
+                    fundingFee: funding,
+                    tradingFee: fee,
+                    realizedPnl: new Decimal(0), // It's unrealized
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+            // --- Process History Positions (Closed) ---
+            for (const p of historyPositions) {
+                const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
+                if (existingIds.has(uniqueId)) continue;
+
+                const realizedPnl = new Decimal(p.realizedPNL || 0);
+                const funding = new Decimal(p.funding || 0);
+                const fee = new Decimal(p.fee || 0);
+                const entryPrice = new Decimal(p.entryPrice || 0);
+                const closePrice = new Decimal(p.closePrice || 0);
+                const qty = new Decimal(p.maxQty || 0); // Approx size
+
+                // Calculate Net PnL = Realized - Fees + Funding (Funding is usually negative if paid, so + (-cost))
+                // Bitunix "funding": "total funding fee". If positive, we received it? If negative we paid?
+                // Usually "Fee" is positive in DB but subtracted. "Funding" is signed.
+                // Let's assume standard PnL math: Net = Realized - Fee + Funding.
+                // Wait, Bitunix API says: "realizedPNL: Realized PnL(exclude funding fee and transaction fee)"
+                // So Net = Realized + Funding - Fee? Or is Fee signed?
+                // Example: fee "0.1", funding "-0.2", realized "102.9".
+                // Net = 102.9 + (-0.2) - 0.1 = 102.6.
+                // We will use: realizedPnl.plus(funding).minus(fee.abs())  (assuming fee string is usually positive number representing cost)
+
+                const netPnl = realizedPnl.plus(funding).minus(fee.abs());
+
+                // Find SL
+                let stopLoss = new Decimal(0);
+                // FIX: Robust time parsing
+                let posTime = parseInt(p.ctime);
+                if (isNaN(posTime)) posTime = 0;
+
+                const candidates = symbolSlMap[p.symbol];
+                if (candidates && posTime > 0) {
+                    // Match by time: Order Ctime <= Position Ctime (Entry)
+                    // Position ctime is creation time.
+                    // Use tolerance
+                    const tolerance = 5000;
+                    for (let i = candidates.length - 1; i >= 0; i--) {
+                        // Find SL set around the time position was created
+                        // Look back window to avoid matching orders from weeks ago
+                        if (Math.abs(candidates[i].ctime - posTime) < 60000 * 60 * 24 * 7) {
+                             if (candidates[i].ctime <= posTime + tolerance) {
+                                 stopLoss = candidates[i].slPrice;
+                                 break;
+                             }
+                        }
+                    }
+                }
+
+                // R-Calc
+                let riskAmount = new Decimal(0);
+                let totalRR = new Decimal(0);
+                if (stopLoss.gt(0) && entryPrice.gt(0) && qty.gt(0)) {
+                    const riskPerUnit = entryPrice.minus(stopLoss).abs();
+                    riskAmount = riskPerUnit.times(qty);
+                    if (riskAmount.gt(0) && !netPnl.isZero()) {
+                        totalRR = netPnl.div(riskAmount);
+                    }
+                }
+
+                // FIX: Robust date parsing for Close Time
+                let closeTime = parseInt(p.mtime || p.ctime);
+                if (isNaN(closeTime) || closeTime <= 0) closeTime = Date.now();
+
+                const entry: JournalEntry = {
+                    id: Date.now() + Math.random(),
+                    tradeId: uniqueId,
+                    date: new Date(closeTime).toISOString(), // Close time
+                    entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined, // FIX: Store Entry Date for Duration
+                    symbol: p.symbol,
+                    tradeType: (p.side || '').toLowerCase().includes('sell') ? 'short' : 'long',
+                    status: netPnl.gt(0) ? 'Won' : 'Lost',
+
+                    accountSize: new Decimal(0),
+                    riskPercentage: new Decimal(0),
+                    leverage: new Decimal(p.leverage || 0),
+                    fees: new Decimal(0),
+
+                    entryPrice: entryPrice,
+                    stopLossPrice: stopLoss,
+
+                    totalRR: totalRR,
+                    totalNetProfit: netPnl,
+                    riskAmount: riskAmount,
+                    totalFees: fee.abs().plus(funding.abs()),
+                    maxPotentialProfit: new Decimal(0),
+
+                    notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
+                    targets: [],
+                    calculatedTpDetails: [],
+
+                    fundingFee: funding,
+                    tradingFee: fee,
+                    realizedPnl: realizedPnl,
+                    isManual: false
+                };
+                newEntries.push(entry);
+                addedCount++;
+            }
+
+
+            if (addedCount > 0 || currentJournal.length !== get(journalStore).length) {
+                // Combine the filtered journal (without old open positions) with new entries
+                const updatedJournal = [...currentJournal, ...newEntries];
+                updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+                journalStore.set(updatedJournal);
+                app.saveJournal(updatedJournal);
+                uiStore.showFeedback('save', 2000);
+                trackCustomEvent('Journal', 'Sync', 'Bitunix-Positions', addedCount);
+            } else {
+                 uiStore.showError("Keine neuen Positionen gefunden.");
+            }
+
+        } catch (e: any) {
+            console.error("Sync error:", e);
+            uiStore.showError("Sync failed: " + e.message);
+        } finally {
+            uiStore.update(s => ({ ...s, isPriceFetching: false }));
+        }
     },
     importFromCSV: (file: File) => {
         if (!browser) return;
-        csvService.importFromCSV(file);
+        const reader = new FileReader();
+        reader.onload = async (e) => {
+            const text = e.target?.result as string;
+            const lines = text.split('\n').filter(line => line.trim() !== '');
+            if (lines.length < 2) {
+                uiStore.showError("CSV ist leer oder hat nur eine Kopfzeile.");
+                return;
+            }
+
+            const headers = lines[0].split(',').map(h => h.trim().replace(/^\uFEFF/, ''));
+            // Map possible headers to internal keys
+            const headerMap: { [key: string]: string } = {
+                'ID': 'ID',
+                'Datum': 'Datum', 'Date': 'Datum',
+                'Uhrzeit': 'Uhrzeit', 'Time': 'Uhrzeit',
+                'Symbol': 'Symbol',
+                'Typ': 'Typ', 'Type': 'Typ',
+                'Status': 'Status',
+                'Konto Guthaben': 'Konto Guthaben', 'Account Balance': 'Konto Guthaben',
+                'Risiko %': 'Risiko %', 'Risk %': 'Risiko %',
+                'Hebel': 'Hebel', 'Leverage': 'Hebel',
+                'Gebuehren %': 'Gebuehren %', 'Fees %': 'Gebuehren %',
+                'Einstieg': 'Einstieg', 'Entry Price': 'Einstieg', 'Entry': 'Einstieg',
+                'Stop Loss': 'Stop Loss',
+                'Gewichtetes R/R': 'Gewichtetes R/R', 'Weighted R/R': 'Gewichtetes R/R',
+                'Gesamt Netto-Gewinn': 'Gesamt Netto-Gewinn', 'Total Net Profit': 'Gesamt Netto-Gewinn',
+                'Risiko pro Trade (Waehrung)': 'Risiko pro Trade (Waehrung)', 'Risk Amount': 'Risiko pro Trade (Waehrung)',
+                'Gesamte Gebuehren': 'Gesamte Gebuehren', 'Total Fees': 'Gesamte Gebuehren',
+                'Max. potenzieller Gewinn': 'Max. potenzieller Gewinn', 'Max Potential Profit': 'Max. potenzieller Gewinn',
+                'Notizen': 'Notizen', 'Notes': 'Notizen',
+                'Funding Fee': 'Funding Fee',
+                'Trading Fee': 'Trading Fee',
+                'Realized PnL': 'Realized PnL',
+                'Is Manual': 'Is Manual',
+                'Trade ID': 'Trade ID',
+                'Order ID': 'Order ID'
+            };
+
+            // Identify which language/set of headers is present
+            const requiredKeys = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Einstieg', 'Stop Loss'];
+
+            // Check if we have mapped all required keys
+            const presentMappedKeys = new Set(headers.map(h => headerMap[h]).filter(Boolean));
+            const missingKeys = requiredKeys.filter(k => !presentMappedKeys.has(k));
+
+            if (missingKeys.length > 0) {
+                // If strictly missing required mapped keys
+                uiStore.showError(`CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): ${missingKeys.join(', ')}`);
+                return;
+            }
+
+            const entries = lines.slice(1).map(line => {
+                const values = line.split(',');
+                // Map values to standardized German keys internally using the header map
+                const entry: Record<string, string> = {};
+                headers.forEach((header, index) => {
+                    const mappedKey = headerMap[header];
+                    if (mappedKey) {
+                        entry[mappedKey] = values[index] ? values[index].trim() : '';
+                    } else if (header.startsWith('TP') && (header.includes('Preis') || header.includes('Price') || header.includes('%'))) {
+                         // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
+                         // We normalize them to "TP{n} Preis" and "TP{n} %"
+                         const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
+                         if (match) {
+                             const num = match[1];
+                             const type = match[2] === '%' ? '%' : 'Preis';
+                             entry[`TP${num} ${type}`] = values[index] ? values[index].trim() : '';
+                         }
+                    }
+                });
+
+                try {
+                    const targets = [];
+                    for (let j = 1; j <= 5; j++) {
+                        const priceKey = `TP${j} Preis`;
+                        const percentKey = `TP${j} %`;
+                        if (entry[priceKey] && entry[percentKey]) {
+                            targets.push({
+                                price: parseDecimal(entry[priceKey] as string),
+                                percent: parseDecimal(entry[percentKey] as string),
+                                isLocked: false
+                            });
+                        }
+                    }
+
+                    const importedTrade: JournalEntry = {
+                        id: parseFloat(entry.ID),
+                        date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
+                        symbol: entry.Symbol,
+                        tradeType: entry.Typ.toLowerCase(),
+                        status: entry.Status,
+                        accountSize: parseDecimal(entry['Konto Guthaben'] || '0'),
+                        riskPercentage: parseDecimal(entry['Risiko %'] || '0'),
+                        leverage: parseDecimal(entry.Hebel || '1'),
+                        fees: parseDecimal(entry['Gebuehren %'] || '0.1'),
+                        entryPrice: parseDecimal(entry.Einstieg),
+                        stopLossPrice: parseDecimal(entry['Stop Loss']),
+                        totalRR: parseDecimal(entry['Gewichtetes R/R'] || '0'),
+                        totalNetProfit: parseDecimal(entry['Gesamt Netto-Gewinn'] || '0'),
+                        riskAmount: parseDecimal(entry['Risiko pro Trade (Waehrung)'] || '0'),
+                        totalFees: parseDecimal(entry['Gesamte Gebuehren'] || '0'),
+                        maxPotentialProfit: parseDecimal(entry['Max. potenzieller Gewinn'] || '0'),
+                        notes: entry.Notizen ? entry.Notizen.replace(/""/g, '"').slice(1, -1) : '',
+                        targets: targets,
+                        // New fields
+                        tradeId: entry['Trade ID'] || undefined,
+                        orderId: entry['Order ID'] || undefined,
+                        fundingFee: parseDecimal(entry['Funding Fee'] || '0'),
+                        tradingFee: parseDecimal(entry['Trading Fee'] || '0'),
+                        realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
+                        isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
+                        calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
+                    };
+                    return importedTrade;
+                } catch (err: unknown) {
+                    console.warn("Fehler beim Verarbeiten einer Zeile:", entry, err);
+                    return null;
+                }
+            }).filter((entry): entry is JournalEntry => entry !== null);
+
+            if (entries.length > 0) {
+                const currentJournal = get(journalStore);
+                const combined = [...currentJournal, ...entries];
+                const unique = Array.from(new Map(combined.map(trade => [trade.id, trade])).values());
+
+                if (await modalManager.show("Import bestätigen", `Sie sind dabei, ${entries.length} Trades zu importieren. Bestehende Trades mit derselben ID werden überschrieben. Fortfahren?`, "confirm")) {
+                    journalStore.set(unique);
+                    trackCustomEvent('Journal', 'Import', 'CSV', entries.length);
+                    uiStore.showFeedback('save', 2000);
+                }
+            } else {
+                uiStore.showError("Keine gültigen Einträge in der CSV-Datei gefunden.");
+            }
+        };
+        reader.readAsText(file);
     },
 
     handleFetchPrice: async (isAuto = false) => {
@@ -605,7 +1038,7 @@ export const app = {
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
             
             // Only show feedback on manual fetch
-            if (!isAuto) uiStore.showFeedback('save', 700); // Use 'save' (checkmark) instead of 'copy'
+            if (!isAuto) uiStore.showFeedback('copy', 700);
             
             app.calculateAndDisplay();
         } catch (error) {
@@ -668,7 +1101,7 @@ export const app = {
             updateTradeStore(state => ({ ...state, atrValue: atr.toDP(4).toNumber() }));
             app.calculateAndDisplay();
             
-            if (!isAuto) uiStore.showFeedback('save', 700);
+            if (!isAuto) uiStore.showFeedback('copy', 700);
         } catch (error) {
              if (!isAuto) {
                 const message = error instanceof Error ? error.message : String(error);
@@ -743,13 +1176,9 @@ export const app = {
             targets: [...state.targets, { price, percent, isLocked }]
         }));
     },
-    scanMultiAtr: async (symbol: string) => {
+    scanMultiAtr: async (symbol: string): Promise<Record<string, number>> => {
         const settings = get(settingsStore);
-        // Use global favorites (ensure sorted or sort here)
-        const timeframes = settings.favoriteTimeframes && settings.favoriteTimeframes.length > 0
-            ? settings.favoriteTimeframes
-            : ['5m', '15m', '1h', '4h'];
-
+        const timeframes = ['5m', '15m', '1h', '4h'];
         const results: Record<string, number> = {};
 
         const fetchPromise = async (tf: string) => {
@@ -770,23 +1199,7 @@ export const app = {
         };
 
         await Promise.all(timeframes.map(tf => fetchPromise(tf)));
-        updateTradeStore(state => ({ ...state, multiAtrData: results }));
-    },
-
-    // New unified fetch function for Price + ATR + Analysis
-    fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
-        if (!symbol || symbol.length < 3) return;
-
-        // 1. Fetch Price (updateTradeStore handles UI)
-        await app.handleFetchPrice(isAuto);
-
-        // 2. Fetch Multi-ATR
-        app.scanMultiAtr(symbol);
-
-        // We will trigger ATR fetch for the ACTIVE timeframe:
-        if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-             await app.fetchAtr(isAuto);
-        }
+        return results;
     },
 
     adjustTpPercentages: (changedIndex: number | null) => {

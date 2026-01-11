@@ -4,7 +4,7 @@
     import { trackClick } from '../../lib/actions';
     import ModalFrame from './ModalFrame.svelte';
 
-    let modalState: ModalState = { title: '', message: '', type: 'alert', defaultValue: '', isOpen: false, resolve: null, extraClasses: '' };
+    let modalState: ModalState = { title: '', message: '', type: 'alert', defaultValue: '', isOpen: false, resolve: null };
 
     modalManager.subscribe(state => {
         modalState = state;
@@ -23,7 +23,7 @@
     isOpen={modalState.isOpen}
     title={modalState.title}
     on:close={() => handleConfirm(false)}
-    extraClasses={modalState.extraClasses || "modal-size-sm"}
+    extraClasses="modal-size-sm"
 >
     <div class="prose dark:prose-invert w-full max-w-none">{@html modalState.message}</div>
 

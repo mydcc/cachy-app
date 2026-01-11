@@ -2,15 +2,19 @@
     import { createEventDispatcher } from 'svelte';
     import { getComputedColor } from '../../../utils/colors';
     import { _ } from '../../../locales/i18n';
-    import { tooltip } from '../../../lib/actions/tooltip';
 
-    export let data: { date: string, pnl: number, count: number, winCount?: number, lossCount?: number, bestSymbol?: string, bestSymbolPnl?: number }[] = [];
+    export let data: { date: string, pnl: number, count: number }[] = [];
     export let year: number = new Date().getFullYear();
 
     const dispatch = createEventDispatcher();
 
     // Helpers
     const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+
+    // Generate calendar grid for the year
+    // We want a grid like GitHub: Columns are weeks, Rows are days (Sun-Sat or Mon-Sun)
+    // For simplicity, we can do a month-based grid or a full year continuous grid.
+    // Let's do a month-based grid for better mobile responsiveness. 12 mini grids.
 
     function getDaysInMonth(m: number, y: number) {
         return new Date(y, m + 1, 0).getDate();
@@ -25,99 +29,37 @@
     $: dataMap = data.reduce((acc, d) => {
         acc[d.date] = d;
         return acc;
-    }, {} as Record<string, { date: string, pnl: number, count: number, winCount?: number, lossCount?: number, bestSymbol?: string, bestSymbolPnl?: number }>);
+    }, {} as Record<string, { date: string, pnl: number, count: number }>);
 
     function getColor(dateStr: string) {
         const entry = dataMap[dateStr];
         if (!entry) return 'var(--bg-tertiary)';
 
+        // Simple color scale: Green for profit, Red for loss
+        // Intensity based on magnitude could be complex, let's stick to binary + opacity or simple shades
+        // Or simpler: Profit = Success Color, Loss = Danger Color.
         if (entry.pnl > 0) return 'var(--success-color)';
         if (entry.pnl < 0) return 'var(--danger-color)';
-        return 'var(--text-secondary)';
+        return 'var(--text-secondary)'; // Break even but traded
     }
 
     function getOpacity(dateStr: string) {
         const entry = dataMap[dateStr];
         if (!entry) return 1;
+        // Scale opacity? Maybe not needed for clean look.
         return 0.8;
     }
 
     function formatDate(y: number, m: number, d: number) {
         return `${y}-${String(m + 1).padStart(2, '0')}-${String(d).padStart(2, '0')}`;
     }
-
-    function calculateMonthStats(mIndex: number, y: number) {
-        let totalPnl = 0;
-        let totalTrades = 0;
-        const days = getDaysInMonth(mIndex, y);
-        for (let d = 1; d <= days; d++) {
-            const dateStr = formatDate(y, mIndex, d);
-            const entry = dataMap[dateStr];
-            if (entry) {
-                totalPnl += entry.pnl;
-                totalTrades += entry.count;
-            }
-        }
-        return { totalPnl, totalTrades };
-    }
-
-    function handleDayClick(dateStr: string) {
-        dispatch('click', { date: dateStr });
-    }
-
-    function getTooltipHtml(entry: any, dateStr: string) {
-        if (!entry) return null; // No tooltip for empty days? or just date? user request image shows active day tooltip
-
-        const pnlColor = entry.pnl > 0 ? 'var(--success-color, #10b981)' : entry.pnl < 0 ? 'var(--danger-color, #ef4444)' : 'var(--text-secondary, #94a3b8)';
-
-        let html = `
-            <div class="text-left">
-                <div class="text-[var(--text-secondary)] text-xs mb-1">${dateStr}</div>
-                <div class="font-bold mb-1" style="color: ${pnlColor}">
-                    PnL: $${entry.pnl.toFixed(2)}
-                </div>
-                <div class="text-[var(--text-primary)] text-xs">
-                    Trades: ${entry.count}
-        `;
-
-        if (entry.winCount !== undefined && entry.lossCount !== undefined) {
-             html += ` <span class="text-[var(--text-tertiary)]">(${entry.winCount}W / ${entry.lossCount}L)</span>`;
-        }
-
-        html += `</div>`;
-
-        if (entry.bestSymbol) {
-             html += `
-                <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
-                    Top: <span class="font-semibold">${entry.bestSymbol}</span>
-            `;
-             if (entry.bestSymbolPnl) {
-                 const symPnlColor = entry.bestSymbolPnl > 0 ? 'var(--success-color)' : entry.bestSymbolPnl < 0 ? 'var(--danger-color)' : 'inherit';
-                 html += ` <span style="color: ${symPnlColor}">($${entry.bestSymbolPnl.toFixed(2)})</span>`;
-             }
-             html += `</div>`;
-        }
-
-        html += `</div>`;
-        return html;
-    }
 </script>
 
-<div class="calendar-heatmap-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
+<div class="calendar-heatmap-container grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
     {#each months as monthName, mIndex}
-        {@const stats = calculateMonthStats(mIndex, year)}
-        <div class="month-card bg-[var(--bg-primary)] p-2 rounded border border-[var(--border-color)] flex flex-col">
-            <div class="flex justify-between items-end mb-2 px-1">
-                <h4 class="text-xs font-bold text-[var(--text-secondary)]">{monthName}</h4>
-                <div class="text-[0.6rem] text-right leading-tight">
-                    <div class="{stats.totalPnl > 0 ? 'text-[var(--success-color)]' : stats.totalPnl < 0 ? 'text-[var(--danger-color)]' : 'text-[var(--text-secondary)]'}">
-                        ${stats.totalPnl.toFixed(0)}
-                    </div>
-                    <div class="text-[var(--text-tertiary)]">{stats.totalTrades} Trades</div>
-                </div>
-            </div>
-
-            <div class="days-grid grid grid-cols-7 gap-1 flex-1 content-start">
+        <div class="month-card bg-[var(--bg-primary)] p-2 rounded border border-[var(--border-color)]">
+            <h4 class="text-xs font-bold mb-2 text-center text-[var(--text-secondary)]">{monthName}</h4>
+            <div class="days-grid grid grid-cols-7 gap-1">
                 <!-- Day headers -->
                 {#each ['S','M','T','W','T','F','S'] as dayHead}
                     <div class="text-[0.6rem] text-center text-[var(--text-tertiary)]">{dayHead}</div>
@@ -132,16 +74,14 @@
                 {#each Array(getDaysInMonth(mIndex, year)) as _, dIndex}
                     {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
                     {@const entry = dataMap[dateStr]}
-                    {@const tooltipContent = getTooltipHtml(entry, dateStr)}
-                    <!-- svelte-ignore a11y-click-events-have-key-events -->
                     <div
-                        role="button"
-                        tabindex="0"
-                        class="day-cell w-full aspect-square rounded-sm relative group cursor-pointer focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)]"
+                        class="day-cell w-full aspect-square rounded-sm relative group cursor-pointer"
                         style="background-color: {getColor(dateStr)}; opacity: {getOpacity(dateStr)}"
-                        use:tooltip={tooltipContent ? { content: tooltipContent, allowHtml: true, placement: 'top' } : { content: dateStr, placement: 'top' }}
-                        on:click={() => entry && handleDayClick(dateStr)}
+                        title="{dateStr}: {entry ? `$${entry.pnl.toFixed(2)} (${entry.count} trades)` : 'No trades'}"
                     >
+                        {#if entry}
+                            <!-- Tooltip handled by native title for simplicity or custom if needed -->
+                        {/if}
                     </div>
                 {/each}
             </div>

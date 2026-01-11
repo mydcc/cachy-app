@@ -16,10 +16,8 @@ self.addEventListener('install', (event) => {
         try {
             await cache.addAll(ASSETS);
         } catch (error) {
-            console.error('PWA Install: Failed to cache assets. This prevents WebAPK generation.', error);
-            // Fallback: Try caching critical assets only if full bulk fails
-            // This is crucial because if one file (like a large image) fails,
-            // the whole SW fails, and the app becomes just a Shortcut (white splash).
+            console.error('PWA Install: Failed to cache assets.', error);
+            // Fallback: Try caching critical assets only
              const criticalAssets = ASSETS.filter(file =>
                 file.endsWith('.html') ||
                 file.endsWith('.js') ||
@@ -29,7 +27,6 @@ self.addEventListener('install', (event) => {
                 file.includes('icon')
             );
 
-            // Try forcing critical assets
             for (const asset of criticalAssets) {
                 try {
                     await cache.add(asset);
@@ -41,7 +38,6 @@ self.addEventListener('install', (event) => {
     }
 
     event.waitUntil(addFilesToCache());
-    // Force the waiting service worker to become the active service worker.
     self.skipWaiting();
 });
 
@@ -54,50 +50,33 @@ self.addEventListener('activate', (event) => {
     }
 
     event.waitUntil(deleteOldCaches());
-    // Claim any clients immediately, so that the page will be controlled by the service worker immediately.
     self.clients.claim();
 });
 
 self.addEventListener('fetch', (event) => {
-    // ignore POST requests etc
+    // GET requests only
     if (event.request.method !== 'GET') return;
 
-    // Ignore non-http/https requests (e.g. chrome-extension://)
-    if (!event.request.url.startsWith('http')) return;
-
     async function respond() {
+        const url = new URL(event.request.url);
         const cache = await caches.open(CACHE);
 
-        // Serve build assets from the cache
+        // Assets cache
         if (ASSETS.includes(url.pathname)) {
             const response = await cache.match(url.pathname);
             if (response) return response;
         }
 
+        // Network fallthrough
         try {
             const response = await fetch(event.request);
-
-            // if we're offline, fetch can return a value that is not a Response
-            // instead of throwing - and we can't consume it in this case
             if (!(response instanceof Response)) {
-                throw new Error('invalid response from fetch');
+                 throw new Error('invalid response from fetch');
             }
-
-            if (response.status === 200 && !url.pathname.startsWith('/api/')) {
-                cache.put(event.request, response.clone()).catch(() => {
-                    // Ignore cache errors (e.g. quota exceeded, network error, invalid scheme)
-                });
-            }
-
             return response;
         } catch (err) {
             const response = await cache.match(event.request);
-
-            if (response) {
-                return response;
-            }
-
-            // if there's no cache, then just error out
+            if (response) return response;
             throw err;
         }
     }

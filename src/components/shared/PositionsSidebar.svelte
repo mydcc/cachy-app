@@ -2,25 +2,28 @@
     import { onMount } from 'svelte';
     import { settingsStore } from '../../stores/settingsStore';
     import { tradeStore } from '../../stores/tradeStore';
-    import { accountStore } from '../../stores/accountStore';
-    import { wsStatusStore } from '../../stores/marketStore';
     import { _ } from '../../locales/i18n';
+    import { formatDynamicDecimal } from '../../utils/utils';
     
     // Sub-components
-    import PositionsList from './PositionsList.svelte';
     import AccountSummary from './AccountSummary.svelte';
     import OpenOrdersList from './OpenOrdersList.svelte';
     import OrderHistoryList from './OrderHistoryList.svelte';
+    import PositionsList from './PositionsList.svelte';
     import TpSlList from './TpSlList.svelte';
 
-    export let isMobile = false;
+    export let isMobile = false; // Add isMobile prop
 
     let isOpen = true;
 
-    // Data State
-    // Using store subscription for positions to react to WebSocket updates
-    // For orders/history, we still fetch, but accountStore also has openOrders
+    // Fix for duplicate loading: only fetch if visible or explicit logic
+    // Actually, in the mobile view it might be conditionally rendered with CSS 'hidden' classes in +page.svelte
+    // If it is just hidden with CSS, Svelte still mounts it.
+    // We should rely on a singleton store or similar, BUT for now, let's just make sure we don't over-poll.
+    // The component uses props or checks store.
 
+    // Data State
+    let positions: any[] = [];
     let openOrders: any[] = [];
     let historyOrders: any[] = [];
     let accountInfo: any = {
@@ -51,20 +54,8 @@
     type Tab = 'positions' | 'orders' | 'tpsl' | 'history';
     let activeTab: Tab = 'positions';
 
-    // Context Menu State
-    let showContextMenu = false;
-    let contextMenuX = 0;
-    let contextMenuY = 0;
-
     async function fetchPositions() {
         const provider = $settingsStore.apiProvider || 'bitunix';
-
-        // SKIP REST Polling for Bitunix if WebSocket is Active
-        // This prevents overwriting real-time WS data with stale/duplicate REST data
-        if (provider === 'bitunix' && $wsStatusStore === 'connected') {
-            return;
-        }
-
         const keys = $settingsStore.apiKeys[provider];
 
         if (!keys?.key || !keys?.secret) return;
@@ -79,16 +70,7 @@
             });
             const data = await response.json();
             if (data.error) errorPositions = data.error;
-            else {
-                // Initial Population of Store if needed, or just let WS handle it?
-                // For now, let's trust the WS to update, but initial fetch is good.
-                // We'll update the local store manually? Or rely on accountStore?
-                // Since PositionsList uses `positions` prop, let's pass data.
-                // Ideally, accountStore should manage this.
-                if (data.positions) {
-                    accountStore.update(prev => ({ ...prev, positions: data.positions }));
-                }
-            }
+            else positions = data.positions || [];
         } catch (e) {
             errorPositions = 'Failed to load positions';
         } finally {
@@ -160,11 +142,10 @@
         const provider = $settingsStore.apiProvider || 'bitunix';
         const keys = $settingsStore.apiKeys[provider];
         if (keys?.key && keys?.secret) {
-            // Only fetch account via REST if not on Bitunix WS (since WS handles wallet/positions)
-            // But Account Info has some fields not in WS (like transfer/bonus maybe?)
-            // For safety, let's allow Account fetch but block Positions fetch inside fetchPositions()
             fetchAccount();
             fetchPositions();
+            // Fetch orders only if tab is active to save API calls, or just fetch all?
+            // Let's fetch active tab data more frequently
             if (activeTab === 'orders') fetchOrders('pending');
             if (activeTab === 'history') fetchOrders('history');
         }
@@ -172,35 +153,29 @@
 
     onMount(() => {
         refreshAll();
+        // Initial fetch for background tabs too so they aren't empty when clicked
         const provider = $settingsStore.apiProvider || 'bitunix';
         const keys = $settingsStore.apiKeys[provider];
         if (keys?.key && keys?.secret) {
              fetchOrders('pending');
+             // History maybe less frequent?
         }
 
-        const interval = setInterval(refreshAll, 10000);
+        const interval = setInterval(refreshAll, 10000); // 10s poll
         return () => clearInterval(interval);
     });
 
-    // React to settings changes (e.g. keys added)
-    $: if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
-        // Debounce or just check if we can fetch
-        const p = $settingsStore.apiProvider;
-        const k = $settingsStore.apiKeys[p];
-        if (k?.key && k?.secret && activeTab === 'positions') {
-             fetchPositions();
-             fetchAccount();
-        }
-    }
-
+    // React to tab changes
     $: if (activeTab === 'orders') fetchOrders('pending');
     $: if (activeTab === 'history') fetchOrders('history');
-    $: if (activeTab === 'positions') fetchPositions();
 
     // Filter History
     let filteredHistoryOrders: any[] = [];
     $: {
         if ($settingsStore.hideUnfilledOrders) {
+             // Filter: Must have fill amount > 0 OR status FILLED/PARTIAL
+             // Bitunix usually has 'filled' or 'dealAmount' or 'state'
+             // Based on the screenshot, unfilled orders have 0 filled/vol.
              filteredHistoryOrders = historyOrders.filter(o => Number(o.filled || o.dealAmount || 0) > 0);
         } else {
              filteredHistoryOrders = historyOrders;
@@ -211,84 +186,19 @@
         isOpen = !isOpen;
     }
 
+    function selectSymbol(symbol: string) {
+        tradeStore.update(s => ({ ...s, symbol: symbol }));
+    }
+
     function handleKeydown(event: KeyboardEvent, callback: () => void) {
         if (event.key === 'Enter' || event.key === ' ') {
             event.preventDefault();
             callback();
         }
     }
-
-    // Context Menu Handling
-    function handleContextMenu(event: MouseEvent) {
-        if (activeTab !== 'positions') return;
-        event.preventDefault();
-        contextMenuX = event.clientX;
-        contextMenuY = event.clientY;
-        showContextMenu = true;
-    }
-
-    function setViewMode(mode: 'detailed' | 'focus') {
-        settingsStore.update(s => ({ ...s, positionViewMode: mode }));
-        showContextMenu = false;
-    }
-
-    function closeContextMenu() {
-        showContextMenu = false;
-    }
-
-    // Actions
-    async function handleClosePosition(event: CustomEvent) {
-        const pos = event.detail;
-
-        try {
-            const response = await fetch('/api/orders', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    exchange: $settingsStore.apiProvider,
-                    apiKey: $settingsStore.apiKeys[$settingsStore.apiProvider].key,
-                    apiSecret: $settingsStore.apiKeys[$settingsStore.apiProvider].secret,
-                    type: 'close-position', // Helper type
-                    symbol: pos.symbol,
-                    side: String(pos.side).toLowerCase() === 'long' ? 'sell' : 'buy', // Close opposite
-                    amount: pos.size
-                })
-            });
-
-            const res = await response.json();
-            if (res.error) {
-                alert(`Error closing position: ${res.error}`);
-            } else {
-                // Trigger refresh or wait for WS
-            }
-        } catch (e) {
-            alert('Failed to send close order.');
-        }
-    }
-
-    async function handleTpSl(event: CustomEvent) {
-        const pos = event.detail;
-        // Placeholder: Could open a modal or just pre-fill trade inputs
-        // For now, let's load it into the Trade Inputs
-        tradeStore.update(s => ({
-            ...s,
-            symbol: pos.symbol,
-            entryPrice: Number(pos.entryPrice),
-            quantity: Number(pos.size),
-            leverage: Number(pos.leverage)
-        }));
-        alert(`Loaded ${pos.symbol} into trade inputs. Configure TP/SL there and submit.`);
-    }
-
 </script>
 
-<svelte:window on:click={closeContextMenu} />
-
-<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 relative z-20 {isMobile ? 'w-full' : 'w-80'}"
-    class:overflow-hidden={!isOpen}
-    class:h-auto={isOpen}
-    class:h-12={!isOpen}
->
+<div class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] overflow-hidden flex flex-col transition-all duration-300 {isMobile ? 'w-full' : 'w-80'}" class:h-auto={isOpen} class:h-12={!isOpen}>
     <!-- Header / Toggle -->
     <div
         class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
@@ -330,9 +240,8 @@
                 class:text-[var(--text-secondary)]={activeTab !== 'positions'}
                 class:border-transparent={activeTab !== 'positions'}
                 on:click={() => activeTab = 'positions'}
-                on:contextmenu={handleContextMenu}
             >
-                {$_('dashboard.positions') || 'Positions'} ({$accountStore.positions.length})
+                {$_('dashboard.positions') || 'Positions'} ({positions.length})
             </button>
             <button 
                 class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -369,13 +278,58 @@
         <!-- Content Area -->
         <div class="bg-[var(--bg-secondary)]">
             {#if activeTab === 'positions'}
-                <PositionsList
-                    positions={$accountStore.positions}
-                    loading={loadingPositions}
-                    error={errorPositions}
-                    on:close={handleClosePosition}
-                    on:tpSl={handleTpSl}
-                />
+                 <div class="p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
+                    {#if !$settingsStore.apiKeys[$settingsStore.apiProvider]?.key}
+                        <div class="text-xs text-[var(--text-secondary)] text-center p-4">
+                            {$_('dashboard.configureApiKeys') || 'Please configure API keys in settings.'}
+                        </div>
+                    {:else if loadingPositions && positions.length === 0}
+                        <div class="flex justify-center p-4">
+                            <div class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"></div>
+                        </div>
+                    {:else if errorPositions}
+                        <div class="text-xs text-[var(--danger-color)] p-2 text-center">{errorPositions}</div>
+                    {:else if positions.length === 0}
+                        <div class="text-xs text-[var(--text-secondary)] text-center p-4">
+                            {$_('dashboard.noOpenPositions') || 'No open positions.'}
+                        </div>
+                    {:else}
+                        <div class="flex flex-col gap-2">
+                            {#each positions as pos}
+                                <div
+                                    class="bg-[var(--bg-primary)] rounded-lg p-2 border border-[var(--border-color)] hover:border-[var(--accent-color)] cursor-pointer transition-colors"
+                                    on:click={() => selectSymbol(pos.symbol)}
+                                    on:keydown={(e) => handleKeydown(e, () => selectSymbol(pos.symbol))}
+                                    role="button"
+                                    tabindex="0"
+                                >
+                                    <div class="flex justify-between items-center mb-1">
+                                        <span class="font-bold text-sm text-[var(--text-primary)]">{pos.symbol}</span>
+                                        <span class="text-xs font-bold px-1.5 py-0.5 rounded"
+                                            class:bg-green-900={pos.side.toUpperCase() === 'LONG'} class:text-green-300={pos.side.toUpperCase() === 'LONG'}
+                                            class:bg-red-900={pos.side.toUpperCase() === 'SHORT'} class:text-red-300={pos.side.toUpperCase() === 'SHORT'}>
+                                            {pos.side} {pos.leverage}x
+                                        </span>
+                                    </div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-[var(--text-secondary)]">Size:</span>
+                                        <span class="text-[var(--text-primary)]">{formatDynamicDecimal(pos.size)}</span>
+                                    </div>
+                                    <div class="flex justify-between text-xs mb-1">
+                                        <span class="text-[var(--text-secondary)]">Entry:</span>
+                                        <span class="text-[var(--text-primary)]">{formatDynamicDecimal(pos.entryPrice)}</span>
+                                    </div>
+                                     <div class="flex justify-between text-xs border-t border-[var(--border-color)] pt-1 mt-1">
+                                        <span class="text-[var(--text-secondary)]">PnL:</span>
+                                        <span class:text-[var(--success-color)]={pos.unrealizedPnL > 0} class:text-[var(--danger-color)]={pos.unrealizedPnL < 0}>
+                                            {formatDynamicDecimal(pos.unrealizedPnL)} USDT
+                                        </span>
+                                    </div>
+                                </div>
+                            {/each}
+                        </div>
+                    {/if}
+                </div>
             {:else if activeTab === 'orders'}
                 <OpenOrdersList orders={openOrders} loading={loadingOrders} error={errorOrders} />
             {:else if activeTab === 'tpsl'}
@@ -387,21 +341,16 @@
     {/if}
 </div>
 
-{#if showContextMenu}
-    <div
-        class="fixed z-[10000] bg-[var(--bg-tertiary)] border border-[var(--border-color)] shadow-xl rounded py-1 w-40 text-xs"
-        style="top: {contextMenuY}px; left: {contextMenuX}px;"
-    >
-        <div class="px-3 py-1 text-[var(--text-secondary)] font-bold border-b border-[var(--border-color)] mb-1">View Mode</div>
-        <button class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
-                on:click={() => setViewMode('detailed')}>
-            Detailed
-            {#if $settingsStore.positionViewMode === 'detailed'}✓{/if}
-        </button>
-        <button class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
-                on:click={() => setViewMode('focus')}>
-            Focus
-            {#if $settingsStore.positionViewMode === 'focus'}✓{/if}
-        </button>
-    </div>
-{/if}
+<style>
+    /* Custom scrollbar for the list */
+    .scrollbar-thin::-webkit-scrollbar {
+        width: 4px;
+    }
+    .scrollbar-thin::-webkit-scrollbar-track {
+        background: transparent;
+    }
+    .scrollbar-thin::-webkit-scrollbar-thumb {
+        background-color: var(--border-color);
+        border-radius: 20px;
+    }
+</style>
