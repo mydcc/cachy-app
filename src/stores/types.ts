@@ -135,6 +135,7 @@ export interface JournalEntry {
     leverage: Decimal;
     fees: Decimal;
     entryPrice: Decimal;
+    exitPrice?: Decimal; // Average exit price
     stopLossPrice: Decimal;
     totalRR: Decimal;
     totalNetProfit: Decimal;
