@@ -27,7 +27,7 @@ Der Rechner ist in drei Hauptbereiche unterteilt:
 
 **Der Sperr-Mechanismus (Locking):**
 Cachy erlaubt es dir, bestimmte Variablen zu sperren ("locken"), um sie an deinen Workflow anzupassen:
-*   **Risikobetrag sperren ($):** Nützlich, wenn du immer einen festen Dollarbetrag riskieren möchtest (z.B. $50), unabhängig vom Stop-Loss-Abstand. Der Rechner passt deine Positionsgröße entsprechend an.
+*   **Risikobetrag sperren (\$):** Nützlich, wenn du immer einen festen Dollarbetrag riskieren möchtest (z.B. \$50), unabhängig vom Stop-Loss-Abstand. Der Rechner passt deine Positionsgröße entsprechend an.
 *   **Positionsgröße sperren:** Nützlich, wenn du eine feste Menge handeln möchtest (z.B. 1 BTC). Der Rechner zeigt dir dann, wie hoch dein Risiko (%) basierend auf deinem Stop-Loss ist.
 
 #### C. Trade Setup

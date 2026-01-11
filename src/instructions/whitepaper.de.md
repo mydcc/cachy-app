@@ -39,7 +39,7 @@ Trading-Entscheidungen fallen in Millisekunden. Die Benutzeroberfläche von Cach
 
 ### Money First: Risikomanagement als Bürger erster Klasse
 Die meisten Terminals konzentrieren sich auf die *Ausführung* (Kaufen/Verkaufen). Cachy konzentriert sich auf den *Erhalt*.
-- **Risikozentrierte Eingabe**: Benutzer geben nicht "Menge zu kaufen" ein. Sie geben "Risikobetrag ($)" ein. Das System berechnet mathematisch rückwärts die korrekte Positionsgröße basierend auf dem Stop-Loss-Abstand.
+- **Risikozentrierte Eingabe**: Benutzer geben nicht "Menge zu kaufen" ein. Sie geben "Risikobetrag (\$)" ein. Das System berechnet mathematisch rückwärts die korrekte Positionsgröße basierend auf dem Stop-Loss-Abstand.
 - **Visualisierte Exponierung**: Chance-Risiko-Verhältnisse werden dynamisch berechnet. Wenn ein Trade das Risikoprofil des Benutzers verletzt (z. B. >3% Risiko), warnt die UI den Benutzer visuell (Rot/Gefahrenzustände).
 - **Gebührentransparenz**: Finanzierungsraten und Handelsgebühren sind keine versteckten Fußnoten; sie sind in die Netto-PnL-Berechnungen integriert, um die *wahren* Kosten eines Trades zu zeigen.
 
@@ -140,13 +140,13 @@ const positionSize = risk.div(entry.minus(sl).abs());
 ### Die Risiko-Engine: Ein Konkretes Beispiel
 
 Die meisten Trading-Oberflächen arbeiten vorwärts: *Kaufe 1 BTC -> Was ist mein Risiko?*
-Cachy arbeitet rückwärts: *Ich möchte 100 $ riskieren -> Wie viel BTC sollte ich kaufen?*
+Cachy arbeitet rückwärts: *Ich möchte 100 \$ riskieren -> Wie viel BTC sollte ich kaufen?*
 
 **Szenario**:
-- **Kontogröße**: 10.000 $
-- **Risiko pro Trade**: 1% (100 $)
-- **Einstiegspreis**: 50.000 $
-- **Stop Loss**: 49.000 $ (2% Abstand)
+- **Kontogröße**: 10.000 \$
+- **Risiko pro Trade**: 1% (100 \$)
+- **Einstiegspreis**: 50.000 \$
+- **Stop Loss**: 49.000 \$ (2% Abstand)
 
 **Berechnungsschritte**:
 1.  **Abstand Bestimmen**:
@@ -154,11 +154,11 @@ Cachy arbeitet rückwärts: *Ich möchte 100 $ riskieren -> Wie viel BTC sollte 
 2.  **Menge Berechnen (Größe)**:
     $$ Qty = \frac{Risiko}{\Delta} = \frac{100}{1.000} = 0,1 \text{ BTC} $$
 3.  **Validierung**:
-    Wenn der Preis 49.000 $ erreicht, beträgt der Verlust 0,1 \times 1.000 = 100 $. **Die Mathematik stimmt.**
+    Wenn der Preis 49.000 \$ erreicht, beträgt der Verlust 0,1 \times 1.000 = 100 \$. **Die Mathematik stimmt.**
 4.  **Hebel-Check**:
-    Wert der Position ist 0,1 \times 50.000 = 5.000 $.
-    Wenn der Benutzer 10x Hebel hat, Erforderliche Margin = 500 $.
-    *Das System validiert, dass 500 $ < Verfügbares Guthaben.*
+    Wert der Position ist 0,1 \times 50.000 = 5.000 \$.
+    Wenn der Benutzer 10x Hebel hat, Erforderliche Margin = 500 \$.
+    *Das System validiert, dass 500 \$ < Verfügbares Guthaben.*
 
 ### Deep Dive Analytik: Trader-Psychologie
 
