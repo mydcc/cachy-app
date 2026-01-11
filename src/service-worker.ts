@@ -56,8 +56,10 @@ self.addEventListener('fetch', (event) => {
                 throw new Error('invalid response from fetch');
             }
 
-            if (response.status === 200) {
-                cache.put(event.request, response.clone());
+            if (response.status === 200 && !url.pathname.startsWith('/api/')) {
+                cache.put(event.request, response.clone()).catch(() => {
+                    // Ignore cache errors (e.g. quota exceeded, network error, invalid scheme)
+                });
             }
 
             return response;
