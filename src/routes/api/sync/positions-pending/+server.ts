@@ -13,7 +13,8 @@ export const POST: RequestHandler = async ({ request }) => {
         const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
         return json({ data: positions });
     } catch (e: any) {
-        console.error(`Error fetching pending positions from Bitunix:`, e);
+        // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
+        console.error(`Error fetching pending positions from Bitunix:`, e.message || 'Unknown error');
         return json({ error: e.message || 'Failed to fetch pending positions' }, { status: 500 });
     }
 };

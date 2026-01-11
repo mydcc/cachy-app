@@ -26,7 +26,9 @@ export interface Settings {
     hideUnfilledOrders: boolean;
     positionViewMode?: PositionViewMode;
     pnlViewMode?: PnlViewMode;
-    accountTier: AccountTier; // Replaces isPro
+    accountTier: AccountTier;
+    // Legacy support for isPro access until all references migrated
+    isPro?: boolean;
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
     hotkeyBindings: HotkeyMap; // New: Custom bindings
@@ -152,6 +154,9 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.accountTier = 'free';
             }
         }
+
+        // Computed property for legacy support (not stored, but useful if code checks settings.isPro)
+        settings.isPro = ['pro', 'vip', 'admin'].includes(settings.accountTier);
         
         // 4. Ensure ImgBB defaults if missing (even if other settings existed)
         if (!settings.imgbbApiKey) {

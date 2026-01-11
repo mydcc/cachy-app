@@ -10,8 +10,22 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     try {
-        const positions = await fetchAllHistoryPositions(apiKey, apiSecret, limit);
-        return json({ data: positions });
+        // Add 50s serverless timeout safety
+        let isPartial = false;
+        const TIMEOUT_MS = 50000;
+        const startTime = Date.now();
+
+        const checkTimeout = () => {
+             if (Date.now() - startTime > TIMEOUT_MS) {
+                console.warn('Sync positions history timeout reached. Returning partial data.');
+                isPartial = true;
+                return true;
+            }
+            return false;
+        };
+
+        const positions = await fetchAllHistoryPositions(apiKey, apiSecret, limit, checkTimeout);
+        return json({ data: positions, isPartial });
     } catch (e: any) {
         // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
         console.error(`Error fetching history positions from Bitunix:`, e.message || 'Unknown error');
@@ -19,7 +33,12 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 };
 
-async function fetchAllHistoryPositions(apiKey: string, apiSecret: string, requestedLimit: number = 50): Promise<any[]> {
+async function fetchAllHistoryPositions(
+    apiKey: string,
+    apiSecret: string,
+    requestedLimit: number = 50,
+    checkTimeout?: () => boolean
+): Promise<any[]> {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/position/get_history_positions';
 
@@ -35,6 +54,8 @@ async function fetchAllHistoryPositions(apiKey: string, apiSecret: string, reque
     const targetCount = requestedLimit;
 
     for (let i = 0; i < MAX_PAGES; i++) {
+        if (checkTimeout && checkTimeout()) break;
+
         const batch = await fetchBitunixHistoryPage(apiKey, apiSecret, baseUrl, path, PER_PAGE, currentEndTime);
 
         if (!batch || batch.length === 0) {

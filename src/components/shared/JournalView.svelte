@@ -32,6 +32,9 @@
     // Deep Dive is unlocked if Pro+ AND cheat code flag is true
     $: isDeepDiveVisible = isPro && $settingsStore.isDeepDiveUnlocked;
 
+    // Extract Overlay State from Store
+    $: ({ showUnlockOverlay, unlockOverlayMessage } = $uiStore);
+
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
 
