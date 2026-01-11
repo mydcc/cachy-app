@@ -36,6 +36,7 @@ export interface Settings {
     // Indicator & Timeframe Settings
     favoriteTimeframes: string[];
     syncRsiTimeframe: boolean;
+    hideIndicatorParams: boolean;
 
     // ImgBB Settings
     imgbbApiKey: string;
@@ -84,6 +85,7 @@ const defaultSettings: Settings = {
     },
     favoriteTimeframes: ['5m', '15m', '1h', '4h'],
     syncRsiTimeframe: true,
+    hideIndicatorParams: false,
     imgbbApiKey: '71a5689343bb63d5c85a76e4375f1d0b',
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
@@ -189,6 +191,7 @@ function loadSettingsFromLocalStorage(): Settings {
             apiKeys: settings.apiKeys,
             favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
+            hideIndicatorParams: settings.hideIndicatorParams ?? defaultSettings.hideIndicatorParams,
             imgbbApiKey: settings.imgbbApiKey,
             imgbbExpiration: settings.imgbbExpiration,
             isDeepDiveUnlocked: settings.isDeepDiveUnlocked,
