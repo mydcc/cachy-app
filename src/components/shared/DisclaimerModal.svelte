@@ -1,7 +1,19 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { settingsStore } from '../../stores/settingsStore';
     import { _ } from '../../locales/i18n';
     import { fly } from 'svelte/transition';
+
+    let visible = false;
+
+    onMount(() => {
+        // Delay appearance by 2 seconds to avoid flashing and FOUC on reload
+        const timer = setTimeout(() => {
+            visible = true;
+        }, 2000);
+
+        return () => clearTimeout(timer);
+    });
 
     function acceptDisclaimer() {
         settingsStore.update(s => ({ ...s, disclaimerAccepted: true }));
@@ -11,7 +23,7 @@
     $: disclaimerBody = $_('legal.disclaimerContent');
 </script>
 
-{#if !$settingsStore.disclaimerAccepted}
+{#if visible && !$settingsStore.disclaimerAccepted}
 <div
     class="fixed bottom-4 right-4 z-[9999] max-w-[18rem] w-full bg-[var(--bg-secondary)] border border-[var(--border-primary)] shadow-xl rounded-lg p-4 flex flex-col gap-3"
     transition:fly={{ y: 50, duration: 400 }}
