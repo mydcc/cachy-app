@@ -19,6 +19,7 @@
     import CalendarHeatmap from './charts/CalendarHeatmap.svelte';
     import Tooltip from './Tooltip.svelte';
     import JournalEntryTags from './JournalEntryTags.svelte';
+    import { clickOutside } from '../../lib/actions/clickOutside';
     import { Decimal } from 'decimal.js';
     import { onMount, onDestroy } from 'svelte';
 
@@ -643,6 +644,8 @@
     let filterDateEnd = '';
     let groupBySymbol = false;
     let showAdvancedMetrics = false;
+    let showScreenshots = true;
+    let showTableSettings = false;
     let expandedGroups: {[key: string]: boolean} = {};
 
     // --- Table Logic ---
@@ -1089,19 +1092,49 @@
              <input id="journal-date-end" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
         </div>
 
-        <div class="flex items-center gap-2 pb-2">
+        <div class="flex items-center gap-2 pb-2 relative">
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
                 <input type="checkbox" bind:checked={showAdvancedMetrics} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
-                <span class="text-sm font-bold">{$_('journal.advancedMetrics')}</span>
+                <span class="text-sm font-bold">{$_('journal.labels.advancedMetrics')}</span>
             </label>
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
                 <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
-            <button class="p-2 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]" title="{$_('settings.title')}">
+            <button
+                class="p-2 rounded-full hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)] {showTableSettings ? 'bg-[var(--bg-tertiary)] text-[var(--text-primary)]' : ''}"
+                title="{$_('settings.title')}"
+                on:click|stopPropagation={() => showTableSettings = !showTableSettings}
+            >
                 <!-- svelte-ignore svelte/no-at-html-tags -->
                 {@html icons.settings}
             </button>
+
+            {#if showTableSettings}
+                <div
+                    class="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-2 flex flex-col gap-2"
+                    use:clickOutside={{ enabled: showTableSettings, callback: () => showTableSettings = false }}
+                >
+                    <div class="text-xs font-bold text-[var(--text-secondary)] px-2 py-1 uppercase tracking-wider">{$_('journal.labels.tableSettings')}</div>
+
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : ''}">
+                        <input type="checkbox" bind:checked={showAdvancedMetrics} disabled={!$settingsStore.isPro} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.labels.advancedMetrics')}</span>
+                    </label>
+
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : ''}">
+                        <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.labels.pivotMode')}</span>
+                    </label>
+
+                    <div class="h-px bg-[var(--border-color)] my-1"></div>
+
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={showScreenshots} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.labels.showScreenshots')}</span>
+                    </label>
+                </div>
+            {/if}
         </div>
     </div>
 
@@ -1162,7 +1195,9 @@
                                 <th>{$_('journal.table.duration')}</th>
                             {/if}
                             <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>{$_('journal.table.status')} {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th>{$_('journal.table.screenshot')}</th>
+                            {#if showScreenshots}
+                                <th>{$_('journal.table.screenshot')}</th>
+                            {/if}
                             <th>{$_('journal.table.tags')}</th>
                             <th>{$_('journal.table.notes')}</th>
                             <th>{$_('journal.table.action')}</th>
@@ -1211,31 +1246,33 @@
                                     {/if}
                                 </td>
                                 
-                                <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
-                                    on:dragover={(e) => handleDragOver(trade.id, e)}
-                                    on:dragleave={(e) => handleDragLeave(trade.id, e)}
-                                    on:drop={(e) => handleDrop(trade.id, e)}
-                                >
-                                    {#if trade.screenshot}
-                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                        <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
-                                            <!-- svelte-ignore svelte/no-at-html-tags -->
-                                            {@html icons.camera || '📷'}
-                                        </button>
-                                        <div class="thumbnail-popup">
-                                            <img src={trade.screenshot} alt="Trade Screenshot" />
-                                        </div>
-                                    {:else}
-                                        <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                        <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                        <label class="icon-btn cursor-pointer block w-full h-full" title="{$_('journal.labels.uploadScreenshot')}">
-                                            <!-- svelte-ignore svelte/no-at-html-tags -->
-                                            {@html icons.plus || '+'}
-                                            <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
-                                        </label>
-                                    {/if}
-                                </td>
+                                {#if showScreenshots}
+                                    <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                        on:dragover={(e) => handleDragOver(trade.id, e)}
+                                        on:dragleave={(e) => handleDragLeave(trade.id, e)}
+                                        on:drop={(e) => handleDrop(trade.id, e)}
+                                    >
+                                        {#if trade.screenshot}
+                                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                            <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                                <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                {@html icons.camera || '📷'}
+                                            </button>
+                                            <div class="thumbnail-popup">
+                                                <img src={trade.screenshot} alt="Trade Screenshot" />
+                                            </div>
+                                        {:else}
+                                            <!-- svelte-ignore a11y-click-events-have-key-events -->
+                                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+                                            <label class="icon-btn cursor-pointer block w-full h-full" title="{$_('journal.labels.uploadScreenshot')}">
+                                                <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                {@html icons.plus || '+'}
+                                                <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
+                                            </label>
+                                        {/if}
+                                    </td>
+                                {/if}
 
                                 <td>
                                     <JournalEntryTags tags={trade.tags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
@@ -1250,7 +1287,7 @@
                             </tr>
                         {/each}
                         {#if paginatedTrades.length === 0}
-                             <tr><td colspan="{showAdvancedMetrics ? 19 : 13}" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
+                             <tr><td colspan="{showAdvancedMetrics ? (showScreenshots ? 19 : 18) : (showScreenshots ? 13 : 12)}" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
                         {/if}
                     </tbody>
                 </table>
