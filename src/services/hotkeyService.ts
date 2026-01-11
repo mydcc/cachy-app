@@ -6,7 +6,6 @@ import { uiStore } from '../stores/uiStore';
 import { app } from './app';
 import { CONSTANTS } from '../lib/constants';
 import { modalManager } from './modalManager';
-import { type HotkeyAction, HOTKEY_ACTIONS, type KeyBinding } from './hotkeyConfig';
 
 // Define IDs for elements we need to focus
 const IDs = {
@@ -86,86 +85,163 @@ function removeLastTakeProfit() {
 
 export function handleGlobalKeydown(event: KeyboardEvent) {
     const settings = get(settingsStore);
+    const mode = settings.hotkeyMode;
 
-    // Always handle Escape globally for modals (handled in +page.svelte usually, but good practice to allow here if needed)
+    // Always handle Escape globally for modals
     if (event.key === 'Escape') {
         return;
     }
 
-    // Don't trigger hotkeys if modifiers are pressed that aren't part of our system (like Ctrl+R for reload)
-    // Actually, we want to allow browser defaults unless we explicitly override them.
-    // So we check our map.
-
     const inputActive = isInputActive();
-    const bindings = settings.hotkeyBindings;
 
-    // console.log('Handling Keydown:', event.key, 'Bindings present:', !!bindings); // DEBUG
-
-    if (!bindings) return;
-
-    // Iterate through all actions to find a match
-    // NOTE: This could be optimized by using a lookup map (Key -> Action),
-    // but since we have dynamic bindings and modifiers, iteration is safer and negligible performance-wise (N < 20).
-
-    for (const actionKey in bindings) {
-        const action = actionKey as HotkeyAction;
-        const binding = bindings[action];
-
-        if (!binding || !binding.key) continue;
-
-        // console.log(`Checking ${action}:`, binding.key, 'vs', event.key); // DEBUG
-
-        // Check key match (case insensitive)
-        if (event.key.toLowerCase() !== binding.key.toLowerCase()) continue;
-
-        // Check modifiers
-        // Note: event.altKey is boolean, binding.altKey might be undefined (falsy)
-        if (!!binding.altKey !== event.altKey) continue;
-        if (!!binding.ctrlKey !== event.ctrlKey) continue;
-        if (!!binding.shiftKey !== event.shiftKey) continue;
-        if (!!binding.metaKey !== event.metaKey) continue;
-
-        // Check Input Context
-        if (binding.requiresInputInactive && inputActive) {
-            // console.log('Skipping due to active input'); // DEBUG
-            continue;
-        }
-
-        // MATCH FOUND -> Execute Action
-        event.preventDefault();
-        // console.log('Executing action:', action); // DEBUG
-        executeAction(action);
-        return;
+    // Mode 1: Direct Mode (Only when NO input is active)
+    if (mode === 'mode1' && !inputActive) {
+        handleDirectMode(event);
+    }
+    // Mode 2: Safety Mode (Alt Keys - Always active, mostly)
+    else if (mode === 'mode2') {
+        handleSafetyMode(event);
+    }
+    // Mode 3: Hybrid Mode (Mixed)
+    else if (mode === 'mode3') {
+        handleHybridMode(event, inputActive);
     }
 }
 
-function executeAction(action: HotkeyAction) {
-    switch (action) {
-        case HOTKEY_ACTIONS.LOAD_FAVORITE_1: loadFavorite(1); break;
-        case HOTKEY_ACTIONS.LOAD_FAVORITE_2: loadFavorite(2); break;
-        case HOTKEY_ACTIONS.LOAD_FAVORITE_3: loadFavorite(3); break;
-        case HOTKEY_ACTIONS.LOAD_FAVORITE_4: loadFavorite(4); break;
+function handleDirectMode(event: KeyboardEvent) {
+    const key = event.key.toLowerCase();
 
-        case HOTKEY_ACTIONS.FOCUS_NEXT_TP: cycleTakeProfitFocus(); break;
-        case HOTKEY_ACTIONS.FOCUS_FIRST_TP:
-            const countFirst = get(tradeStore).targets.length;
-            if (countFirst > 0) focusElement(`${IDs.TP_PRICE_PREFIX}0`);
+    // Numbers 1-4
+    if (['1', '2', '3', '4'].includes(key)) {
+        event.preventDefault();
+        loadFavorite(parseInt(key));
+        return;
+    }
+
+    switch (key) {
+        case 't':
+            event.preventDefault();
+            cycleTakeProfitFocus();
             break;
-        case HOTKEY_ACTIONS.FOCUS_LAST_TP:
-             const countLast = get(tradeStore).targets.length;
-             if (countLast > 0) focusElement(`${IDs.TP_PRICE_PREFIX}${countLast - 1}`);
+        case '+':
+            event.preventDefault();
+            app.addTakeProfitRow();
+            break;
+        case '-':
+            event.preventDefault();
+            removeLastTakeProfit();
+            break;
+        case 'e':
+            event.preventDefault();
+            focusElement(IDs.ENTRY_PRICE);
+            break;
+        case 'o':
+            event.preventDefault();
+            focusElement(IDs.STOP_LOSS);
+            break;
+        case 'l':
+            event.preventDefault();
+            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
+            break;
+        case 's':
+            event.preventDefault();
+            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
+            break;
+        case 'j':
+            event.preventDefault();
+            uiStore.toggleJournalModal(true);
+            break;
+    }
+}
+
+function handleSafetyMode(event: KeyboardEvent) {
+    if (!event.altKey) return;
+
+    const key = event.key.toLowerCase();
+
+    // Favorites Alt+1-4
+    if (['1', '2', '3', '4'].includes(key)) {
+        event.preventDefault();
+        loadFavorite(parseInt(key));
+        return;
+    }
+
+    switch (key) {
+        case 't':
+            event.preventDefault();
+            if (event.shiftKey) {
+                removeLastTakeProfit();
+            } else {
+                app.addTakeProfitRow();
+            }
+            break;
+        case 'e':
+            event.preventDefault();
+            focusElement(IDs.ENTRY_PRICE);
+            break;
+        case 'o':
+            event.preventDefault();
+            focusElement(IDs.STOP_LOSS);
+            break;
+        case 'l':
+            event.preventDefault();
+            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
+            break;
+        case 's':
+            event.preventDefault();
+            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
+            break;
+        case 'j':
+             event.preventDefault();
+             uiStore.toggleJournalModal(true);
              break;
+         case 'r':
+             event.preventDefault();
+             resetAllInputs();
+             break;
+    }
+}
 
-        case HOTKEY_ACTIONS.ADD_TP: app.addTakeProfitRow(); break;
-        case HOTKEY_ACTIONS.REMOVE_LAST_TP: removeLastTakeProfit(); break;
+function handleHybridMode(event: KeyboardEvent, inputActive: boolean) {
+    const key = event.key.toLowerCase();
 
-        case HOTKEY_ACTIONS.FOCUS_ENTRY: focusElement(IDs.ENTRY_PRICE); break;
-        case HOTKEY_ACTIONS.FOCUS_SL: focusElement(IDs.STOP_LOSS); break;
+    // Non-conflicting keys (Favorites only when not typing)
+    if (!inputActive && ['1', '2', '3', '4'].includes(key)) {
+        event.preventDefault();
+        loadFavorite(parseInt(key));
+        return;
+    }
 
-        case HOTKEY_ACTIONS.SET_LONG: updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })); break;
-        case HOTKEY_ACTIONS.SET_SHORT: updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT })); break;
+    // T for Focus TP 1
+    if (key === 't' && !inputActive) {
+        event.preventDefault();
+        if (event.shiftKey) {
+            // Shift + T: Focus LAST TP
+            const count = get(tradeStore).targets.length;
+            if (count > 0) {
+                focusElement(`${IDs.TP_PRICE_PREFIX}${count - 1}`);
+            }
+        } else {
+            // T: Focus First TP
+            focusElement(`${IDs.TP_PRICE_PREFIX}0`);
+        }
+        return;
+    }
 
-        case HOTKEY_ACTIONS.OPEN_JOURNAL: uiStore.toggleJournalModal(true); break;
-        case HOTKEY_ACTIONS.RESET_INPUTS: resetAllInputs(); break;
+    const activeId = document.activeElement?.id || '';
+    const isTpField = activeId.startsWith(IDs.TP_PRICE_PREFIX) || activeId.startsWith('tp-percent-');
+
+    // If typing in Symbol or Notes, don't intercept + / -
+    if (inputActive && !isTpField && activeId !== IDs.ENTRY_PRICE && activeId !== IDs.STOP_LOSS && activeId !== 'risk-amount-input') {
+        // Allow typing in text areas
+        return;
+    }
+
+    if (key === '+') {
+        event.preventDefault();
+        app.addTakeProfitRow();
+    } else if (key === '-') {
+        event.preventDefault();
+        removeLastTakeProfit();
     }
 }

@@ -134,34 +134,9 @@ import { trackCustomEvent } from '../services/trackingService';
         app.adjustTpPercentages(null); // Pass null to signify a removal
     }
 
-    // Helpers for Tier Display
-    $: isPro = ['pro', 'vip', 'admin'].includes($settingsStore.accountTier);
-
-    function togglePro() {
-        // Allow toggling Free <-> Pro.
-        // If VIP/Admin, user cannot downgrade to free via this button (needs clear settings or cheat code/admin tool).
-        if ($settingsStore.accountTier === 'free') {
-            settingsStore.update(s => ({ ...s, accountTier: 'pro' }));
-        } else if ($settingsStore.accountTier === 'pro') {
-            settingsStore.update(s => ({ ...s, accountTier: 'free' }));
-        } else {
-            // Do nothing or maybe show overlay 'VIP Active'
-            uiStore.showOverlay('Premium Active 🦆', 1500);
-        }
-    }
-
-    function getProLabel() {
-        switch ($settingsStore.accountTier) {
-            case 'admin': return 'ADMIN';
-            case 'vip': return 'VIP Active 🦆';
-            case 'pro': return $_('app.proActive');
-            default: return $_('app.pro');
-        }
-    }
-
     function handleThemeSwitch(direction: 'forward' | 'backward' = 'forward') {
         const currentIndex = themes.indexOf($uiStore.currentTheme);
-        const limit = isPro ? themes.length : 5;
+        const limit = $settingsStore.isPro ? themes.length : 5;
         let nextIndex;
 
         if (direction === 'forward') {
@@ -483,8 +458,8 @@ import { trackCustomEvent } from '../services/trackingService';
     <button class="text-link" on:click={() => uiStore.toggleChangelogModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowChangelog' }}>{$_('app.changelogTitle')}</button>
     <button class="text-link" on:click={() => uiStore.togglePrivacyModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowPrivacy' }}>{$_('app.privacyLegal')}</button>
     <button class="text-link" on:click={() => uiStore.toggleWhitepaperModal(true)} use:trackClick={{ category: 'Navigation', action: 'Click', name: 'ShowWhitepaper' }}>{$_('app.whitepaper')}</button>
-    <button class="text-link {isPro ? 'text-green-500 font-bold' : ''}" on:click={togglePro}>
-        {getProLabel()}
+    <button class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}" on:click={() => $settingsStore.isPro = !$settingsStore.isPro}>
+        {$settingsStore.isPro ? $_('app.proActive') : $_('app.pro')}
     </button>
 </footer>
 

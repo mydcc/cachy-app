@@ -27,7 +27,6 @@
     $: timeframe = $tradeStore.analysisTimeframe || '1h';
     $: showPanel = $settingsStore.showTechnicals && isVisible;
     $: indicatorSettings = $indicatorStore;
-    $: hideParams = $settingsStore.hideIndicatorParams;
 
     // React to Market Store updates for real-time processing
     $: wsData = symbol ? ($marketStore[symbol] || $marketStore[symbol.replace('P', '')] || $marketStore[symbol + 'USDT']) : null;
@@ -186,13 +185,6 @@
         return val.toDecimalPlaces(4).toString();
     }
 
-    function formatIndicatorName(name: string, hide: boolean): string {
-        if (hide) {
-             return name.split('(')[0].trim();
-        }
-        return name;
-    }
-
     function toggleTimeframePopup() {
         showTimeframePopup = !showTimeframePopup;
     }
@@ -305,7 +297,7 @@
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Oscillators</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
                     {#each data.oscillators as osc}
-                        <span class="text-[var(--text-primary)]">{formatIndicatorName(osc.name, hideParams)}</span>
+                        <span class="text-[var(--text-primary)]">{osc.name}</span>
                         <span class="text-right text-[var(--text-secondary)] font-mono">{formatVal(osc.value)}</span>
                         <span class="text-right font-bold {getActionColor(osc.action)}">{osc.action}</span>
                     {/each}
@@ -315,7 +307,7 @@
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Moving Averages</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
                     {#each data.movingAverages as ma}
-                        <span class="text-[var(--text-primary)]">{formatIndicatorName(ma.name, hideParams)}</span>
+                        <span class="text-[var(--text-primary)]">{ma.name}</span>
                         <span class="text-right text-[var(--text-secondary)] font-mono">{formatVal(ma.value)}</span>
                         <span class="text-right font-bold {getActionColor(ma.action)}">{ma.action}</span>
                     {/each}

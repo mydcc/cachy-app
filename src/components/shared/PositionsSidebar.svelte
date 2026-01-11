@@ -3,7 +3,6 @@
     import { settingsStore } from '../../stores/settingsStore';
     import { tradeStore } from '../../stores/tradeStore';
     import { accountStore } from '../../stores/accountStore';
-    import { wsStatusStore } from '../../stores/marketStore';
     import { _ } from '../../locales/i18n';
     
     // Sub-components
@@ -58,13 +57,6 @@
 
     async function fetchPositions() {
         const provider = $settingsStore.apiProvider || 'bitunix';
-
-        // SKIP REST Polling for Bitunix if WebSocket is Active
-        // This prevents overwriting real-time WS data with stale/duplicate REST data
-        if (provider === 'bitunix' && $wsStatusStore === 'connected') {
-            return;
-        }
-
         const keys = $settingsStore.apiKeys[provider];
 
         if (!keys?.key || !keys?.secret) return;
@@ -160,9 +152,6 @@
         const provider = $settingsStore.apiProvider || 'bitunix';
         const keys = $settingsStore.apiKeys[provider];
         if (keys?.key && keys?.secret) {
-            // Only fetch account via REST if not on Bitunix WS (since WS handles wallet/positions)
-            // But Account Info has some fields not in WS (like transfer/bonus maybe?)
-            // For safety, let's allow Account fetch but block Positions fetch inside fetchPositions()
             fetchAccount();
             fetchPositions();
             if (activeTab === 'orders') fetchOrders('pending');

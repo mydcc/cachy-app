@@ -124,9 +124,9 @@ export interface CurrentTradeData extends TradeValues, BaseMetrics, TotalMetrics
 
 export interface JournalEntry {
     id: number;
-    date: string; // Used as Exit Date for closed trades
-    entryDate?: string;
-    exitDate?: string;
+    date: string;
+    entryDate?: string; // For duration calculation
+    exitDate?: string; // New field for duration calculation
     symbol: string;
     tradeType: string;
     status: string;
@@ -135,7 +135,6 @@ export interface JournalEntry {
     leverage: Decimal;
     fees: Decimal;
     entryPrice: Decimal;
-    exitPrice?: Decimal; // Average exit price
     stopLossPrice: Decimal;
     totalRR: Decimal;
     totalNetProfit: Decimal;
@@ -145,9 +144,8 @@ export interface JournalEntry {
     notes: string;
     targets: Array<{ price: Decimal; percent: Decimal; isLocked: boolean }>;
     calculatedTpDetails: IndividualTpResult[];
-
-    // Extended fields for Bitunix sync & Advanced Metrics
-    tradeId?: string; // Bitunix trade ID (or combined ID)
+    // Extended fields for Bitunix sync
+    tradeId?: string; // Bitunix trade ID
     orderId?: string;
     fundingFee?: Decimal;
     tradingFee?: Decimal;
@@ -155,14 +153,4 @@ export interface JournalEntry {
     isManual?: boolean;
     tags?: string[];
     screenshot?: string;
-
-    // New Fields
-    positionSize?: Decimal; // Volume/Qty
-    marginMode?: string; // Isolated, Cross
-    orderType?: string; // Limit, Market (usually for entry)
-    role?: string; // Maker, Taker
-    mae?: Decimal; // Maximum Adverse Excursion %
-    mfe?: Decimal; // Maximum Favorable Excursion %
-    efficiency?: Decimal; // Entry-Exit capture efficiency %
-    duration?: number; // Duration in milliseconds
 }

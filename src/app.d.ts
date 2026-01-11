@@ -10,7 +10,6 @@ declare global {
 	}
 	interface Window {
 		_mtm: unknown[];
-		_paq: unknown[];
 	}
 }
 
