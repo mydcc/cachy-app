@@ -8,6 +8,7 @@ export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
 export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
 export type AiProvider = 'openai' | 'gemini' | 'anthropic';
+export type AccountTier = 'free' | 'pro' | 'vip' | 'admin';
 
 export interface ApiKeys {
     key: string;
@@ -24,7 +25,8 @@ export interface Settings {
     hideUnfilledOrders: boolean;
     positionViewMode?: PositionViewMode;
     pnlViewMode?: PnlViewMode;
-    isPro: boolean;
+    accountTier: AccountTier;
+    isPro: boolean; // Deprecated but kept for compatibility, syncs with accountTier
     feePreference: 'maker' | 'taker';
     hotkeyMode: HotkeyMode;
     apiKeys: {
@@ -68,6 +70,7 @@ const defaultSettings: Settings = {
     showTechnicals: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
+    accountTier: 'free',
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
@@ -154,6 +157,17 @@ function loadSettingsFromLocalStorage(): Settings {
         if (!settings.anthropicApiKey) settings.anthropicApiKey = defaultSettings.anthropicApiKey;
         if (!settings.anthropicModel) settings.anthropicModel = defaultSettings.anthropicModel;
 
+        // 5. Account Tier Migration
+        if (!settings.accountTier) {
+            if (settings.isPro) {
+                settings.accountTier = 'pro';
+            } else {
+                settings.accountTier = 'free';
+            }
+        }
+        // Force sync isPro to accountTier
+        settings.isPro = settings.accountTier !== 'free';
+
 
         // Clean up keys not in interface
         const cleanSettings: Settings = {
@@ -166,7 +180,8 @@ function loadSettingsFromLocalStorage(): Settings {
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode || 'value',
-            isPro: settings.isPro ?? defaultSettings.isPro,
+            accountTier: settings.accountTier,
+            isPro: settings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
             apiKeys: settings.apiKeys,
@@ -198,6 +213,15 @@ function loadSettingsFromLocalStorage(): Settings {
 export const settingsStore = writable<Settings>(loadSettingsFromLocalStorage());
 
 settingsStore.subscribe(value => {
+    // Ensure consistency before saving
+    if (value.accountTier !== 'free') {
+        value.isPro = true;
+    } else {
+        value.isPro = false;
+        // Enforce: If not Pro, Technicals are hidden
+        value.showTechnicals = false;
+    }
+
     if (browser) {
         try {
             localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(value));

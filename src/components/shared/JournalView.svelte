@@ -25,111 +25,6 @@
     // --- State for Dashboard ---
     let activePreset = 'performance';
     let activeDeepDivePreset = 'timing';
-    let showUnlockOverlay = false;
-    let unlockOverlayMessage = '';
-
-    // --- Cheat Code Logic ---
-    const CODE_UNLOCK = 'VIPENTE2026';
-    const CODE_LOCK = 'VIPDEEPDIVE';
-    const CODE_SPACE = 'VIPSPACE2026';
-    const CODE_BONUS = 'VIPBONUS2026';
-    const CODE_STREAK = 'VIPSTREAK2026';
-
-    const MAX_CODE_LENGTH = Math.max(
-        CODE_UNLOCK.length,
-        CODE_LOCK.length,
-        CODE_SPACE.length,
-        CODE_BONUS.length,
-        CODE_STREAK.length
-    );
-
-    let inputBuffer: string[] = [];
-
-    function handleKeydown(event: KeyboardEvent) {
-        // Ignore if user is typing in an input field
-        const target = event.target as HTMLElement;
-        if (target.tagName === 'INPUT' || target.tagName === 'TEXTAREA' || target.isContentEditable) return;
-
-        const key = event.key.toUpperCase();
-        if (key.length === 1) {
-            inputBuffer.push(key);
-            if (inputBuffer.length > MAX_CODE_LENGTH) {
-                inputBuffer.shift();
-            }
-
-            const bufferStr = inputBuffer.join('');
-
-            // VIPENTE2026: Pro Active + VIP Theme Active => Unlock Charts
-            if (bufferStr.endsWith(CODE_UNLOCK)) {
-                if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
-                    unlockDeepDive();
-                }
-            }
-            // VIPDEEPDIVE: Lock Charts (Always works if matched)
-            else if (bufferStr.endsWith(CODE_LOCK)) {
-                lockDeepDive();
-            }
-            // VIPSPACE2026: Pro Active + VIP Theme Active => Space Dialog + Link
-            else if (bufferStr.endsWith(CODE_SPACE)) {
-                 if ($settingsStore.isPro && $uiStore.currentTheme === 'VIP') {
-                    activateVipSpace();
-                }
-            }
-            // Placeholders
-            else if (bufferStr.endsWith(CODE_BONUS)) {
-                inputBuffer = [];
-            }
-            else if (bufferStr.endsWith(CODE_STREAK)) {
-                 inputBuffer = [];
-            }
-        }
-    }
-
-    function unlockDeepDive() {
-        if ($settingsStore.isDeepDiveUnlocked) return;
-        $settingsStore.isDeepDiveUnlocked = true;
-        unlockOverlayMessage = $_('journal.messages.unlocked');
-        showUnlockOverlay = true;
-        inputBuffer = []; // Reset buffer
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
-    }
-
-    function lockDeepDive() {
-        if (!$settingsStore.isDeepDiveUnlocked) return;
-        $settingsStore.isDeepDiveUnlocked = false;
-        unlockOverlayMessage = $_('journal.messages.deactivated');
-        showUnlockOverlay = true;
-        inputBuffer = []; // Reset buffer
-        setTimeout(() => {
-            showUnlockOverlay = false;
-        }, 2000);
-    }
-
-    function activateVipSpace() {
-        unlockOverlayMessage = $_('journal.messages.vipSpaceUnlocked');
-        showUnlockOverlay = true;
-        inputBuffer = [];
-        setTimeout(() => {
-            showUnlockOverlay = false;
-            if (browser) {
-                window.open('https://metaverse.bitunix.cyou', '_blank');
-            }
-        }, 2000);
-    }
-
-    onMount(() => {
-        if (browser) {
-            window.addEventListener('keydown', handleKeydown);
-        }
-    });
-
-    onDestroy(() => {
-        if (browser) {
-            window.removeEventListener('keydown', handleKeydown);
-        }
-    });
 
     // --- Reactive Data for Charts ---
     $: journal = $journalStore;
@@ -1455,14 +1350,6 @@
     </div>
     {/if}
 
-    {#if showUnlockOverlay}
-    <div class="fixed inset-0 z-50 flex items-center justify-center pointer-events-none">
-        <div class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center">
-            <div class="text-xl font-bold text-[var(--accent-color)] mb-1">🦆 Deep Dive</div>
-            <div class="text-lg">{unlockOverlayMessage}</div>
-        </div>
-    </div>
-    {/if}
 
     <!-- Bottom Actions -->
     <div class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]">

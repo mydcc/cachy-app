@@ -6,6 +6,7 @@
     import DisclaimerModal from '../components/shared/DisclaimerModal.svelte';
     import JournalView from '../components/shared/JournalView.svelte';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
+    import GlobalCheatCodeListener from '../components/shared/GlobalCheatCodeListener.svelte';
 	import { onMount } from 'svelte';
 
 	// Removed Svelte 5 $props() and children destructuring
@@ -116,6 +117,7 @@
     <slot />
 
     <!-- Global Modals -->
+    <GlobalCheatCodeListener />
     <JournalView />
     <SettingsModal />
     <!-- ConfirmationModal Removed as not found -->

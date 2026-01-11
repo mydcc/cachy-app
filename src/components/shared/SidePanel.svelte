@@ -81,6 +81,10 @@
     $: isStandard = $settingsStore.sidePanelLayout === 'standard' || !$settingsStore.sidePanelLayout;
     $: isTransparent = $settingsStore.sidePanelLayout === 'transparent';
 
+    // VIP Protection
+    $: hasVipPrivilege = $settingsStore.accountTier === 'vip' || $settingsStore.accountTier === 'admin';
+    $: activeMode = $settingsStore.sidePanelMode === 'ai' && !hasVipPrivilege ? 'notes' : $settingsStore.sidePanelMode;
+
     const transitionParams = { x: 300, duration: 300 };
 </script>
 
@@ -102,12 +106,12 @@
             class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
             on:click={toggle}
             on:keydown={(e) => (e.key === 'Enter' || e.key === ' ') && toggle()}
-            title={getPanelTitle($settingsStore.sidePanelMode)}
+            title={getPanelTitle(activeMode)}
         >
             <div class="mb-4 text-[var(--text-primary)]">
-                {#if $settingsStore.sidePanelMode === 'chat'}
+                {#if activeMode === 'chat'}
                     {@html icons.messageSquare || '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
-                {:else if $settingsStore.sidePanelMode === 'ai'}
+                {:else if activeMode === 'ai'}
                     <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <path d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"/>
                         <path d="M12 16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"/>
@@ -121,9 +125,9 @@
             </div>
 
             <div class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180">
-                {#if $settingsStore.sidePanelMode === 'chat'}
+                {#if activeMode === 'chat'}
                     CHAT
-                {:else if $settingsStore.sidePanelMode === 'ai'}
+                {:else if activeMode === 'ai'}
                     AI ASSISTANT
                 {:else}
                     NOTES
@@ -155,10 +159,10 @@
                      class:bg-transparent={isTransparent}
                 >
                     <h3 class="font-bold text-[var(--text-primary)]">
-                        {getPanelTitle($settingsStore.sidePanelMode)}
+                        {getPanelTitle(activeMode)}
                     </h3>
                     <div class="flex items-center gap-2">
-                        {#if $settingsStore.sidePanelMode === 'ai'}
+                        {#if activeMode === 'ai'}
                              <!-- Clear History Button -->
                              <button
                                 class="text-[var(--text-secondary)] hover:text-[var(--danger-color)]"
@@ -181,7 +185,7 @@
                     bind:this={messagesContainer}
                     class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[var(--bg-primary)]"
                 >
-                    {#if $settingsStore.sidePanelMode === 'ai'}
+                    {#if activeMode === 'ai'}
                          <!-- AI Messages -->
                          {#each $aiStore.messages as msg (msg.id)}
                             <div class="flex flex-col animate-fade-in text-sm {msg.role === 'user' ? 'items-end' : 'items-start'}">
@@ -249,16 +253,16 @@
                             bind:this={inputEl}
                             type="text"
                             class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-color)] pr-10"
-                            placeholder={$settingsStore.sidePanelMode === 'ai' ? 'Ask AI...' : 'Type a message...'}
-                            maxlength={$settingsStore.sidePanelMode === 'ai' ? 1000 : 140}
+                            placeholder={activeMode === 'ai' ? 'Ask AI...' : 'Type a message...'}
+                            maxlength={activeMode === 'ai' ? 1000 : 140}
                             bind:value={messageText}
                             on:keydown={handleKeydown}
-                            disabled={isSending || ($settingsStore.sidePanelMode === 'ai' && $aiStore.isStreaming)}
+                            disabled={isSending || (activeMode === 'ai' && $aiStore.isStreaming)}
                         />
                         <button
                             class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] disabled:opacity-50"
                             on:click={handleSend}
-                            disabled={!messageText.trim() || isSending || ($settingsStore.sidePanelMode === 'ai' && $aiStore.isStreaming)}
+                            disabled={!messageText.trim() || isSending || (activeMode === 'ai' && $aiStore.isStreaming)}
                         >
                             <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                                 <line x1="22" y1="2" x2="11" y2="13"></line>
@@ -267,7 +271,7 @@
                         </button>
                     </div>
                     <div class="text-[10px] text-right text-[var(--text-tertiary)] mt-1">
-                        {#if $settingsStore.sidePanelMode !== 'ai'}
+                        {#if activeMode !== 'ai'}
                              {messageText.length}/140
                         {/if}
                     </div>

@@ -1,12 +1,15 @@
 <script lang="ts">
     import ModalFrame from '../shared/ModalFrame.svelte';
-    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider, type SidePanelLayout } from '../../stores/settingsStore';
+    import { settingsStore, type ApiKeys, type HotkeyMode, type PositionViewMode, type AiProvider, type SidePanelLayout, type AccountTier } from '../../stores/settingsStore';
     import { indicatorStore, type IndicatorSettings } from '../../stores/indicatorStore';
     import { uiStore } from '../../stores/uiStore';
     import { _, locale, setLocale } from '../../locales/i18n';
     import { createBackup, restoreFromBackup } from '../../services/backupService';
     import { trackCustomEvent } from '../../services/trackingService';
     import { normalizeTimeframeInput } from '../../utils/utils';
+    import { tradeStore } from '../../stores/tradeStore';
+    import { journalStore } from '../../stores/journalStore';
+    import { presetStore } from '../../stores/presetStore';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -64,9 +67,10 @@
     let currentTheme: string;
     let currentLanguage: string;
     let isPro: boolean;
+    let accountTier: AccountTier;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
+    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' | 'admin' = 'general';
     let isInitialized = false;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
@@ -118,6 +122,12 @@
             sidePanelMode = $settingsStore.sidePanelMode;
             sidePanelLayout = $settingsStore.sidePanelLayout || 'standard';
             isPro = $settingsStore.isPro;
+            accountTier = $settingsStore.accountTier;
+
+            // Enforce UI state consistency for non-pro
+            if (!isPro) {
+                showTechnicals = false;
+            }
 
             aiProviderState = $settingsStore.aiProvider || 'gemini';
             openaiApiKey = $settingsStore.openaiApiKey || '';
@@ -264,6 +274,25 @@
         }
     }
 
+    function handleExportDebug() {
+        const debugData = {
+            settings: $settingsStore,
+            trade: $tradeStore,
+            journal: $journalStore,
+            presets: $presetStore,
+            ui: $uiStore,
+            localStorage: typeof localStorage !== 'undefined' ? {...localStorage} : {}
+        };
+
+        const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(debugData, null, 2));
+        const downloadAnchorNode = document.createElement('a');
+        downloadAnchorNode.setAttribute("href", dataStr);
+        downloadAnchorNode.setAttribute("download", "cachy_debug_dump.json");
+        document.body.appendChild(downloadAnchorNode); // required for firefox
+        downloadAnchorNode.click();
+        downloadAnchorNode.remove();
+    }
+
     function handleTimeframeInput(event: Event) {
         const input = (event.target as HTMLInputElement).value;
         favoriteTimeframesInput = input; // update local input state
@@ -282,6 +311,22 @@
     function handleTimeframeBlur() {
         // Re-format the input field to show the normalized versions nicely
         favoriteTimeframesInput = favoriteTimeframes.join(', ');
+    }
+
+    function handleProToggle() {
+        // If VIP or Admin, we can't downgrade to free
+        if (accountTier === 'vip' || accountTier === 'admin') return;
+
+        // Toggle logic for normal users
+        if ($settingsStore.isPro) {
+            // Downgrade to Free
+            $settingsStore.accountTier = 'free';
+            $settingsStore.isPro = false;
+        } else {
+            // Upgrade to Pro
+            $settingsStore.accountTier = 'pro';
+            $settingsStore.isPro = true;
+        }
     }
 
     const hotkeyDescriptions = {
@@ -310,6 +355,8 @@
             { keys: '+ / -', action: 'Add / Remove TP' }
         ]
     };
+
+    $: hasVipPrivilege = accountTier === 'vip' || accountTier === 'admin';
 </script>
 
 <ModalFrame
@@ -348,6 +395,9 @@
             aria-controls="tab-ai"
         >
             AI Chat
+            {#if !hasVipPrivilege}
+                <span class="ml-1 text-[10px] text-[var(--text-secondary)]">🔒</span>
+            {/if}
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'behavior' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
@@ -385,6 +435,18 @@
         >
             {$_('settings.tabs.system')}
         </button>
+
+        {#if accountTier === 'admin'}
+            <button
+                class="px-4 py-2 text-sm font-bold border-b-2 transition-colors whitespace-nowrap {activeTab === 'admin' ? 'border-[var(--danger-color)] text-[var(--danger-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--danger-color)]'}"
+                on:click={() => activeTab = 'admin'}
+                role="tab"
+                aria-selected={activeTab === 'admin'}
+                aria-controls="tab-admin"
+            >
+                ADMIN
+            </button>
+        {/if}
     </div>
 
     <!-- Tab Content -->
@@ -393,6 +455,45 @@
         <!-- [General, API, AI, Behavior, Sidebar tabs content kept same...] -->
         {#if activeTab === 'general'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-general" aria-labelledby="tab-general-label">
+
+                <!-- Account Tier Status -->
+                <div class="flex items-center justify-between p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
+                     <div class="flex flex-col">
+                        <span class="text-xs font-bold uppercase text-[var(--text-secondary)]">Account Status</span>
+                        <div class="flex items-center gap-2">
+                            {#if accountTier === 'admin'}
+                                <span class="text-lg font-bold text-[var(--danger-color)]">ADMINISTRATOR</span>
+                            {:else if accountTier === 'vip'}
+                                <span class="text-lg font-bold text-[var(--accent-color)]">VIP MEMBER</span>
+                            {:else if accountTier === 'pro'}
+                                <span class="text-lg font-bold text-[var(--success-color)]">PRO ACTIVE</span>
+                            {:else}
+                                <span class="text-lg font-bold text-[var(--text-secondary)]">FREE TIER</span>
+                            {/if}
+                        </div>
+                     </div>
+                     <div class="flex items-center gap-2">
+                        {#if hasVipPrivilege}
+                            <!-- Locked Toggle for VIPs -->
+                             <div class="flex items-center gap-2 opacity-80 cursor-not-allowed" title="Your status is managed globally">
+                                <span class="text-xs font-bold text-[var(--success-color)]">ACTIVE</span>
+                                <div class="w-10 h-6 bg-[var(--success-color)] rounded-full relative flex items-center justify-end px-1">
+                                    <div class="w-4 h-4 bg-white rounded-full"></div>
+                                </div>
+                             </div>
+                        {:else}
+                             <!-- Standard Toggle -->
+                             <label class="flex items-center gap-2 cursor-pointer">
+                                <span class="text-xs font-medium text-[var(--text-secondary)]">Enable Pro</span>
+                                <div class="relative inline-flex items-center cursor-pointer">
+                                    <input type="checkbox" checked={$settingsStore.isPro} on:change={handleProToggle} class="sr-only peer">
+                                    <div class="w-11 h-6 bg-gray-600 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-[var(--success-color)]"></div>
+                                </div>
+                            </label>
+                        {/if}
+                     </div>
+                </div>
+
                 <div class="grid grid-cols-2 gap-4">
                     <div class="flex flex-col gap-1">
                         <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.language')}</span>
@@ -490,57 +591,63 @@
 
         {:else if activeTab === 'ai'}
             <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
-                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
+                {#if !hasVipPrivilege}
+                    <div class="p-4 rounded-lg bg-[var(--bg-tertiary)] border border-[var(--warning-color)] flex items-center gap-3">
+                        <span class="text-2xl">🔒</span>
+                        <div>
+                             <h4 class="font-bold text-[var(--warning-color)]">VIP Feature Locked</h4>
+                             <p class="text-xs text-[var(--text-secondary)]">Upgrade to VIP to access AI features.</p>
+                        </div>
+                    </div>
+                {/if}
+
+                <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4 relative { !hasVipPrivilege ? 'opacity-50 pointer-events-none filter blur-[1px]' : '' }">
                     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">Default Provider</span>
-                        <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]" disabled={!hasVipPrivilege}>
                             <option value="openai">OpenAI (ChatGPT)</option>
                             <option value="gemini">Google Gemini</option>
                             <option value="anthropic">Anthropic (Claude)</option>
                         </select>
                     </div>
-                    <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
+                    <!-- ... inputs same as before ... -->
+                     <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
                         <div class="flex flex-col gap-2">
                             <label for="openai-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>OpenAI</span>
                                 {#if aiProviderState === 'openai'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
+                            <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" disabled={!hasVipPrivilege}/>
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
+                                <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" disabled={!hasVipPrivilege}/>
                             </div>
                         </div>
-                        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
+                        <!-- ... -->
+                         <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
                             <label for="gemini-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>Google Gemini</span>
                                 {#if aiProviderState === 'gemini'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
+                            <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" disabled={!hasVipPrivilege}/>
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash-exp" />
+                                <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash-exp" disabled={!hasVipPrivilege}/>
                             </div>
-                            <p class="text-[10px] text-[var(--text-secondary)] italic">
-                                Use <code>gemini-1.5-flash</code> for stability if the experimental version fails.
-                            </p>
                         </div>
                         <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
                             <label for="anthropic-key" class="text-xs font-bold flex items-center gap-2">
                                 <span>Anthropic</span>
                                 {#if aiProviderState === 'anthropic'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                             </label>
-                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
+                            <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" disabled={!hasVipPrivilege}/>
                             <div class="flex items-center gap-2">
                                 <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
+                                <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" disabled={!hasVipPrivilege}/>
                             </div>
                         </div>
-                    </div>
-                    <p class="text-[10px] text-[var(--text-secondary)] mt-2 italic border-t border-[var(--border-color)] pt-2">
-                        Your API keys are stored locally in your browser and are never saved to our servers. They are only used to communicate directly with the AI providers.
-                    </p>
+                     </div>
                 </div>
             </div>
 
@@ -596,8 +703,13 @@
                     <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
-                    <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
-                    <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                    <div class="flex flex-col">
+                         <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
+                         {#if !isPro}
+                            <span class="text-[10px] text-[var(--text-secondary)] text-[var(--accent-color)]">PRO Feature</span>
+                         {/if}
+                    </div>
+                    <input type="checkbox" bind:checked={showTechnicals} disabled={!isPro} class="accent-[var(--accent-color)] h-4 w-4 rounded disabled:opacity-50" />
                 </label>
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <div class="flex flex-col">
@@ -618,13 +730,17 @@
                                 <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
                                 <span class="text-sm">{$_('settings.modeChat')}</span>
                             </label>
-                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
-                                <span class="text-sm">AI Chat</span>
+                            <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] { !hasVipPrivilege ? 'opacity-50' : '' }">
+                                <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" disabled={!hasVipPrivilege} />
+                                <div class="flex items-center gap-1">
+                                    <span class="text-sm">AI Chat</span>
+                                    {#if !hasVipPrivilege}<span class="text-[10px]">🔒</span>{/if}
+                                </div>
                             </label>
                         </div>
                     </div>
-                    <div class="flex flex-col gap-1">
+                    <!-- ... Layout options ... -->
+                     <div class="flex flex-col gap-1">
                         <span class="text-sm font-medium">{$_('settings.sidePanelLayout')}</span>
                         <div class="flex flex-col gap-2">
                              <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
@@ -666,7 +782,7 @@
 
         {:else if activeTab === 'indicators'}
             <div class="flex flex-col gap-4 overflow-x-hidden" role="tabpanel" id="tab-indicators">
-
+                 <!-- Keep existing content, Pro locks are already there -->
                 <!-- NEW: Global Indicator Settings -->
                 <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2">
                     <div class="flex justify-between items-center">
@@ -745,7 +861,7 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
+                            <!-- ... RSI params ... -->
                             <label class="flex items-center justify-between cursor-pointer">
                                 <span class="text-xs font-medium">Sync with Calculator Timeframe</span>
                                 <input type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
@@ -807,14 +923,14 @@
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
                                         <p class="text-xs font-bold mb-1">Advanced Settings Locked</p>
-                                        <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI calculation.</p>
+                                        <p class="text-[10px] text-[var(--text-secondary)]">Upgrade to Pro to customize RSI.</p>
                                     </div>
                                  </div>
                             {/if}
                         </div>
 
-                        <!-- MACD Settings -->
-                        <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                        <!-- MACD and EMA sections kept same as original, already gated by !isPro -->
+                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                                 <h4 class="text-sm font-bold">MACD (Moving Average Convergence Divergence)</h4>
                                 {#if !isPro}
@@ -847,7 +963,6 @@
                                     </select>
                                 </div>
                             </div>
-                            <!-- NEW: MA Types -->
                             <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-[var(--border-color)]">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Oscillator MA Type</span>
@@ -875,7 +990,7 @@
                             {/if}
                         </div>
 
-                         <!-- EMA Settings -->
+                        <!-- EMA -->
                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                                 <h4 class="text-sm font-bold">Moving Averages (EMA)</h4>
@@ -883,7 +998,6 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-3 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 1</span>
@@ -898,7 +1012,6 @@
                                     <input type="number" bind:value={emaSettings.ema3Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -908,20 +1021,19 @@
                                  </div>
                             {/if}
                         </div>
+
                     </div>
 
                     <!-- Right Column -->
                     <div class="flex flex-col gap-4">
-
-                        <!-- Stochastic Settings -->
-                        <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                        <!-- Stochastic, CCI, ADX, AO, Momentum, Pivots sections kept same -->
+                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                                 <h4 class="text-sm font-bold">Stochastic Oscillator</h4>
                                 {#if !isPro}
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-3 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">%K Length</span>
@@ -936,7 +1048,6 @@
                                     <input type="number" bind:value={stochSettings.dPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -947,15 +1058,13 @@
                             {/if}
                         </div>
 
-                        <!-- CCI Settings -->
-                        <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
+                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                                 <h4 class="text-sm font-bold">Commodity Channel Index (CCI)</h4>
                                 {#if !isPro}
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
@@ -973,7 +1082,6 @@
                                     </select>
                                 </div>
                             </div>
-
                             <div class="border-t border-[var(--border-color)] pt-3 mt-1 grid grid-cols-2 gap-3">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Type</span>
@@ -987,7 +1095,6 @@
                                     <input type="number" bind:value={cciSettings.smoothingLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -1006,7 +1113,6 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">ADX Smoothing</span>
@@ -1017,7 +1123,6 @@
                                     <input type="number" bind:value={adxSettings.diLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -1036,7 +1141,6 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Fast Period</span>
@@ -1047,7 +1151,6 @@
                                     <input type="number" bind:value={aoSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -1058,7 +1161,7 @@
                             {/if}
                         </div>
 
-                        <!-- Momentum Settings -->
+                         <!-- Momentum Settings -->
                         <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden">
                             <div class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1">
                                 <h4 class="text-sm font-bold">Momentum</h4>
@@ -1066,7 +1169,6 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="grid grid-cols-2 gap-3 mt-1">
                                 <div class="flex flex-col gap-1">
                                     <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
@@ -1084,7 +1186,6 @@
                                     </select>
                                 </div>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -1103,7 +1204,6 @@
                                      <span class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full">PRO Feature</span>
                                 {/if}
                             </div>
-
                             <div class="flex flex-col gap-1 mt-1">
                                 <span class="text-xs font-medium text-[var(--text-secondary)]">Type</span>
                                 <select bind:value={pivotSettings.type} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
@@ -1113,7 +1213,6 @@
                                     <option value="fibonacci">Fibonacci</option>
                                 </select>
                             </div>
-
                             <div class="flex flex-col gap-1 mt-1">
                                 <span class="text-xs font-medium text-[var(--text-secondary)]">View Mode</span>
                                 <select bind:value={pivotSettings.viewMode} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
@@ -1122,7 +1221,6 @@
                                     <option value="abstract">Abstract (Gauge)</option>
                                 </select>
                             </div>
-
                             {#if !isPro}
                                  <div class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10">
                                     <div class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center">
@@ -1171,6 +1269,23 @@
                      <button class="text-xs text-[var(--danger-color)] hover:underline" on:click={handleReset}>
                          {$_('settings.reset')}
                      </button>
+                </div>
+            </div>
+        {:else if activeTab === 'admin'}
+            <div class="flex flex-col gap-4" role="tabpanel" id="tab-admin">
+                <div class="p-4 border-l-4 border-[var(--danger-color)] bg-[var(--bg-tertiary)]">
+                    <h4 class="text-lg font-bold text-[var(--danger-color)] mb-2">Admin Tools</h4>
+                    <p class="text-sm text-[var(--text-primary)] mb-4">
+                        These tools are for debugging and development purposes only. Use with caution.
+                    </p>
+
+                    <button class="btn w-full bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] border border-[var(--border-color)] flex items-center justify-center gap-2 py-3" on:click={handleExportDebug}>
+                        <span class="text-xl">🐞</span>
+                        <span class="font-bold">Export Full Debug Dump</span>
+                    </button>
+                    <p class="text-xs text-[var(--text-secondary)] mt-2">
+                        Downloads a JSON containing all LocalStorage data (Settings, Trades, Journal, Presets, etc.).
+                    </p>
                 </div>
             </div>
         {/if}
