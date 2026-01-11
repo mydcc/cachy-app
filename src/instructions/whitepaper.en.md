@@ -89,6 +89,9 @@ Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reacti
 4.  **`journalStore.ts`**: The Historical Record.
     -   *Tracks*: Array of `JournalEntry` objects (closed trades).
     -   *Analytics*: Serves as the raw dataset for the `calculator.ts` analytics engine.
+5.  **`chatStore.ts`**: Manages the Side Panel state.
+    -   *Tracks*: User notes ("My Notes") and Global Chat messages.
+    -   *Persistence*: Syncs notes to `localStorage` for privacy.
 
 ### AI-Assisted Telemetry (Jules Service)
 
@@ -105,17 +108,17 @@ Cachy implements an intelligent diagnostic layer known as **Jules API**.
 
 Located in `src/routes/api/`, this layer acts as a security gateway.
 
-**The Problem**: Exchange APIs (Bitunix) require requests to be signed with an `API_SECRET`. If we make these requests from the browser, we must expose the Secret to the user's DevTools.
+**The Problem**: Browsers enforce **CORS** (Cross-Origin Resource Sharing), preventing direct calls to some exchange APIs. Additionally, centralized error handling and response normalization are cleaner on a server.
 
 **The Solution**:
 1.  Client sends request to `GET /api/sync/orders`.
-2.  Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
+2.  Client includes `API_KEY` and `API_SECRET` in secure HTTPS headers.
 3.  Server (Node.js context) receives headers.
 4.  Server constructs the payload, generates the SHA256 signature using the Secret.
 5.  Server calls Bitunix API.
 6.  Server returns the JSON result to Client.
 
-*Note: While secrets travel from Client to Server, the Server is stateless and does not log or store them.*
+*Note: Since Cachy is Local-First, API secrets reside in the client's storage and are transmitted securely (HTTPS) to this proxy for REST calls.*
 
 ---
 
@@ -252,8 +255,8 @@ To balance **Responsiveness** vs. **Rate Limits**, Cachy uses a hybrid approach:
     - Fetches 1440 minutes of Kline history (for RSI/ATR calculation).
 2.  **Real-Time (WebSocket)**:
     - **Public Channels**: `ticker`, `depth`, `trade`. Used for charting and price updates.
-    - **Private Channels**: `order`, `position`, `wallet`. Used to update the User Dashboard.
-    - *Heartbeat Logic*: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 20 seconds, ensuring 99.9% uptime.
+    - **Private Channels**: `order`, `position`, `wallet`. Authenticated via local `crypto-js` signatures.
+    - *Heartbeat Logic*: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 30 seconds, ensuring 99.9% uptime.
 
 ### The "Safe Swap" Synchronization Protocol
 
@@ -285,11 +288,10 @@ To support the "Community First" principle, Cachy ensures user data is never loc
 - **Intelligent Import**: The `importFromCSV` service includes a bilingual translation layer. It detects German headers (e.g., `Gewinn`, `Datum`) or English headers (e.g., `Profit`, `Date`) and normalizes them into the internal data structure.
 - **Media Support**: Screenshot URLs and Tags are preserved during the import/export cycle, ensuring no "soft data" is lost.
 
-### API Key Handling & Proxy Security
-Cachy acts as a pass-through entity.
-- **Client Side**: API Keys are stored in the browser. They are *never* sent to Cachy's server for storage.
-- **Transit**: Keys are sent only in the HTTP Headers of specific API requests.
-- **Server Side**: The Node.js proxy receives the request, signs it using the Secret, forwards it to Bitunix, and immediately discards the credentials from memory. No logs are kept.
+### API Key Handling & Hybrid Authentication
+Cachy uses a dual-strategy for authentication to balance security and real-time performance.
+1.  **REST API (via Proxy)**: Keys are sent securely via HTTPS headers to the Cachy Proxy, which signs the request and forwards it. The Proxy is stateless and does not log credentials.
+2.  **WebSocket (Client-Side)**: For real-time private data (Orders/Positions), authentication is performed **entirely Client-Side**. The app uses `crypto-js` to generate SHA256 signatures locally using the stored Secret, ensuring the WebSocket connection originates directly from the user's device without a middleman.
 
 ### No-Database Architecture
 By removing the database:
