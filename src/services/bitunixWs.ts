@@ -458,7 +458,7 @@ class BitunixWebSocketService {
                 if (symbol && data) {
                     // Use data.id (often timestamp in Bitunix) or data.ts as fallbacks.
                     // STRICT: Do NOT use Date.now(). If timestamp is missing, data is likely garbage/incomplete.
-                    const rawTimestamp = data.t || data.id || data.ts;
+                    const rawTimestamp = data.time || data.t || data.id || data.ts;
                     const timestamp = typeof rawTimestamp === 'number' ? rawTimestamp : Number(rawTimestamp);
 
                     if (!isNaN(timestamp) && timestamp > 0) {

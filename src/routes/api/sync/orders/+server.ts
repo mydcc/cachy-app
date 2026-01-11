@@ -54,10 +54,13 @@ export const POST: RequestHandler = async ({ request }) => {
             allOrders = allOrders.concat(regularOrders);
         } catch (err: any) {
             console.error('Error fetching regular orders:', err.message || 'Unknown error');
+            // If we have some orders, return what we have instead of throwing, if appropriate
+            // But since this is the primary source, failing here usually means we have nothing.
             throw new Error(`Primary order fetch failed: ${err.message}`);
         }
 
         // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
+        // Check timeout but also ensure we don't abort immediately if close to edge
         if (!checkTimeout()) {
             try {
                 const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout);
@@ -77,7 +80,7 @@ export const POST: RequestHandler = async ({ request }) => {
             }
         }
 
-        return json({ data: allOrders, isPartial });
+        return json({ data: allOrders, isPartial: isPartial || checkTimeout() });
     } catch (e: any) {
         // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
         console.error(`Error fetching orders from Bitunix:`, e.message || 'Unknown error');
