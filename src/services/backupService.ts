@@ -9,6 +9,8 @@ interface BackupData {
   settings: string | null; // Stored as a raw string from localStorage
   presets: string | null;  // Stored as a raw string from localStorage
   journal: string | null;  // Stored as a raw string from localStorage
+  tradeState: string | null; // Stored as a raw string from localStorage
+  theme: string | null;      // Stored as a raw string from localStorage
 }
 
 // The overall structure of the backup file
@@ -30,6 +32,36 @@ function getDataFromLocalStorage(key: string): string | null {
 }
 
 /**
+ * Validates the backup data structure to ensure basic integrity.
+ * @param data The backup data object.
+ * @returns True if valid, false otherwise.
+ */
+function validateBackupData(data: any): boolean {
+    if (!data) return false;
+
+    // Check if critical stores are present (even if null, the key must exist in the interface logic)
+    // Note: older backups might have keys as string | null.
+    // We want to ensure that if 'settings' is present, it's a string (JSON) or null.
+    if (data.settings !== undefined && typeof data.settings !== 'string' && data.settings !== null) return false;
+    if (data.journal !== undefined && typeof data.journal !== 'string' && data.journal !== null) return false;
+
+    // Deep inspection of Settings if present
+    if (data.settings) {
+        try {
+            const settingsObj = JSON.parse(data.settings);
+            // Check for critical settings structure
+            if (typeof settingsObj !== 'object') return false;
+            // apiKeys is critical
+            if (settingsObj.apiKeys && typeof settingsObj.apiKeys !== 'object') return false;
+        } catch (e) {
+            return false; // Malformed JSON in settings string
+        }
+    }
+
+    return true;
+}
+
+/**
  * Creates a JSON backup file of the user's data and triggers a download.
  */
 export function createBackup() {
@@ -43,6 +75,8 @@ export function createBackup() {
       settings: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
       presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
       journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
+      tradeState: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_TRADE_KEY || 'cachy_trade_store'),
+      theme: getDataFromLocalStorage('theme'),
     }
   };
 
@@ -67,12 +101,6 @@ export function createBackup() {
  * @returns An object indicating success or failure with a message.
  */
 export function restoreFromBackup(jsonContent: string): { success: boolean; message: string } {
-  // Allow running in test environment if localStorage is available, even if browser check fails
-  // or mock browser check if possible.
-  // In our test, we mocked $app/environment to set browser = true, so this check should pass.
-  // However, vitest might be reloading the module or the mock isn't applying to the internal import correctly
-  // if it was imported before the mock.
-
   if (!browser && typeof localStorage === 'undefined') {
     return { success: false, message: 'Backup can only be restored in a browser environment.' };
   }
@@ -91,6 +119,11 @@ export function restoreFromBackup(jsonContent: string): { success: boolean; mess
       return { success: false, message: 'Invalid backup file format: Missing data.' };
     }
 
+    // New: Deep Validation of Data
+    if (!validateBackupData(backup.data)) {
+        return { success: false, message: 'Backup data is corrupted or invalid.' };
+    }
+
     // --- Restore to localStorage ---
     if (backup.data.settings) {
       localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, backup.data.settings);
@@ -100,6 +133,12 @@ export function restoreFromBackup(jsonContent: string): { success: boolean; mess
     }
     if (backup.data.journal) {
       localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, backup.data.journal);
+    }
+    if (backup.data.tradeState) {
+        localStorage.setItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY || 'cachy_trade_store', backup.data.tradeState);
+    }
+    if (backup.data.theme) {
+        localStorage.setItem('theme', backup.data.theme);
     }
 
     // The app will re-initialize with the new data on reload.

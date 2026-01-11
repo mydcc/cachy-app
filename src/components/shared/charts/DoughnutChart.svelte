@@ -6,8 +6,9 @@
   export let data: any;
   export let title: string = '';
   export let description: string = '';
+  export let options: any = {};
 
-  const options = {
+  const defaultOptions = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -15,13 +16,30 @@
       title: { display: !!title, text: title }
     }
   };
+
+  $: mergedOptions = {
+    ...defaultOptions,
+    ...options,
+    plugins: {
+      ...defaultOptions.plugins,
+      ...(options.plugins || {}),
+      legend: {
+        ...defaultOptions.plugins.legend,
+        ...(options.plugins?.legend || {})
+      },
+      title: {
+        ...defaultOptions.plugins.title,
+        ...(options.plugins?.title || {})
+      }
+    }
+  };
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
   {#if description}
-    <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
+    <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
        <Tooltip text={description} />
     </div>
   {/if}
-  <Doughnut {data} {options} />
+  <Doughnut {data} options={mergedOptions} />
 </div>

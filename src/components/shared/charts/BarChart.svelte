@@ -7,8 +7,9 @@
   export let title: string = '';
   export let horizontal: boolean = false;
   export let description: string = '';
+  export let options: any = undefined; // Allow overriding options
 
-  $: options = {
+  $: defaultOptions = {
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: horizontal ? 'y' as const : 'x' as const,
@@ -25,9 +26,9 @@
 
 <div class="w-full h-full min-h-[200px] relative">
   {#if description}
-    <div class="absolute top-[-10px] right-[-10px] z-10 p-2">
+    <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
        <Tooltip text={description} />
     </div>
   {/if}
-  <Bar {data} {options} />
+  <Bar {data} options={options || defaultOptions} />
 </div>

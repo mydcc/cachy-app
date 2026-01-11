@@ -62,9 +62,8 @@ self.addEventListener('fetch', (event) => {
     // ignore POST requests etc
     if (event.request.method !== 'GET') return;
 
-    // Ignore chrome-extension schemes etc
-    const url = new URL(event.request.url);
-    if (!url.protocol.startsWith('http')) return;
+    // Ignore non-http/https requests (e.g. chrome-extension://)
+    if (!event.request.url.startsWith('http')) return;
 
     async function respond() {
         const cache = await caches.open(CACHE);
@@ -84,8 +83,10 @@ self.addEventListener('fetch', (event) => {
                 throw new Error('invalid response from fetch');
             }
 
-            if (response.status === 200) {
-                cache.put(event.request, response.clone());
+            if (response.status === 200 && !url.pathname.startsWith('/api/')) {
+                cache.put(event.request, response.clone()).catch(() => {
+                    // Ignore cache errors (e.g. quota exceeded, network error, invalid scheme)
+                });
             }
 
             return response;

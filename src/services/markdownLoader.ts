@@ -1,13 +1,19 @@
 import { marked } from 'marked';
+import markedKatex from 'marked-katex-extension';
 import { locale } from '../locales/i18n';
 import { get } from 'svelte/store';
+
+// Register KaTeX extension
+marked.use(markedKatex({
+    throwOnError: false
+}));
 
 interface InstructionContent {
     html: string;
     title: string;
 }
 
-export async function loadInstruction(name: 'dashboard' | 'journal' | 'changelog' | 'guide'): Promise<InstructionContent> {
+export async function loadInstruction(name: 'dashboard' | 'journal' | 'changelog' | 'guide' | 'privacy' | 'whitepaper'): Promise<InstructionContent> {
     const currentLocale = get(locale);
     const filePath = `/instructions/${name}.${currentLocale}.md`;
 

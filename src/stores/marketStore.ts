@@ -16,6 +16,14 @@ export interface MarketData {
     volume?: Decimal | null;
     quoteVolume?: Decimal | null;
     priceChangePercent?: Decimal | null;
+    kline?: {
+        open: Decimal;
+        high: Decimal;
+        low: Decimal;
+        close: Decimal;
+        volume: Decimal;
+        time: number;
+    };
 }
 
 export type WSStatus = 'disconnected' | 'connecting' | 'connected' | 'error' | 'reconnecting';
@@ -93,6 +101,25 @@ function createMarketStore() {
                         depth: {
                             bids: data.bids,
                             asks: data.asks
+                        }
+                    }
+                };
+            });
+        },
+        updateKline: (symbol: string, data: { o: string, h: string, l: string, c: string, b: string, t: number }) => {
+            update(store => {
+                const current = store[symbol] || { symbol, lastPrice: null, indexPrice: null, fundingRate: null, nextFundingTime: null };
+                return {
+                    ...store,
+                    [symbol]: {
+                        ...current,
+                        kline: {
+                            open: new Decimal(data.o),
+                            high: new Decimal(data.h),
+                            low: new Decimal(data.l),
+                            close: new Decimal(data.c),
+                            volume: new Decimal(data.b),
+                            time: data.t
                         }
                     }
                 };

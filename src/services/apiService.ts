@@ -1,11 +1,14 @@
 import { Decimal } from 'decimal.js';
 import { getBitunixErrorKey } from '../utils/errorUtils';
+import { parseTimestamp } from '../utils/utils';
 
 // Define a type for the kline data object for clarity
 export interface Kline {
+    open: Decimal;
     high: Decimal;
     low: Decimal;
     close: Decimal;
+    time: number; // Standardized timestamp in milliseconds
 }
 
 export interface Ticker24h {
@@ -41,29 +44,21 @@ export const apiService = {
     normalizeSymbol(symbol: string, provider: 'bitunix' | 'binance'): string {
         if (!symbol) return '';
         let s = symbol.toUpperCase();
-        // Remove .P or P suffix if present for standardization logic, though APIs might need specific handling
-        // Based on user input: "BTCUSDTP" or "BTCUSDT.P".
-        // Based on curl tests: Bitunix wants "BTCUSDT", Binance Futures often wants "BTCUSDT" but checks might vary.
-        // We will try to strip P suffixes to get the base pair, then let the API proxy handle it or pass as is if needed.
-        // Actually, for Bitunix, we saw "BTCUSDT" works and "BTCUSDTP" fails.
 
-        // Simple heuristic: If it ends in "P" or ".P" and isn't just "XRP" (unlikely), strip it.
+        // 1. Strip known Futures suffixes
+        // Handle "BTCUSDT.P" -> "BTCUSDT"
         if (s.endsWith('.P')) {
             s = s.slice(0, -2);
         }
-
-        // If the symbol seems to be just the coin (e.g. "BTC"), append USDT
-        if (!s.includes('USDT') && !s.includes('USD')) {
-            s += 'USDT';
+        // Handle "BTCUSDTP" -> "BTCUSDT"
+        // We only strip 'P' if it follows 'USDT' to avoid accidental stripping of coins ending in P
+        else if (s.endsWith('USDTP')) {
+            s = s.slice(0, -1);
         }
 
-        // If it ends with P but is meant for Bitunix/Binance Futures that prefer standard symbols?
-        // Let's rely on the user input mostly but fix the obvious "P" suffix issue if it fails,
-        // OR just strip it if we know the provider doesn't like it.
-        // Bitunix: BTCUSDT works. BTCUSDTP fails.
-        // Robust fix: Only strip P if it is a suffix on top of standard pair (e.g. USDTP).
-        if (s.endsWith('USDTP')) {
-             s = s.slice(0, -1);
+        // 2. Append base pair if missing (assuming USDT defaults for this context)
+        if (!s.includes('USDT') && !s.includes('USD')) {
+            s += 'USDT';
         }
 
         return s;
@@ -92,28 +87,42 @@ export const apiService = {
         }
     },
 
-    async fetchBitunixKlines(symbol: string, interval: string, limit: number = 15): Promise<Kline[]> {
+    async fetchBitunixKlines(symbol: string, interval: string, limit: number = 15, startTime?: number, endTime?: number): Promise<Kline[]> {
         try {
             const normalized = apiService.normalizeSymbol(symbol, 'bitunix');
-            const response = await fetch(`/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`);
+
+            // Build Query Params
+            const params = new URLSearchParams({
+                provider: 'bitunix',
+                symbol: normalized,
+                interval: interval,
+                limit: limit.toString()
+            });
+            if (startTime) params.append('start', startTime.toString());
+            if (endTime) params.append('end', endTime.toString());
+
+            const response = await fetch(`/api/klines?${params.toString()}`);
             if (!response.ok) throw new Error('apiErrors.klineError');
             const res = await response.json();
 
-            if (res.code !== undefined && res.code !== 0) {
-                 throw new Error(getBitunixErrorKey(res.code));
-            }
-
-            if (!res.data) {
-                throw new Error('apiErrors.invalidResponse');
+            // Backend returns the mapped array directly
+            if (!Array.isArray(res)) {
+                 if (res.error) throw new Error(res.error);
+                 throw new Error('apiErrors.invalidResponse');
             }
 
             // Map the response data to the required Kline interface
-            return res.data.map((kline: { high: string, low: string, close: string }) => ({
+            return res.map((kline: { open: string, high: string, low: string, close: string, timestamp?: number, time?: number, ts?: number }) => ({
+                open: new Decimal(kline.open),
                 high: new Decimal(kline.high),
                 low: new Decimal(kline.low),
                 close: new Decimal(kline.close),
+                // Backend sends 'timestamp', but we also fallback to 'time' or 'ts' just in case.
+                // parseTimestamp handles seconds/milliseconds normalization.
+                time: parseTimestamp(kline.timestamp || kline.time || kline.ts)
             }));
         } catch (e) {
+            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
             if (e instanceof Error && (e.message.startsWith('apiErrors.') || e.message.startsWith('bitunixErrors.'))) {
                 throw e;
             }
@@ -153,9 +162,11 @@ export const apiService = {
 
             // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
             return data.map((kline: BinanceKline) => ({
+                open: new Decimal(kline[1]),
                 high: new Decimal(kline[2]),
                 low: new Decimal(kline[3]),
                 close: new Decimal(kline[4]),
+                time: parseTimestamp(kline[0])
             }));
         } catch (e) {
             if (e instanceof Error && (e.message === 'apiErrors.klineError' || e.message === 'apiErrors.invalidResponse')) {
@@ -189,7 +200,11 @@ export const apiService = {
                 // We can calculate change % from (last - open) / open * 100
                 const open = new Decimal(ticker.open);
                 const last = new Decimal(ticker.lastPrice);
-                const change = last.minus(open).dividedBy(open).times(100);
+
+                let change = new Decimal(0);
+                if (!open.isZero()) {
+                    change = last.minus(open).dividedBy(open).times(100);
+                }
 
                 return {
                     provider,

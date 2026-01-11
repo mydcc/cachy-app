@@ -19,6 +19,7 @@ export const initialTradeState: Pick<AppState,
     'useAtrSl' |
     'atrMode' |
     'atrTimeframe' |
+    'analysisTimeframe' |
     'tradeNotes' |
     'tags' |
     'targets' |
@@ -34,7 +35,8 @@ export const initialTradeState: Pick<AppState,
     'remoteMakerFee' |
     'remoteTakerFee' |
     'feeMode' |
-    'exitFees'
+    'exitFees' |
+    'multiAtrData'
 > = {
     tradeType: CONSTANTS.TRADE_TYPE_LONG,
     accountSize: 1000,
@@ -49,6 +51,7 @@ export const initialTradeState: Pick<AppState,
     useAtrSl: true,
     atrMode: 'auto',
     atrTimeframe: '5m',
+    analysisTimeframe: '1h',
     tradeNotes: '',
     tags: [],
     targets: [
@@ -68,7 +71,8 @@ export const initialTradeState: Pick<AppState,
     remoteMakerFee: undefined,
     remoteTakerFee: undefined,
     feeMode: 'maker_taker',
-    exitFees: undefined
+    exitFees: undefined,
+    multiAtrData: {}
 };
 
 function loadTradeStateFromLocalStorage(): typeof initialTradeState {
@@ -111,8 +115,9 @@ tradeStore.subscribe(value => {
             // Also it might be large.
             stateToSave.currentTradeData = null; 
             
-            // We can also exclude other transient UI state if needed, but per requirements we want to keep inputs.
-            
+            // We DO NOT persist multiAtrData as it is transient and symbol-specific
+            stateToSave.multiAtrData = {};
+
             localStorage.setItem(CONSTANTS.LOCAL_STORAGE_TRADE_KEY, JSON.stringify(stateToSave));
         } catch (e) {
             console.warn("Could not save trade state to localStorage", e);
