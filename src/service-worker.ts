@@ -66,6 +66,7 @@ self.addEventListener('fetch', (event) => {
     if (!event.request.url.startsWith('http')) return;
 
     async function respond() {
+        const url = new URL(event.request.url);
         const cache = await caches.open(CACHE);
 
         // Serve build assets from the cache
