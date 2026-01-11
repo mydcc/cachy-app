@@ -17,6 +17,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let showTechnicals: boolean;
+    let hideIndicatorParams: boolean;
     let hideUnfilledOrders: boolean;
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
@@ -122,6 +123,7 @@
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
             showTechnicals = $settingsStore.showTechnicals;
+            hideIndicatorParams = $settingsStore.hideIndicatorParams;
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             positionViewMode = $settingsStore.positionViewMode || 'detailed';
             feePreference = $settingsStore.feePreference;
@@ -186,6 +188,7 @@
             autoFetchBalance,
             showSidebars,
             showTechnicals,
+            hideIndicatorParams,
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
@@ -826,6 +829,16 @@
 
                 {:else if activeTab === 'indicators'}
                     <div class="flex flex-col gap-4 overflow-x-hidden" role="tabpanel" id="tab-indicators">
+
+                         <!-- Indicator Params Toggle (Global Display) -->
+                        <label class="flex items-center justify-between p-3 rounded bg-[var(--bg-tertiary)] hover:bg-[var(--bg-primary)] cursor-pointer border border-[var(--border-color)]">
+                             <div class="flex flex-col">
+                                <span class="text-sm font-bold">{$_('settings.hideIndicatorParams') || 'Hide Indicator Parameters'}</span>
+                                <span class="text-xs text-[var(--text-secondary)]">Show cleaner names (e.g. "RSI" instead of "RSI (14)") in panels.</span>
+                            </div>
+                            <input type="checkbox" bind:checked={hideIndicatorParams} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        </label>
+
                         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                             <!-- Left Column -->
