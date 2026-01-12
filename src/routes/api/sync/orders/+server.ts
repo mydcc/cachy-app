@@ -26,33 +26,34 @@ export const POST: RequestHandler = async ({ request }) => {
             return false;
         };
 
-        // 1. Fetch Regular Orders
-        try {
-            const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
-            allOrders = allOrders.concat(regularOrders);
-        } catch (err: any) {
-            console.error('Error fetching regular orders:', err.message || 'Unknown error');
-            // Don't throw here, partial success is allowed
+        // Parallel execution for better performance
+        const tasks = [
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout),
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout),
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout)
+        ];
+
+        const results = await Promise.allSettled(tasks);
+
+        // Process Regular Orders
+        if (results[0].status === 'fulfilled') {
+            allOrders = allOrders.concat(results[0].value);
+        } else {
+            console.error('Error fetching regular orders:', results[0].reason?.message || 'Unknown error');
         }
 
-        // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
-        if (!checkTimeout()) {
-            try {
-                const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout);
-                allOrders = allOrders.concat(tpslOrders);
-            } catch (err: any) {
-                console.warn('Error fetching TP/SL orders:', err.message);
-            }
+        // Process TP/SL Orders
+        if (results[1].status === 'fulfilled') {
+             allOrders = allOrders.concat(results[1].value);
+        } else {
+             console.warn('Error fetching TP/SL orders:', results[1].reason?.message || 'Unknown error');
         }
 
-        // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
-        if (!checkTimeout()) {
-             try {
-                const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout);
-                allOrders = allOrders.concat(planOrders);
-            } catch (err: any) {
-                console.warn('Error fetching plan orders:', err.message);
-            }
+        // Process Plan Orders
+        if (results[2].status === 'fulfilled') {
+             allOrders = allOrders.concat(results[2].value);
+        } else {
+             console.warn('Error fetching plan orders:', results[2].reason?.message || 'Unknown error');
         }
 
         return json({ data: allOrders, isPartial });
