@@ -295,7 +295,7 @@
     --btn-default-text: var(--gray-900);
     --btn-danger-bg: var(--red-800);
     --btn-danger-hover-bg: var(--red-700);
-    --btn-danger-text: var(--gray-200);
+    --btn-danger-text: var(--gray-900);
     --btn-accent-bg: var(--lime-300);
     --btn-accent-hover-bg: var(--lime-400);
     --btn-accent-text: var(--gray-900);
@@ -853,7 +853,7 @@
     --toggle-bg-off: var(--cat-surface1);
     --toggle-bg-on: var(--cat-lavender);
     --toggle-circle-bg: var(--cat-text);
-    --toggle-circle-bg-on: var(--cat-text);
+    --toggle-circle-bg-on: var(--cat-crust);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1235,6 +1235,7 @@
     --toggle-bg-off: var(--midnight-bg-overlay);
     --toggle-bg-on: var(--midnight-gold);
     --toggle-circle-bg: var(--midnight-bg-main);
+    --toggle-circle-bg-on: var(--midnight-bg-main);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1340,7 +1341,7 @@
     --toggle-bg-off: var(--ayu-mirage-border);
     --toggle-bg-on: var(--ayu-mirage-accent);
     --toggle-circle-bg: var(--ayu-mirage-fg);
-    --toggle-circle-bg-on: var(--ayu-mirage-fg);
+    --toggle-circle-bg-on: var(--ayu-mirage-bg);
     --overlay-color: var(--black-overlay);
 }
 
