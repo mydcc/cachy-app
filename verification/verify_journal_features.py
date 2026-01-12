@@ -27,7 +27,8 @@ def verify_journal(page):
             "totalFees": 0,
             "maxPotentialProfit": 1000,
             "targets": [],
-            "calculatedTpDetails": []
+            "calculatedTpDetails": [],
+            "positionSize": "0.1234" # Test Size
         },
         {
             "id": 2,
@@ -50,7 +51,8 @@ def verify_journal(page):
             "totalFees": 0,
             "maxPotentialProfit": 1000,
             "targets": [],
-            "calculatedTpDetails": []
+            "calculatedTpDetails": [],
+            "positionSize": "10.5" # Test Size
         }
     ]
 
@@ -78,15 +80,14 @@ def verify_journal(page):
     page.wait_for_selector(".journal-table")
     modal = page.locator(".modal-content")
 
-    # Verify Tag Autocomplete on Trade 2 (which has no tags)
-    tags_input = modal.locator("input.journal-tag-input").nth(1)
-    tags_input.focus()
-    tags_input.type("alpha")
+    # Verify Size Column
+    # First row should have 0.1234
+    expect(modal.get_by_role("cell", name="0.1234").first).to_be_visible()
 
-    expect(modal.locator("div").filter(has_text="#alpha_strat").first).to_be_visible()
+    # Second row should have 10.5000 (toFixed(4))
+    expect(modal.get_by_role("cell", name="10.5000").first).to_be_visible()
 
     # Take screenshot
-    # Use cwd relative path
     page.screenshot(path="verification/journal_features.png")
 
 if __name__ == "__main__":

@@ -1392,7 +1392,7 @@
                                     <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.size}
-                                    <td>-</td>
+                                    <td>{trade.positionSize ? trade.positionSize.toFixed(4) : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.pnl}
                                     <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
