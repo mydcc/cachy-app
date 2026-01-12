@@ -80,14 +80,14 @@
     --btn-danger-text: var(--blue-100);
     --btn-accent-bg: var(--sky-500);
     --btn-accent-hover-bg: var(--sky-600);
-    --btn-accent-text: var(--blue-100);
+    --btn-accent-text: var(--blue-950);
     --btn-success-bg: var(--green-500);
     --btn-success-hover-bg: var(--green-600);
-    --btn-success-text: var(--blue-100);
+    --btn-success-text: var(--blue-950);
     --toggle-bg-off: var(--blue-700);
     --toggle-bg-on: var(--sky-500);
-    --toggle-circle-bg: var(--text-primary);
-    --toggle-circle-bg-on: var(--text-primary);
+    --toggle-circle-bg: var(--blue-100);
+    --toggle-circle-bg-on: var(--blue-950);
     --overlay-color: var(--black-overlay);
 }
 
@@ -131,16 +131,17 @@
     --btn-default-text: var(--slate-800);
     --btn-danger-bg: var(--red-500);
     --btn-danger-hover-bg: var(--red-600);
-    --btn-danger-text: var(--pure-white);
+    --btn-danger-text: var(--slate-800);
     --btn-accent-bg: var(--sky-400);
     --btn-accent-hover-bg: var(--sky-500);
-    --btn-accent-text: var(--pure-white);
+    --btn-accent-text: var(--slate-800);
     --btn-success-bg: var(--green-600);
     --btn-success-hover-bg: var(--green-700);
-    --btn-success-text: var(--pure-white);
+    --btn-success-text: var(--slate-800);
     --toggle-bg-off: var(--slate-400);
     --toggle-bg-on: var(--sky-400);
-    --toggle-circle-bg: var(--text-primary);
+    --toggle-circle-bg: var(--slate-100);
+    --toggle-circle-bg-on: var(--slate-800);
     --overlay-color: var(--white-transparent);
 }
 
@@ -190,10 +191,11 @@
     --btn-accent-text: var(--purple-light);
     --btn-success-bg: var(--core-green-free);
     --btn-success-hover-bg: var(--success-hover-derived);
-    --btn-success-text: var(--purple-light);
+    --btn-success-text: var(--purple-dark);
     --toggle-bg-off: var(--core-meteorite);
     --toggle-bg-on: var(--core-blue-pro);
     --toggle-circle-bg: var(--text-primary);
+    --toggle-circle-bg-on: var(--purple-dark);
     --overlay-color: var(--overlay-derived);
 }
 
@@ -244,10 +246,11 @@
     --btn-accent-text: var(--blue-pro-light);
     --btn-success-bg: var(--core-green-free);
     --btn-success-hover-bg: var(--success-hover-derived);
-    --btn-success-text: var(--blue-pro-light);
+    --btn-success-text: var(--blue-pro-dark);
     --toggle-bg-off: var(--core-meteorite);
     --toggle-bg-on: var(--core-blue-pro);
     --toggle-circle-bg: var(--text-primary);
+    --toggle-circle-bg-on: var(--blue-pro-dark);
     --overlay-color: var(--overlay-derived);
 }
 
@@ -298,11 +301,11 @@
     --btn-accent-text: var(--gray-900);
     --btn-success-bg: var(--green-500);
     --btn-success-hover-bg: var(--green-600);
-    --btn-success-text: var(--text-primary);
+    --btn-success-text: var(--gray-900);
     --toggle-bg-off: var(--gray-600);
     --toggle-bg-on: var(--lime-300);
     --toggle-circle-bg: var(--gray-200);
-    --toggle-circle-bg-on: var(--gray-900);
+    --toggle-circle-bg-on: var(--gray-600);
     --overlay-color: var(--black-overlay);
 }
 
@@ -347,11 +350,11 @@
     --btn-accent-text: var(--matrix-base);
     --btn-success-bg: var(--green-400);
     --btn-success-hover-bg: var(--green-500);
-    --btn-success-text: var(--matrix-base);
+    --btn-success-text: var(--green-700);
     --toggle-bg-off: var(--green-700);
     --toggle-bg-on: var(--green-400);
     --toggle-circle-bg: var(--matrix-base);
-    --toggle-circle-bg-on: var(--matrix-base);
+    --toggle-circle-bg-on: var(--green-700);
     --overlay-color: var(--black-overlay);
 }
 
@@ -402,7 +405,7 @@
     --toggle-bg-off: var(--dark-purple-600);
     --toggle-bg-on: var(--purple);
     --toggle-circle-bg: var(--text-primary);
-    --toggle-circle-bg-on: var(--dark-purple-800);
+    --toggle-circle-bg-on: var(--dark-purple-600);
     --overlay-color: var(--black-overlay);
 }
 
@@ -446,17 +449,17 @@
     --btn-default-text: var(--base04);
     --btn-danger-bg: var(--red);
     --btn-danger-hover-bg: var(--orange);
-    --btn-danger-text: var(--base3);
+    --btn-danger-text: var(--base04);
     --btn-accent-bg: var(--blue);
     --btn-accent-hover-bg: var(--blue-dark);
     --btn-accent-text: var(--base3);
     --btn-success-bg: var(--green);
     --btn-success-hover-bg: var(--green-dark);
-    --btn-success-text: var(--base3);
+    --btn-success-text: var(--base04);
     --toggle-bg-off: var(--base02);
     --toggle-bg-on: var(--blue);
     --toggle-circle-bg: var(--base3);
-    --toggle-circle-bg-on: var(--base3);
+    --toggle-circle-bg-on: var(--base2);
     --overlay-color: var(--white-overlay);
 }
 
@@ -507,6 +510,7 @@
     --toggle-bg-off: var(--polar-night-3);
     --toggle-bg-on: var(--frost-3);
     --toggle-circle-bg: var(--snow-storm-1);
+    --toggle-circle-bg-on: var(--polar-night-1);
     --overlay-color: var(--black-overlay);
 }
 
@@ -610,16 +614,17 @@
     --btn-default-text: var(--mono-fg);
     --btn-danger-bg: var(--mono-red);
     --btn-danger-hover-bg: var(--mono-red-light);
-    --btn-danger-text: var(--mono-fg);
+    --btn-danger-text: var(--mono-bg-dark);
     --btn-accent-bg: var(--mono-pink);
     --btn-accent-hover-bg: var(--mono-pink-light);
-    --btn-accent-text: var(--mono-fg);
+    --btn-accent-text: var(--mono-bg-dark);
     --btn-success-bg: var(--mono-green);
     --btn-success-hover-bg: var(--mono-green-light);
     --btn-success-text: var(--mono-bg-dark);
     --toggle-bg-off: var(--mono-bg-light);
     --toggle-bg-on: var(--mono-pink);
     --toggle-circle-bg: var(--mono-fg);
+    --toggle-circle-bg-on: var(--mono-bg-dark);
     --overlay-color: var(--black-overlay);
 }
 
@@ -676,6 +681,7 @@
     --toggle-bg-off: var(--tokyo-comment);
     --toggle-bg-on: var(--tokyo-blue);
     --toggle-circle-bg: var(--tokyo-fg);
+    --toggle-circle-bg-on: var(--tokyo-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -732,6 +738,7 @@
     --toggle-bg-off: var(--ever-gray);
     --toggle-bg-on: var(--ever-aqua);
     --toggle-circle-bg: var(--ever-fg);
+    --toggle-circle-bg-on: var(--ever-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -787,6 +794,7 @@
     --toggle-bg-off: var(--base01);
     --toggle-bg-on: var(--blue);
     --toggle-circle-bg: var(--base0);
+    --toggle-circle-bg-on: var(--base03);
     --overlay-color: var(--black-overlay);
 }
 
@@ -845,7 +853,7 @@
     --toggle-bg-off: var(--cat-surface1);
     --toggle-bg-on: var(--cat-lavender);
     --toggle-circle-bg: var(--cat-text);
-    --toggle-circle-bg-on: var(--cat-base);
+    --toggle-circle-bg-on: var(--cat-crust);
     --overlay-color: var(--black-overlay);
 }
 
@@ -901,6 +909,7 @@
     --toggle-bg-off: var(--one-comment);
     --toggle-bg-on: var(--one-blue);
     --toggle-circle-bg: var(--one-fg);
+    --toggle-circle-bg-on: var(--one-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -954,6 +963,7 @@
     --toggle-bg-off: var(--obsidian-border);
     --toggle-bg-on: var(--obsidian-blue);
     --toggle-circle-bg: var(--obsidian-fg);
+    --toggle-circle-bg-on: var(--obsidian-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1063,6 +1073,7 @@
     --toggle-bg-off: var(--ayu-border);
     --toggle-bg-on: var(--ayu-entity);
     --toggle-circle-bg: var(--ayu-fg);
+    --toggle-circle-bg-on: var(--ayu-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1117,6 +1128,7 @@
     --toggle-bg-off: var(--cobalt-bg-alt);
     --toggle-bg-on: var(--cobalt-yellow);
     --toggle-circle-bg: var(--cobalt-bg);
+    --toggle-circle-bg-on: var(--cobalt-bg-dark);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1266,16 +1278,17 @@
     --btn-default-text: var(--ayu-light-fg);
     --btn-danger-bg: var(--ayu-light-red);
     --btn-danger-hover-bg: var(--ayu-light-red-light);
-    --btn-danger-text: var(--ayu-light-bg);
+    --btn-danger-text: var(--ayu-light-fg);
     --btn-accent-bg: var(--ayu-light-accent);
     --btn-accent-hover-bg: var(--ayu-light-accent-light);
     --btn-accent-text: var(--ayu-light-bg);
     --btn-success-bg: var(--ayu-light-green);
     --btn-success-hover-bg: var(--ayu-light-green-light);
-    --btn-success-text: var(--ayu-light-bg);
+    --btn-success-text: var(--ayu-light-fg);
     --toggle-bg-off: var(--ayu-light-border);
     --toggle-bg-on: var(--ayu-light-accent);
     --toggle-circle-bg: var(--ayu-light-bg);
+    --toggle-circle-bg-on: var(--ayu-light-fg);
     --overlay-color: var(--white-overlay);
 }
 
@@ -1385,6 +1398,7 @@
     --toggle-bg-off: var(--gh-dark-border);
     --toggle-bg-on: var(--gh-dark-blue);
     --toggle-circle-bg: var(--gh-dark-fg);
+    --toggle-circle-bg-on: var(--gh-dark-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1442,6 +1456,7 @@
     --toggle-bg-off: var(--gh-light-border);
     --toggle-bg-on: var(--gh-light-blue);
     --toggle-circle-bg: var(--gh-light-bg);
+    --toggle-circle-bg-on: var(--gh-light-fg);
     --overlay-color: var(--white-overlay);
 }
 
