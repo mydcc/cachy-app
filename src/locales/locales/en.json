@@ -179,6 +179,7 @@
     "noTradesYet": "No trades in journal yet.",
     "clickToExpand": "Click to expand",
     "delete": "Delete",
+    "confirmDelete": "Are you sure you want to delete this trade?",
     "performancePerSymbol": "Performance per Symbol",
     "trades": "Trades",
     "profitPercent": "Profit %",
@@ -208,9 +209,15 @@
       "to": "To",
       "pivotMode": "Pivot Mode",
       "uploadScreenshot": "Upload Screenshot",
+      "pasteScreenshot": "Paste Image (Ctrl+V)",
+      "replaceScreenshot": "Replace",
+      "deleteScreenshot": "Delete Screenshot",
       "advancedMetrics": "Advanced Metrics",
       "showScreenshots": "Show Screenshots",
       "tableSettings": "Table Settings"
+    },
+    "placeholder": {
+      "notes": "Add notes..."
     },
     "table": {
       "date": "Date",

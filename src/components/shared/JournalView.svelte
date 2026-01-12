@@ -643,10 +643,31 @@
     let filterDateStart = '';
     let filterDateEnd = '';
     let groupBySymbol = false;
-    let showAdvancedMetrics = false;
-    let showScreenshots = true;
     let showTableSettings = false;
     let expandedGroups: {[key: string]: boolean} = {};
+
+    // Column Visibility State
+    // Default: 'Advanced' columns are visible as requested ("permanently active" / configurable via menu)
+    let columnVisibility = {
+        date: true,
+        symbol: true,
+        type: true,
+        entry: true,
+        exit: true,
+        sl: true,
+        size: true,
+        pnl: true,
+        funding: true,
+        rr: true,
+        mae: true,
+        mfe: true,
+        efficiency: true,
+        duration: true,
+        status: true,
+        screenshot: true,
+        tags: true,
+        notes: true
+    };
 
     // --- Table Logic ---
     function formatDuration(start: string | undefined, end: string | undefined): string {
@@ -719,6 +740,9 @@
 
     $: sortedTrades = sortTrades(processedTrades, sortField, sortDirection);
 
+    // Get all unique tags for autocomplete
+    $: allUniqueTags = Array.from(new Set($journalStore.flatMap(t => t.tags || []))).sort();
+
     // Grouping Logic
     $: groupedTrades = groupBySymbol ? Object.entries(calculator.calculateSymbolPerformance(processedTrades)).map(([symbol, data]) => ({
         symbol, ...data
@@ -761,6 +785,12 @@
         (event.target as HTMLElement).classList.toggle('expanded');
     }
 
+    function confirmDeleteTrade(tradeId: number) {
+        if (confirm($_('journal.confirmDelete'))) {
+            app.deleteTrade(tradeId);
+        }
+    }
+
     // --- Image Upload Logic ---
     let dragOverTradeId: number | null = null;
 
@@ -783,6 +813,21 @@
         const file = event.dataTransfer?.files?.[0];
         if (file && file.type.startsWith('image/')) {
             await uploadScreenshot(tradeId, file);
+        }
+    }
+
+    async function handleCellPaste(event: ClipboardEvent, tradeId: number) {
+        const items = event.clipboardData?.items;
+        if (!items) return;
+
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.startsWith('image/')) {
+                const file = items[i].getAsFile();
+                if (file) {
+                    await uploadScreenshot(tradeId, file);
+                    return; // Stop after first image
+                }
+            }
         }
     }
 
@@ -825,11 +870,35 @@
         }
     }
 
+    function deleteScreenshot(tradeId: number) {
+        if (confirm($_('journal.labels.deleteScreenshot') + '?')) {
+            journalStore.update(trades => {
+                return trades.map(t => {
+                    if (t.id === tradeId) {
+                        return { ...t, screenshot: undefined };
+                    }
+                    return t;
+                });
+            });
+        }
+    }
+
     function handleTagsUpdate(tradeId: number, newTags: string[]) {
         journalStore.update(trades => {
             return trades.map(t => {
                 if (t.id === tradeId) {
                     return { ...t, tags: newTags };
+                }
+                return t;
+            });
+        });
+    }
+
+    function handleNotesUpdate(tradeId: number, newNotes: string) {
+        journalStore.update(trades => {
+            return trades.map(t => {
+                if (t.id === tradeId) {
+                    return { ...t, notes: newNotes };
                 }
                 return t;
             });
@@ -877,11 +946,11 @@
         border: 1px solid var(--border-color);
         border-radius: 4px;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        width: 200px;
+        width: 300px; /* Increased by ~50% from 200px */
         height: auto;
     }
 
-    .screenshot-cell:hover .thumbnail-popup {
+    .screenshot-cell .preview-container:hover .thumbnail-popup {
         display: block;
     }
 
@@ -905,6 +974,23 @@
     .icon-btn:hover {
         color: var(--accent-color);
         background-color: var(--bg-tertiary);
+    }
+
+    .notes-input {
+        background: transparent;
+        border: none;
+        width: 100%;
+        outline: none;
+        padding: 0;
+        margin: 0;
+        color: var(--text-primary);
+        font-size: 0.875rem;
+        text-overflow: ellipsis;
+    }
+    .notes-input:focus {
+        background: var(--bg-tertiary);
+        border-radius: 2px;
+        padding: 2px 4px;
     }
 </style>
 
@@ -1094,10 +1180,6 @@
 
         <div class="flex items-center gap-2 pb-2 relative">
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
-                <input type="checkbox" bind:checked={showAdvancedMetrics} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
-                <span class="text-sm font-bold">{$_('journal.labels.advancedMetrics')}</span>
-            </label>
-            <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
                 <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
@@ -1112,26 +1194,82 @@
 
             {#if showTableSettings}
                 <div
-                    class="absolute top-full right-0 mt-2 w-56 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-2 flex flex-col gap-2"
+                    class="absolute top-full right-0 mt-2 w-56 max-h-[60vh] overflow-y-auto bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-2 flex flex-col gap-1"
                     use:clickOutside={{ enabled: showTableSettings, callback: () => showTableSettings = false }}
                 >
                     <div class="text-xs font-bold text-[var(--text-secondary)] px-2 py-1 uppercase tracking-wider">{$_('journal.labels.tableSettings')}</div>
 
-                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : ''}">
-                        <input type="checkbox" bind:checked={showAdvancedMetrics} disabled={!$settingsStore.isPro} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
-                        <span class="text-sm">{$_('journal.labels.advancedMetrics')}</span>
-                    </label>
-
-                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : ''}">
-                        <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
-                        <span class="text-sm">{$_('journal.labels.pivotMode')}</span>
-                    </label>
-
-                    <div class="h-px bg-[var(--border-color)] my-1"></div>
-
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={showScreenshots} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
-                        <span class="text-sm">{$_('journal.labels.showScreenshots')}</span>
+                        <input type="checkbox" bind:checked={columnVisibility.date} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.date')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.symbol} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.symbol')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.type} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.type')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.entry} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.entry')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.exit} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.exit')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.sl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.sl')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.size} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.size')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.pnl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.pnl')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.funding} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.funding')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.rr} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.rr')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.mae} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.mae')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.mfe} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.mfe')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.efficiency} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.efficiency')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.duration} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.duration')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.status} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.status')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.screenshot} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.screenshot')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.tags} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.tags')}</span>
+                    </label>
+                    <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
+                        <input type="checkbox" bind:checked={columnVisibility.notes} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <span class="text-sm">{$_('journal.table.notes')}</span>
                     </label>
                 </div>
             {/if}
@@ -1174,32 +1312,60 @@
                 <table class="journal-table w-full">
                     <thead>
                         <tr>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>{$_('journal.table.date')} {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>{$_('journal.table.symbol')} {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>{$_('journal.table.type')} {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>{$_('journal.table.entry')} {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            {#if showAdvancedMetrics}
+                            {#if columnVisibility.date}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('date')}>{$_('journal.table.date')} {sortField === 'date' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.symbol}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('symbol')}>{$_('journal.table.symbol')} {sortField === 'symbol' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.type}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('tradeType')}>{$_('journal.table.type')} {sortField === 'tradeType' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.entry}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('entryPrice')}>{$_('journal.table.entry')} {sortField === 'entryPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.exit}
                                 <th>{$_('journal.table.exit')}</th>
                             {/if}
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>{$_('journal.table.sl')} {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            {#if showAdvancedMetrics}
+                            {#if columnVisibility.sl}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('stopLossPrice')}>{$_('journal.table.sl')} {sortField === 'stopLossPrice' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.size}
                                 <th>{$_('journal.table.size')}</th>
                             {/if}
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>{$_('journal.table.pnl')} {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>{$_('journal.table.funding')} {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>{$_('journal.table.rr')} {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            {#if showAdvancedMetrics}
+                            {#if columnVisibility.pnl}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalNetProfit')}>{$_('journal.table.pnl')} {sortField === 'totalNetProfit' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.funding}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('fundingFee')}>{$_('journal.table.funding')} {sortField === 'fundingFee' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.rr}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('totalRR')}>{$_('journal.table.rr')} {sortField === 'totalRR' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.mae}
                                 <th>{$_('journal.table.mae')}</th>
+                            {/if}
+                            {#if columnVisibility.mfe}
                                 <th>{$_('journal.table.mfe')}</th>
+                            {/if}
+                            {#if columnVisibility.efficiency}
                                 <th>{$_('journal.table.efficiency')}</th>
+                            {/if}
+                            {#if columnVisibility.duration}
                                 <th>{$_('journal.table.duration')}</th>
                             {/if}
-                            <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>{$_('journal.table.status')} {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
-                            {#if showScreenshots}
+                            {#if columnVisibility.status}
+                                <th class="cursor-pointer hover:text-[var(--text-primary)]" on:click={() => handleSort('status')}>{$_('journal.table.status')} {sortField === 'status' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}</th>
+                            {/if}
+                            {#if columnVisibility.screenshot}
                                 <th>{$_('journal.table.screenshot')}</th>
                             {/if}
-                            <th>{$_('journal.table.tags')}</th>
-                            <th>{$_('journal.table.notes')}</th>
+                            {#if columnVisibility.tags}
+                                <th>{$_('journal.table.tags')}</th>
+                            {/if}
+                            {#if columnVisibility.notes}
+                                <th>{$_('journal.table.notes')}</th>
+                            {/if}
                             <th>{$_('journal.table.action')}</th>
                         </tr>
                     </thead>
@@ -1207,87 +1373,142 @@
                         {#each paginatedTrades as trade}
                             {@const tradeDate = new Date(trade.date)}
                             <tr>
-                                <td>{tradeDate.getFullYear() > 1970 ? tradeDate.toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
-                                <td>{trade.symbol || '-'}</td>
-                                <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
-                                <td>{trade.entryPrice.toFixed(4)}</td>
-                                {#if showAdvancedMetrics}
+                                {#if columnVisibility.date}
+                                    <td>{tradeDate.getFullYear() > 1970 ? tradeDate.toLocaleString($locale || undefined, {day:'2-digit', month: '2-digit', year:'2-digit', hour:'2-digit', minute:'2-digit'}) : '-'}</td>
+                                {/if}
+                                {#if columnVisibility.symbol}
+                                    <td>{trade.symbol || '-'}</td>
+                                {/if}
+                                {#if columnVisibility.type}
+                                    <td class="{trade.tradeType.toLowerCase() === 'long' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">{trade.tradeType.charAt(0).toUpperCase() + trade.tradeType.slice(1)}</td>
+                                {/if}
+                                {#if columnVisibility.entry}
+                                    <td>{trade.entryPrice.toFixed(4)}</td>
+                                {/if}
+                                {#if columnVisibility.exit}
                                     <td>-</td>
                                 {/if}
-                                <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
-                                {#if showAdvancedMetrics}
+                                {#if columnVisibility.sl}
+                                    <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>
+                                {/if}
+                                {#if columnVisibility.size}
                                     <td>-</td>
                                 {/if}
-                                <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
-                                <td class="{trade.fundingFee.lt(0) ? 'text-[var(--danger-color)]' : trade.fundingFee.gt(0) ? 'text-[var(--success-color)]' : 'text-[var(--text-secondary)]'}">{trade.fundingFee.toFixed(4)}</td>
-                                <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
-                                    {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : '-'}
-                                </td>
-                                {#if showAdvancedMetrics}
+                                {#if columnVisibility.pnl}
+                                    <td class="{trade.totalNetProfit.gt(0) ? 'text-[var(--success-color)]' : trade.totalNetProfit.lt(0) ? 'text-[var(--danger-color)]' : ''}">{trade.totalNetProfit.toFixed(2)}</td>
+                                {/if}
+                                {#if columnVisibility.funding}
+                                    <td class="{trade.fundingFee.lt(0) ? 'text-[var(--danger-color)]' : trade.fundingFee.gt(0) ? 'text-[var(--success-color)]' : 'text-[var(--text-secondary)]'}">{trade.fundingFee.toFixed(4)}</td>
+                                {/if}
+                                {#if columnVisibility.rr}
+                                    <td class="{trade.totalRR.gte(2) ? 'text-[var(--success-color)]' : trade.totalRR.gte(1.5) ? 'text-[var(--warning-color)]' : 'text-[var(--danger-color)]'}">
+                                        {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : '-'}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.mae}
                                     <td>-</td>
+                                {/if}
+                                {#if columnVisibility.mfe}
                                     <td>-</td>
+                                {/if}
+                                {#if columnVisibility.efficiency}
                                     <td>-</td>
+                                {/if}
+                                {#if columnVisibility.duration}
                                     <td>{formatDuration(trade.entryDate, trade.date)}</td>
                                 {/if}
-                                <td>
-                                    {#if trade.isManual === false}
-                                        <span class="px-2 py-1 rounded text-xs font-bold
-                                            {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
-                                            trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
-                                            'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
-                                            {trade.status}
-                                        </span>
-                                    {:else}
-                                        <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
-                                            <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
-                                            <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
-                                            <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
-                                        </select>
-                                    {/if}
-                                </td>
+                                {#if columnVisibility.status}
+                                    <td>
+                                        {#if trade.isManual === false}
+                                            <span class="px-2 py-1 rounded text-xs font-bold
+                                                {trade.status === 'Won' ? 'bg-[rgba(var(--success-rgb),0.2)] text-[var(--success-color)]' :
+                                                trade.status === 'Lost' ? 'bg-[rgba(var(--danger-rgb),0.2)] text-[var(--danger-color)]' :
+                                                'bg-[rgba(var(--accent-rgb),0.2)] text-[var(--accent-color)]'}">
+                                                {trade.status}
+                                            </span>
+                                        {:else}
+                                            <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
+                                                <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
+                                                <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
+                                                <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
+                                            </select>
+                                        {/if}
+                                    </td>
+                                {/if}
                                 
-                                {#if showScreenshots}
-                                    <td class="text-center screenshot-cell {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                {#if columnVisibility.screenshot}
+                                    <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
+                                    <td class="text-center screenshot-cell relative {dragOverTradeId === trade.id ? 'drag-over' : ''}"
+                                        tabindex="0"
                                         on:dragover={(e) => handleDragOver(trade.id, e)}
                                         on:dragleave={(e) => handleDragLeave(trade.id, e)}
                                         on:drop={(e) => handleDrop(trade.id, e)}
+                                        on:paste={(e) => handleCellPaste(e, trade.id)}
+                                        title="{$_('journal.labels.pasteScreenshot')}"
                                     >
                                         {#if trade.screenshot}
-                                            <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                            <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
-                                                <!-- svelte-ignore svelte/no-at-html-tags -->
-                                                {@html icons.camera || '📷'}
-                                            </button>
-                                            <div class="thumbnail-popup">
-                                                <img src={trade.screenshot} alt="Trade Screenshot" />
+                                            <div class="preview-container group inline-block relative">
+                                                <button class="icon-btn" on:click={() => window.open(trade.screenshot, '_blank')}>
+                                                    <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                    {@html icons.camera || '📷'}
+                                                </button>
+
+                                                <!-- Preview -->
+                                                <div class="thumbnail-popup">
+                                                    <img src={trade.screenshot} alt="Trade Screenshot" />
+                                                </div>
+
+                                                <!-- Overlay Actions (Hover) -->
+                                                <div class="absolute top-0 left-0 w-full h-full bg-[var(--bg-secondary)] hidden group-hover:flex items-center justify-center gap-1 rounded shadow-sm border border-[var(--border-color)]">
+                                                    <button class="p-1 hover:text-[var(--accent-color)]" title="View" on:click|stopPropagation={() => window.open(trade.screenshot, '_blank')}>
+                                                        <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                        {@html icons.eye || '👁️'}
+                                                    </button>
+                                                    <label class="p-1 hover:text-[var(--warning-color)] cursor-pointer" title="{$_('journal.labels.replaceScreenshot')}">
+                                                        <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} on:click|stopPropagation />
+                                                        <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                        {@html icons.refresh || '🔄'}
+                                                    </label>
+                                                    <button class="p-1 hover:text-[var(--danger-color)]" title="{$_('journal.labels.deleteScreenshot')}" on:click|stopPropagation={() => deleteScreenshot(trade.id)}>
+                                                        <!-- svelte-ignore svelte/no-at-html-tags -->
+                                                        {@html icons.delete || '🗑️'}
+                                                    </button>
+                                                </div>
                                             </div>
                                         {:else}
-                                            <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                            <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                            <label class="icon-btn cursor-pointer block w-full h-full" title="{$_('journal.labels.uploadScreenshot')}">
+                                            <label class="cursor-pointer block w-full h-full flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-opacity" title="{$_('journal.labels.uploadScreenshot')}">
                                                 <!-- svelte-ignore svelte/no-at-html-tags -->
-                                                {@html icons.plus || '+'}
+                                                <span class="text-[var(--accent-color)]">{@html icons.plus || '+'}</span>
                                                 <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
                                             </label>
                                         {/if}
                                     </td>
                                 {/if}
 
-                                <td>
-                                    <JournalEntryTags tags={trade.tags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
-                                </td>
+                                {#if columnVisibility.tags}
+                                    <td>
+                                        <JournalEntryTags tags={trade.tags} availableTags={allUniqueTags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
+                                    </td>
+                                {/if}
 
-                                <!-- svelte-ignore a11y-click-events-have-key-events -->
-                                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                                <td class="notes-cell" title="{$_('journal.clickToExpand')}" on:click={toggleNoteExpand}>{trade.notes || ''}</td>
-                                <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => app.deleteTrade(trade.id)}>
+                                {#if columnVisibility.notes}
+                                    <td class="notes-cell">
+                                        <input
+                                            type="text"
+                                            class="notes-input"
+                                            placeholder="{$_('journal.placeholder.notes')}"
+                                            value={trade.notes || ''}
+                                            on:change={(e) => handleNotesUpdate(trade.id, e.currentTarget.value)}
+                                        />
+                                    </td>
+                                {/if}
+                                <td class="text-center"><button class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full" data-id="{trade.id}" title="{$_('journal.delete')}" on:click={() => confirmDeleteTrade(trade.id)}>
                                     <!-- svelte-ignore svelte/no-at-html-tags -->
                                     {@html icons.delete}</button></td>
                             </tr>
                         {/each}
                         {#if paginatedTrades.length === 0}
-                             <tr><td colspan="{showAdvancedMetrics ? (showScreenshots ? 19 : 18) : (showScreenshots ? 13 : 12)}" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
+                             <tr><td colspan="{Object.values(columnVisibility).filter(Boolean).length + 1}" class="text-center text-slate-500 py-8">{$_('journal.noTradesYet')}</td></tr>
                         {/if}
                     </tbody>
                 </table>
