@@ -56,8 +56,11 @@ self.addEventListener('fetch', (event) => {
                 throw new Error('invalid response from fetch');
             }
 
-            if (response.status === 200) {
-                cache.put(event.request, response.clone());
+            // Avoid caching API responses and other dynamic data
+            if (response.status === 200 && !url.pathname.startsWith('/api/')) {
+                cache.put(event.request, response.clone()).catch((err) => {
+                    console.warn('Failed to cache response:', err);
+                });
             }
 
             return response;
