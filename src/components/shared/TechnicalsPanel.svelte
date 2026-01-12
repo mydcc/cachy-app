@@ -296,7 +296,7 @@
                     <span
                         role="button"
                         tabindex="0"
-                        class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors cursor-pointer"
+                        class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
                         on:mouseenter={handleDropdownEnter}
                         on:mouseleave={handleDropdownLeave}
                     >
