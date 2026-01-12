@@ -1188,7 +1188,7 @@
                                 >
                             </div>
 
-                            <div class="h-44 w-44">
+                            <div class="h-36 w-36">
                                 <DoughnutChart
                                     data={winLossChartData}
                                     title=""
@@ -1202,7 +1202,7 @@
 
                         <!-- Stats: Right aligned -->
                         <div
-                            class="flex flex-col justify-center items-end gap-3 text-sm min-w-[100px]"
+                            class="flex flex-col justify-center items-end gap-2 text-sm min-w-[100px]"
                         >
                             <div class="flex flex-col items-end">
                                 <span
@@ -1334,7 +1334,7 @@
 
                     <!-- Bottom Row: Legend -->
                     <div
-                        class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-4 pt-2 border-t border-[var(--border-color)] w-full"
+                        class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 pt-1 border-t border-[var(--border-color)] w-full"
                     >
                         <div
                             class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
