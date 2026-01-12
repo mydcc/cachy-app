@@ -1,10 +1,6 @@
 <script lang="ts">
-    import { onMount } from 'svelte';
-    import { Bar } from 'svelte-chartjs';
     import { _ } from '../../locales/i18n';
     import type { IndividualTpResult } from '../../stores/types';
-    import type { ChartOptions, ChartData } from 'chart.js';
-    import { uiStore } from '../../stores/uiStore'; // To listen for theme changes
     import { formatDynamicDecimal } from '../../utils/utils';
 
     export let entryPrice: number | null;
@@ -12,275 +8,127 @@
     export let targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
     export let calculatedTpDetails: IndividualTpResult[];
 
-    let chartInstance: any = null;
     let isValidData = false;
-    let colors = {
-        danger: '#ef4444',
-        success: '#22c55e',
-        text: '#e2e8f0',
-        textSecondary: '#94a3b8',
-        bgTertiary: '#1e293b'
-    };
 
-    // Default empty state to ensure <Bar> is always mounted
-    let chartData: any = {
-        labels: ['Analysis'],
-        datasets: []
-    };
+    // Computed style variables
+    let riskWidth = 0;
+    let rewardWidth = 0;
+    let riskLeft = 0;
+    let rewardLeft = 0;
+    let entryPos = 0;
+    let slPos = 0;
+    let tpPositions: Array<{ pos: number; label: string; subLabel: string }> = [];
 
-    let chartOptions: ChartOptions<'bar'> = {
-        indexAxis: 'y',
-        responsive: true,
-        maintainAspectRatio: false,
-        animation: false, // Disable default animation globally for performance
-        plugins: {
-            legend: { display: false },
-            tooltip: { enabled: false },
-            annotation: { annotations: {} },
-            datalabels: { display: false },
-            zoom: {
-                zoom: {
-                    wheel: { enabled: true },
-                    pinch: { enabled: true },
-                    mode: 'x',
-                },
-                pan: {
-                    enabled: true,
-                    mode: 'x',
-                }
-            }
-        },
-        scales: {
-            x: {
-                display: false,
-                grid: { display: false },
-            },
-            y: {
-                display: false,
-                grid: { display: false },
-                stacked: true
-            }
-        },
-        layout: {
-            padding: {
-                top: 30,
-                bottom: 30,
-                left: 10,
-                right: 10
-            }
-        }
-    };
-
-    // Helper to resolve CSS variables once
-    const updateColors = () => {
-        if (typeof window !== 'undefined') {
-            const style = getComputedStyle(document.documentElement);
-            colors = {
-                danger: style.getPropertyValue('--danger-color').trim() || '#ef4444',
-                success: style.getPropertyValue('--success-color').trim() || '#22c55e',
-                text: style.getPropertyValue('--text-primary').trim() || '#e2e8f0',
-                textSecondary: style.getPropertyValue('--text-secondary').trim() || '#94a3b8',
-                bgTertiary: style.getPropertyValue('--bg-tertiary').trim() || '#1e293b'
-            };
-            // Force update if chart exists to apply new colors
-            if (chartInstance && isValidData) {
-                updateChart();
-            }
-        }
-    };
-
-    onMount(() => {
-        updateColors();
-    });
-
-    // Re-fetch colors when theme changes
-    $: if ($uiStore.currentTheme) {
-        // Use timeout to ensure DOM has updated with new theme classes/variables
-        setTimeout(updateColors, 100);
-    }
-
-    // Main reactive loop
     $: {
         isValidData = !!(entryPrice && stopLossPrice && targets.length > 0 && targets[targets.length - 1].price);
 
-        if (isValidData) {
-            updateChart();
-        }
-    }
-
-    function updateChart() {
-        if (!entryPrice || !stopLossPrice || !targets || targets.length === 0) return;
-
-        const lastTpPrice = targets[targets.length - 1].price as number;
-
-        // Risk Segment: From SL to Entry
-        const riskSegment: [number, number] = [stopLossPrice, entryPrice];
-        // Reward Segment: From Entry to Last TP
-        const rewardSegment: [number, number] = [entryPrice, lastTpPrice];
-
-        const xMin = Math.min(stopLossPrice, lastTpPrice) * 0.995;
-        const xMax = Math.max(stopLossPrice, lastTpPrice) * 1.005;
-
-        // Build Annotations
-        const annotations: any = {};
-
-        // Entry Line (White)
-        annotations['entryLine'] = {
-            type: 'line',
-            xMin: entryPrice,
-            xMax: entryPrice,
-            borderColor: colors.text,
-            borderWidth: 2,
-            label: {
-                display: true,
-                content: 'Einstieg',
-                position: 'start',
-                yAdjust: 20,
-                backgroundColor: colors.bgTertiary,
-                color: colors.text,
-                font: { size: 10 },
-                padding: 4,
-                borderRadius: 4
-            }
-        };
-
-        // SL Line (Red)
-        annotations['slLine'] = {
-            type: 'line',
-            xMin: stopLossPrice,
-            xMax: stopLossPrice,
-            borderColor: colors.danger,
-            borderWidth: 2,
-            label: {
-                display: true,
-                content: 'SL',
-                position: 'end',
-                yAdjust: -20,
-                backgroundColor: colors.danger,
-                color: '#fff',
-                font: { size: 10, weight: 'bold' },
-                padding: 4,
-                borderRadius: 4
-            }
-        };
-
-        // TP Lines (Green)
-        targets.forEach((target, index) => {
-            if (target.price) {
-                const detail = calculatedTpDetails.find(d => d.index === index);
-                const rrText = detail ? `${detail.riskRewardRatio.toFixed(2)}R` : '';
-
-                annotations[`tp${index}`] = {
-                    type: 'line',
-                    xMin: target.price,
-                    xMax: target.price,
-                    borderColor: 'rgba(255, 255, 255, 0.5)',
-                    borderWidth: 1,
-                    borderDash: [4, 4],
-                    label: {
-                        display: true,
-                        content: [`TP${index + 1}`, rrText],
-                        position: 'end',
-                        yAdjust: -25,
-                        backgroundColor: 'transparent',
-                        color: colors.textSecondary,
-                        font: { size: 10 },
-                        textAlign: 'center'
-                    }
-                };
-            }
-        });
-
-        // Update Chart Instance directly if available
-        if (chartInstance) {
-            // Update Datasets
-            chartInstance.data.datasets = [
-                {
-                    label: 'Risk',
-                    data: [riskSegment],
-                    backgroundColor: colors.danger,
-                    borderSkipped: false,
-                    borderRadius: { topLeft: 4, bottomLeft: 4 },
-                    barPercentage: 0.6,
-                    categoryPercentage: 1.0
-                },
-                {
-                    label: 'Reward',
-                    data: [rewardSegment],
-                    backgroundColor: colors.success,
-                    borderSkipped: false,
-                    borderRadius: { topRight: 4, bottomRight: 4 },
-                    barPercentage: 0.6,
-                    categoryPercentage: 1.0
-                }
+        if (isValidData && entryPrice && stopLossPrice) {
+            // Calculate Min/Max range (Price Axis)
+            const allPrices = [
+                entryPrice,
+                stopLossPrice,
+                ...targets.map(t => t.price).filter((p): p is number => p !== null)
             ];
+            const minPrice = Math.min(...allPrices);
+            const maxPrice = Math.max(...allPrices);
+            const range = maxPrice - minPrice;
 
-            // Update Options
-            if (chartInstance.options?.plugins?.annotation) {
-                chartInstance.options.plugins.annotation.annotations = annotations;
-            }
-            if (chartInstance.options?.scales?.x) {
-                chartInstance.options.scales.x.min = xMin;
-                chartInstance.options.scales.x.max = xMax;
-            }
-
-            // 'none' prevents animation and full re-render flickering
-            chartInstance.update('none');
-        } else {
-            // Initial Load (fallback if chartInstance is not yet bound when data arrives)
-             chartData = {
-                labels: ['Analysis'],
-                datasets: [
-                    {
-                        label: 'Risk',
-                        data: [riskSegment],
-                        backgroundColor: colors.danger,
-                        borderSkipped: false,
-                        borderRadius: { topLeft: 4, bottomLeft: 4 },
-                        barPercentage: 0.6,
-                        categoryPercentage: 1.0
-                    },
-                    {
-                        label: 'Reward',
-                        data: [rewardSegment],
-                        backgroundColor: colors.success,
-                        borderSkipped: false,
-                        borderRadius: { topRight: 4, bottomRight: 4 },
-                        barPercentage: 0.6,
-                        categoryPercentage: 1.0
-                    }
-                ]
+            // Helper to get % position (0 to 100)
+            const getPos = (price: number) => {
+                if (range === 0) return 50;
+                // Add 2% padding on each side to prevent markers being cut off
+                const rawPos = ((price - minPrice) / range) * 96 + 2;
+                return Math.max(0, Math.min(100, rawPos));
             };
 
-            // Note: annotations in initial chartOptions are updated via direct mutation below because
-            // spreading deep objects is messy. But since chartOptions is a 'let', we can just mutate it
-            // before the chart mounts.
-            if (chartOptions.plugins && chartOptions.plugins.annotation) {
-                chartOptions.plugins.annotation.annotations = annotations;
-            }
-            if (chartOptions.scales && chartOptions.scales.x) {
-                chartOptions.scales.x.min = xMin;
-                chartOptions.scales.x.max = xMax;
-            }
+            entryPos = getPos(entryPrice);
+            slPos = getPos(stopLossPrice);
+
+            // Risk Bar (Red): Always connects SL and Entry
+            // Left is the minimum of SL/Entry pos, Width is the distance
+            riskLeft = Math.min(slPos, entryPos);
+            riskWidth = Math.abs(slPos - entryPos);
+
+            // Reward Bar (Green): Connects Entry and Last TP
+            // We find the furthest TP from Entry in the profit direction?
+            // Actually, usually it just spans from Entry to the Max TP (for Long) or Min TP (for Short).
+            // Let's assume the bar goes from Entry to the Last Target (furthest).
+            const lastTpPrice = targets[targets.length - 1].price as number;
+            const lastTpPos = getPos(lastTpPrice);
+
+            rewardLeft = Math.min(entryPos, lastTpPos);
+            rewardWidth = Math.abs(lastTpPos - entryPos);
+
+            // TP Markers
+            tpPositions = targets.map((t, i) => {
+                if (t.price) {
+                    const detail = calculatedTpDetails.find(d => d.index === i);
+                    const rrText = detail ? `${detail.riskRewardRatio.toFixed(2)}R` : '';
+                    return {
+                        pos: getPos(t.price),
+                        label: `TP${i + 1}`,
+                        subLabel: rrText
+                    };
+                }
+                return null;
+            }).filter((p): p is { pos: number; label: string; subLabel: string } => p !== null);
         }
     }
 </script>
 
 <section class="visual-bar-container md:col-span-2">
-    <h2 class="section-header text-center !mb-4">{$_('dashboard.visualBar.header')}</h2>
-    <div
-        class="visual-bar-chart-wrapper"
-        role="img"
-        aria-label="{$_('dashboard.visualBar.ariaLabel')}"
-    >
-        <!-- Chart is always rendered but hidden if invalid data to prevent unmount/remount flickering -->
-        <div class="h-full w-full" class:invisible={!isValidData}>
-            <Bar bind:chart={chartInstance} data={chartData} options={chartOptions} />
+    <!-- Header -->
+    <div class="visual-header">
+        <div class="flex items-center">
+             <!-- SL Tag (Visual Anchor) -->
+             <div class="sl-tag">SL</div>
+             <span class="header-title ml-3">{$_('dashboard.visualBar.header')}</span>
         </div>
 
-        {#if !isValidData}
-            <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
+        <!-- TP Labels in Header -->
+        <div class="tp-labels-container">
+            {#each tpPositions as tp}
+                <div class="tp-label-group" style="left: {tp.pos}%;">
+                    <div class="tp-name">{tp.label}</div>
+                    <div class="tp-rr">{tp.subLabel}</div>
+                </div>
+            {/each}
+        </div>
+    </div>
+
+    <!-- The Bar Track -->
+    <div class="bar-track">
+        {#if isValidData}
+            <!-- Risk Segment (Red) -->
+            <div class="bar-segment risk-bar" style="left: {riskLeft}%; width: {riskWidth}%;"></div>
+
+            <!-- Reward Segment (Green) -->
+            <div class="bar-segment reward-bar" style="left: {rewardLeft}%; width: {rewardWidth}%;"></div>
+
+            <!-- Markers -->
+            <!-- SL Marker -->
+            <div class="marker" style="left: {slPos}%;"></div>
+
+            <!-- Entry Marker -->
+            <div class="marker" style="left: {entryPos}%;"></div>
+
+            <!-- TP Markers -->
+            {#each tpPositions as tp}
+                <div class="marker" style="left: {tp.pos}%;"></div>
+            {/each}
+        {:else}
+             <div class="text-center text-xs text-[var(--text-secondary)] py-1">
                 {$_('dashboard.promptForData')}
+            </div>
+        {/if}
+    </div>
+
+    <!-- Footer Labels -->
+    <div class="visual-footer">
+        {#if isValidData}
+            <!-- Entry Label -->
+            <div class="footer-tag entry-tag" style="left: {entryPos}%;">
+                Einstieg
             </div>
         {/if}
     </div>
@@ -288,19 +136,149 @@
 
 <style>
     .visual-bar-container {
-        background-color: var(--bg-primary);
-        padding: 1rem;
-        border-radius: 0.5rem;
+        /* No background here, just layout */
         margin-top: 1.5rem;
         margin-bottom: 1.5rem;
         position: relative;
     }
-    .visual-bar-chart-wrapper {
+
+    .visual-header {
+        background-color: var(--bg-tertiary); /* Dark container background */
+        border-top-left-radius: 0.5rem;
+        border-top-right-radius: 0.5rem;
+        padding: 0.5rem 1rem; /* Adjust padding */
         position: relative;
-        height: 120px; /* Sufficient height for labels */
+        height: 48px; /* Fixed height for consistent layout */
+        display: flex;
+        align-items: center;
+        /* Ensure TP labels don't overflow horizontally if at edges */
+        overflow: hidden;
+    }
+
+    .sl-tag {
+        background-color: var(--bg-secondary); /* Or a specific grey */
+        color: var(--text-secondary);
+        font-size: 0.7rem;
+        font-weight: bold;
+        padding: 2px 6px;
+        border-radius: 4px;
+        text-transform: uppercase;
+        border: 1px solid var(--border-color);
+    }
+
+    .header-title {
+        color: var(--text-secondary);
+        font-size: 0.8rem;
+        font-weight: bold;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .tp-labels-container {
+        position: absolute;
+        top: 0;
+        left: 0;
         width: 100%;
-        background-color: var(--bg-tertiary);
-        border-radius: 0.5rem;
-        padding: 0 1rem;
+        height: 100%;
+        pointer-events: none; /* Let clicks pass through */
+    }
+
+    .tp-label-group {
+        position: absolute;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        text-align: center;
+        /* Ensure distinct text color */
+    }
+
+    .tp-name {
+        color: var(--text-primary);
+        font-size: 0.75rem;
+        font-weight: bold;
+        line-height: 1;
+    }
+
+    .tp-rr {
+        color: var(--text-secondary);
+        font-size: 0.65rem;
+        line-height: 1;
+        margin-top: 2px;
+    }
+
+    .bar-track {
+        background-color: var(--bg-tertiary); /* Continue the dark bg? Or distinct? Image looks like one block */
+        /* If image is one block, header and bar track share background. */
+        /* Let's extend the bg-tertiary to cover everything */
+        position: relative;
+        height: 24px; /* Container for the 10px bar + spacing */
+        width: 100%;
+        /* No border radius top (connected to header) */
+        border-bottom-left-radius: 0.5rem;
+        border-bottom-right-radius: 0.5rem;
+        padding: 0 1rem; /* Same padding as header */
+    }
+
+    /* Override container to be a single card look */
+    .visual-bar-container {
+        background-color: transparent;
+    }
+    .visual-header {
+        border-bottom: none; /* Seamless connection */
+    }
+    .bar-track {
+        /* This contains the actual bar */
+        display: flex;
+        align-items: center; /* Center bar vertically */
+    }
+
+    .bar-segment {
+        position: absolute;
+        height: 10px; /* Explicit constraint */
+        top: 50%;
+        transform: translateY(-50%);
+        /* border-radius: 2px; Optional */
+    }
+
+    .risk-bar {
+        background-color: var(--danger-color, #ef4444);
+        /* Rounded left edge if it's the start? Logic-dependent. simple borders for now */
+    }
+
+    .reward-bar {
+        background-color: var(--success-color, #22c55e);
+    }
+
+    .marker {
+        position: absolute;
+        height: 14px; /* Slightly taller than bar */
+        width: 2px;
+        background-color: white;
+        top: 50%;
+        transform: translate(-50%, -50%);
+        z-index: 10;
+    }
+
+    .visual-footer {
+        position: relative;
+        height: 20px;
+        margin-top: -8px; /* Pull up to overlap/connect */
+        /* Or just put it below */
+        margin-top: 4px;
+    }
+
+    .footer-tag {
+        position: absolute;
+        transform: translateX(-50%);
+        background-color: var(--bg-tertiary); /* Tag background */
+        color: var(--text-primary);
+        font-size: 0.7rem;
+        padding: 2px 6px;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        white-space: nowrap;
+    }
+
+    .entry-tag {
+        /* Style for 'Einstieg' */
     }
 </style>
