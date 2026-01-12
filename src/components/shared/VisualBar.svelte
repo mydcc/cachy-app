@@ -1,8 +1,10 @@
 <script lang="ts">
+    import { onMount } from 'svelte';
     import { Bar } from 'svelte-chartjs';
     import { _ } from '../../locales/i18n';
     import type { IndividualTpResult } from '../../stores/types';
     import type { ChartOptions, ChartData } from 'chart.js';
+    import { uiStore } from '../../stores/uiStore'; // To listen for theme changes
     import { formatDynamicDecimal } from '../../utils/utils';
 
     export let entryPrice: number | null;
@@ -10,183 +12,256 @@
     export let targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
     export let calculatedTpDetails: IndividualTpResult[];
 
-    // Use 'any' for chartData to bypass strict Chart.js typing issues in the template
-    // which struggles with the floating bar [number, number] tuple type.
-    let chartData: any;
-    let chartOptions: ChartOptions<'bar'>;
-
-    // Helper to resolve CSS variables
-    const getCssVar = (name: string) => {
-        if (typeof window !== 'undefined') {
-            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
-        }
-        return '#000'; // Fallback
+    let chartInstance: any = null;
+    let isValidData = false;
+    let colors = {
+        danger: '#ef4444',
+        success: '#22c55e',
+        text: '#e2e8f0',
+        textSecondary: '#94a3b8',
+        bgTertiary: '#1e293b'
     };
 
+    // Default empty state to ensure <Bar> is always mounted
+    let chartData: any = {
+        labels: ['Analysis'],
+        datasets: []
+    };
+
+    let chartOptions: ChartOptions<'bar'> = {
+        indexAxis: 'y',
+        responsive: true,
+        maintainAspectRatio: false,
+        animation: false, // Disable default animation globally for performance
+        plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+            annotation: { annotations: {} },
+            datalabels: { display: false },
+            zoom: {
+                zoom: {
+                    wheel: { enabled: true },
+                    pinch: { enabled: true },
+                    mode: 'x',
+                },
+                pan: {
+                    enabled: true,
+                    mode: 'x',
+                }
+            }
+        },
+        scales: {
+            x: {
+                display: false,
+                grid: { display: false },
+            },
+            y: {
+                display: false,
+                grid: { display: false },
+                stacked: true
+            }
+        },
+        layout: {
+            padding: {
+                top: 30,
+                bottom: 30,
+                left: 10,
+                right: 10
+            }
+        }
+    };
+
+    // Helper to resolve CSS variables once
+    const updateColors = () => {
+        if (typeof window !== 'undefined') {
+            const style = getComputedStyle(document.documentElement);
+            colors = {
+                danger: style.getPropertyValue('--danger-color').trim() || '#ef4444',
+                success: style.getPropertyValue('--success-color').trim() || '#22c55e',
+                text: style.getPropertyValue('--text-primary').trim() || '#e2e8f0',
+                textSecondary: style.getPropertyValue('--text-secondary').trim() || '#94a3b8',
+                bgTertiary: style.getPropertyValue('--bg-tertiary').trim() || '#1e293b'
+            };
+            // Force update if chart exists to apply new colors
+            if (chartInstance && isValidData) {
+                updateChart();
+            }
+        }
+    };
+
+    onMount(() => {
+        updateColors();
+    });
+
+    // Re-fetch colors when theme changes
+    $: if ($uiStore.currentTheme) {
+        // Use timeout to ensure DOM has updated with new theme classes/variables
+        setTimeout(updateColors, 100);
+    }
+
+    // Main reactive loop
     $: {
-        if (entryPrice && stopLossPrice && targets.length > 0 && targets[targets.length - 1].price) {
+        isValidData = !!(entryPrice && stopLossPrice && targets.length > 0 && targets[targets.length - 1].price);
 
-            const lastTpPrice = targets[targets.length - 1].price as number;
+        if (isValidData) {
+            updateChart();
+        }
+    }
 
-            // Determine colors based on win/loss zones
-            const dangerColor = getCssVar('--danger-color') || '#ef4444';
-            const successColor = getCssVar('--success-color') || '#22c55e';
-            const textColor = getCssVar('--text-primary') || '#e2e8f0';
-            const textSecondary = getCssVar('--text-secondary') || '#94a3b8';
-            const bgTertiary = getCssVar('--bg-tertiary') || '#1e293b';
+    function updateChart() {
+        if (!entryPrice || !stopLossPrice || !targets || targets.length === 0) return;
 
-            // Risk Segment: From SL to Entry
-            // Reward Segment: From Entry to Last TP
+        const lastTpPrice = targets[targets.length - 1].price as number;
 
-            // Explicitly cast to [number, number] to satisfy Chart.js types
-            const riskSegment: [number, number] = [stopLossPrice, entryPrice];
-            const rewardSegment: [number, number] = [entryPrice, lastTpPrice];
+        // Risk Segment: From SL to Entry
+        const riskSegment: [number, number] = [stopLossPrice, entryPrice];
+        // Reward Segment: From Entry to Last TP
+        const rewardSegment: [number, number] = [entryPrice, lastTpPrice];
 
-            chartData = {
-                labels: ['Analysis'], // Dummy label for the single y-axis row
+        const xMin = Math.min(stopLossPrice, lastTpPrice) * 0.995;
+        const xMax = Math.max(stopLossPrice, lastTpPrice) * 1.005;
+
+        // Build Annotations
+        const annotations: any = {};
+
+        // Entry Line (White)
+        annotations['entryLine'] = {
+            type: 'line',
+            xMin: entryPrice,
+            xMax: entryPrice,
+            borderColor: colors.text,
+            borderWidth: 2,
+            label: {
+                display: true,
+                content: 'Einstieg',
+                position: 'start',
+                yAdjust: 20,
+                backgroundColor: colors.bgTertiary,
+                color: colors.text,
+                font: { size: 10 },
+                padding: 4,
+                borderRadius: 4
+            }
+        };
+
+        // SL Line (Red)
+        annotations['slLine'] = {
+            type: 'line',
+            xMin: stopLossPrice,
+            xMax: stopLossPrice,
+            borderColor: colors.danger,
+            borderWidth: 2,
+            label: {
+                display: true,
+                content: 'SL',
+                position: 'end',
+                yAdjust: -20,
+                backgroundColor: colors.danger,
+                color: '#fff',
+                font: { size: 10, weight: 'bold' },
+                padding: 4,
+                borderRadius: 4
+            }
+        };
+
+        // TP Lines (Green)
+        targets.forEach((target, index) => {
+            if (target.price) {
+                const detail = calculatedTpDetails.find(d => d.index === index);
+                const rrText = detail ? `${detail.riskRewardRatio.toFixed(2)}R` : '';
+
+                annotations[`tp${index}`] = {
+                    type: 'line',
+                    xMin: target.price,
+                    xMax: target.price,
+                    borderColor: 'rgba(255, 255, 255, 0.5)',
+                    borderWidth: 1,
+                    borderDash: [4, 4],
+                    label: {
+                        display: true,
+                        content: [`TP${index + 1}`, rrText],
+                        position: 'end',
+                        yAdjust: -25,
+                        backgroundColor: 'transparent',
+                        color: colors.textSecondary,
+                        font: { size: 10 },
+                        textAlign: 'center'
+                    }
+                };
+            }
+        });
+
+        // Update Chart Instance directly if available
+        if (chartInstance) {
+            // Update Datasets
+            chartInstance.data.datasets = [
+                {
+                    label: 'Risk',
+                    data: [riskSegment],
+                    backgroundColor: colors.danger,
+                    borderSkipped: false,
+                    borderRadius: { topLeft: 4, bottomLeft: 4 },
+                    barPercentage: 0.6,
+                    categoryPercentage: 1.0
+                },
+                {
+                    label: 'Reward',
+                    data: [rewardSegment],
+                    backgroundColor: colors.success,
+                    borderSkipped: false,
+                    borderRadius: { topRight: 4, bottomRight: 4 },
+                    barPercentage: 0.6,
+                    categoryPercentage: 1.0
+                }
+            ];
+
+            // Update Options
+            if (chartInstance.options?.plugins?.annotation) {
+                chartInstance.options.plugins.annotation.annotations = annotations;
+            }
+            if (chartInstance.options?.scales?.x) {
+                chartInstance.options.scales.x.min = xMin;
+                chartInstance.options.scales.x.max = xMax;
+            }
+
+            // 'none' prevents animation and full re-render flickering
+            chartInstance.update('none');
+        } else {
+            // Initial Load (fallback if chartInstance is not yet bound when data arrives)
+             chartData = {
+                labels: ['Analysis'],
                 datasets: [
                     {
                         label: 'Risk',
                         data: [riskSegment],
-                        backgroundColor: dangerColor,
+                        backgroundColor: colors.danger,
                         borderSkipped: false,
-                        borderRadius: { topLeft: 4, bottomLeft: 4 }, // Rounded corners on left
+                        borderRadius: { topLeft: 4, bottomLeft: 4 },
                         barPercentage: 0.6,
                         categoryPercentage: 1.0
                     },
                     {
                         label: 'Reward',
                         data: [rewardSegment],
-                        backgroundColor: successColor,
+                        backgroundColor: colors.success,
                         borderSkipped: false,
-                        borderRadius: { topRight: 4, bottomRight: 4 }, // Rounded corners on right
+                        borderRadius: { topRight: 4, bottomRight: 4 },
                         barPercentage: 0.6,
                         categoryPercentage: 1.0
                     }
                 ]
             };
 
-            // Annotations
-            const annotations: any = {};
-
-            // Entry Line (White) - Bottom Label
-            annotations['entryLine'] = {
-                type: 'line',
-                xMin: entryPrice,
-                xMax: entryPrice,
-                borderColor: textColor,
-                borderWidth: 2,
-                label: {
-                    display: true,
-                    content: 'Einstieg',
-                    position: 'start', // bottom for horizontal chart? In Chart.js 'start' on x scale is left/bottom depending.
-                    // For x-scale line, position is along the line. 'start' is bottom, 'end' is top.
-                    yAdjust: 20, // Push it down
-                    backgroundColor: bgTertiary,
-                    color: textColor,
-                    font: { size: 10 },
-                    padding: 4,
-                    borderRadius: 4
-                }
-            };
-
-            // SL Line (Red) - Top Label
-            annotations['slLine'] = {
-                type: 'line',
-                xMin: stopLossPrice,
-                xMax: stopLossPrice,
-                borderColor: dangerColor,
-                borderWidth: 2,
-                label: {
-                    display: true,
-                    content: 'SL',
-                    position: 'end', // Top
-                    yAdjust: -20,
-                    backgroundColor: dangerColor,
-                    color: '#fff',
-                    font: { size: 10, weight: 'bold' },
-                    padding: 4,
-                    borderRadius: 4
-                }
-            };
-
-            // TP Lines (Green)
-            targets.forEach((target, index) => {
-                if (target.price) {
-                    const detail = calculatedTpDetails.find(d => d.index === index);
-                    const rrText = detail ? `${detail.riskRewardRatio.toFixed(2)}R` : '';
-
-                    annotations[`tp${index}`] = {
-                        type: 'line',
-                        xMin: target.price,
-                        xMax: target.price,
-                        borderColor: 'rgba(255, 255, 255, 0.5)', // Semi-transparent white
-                        borderWidth: 1,
-                        borderDash: [4, 4],
-                        label: {
-                            display: true,
-                            content: [`TP${index + 1}`, rrText],
-                            position: 'end', // Top
-                            yAdjust: -25, // Staggered slightly if needed?
-                            backgroundColor: 'transparent',
-                            color: textSecondary,
-                            font: { size: 10 },
-                            textAlign: 'center'
-                        }
-                    };
-                }
-            });
-
-            chartOptions = {
-                indexAxis: 'y', // Horizontal bar
-                responsive: true,
-                maintainAspectRatio: false,
-                plugins: {
-                    legend: { display: false },
-                    tooltip: { enabled: false }, // Custom tooltips or none? The old one had tooltips.
-                    // We can use the datalabels or just reliance on visual lines.
-                    // Let's keep it simple first as requested.
-                    annotation: {
-                        annotations: annotations,
-                        clip: false // Allow labels outside
-                    },
-                    datalabels: {
-                        display: false // We use annotations for labels
-                    },
-                    zoom: {
-                        zoom: {
-                            wheel: { enabled: true },
-                            pinch: { enabled: true },
-                            mode: 'x',
-                        },
-                        pan: {
-                            enabled: true,
-                            mode: 'x',
-                        }
-                    }
-                },
-                scales: {
-                    x: {
-                        display: false, // Hide the axis numbers
-                        grid: { display: false },
-                        min: Math.min(stopLossPrice, lastTpPrice) * 0.995, // Add some padding
-                        max: Math.max(stopLossPrice, lastTpPrice) * 1.005
-                    },
-                    y: {
-                        display: false, // Hide the category label
-                        grid: { display: false },
-                        stacked: true
-                    }
-                },
-                layout: {
-                    padding: {
-                        top: 30,
-                        bottom: 30,
-                        left: 10,
-                        right: 10
-                    }
-                }
-            };
+            // Note: annotations in initial chartOptions are updated via direct mutation below because
+            // spreading deep objects is messy. But since chartOptions is a 'let', we can just mutate it
+            // before the chart mounts.
+            if (chartOptions.plugins && chartOptions.plugins.annotation) {
+                chartOptions.plugins.annotation.annotations = annotations;
+            }
+            if (chartOptions.scales && chartOptions.scales.x) {
+                chartOptions.scales.x.min = xMin;
+                chartOptions.scales.x.max = xMax;
+            }
         }
     }
 </script>
@@ -198,10 +273,13 @@
         role="img"
         aria-label="{$_('dashboard.visualBar.ariaLabel')}"
     >
-        {#if chartData}
-            <Bar data={chartData} options={chartOptions} />
-        {:else}
-            <div class="text-center text-gray-500 py-4">
+        <!-- Chart is always rendered but hidden if invalid data to prevent unmount/remount flickering -->
+        <div class="h-full w-full" class:invisible={!isValidData}>
+            <Bar bind:chart={chartInstance} data={chartData} options={chartOptions} />
+        </div>
+
+        {#if !isValidData}
+            <div class="absolute inset-0 flex items-center justify-center text-center text-gray-500">
                 {$_('dashboard.promptForData')}
             </div>
         {/if}
