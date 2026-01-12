@@ -384,7 +384,13 @@ class BitunixWebSocketService {
 
     private handleMessage(message: any, type: 'public' | 'private') {
         try {
-            // Watchdog reset is handled in onmessage handler to catch ALL events
+            // Reset watchdog on ANY valid message payload, handled by the specific handler
+            // But we reinforce it here for protocol messages
+            if (type === 'public') {
+                if (this.wsPublic) this.resetWatchdog('public', this.wsPublic);
+            } else {
+                if (this.wsPrivate) this.resetWatchdog('private', this.wsPrivate);
+            }
 
             // Treat ANY message as proof of life, negating the need for a specific Pong if data is flowing
             if (type === 'public') this.awaitingPongPublic = false;

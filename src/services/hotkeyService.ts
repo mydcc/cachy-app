@@ -115,8 +115,8 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     { id: 'RESET_INPUTS', label: 'Reset Trade Inputs', category: 'Trade Setup', defaultKey: 'Alt+R', action: () => resetAllInputs() },
 
     // --- UI & Navigation ---
-    { id: 'OPEN_JOURNAL', label: 'Toggle Journal', category: 'UI & Navigation', defaultKey: 'Alt+J', action: () => uiStore.toggleJournalModal(true) },
-    { id: 'TOGGLE_SETTINGS', label: 'Open Settings', category: 'UI & Navigation', defaultKey: 'Alt+,', action: () => uiStore.toggleSettingsModal(true) },
+    { id: 'OPEN_JOURNAL', label: 'Toggle Journal', category: 'UI & Navigation', defaultKey: 'Alt+J', action: () => uiStore.update(s => ({ ...s, showJournalModal: !s.showJournalModal })) },
+    { id: 'TOGGLE_SETTINGS', label: 'Open Settings', category: 'UI & Navigation', defaultKey: 'Alt+,', action: () => uiStore.update(s => ({ ...s, showSettingsModal: !s.showSettingsModal })) },
     { id: 'TOGGLE_SIDEBAR', label: 'Toggle Sidebars', category: 'UI & Navigation', defaultKey: 'Alt+B', action: () => settingsStore.update(s => ({ ...s, showSidebars: !s.showSidebars })) },
     { id: 'TOGGLE_TECHNICALS', label: 'Toggle Technicals Panel', category: 'UI & Navigation', defaultKey: 'Alt+K', action: () => settingsStore.update(s => ({ ...s, showTechnicals: !s.showTechnicals })) },
 

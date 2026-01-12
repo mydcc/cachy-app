@@ -82,10 +82,9 @@
             use:clickOutside={{ enabled: showSuggestions, callback: () => showSuggestions = false }}
         >
             {#each filteredTags as suggestion}
-                <!-- svelte-ignore a11y-click-events-have-key-events -->
                 <button
                     type="button"
-                    class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] bg-transparent border-0"
+                    class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] border-none bg-transparent block"
                     on:click|stopPropagation={() => selectSuggestion(suggestion)}
                 >
                     #{suggestion}

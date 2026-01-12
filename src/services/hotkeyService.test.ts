@@ -84,7 +84,7 @@ describe('HotkeyService', () => {
             anthropicApiKey: '',
             anthropicModel: 'claude-3-5-sonnet-20240620',
             disclaimerAccepted: true,
-            customHotkeys: {},
+            customHotkeys: {}
         });
 
         tradeStore.set({
