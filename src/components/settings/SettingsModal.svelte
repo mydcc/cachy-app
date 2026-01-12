@@ -7,6 +7,8 @@
     import { createBackup, restoreFromBackup } from '../../services/backupService';
     import { trackCustomEvent } from '../../services/trackingService';
     import { normalizeTimeframeInput } from '../../utils/utils';
+    import HotkeySettings from './HotkeySettings.svelte';
+    import { HOTKEY_ACTIONS, MODE1_MAP, MODE2_MAP, MODE3_MAP } from '../../services/hotkeyService';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -65,7 +67,7 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
+    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' | 'hotkeys' = 'general';
     let isInitialized = false;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
@@ -281,32 +283,24 @@
         favoriteTimeframesInput = favoriteTimeframes.join(', ');
     }
 
-    const hotkeyDescriptions = {
-        mode1: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus Next Take Profit' },
-            { keys: '+ / -', action: 'Add / Remove Take Profit' },
-            { keys: 'E', action: 'Focus Entry Price' },
-            { keys: 'O', action: 'Focus Stop Loss' },
-            { keys: 'L / S', action: 'Set Long / Short' },
-            { keys: 'J', action: 'Open Journal' }
-        ],
-        mode2: [
-            { keys: 'Alt + 1-4', action: 'Load Favorites' },
-            { keys: 'Alt + T', action: 'Add Take Profit' },
-            { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
-            { keys: 'Alt + E', action: 'Focus Entry Price' },
-            { keys: 'Alt + O', action: 'Focus Stop Loss' },
-            { keys: 'Alt + L / S', action: 'Set Long / Short' },
-            { keys: 'Alt + J', action: 'Open Journal' }
-        ],
-        mode3: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus TP 1' },
-            { keys: 'Shift + T', action: 'Focus Last TP' },
-            { keys: '+ / -', action: 'Add / Remove TP' }
-        ]
-    };
+    function getHotkeyDescriptions(mode: string) {
+        let map: Record<string, string> = {};
+        if (mode === 'mode1') map = MODE1_MAP;
+        else if (mode === 'mode2') map = MODE2_MAP;
+        else if (mode === 'mode3') map = MODE3_MAP;
+        else return [];
+
+        // Group slightly for display or just list them?
+        // Listing all might be long. Let's list primary ones.
+        return HOTKEY_ACTIONS.map(action => {
+            const key = map[action.id];
+            if (!key) return null;
+            return { keys: key, action: action.label };
+        }).filter(x => x !== null);
+    }
+
+    // Reactive descriptions based on selected mode
+    $: activeDescriptions = getHotkeyDescriptions(hotkeyMode);
 </script>
 
 <ModalFrame
@@ -354,6 +348,15 @@
             aria-controls="tab-behavior"
         >
             {$_('settings.tabs.behavior')}
+        </button>
+        <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'hotkeys' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'hotkeys'}
+            role="tab"
+            aria-selected={activeTab === 'hotkeys'}
+            aria-controls="tab-hotkeys"
+        >
+            Hotkeys
         </button>
         <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'sidebar' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
@@ -571,22 +574,46 @@
                 <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                      <span class="text-sm font-medium">Hotkey Profile</span>
                      <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="mode2">Safety Mode (Alt + Key) - Default</option>
+                        <option value="custom">Custom (Fully Configurable)</option>
+                        <option value="mode2">Safety Mode (Alt + Key)</option>
                         <option value="mode1">Direct Mode (Fast)</option>
                         <option value="mode3">Hybrid Mode</option>
                      </select>
-                     <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
-                        <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            {#each hotkeyDescriptions[hotkeyMode] as desc}
-                                <div class="flex justify-between">
-                                    <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
-                                    <span>{desc.action}</span>
-                                </div>
-                            {/each}
-                        </div>
-                     </div>
+                     {#if hotkeyMode !== 'custom'}
+                         <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
+                            <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys ({activeDescriptions.length}):</div>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                                {#each activeDescriptions as desc}
+                                    <div class="flex justify-between gap-4">
+                                        <span class="font-mono text-[var(--accent-color)] whitespace-nowrap">{desc.keys}</span>
+                                        <span class="truncate">{desc.action}</span>
+                                    </div>
+                                {/each}
+                            </div>
+                         </div>
+                     {:else}
+                         <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
+                            <p>Configure your custom hotkeys in the "Hotkeys" tab.</p>
+                         </div>
+                     {/if}
                 </div>
+            </div>
+
+        {:else if activeTab === 'hotkeys'}
+            <div class="flex flex-col h-full" role="tabpanel" id="tab-hotkeys">
+                {#if hotkeyMode !== 'custom'}
+                    <div class="flex flex-col items-center justify-center h-full p-6 text-center text-[var(--text-secondary)]">
+                        <p class="mb-4">You are currently using a preset Hotkey Mode.</p>
+                        <button
+                            class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded font-bold text-sm"
+                            on:click={() => hotkeyMode = 'custom'}
+                        >
+                            Switch to Custom Mode to Edit
+                        </button>
+                    </div>
+                {:else}
+                    <HotkeySettings />
+                {/if}
             </div>
 
         {:else if activeTab === 'sidebar'}

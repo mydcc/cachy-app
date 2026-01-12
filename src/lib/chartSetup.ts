@@ -12,6 +12,8 @@ import {
   Filler,
   TimeScale
 } from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
   Title,
@@ -24,8 +26,21 @@ ChartJS.register(
   BarElement,
   ArcElement,
   Filler,
-  TimeScale
+  TimeScale,
+  annotationPlugin,
+  ChartDataLabels
 );
+
+export async function initZoomPlugin() {
+  if (typeof window !== 'undefined') {
+    try {
+      const plugin = await import('chartjs-plugin-zoom');
+      ChartJS.register(plugin.default);
+    } catch (err) {
+      console.error('Failed to load chartjs-plugin-zoom', err);
+    }
+  }
+}
 
 // Global defaults for dark theme
 ChartJS.defaults.color = '#94a3b8'; // text-slate-400

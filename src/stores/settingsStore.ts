@@ -3,7 +3,7 @@ import { browser } from '$app/environment';
 import { CONSTANTS } from '../lib/constants';
 
 export type MarketDataInterval = '1s' | '1m' | '10m';
-export type HotkeyMode = 'mode1' | 'mode2' | 'mode3';
+export type HotkeyMode = 'mode1' | 'mode2' | 'mode3' | 'custom';
 export type PositionViewMode = 'detailed' | 'focus';
 export type PnlViewMode = 'value' | 'percent' | 'bar';
 export type SidePanelLayout = 'standard' | 'transparent' | 'floating';
@@ -31,6 +31,9 @@ export interface Settings {
         bitunix: ApiKeys;
         binance: ApiKeys;
     };
+    // Custom Hotkeys (Action ID -> Key Combo)
+    customHotkeys: Record<string, string>;
+
     // Indicator & Timeframe Settings
     favoriteTimeframes: string[];
     syncRsiTimeframe: boolean;
@@ -71,6 +74,7 @@ const defaultSettings: Settings = {
     isPro: false,
     feePreference: 'taker', // Default to Taker fees
     hotkeyMode: 'mode2', // Safety Mode as default
+    customHotkeys: {},
     apiKeys: {
         bitunix: { key: '', secret: '' },
         binance: { key: '', secret: '' }
@@ -169,6 +173,7 @@ function loadSettingsFromLocalStorage(): Settings {
             isPro: settings.isPro ?? defaultSettings.isPro,
             feePreference: settings.feePreference ?? defaultSettings.feePreference,
             hotkeyMode: settings.hotkeyMode ?? defaultSettings.hotkeyMode,
+            customHotkeys: settings.customHotkeys || {},
             apiKeys: settings.apiKeys,
             favoriteTimeframes: settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
             syncRsiTimeframe: settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,

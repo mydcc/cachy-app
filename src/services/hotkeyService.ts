@@ -5,7 +5,18 @@ import { favoritesStore } from '../stores/favoritesStore';
 import { uiStore } from '../stores/uiStore';
 import { app } from './app';
 import { CONSTANTS } from '../lib/constants';
-import { modalManager } from './modalManager';
+
+// --- Types & Constants ---
+
+export type HotkeyCategory = 'Favorites' | 'Trade Setup' | 'UI & Navigation' | 'Market Data' | 'System';
+
+export interface HotkeyAction {
+    id: string;
+    label: string;
+    category: HotkeyCategory;
+    defaultKey: string; // Used as default for Custom mode
+    action: () => void;
+}
 
 // Define IDs for elements we need to focus
 const IDs = {
@@ -16,11 +27,13 @@ const IDs = {
     TP_ADD_BTN: 'add-tp-btn'
 };
 
+// --- Helper Functions ---
+
 function isInputActive(): boolean {
     const activeElement = document.activeElement;
     if (!activeElement) return false;
     const tagName = activeElement.tagName.toLowerCase();
-    return tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+    return (tagName === 'input' || tagName === 'textarea' || tagName === 'select') && (activeElement as HTMLElement).isContentEditable !== false;
 }
 
 function focusElement(id: string) {
@@ -59,18 +72,16 @@ function cycleTakeProfitFocus(reverse: boolean = false) {
 
     let nextIndex;
     if (currentIndex === -1) {
-        // Not in a TP field, go to first (or last if reverse)
         nextIndex = reverse ? count - 1 : 0;
     } else {
         if (reverse) {
             nextIndex = currentIndex - 1;
-            if (nextIndex < 0) nextIndex = count - 1; // Wrap around
+            if (nextIndex < 0) nextIndex = count - 1;
         } else {
             nextIndex = currentIndex + 1;
-            if (nextIndex >= count) nextIndex = 0; // Wrap around
+            if (nextIndex >= count) nextIndex = 0;
         }
     }
-
     focusElement(`${IDs.TP_PRICE_PREFIX}${nextIndex}`);
 }
 
@@ -83,165 +94,148 @@ function removeLastTakeProfit() {
     }
 }
 
+// --- Action Definitions ---
+
+export const HOTKEY_ACTIONS: HotkeyAction[] = [
+    // --- Favorites ---
+    { id: 'FAV_1', label: 'Load Favorite 1', category: 'Favorites', defaultKey: 'Alt+1', action: () => loadFavorite(1) },
+    { id: 'FAV_2', label: 'Load Favorite 2', category: 'Favorites', defaultKey: 'Alt+2', action: () => loadFavorite(2) },
+    { id: 'FAV_3', label: 'Load Favorite 3', category: 'Favorites', defaultKey: 'Alt+3', action: () => loadFavorite(3) },
+    { id: 'FAV_4', label: 'Load Favorite 4', category: 'Favorites', defaultKey: 'Alt+4', action: () => loadFavorite(4) },
+
+    // --- Trade Setup ---
+    { id: 'FOCUS_ENTRY', label: 'Focus Entry Price', category: 'Trade Setup', defaultKey: 'Alt+E', action: () => focusElement(IDs.ENTRY_PRICE) },
+    { id: 'FOCUS_SL', label: 'Focus Stop Loss', category: 'Trade Setup', defaultKey: 'Alt+O', action: () => focusElement(IDs.STOP_LOSS) },
+    { id: 'FOCUS_TP_NEXT', label: 'Focus Next TP', category: 'Trade Setup', defaultKey: 'Alt+T', action: () => cycleTakeProfitFocus(false) },
+    { id: 'FOCUS_TP_PREV', label: 'Focus Previous TP', category: 'Trade Setup', defaultKey: 'Alt+Shift+T', action: () => cycleTakeProfitFocus(true) },
+    { id: 'ADD_TP', label: 'Add TP Target', category: 'Trade Setup', defaultKey: 'Alt+Plus', action: () => app.addTakeProfitRow() },
+    { id: 'REMOVE_TP', label: 'Remove TP Target', category: 'Trade Setup', defaultKey: 'Alt+Minus', action: () => removeLastTakeProfit() },
+    { id: 'SET_LONG', label: 'Set Direction Long', category: 'Trade Setup', defaultKey: 'Alt+L', action: () => updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })) },
+    { id: 'SET_SHORT', label: 'Set Direction Short', category: 'Trade Setup', defaultKey: 'Alt+S', action: () => updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT })) },
+    { id: 'RESET_INPUTS', label: 'Reset Trade Inputs', category: 'Trade Setup', defaultKey: 'Alt+R', action: () => resetAllInputs() },
+
+    // --- UI & Navigation ---
+    { id: 'OPEN_JOURNAL', label: 'Toggle Journal', category: 'UI & Navigation', defaultKey: 'Alt+J', action: () => uiStore.toggleJournalModal(true) },
+    { id: 'TOGGLE_SETTINGS', label: 'Open Settings', category: 'UI & Navigation', defaultKey: 'Alt+,', action: () => uiStore.toggleSettingsModal(true) },
+    { id: 'TOGGLE_SIDEBAR', label: 'Toggle Sidebars', category: 'UI & Navigation', defaultKey: 'Alt+B', action: () => settingsStore.update(s => ({ ...s, showSidebars: !s.showSidebars })) },
+    { id: 'TOGGLE_TECHNICALS', label: 'Toggle Technicals Panel', category: 'UI & Navigation', defaultKey: 'Alt+K', action: () => settingsStore.update(s => ({ ...s, showTechnicals: !s.showTechnicals })) },
+
+    // --- Market Data ---
+    { id: 'FETCH_PRICE', label: 'Fetch Price', category: 'Market Data', defaultKey: 'Alt+P', action: () => app.handleFetchPrice() },
+];
+
+// --- Legacy Mode Maps ---
+
+export const MODE1_MAP: Record<string, string> = { // Direct Mode
+    'FAV_1': '1', 'FAV_2': '2', 'FAV_3': '3', 'FAV_4': '4',
+    'FOCUS_TP_NEXT': 'T', 'ADD_TP': 'Plus', 'REMOVE_TP': 'Minus',
+    'FOCUS_ENTRY': 'E', 'FOCUS_SL': 'O',
+    'SET_LONG': 'L', 'SET_SHORT': 'S',
+    'OPEN_JOURNAL': 'J',
+    'FETCH_PRICE': 'P',
+    'TOGGLE_SIDEBAR': 'B', 'TOGGLE_TECHNICALS': 'K', 'TOGGLE_SETTINGS': ',',
+    'RESET_INPUTS': 'R'
+};
+
+export const MODE2_MAP: Record<string, string> = { // Safety Mode (Matches defaultKeys mostly)
+    'FAV_1': 'Alt+1', 'FAV_2': 'Alt+2', 'FAV_3': 'Alt+3', 'FAV_4': 'Alt+4',
+    'FOCUS_TP_NEXT': 'Alt+T', 'FOCUS_TP_PREV': 'Alt+Shift+T', // Safety mode usually used Shift logic manually, mapped here explicitly
+    'ADD_TP': 'Alt+Plus', 'REMOVE_TP': 'Alt+Minus',
+    'FOCUS_ENTRY': 'Alt+E', 'FOCUS_SL': 'Alt+O',
+    'SET_LONG': 'Alt+L', 'SET_SHORT': 'Alt+S',
+    'OPEN_JOURNAL': 'Alt+J', 'RESET_INPUTS': 'Alt+R',
+    'FETCH_PRICE': 'Alt+P',
+    'TOGGLE_SIDEBAR': 'Alt+B', 'TOGGLE_TECHNICALS': 'Alt+K', 'TOGGLE_SETTINGS': 'Alt+,'
+};
+
+export const MODE3_MAP: Record<string, string> = { // Hybrid Mode
+    'FAV_1': '1', 'FAV_2': '2', 'FAV_3': '3', 'FAV_4': '4',
+    'FOCUS_TP_NEXT': 'T', 'FOCUS_TP_PREV': 'Shift+T',
+    'ADD_TP': 'Plus', 'REMOVE_TP': 'Minus',
+    // Expanded keys for Hybrid (Active when !inputActive)
+    'FOCUS_ENTRY': 'E', 'FOCUS_SL': 'O',
+    'SET_LONG': 'L', 'SET_SHORT': 'S',
+    'OPEN_JOURNAL': 'J', 'RESET_INPUTS': 'R',
+    'FETCH_PRICE': 'P',
+    'TOGGLE_SIDEBAR': 'B', 'TOGGLE_TECHNICALS': 'K', 'TOGGLE_SETTINGS': ','
+};
+
+// --- Key Matching Logic ---
+
+export function normalizeKeyCombo(event: KeyboardEvent): string {
+    const parts = [];
+    if (event.ctrlKey) parts.push('Ctrl');
+    if (event.altKey) parts.push('Alt');
+    if (event.shiftKey) parts.push('Shift');
+
+    let key = event.key;
+    if (key === ' ') key = 'Space';
+    if (key === '+') key = 'Plus';
+    if (key === '-') key = 'Minus';
+    if (key === ',') key = ','; // Explicitly keep comma
+
+    if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
+        return parts.join('+');
+    }
+
+    parts.push(key.length === 1 ? key.toUpperCase() : key);
+    return parts.join('+');
+}
+
+function isMatch(event: KeyboardEvent, combo: string): boolean {
+    const eventCombo = normalizeKeyCombo(event);
+    return eventCombo === combo;
+}
+
+// --- Main Handler ---
+
 export function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') return;
+
     const settings = get(settingsStore);
     const mode = settings.hotkeyMode;
-
-    // Always handle Escape globally for modals
-    if (event.key === 'Escape') {
-        return;
-    }
-
     const inputActive = isInputActive();
 
-    // Mode 1: Direct Mode (Only when NO input is active)
-    if (mode === 'mode1' && !inputActive) {
-        handleDirectMode(event);
-    }
-    // Mode 2: Safety Mode (Alt Keys - Always active, mostly)
-    else if (mode === 'mode2') {
-        handleSafetyMode(event);
-    }
-    // Mode 3: Hybrid Mode (Mixed)
-    else if (mode === 'mode3') {
-        handleHybridMode(event, inputActive);
-    }
-}
+    let map: Record<string, string> = {};
 
-function handleDirectMode(event: KeyboardEvent) {
-    const key = event.key.toLowerCase();
-
-    // Numbers 1-4
-    if (['1', '2', '3', '4'].includes(key)) {
-        event.preventDefault();
-        loadFavorite(parseInt(key));
-        return;
+    switch (mode) {
+        case 'mode1': map = MODE1_MAP; break;
+        case 'mode2': map = MODE2_MAP; break;
+        case 'mode3': map = MODE3_MAP; break;
+        case 'custom': map = settings.customHotkeys || {}; break;
     }
 
-    switch (key) {
-        case 't':
-            event.preventDefault();
-            cycleTakeProfitFocus();
-            break;
-        case '+':
-            event.preventDefault();
-            app.addTakeProfitRow();
-            break;
-        case '-':
-            event.preventDefault();
-            removeLastTakeProfit();
-            break;
-        case 'e':
-            event.preventDefault();
-            focusElement(IDs.ENTRY_PRICE);
-            break;
-        case 'o':
-            event.preventDefault();
-            focusElement(IDs.STOP_LOSS);
-            break;
-        case 'l':
-            event.preventDefault();
-            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
-            break;
-        case 's':
-            event.preventDefault();
-            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
-            break;
-        case 'j':
-            event.preventDefault();
-            uiStore.toggleJournalModal(true);
-            break;
-    }
-}
+    for (const action of HOTKEY_ACTIONS) {
+        const mappedKey = map[action.id] || (mode === 'custom' ? action.defaultKey : null);
 
-function handleSafetyMode(event: KeyboardEvent) {
-    if (!event.altKey) return;
+        if (mappedKey && isMatch(event, mappedKey)) {
+            // --- Input Protection Logic ---
+            const hasModifier = event.altKey || event.ctrlKey;
+            const isFunctionKey = event.key.startsWith('F') && event.key.length > 1;
 
-    const key = event.key.toLowerCase();
-
-    // Favorites Alt+1-4
-    if (['1', '2', '3', '4'].includes(key)) {
-        event.preventDefault();
-        loadFavorite(parseInt(key));
-        return;
-    }
-
-    switch (key) {
-        case 't':
-            event.preventDefault();
-            if (event.shiftKey) {
-                removeLastTakeProfit();
-            } else {
-                app.addTakeProfitRow();
+            if (mode === 'mode1') {
+                // Direct Mode: Strictly NO inputs allowed
+                if (inputActive) continue;
+            } else if (mode === 'mode2') {
+                // Safety Mode: Always allowed (relies on modifiers)
+                // No extra check needed
+            } else if (mode === 'mode3') {
+                // Hybrid Mode:
+                // - If input is active: ONLY allow if Modifier or Function key
+                // - If input NOT active: Allow everything
+                if (inputActive && !hasModifier && !isFunctionKey) {
+                    // Special case for Hybrid: Original logic allowed +/- in some non-text inputs?
+                    // We simplify to standard protection. If user is typing in a field, 'Plus' should type '+'.
+                    continue;
+                }
+            } else if (mode === 'custom') {
+                 if (inputActive && !hasModifier && !isFunctionKey) continue;
             }
-            break;
-        case 'e':
-            event.preventDefault();
-            focusElement(IDs.ENTRY_PRICE);
-            break;
-        case 'o':
-            event.preventDefault();
-            focusElement(IDs.STOP_LOSS);
-            break;
-        case 'l':
-            event.preventDefault();
-            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG }));
-            break;
-        case 's':
-            event.preventDefault();
-            updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT }));
-            break;
-        case 'j':
-             event.preventDefault();
-             uiStore.toggleJournalModal(true);
-             break;
-         case 'r':
-             event.preventDefault();
-             resetAllInputs();
-             break;
-    }
-}
 
-function handleHybridMode(event: KeyboardEvent, inputActive: boolean) {
-    const key = event.key.toLowerCase();
-
-    // Non-conflicting keys (Favorites only when not typing)
-    if (!inputActive && ['1', '2', '3', '4'].includes(key)) {
-        event.preventDefault();
-        loadFavorite(parseInt(key));
-        return;
-    }
-
-    // T for Focus TP 1
-    if (key === 't' && !inputActive) {
-        event.preventDefault();
-        if (event.shiftKey) {
-            // Shift + T: Focus LAST TP
-            const count = get(tradeStore).targets.length;
-            if (count > 0) {
-                focusElement(`${IDs.TP_PRICE_PREFIX}${count - 1}`);
-            }
-        } else {
-            // T: Focus First TP
-            focusElement(`${IDs.TP_PRICE_PREFIX}0`);
+            event.preventDefault();
+            event.stopPropagation();
+            action.action();
+            return;
         }
-        return;
-    }
-
-    const activeId = document.activeElement?.id || '';
-    const isTpField = activeId.startsWith(IDs.TP_PRICE_PREFIX) || activeId.startsWith('tp-percent-');
-
-    // If typing in Symbol or Notes, don't intercept + / -
-    if (inputActive && !isTpField && activeId !== IDs.ENTRY_PRICE && activeId !== IDs.STOP_LOSS && activeId !== 'risk-amount-input') {
-        // Allow typing in text areas
-        return;
-    }
-
-    if (key === '+') {
-        event.preventDefault();
-        app.addTakeProfitRow();
-    } else if (key === '-') {
-        event.preventDefault();
-        removeLastTakeProfit();
     }
 }

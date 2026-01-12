@@ -150,7 +150,8 @@ export const syncService = {
                     fundingFee: funding,
                     tradingFee: fee,
                     realizedPnl: new Decimal(0), // It's unrealized
-                    isManual: false
+                    isManual: false,
+                    positionSize: size
                 };
                 newEntries.push(entry);
                 addedCount++;
@@ -243,7 +244,8 @@ export const syncService = {
                     fundingFee: funding,
                     tradingFee: fee,
                     realizedPnl: realizedPnl,
-                    isManual: false
+                    isManual: false,
+                    positionSize: qty
                 };
                 newEntries.push(entry);
                 addedCount++;

@@ -6,7 +6,9 @@
     import DisclaimerModal from '../components/shared/DisclaimerModal.svelte';
     import JournalView from '../components/shared/JournalView.svelte';
     import SettingsModal from '../components/settings/SettingsModal.svelte';
+    import CustomModal from '../components/shared/CustomModal.svelte';
 	import { onMount } from 'svelte';
+    import { initZoomPlugin } from '../lib/chartSetup';
 
 	// Removed Svelte 5 $props() and children destructuring
 	// let { children, data } = $props();
@@ -20,6 +22,9 @@
     let julesOverlayMessage = '';
 
 	onMount(() => {
+        // Initialize Zoom Plugin (Client-side only)
+        initZoomPlugin();
+
 		// The server provides a theme from the cookie.
 		// On the client, we prioritize localStorage as it might be more up-to-date
 		// if the cookie failed to set for any reason.
@@ -118,7 +123,7 @@
     <!-- Global Modals -->
     <JournalView />
     <SettingsModal />
-    <!-- ConfirmationModal Removed as not found -->
+    <CustomModal />
     <!-- ToastManager Removed as not found -->
     <!-- LoadingSpinner Removed as not found -->
 

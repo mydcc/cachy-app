@@ -83,7 +83,8 @@ describe('HotkeyService', () => {
             geminiModel: 'gemini-2.0-flash',
             anthropicApiKey: '',
             anthropicModel: 'claude-3-5-sonnet-20240620',
-            disclaimerAccepted: true
+            disclaimerAccepted: true,
+            customHotkeys: {},
         });
 
         tradeStore.set({
@@ -139,8 +140,7 @@ describe('HotkeyService', () => {
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,
-            loadingMessage: '',
-            showWhitepaperModal: false // Added missing property
+            loadingMessage: ''
         });
 
         // hotkeyService doesn't have an init(), it's likely initialized in App or Layout

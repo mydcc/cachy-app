@@ -26,33 +26,30 @@ export const POST: RequestHandler = async ({ request }) => {
             return false;
         };
 
-        // 1. Fetch Regular Orders
-        try {
-            const regularOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout);
-            allOrders = allOrders.concat(regularOrders);
-        } catch (err: any) {
-            console.error('Error fetching regular orders:', err.message || 'Unknown error');
-            // Don't throw here, partial success is allowed
+        // Execute all fetches in parallel
+        const [regularResult, tpslResult, planResult] = await Promise.allSettled([
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout),
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout),
+            fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout)
+        ]);
+
+        // Process results
+        if (regularResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(regularResult.value);
+        } else {
+            console.error('Error fetching regular orders:', (regularResult.reason as Error).message || 'Unknown error');
         }
 
-        // 2. Fetch TP/SL Orders (Specific Endpoint for Stop Losses)
-        if (!checkTimeout()) {
-            try {
-                const tpslOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout);
-                allOrders = allOrders.concat(tpslOrders);
-            } catch (err: any) {
-                console.warn('Error fetching TP/SL orders:', err.message);
-            }
+        if (tpslResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(tpslResult.value);
+        } else {
+            console.warn('Error fetching TP/SL orders:', (tpslResult.reason as Error).message);
         }
 
-        // 3. Fetch Plan Orders (Legacy/Alternative Trigger Orders)
-        if (!checkTimeout()) {
-             try {
-                const planOrders = await fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout);
-                allOrders = allOrders.concat(planOrders);
-            } catch (err: any) {
-                console.warn('Error fetching plan orders:', err.message);
-            }
+        if (planResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(planResult.value);
+        } else {
+            console.warn('Error fetching plan orders:', (planResult.reason as Error).message);
         }
 
         return json({ data: allOrders, isPartial });

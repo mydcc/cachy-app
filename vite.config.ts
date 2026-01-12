@@ -17,9 +17,6 @@ export default defineConfig({
 			output: {
 				manualChunks: (id) => {
 					if (id.includes('node_modules')) {
-						if (id.includes('chart.js') || id.includes('svelte-chartjs')) {
-							return 'chart-vendor';
-						}
 						if (id.includes('decimal.js') || id.includes('crypto-js')) {
 							return 'math-vendor';
 						}

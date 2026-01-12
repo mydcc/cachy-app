@@ -73,16 +73,21 @@ function createAccountStore() {
                     // Prepare partial data, defaulting only if this is a NEW position
                     const existing = index !== -1 ? currentPositions[index] : null;
 
-                    // Safety: If it's a new position, we need a side. If missing, we warn and default to long (unlikely for OPEN events)
+                    // Safety: If it's a new position, we need a side. If missing, we skip.
                     // If it's an update, we use existing side if data.side is missing.
-                    let side = data.side ? data.side.toLowerCase() : (existing ? existing.side : 'long');
+                    let side = data.side ? data.side.toLowerCase() : (existing ? existing.side : null);
+
+                    if (!side) {
+                        console.warn('Bitunix WS: Ignored position update due to missing side', data);
+                        return store;
+                    }
 
                     const newPos: Position = {
                         positionId: data.positionId,
                         symbol: data.symbol,
                         side: side,
                         size: new Decimal(data.qty || 0),
-                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0), 
+                        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
                         leverage: new Decimal(data.leverage || 0),
                         unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
                         margin: new Decimal(data.margin || 0),
@@ -107,6 +112,9 @@ function createAccountStore() {
 
                         currentPositions[index] = newPos;
                     } else {
+                        // Only add NEW position if we have critical fields
+                        // If marginMode is missing on NEW, defaulting to 'cross' is risky but acceptable if side is present?
+                        // Let's rely on standard API behavior: New positions usually come with full snapshot.
                         currentPositions.push(newPos);
                     }
                 }
