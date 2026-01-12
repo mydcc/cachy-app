@@ -392,6 +392,10 @@ class BitunixWebSocketService {
                 if (this.wsPrivate) this.resetWatchdog('private', this.wsPrivate);
             }
 
+            // Treat ANY message as proof of life, negating the need for a specific Pong if data is flowing
+            if (type === 'public') this.awaitingPongPublic = false;
+            else this.awaitingPongPrivate = false;
+
             if (message && message.event === 'login') {
                 if (message.code === 0 || message.msg === 'success') {
                     this.isAuthenticated = true;
@@ -406,8 +410,7 @@ class BitunixWebSocketService {
 
             // Check for Pong BEFORE checking for Ping, because Bitunix sends op:'ping' in the Pong response!
             if (message.op === 'pong' || message.pong) {
-                if (type === 'public') this.awaitingPongPublic = false;
-                else this.awaitingPongPrivate = false;
+                // Already handled by general activity check above, but explicit is fine
                 return;
             }
 
