@@ -437,6 +437,7 @@
     "layoutFloatingDesc": "Ausklappbare Chatbox (max 38vh)",
     "sidePanelDesc": "Ausklappbares Panel am linken Rand.",
     "showTechnicals": "Technicals-Panel anzeigen",
+    "showIndicatorParams": "Indikator-Parameter anzeigen",
     "hideUnfilledOrders": "Nur ausgeführte Orders anzeigen",
     "feePreference": "Gebühren-Präferenz",
     "feePreferenceDesc": "Wähle den Gebührensatz, der standardmäßig beim Synchronisieren von der API verwendet werden soll.",
