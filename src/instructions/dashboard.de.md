@@ -1,6 +1,7 @@
 # Anleitung: Meistere dein Trading mit Cachy
 
-Willkommen bei Cachy dem Positionsgrößenrechner der VIP-Community! Diese Anleitung erklärt dir dieses Tools Schritt für Schritt, um dein Trading auf das nächste Level zu heben.
+Cachy ist eine Webanwendung für Krypto-Händler, die entwickelt wurde, um Positionsgrößen zu berechnen, Risiken zu verwalten und ein Handelsjournal zu führen.
+Diese Anleitung erklärt dir dieses Tools Schritt für Schritt, um dein Trading auf das nächste Level zu heben.
 
 Der Kern des erfolgreichen Tradings ist **diszipliniertes Risikomanagement**. Cachy hilft dir dabei, die komplexen, aber entscheidenden Berechnungen für dich zu automatisieren.
 

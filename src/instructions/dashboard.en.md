@@ -1,6 +1,7 @@
 # Guide: Master Your Trading with Cachy
 
-Welcome to Cachy, the position sizing calculator for the VIP community! This guide helps you to understand the calculator tool and takes your trading to the next level.
+Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal.
+This guide helps you to understand the calculator tool and takes your trading to the next level.
 
 The core of successful trading is **disciplined risk management**. Cachy is designed to help you with exactly that by automating the complex but crucial calculations for you.
 
