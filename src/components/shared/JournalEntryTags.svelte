@@ -83,13 +83,13 @@
         >
             {#each filteredTags as suggestion}
                 <!-- svelte-ignore a11y-click-events-have-key-events -->
-                <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
-                <div
-                    class="px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)]"
+                <button
+                    type="button"
+                    class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] bg-transparent border-0"
                     on:click|stopPropagation={() => selectSuggestion(suggestion)}
                 >
                     #{suggestion}
-                </div>
+                </button>
             {/each}
         </div>
     {/if}
