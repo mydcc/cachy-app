@@ -31,10 +31,15 @@ ChartJS.register(
   ChartDataLabels
 );
 
-if (typeof window !== 'undefined') {
-  import('chartjs-plugin-zoom').then((plugin) => {
-    ChartJS.register(plugin.default);
-  }).catch(err => console.error('Failed to load chartjs-plugin-zoom', err));
+export async function initZoomPlugin() {
+  if (typeof window !== 'undefined') {
+    try {
+      const plugin = await import('chartjs-plugin-zoom');
+      ChartJS.register(plugin.default);
+    } catch (err) {
+      console.error('Failed to load chartjs-plugin-zoom', err);
+    }
+  }
 }
 
 // Global defaults for dark theme
