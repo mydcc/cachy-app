@@ -1462,7 +1462,8 @@
                                                 <div class="absolute top-0 left-0 w-full h-full bg-[var(--bg-secondary)] hidden group-hover:flex items-center justify-center gap-1 rounded shadow-sm border border-[var(--border-color)]">
                                                     <button class="p-1 hover:text-[var(--accent-color)]" title="View" on:click|stopPropagation={() => window.open(trade.screenshot, '_blank')}>
                                                         <!-- svelte-ignore svelte/no-at-html-tags -->
-                                                        {@html icons.eye || '👁️'}
+                                                        <!-- using a literal for eye since it is missing in icons -->
+                                                        {@html '👁️'}
                                                     </button>
                                                     <label class="p-1 hover:text-[var(--warning-color)] cursor-pointer" title="{$_('journal.labels.replaceScreenshot')}">
                                                         <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} on:click|stopPropagation />
