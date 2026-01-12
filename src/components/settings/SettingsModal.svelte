@@ -8,6 +8,7 @@
     import { trackCustomEvent } from '../../services/trackingService';
     import { normalizeTimeframeInput } from '../../utils/utils';
     import HotkeySettings from './HotkeySettings.svelte';
+    import { HOTKEY_ACTIONS, MODE1_MAP, MODE2_MAP, MODE3_MAP } from '../../services/hotkeyService';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -282,32 +283,24 @@
         favoriteTimeframesInput = favoriteTimeframes.join(', ');
     }
 
-    const hotkeyDescriptions = {
-        mode1: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus Next Take Profit' },
-            { keys: '+ / -', action: 'Add / Remove Take Profit' },
-            { keys: 'E', action: 'Focus Entry Price' },
-            { keys: 'O', action: 'Focus Stop Loss' },
-            { keys: 'L / S', action: 'Set Long / Short' },
-            { keys: 'J', action: 'Open Journal' }
-        ],
-        mode2: [
-            { keys: 'Alt + 1-4', action: 'Load Favorites' },
-            { keys: 'Alt + T', action: 'Add Take Profit' },
-            { keys: 'Alt + Shift + T', action: 'Remove Take Profit' },
-            { keys: 'Alt + E', action: 'Focus Entry Price' },
-            { keys: 'Alt + O', action: 'Focus Stop Loss' },
-            { keys: 'Alt + L / S', action: 'Set Long / Short' },
-            { keys: 'Alt + J', action: 'Open Journal' }
-        ],
-        mode3: [
-            { keys: '1-4', action: 'Load Favorites (No Input Active)' },
-            { keys: 'T', action: 'Focus TP 1' },
-            { keys: 'Shift + T', action: 'Focus Last TP' },
-            { keys: '+ / -', action: 'Add / Remove TP' }
-        ]
-    };
+    function getHotkeyDescriptions(mode: string) {
+        let map: Record<string, string> = {};
+        if (mode === 'mode1') map = MODE1_MAP;
+        else if (mode === 'mode2') map = MODE2_MAP;
+        else if (mode === 'mode3') map = MODE3_MAP;
+        else return [];
+
+        // Group slightly for display or just list them?
+        // Listing all might be long. Let's list primary ones.
+        return HOTKEY_ACTIONS.map(action => {
+            const key = map[action.id];
+            if (!key) return null;
+            return { keys: key, action: action.label };
+        }).filter(x => x !== null);
+    }
+
+    // Reactive descriptions based on selected mode
+    $: activeDescriptions = getHotkeyDescriptions(hotkeyMode);
 </script>
 
 <ModalFrame
@@ -588,12 +581,12 @@
                      </select>
                      {#if hotkeyMode !== 'custom'}
                          <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
-                            <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
-                            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                                {#each hotkeyDescriptions[hotkeyMode] as desc}
-                                    <div class="flex justify-between">
-                                        <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
-                                        <span>{desc.action}</span>
+                            <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys ({activeDescriptions.length}):</div>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1 max-h-[200px] overflow-y-auto custom-scrollbar pr-2">
+                                {#each activeDescriptions as desc}
+                                    <div class="flex justify-between gap-4">
+                                        <span class="font-mono text-[var(--accent-color)] whitespace-nowrap">{desc.keys}</span>
+                                        <span class="truncate">{desc.action}</span>
                                     </div>
                                 {/each}
                             </div>

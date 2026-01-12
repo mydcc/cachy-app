@@ -14,7 +14,7 @@ export interface HotkeyAction {
     id: string;
     label: string;
     category: HotkeyCategory;
-    defaultKey: string; // Default for 'custom' mode initialization (using Safety Mode style defaults)
+    defaultKey: string; // Used as default for Custom mode
     action: () => void;
 }
 
@@ -33,8 +33,6 @@ function isInputActive(): boolean {
     const activeElement = document.activeElement;
     if (!activeElement) return false;
     const tagName = activeElement.tagName.toLowerCase();
-    // Allow hotkeys in read-only inputs? Usually no, unless modifier used.
-    // For now, strict check.
     return (tagName === 'input' || tagName === 'textarea' || tagName === 'select') && (activeElement as HTMLElement).isContentEditable !== false;
 }
 
@@ -126,13 +124,44 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     { id: 'FETCH_PRICE', label: 'Fetch Price', category: 'Market Data', defaultKey: 'Alt+P', action: () => app.fetchPrice(get(tradeStore).symbol) },
 ];
 
+// --- Legacy Mode Maps ---
+
+export const MODE1_MAP: Record<string, string> = { // Direct Mode
+    'FAV_1': '1', 'FAV_2': '2', 'FAV_3': '3', 'FAV_4': '4',
+    'FOCUS_TP_NEXT': 'T', 'ADD_TP': 'Plus', 'REMOVE_TP': 'Minus',
+    'FOCUS_ENTRY': 'E', 'FOCUS_SL': 'O',
+    'SET_LONG': 'L', 'SET_SHORT': 'S',
+    'OPEN_JOURNAL': 'J',
+    'FETCH_PRICE': 'P',
+    'TOGGLE_SIDEBAR': 'B', 'TOGGLE_TECHNICALS': 'K', 'TOGGLE_SETTINGS': ',',
+    'RESET_INPUTS': 'R'
+};
+
+export const MODE2_MAP: Record<string, string> = { // Safety Mode (Matches defaultKeys mostly)
+    'FAV_1': 'Alt+1', 'FAV_2': 'Alt+2', 'FAV_3': 'Alt+3', 'FAV_4': 'Alt+4',
+    'FOCUS_TP_NEXT': 'Alt+T', 'FOCUS_TP_PREV': 'Alt+Shift+T', // Safety mode usually used Shift logic manually, mapped here explicitly
+    'ADD_TP': 'Alt+Plus', 'REMOVE_TP': 'Alt+Minus',
+    'FOCUS_ENTRY': 'Alt+E', 'FOCUS_SL': 'Alt+O',
+    'SET_LONG': 'Alt+L', 'SET_SHORT': 'Alt+S',
+    'OPEN_JOURNAL': 'Alt+J', 'RESET_INPUTS': 'Alt+R',
+    'FETCH_PRICE': 'Alt+P',
+    'TOGGLE_SIDEBAR': 'Alt+B', 'TOGGLE_TECHNICALS': 'Alt+K', 'TOGGLE_SETTINGS': 'Alt+,'
+};
+
+export const MODE3_MAP: Record<string, string> = { // Hybrid Mode
+    'FAV_1': '1', 'FAV_2': '2', 'FAV_3': '3', 'FAV_4': '4',
+    'FOCUS_TP_NEXT': 'T', 'FOCUS_TP_PREV': 'Shift+T',
+    'ADD_TP': 'Plus', 'REMOVE_TP': 'Minus',
+    // Expanded keys for Hybrid (Active when !inputActive)
+    'FOCUS_ENTRY': 'E', 'FOCUS_SL': 'O',
+    'SET_LONG': 'L', 'SET_SHORT': 'S',
+    'OPEN_JOURNAL': 'J', 'RESET_INPUTS': 'R',
+    'FETCH_PRICE': 'P',
+    'TOGGLE_SIDEBAR': 'B', 'TOGGLE_TECHNICALS': 'K', 'TOGGLE_SETTINGS': ','
+};
+
 // --- Key Matching Logic ---
 
-/**
- * Normalizes a key event or string into a standard "Modifiers+Key" format.
- * Examples: "Alt+T", "Ctrl+Shift+K", "Enter", "1".
- * Order: Ctrl -> Alt -> Shift -> Key
- */
 export function normalizeKeyCombo(event: KeyboardEvent): string {
     const parts = [];
     if (event.ctrlKey) parts.push('Ctrl');
@@ -140,24 +169,19 @@ export function normalizeKeyCombo(event: KeyboardEvent): string {
     if (event.shiftKey) parts.push('Shift');
 
     let key = event.key;
-
-    // Normalize special keys
     if (key === ' ') key = 'Space';
-    if (key === '+') key = 'Plus'; // Avoid confusion with separator
+    if (key === '+') key = 'Plus';
     if (key === '-') key = 'Minus';
+    if (key === ',') key = ','; // Explicitly keep comma
 
-    // Ignore modifier keys themselves as the "main" key
     if (['Control', 'Alt', 'Shift', 'Meta'].includes(key)) {
-        return parts.join('+'); // Incomplete combo, just return modifiers
+        return parts.join('+');
     }
 
     parts.push(key.length === 1 ? key.toUpperCase() : key);
     return parts.join('+');
 }
 
-/**
- * Checks if a triggered event matches a stored combo string.
- */
 function isMatch(event: KeyboardEvent, combo: string): boolean {
     const eventCombo = normalizeKeyCombo(event);
     return eventCombo === combo;
@@ -166,105 +190,52 @@ function isMatch(event: KeyboardEvent, combo: string): boolean {
 // --- Main Handler ---
 
 export function handleGlobalKeydown(event: KeyboardEvent) {
+    if (event.key === 'Escape') return;
+
     const settings = get(settingsStore);
     const mode = settings.hotkeyMode;
-
-    // Always handle Escape globally
-    if (event.key === 'Escape') {
-        // Handled by modal manager or other listeners mostly,
-        // but we can ensure modals close here if needed?
-        // uiStore.closeAllModals(); // Optional, but let's leave existing logic
-        return;
-    }
-
     const inputActive = isInputActive();
 
-    // If we are in 'Custom' mode, use the generic engine
-    if (mode === 'custom') {
-        const customMap = settings.customHotkeys || {};
+    let map: Record<string, string> = {};
 
-        for (const action of HOTKEY_ACTIONS) {
-            const mappedKey = customMap[action.id] || action.defaultKey; // Fallback to default if not customized yet
+    switch (mode) {
+        case 'mode1': map = MODE1_MAP; break;
+        case 'mode2': map = MODE2_MAP; break;
+        case 'mode3': map = MODE3_MAP; break;
+        case 'custom': map = settings.customHotkeys || {}; break;
+    }
 
-            if (isMatch(event, mappedKey)) {
-                // Input Protection:
-                // If input is active, ONLY allow hotkeys with modifiers (Alt, Ctrl) or Function keys (F1-F12).
-                // Single letter hotkeys (e.g. 'T') must be ignored while typing.
-                const hasModifier = event.altKey || event.ctrlKey;
-                const isFunctionKey = event.key.startsWith('F') && event.key.length > 1;
+    for (const action of HOTKEY_ACTIONS) {
+        const mappedKey = map[action.id] || (mode === 'custom' ? action.defaultKey : null);
 
+        if (mappedKey && isMatch(event, mappedKey)) {
+            // --- Input Protection Logic ---
+            const hasModifier = event.altKey || event.ctrlKey;
+            const isFunctionKey = event.key.startsWith('F') && event.key.length > 1;
+
+            if (mode === 'mode1') {
+                // Direct Mode: Strictly NO inputs allowed
+                if (inputActive) continue;
+            } else if (mode === 'mode2') {
+                // Safety Mode: Always allowed (relies on modifiers)
+                // No extra check needed
+            } else if (mode === 'mode3') {
+                // Hybrid Mode:
+                // - If input is active: ONLY allow if Modifier or Function key
+                // - If input NOT active: Allow everything
                 if (inputActive && !hasModifier && !isFunctionKey) {
-                    continue; // Skip this action, let the user type
+                    // Special case for Hybrid: Original logic allowed +/- in some non-text inputs?
+                    // We simplify to standard protection. If user is typing in a field, 'Plus' should type '+'.
+                    continue;
                 }
-
-                event.preventDefault();
-                event.stopPropagation();
-                action.action();
-                return; // Execute only one action
+            } else if (mode === 'custom') {
+                 if (inputActive && !hasModifier && !isFunctionKey) continue;
             }
+
+            event.preventDefault();
+            event.stopPropagation();
+            action.action();
+            return;
         }
-        return;
     }
-
-    // --- Legacy Modes Support (Preserved for existing users) ---
-    // Mode 1: Direct Mode (Only when NO input is active)
-    if (mode === 'mode1' && !inputActive) {
-        handleDirectMode(event);
-    }
-    // Mode 2: Safety Mode (Alt Keys - Always active)
-    else if (mode === 'mode2') {
-        handleSafetyMode(event);
-    }
-    // Mode 3: Hybrid Mode (Mixed)
-    else if (mode === 'mode3') {
-        handleHybridMode(event, inputActive);
-    }
-}
-
-// --- Legacy Handlers (Unchanged Logic) ---
-
-function handleDirectMode(event: KeyboardEvent) {
-    const key = event.key.toLowerCase();
-    if (['1', '2', '3', '4'].includes(key)) { event.preventDefault(); loadFavorite(parseInt(key)); return; }
-    switch (key) {
-        case 't': event.preventDefault(); cycleTakeProfitFocus(); break;
-        case '+': event.preventDefault(); app.addTakeProfitRow(); break;
-        case '-': event.preventDefault(); removeLastTakeProfit(); break;
-        case 'e': event.preventDefault(); focusElement(IDs.ENTRY_PRICE); break;
-        case 'o': event.preventDefault(); focusElement(IDs.STOP_LOSS); break;
-        case 'l': event.preventDefault(); updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })); break;
-        case 's': event.preventDefault(); updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT })); break;
-        case 'j': event.preventDefault(); uiStore.toggleJournalModal(true); break;
-    }
-}
-
-function handleSafetyMode(event: KeyboardEvent) {
-    if (!event.altKey) return;
-    const key = event.key.toLowerCase();
-    if (['1', '2', '3', '4'].includes(key)) { event.preventDefault(); loadFavorite(parseInt(key)); return; }
-    switch (key) {
-        case 't': event.preventDefault(); event.shiftKey ? removeLastTakeProfit() : app.addTakeProfitRow(); break; // Note: Original logic was weird here, keeping it as is? No wait, original was: if shift remove else add.
-        case 'e': event.preventDefault(); focusElement(IDs.ENTRY_PRICE); break;
-        case 'o': event.preventDefault(); focusElement(IDs.STOP_LOSS); break;
-        case 'l': event.preventDefault(); updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })); break;
-        case 's': event.preventDefault(); updateTradeStore(s => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_SHORT })); break;
-        case 'j': event.preventDefault(); uiStore.toggleJournalModal(true); break;
-        case 'r': event.preventDefault(); resetAllInputs(); break;
-    }
-}
-
-function handleHybridMode(event: KeyboardEvent, inputActive: boolean) {
-    const key = event.key.toLowerCase();
-    if (!inputActive && ['1', '2', '3', '4'].includes(key)) { event.preventDefault(); loadFavorite(parseInt(key)); return; }
-    if (key === 't' && !inputActive) {
-        event.preventDefault();
-        if (event.shiftKey) { focusElement(`${IDs.TP_PRICE_PREFIX}${get(tradeStore).targets.length - 1}`); }
-        else { focusElement(`${IDs.TP_PRICE_PREFIX}0`); }
-        return;
-    }
-    const activeId = document.activeElement?.id || '';
-    const isTpField = activeId.startsWith(IDs.TP_PRICE_PREFIX) || activeId.startsWith('tp-percent-');
-    if (inputActive && !isTpField && activeId !== IDs.ENTRY_PRICE && activeId !== IDs.STOP_LOSS && activeId !== 'risk-amount-input') { return; }
-    if (key === '+') { event.preventDefault(); app.addTakeProfitRow(); }
-    else if (key === '-') { event.preventDefault(); removeLastTakeProfit(); }
 }
