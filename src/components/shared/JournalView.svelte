@@ -1386,7 +1386,7 @@
                                     <td>{trade.entryPrice.toFixed(4)}</td>
                                 {/if}
                                 {#if columnVisibility.exit}
-                                    <td>-</td>
+                                    <td>{trade.exitPrice ? trade.exitPrice.toFixed(4) : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.sl}
                                     <td>{trade.stopLossPrice.gt(0) ? trade.stopLossPrice.toFixed(4) : '-'}</td>

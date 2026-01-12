@@ -173,7 +173,8 @@ export const syncService = {
                 const fee = new Decimal(p.fee || 0);
                 const entryPrice = new Decimal(p.entryPrice || 0);
                 const closePrice = new Decimal(p.closePrice || 0);
-                const qty = new Decimal(p.maxQty || 0); // Approx size
+                // P0 Fix: Ensure qty is not zero if maxQty is missing. Fallback to amount or qty.
+                const qty = new Decimal(p.maxQty || p.qty || p.amount || 0);
 
                 // Calculate Net PnL = Realized - Fees + Funding (Funding is usually negative if paid, so + (-cost))
                 const netPnl = realizedPnl.plus(funding).minus(fee.abs());
@@ -230,6 +231,7 @@ export const syncService = {
                     fees: new Decimal(0),
 
                     entryPrice: entryPrice,
+                    exitPrice: closePrice,
                     stopLossPrice: stopLoss,
 
                     totalRR: totalRR,
