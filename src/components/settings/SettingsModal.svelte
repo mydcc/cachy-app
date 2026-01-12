@@ -390,15 +390,15 @@
                 <div class="flex flex-col gap-4" role="tabpanel" id="tab-general" aria-labelledby="tab-general-label">
                     <div class="grid grid-cols-2 gap-4">
                         <div class="flex flex-col gap-1">
-                            <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.language')}</span>
-                            <select bind:value={currentLanguage} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
+                            <label for="settings-language" class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.language')}</label>
+                            <select id="settings-language" name="language" bind:value={currentLanguage} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
                                 <option value="en">English</option>
                                 <option value="de">Deutsch</option>
                             </select>
                         </div>
                         <div class="flex flex-col gap-1">
-                             <span class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.theme')}</span>
-                            <select bind:value={currentTheme} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
+                             <label for="settings-theme" class="text-xs font-medium text-[var(--text-secondary)]">{$_('settings.theme')}</label>
+                            <select id="settings-theme" name="theme" bind:value={currentTheme} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm">
                                 {#each themes as theme, index}
                                     <option value={theme.value} disabled={!isPro && index >= 5}>{theme.label} {!isPro && index >= 5 ? '(Pro)' : ''}</option>
                                 {/each}
@@ -409,11 +409,11 @@
                         <span class="text-sm font-medium">{$_('settings.feePreference')}</span>
                         <div class="flex gap-2">
                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                <input type="radio" bind:group={feePreference} value="maker" class="accent-[var(--accent-color)]" />
+                                <input id="fee-maker" name="feePreference" type="radio" bind:group={feePreference} value="maker" class="accent-[var(--accent-color)]" />
                                 <span class="text-sm">Maker</span>
                             </label>
                             <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                <input type="radio" bind:group={feePreference} value="taker" class="accent-[var(--accent-color)]" />
+                                <input id="fee-taker" name="feePreference" type="radio" bind:group={feePreference} value="taker" class="accent-[var(--accent-color)]" />
                                 <span class="text-sm">Taker</span>
                             </label>
                         </div>
@@ -429,11 +429,11 @@
                          <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">{$_('settings.imgbbHeader')}</h4>
                          <div class="flex flex-col gap-1">
                             <label for="imgbb-key" class="text-xs">{$_('settings.imgbbApiKey')}</label>
-                            <input id="imgbb-key" type="password" bind:value={imgbbApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste ImgBB Key" />
+                            <input id="imgbb-key" name="imgbbApiKey" type="password" bind:value={imgbbApiKey} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste ImgBB Key" />
                         </div>
                          <div class="flex flex-col gap-1">
                             <label for="imgbb-exp" class="text-xs">{$_('settings.imgbbExpiration')}</label>
-                             <select id="imgbb-exp" bind:value={imgbbExpiration} class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]">
+                             <select id="imgbb-exp" name="imgbbExpiration" bind:value={imgbbExpiration} class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]">
                                  <option value={0}>{$_('settings.imgbbPermanent')}</option>
                                  <option value={600}>{$_('settings.imgbb10m')}</option>
                                  <option value={3600}>{$_('settings.imgbb1h')}</option>
@@ -447,8 +447,8 @@
                         </p>
                     </div>
                     <div class="flex flex-col gap-1">
-                        <span class="text-sm font-medium">{$_('settings.providerLabel')}</span>
-                        <select bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <label for="api-provider" class="text-sm font-medium">{$_('settings.providerLabel')}</label>
+                        <select id="api-provider" name="apiProvider" bind:value={apiProvider} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                             <option value="bitunix">Bitunix</option>
                             <option value="binance">Binance Futures</option>
                         </select>
@@ -458,11 +458,11 @@
                             <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Bitunix Credentials</h4>
                             <div class="flex flex-col gap-1">
                                 <label for="bx-key" class="text-xs">API Key</label>
-                                <input id="bx-key" type="password" bind:value={bitunixKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
+                                <input id="bx-key" name="bitunixKey" type="password" bind:value={bitunixKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label for="bx-secret" class="text-xs">Secret Key</label>
-                                <input id="bx-secret" type="password" bind:value={bitunixKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
+                                <input id="bx-secret" name="bitunixSecret" type="password" bind:value={bitunixKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
                             </div>
                         </div>
                     {:else}
@@ -470,11 +470,11 @@
                             <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">Binance Credentials</h4>
                             <div class="flex flex-col gap-1">
                                 <label for="bn-key" class="text-xs">API Key</label>
-                                <input id="bn-key" type="password" bind:value={binanceKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
+                                <input id="bn-key" name="binanceKey" type="password" bind:value={binanceKeys.key} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Key" />
                             </div>
                             <div class="flex flex-col gap-1">
                                 <label for="bn-secret" class="text-xs">Secret Key</label>
-                                <input id="bn-secret" type="password" bind:value={binanceKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
+                                <input id="bn-secret" name="binanceSecret" type="password" bind:value={binanceKeys.secret} class="input-field p-1 px-2 rounded text-sm" placeholder="Paste Secret" />
                             </div>
                         </div>
                     {/if}
@@ -488,8 +488,8 @@
                     <div class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4">
                         <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">AI Provider Settings</h4>
                         <div class="flex flex-col gap-1">
-                            <span class="text-sm font-medium">Default Provider</span>
-                            <select bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                            <label for="ai-provider" class="text-sm font-medium">Default Provider</label>
+                            <select id="ai-provider" name="aiProvider" bind:value={aiProviderState} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                                 <option value="openai">OpenAI (ChatGPT)</option>
                                 <option value="gemini">Google Gemini</option>
                                 <option value="anthropic">Anthropic (Claude)</option>
@@ -501,10 +501,10 @@
                                     <span>OpenAI</span>
                                     {#if aiProviderState === 'openai'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                                 </label>
-                                <input id="openai-key" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
+                                <input id="openai-key" name="openaiKey" type="password" bind:value={openaiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-...)" />
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                    <input type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
+                                    <label for="openai-model" class="text-[10px] text-[var(--text-secondary)] w-12">Model:</label>
+                                    <input id="openai-model" name="openaiModel" type="text" bind:value={openaiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gpt-4o" />
                                 </div>
                             </div>
                             <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-3">
@@ -512,10 +512,10 @@
                                     <span>Google Gemini</span>
                                     {#if aiProviderState === 'gemini'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                                 </label>
-                                <input id="gemini-key" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
+                                <input id="gemini-key" name="geminiKey" type="password" bind:value={geminiApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (AIza...)" />
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                    <input type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash-exp" />
+                                    <label for="gemini-model" class="text-[10px] text-[var(--text-secondary)] w-12">Model:</label>
+                                    <input id="gemini-model" name="geminiModel" type="text" bind:value={geminiModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="gemini-2.0-flash-exp" />
                                 </div>
                                 <p class="text-[10px] text-[var(--text-secondary)] italic">
                                     Use <code>gemini-1.5-flash</code> for stability if the experimental version fails.
@@ -526,10 +526,10 @@
                                     <span>Anthropic</span>
                                     {#if aiProviderState === 'anthropic'}<span class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"></span>{/if}
                                 </label>
-                                <input id="anthropic-key" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
+                                <input id="anthropic-key" name="anthropicKey" type="password" bind:value={anthropicApiKey} class="input-field p-1 px-2 rounded text-sm mb-1" placeholder="API Key (sk-ant-...)" />
                                 <div class="flex items-center gap-2">
-                                    <span class="text-[10px] text-[var(--text-secondary)] w-12">Model:</span>
-                                    <input type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
+                                    <label for="anthropic-model" class="text-[10px] text-[var(--text-secondary)] w-12">Model:</label>
+                                    <input id="anthropic-model" name="anthropicModel" type="text" bind:value={anthropicModel} class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]" placeholder="claude-3-5-sonnet-20240620" />
                                 </div>
                             </div>
                         </div>
@@ -542,8 +542,8 @@
             {:else if activeTab === 'behavior'}
                 <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
                     <div class="flex flex-col gap-1">
-                        <span class="text-sm font-medium">{$_('settings.intervalLabel')}</span>
-                        <select bind:value={marketDataInterval} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <label for="market-data-interval" class="text-sm font-medium">{$_('settings.intervalLabel')}</label>
+                        <select id="market-data-interval" name="marketDataInterval" bind:value={marketDataInterval} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                             <option value="1s">{$_('settings.interval1s')}</option>
                             <option value="1m">{$_('settings.interval1m')}</option>
                             <option value="10m">{$_('settings.interval10m')}</option>
@@ -554,18 +554,18 @@
                             <span class="text-sm font-medium">{$_('settings.autoUpdatePrice')}</span>
                             <span class="text-xs text-[var(--text-secondary)]">Overwrite entry price on every update tick</span>
                         </div>
-                        <input type="checkbox" bind:checked={autoUpdatePriceInput} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="auto-update-price" name="autoUpdatePrice" type="checkbox" bind:checked={autoUpdatePriceInput} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer">
                          <div class="flex flex-col">
                             <span class="text-sm font-medium">{$_('settings.autoFetchBalance')}</span>
                             <span class="text-xs text-[var(--text-secondary)]">Fetch wallet balance on startup</span>
                         </div>
-                        <input type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="auto-fetch-balance" name="autoFetchBalance" type="checkbox" bind:checked={autoFetchBalance} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-                         <span class="text-sm font-medium">Hotkey Profile</span>
-                         <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                         <label for="hotkey-mode" class="text-sm font-medium">Hotkey Profile</label>
+                         <select id="hotkey-mode" name="hotkeyMode" bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                             <option value="custom">Custom (Fully Configurable)</option>
                             <option value="mode2">Safety Mode (Alt + Key)</option>
                             <option value="mode1">Direct Mode (Fast)</option>
@@ -612,33 +612,33 @@
                 <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">
                      <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                         <span class="text-sm font-medium">{$_('settings.showSidebars')}</span>
-                        <input type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="show-sidebars" name="showSidebars" type="checkbox" bind:checked={showSidebars} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                         <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
-                        <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="show-technicals" name="showTechnicals" type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium">{$_('settings.enableSidePanel')}</span>
                             <span class="text-xs text-[var(--text-secondary)]">{$_('settings.sidePanelDesc')}</span>
                         </div>
-                        <input type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="enable-side-panel" name="enableSidePanel" type="checkbox" bind:checked={enableSidePanel} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <div class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {enableSidePanel ? 'opacity-100' : 'opacity-50 pointer-events-none'}">
                         <div class="flex flex-col gap-1">
                             <span class="text-sm font-medium">{$_('settings.sidePanelMode')}</span>
                             <div class="flex gap-2">
                                  <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelMode} value="notes" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-mode-notes" name="sidePanelMode" type="radio" bind:group={sidePanelMode} value="notes" class="accent-[var(--accent-color)]" />
                                     <span class="text-sm">{$_('settings.modeNotes')}</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-mode-chat" name="sidePanelMode" type="radio" bind:group={sidePanelMode} value="chat" class="accent-[var(--accent-color)]" />
                                     <span class="text-sm">{$_('settings.modeChat')}</span>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-mode-ai" name="sidePanelMode" type="radio" bind:group={sidePanelMode} value="ai" class="accent-[var(--accent-color)]" />
                                     <span class="text-sm">AI Chat</span>
                                 </label>
                             </div>
@@ -647,21 +647,21 @@
                             <span class="text-sm font-medium">{$_('settings.sidePanelLayout')}</span>
                             <div class="flex flex-col gap-2">
                                  <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelLayout} value="standard" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-layout-standard" name="sidePanelLayout" type="radio" bind:group={sidePanelLayout} value="standard" class="accent-[var(--accent-color)]" />
                                     <div class="flex flex-col">
                                         <span class="text-sm">{$_('settings.layoutStandard')}</span>
                                         <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutStandardDesc')}</span>
                                     </div>
                                 </label>
                                 <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelLayout} value="transparent" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-layout-transparent" name="sidePanelLayout" type="radio" bind:group={sidePanelLayout} value="transparent" class="accent-[var(--accent-color)]" />
                                     <div class="flex flex-col">
                                         <span class="text-sm">{$_('settings.layoutTransparent')}</span>
                                         <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutTransparentDesc')}</span>
                                     </div>
                                 </label>
                                  <label class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]">
-                                    <input type="radio" bind:group={sidePanelLayout} value="floating" class="accent-[var(--accent-color)]" />
+                                    <input id="sp-layout-floating" name="sidePanelLayout" type="radio" bind:group={sidePanelLayout} value="floating" class="accent-[var(--accent-color)]" />
                                     <div class="flex flex-col">
                                         <span class="text-sm">{$_('settings.layoutFloating')}</span>
                                         <span class="text-[10px] text-[var(--text-secondary)]">{$_('settings.layoutFloatingDesc')}</span>
@@ -672,11 +672,11 @@
                     </div>
                      <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                         <span class="text-sm font-medium">{$_('settings.hideUnfilledOrders')}</span>
-                        <input type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="hide-unfilled" name="hideUnfilledOrders" type="checkbox" bind:checked={hideUnfilledOrders} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
                     <div class="flex flex-col gap-1">
-                        <span class="text-sm font-medium">Position View Mode</span>
-                        <select bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
+                        <label for="pos-view-mode" class="text-sm font-medium">Position View Mode</label>
+                        <select id="pos-view-mode" name="positionViewMode" bind:value={positionViewMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
                             <option value="detailed">Detailed (Default)</option>
                             <option value="focus">Focus (Compact)</option>
                         </select>
@@ -688,7 +688,7 @@
                     <!-- Moved Toggle Here -->
                     <label class="flex items-center justify-between p-3 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)] bg-[var(--bg-tertiary)] mb-2">
                         <span class="text-sm font-medium">{$_('settings.showIndicatorParams')}</span>
-                        <input type="checkbox" bind:checked={showIndicatorParams} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                        <input id="show-ind-params" name="showIndicatorParams" type="checkbox" bind:checked={showIndicatorParams} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                     </label>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -704,6 +704,8 @@
                                 <div class="flex flex-col gap-1 mt-1">
                                     <div class="flex items-center gap-2">
                                          <input
+                                            id="history-limit"
+                                            name="historyLimit"
                                             type="number"
                                             min="200"
                                             max="5000"
@@ -727,6 +729,8 @@
                                 </div>
                                 <div class="flex flex-col gap-1 mt-1">
                                     <input
+                                        id="fav-timeframes"
+                                        name="favoriteTimeframes"
                                         type="text"
                                         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
                                         value={favoriteTimeframesInput}
@@ -758,13 +762,13 @@
 
                                 <label class="flex items-center justify-between cursor-pointer">
                                     <span class="text-xs font-medium">Sync with Calculator Timeframe</span>
-                                    <input type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                                    <input id="rsi-sync" name="syncRsiTimeframe" type="checkbox" bind:checked={syncRsiTimeframe} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                                 </label>
 
                                 {#if !syncRsiTimeframe}
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Default RSI Timeframe</span>
-                                        <select bind:value={rsiSettings.defaultTimeframe} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="rsi-timeframe" class="text-xs font-medium text-[var(--text-secondary)]">Default RSI Timeframe</label>
+                                        <select id="rsi-timeframe" name="rsiTimeframe" bind:value={rsiSettings.defaultTimeframe} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             {#each availableTimeframes as tf}
                                                 <option value={tf}>{tf}</option>
                                             {/each}
@@ -774,12 +778,12 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
-                                        <input type="number" bind:value={rsiSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="rsi-length" class="text-xs font-medium text-[var(--text-secondary)]">Length</label>
+                                        <input id="rsi-length" name="rsiLength" type="number" bind:value={rsiSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
-                                        <select bind:value={rsiSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="rsi-source" class="text-xs font-medium text-[var(--text-secondary)]">Source</label>
+                                        <select id="rsi-source" name="rsiSource" bind:value={rsiSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="close">Close</option>
                                             <option value="open">Open</option>
                                             <option value="high">High</option>
@@ -792,22 +796,22 @@
 
                                 <div class="border-t border-[var(--border-color)] pt-3 mt-1">
                                     <label class="flex items-center gap-2 cursor-pointer mb-2">
-                                        <input type="checkbox" bind:checked={rsiSettings.showSignal} class="accent-[var(--accent-color)] h-3 w-3 rounded" disabled={!isPro} />
+                                        <input id="rsi-show-signal" name="rsiShowSignal" type="checkbox" bind:checked={rsiSettings.showSignal} class="accent-[var(--accent-color)] h-3 w-3 rounded" disabled={!isPro} />
                                         <span class="text-xs font-medium">Show Signal Line (MA)</span>
                                     </label>
 
                                     {#if rsiSettings.showSignal}
                                          <div class="grid grid-cols-2 gap-3 pl-5">
                                             <div class="flex flex-col gap-1">
-                                                <span class="text-xs font-medium text-[var(--text-secondary)]">Type</span>
-                                                <select bind:value={rsiSettings.signalType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                                <label for="rsi-signal-type" class="text-xs font-medium text-[var(--text-secondary)]">Type</label>
+                                                <select id="rsi-signal-type" name="rsiSignalType" bind:value={rsiSettings.signalType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                                     <option value="sma">SMA</option>
                                                     <option value="ema">EMA</option>
                                                 </select>
                                             </div>
                                             <div class="flex flex-col gap-1">
-                                                <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
-                                                <input type="number" bind:value={rsiSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                                <label for="rsi-signal-length" class="text-xs font-medium text-[var(--text-secondary)]">Length</label>
+                                                <input id="rsi-signal-length" name="rsiSignalLength" type="number" bind:value={rsiSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                             </div>
                                          </div>
                                     {/if}
@@ -834,20 +838,20 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Fast Length</span>
-                                        <input type="number" bind:value={macdSettings.fastLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="macd-fast" class="text-xs font-medium text-[var(--text-secondary)]">Fast Length</label>
+                                        <input id="macd-fast" name="macdFastLength" type="number" bind:value={macdSettings.fastLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Slow Length</span>
-                                        <input type="number" bind:value={macdSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="macd-slow" class="text-xs font-medium text-[var(--text-secondary)]">Slow Length</label>
+                                        <input id="macd-slow" name="macdSlowLength" type="number" bind:value={macdSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Signal Length</span>
-                                        <input type="number" bind:value={macdSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="macd-signal" class="text-xs font-medium text-[var(--text-secondary)]">Signal Length</label>
+                                        <input id="macd-signal" name="macdSignalLength" type="number" bind:value={macdSettings.signalLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
-                                        <select bind:value={macdSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="macd-source" class="text-xs font-medium text-[var(--text-secondary)]">Source</label>
+                                        <select id="macd-source" name="macdSource" bind:value={macdSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="close">Close</option>
                                             <option value="open">Open</option>
                                             <option value="high">High</option>
@@ -860,15 +864,15 @@
                                 <!-- NEW: MA Types -->
                                 <div class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-[var(--border-color)]">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Oscillator MA Type</span>
-                                        <select bind:value={macdSettings.oscillatorMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="macd-osc-type" class="text-xs font-medium text-[var(--text-secondary)]">Oscillator MA Type</label>
+                                        <select id="macd-osc-type" name="macdOscillatorMaType" bind:value={macdSettings.oscillatorMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="ema">EMA</option>
                                             <option value="sma">SMA</option>
                                         </select>
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Signal MA Type</span>
-                                        <select bind:value={macdSettings.signalMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="macd-sig-type" class="text-xs font-medium text-[var(--text-secondary)]">Signal MA Type</label>
+                                        <select id="macd-sig-type" name="macdSignalMaType" bind:value={macdSettings.signalMaType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="ema">EMA</option>
                                             <option value="sma">SMA</option>
                                         </select>
@@ -896,16 +900,16 @@
 
                                 <div class="grid grid-cols-3 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 1</span>
-                                        <input type="number" bind:value={emaSettings.ema1Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="ema1" class="text-xs font-medium text-[var(--text-secondary)]">EMA 1</label>
+                                        <input id="ema1" name="ema1Length" type="number" bind:value={emaSettings.ema1Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 2</span>
-                                        <input type="number" bind:value={emaSettings.ema2Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="ema2" class="text-xs font-medium text-[var(--text-secondary)]">EMA 2</label>
+                                        <input id="ema2" name="ema2Length" type="number" bind:value={emaSettings.ema2Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">EMA 3</span>
-                                        <input type="number" bind:value={emaSettings.ema3Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="ema3" class="text-xs font-medium text-[var(--text-secondary)]">EMA 3</label>
+                                        <input id="ema3" name="ema3Length" type="number" bind:value={emaSettings.ema3Length} min="2" max="500" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                 </div>
 
@@ -934,16 +938,16 @@
 
                                 <div class="grid grid-cols-3 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">%K Length</span>
-                                        <input type="number" bind:value={stochSettings.kPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="stoch-k" class="text-xs font-medium text-[var(--text-secondary)]">%K Length</label>
+                                        <input id="stoch-k" name="stochKPeriod" type="number" bind:value={stochSettings.kPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">%K Smooth</span>
-                                        <input type="number" bind:value={stochSettings.kSmoothing} min="1" max="50" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="stoch-k-smooth" class="text-xs font-medium text-[var(--text-secondary)]">%K Smooth</label>
+                                        <input id="stoch-k-smooth" name="stochKSmoothing" type="number" bind:value={stochSettings.kSmoothing} min="1" max="50" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">%D Smooth</span>
-                                        <input type="number" bind:value={stochSettings.dPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="stoch-d-smooth" class="text-xs font-medium text-[var(--text-secondary)]">%D Smooth</label>
+                                        <input id="stoch-d-smooth" name="stochDSmoothing" type="number" bind:value={stochSettings.dPeriod} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                 </div>
 
@@ -968,12 +972,12 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
-                                        <input type="number" bind:value={cciSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="cci-length" class="text-xs font-medium text-[var(--text-secondary)]">Length</label>
+                                        <input id="cci-length" name="cciLength" type="number" bind:value={cciSettings.length} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
-                                        <select bind:value={cciSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="cci-source" class="text-xs font-medium text-[var(--text-secondary)]">Source</label>
+                                        <select id="cci-source" name="cciSource" bind:value={cciSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="close">Close</option>
                                             <option value="open">Open</option>
                                             <option value="high">High</option>
@@ -986,15 +990,15 @@
 
                                 <div class="border-t border-[var(--border-color)] pt-3 mt-1 grid grid-cols-2 gap-3">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Type</span>
-                                        <select bind:value={cciSettings.smoothingType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="cci-smooth-type" class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Type</label>
+                                        <select id="cci-smooth-type" name="cciSmoothingType" bind:value={cciSettings.smoothingType} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="sma">SMA</option>
                                             <option value="ema">EMA</option>
                                         </select>
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Len</span>
-                                        <input type="number" bind:value={cciSettings.smoothingLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="cci-smooth-len" class="text-xs font-medium text-[var(--text-secondary)]">Smoothing Len</label>
+                                        <input id="cci-smooth-len" name="cciSmoothingLength" type="number" bind:value={cciSettings.smoothingLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                 </div>
 
@@ -1019,12 +1023,12 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">ADX Smoothing</span>
-                                        <input type="number" bind:value={adxSettings.adxSmoothing} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="adx-smooth" class="text-xs font-medium text-[var(--text-secondary)]">ADX Smoothing</label>
+                                        <input id="adx-smooth" name="adxSmoothing" type="number" bind:value={adxSettings.adxSmoothing} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">DI Length</span>
-                                        <input type="number" bind:value={adxSettings.diLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="adx-di" class="text-xs font-medium text-[var(--text-secondary)]">DI Length</label>
+                                        <input id="adx-di" name="adxDiLength" type="number" bind:value={adxSettings.diLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                 </div>
 
@@ -1049,12 +1053,12 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Fast Period</span>
-                                        <input type="number" bind:value={aoSettings.fastLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="ao-fast" class="text-xs font-medium text-[var(--text-secondary)]">Fast Period</label>
+                                        <input id="ao-fast" name="aoFastLength" type="number" bind:value={aoSettings.fastLength} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                      <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Slow Period</span>
-                                        <input type="number" bind:value={aoSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="ao-slow" class="text-xs font-medium text-[var(--text-secondary)]">Slow Period</label>
+                                        <input id="ao-slow" name="aoSlowLength" type="number" bind:value={aoSettings.slowLength} min="2" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                 </div>
 
@@ -1079,12 +1083,12 @@
 
                                 <div class="grid grid-cols-2 gap-3 mt-1">
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Length</span>
-                                        <input type="number" bind:value={momentumSettings.length} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
+                                        <label for="mom-length" class="text-xs font-medium text-[var(--text-secondary)]">Length</label>
+                                        <input id="mom-length" name="momentumLength" type="number" bind:value={momentumSettings.length} min="1" max="100" class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]" disabled={!isPro} />
                                     </div>
                                     <div class="flex flex-col gap-1">
-                                        <span class="text-xs font-medium text-[var(--text-secondary)]">Source</span>
-                                        <select bind:value={momentumSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                        <label for="mom-source" class="text-xs font-medium text-[var(--text-secondary)]">Source</label>
+                                        <select id="mom-source" name="momentumSource" bind:value={momentumSettings.source} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                             <option value="close">Close</option>
                                             <option value="open">Open</option>
                                             <option value="high">High</option>
@@ -1115,8 +1119,8 @@
                                 </div>
 
                                 <div class="flex flex-col gap-1 mt-1">
-                                    <span class="text-xs font-medium text-[var(--text-secondary)]">Type</span>
-                                    <select bind:value={pivotSettings.type} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                    <label for="pivot-type" class="text-xs font-medium text-[var(--text-secondary)]">Type</label>
+                                    <select id="pivot-type" name="pivotType" bind:value={pivotSettings.type} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                         <option value="classic">Classic</option>
                                         <option value="woodie">Woodie</option>
                                         <option value="camarilla">Camarilla</option>
@@ -1125,8 +1129,8 @@
                                 </div>
 
                                 <div class="flex flex-col gap-1 mt-1">
-                                    <span class="text-xs font-medium text-[var(--text-secondary)]">View Mode</span>
-                                    <select bind:value={pivotSettings.viewMode} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
+                                    <label for="pivot-view" class="text-xs font-medium text-[var(--text-secondary)]">View Mode</label>
+                                    <select id="pivot-view" name="pivotViewMode" bind:value={pivotSettings.viewMode} class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm" disabled={!isPro}>
                                         <option value="integrated">Integrated (Recommended)</option>
                                         <option value="separated">Separated</option>
                                         <option value="abstract">Abstract (Gauge)</option>
@@ -1174,7 +1178,7 @@
                         </p>
                         <label class="btn btn-secondary text-sm w-full cursor-pointer text-center">
                            {$_('app.restoreButtonAriaLabel')}
-                           <input type="file" accept=".json" class="hidden" on:change={handleRestore} />
+                           <input id="restore-file" name="restoreFile" type="file" accept=".json" class="hidden" on:change={handleRestore} />
                         </label>
                    </div>
                     <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
