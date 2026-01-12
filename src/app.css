@@ -993,7 +993,7 @@
     --bg-secondary: var(--drac-soft-bg-alt);
     --bg-tertiary: var(--drac-soft-border);
     --text-primary: var(--drac-soft-fg);
-    --text-secondary: var(--drac-soft-comment);
+    --text-secondary: var(--drac-soft-purple);
     --border-color: var(--drac-soft-border);
     --accent-color: var(--drac-soft-pink);
     --accent-color-hover: var(--drac-soft-pink-light);
@@ -1050,7 +1050,7 @@
     --bg-secondary: var(--ayu-bg-alt);
     --bg-tertiary: var(--ayu-border);
     --text-primary: var(--ayu-fg);
-    --text-secondary: var(--ayu-comment);
+    --text-secondary: var(--ayu-fg);
     --border-color: var(--ayu-border);
     --accent-color: var(--ayu-entity);
     --accent-color-hover: var(--ayu-entity-light);

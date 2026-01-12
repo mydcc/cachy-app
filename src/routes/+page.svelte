@@ -245,7 +245,7 @@
         trackCustomEvent("Backup", "Click", "RestoreBackup");
     }
 
-    let isTechnicalsVisible = false;
+    let isTechnicalsVisible = true;
 
     // Load Technicals visibility state from localStorage
     onMount(() => {
