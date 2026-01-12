@@ -7,24 +7,34 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 # Changelog
 
 ### Inhaltsverzeichnis
-1.  [Version 0.98](#v0.98)
-2.  [Version 0.96](#v0.96)
-3.  [Version 0.94](#v0.94)
-4.  [Version 0.92b2](#v0.92b2)
-5.  [Version 0.92b1](#v0.92b1)
-6.  [Version 0.92b](#v0.92b)
+1.  [Version 1.0](#v1.0)
+2.  [Version 0.98](#v0.98)
+3.  [Version 0.96](#v0.96)
+4.  [Version 0.94](#v0.94)
+5.  [Version 0.92b2](#v0.92b2)
+6.  [Version 0.92b1](#v0.92b1)
+7.  [Version 0.92b](#v0.92b)
 
 ---
 
-## <a name="v0.98"></a>Version 0.98 (Februar 2025)
+## <a name="v1.0"></a>Version 1.0
+- **Release:** Offizieller Release Candidate.
+- **Neu:** **Erweitertes Order-Management**: Vollständige Integration von Bitunix Trigger-Orders für Take Profit und Stop Loss über speziellen Backend-Proxy.
+- **Neu:** **Chat System V2**: Erweiterte Backend-Infrastruktur für globalen Chat und private Notizen.
+- **Architektur:** Finalisierte "Safe Swap"-Synchronisationslogik für robuste Positionsverfolgung.
+- **System:** Verbesserte Sicherheitsstandards für die Produktion und Stabilitätskorrekturen.
+
+---
+
+## <a name="v0.98"></a>Version 0.98
 - **Neu:** **Jules API**: Intelligentes KI-gestütztes Fehleranalyse- und Berichtssystem für sofortige Diagnosen.
 - **Neu:** **Technicals Panel**: Erweitertes Chart-Overlay mit RSI, MACD, Stochastic und Auto-Pivots (powered by `technicalindicators`).
-- **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat (erfordert experimentelle API).
+- **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat.
 - **Architektur:** Verbesserter "Jules Service" für sichere System-Snapshots und Telemetrie ohne Beeinträchtigung der Privatsphäre.
 
 ---
 
-## <a name="v0.96"></a>Version 0.96 (Januar 2026)
+## <a name="v0.96"></a>Version 0.96
 - **Neu:** Websocket-Integration für Bitunix (Echtzeit-Preise, Orderbuch, Ticker).
 - **Neu:** Performance Tracking (Pro): Erweiterte Diagramme und Deep Dive Analysen im Journal.
 - **Neu:** Marktübersicht & Sidebar: Verbessertes Layout mit Echtzeitdaten und Favoriten.
@@ -33,7 +43,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.94"></a>Version 0.94 (21. Dezember 2025)
+## <a name="v0.94"></a>Version 0.94
 - **Neu:** Einstellung "Seitenleisten anzeigen": Blende die Seitenleiste (Favoriten) und Marktübersicht aus, um Platz zu sparen (Desktop & Mobil).
 - **Verbesserung:** Optimiertes mobiles Layout mit integrierter Positionsansicht.
 - **Fix:** Korrektur bei der Berechnung "Offener Positionen" für Bitunix (Fehlerbehebung beim 'Side'-Parameter).
@@ -48,13 +58,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.92b2"></a>Version 0.92b2 (11. Dezember 2025)
+## <a name="v0.92b2"></a>Version 0.92b2
 - **Neu:** "Marktübersicht" (Market Overview) zeigt 24h-Daten (Preis, Volumen, Änderung) für das aktuelle Symbol an.
 - **Neu:** Einstellungen erweitert: Auswahl des API-Anbieters (Bitunix/Binance) und Intervall für Marktdaten-Updates (1s, 1m, 10m).
 
 ---
 
-## <a name="v0.92b1"></a>Version 0.92b1 (04. September 2025)
+## <a name="v0.92b1"></a>Version 0.92b1
 - **Neu:** Automatischer ATR-Abruf von der Binance-API mit wählbarem Zeitrahmen (5m, 15m, 1h, 4h, 1d). Der abgerufene Wert kann manuell angepasst werden.
 - **Neu:** Erweiterte Sperr-Funktionen: Der Risikobetrag in Währung kann jetzt gesperrt werden, um die Positionsgröße und das Risiko in % zu berechnen.
 - **Neu:** Tastaturkürzel (`Alt+L/S/R/J`) für schnellere Bedienung hinzugefügt.
@@ -62,7 +72,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.92b"></a>Version 0.92b (22. August 2025)
+## <a name="v0.92b"></a>Version 0.92b
 - **Verbesserung:** Eingabefeld für Symbol akzeptiert jetzt Buchstaben und Zahlen.
 - **Behoben:** Rand der Tooltips ist jetzt themenabhängig und das Problem des doppelten Randes wurde behoben.
 - **Verbesserung:** Buttons "Trade zum Journal hinzufügen" und "Anleitung anzeigen" sind jetzt themenabhängig.
