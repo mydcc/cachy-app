@@ -35,6 +35,9 @@ interface CSVTradeEntry {
     'Einstieg': string;
     'Exit': string;
     'Stop Loss': string;
+    'MAE': string;
+    'MFE': string;
+    'Efficiency': string;
     'Gewichtetes R/R': string;
     'Gesamt Netto-Gewinn': string;
     'Risiko pro Trade (Waehrung)': string;
@@ -432,7 +435,7 @@ export const app = {
             return parsedData.map(trade => {
                 const newTrade = { ...trade };
                 Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'exitPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
+                    if (['accountSize', 'riskPercentage', 'entryPrice', 'exitPrice', 'mae', 'mfe', 'efficiency', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
                         newTrade[key] = new Decimal(newTrade[key] || 0);
                     }
                 });
@@ -608,7 +611,7 @@ export const app = {
         const journalData = get(journalStore);
         if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
-        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Exit', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', 'Tags', 'Screenshot',
+        const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Exit', 'MAE', 'MFE', 'Efficiency', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', 'Tags', 'Screenshot',
             // New headers
             'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
             ...Array.from({ length: 5 }, (_, i) => [`TP${i + 1} Preis`, `TP${i + 1} %`]).flat()];
@@ -619,7 +622,7 @@ export const app = {
             const screenshot = trade.screenshot || '';
             const tpData = Array.from({ length: 5 }, (_, i) => [(trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2)]).flat();
             return [trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
-            (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.exitPrice ? trade.exitPrice.toFixed(4) : ''), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
+            (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.exitPrice ? trade.exitPrice.toFixed(4) : ''), (trade.mae ? trade.mae.toFixed(4) : ''), (trade.mfe ? trade.mfe.toFixed(4) : ''), (trade.efficiency ? trade.efficiency.toFixed(2) : ''), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
             (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, tags, screenshot,
             // New values
             trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
@@ -685,6 +688,9 @@ export const app = {
                 'Gebuehren %': 'Gebuehren %', 'Fees %': 'Gebuehren %',
                 'Einstieg': 'Einstieg', 'Entry Price': 'Einstieg', 'Entry': 'Einstieg',
                 'Exit': 'Exit', 'Exit Price': 'Exit',
+                'MAE': 'MAE',
+                'MFE': 'MFE',
+                'Efficiency': 'Efficiency',
                 'Stop Loss': 'Stop Loss',
                 'Gewichtetes R/R': 'Gewichtetes R/R', 'Weighted R/R': 'Gewichtetes R/R',
                 'Gesamt Netto-Gewinn': 'Gesamt Netto-Gewinn', 'Total Net Profit': 'Gesamt Netto-Gewinn',
@@ -763,6 +769,9 @@ export const app = {
                         fees: parseDecimal(entry['Gebuehren %'] || '0.1'),
                         entryPrice: parseDecimal(entry.Einstieg),
                         exitPrice: entry.Exit ? parseDecimal(entry.Exit) : undefined,
+                        mae: entry.MAE ? parseDecimal(entry.MAE) : undefined,
+                        mfe: entry.MFE ? parseDecimal(entry.MFE) : undefined,
+                        efficiency: entry.Efficiency ? parseDecimal(entry.Efficiency) : undefined,
                         stopLossPrice: parseDecimal(entry['Stop Loss']),
                         totalRR: parseDecimal(entry['Gewichtetes R/R'] || '0'),
                         totalNetProfit: parseDecimal(entry['Gesamt Netto-Gewinn'] || '0'),

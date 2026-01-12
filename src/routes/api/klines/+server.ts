@@ -6,8 +6,12 @@ export const GET: RequestHandler = async ({ url }) => {
     const symbol = url.searchParams.get('symbol');
     const interval = url.searchParams.get('interval') || '1d';
     const limitParam = url.searchParams.get('limit');
+    const startParam = url.searchParams.get('start');
+    const endParam = url.searchParams.get('end');
     const provider = url.searchParams.get('provider') || 'bitunix';
     const limit = limitParam ? parseInt(limitParam) : 50;
+    const start = startParam ? parseInt(startParam) : undefined;
+    const end = endParam ? parseInt(endParam) : undefined;
 
     if (!symbol) {
         return json({ error: 'Symbol is required' }, { status: 400 });
@@ -16,9 +20,9 @@ export const GET: RequestHandler = async ({ url }) => {
     try {
         let klines;
         if (provider === 'binance') {
-            klines = await fetchBinanceKlines(symbol, interval, limit);
+            klines = await fetchBinanceKlines(symbol, interval, limit, start, end);
         } else {
-            klines = await fetchBitunixKlines(symbol, interval, limit);
+            klines = await fetchBitunixKlines(symbol, interval, limit, start, end);
         }
         return json(klines);
     } catch (e: any) {
@@ -27,7 +31,7 @@ export const GET: RequestHandler = async ({ url }) => {
     }
 };
 
-async function fetchBitunixKlines(symbol: string, interval: string, limit: number) {
+async function fetchBitunixKlines(symbol: string, interval: string, limit: number, start?: number, end?: number) {
     const baseUrl = 'https://fapi.bitunix.com';
     const path = '/api/v1/futures/market/kline';
 
@@ -47,11 +51,15 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
     };
     const mappedInterval = map[interval] || interval;
 
-    const queryString = new URLSearchParams({
+    const params: any = {
         symbol: symbol.toUpperCase(),
         interval: mappedInterval,
         limit: limit.toString()
-    }).toString();
+    };
+    if (start) params.start = start.toString();
+    if (end) params.end = end.toString();
+
+    const queryString = new URLSearchParams(params).toString();
 
     const response = await fetch(`${baseUrl}${path}?${queryString}`, {
         headers: {
@@ -84,15 +92,19 @@ async function fetchBitunixKlines(symbol: string, interval: string, limit: numbe
     })).sort((a: any, b: any) => a.timestamp - b.timestamp);
 }
 
-async function fetchBinanceKlines(symbol: string, interval: string, limit: number) {
+async function fetchBinanceKlines(symbol: string, interval: string, limit: number, start?: number, end?: number) {
     const baseUrl = 'https://fapi.binance.com';
     const path = '/fapi/v1/klines';
 
-    const queryString = new URLSearchParams({
+    const params: any = {
         symbol: symbol.toUpperCase(),
         interval: interval,
         limit: limit.toString()
-    }).toString();
+    };
+    if (start) params.startTime = start.toString();
+    if (end) params.endTime = end.toString();
+
+    const queryString = new URLSearchParams(params).toString();
 
     const response = await fetch(`${baseUrl}${path}?${queryString}`);
 

@@ -4,6 +4,7 @@ import { CONSTANTS } from '../lib/constants';
 import { journalStore } from '../stores/journalStore';
 import { uiStore } from '../stores/uiStore';
 import { settingsStore } from '../stores/settingsStore';
+import { apiService } from './apiService';
 import type { JournalEntry } from '../stores/types';
 import { Decimal } from 'decimal.js';
 import { trackCustomEvent } from './trackingService';
@@ -216,6 +217,49 @@ export const syncService = {
                 let closeTime = parseTimestamp(p.mtime || p.ctime);
                 if (closeTime <= 0) closeTime = Date.now();
 
+                // MAE/MFE Calculation
+                let mae: Decimal | undefined;
+                let mfe: Decimal | undefined;
+                let efficiency: Decimal | undefined;
+
+                try {
+                    // Only fetch if valid times and not super old (optimization optional)
+                    if (posTime > 0 && closeTime > posTime) {
+                        // Fetch klines for the duration
+                        const klines = await apiService.fetchBitunixKlines(p.symbol, '1m', 1000, posTime, closeTime);
+                        if (klines.length > 0) {
+                            let maxHigh = new Decimal(0);
+                            let minLow = new Decimal(Infinity);
+
+                            klines.forEach(k => {
+                                if (k.high.gt(maxHigh)) maxHigh = k.high;
+                                if (k.low.lt(minLow)) minLow = k.low;
+                            });
+
+                            const isShort = (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short');
+
+                            if (minLow.isFinite() && maxHigh.gt(0)) {
+                                if (isShort) {
+                                    mae = maxHigh.minus(entryPrice);
+                                    mfe = entryPrice.minus(minLow);
+                                } else { // Long
+                                    mae = entryPrice.minus(minLow);
+                                    mfe = maxHigh.minus(entryPrice);
+                                }
+
+                                // Efficiency: Realized PnL / (MFE * Size)
+                                // Only calc if MFE is positive (we had profit potential)
+                                if (mfe.gt(0) && qty.gt(0)) {
+                                    const maxPotential = mfe.times(qty);
+                                    efficiency = netPnl.div(maxPotential).times(100);
+                                }
+                            }
+                        }
+                    }
+                } catch (err) {
+                    console.warn(`Failed to calc MAE/MFE for ${p.symbol}`, err);
+                }
+
                 const entry: JournalEntry = {
                     id: Date.now() + Math.random(),
                     tradeId: uniqueId,
@@ -233,6 +277,10 @@ export const syncService = {
                     entryPrice: entryPrice,
                     exitPrice: closePrice,
                     stopLossPrice: stopLoss,
+
+                    mae: mae,
+                    mfe: mfe,
+                    efficiency: efficiency,
 
                     totalRR: totalRR,
                     totalNetProfit: netPnl,
