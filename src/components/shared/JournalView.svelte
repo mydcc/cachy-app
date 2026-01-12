@@ -1443,18 +1443,7 @@
                 </div>
             {:else if activePreset === "direction"}
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3"
-                >
-                    <LineChart
-                        data={directionEvolutionData}
-                        title="Long vs Short Evolution"
-                        description={$_(
-                            "journal.deepDive.charts.descriptions.directionEvolution",
-                        )}
-                    />
-                </div>
-                <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={longShortData}
@@ -1465,7 +1454,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={topSymbolData}
@@ -1477,7 +1466,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={bottomSymbolData}
@@ -1487,6 +1476,17 @@
                         horizontal={true}
                         description={$_(
                             "journal.deepDive.charts.descriptions.bottomSymbols",
+                        )}
+                    />
+                </div>
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3 h-[250px]"
+                >
+                    <LineChart
+                        data={directionEvolutionData}
+                        title="Long vs Short Evolution"
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.directionEvolution",
                         )}
                     />
                 </div>
@@ -1545,7 +1545,7 @@
                 </div>
             {:else if activePreset === "costs"}
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={grossNetData}
@@ -1556,7 +1556,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <LineChart
                         data={feeCurveData}
@@ -1570,7 +1570,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <DoughnutChart
                         data={feeStructureData}
