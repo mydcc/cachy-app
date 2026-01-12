@@ -229,13 +229,13 @@
     <div class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative">
 
         <!-- Header -->
-        <div class="flex justify-between items-center pb-2 timeframe-selector-container relative">
+        <div class="flex justify-between items-center pb-2 timeframe-selector-container relative"
+             on:mouseenter={() => showTimeframePopup = true}
+             on:mouseleave={() => showTimeframePopup = false}>
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
-                    on:click={toggleTimeframePopup}
-                >
+                    class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0">
                     Technicals
                     <span class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors">
                         {timeframe}
