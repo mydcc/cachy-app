@@ -1930,64 +1930,73 @@
     <div class="border border-[var(--border-color)] rounded-lg overflow-hidden">
         {#if groupBySymbol}
             <!-- Symbol Pivot Table -->
-            <table class="journal-table w-full">
-                <thead>
-                    <tr>
-                        <th class="text-left p-3"
-                            >{$_("journal.table.symbol")}</th
-                        >
-                        <th class="text-right p-3"
-                            >{$_("journal.deepDive.charts.labels.trades")}</th
-                        >
-                        <th class="text-right p-3"
-                            >{$_("journal.deepDive.charts.titles.winRate")}</th
-                        >
-                        <th class="text-right p-3">{$_("journal.totalPL")}</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {#each paginatedTrades as group}
-                        <tr
-                            class="hover:bg-[var(--bg-secondary)] cursor-pointer border-b border-[var(--border-color)] last:border-0"
-                            on:click={() => toggleGroupExpand(group.symbol)}
-                        >
-                            <td class="p-3 font-bold">{group.symbol}</td>
-                            <td class="text-right p-3"
-                                >{group.totalTrades} ({group.wonTrades} W)</td
+            <div class="table-scroll-wrapper overflow-x-auto w-full">
+                <table class="journal-table">
+                    <thead>
+                        <tr>
+                            <th class="text-left p-3"
+                                >{$_("journal.table.symbol")}</th
                             >
-                            <td class="text-right p-3"
-                                >{(group.totalTrades > 0
-                                    ? (group.wonTrades / group.totalTrades) *
-                                      100
-                                    : 0
-                                ).toFixed(1)}%</td
+                            <th class="text-right p-3"
+                                >{$_(
+                                    "journal.deepDive.charts.labels.trades",
+                                )}</th
                             >
-                            <td
-                                class="text-right p-3 {group.totalProfitLoss.gt(
-                                    0,
-                                )
-                                    ? 'text-[var(--success-color)]'
-                                    : 'text-[var(--danger-color)]'}"
+                            <th class="text-right p-3"
+                                >{$_(
+                                    "journal.deepDive.charts.titles.winRate",
+                                )}</th
                             >
-                                {group.totalProfitLoss.toFixed(2)}
-                            </td>
+                            <th class="text-right p-3"
+                                >{$_("journal.totalPL")}</th
+                            >
                         </tr>
-                    {/each}
-                    {#if paginatedTrades.length === 0}
-                        <tr
-                            ><td
-                                colspan="4"
-                                class="text-center p-8 text-[var(--text-secondary)]"
-                                >{$_("journal.noData")}</td
-                            ></tr
-                        >
-                    {/if}
-                </tbody>
-            </table>
+                    </thead>
+                    <tbody>
+                        {#each paginatedTrades as group}
+                            <tr
+                                class="hover:bg-[var(--bg-secondary)] cursor-pointer border-b border-[var(--border-color)] last:border-0"
+                                on:click={() => toggleGroupExpand(group.symbol)}
+                            >
+                                <td class="p-3 font-bold">{group.symbol}</td>
+                                <td class="text-right p-3"
+                                    >{group.totalTrades} ({group.wonTrades} W)</td
+                                >
+                                <td class="text-right p-3"
+                                    >{(group.totalTrades > 0
+                                        ? (group.wonTrades /
+                                              group.totalTrades) *
+                                          100
+                                        : 0
+                                    ).toFixed(1)}%</td
+                                >
+                                <td
+                                    class="text-right p-3 {group.totalProfitLoss.gt(
+                                        0,
+                                    )
+                                        ? 'text-[var(--success-color)]'
+                                        : 'text-[var(--danger-color)]'}"
+                                >
+                                    {group.totalProfitLoss.toFixed(2)}
+                                </td>
+                            </tr>
+                        {/each}
+                        {#if paginatedTrades.length === 0}
+                            <tr
+                                ><td
+                                    colspan="4"
+                                    class="text-center p-8 text-[var(--text-secondary)]"
+                                    >{$_("journal.noData")}</td
+                                ></tr
+                            >
+                        {/if}
+                    </tbody>
+                </table>
+            </div>
         {:else}
             <!-- Standard Trade List -->
-            <div class="overflow-x-auto">
-                <table class="journal-table w-full">
+            <div class="table-scroll-wrapper overflow-x-auto w-full">
+                <table class="journal-table">
                     <thead>
                         <tr>
                             {#if columnVisibility.date}
@@ -3252,5 +3261,24 @@
         background: var(--bg-tertiary);
         border-radius: 2px;
         padding: 2px 4px;
+    }
+
+    .journal-table {
+        width: max-content;
+        min-width: 100%;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+
+    .journal-table th,
+    .journal-table td {
+        white-space: nowrap;
+        padding: 0.75rem 1rem;
+    }
+
+    .table-scroll-wrapper {
+        border-radius: 8px;
+        border: 1px solid var(--border-color);
+        background: var(--bg-secondary);
     }
 </style>
