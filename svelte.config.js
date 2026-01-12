@@ -6,7 +6,13 @@ const config = {
 	preprocess: vitePreprocess(),
 
 	kit: {
-		adapter: adapter()
+		adapter: adapter(),
+		csp: {
+			mode: 'auto',
+			directives: {
+				'script-src': ['self', 'unsafe-inline', 'unsafe-eval', 'https://s.cachy.app']
+			}
+		}
 	}
 };
 

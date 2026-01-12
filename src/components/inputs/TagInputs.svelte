@@ -39,14 +39,17 @@
 
 <!-- Tags Input -->
 <div class="mb-2 relative">
+    <label for="tag-input" class="sr-only">Tags</label>
     <div class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]">
         {#each tags as tag}
             <span class="bg-[var(--bg-secondary)] text-[var(--text-primary)] text-xs font-bold px-2 py-1 rounded flex items-center gap-1 border border-[var(--border-color)]">
                 #{tag}
-                <button class="hover:text-[var(--danger-color)]" on:click={() => removeTag(tag)}>×</button>
+                <button class="hover:text-[var(--danger-color)]" on:click={() => removeTag(tag)} aria-label="Remove tag {tag}">×</button>
             </span>
         {/each}
         <input
+            id="tag-input"
+            name="tagInput"
             type="text"
             class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
             placeholder={tags.length === 0 ? $_('dashboard.tradeSetupInputs.tagsPlaceholder') : ''}

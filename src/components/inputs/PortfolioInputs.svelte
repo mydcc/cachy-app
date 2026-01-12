@@ -121,6 +121,7 @@
             <div class="relative">
                 <input
                     id="account-size"
+                    name="accountSize"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
                     use:enhancedInput={{ step: 100, min: 0, rightOffset: '40px' }}
@@ -145,6 +146,7 @@
             <div class="relative">
                 <input
                     id="risk-percentage"
+                    name="riskPercentage"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 2, isPercentage: true, maxValue: 100, minValue: 0 }}
                     use:enhancedInput={{ step: 0.5, min: 0, max: 100, rightOffset: '2px' }}
@@ -162,6 +164,7 @@
             <div class="relative">
                 <input
                     id="risk-amount"
+                    name="riskAmount"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 2 }}
                     use:enhancedInput={{ step: 10, min: 0, rightOffset: '40px' }}

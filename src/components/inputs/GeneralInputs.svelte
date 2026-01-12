@@ -81,6 +81,9 @@
         <!-- Trade Type Switch -->
         <div class="trade-type-switch p-1 rounded-lg flex" role="radiogroup" aria-labelledby="trade-type-label">
             <button
+                id="trade-long-btn"
+                name="tradeType"
+                value={CONSTANTS.TRADE_TYPE_LONG}
                 class="long w-1/2"
                 class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
                 role="radio"
@@ -89,6 +92,9 @@
                 use:trackClick={{ category: 'GeneralInputs', action: 'SetTradeType', name: 'Long' }}
             >{$_('dashboard.generalInputs.longButton')}</button>
             <button
+                id="trade-short-btn"
+                name="tradeType"
+                value={CONSTANTS.TRADE_TYPE_SHORT}
                 class="short w-1/2"
                 class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
                 role="radio"
@@ -104,6 +110,7 @@
                  <label for="leverage-input" class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0">Leverage</label>
                  <input
                     id="leverage-input"
+                    name="leverage"
                     type="text"
                     use:numberInput={{ noDecimals: true, maxValue: 125, minValue: 1 }}
                     use:enhancedInput={{ step: 1, min: 1, max: 125, noDecimals: true, rightOffset: '24px' }}
@@ -130,6 +137,7 @@
                 <label for="fees-input" class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0">Fees (%)</label>
                 <input
                     id="fees-input"
+                    name="fees"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
                     use:enhancedInput={{ step: 0.01, min: 0, rightOffset: '24px' }}

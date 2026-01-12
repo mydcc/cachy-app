@@ -141,6 +141,7 @@
         <div class="relative flex-grow symbol-input-container">
             <input
                 id="symbol-input"
+                name="symbol"
                 type="text"
                 bind:value={symbol}
                 on:input={() => { handleSymbolInput(); onboardingService.trackFirstInput(); }}
@@ -176,6 +177,7 @@
         <div class="flex-grow relative">
             <input
                 id="entry-price-input"
+                name="entryPrice"
                 type="text"
                 use:numberInput={{ maxDecimalPlaces: 4 }}
                 use:enhancedInput={{ step: priceStep, min: 0, rightOffset: '40px' }}
@@ -217,7 +219,7 @@
             {/if}
             <label class="flex items-center cursor-pointer">
                 <span class="mr-2 text-sm">{$_('dashboard.tradeSetupInputs.atrStopLossLabel')}</span>
-                <input id="use-atr-sl-checkbox" type="checkbox" bind:checked={useAtrSl} on:change={toggleAtrSl} class="sr-only peer" role="switch" aria-checked={useAtrSl}>
+                <input id="use-atr-sl-checkbox" name="useAtrSl" type="checkbox" bind:checked={useAtrSl} on:change={toggleAtrSl} class="sr-only peer" role="switch" aria-checked={useAtrSl}>
                 <div class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"></div>
             </label>
         </div>
@@ -225,6 +227,7 @@
             <div class="relative">
                 <input
                     id="stop-loss-price-input"
+                    name="stopLossPrice"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
                     use:enhancedInput={{ step: priceStep, min: 0 }}
@@ -238,10 +241,10 @@
             {#if atrMode === 'manual'}
                 <div class="grid grid-cols-2 gap-2 mt-2">
                     <div class="relative">
-                        <input id="atr-value-input" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0 }} value={format(atrValue)} on:input={handleAtrValueInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.atrValuePlaceholder')}">
+                        <input id="atr-value-input" name="atrValue" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0 }} value={format(atrValue)} on:input={handleAtrValueInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.atrValuePlaceholder')}">
                     </div>
                     <div class="relative">
-                        <input id="atr-multiplier-input" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.multiplierPlaceholder')}">
+                        <input id="atr-multiplier-input" name="atrMultiplier" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.multiplierPlaceholder')}">
                     </div>
                 </div>
             {:else}
@@ -252,6 +255,7 @@
                         <div class="relative">
                             <select
                                 id="atr-timeframe"
+                                name="atrTimeframe"
                                 value={atrTimeframe}
                                 on:change={handleAtrTimeframeChange}
                                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
@@ -271,6 +275,7 @@
                         <div class="relative">
                             <input
                                 id="atr-value-input-auto"
+                                name="atrValueAuto"
                                 type="text"
                                 use:numberInput={{ maxDecimalPlaces: 4 }}
                                 use:enhancedInput={{ step: 0.1, min: 0, rightOffset: '40px' }}
@@ -297,7 +302,7 @@
                     <div>
                         <label for="atr-multiplier-input-auto" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrMultiplierLabel')}</label>
                         <div class="relative">
-                             <input id="atr-multiplier-input-auto" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="1.2">
+                             <input id="atr-multiplier-input-auto" name="atrMultiplierAuto" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="1.2">
                         </div>
                     </div>
                 </div>
