@@ -70,7 +70,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     showTechnicals: true,
-    showIndicatorParams: true,
+    showIndicatorParams: false,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
     isPro: false,
