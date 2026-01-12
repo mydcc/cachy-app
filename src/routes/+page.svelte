@@ -398,7 +398,6 @@ import { trackCustomEvent } from '../services/trackingService';
             <VisualBar
                 entryPrice={$tradeStore.entryPrice}
                 stopLossPrice={$tradeStore.stopLossPrice}
-                tradeType={$tradeStore.tradeType}
                 targets={$tradeStore.targets}
                 calculatedTpDetails={$resultsStore.calculatedTpDetails}
             />
