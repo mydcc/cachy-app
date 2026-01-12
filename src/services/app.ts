@@ -56,6 +56,7 @@ interface CSVTradeEntry {
 let priceUpdateIntervalId: any = null;
 let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
+let tradeStoreUnsubscribe: (() => void) | null = null;
 let lastCalculationTime = 0;
 const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per second
 
@@ -76,10 +77,16 @@ export const app = {
     setupRealtimeUpdates: () => {
         if (!browser) return;
 
+        // Cleanup existing subscription to prevent leaks/duplicates
+        if (tradeStoreUnsubscribe) {
+            tradeStoreUnsubscribe();
+            tradeStoreUnsubscribe = null;
+        }
+
         // Watch for symbol changes to manage WS subscriptions
         let symbolDebounceTimer: any = null;
 
-        tradeStore.subscribe((state) => {
+        tradeStoreUnsubscribe = tradeStore.subscribe((state) => {
             const settings = get(settingsStore);
             if (settings.apiProvider !== 'bitunix') return;
 
