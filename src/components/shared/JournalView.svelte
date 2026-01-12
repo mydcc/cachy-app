@@ -1406,13 +1406,13 @@
                                     </td>
                                 {/if}
                                 {#if columnVisibility.mae}
-                                    <td>-</td>
+                                    <td class="text-[var(--danger-color)]">{trade.mae ? trade.mae.toFixed(4) : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.mfe}
-                                    <td>-</td>
+                                    <td class="text-[var(--success-color)]">{trade.mfe ? trade.mfe.toFixed(4) : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.efficiency}
-                                    <td>-</td>
+                                    <td>{trade.efficiency ? trade.efficiency.toFixed(2) + '%' : '-'}</td>
                                 {/if}
                                 {#if columnVisibility.duration}
                                     <td>{formatDuration(trade.entryDate, trade.date)}</td>

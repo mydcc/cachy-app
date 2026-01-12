@@ -137,6 +137,9 @@ export interface JournalEntry {
     entryPrice: Decimal;
     exitPrice?: Decimal;
     stopLossPrice: Decimal;
+    mae?: Decimal;
+    mfe?: Decimal;
+    efficiency?: Decimal;
     totalRR: Decimal;
     totalNetProfit: Decimal;
     riskAmount: Decimal;
