@@ -1181,7 +1181,7 @@
                             plugins: {
                                 legend: {
                                     display: true,
-                                    position: "bottom",
+                                    position: "right",
                                     labels: {
                                         boxWidth: 10,
                                         padding: 10,
@@ -1245,17 +1245,26 @@
                         )}
                     />
                 </div>
-                <!-- Empty spacer to keep grid aligned if needed, or just let it wrap -->
-                <div class="hidden md:block"></div>
-
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={longShortData}
                         title={$_("journal.deepDive.charts.titles.longVsShort")}
                         description={$_(
                             "journal.deepDive.charts.descriptions.longVsShort",
+                        )}
+                    />
+                </div>
+
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px]"
+                >
+                    <LineChart
+                        data={directionEvolutionData}
+                        title="Long vs Short Evolution"
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.directionEvolution",
                         )}
                     />
                 </div>
@@ -1366,18 +1375,6 @@
                             </div>
                         </div>
                     </div>
-                </div>
-
-                <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3 h-[250px]"
-                >
-                    <LineChart
-                        data={directionEvolutionData}
-                        title="Long vs Short Evolution"
-                        description={$_(
-                            "journal.deepDive.charts.descriptions.directionEvolution",
-                        )}
-                    />
                 </div>
             {:else if activePreset === "discipline"}
                 <div
