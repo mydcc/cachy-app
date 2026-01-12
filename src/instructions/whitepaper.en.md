@@ -1,6 +1,5 @@
 # Cachy Technical Whitepaper
-**Version:** 0.98.0
-**Date:** February 2025
+**Version:** 1.0
 
 ---
 
@@ -103,12 +102,12 @@ Cachy implements an intelligent diagnostic layer known as **Jules API**.
 
 ### Backend-for-Frontend (BFF) & Proxy Layer
 
-Located in `src/routes/api/`, this layer acts as a security gateway.
+Located in `src/routes/api/`, this layer acts as a security gateway and specialized microservice aggregator.
 
 **The Problem**: Exchange APIs (Bitunix) require requests to be signed with an `API_SECRET`. If we make these requests from the browser, we must expose the Secret to the user's DevTools.
 
 **The Solution**:
-1.  Client sends request to `GET /api/sync/orders`.
+1.  Client sends request to `GET /api/sync/orders` or `POST /api/tpsl`.
 2.  Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
 3.  Server (Node.js context) receives headers.
 4.  Server constructs the payload, generates the SHA256 signature using the Secret.
@@ -116,6 +115,10 @@ Located in `src/routes/api/`, this layer acts as a security gateway.
 6.  Server returns the JSON result to Client.
 
 *Note: While secrets travel from Client to Server, the Server is stateless and does not log or store them.*
+
+**Specialized Endpoints**:
+- `/api/chat-v2`: Handles real-time communication for the Global Chat and Notes sidebar.
+- `/api/tpsl`: Manages complex Bitunix "Plan Orders" (Trigger Orders) for Take Profit and Stop Loss modifications.
 
 ---
 
@@ -255,6 +258,11 @@ To balance **Responsiveness** vs. **Rate Limits**, Cachy uses a hybrid approach:
     - **Private Channels**: `order`, `position`, `wallet`. Used to update the User Dashboard.
     - *Heartbeat Logic*: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 20 seconds, ensuring 99.9% uptime.
 
+### Advanced Order Management (TP/SL)
+For managing Take Profit and Stop Loss orders on existing positions, Cachy utilizes a specialized `tpsl` service.
+- **Challenge**: Bitunix uses a specific "Plan Order" system for TP/SL that is distinct from standard Limit Orders.
+- **Implementation**: The backend endpoint `/api/tpsl` handles `modify`, `cancel`, and `history` actions for these Trigger Orders, ensuring that user modifications in the UI are correctly signed and routed to the complex Bitunix Trigger Order endpoints (`/api/v1/futures/tp_sl/...`).
+
 ### The "Safe Swap" Synchronization Protocol
 
 A critical challenge in syncing local state with remote API state is handling updates without "flickering" or data loss.
@@ -302,10 +310,10 @@ By removing the database:
 
 While the current Local-First model is robust for individual traders, the roadmap includes scaling to support teams and institutional requirements.
 
-### Phase 1: From Local-First to Sync-Enabled (Optional Cloud)
-*Objective: Allow users to sync data between Desktop and Mobile.*
-- **Plan**: Implement an *optional* End-to-End Encrypted (E2EE) cloud relay.
-- **Tech**: Use a CRDT (Conflict-free Replicated Data Type) library like Yjs or Automerge. The server would store encrypted blobs without having the keys to decrypt them.
+### Phase 1: From Local-First to Sync-Enabled (Chat/Communication)
+*Objective: Allow users to communicate or take notes.*
+- **Current**: Implementation of `/api/chat-v2` allows for ephemeral global messaging and local private notes.
+- **Future**: End-to-End Encrypted (E2EE) cloud relay for syncing journal data between devices using CRDTs.
 
 ### Phase 2: Mobile Native Adaptation
 *Objective: Push to App Store/Play Store.*
