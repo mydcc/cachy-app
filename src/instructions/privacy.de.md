@@ -1,6 +1,6 @@
 # Datenschutzerklärung
 
-**Stand:** 2024
+**Stand:** 2026
 
 Wir bei Cachy nehmen den Schutz Ihrer persönlichen Daten sehr ernst. Diese Datenschutzerklärung informiert Sie darüber, wie wir mit Ihren Daten umgehen, wenn Sie unsere Anwendung nutzen.
 

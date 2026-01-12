@@ -1,6 +1,6 @@
 # Cachy Technical Whitepaper
 **Version:** 0.98.0
-**Date:** February 2025
+**Date:** January 2026
 
 ---
 

@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Effective Date:** 2024
+**Effective Date:** 2026
 
 At Cachy ("we", "us", or "our"), we value your privacy. This Privacy Policy explains how we handle your data when you use our application.
 
