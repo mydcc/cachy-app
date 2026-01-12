@@ -114,7 +114,7 @@
     <title>Cachy - Position Size & Risk Calculator</title>
     <meta
         name="description"
-        content="Advanced Position Sizing & Risk Management for Crypto Trading"
+        content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."
     />
     {@html `<script type="application/ld+json">
     {
