@@ -17,6 +17,7 @@
     let autoFetchBalance: boolean;
     let showSidebars: boolean;
     let showTechnicals: boolean;
+    let showIndicatorParams: boolean;
     let hideUnfilledOrders: boolean;
     let feePreference: 'maker' | 'taker';
     let hotkeyMode: HotkeyMode;
@@ -111,6 +112,7 @@
             autoFetchBalance = $settingsStore.autoFetchBalance;
             showSidebars = $settingsStore.showSidebars;
             showTechnicals = $settingsStore.showTechnicals;
+            showIndicatorParams = $settingsStore.showIndicatorParams;
             hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
             positionViewMode = $settingsStore.positionViewMode || 'detailed';
             feePreference = $settingsStore.feePreference;
@@ -169,6 +171,7 @@
             autoFetchBalance,
             showSidebars,
             showTechnicals,
+            showIndicatorParams,
             hideUnfilledOrders,
             feePreference,
             hotkeyMode,
@@ -626,6 +629,10 @@
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <span class="text-sm font-medium">{$_('settings.showTechnicals') || 'Show Technicals Panel'}</span>
                     <input type="checkbox" bind:checked={showTechnicals} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
+                </label>
+                <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
+                    <span class="text-sm font-medium">Show Indicator Parameters</span>
+                    <input type="checkbox" bind:checked={showIndicatorParams} class="accent-[var(--accent-color)] h-4 w-4 rounded" />
                 </label>
                 <label class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)]">
                     <div class="flex flex-col">

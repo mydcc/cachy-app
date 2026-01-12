@@ -67,7 +67,8 @@ export const technicalsService = {
         const rsiVal = indicators.calculateRSI(rsiSource, rsiLen);
 
         oscillators.push({
-            name: `RSI (${rsiLen}, ${rsiSigLen})`,
+            name: 'RSI',
+            params: `${rsiLen}, ${rsiSigLen}`,
             value: rsiVal ?? new Decimal(0),
             action: this.getRsiAction(rsiVal)
         });
@@ -126,7 +127,8 @@ export const technicalsService = {
         else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal)) stochAction = 'Sell';
 
         oscillators.push({
-            name: `Stoch (${stochK}, ${stochKSmooth}, ${stochD})`,
+            name: 'Stoch',
+            params: `${stochK}, ${stochKSmooth}, ${stochD}`,
             value: stochKVal,
             action: stochAction
         });
@@ -171,7 +173,8 @@ export const technicalsService = {
         else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
 
         oscillators.push({
-            name: `CCI (${cciLen}, ${cciSmoothLen})`,
+            name: 'CCI',
+            params: `${cciLen}, ${cciSmoothLen}`,
             value: cciVal,
             signal: cciSignalVal,
             action: cciAction
@@ -194,7 +197,8 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `ADX (${adxSmooth}, ${diLen})`,
+            name: 'ADX',
+            params: `${adxSmooth}, ${diLen}`,
             value: adxVal,
             action: adxAction
         });
@@ -212,7 +216,8 @@ export const technicalsService = {
         else if (aoVal.lt(0)) aoAction = 'Sell';
 
         oscillators.push({
-            name: `Awesome Osc. (${aoFast}, ${aoSlow})`,
+            name: 'Awesome Osc.',
+            params: `${aoFast}, ${aoSlow}`,
             value: aoVal,
             action: aoAction
         });
@@ -233,7 +238,8 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `Momentum (${momLen})`,
+            name: 'Momentum',
+            params: `${momLen}`,
             value: momVal,
             action: momAction
         });
@@ -267,7 +273,8 @@ export const technicalsService = {
         }
 
         oscillators.push({
-            name: `MACD (${macdFast}, ${macdSlow}, ${macdSig})`,
+            name: 'MACD',
+            params: `${macdFast}, ${macdSlow}, ${macdSig}`,
             value: macdVal,
             signal: macdSignalVal,
             action: macdAction
@@ -287,7 +294,8 @@ export const technicalsService = {
 
             if (emaVal) {
                 movingAverages.push({
-                    name: `EMA (${period})`,
+                    name: 'EMA',
+                    params: `${period}`,
                     value: emaVal,
                     action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
                 });

@@ -297,7 +297,12 @@
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Oscillators</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
                     {#each data.oscillators as osc}
-                        <span class="text-[var(--text-primary)]">{osc.name}</span>
+                        <span class="text-[var(--text-primary)]">
+                            {osc.name}
+                            {#if $settingsStore.showIndicatorParams && osc.params}
+                                <span class="text-[var(--text-secondary)]">({osc.params})</span>
+                            {/if}
+                        </span>
                         <span class="text-right text-[var(--text-secondary)] font-mono">{formatVal(osc.value)}</span>
                         <span class="text-right font-bold {getActionColor(osc.action)}">{osc.action}</span>
                     {/each}
@@ -307,7 +312,12 @@
                 <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">Moving Averages</h4>
                 <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
                     {#each data.movingAverages as ma}
-                        <span class="text-[var(--text-primary)]">{ma.name}</span>
+                        <span class="text-[var(--text-primary)]">
+                            {ma.name}
+                            {#if $settingsStore.showIndicatorParams && ma.params}
+                                <span class="text-[var(--text-secondary)]">({ma.params})</span>
+                            {/if}
+                        </span>
                         <span class="text-right text-[var(--text-secondary)] font-mono">{formatVal(ma.value)}</span>
                         <span class="text-right font-bold {getActionColor(ma.action)}">{ma.action}</span>
                     {/each}
