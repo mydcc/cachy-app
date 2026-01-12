@@ -285,12 +285,12 @@
                 <button
                     type="button"
                     class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
-                    on:mouseenter={handleDropdownEnter}
-                    on:mouseleave={handleDropdownLeave}
                 >
                     Technicals
                     <span
-                        class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors"
+                        class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors cursor-pointer"
+                        on:mouseenter={handleDropdownEnter}
+                        on:mouseleave={handleDropdownLeave}
                     >
                         {timeframe}
                     </span>
