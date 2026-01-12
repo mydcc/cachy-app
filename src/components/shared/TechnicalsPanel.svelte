@@ -294,6 +294,8 @@
                 >
                     Technicals
                     <span
+                        role="button"
+                        tabindex="0"
                         class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-white transition-colors cursor-pointer"
                         on:mouseenter={handleDropdownEnter}
                         on:mouseleave={handleDropdownLeave}
@@ -328,6 +330,7 @@
 
             {#if showTimeframePopup}
                 <div
+                    role="menu"
                     class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
                     on:mouseenter={handleDropdownEnter}
                     on:mouseleave={handleDropdownLeave}
