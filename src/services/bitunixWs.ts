@@ -86,9 +86,11 @@ class BitunixWebSocketService {
     private connectPublic() {
         if (this.wsPublic) {
             if (this.wsPublic.readyState === WebSocket.OPEN ||
-                this.wsPublic.readyState === WebSocket.CONNECTING ||
-                this.wsPublic.readyState === WebSocket.CLOSING) {
+                this.wsPublic.readyState === WebSocket.CONNECTING) {
                 return;
+            }
+            if (this.wsPublic.readyState === WebSocket.CLOSING) {
+                this.cleanup('public');
             }
         }
 
@@ -107,8 +109,11 @@ class BitunixWebSocketService {
                     // P0 Fix: Explicit cleanup to prevent timer leaks
                     if (this.wsPublic === ws) {
                         this.cleanup('public');
+                        ws.close();
+                        this.scheduleReconnect('public');
+                    } else {
+                        ws.close();
                     }
-                    ws.close();
                 }
             }, this.CONNECTION_TIMEOUT_MS);
 
@@ -175,9 +180,11 @@ class BitunixWebSocketService {
 
         if (this.wsPrivate) {
             if (this.wsPrivate.readyState === WebSocket.OPEN ||
-                this.wsPrivate.readyState === WebSocket.CONNECTING ||
-                this.wsPrivate.readyState === WebSocket.CLOSING) {
+                this.wsPrivate.readyState === WebSocket.CONNECTING) {
                 return;
+            }
+            if (this.wsPrivate.readyState === WebSocket.CLOSING) {
+                this.cleanup('private');
             }
         }
 
@@ -194,8 +201,11 @@ class BitunixWebSocketService {
                     // P0 Fix: Explicit cleanup to prevent timer leaks
                     if (this.wsPrivate === ws) {
                         this.cleanup('private');
+                        ws.close();
+                        this.scheduleReconnect('private');
+                    } else {
+                        ws.close();
                     }
-                    ws.close();
                 }
             }, this.CONNECTION_TIMEOUT_MS);
 
@@ -362,12 +372,20 @@ class BitunixWebSocketService {
                 clearTimeout(this.connectionTimeoutPublic);
                 this.connectionTimeoutPublic = null;
             }
+            if (this.reconnectTimerPublic) {
+                clearTimeout(this.reconnectTimerPublic);
+                this.reconnectTimerPublic = null;
+            }
             this.wsPublic = null;
         } else {
             // P0 Fix: Clear connection timeout timer to prevent memory leaks
             if (this.connectionTimeoutPrivate) {
                 clearTimeout(this.connectionTimeoutPrivate);
                 this.connectionTimeoutPrivate = null;
+            }
+            if (this.reconnectTimerPrivate) {
+                clearTimeout(this.reconnectTimerPrivate);
+                this.reconnectTimerPrivate = null;
             }
             this.wsPrivate = null;
         }
@@ -382,7 +400,17 @@ class BitunixWebSocketService {
                 return;
             }
 
-            const nonce = Math.random().toString(36).substring(2, 15);
+            // Generate secure nonce using crypto.getRandomValues if available
+            let nonce: string;
+            if (typeof window !== 'undefined' && window.crypto && window.crypto.getRandomValues) {
+                const array = new Uint8Array(16);
+                window.crypto.getRandomValues(array);
+                nonce = Array.from(array, byte => byte.toString(16).padStart(2, '0')).join('');
+            } else {
+                // Fallback for non-browser environments or very old browsers (unlikely given Svelte 4)
+                nonce = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+            }
+
             const timestamp = Math.floor(Date.now() / 1000);
 
             const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(CryptoJS.enc.Hex);
