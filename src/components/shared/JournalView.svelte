@@ -1130,10 +1130,10 @@
             on:select={(e) => (activePreset = e.detail)}
         />
 
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6 min-h-[250px]">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
             {#if activePreset === "performance"}
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <LineChart
                         data={equityData}
@@ -1145,7 +1145,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <LineChart
                         data={drawdownData}
@@ -1157,7 +1157,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={monthlyData}
@@ -1167,42 +1167,27 @@
                         )}
                     />
                 </div>
-            {:else if activePreset === "quality"}
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col relative"
+                    class="chart-tile bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)] flex flex-col relative h-[250px]"
                 >
                     <!-- Main Content: Chart & Stats -->
                     <div
                         class="flex flex-row items-center justify-between flex-1 w-full relative"
                     >
-                        <!-- Chart Area: Title + Chart centered together -->
-                        <div
-                            class="flex-1 flex flex-col items-center justify-center h-full relative"
-                        >
-                            <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
-                            <div class="text-center mb-2">
-                                <span class="text-xs font-bold text-[#94a3b8]"
-                                    >{$_(
-                                        "journal.deepDive.charts.titles.winRate",
-                                    )}</span
-                                >
-                            </div>
-
-                            <div class="h-36 w-36">
-                                <DoughnutChart
-                                    data={winLossChartData}
-                                    title=""
-                                    description=""
-                                    options={{
-                                        plugins: { legend: { display: false } },
-                                    }}
-                                />
-                            </div>
+                        <div class="h-32 w-32">
+                            <DoughnutChart
+                                data={winLossChartData}
+                                title=""
+                                description=""
+                                options={{
+                                    plugins: { legend: { display: false } },
+                                }}
+                            />
                         </div>
 
                         <!-- Stats: Right aligned -->
                         <div
-                            class="flex flex-col justify-center items-end gap-2 text-sm min-w-[100px]"
+                            class="flex flex-col justify-center items-end gap-1.5 text-sm min-w-[100px]"
                         >
                             <div class="flex flex-col items-end">
                                 <span
@@ -1334,7 +1319,7 @@
 
                     <!-- Bottom Row: Legend -->
                     <div
-                        class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-2 pt-1 border-t border-[var(--border-color)] w-full"
+                        class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1 pt-1 border-t border-[var(--border-color)] w-full"
                     >
                         <div
                             class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
@@ -1417,7 +1402,7 @@
                     </div>
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
                         data={rDistData}
@@ -1430,7 +1415,7 @@
                     />
                 </div>
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <LineChart
                         data={cumRData}
