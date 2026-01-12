@@ -1167,6 +1167,7 @@
                         )}
                     />
                 </div>
+            {:else if activePreset === "quality"}
                 <div
                     class="chart-tile bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)] flex flex-col relative h-[250px]"
                 >
@@ -1174,15 +1175,29 @@
                     <div
                         class="flex flex-row items-center justify-between flex-1 w-full relative"
                     >
-                        <div class="h-32 w-32">
-                            <DoughnutChart
-                                data={winLossChartData}
-                                title=""
-                                description=""
-                                options={{
-                                    plugins: { legend: { display: false } },
-                                }}
-                            />
+                        <!-- Chart Area: Title + Chart centered together -->
+                        <div
+                            class="flex-1 flex flex-col items-center justify-center h-full relative"
+                        >
+                            <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
+                            <div class="text-center mb-1">
+                                <span class="text-xs font-bold text-[#94a3b8]"
+                                    >{$_(
+                                        "journal.deepDive.charts.titles.winRate",
+                                    )}</span
+                                >
+                            </div>
+
+                            <div class="h-28 w-28">
+                                <DoughnutChart
+                                    data={winLossChartData}
+                                    title=""
+                                    description=""
+                                    options={{
+                                        plugins: { legend: { display: false } },
+                                    }}
+                                />
+                            </div>
                         </div>
 
                         <!-- Stats: Right aligned -->
