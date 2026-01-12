@@ -11,6 +11,7 @@ export interface Kline {
 
 export interface IndicatorResult {
     name: string;
+    params?: string; // e.g. "14, 14"
     value: Decimal;
     signal?: Decimal; // For MACD signal line, etc.
     histogram?: Decimal; // For MACD histogram

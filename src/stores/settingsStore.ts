@@ -21,6 +21,7 @@ export interface Settings {
     autoFetchBalance: boolean;
     showSidebars: boolean;
     showTechnicals: boolean;
+    showIndicatorParams: boolean;
     hideUnfilledOrders: boolean;
     positionViewMode?: PositionViewMode;
     pnlViewMode?: PnlViewMode;
@@ -69,6 +70,7 @@ const defaultSettings: Settings = {
     autoFetchBalance: false,
     showSidebars: true,
     showTechnicals: true,
+    showIndicatorParams: true,
     hideUnfilledOrders: false,
     positionViewMode: 'detailed',
     isPro: false,
@@ -167,6 +169,7 @@ function loadSettingsFromLocalStorage(): Settings {
             autoFetchBalance: settings.autoFetchBalance,
             showSidebars: settings.showSidebars ?? defaultSettings.showSidebars,
             showTechnicals: settings.showTechnicals ?? defaultSettings.showTechnicals,
+            showIndicatorParams: settings.showIndicatorParams ?? defaultSettings.showIndicatorParams,
             hideUnfilledOrders: settings.hideUnfilledOrders ?? defaultSettings.hideUnfilledOrders,
             positionViewMode: settings.positionViewMode ?? defaultSettings.positionViewMode,
             pnlViewMode: settings.pnlViewMode || 'value',
