@@ -1169,252 +1169,29 @@
                 </div>
             {:else if activePreset === "quality"}
                 <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)] flex flex-col relative h-[250px]"
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
-                    <!-- Main Content: Chart & Stats -->
-                    <div
-                        class="flex flex-row items-center justify-between flex-1 w-full relative"
-                    >
-                        <!-- Chart Area: Title + Chart centered together -->
-                        <div
-                            class="flex-1 flex flex-col items-center justify-center h-full relative"
-                        >
-                            <!-- Title: Centered above Chart (Simulating Chart.js Title) -->
-                            <div class="text-center mb-1">
-                                <span class="text-xs font-bold text-[#94a3b8]"
-                                    >{$_(
-                                        "journal.deepDive.charts.titles.winRate",
-                                    )}</span
-                                >
-                            </div>
-
-                            <div class="h-28 w-28">
-                                <DoughnutChart
-                                    data={winLossChartData}
-                                    title=""
-                                    description=""
-                                    options={{
-                                        plugins: { legend: { display: false } },
-                                    }}
-                                />
-                            </div>
-                        </div>
-
-                        <!-- Stats: Right aligned -->
-                        <div
-                            class="flex flex-col justify-center items-end gap-1.5 text-sm min-w-[100px]"
-                        >
-                            <div class="flex flex-col items-end">
-                                <span
-                                    class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider"
-                                    >Total Win Rate</span
-                                >
-                                <span
-                                    class="font-mono font-bold {qualData.stats.winRate.greaterThanOrEqualTo(
-                                        50,
-                                    )
-                                        ? 'text-[var(--success-color)]'
-                                        : 'text-[var(--danger-color)]'}"
-                                >
-                                    {qualData.stats.winRate.toFixed(2)}%
-                                </span>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span
-                                    class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider"
-                                    >{$_(
-                                        "journal.deepDive.charts.labels.profitFactor",
-                                    )}</span
-                                >
-                                <span
-                                    class="font-mono font-bold {qualData
-                                        .detailedStats.profitFactor >= 1.5
-                                        ? 'text-[var(--success-color)]'
-                                        : qualData.detailedStats.profitFactor >=
-                                            1
-                                          ? 'text-[var(--warning-color)]'
-                                          : 'text-[var(--danger-color)]'}"
-                                >
-                                    {qualData.detailedStats.profitFactor.toFixed(
-                                        2,
-                                    )}
-                                </span>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span
-                                    class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider"
-                                    >{$_(
-                                        "journal.deepDive.charts.labels.expectancy",
-                                    )}</span
-                                >
-                                <span
-                                    class="font-mono font-bold {qualData
-                                        .detailedStats.expectancy > 0
-                                        ? 'text-[var(--success-color)]'
-                                        : 'text-[var(--danger-color)]'}"
-                                >
-                                    ${qualData.detailedStats.expectancy.toFixed(
-                                        2,
-                                    )}
-                                </span>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span
-                                    class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider"
-                                    >{$_(
-                                        "journal.deepDive.charts.labels.avgWinLoss",
-                                    )}</span
-                                >
-                                <div
-                                    class="flex items-baseline justify-end gap-1"
-                                >
-                                    <span
-                                        class="font-bold text-[var(--success-color)]"
-                                        >${qualData.detailedStats.avgWin.toFixed(
-                                            2,
-                                        )}</span
-                                    >
-                                    <span class="text-[var(--text-secondary)]"
-                                        >/</span
-                                    >
-                                    <span
-                                        class="font-bold text-[var(--danger-color)]"
-                                        >${qualData.detailedStats.avgLoss.toFixed(
-                                            2,
-                                        )}</span
-                                    >
-                                </div>
-                            </div>
-                            <div class="flex flex-col items-end">
-                                <span
-                                    class="text-[var(--text-secondary)] text-[10px] uppercase tracking-wider"
-                                    >{$_(
-                                        "journal.deepDive.charts.labels.winRateLS",
-                                    )}</span
-                                >
-                                <div
-                                    class="flex items-baseline justify-end gap-1"
-                                >
-                                    <span
-                                        class="font-bold whitespace-nowrap"
-                                        style="color: {hexToRgba(
-                                            themeColors.success,
-                                            1,
-                                        )}"
-                                        >L: {qualData.detailedStats.winRateLong.toFixed(
-                                            2,
-                                        )}%</span
-                                    >
-                                    <span class="text-[var(--text-secondary)]"
-                                        >|</span
-                                    >
-                                    <span
-                                        class="font-bold whitespace-nowrap"
-                                        style="color: {hexToRgba(
-                                            themeColors.success,
-                                            0.6,
-                                        )}"
-                                        >S: {qualData.detailedStats.winRateShort.toFixed(
-                                            2,
-                                        )}%</span
-                                    >
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Tooltip Icon: Absolute Bottom Left of Tile -->
-                    <div class="absolute bottom-[-10px] left-[-10px]">
-                        <Tooltip
-                            text={$_(
-                                "journal.deepDive.charts.descriptions.winLoss",
-                            )}
-                        />
-                    </div>
-
-                    <!-- Bottom Row: Legend -->
-                    <div
-                        class="flex flex-wrap justify-center gap-x-3 gap-y-1 mt-1 pt-1 border-t border-[var(--border-color)] w-full"
-                    >
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.success,
-                                    1,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.winLong",
-                            )}
-                        </div>
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.success,
-                                    0.5,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.winShort",
-                            )}
-                        </div>
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.danger,
-                                    1,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.lossLong",
-                            )}
-                        </div>
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.danger,
-                                    0.5,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.lossShort",
-                            )}
-                        </div>
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.warning,
-                                    1,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.beLong",
-                            )}
-                        </div>
-                        <div
-                            class="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]"
-                        >
-                            <span
-                                class="w-2.5 h-2.5 rounded-full"
-                                style="background: {hexToRgba(
-                                    themeColors.warning,
-                                    0.5,
-                                )}"
-                            ></span>{$_(
-                                "journal.deepDive.charts.labels.beShort",
-                            )}
-                        </div>
-                    </div>
+                    <DoughnutChart
+                        data={winLossChartData}
+                        title={$_("journal.deepDive.charts.titles.winRate")}
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.winLoss",
+                        )}
+                        options={{
+                            plugins: {
+                                legend: {
+                                    display: true,
+                                    position: "bottom",
+                                    labels: {
+                                        boxWidth: 10,
+                                        padding: 10,
+                                        color: "#94a3b8",
+                                        font: { size: 10 },
+                                    },
+                                },
+                            },
+                        }}
+                    />
                 </div>
                 <div
                     class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
@@ -1446,17 +1223,6 @@
                     class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                 >
                     <BarChart
-                        data={longShortData}
-                        title={$_("journal.deepDive.charts.titles.longVsShort")}
-                        description={$_(
-                            "journal.deepDive.charts.descriptions.longVsShort",
-                        )}
-                    />
-                </div>
-                <div
-                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-                >
-                    <BarChart
                         data={topSymbolData}
                         title={$_("journal.deepDive.charts.titles.topSymbols")}
                         horizontal={true}
@@ -1479,6 +1245,129 @@
                         )}
                     />
                 </div>
+                <!-- Empty spacer to keep grid aligned if needed, or just let it wrap -->
+                <div class="hidden md:block"></div>
+
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px]"
+                >
+                    <BarChart
+                        data={longShortData}
+                        title={$_("journal.deepDive.charts.titles.longVsShort")}
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.longVsShort",
+                        )}
+                    />
+                </div>
+
+                <!-- Stats Tile (1/3 width) -->
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px] flex flex-col justify-center"
+                >
+                    <div class="text-center mb-4">
+                        <span
+                            class="text-xs font-bold text-[#94a3b8] uppercase tracking-wider"
+                            >Trading Stats</span
+                        >
+                    </div>
+                    <div class="flex flex-col gap-3 text-sm">
+                        <div class="flex justify-between items-center">
+                            <span
+                                class="text-[var(--text-secondary)] text-[10px] uppercase"
+                                >Win Rate</span
+                            >
+                            <span
+                                class="font-mono font-bold {qualData.stats.winRate.greaterThanOrEqualTo(
+                                    50,
+                                )
+                                    ? 'text-[var(--success-color)]'
+                                    : 'text-[var(--danger-color)]'}"
+                            >
+                                {qualData.stats.winRate.toFixed(2)}%
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span
+                                class="text-[var(--text-secondary)] text-[10px] uppercase"
+                                >Profit Factor</span
+                            >
+                            <span
+                                class="font-mono font-bold {qualData
+                                    .detailedStats.profitFactor >= 1.5
+                                    ? 'text-[var(--success-color)]'
+                                    : qualData.detailedStats.profitFactor >= 1
+                                      ? 'text-[var(--warning-color)]'
+                                      : 'text-[var(--danger-color)]'}"
+                            >
+                                {qualData.detailedStats.profitFactor.toFixed(2)}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center">
+                            <span
+                                class="text-[var(--text-secondary)] text-[10px] uppercase"
+                                >Expectancy</span
+                            >
+                            <span
+                                class="font-mono font-bold {qualData
+                                    .detailedStats.expectancy > 0
+                                    ? 'text-[var(--success-color)]'
+                                    : 'text-[var(--danger-color)]'}"
+                            >
+                                ${qualData.detailedStats.expectancy.toFixed(2)}
+                            </span>
+                        </div>
+                        <div
+                            class="flex justify-between items-center text-[11px]"
+                        >
+                            <span class="text-[var(--text-secondary)] uppercase"
+                                >Avg W/L</span
+                            >
+                            <div class="flex gap-1">
+                                <span class="text-[var(--success-color)]"
+                                    >${qualData.detailedStats.avgWin.toFixed(
+                                        2,
+                                    )}</span
+                                >
+                                <span class="text-[var(--text-secondary)]"
+                                    >/</span
+                                >
+                                <span class="text-[var(--danger-color)]"
+                                    >${qualData.detailedStats.avgLoss.toFixed(
+                                        2,
+                                    )}</span
+                                >
+                            </div>
+                        </div>
+                        <div
+                            class="flex justify-between items-center text-[10px]"
+                        >
+                            <span class="text-[var(--text-secondary)] uppercase"
+                                >L/S Win Rate</span
+                            >
+                            <div class="flex gap-2">
+                                <span
+                                    style="color: {hexToRgba(
+                                        themeColors.success,
+                                        1,
+                                    )}"
+                                    >L: {qualData.detailedStats.winRateLong.toFixed(
+                                        1,
+                                    )}%</span
+                                >
+                                <span
+                                    style="color: {hexToRgba(
+                                        themeColors.success,
+                                        0.6,
+                                    )}"
+                                    >S: {qualData.detailedStats.winRateShort.toFixed(
+                                        1,
+                                    )}%</span
+                                >
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div
                     class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3 h-[250px]"
                 >
