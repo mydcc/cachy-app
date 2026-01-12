@@ -2553,7 +2553,6 @@
                     { id: "forecast", label: $_("journal.deepDive.forecast") },
                     { id: "trends", label: $_("journal.deepDive.trends") },
                     { id: "leakage", label: $_("journal.deepDive.leakage") },
-                    { id: "direction", label: "Direction" },
                     { id: "timing", label: $_("journal.deepDive.timing") },
                     { id: "assets", label: $_("journal.deepDive.assets") },
                     { id: "risk", label: $_("journal.deepDive.risk") },
