@@ -813,13 +813,21 @@
         if (isNaN(s) || isNaN(e)) return "-";
 
         const diffMs = Math.max(0, e - s);
-        const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+        const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const diffHours = Math.floor(
+            (diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
+        );
         const diffMinutes = Math.floor(
             (diffMs % (1000 * 60 * 60)) / (1000 * 60),
         );
 
-        if (diffHours > 0) return `${diffHours}h ${diffMinutes}m`;
-        return `${diffMinutes}m`;
+        const parts = [];
+        if (diffDays > 0) parts.push(`${diffDays}d`);
+        if (diffHours > 0) parts.push(`${diffHours}h`);
+        if (diffMinutes > 0 || parts.length === 0)
+            parts.push(`${diffMinutes}m`);
+
+        return parts.join(" ");
     }
 
     function sortTrades(
