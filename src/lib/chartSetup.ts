@@ -13,7 +13,6 @@ import {
   TimeScale
 } from 'chart.js';
 import annotationPlugin from 'chartjs-plugin-annotation';
-import zoomPlugin from 'chartjs-plugin-zoom';
 import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
@@ -29,9 +28,14 @@ ChartJS.register(
   Filler,
   TimeScale,
   annotationPlugin,
-  zoomPlugin,
   ChartDataLabels
 );
+
+if (typeof window !== 'undefined') {
+  import('chartjs-plugin-zoom').then((plugin) => {
+    ChartJS.register(plugin.default);
+  }).catch(err => console.error('Failed to load chartjs-plugin-zoom', err));
+}
 
 // Global defaults for dark theme
 ChartJS.defaults.color = '#94a3b8'; // text-slate-400

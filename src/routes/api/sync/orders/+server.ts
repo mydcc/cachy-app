@@ -26,34 +26,30 @@ export const POST: RequestHandler = async ({ request }) => {
             return false;
         };
 
-        // Parallel execution for better performance
-        const tasks = [
+        // Execute all fetches in parallel
+        const [regularResult, tpslResult, planResult] = await Promise.allSettled([
             fetchAllPages(apiKey, apiSecret, '/api/v1/futures/trade/get_history_orders', checkTimeout),
             fetchAllPages(apiKey, apiSecret, '/api/v1/futures/tpsl/get_history_orders', checkTimeout),
             fetchAllPages(apiKey, apiSecret, '/api/v1/futures/plan/get_history_plan_orders', checkTimeout)
-        ];
+        ]);
 
-        const results = await Promise.allSettled(tasks);
-
-        // Process Regular Orders
-        if (results[0].status === 'fulfilled') {
-            allOrders = allOrders.concat(results[0].value);
+        // Process results
+        if (regularResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(regularResult.value);
         } else {
-            console.error('Error fetching regular orders:', results[0].reason?.message || 'Unknown error');
+            console.error('Error fetching regular orders:', (regularResult.reason as Error).message || 'Unknown error');
         }
 
-        // Process TP/SL Orders
-        if (results[1].status === 'fulfilled') {
-             allOrders = allOrders.concat(results[1].value);
+        if (tpslResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(tpslResult.value);
         } else {
-             console.warn('Error fetching TP/SL orders:', results[1].reason?.message || 'Unknown error');
+            console.warn('Error fetching TP/SL orders:', (tpslResult.reason as Error).message);
         }
 
-        // Process Plan Orders
-        if (results[2].status === 'fulfilled') {
-             allOrders = allOrders.concat(results[2].value);
+        if (planResult.status === 'fulfilled') {
+            allOrders = allOrders.concat(planResult.value);
         } else {
-             console.warn('Error fetching plan orders:', results[2].reason?.message || 'Unknown error');
+            console.warn('Error fetching plan orders:', (planResult.reason as Error).message);
         }
 
         return json({ data: allOrders, isPartial });
