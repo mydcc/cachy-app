@@ -12,6 +12,9 @@ import {
   Filler,
   TimeScale
 } from 'chart.js';
+import annotationPlugin from 'chartjs-plugin-annotation';
+import zoomPlugin from 'chartjs-plugin-zoom';
+import ChartDataLabels from 'chartjs-plugin-datalabels';
 
 ChartJS.register(
   Title,
@@ -24,7 +27,10 @@ ChartJS.register(
   BarElement,
   ArcElement,
   Filler,
-  TimeScale
+  TimeScale,
+  annotationPlugin,
+  zoomPlugin,
+  ChartDataLabels
 );
 
 // Global defaults for dark theme

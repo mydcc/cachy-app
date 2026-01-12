@@ -1,134 +1,228 @@
 <script lang="ts">
-    import { updateVisualBar } from '../../services/uiManager';
-    import type { VisualBarData } from '../../services/uiManager';
+    import { Bar } from 'svelte-chartjs';
     import { _ } from '../../locales/i18n';
     import type { IndividualTpResult } from '../../stores/types';
+    import type { ChartOptions, ChartData } from 'chart.js';
+    import { formatDynamicDecimal } from '../../utils/utils';
 
     export let entryPrice: number | null;
     export let stopLossPrice: number | null;
-    export let tradeType: string;
     export let targets: Array<{ price: number | null; percent: number | null; isLocked: boolean }>;
     export let calculatedTpDetails: IndividualTpResult[];
 
-    let visualBarData: VisualBarData = { visualBarContent: [], markers: [] };
+    // Use 'any' for chartData to bypass strict Chart.js typing issues in the template
+    // which struggles with the floating bar [number, number] tuple type.
+    let chartData: any;
+    let chartOptions: ChartOptions<'bar'>;
+
+    // Helper to resolve CSS variables
+    const getCssVar = (name: string) => {
+        if (typeof window !== 'undefined') {
+            return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+        }
+        return '#000'; // Fallback
+    };
 
     $: {
-        visualBarData = updateVisualBar(
-            { entryPrice, stopLossPrice, tradeType },
-            targets,
-            calculatedTpDetails
-        );
-    }
+        if (entryPrice && stopLossPrice && targets.length > 0 && targets[targets.length - 1].price) {
 
+            const lastTpPrice = targets[targets.length - 1].price as number;
+
+            // Determine colors based on win/loss zones
+            const dangerColor = getCssVar('--danger-color') || '#ef4444';
+            const successColor = getCssVar('--success-color') || '#22c55e';
+            const textColor = getCssVar('--text-primary') || '#e2e8f0';
+            const textSecondary = getCssVar('--text-secondary') || '#94a3b8';
+            const bgTertiary = getCssVar('--bg-tertiary') || '#1e293b';
+
+            // Risk Segment: From SL to Entry
+            // Reward Segment: From Entry to Last TP
+
+            // Explicitly cast to [number, number] to satisfy Chart.js types
+            const riskSegment: [number, number] = [stopLossPrice, entryPrice];
+            const rewardSegment: [number, number] = [entryPrice, lastTpPrice];
+
+            chartData = {
+                labels: ['Analysis'], // Dummy label for the single y-axis row
+                datasets: [
+                    {
+                        label: 'Risk',
+                        data: [riskSegment],
+                        backgroundColor: dangerColor,
+                        borderSkipped: false,
+                        borderRadius: { topLeft: 4, bottomLeft: 4 }, // Rounded corners on left
+                        barPercentage: 0.6,
+                        categoryPercentage: 1.0
+                    },
+                    {
+                        label: 'Reward',
+                        data: [rewardSegment],
+                        backgroundColor: successColor,
+                        borderSkipped: false,
+                        borderRadius: { topRight: 4, bottomRight: 4 }, // Rounded corners on right
+                        barPercentage: 0.6,
+                        categoryPercentage: 1.0
+                    }
+                ]
+            };
+
+            // Annotations
+            const annotations: any = {};
+
+            // Entry Line (White) - Bottom Label
+            annotations['entryLine'] = {
+                type: 'line',
+                xMin: entryPrice,
+                xMax: entryPrice,
+                borderColor: textColor,
+                borderWidth: 2,
+                label: {
+                    display: true,
+                    content: 'Einstieg',
+                    position: 'start', // bottom for horizontal chart? In Chart.js 'start' on x scale is left/bottom depending.
+                    // For x-scale line, position is along the line. 'start' is bottom, 'end' is top.
+                    yAdjust: 20, // Push it down
+                    backgroundColor: bgTertiary,
+                    color: textColor,
+                    font: { size: 10 },
+                    padding: 4,
+                    borderRadius: 4
+                }
+            };
+
+            // SL Line (Red) - Top Label
+            annotations['slLine'] = {
+                type: 'line',
+                xMin: stopLossPrice,
+                xMax: stopLossPrice,
+                borderColor: dangerColor,
+                borderWidth: 2,
+                label: {
+                    display: true,
+                    content: 'SL',
+                    position: 'end', // Top
+                    yAdjust: -20,
+                    backgroundColor: dangerColor,
+                    color: '#fff',
+                    font: { size: 10, weight: 'bold' },
+                    padding: 4,
+                    borderRadius: 4
+                }
+            };
+
+            // TP Lines (Green)
+            targets.forEach((target, index) => {
+                if (target.price) {
+                    const detail = calculatedTpDetails.find(d => d.index === index);
+                    const rrText = detail ? `${detail.riskRewardRatio.toFixed(2)}R` : '';
+
+                    annotations[`tp${index}`] = {
+                        type: 'line',
+                        xMin: target.price,
+                        xMax: target.price,
+                        borderColor: 'rgba(255, 255, 255, 0.5)', // Semi-transparent white
+                        borderWidth: 1,
+                        borderDash: [4, 4],
+                        label: {
+                            display: true,
+                            content: [`TP${index + 1}`, rrText],
+                            position: 'end', // Top
+                            yAdjust: -25, // Staggered slightly if needed?
+                            backgroundColor: 'transparent',
+                            color: textSecondary,
+                            font: { size: 10 },
+                            textAlign: 'center'
+                        }
+                    };
+                }
+            });
+
+            chartOptions = {
+                indexAxis: 'y', // Horizontal bar
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: { enabled: false }, // Custom tooltips or none? The old one had tooltips.
+                    // We can use the datalabels or just reliance on visual lines.
+                    // Let's keep it simple first as requested.
+                    annotation: {
+                        annotations: annotations,
+                        clip: false // Allow labels outside
+                    },
+                    datalabels: {
+                        display: false // We use annotations for labels
+                    },
+                    zoom: {
+                        zoom: {
+                            wheel: { enabled: true },
+                            pinch: { enabled: true },
+                            mode: 'x',
+                        },
+                        pan: {
+                            enabled: true,
+                            mode: 'x',
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        display: false, // Hide the axis numbers
+                        grid: { display: false },
+                        min: Math.min(stopLossPrice, lastTpPrice) * 0.995, // Add some padding
+                        max: Math.max(stopLossPrice, lastTpPrice) * 1.005
+                    },
+                    y: {
+                        display: false, // Hide the category label
+                        grid: { display: false },
+                        stacked: true
+                    }
+                },
+                layout: {
+                    padding: {
+                        top: 30,
+                        bottom: 30,
+                        left: 10,
+                        right: 10
+                    }
+                }
+            };
+        }
+    }
 </script>
 
 <section class="visual-bar-container md:col-span-2">
     <h2 class="section-header text-center !mb-4">{$_('dashboard.visualBar.header')}</h2>
     <div
-        class="visual-bar"
+        class="visual-bar-chart-wrapper"
         role="img"
         aria-label="{$_('dashboard.visualBar.ariaLabel')}"
     >
-        {#each visualBarData.visualBarContent as item}
-            <div class="{item.type}" style="left: {item.style.left}; width: {item.style.width};"></div>
-        {/each}
-        {#each visualBarData.markers as marker}
-            {@const tpDetail = calculatedTpDetails.find(d => d.index === marker.index)}
-            <div
-                class="bar-marker {marker.isEntry ? 'entry-marker' : ''} {marker.index !== undefined ? 'tp-marker' : ''}"
-                style="left: {marker.pos}%; z-index: {marker.index !== undefined ? 20 - marker.index : 'auto'};"
-                role="button"
-                tabindex="0"
-            >
-                <span class="marker-label" style="transform: translateX(-50%);">{marker.label}</span>
-
-                {#if marker.rr}
-                <span class="rr-label" style="transform: translateX(-50%);">
-                    {marker.rr.toFixed(2)}R
-                </span>
-                {/if}
-
-                {#if tpDetail}
-                    <div class="tp-tooltip">
-                        <div class="tp-tooltip-line">{$_('dashboard.visualBar.netProfitLabel')} <span class="text-green-400">+${tpDetail.netProfit.toFixed(2)}</span></div>
-                        <div class="tp-tooltip-line">{$_('dashboard.visualBar.rrLabel')} <span class="{tpDetail.riskRewardRatio.gte(2) ? 'text-green-400' : tpDetail.riskRewardRatio.gte(1.5) ? 'text-yellow-400' : 'text-red-400'}">{tpDetail.riskRewardRatio.toFixed(2)}</span></div>
-                    </div>
-                {/if}
+        {#if chartData}
+            <Bar data={chartData} options={chartOptions} />
+        {:else}
+            <div class="text-center text-gray-500 py-4">
+                {$_('dashboard.promptForData')}
             </div>
-        {/each}
+        {/if}
     </div>
 </section>
 
 <style>
-    .visual-bar-container { background-color: var(--bg-primary); padding: 1rem; border-radius: 0.5rem; margin-top: 1.5rem; margin-bottom: 1.5rem; position: relative; }
-    .visual-bar { height: 1.5rem; position: relative; display: flex; border-radius: 0.375rem; overflow: visible; background-color: var(--bg-tertiary); }
-    .loss-zone { background-color: var(--danger-color); position: absolute; height: 100%;}
-    .gain-zone { background-color: var(--success-color); position: absolute; height: 100%;}
-    .bar-marker { position: absolute; top: -0.25rem; bottom: -0.25rem; width: 20px; display: flex; flex-direction: column; align-items: center; cursor: pointer; transform: translateX(-50%); }
-    .bar-marker::before { content: ''; position: absolute; left: 50%; transform: translateX(-50%); width: 4px; height: 100%; background-color: var(--text-primary); }
-    .bar-marker span { position: absolute; font-size: 0.75rem; background-color: var(--bg-tertiary); padding: 0.1rem 0.3rem; border-radius: 0.25rem; white-space: nowrap; }
-    .bar-marker .marker-label { bottom: 100%; margin-bottom: 1.5rem; font-size: 0.7rem; }
-    .entry-marker .marker-label { top: 100%; margin-top: 0.25rem; bottom: auto; margin-bottom: 0; }
-    .bar-marker .rr-label { bottom: 100%; margin-bottom: 0.75rem; background-color: transparent; font-size: 0.65rem; color: var(--text-secondary); }
-    .entry-marker .rr-label { display: none; } /* Should not happen, but for safety */
-
-    .tp-tooltip {
-        position: absolute;
-        bottom: 100%;
-        left: 50%;
-        transform: translateX(-50%) translateY(-10px);
-
-        visibility: hidden;
-        opacity: 0;
-        transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
-
-        background-color: var(--bg-tertiary);
-        color: var(--text-primary);
-        padding: 0.5rem 0.75rem;
+    .visual-bar-container {
+        background-color: var(--bg-primary);
+        padding: 1rem;
         border-radius: 0.5rem;
-        font-size: 0.8rem;
-        white-space: nowrap;
-        z-index: 60;
-        pointer-events: none;
-        box-shadow: var(--shadow-tooltip);
-        text-align: left;
-    }
-    .tp-tooltip::before {
-        content: '';
-        position: absolute;
-        top: 100%;
-        left: 50%;
-        transform: translateX(-50%);
-        width: 0;
-        height: 0;
-        border-left: 5px solid transparent;
-        border-right: 5px solid transparent;
-        border-top: 5px solid var(--bg-tertiary);
-    }
-
-    .bar-marker:hover .tp-tooltip {
-        visibility: visible;
-        opacity: 1;
-        transform: translateX(-50%) translateY(-15px);
-    }
-
-    .tp-tooltip-line {
-        display: block;
+        margin-top: 1.5rem;
+        margin-bottom: 1.5rem;
         position: relative;
-        text-align: left;
+    }
+    .visual-bar-chart-wrapper {
+        position: relative;
+        height: 120px; /* Sufficient height for labels */
         width: 100%;
-    }
-    .tp-tooltip-line span {
-        display: inline;
-        position: relative;
-    }
-    .tp-tooltip-line .text-green-400 {
-        color: var(--success-color);
-    }
-    .tp-tooltip-line .text-yellow-400 {
-        color: var(--warning-color);
-    }
-    .tp-tooltip-line .text-red-400 {
-        color: var(--danger-color);
+        background-color: var(--bg-tertiary);
+        border-radius: 0.5rem;
+        padding: 0 1rem;
     }
 </style>
