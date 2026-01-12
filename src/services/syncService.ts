@@ -98,8 +98,9 @@ export const syncService = {
             const processedPendingIds = new Set<string>();
 
             for (const p of pendingPositions) {
-                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}" if no ID
-                const uniqueId = `OPEN-${p.positionId || p.symbol}`;
+                const side = (p.side || '').toLowerCase().includes('sell') || (p.side || '').toLowerCase().includes('short') ? 'short' : 'long';
+                // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}-{side}" if no ID to support Hedge Mode
+                const uniqueId = `OPEN-${p.positionId || (p.symbol + '-' + side)}`;
                 processedPendingIds.add(uniqueId);
 
                 const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
