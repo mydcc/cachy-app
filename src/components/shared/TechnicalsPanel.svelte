@@ -338,29 +338,29 @@
                 >
                     <div class="grid grid-cols-3 gap-2">
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1m")}>1m</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("5m")}>5m</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("15m")}>15m</button
                         >
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1h")}>1h</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("4h")}>4h</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1d")}>1d</button
                         >
                     </div>
@@ -377,7 +377,7 @@
                                 handleCustomTimeframeSubmit()}
                         />
                         <button
-                            class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-white"
+                            class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={handleCustomTimeframeSubmit}>OK</button
                         >
                     </div>
