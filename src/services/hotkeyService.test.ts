@@ -63,6 +63,7 @@ describe('HotkeyService', () => {
             autoFetchBalance: false,
             showSidebars: true,
             showTechnicals: true,
+            showIndicatorParams: false,
             hideUnfilledOrders: false,
             positionViewMode: 'detailed',
             pnlViewMode: 'value',

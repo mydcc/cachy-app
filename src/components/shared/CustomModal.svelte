@@ -28,7 +28,7 @@
     <div class="prose dark:prose-invert w-full max-w-none">{@html modalState.message}</div>
 
     {#if modalState.type === 'prompt'}
-        <input type="text" class="input-field w-full px-3 py-2 rounded-md my-4" placeholder="{$_('dashboard.customModal.promptPlaceholder')}" bind:value={modalState.defaultValue} on:input={handleInput}>
+        <input id="modal-prompt-input" name="modalPromptInput" type="text" class="input-field w-full px-3 py-2 rounded-md my-4" placeholder="{$_('dashboard.customModal.promptPlaceholder')}" bind:value={modalState.defaultValue} on:input={handleInput}>
     {/if}
 
     <div class="flex justify-end gap-4 mt-6">

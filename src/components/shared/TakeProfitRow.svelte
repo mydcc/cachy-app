@@ -112,6 +112,8 @@
         <!-- TP Price Input -->
         <div class="relative flex-grow">
             <input
+                id="tp-price-{index}"
+                name="tpPrice-{index}"
                 type="text"
                 use:numberInput={{ maxDecimalPlaces: 4 }}
                 use:enhancedInput={{ step: priceStep, min: 0, rightOffset: '2px' }}
@@ -119,13 +121,14 @@
                 on:input={handlePriceInput}
                 class="tp-price input-field w-full px-4 py-2 rounded-md"
                 placeholder="{$_('dashboard.takeProfitRow.pricePlaceholder')}"
-                id="tp-price-{index}"
             >
         </div>
 
         <!-- TP Percent Input -->
         <div class="relative flex-grow">
             <input
+                id="tp-percent-{index}"
+                name="tpPercent-{index}"
                 type="text"
                 use:numberInput={{ noDecimals: true, isPercentage: true, minValue: 0, maxValue: 100 }}
                 use:enhancedInput={{ step: 1, min: 0, max: 100, noDecimals: true, rightOffset: '2px' }}
@@ -135,7 +138,6 @@
                 class:locked-input={isLocked}
                 disabled={isLocked}
                 placeholder="%"
-                id="tp-percent-{index}"
             >
         </div>
 

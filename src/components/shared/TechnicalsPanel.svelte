@@ -267,6 +267,8 @@
                     </div>
                     <div class="flex gap-1 mt-1">
                         <input
+                            id="custom-timeframe-input"
+                            name="customTimeframe"
                             type="text"
                             class="w-full text-sm p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-primary)]"
                             placeholder="e.g. 24m"
