@@ -278,7 +278,4 @@
         white-space: nowrap;
     }
 
-    .entry-tag {
-        /* Style for 'Einstieg' */
-    }
 </style>

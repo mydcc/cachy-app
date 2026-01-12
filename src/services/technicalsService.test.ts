@@ -29,19 +29,19 @@ describe('technicalsService', () => {
         expect(result).toBeDefined();
         expect(result.oscillators).toBeDefined();
 
-        const cci = result.oscillators.find(o => o.name.includes('CCI'));
+        const cci = result.oscillators.find(o => o.name === 'CCI');
         expect(cci).toBeDefined();
         expect(Decimal.isDecimal(cci?.value)).toBe(true);
 
-        const adx = result.oscillators.find(o => o.name.includes('ADX'));
+        const adx = result.oscillators.find(o => o.name === 'ADX');
         expect(adx).toBeDefined();
         expect(Decimal.isDecimal(adx?.value)).toBe(true);
 
-        const ao = result.oscillators.find(o => o.name.includes('Awesome Osc'));
+        const ao = result.oscillators.find(o => o.name === 'Awesome Osc.');
         expect(ao).toBeDefined();
         expect(Decimal.isDecimal(ao?.value)).toBe(true);
 
-        const mom = result.oscillators.find(o => o.name.includes('Momentum'));
+        const mom = result.oscillators.find(o => o.name === 'Momentum');
         expect(mom).toBeDefined();
         expect(Decimal.isDecimal(mom?.value)).toBe(true);
     });
@@ -59,13 +59,25 @@ describe('technicalsService', () => {
         };
 
         const result = technicalsService.calculateTechnicals(klines, settings);
-        const names = result.oscillators.map(o => o.name);
 
-        // Updated expectations to match new naming convention (Value, Smoothing/Signal)
-        // CCI default smoothing is 14 if not provided
-        expect(names.some(n => n.includes('CCI (10, 14)'))).toBe(true);
-        expect(names.some(n => n.includes('ADX (10, 10)'))).toBe(true);
-        expect(names.some(n => n.includes('Momentum (5)'))).toBe(true);
-        expect(names.some(n => n.includes('Awesome Osc. (2, 5)'))).toBe(true);
+        // Verify CCI params
+        const cci = result.oscillators.find(o => o.name === 'CCI');
+        expect(cci).toBeDefined();
+        expect(cci?.params).toBe('10, 14'); // Default smoothing is 14
+
+        // Verify ADX params
+        const adx = result.oscillators.find(o => o.name === 'ADX');
+        expect(adx).toBeDefined();
+        expect(adx?.params).toBe('10, 10');
+
+        // Verify Momentum params
+        const mom = result.oscillators.find(o => o.name === 'Momentum');
+        expect(mom).toBeDefined();
+        expect(mom?.params).toBe('5');
+
+        // Verify Awesome Osc params
+        const ao = result.oscillators.find(o => o.name === 'Awesome Osc.');
+        expect(ao).toBeDefined();
+        expect(ao?.params).toBe('2, 5');
     });
 });
