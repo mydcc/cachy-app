@@ -1,5 +1,6 @@
 # Cachy Technisches Whitepaper
-**Version:** 1.0
+**Version:** 0.98.0
+**Datum:** Februar 2025
 
 ---
 
@@ -102,12 +103,12 @@ Cachy implementiert eine intelligente Diagnoseschicht, bekannt als **Jules API**
 
 ### Backend-for-Frontend (BFF) & Proxy-Schicht
 
-Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-Gateway und spezialisierter Microservice-Aggregator.
+Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-Gateway.
 
 **Das Problem**: Börsen-APIs (Bitunix) erfordern, dass Anfragen mit einem \`API_SECRET\` signiert werden. Wenn wir diese Anfragen vom Browser aus stellen, müssten wir das Geheimnis den DevTools des Benutzers preisgeben.
 
 **Die Lösung**:
-1.  Der Client sendet eine Anfrage an \`GET /api/sync/orders\` oder \`POST /api/tpsl\`.
+1.  Der Client sendet eine Anfrage an \`GET /api/sync/orders\`.
 2.  Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
 3.  Der Server (Node.js-Kontext) empfängt die Header.
 4.  Der Server konstruiert die Payload und generiert die SHA256-Signatur mit dem Geheimnis.
@@ -115,10 +116,6 @@ Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-
 6.  Der Server gibt das JSON-Ergebnis an den Client zurück.
 
 *Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zustandslos und protokolliert oder speichert sie nicht.*
-
-**Spezialisierte Endpunkte**:
-- \`/api/chat-v2\`: Handhabt Echtzeitkommunikation für den globalen Chat und die Notizen-Seitenleiste.
-- \`/api/tpsl\`: Verwaltet komplexe Bitunix "Plan Orders" (Trigger Orders) für Take Profit und Stop Loss Modifikationen.
 
 ---
 
@@ -258,11 +255,6 @@ Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet
     - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Verwendet zur Aktualisierung des Benutzer-Dashboards.
     - *Heartbeat-Logik*: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
 
-### Erweitertes Order-Management (TP/SL)
-Für die Verwaltung von Take Profit und Stop Loss Orders auf bestehenden Positionen nutzt Cachy einen spezialisierten \`tpsl\`-Service.
-- **Herausforderung**: Bitunix verwendet ein spezifisches "Plan Order"-System für TP/SL, das sich von Standard-Limit-Orders unterscheidet.
-- **Implementierung**: Der Backend-Endpunkt \`/api/tpsl\` behandelt \`modify\`-, \`cancel\`- und \`history\`-Aktionen für diese Trigger-Orders, wodurch sichergestellt wird, dass Benutzermodifikationen in der UI korrekt signiert und an die komplexen Bitunix-Trigger-Order-Endpunkte (\`/api/v1/futures/tp_sl/...\`) weitergeleitet werden.
-
 ### Das "Safe Swap" Synchronisations-Protokoll
 
 Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit dem entfernten API-Zustand besteht darin, Updates ohne "Flackern" oder Datenverlust zu handhaben.
@@ -310,10 +302,10 @@ Durch das Entfernen der Datenbank:
 
 Während das aktuelle Local-First-Modell für einzelne Trader robust ist, umfasst die Roadmap die Skalierung zur Unterstützung von Teams und institutionellen Anforderungen.
 
-### Phase 1: Von Local-First zu Sync-Enabled (Chat/Kommunikation)
-*Ziel: Benutzern ermöglichen zu kommunizieren oder Notizen zu machen.*
-- **Aktuell**: Implementierung von \`/api/chat-v2\` ermöglicht ephemere globale Nachrichten und lokale private Notizen.
-- **Zukunft**: End-to-End-verschlüsseltes (E2EE) Cloud-Relay für die Synchronisierung von Journaldaten zwischen Geräten mittels CRDTs.
+### Phase 1: Von Local-First zu Sync-Enabled (Optional Cloud)
+*Ziel: Benutzern ermöglichen, Daten zwischen Desktop und Mobilgerät zu synchronisieren.*
+- **Plan**: Implementierung eines *optionalen* End-to-End-verschlüsselten (E2EE) Cloud-Relays.
+- **Tech**: Verwendung einer CRDT (Conflict-free Replicated Data Type) Bibliothek wie Yjs oder Automerge. Der Server würde verschlüsselte Blobs speichern, ohne die Schlüssel zur Entschlüsselung zu haben.
 
 ### Phase 2: Mobile Native Adaption
 *Ziel: Push in den App Store/Play Store.*

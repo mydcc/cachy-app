@@ -1,6 +1,6 @@
 {
 	"name": "cachy-app",
-	"version": "1.0.0",
+	"version": "0.98.0",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build",
