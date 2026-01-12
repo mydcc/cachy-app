@@ -800,6 +800,7 @@
         screenshot: true,
         tags: true,
         notes: true,
+        action: true,
     };
 
     // --- Table Logic ---
@@ -1683,244 +1684,284 @@
 
             {#if showTableSettings}
                 <div
-                    class="absolute top-full right-0 mt-2 w-56 max-h-[60vh] overflow-y-auto bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-2 flex flex-col gap-1"
+                    class="absolute top-full right-0 mt-2 w-[450px] max-h-[60vh] overflow-y-auto bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg shadow-xl z-50 p-3 flex flex-col gap-2"
                     use:clickOutside={{
                         enabled: showTableSettings,
                         callback: () => (showTableSettings = false),
                     }}
                 >
                     <div
-                        class="text-xs font-bold text-[var(--text-secondary)] px-2 py-1 uppercase tracking-wider"
+                        class="text-xs font-bold text-[var(--text-secondary)] px-2 py-1 uppercase tracking-wider mb-1"
                     >
                         {$_("journal.labels.tableSettings")}
                     </div>
 
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-date"
-                            name="colVisDate"
-                            type="checkbox"
-                            bind:checked={columnVisibility.date}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.date")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-symbol"
-                            name="colVisSymbol"
-                            type="checkbox"
-                            bind:checked={columnVisibility.symbol}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.symbol")}</span
+                    <div class="grid grid-cols-2 gap-x-4">
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-type"
-                            name="colVisType"
-                            type="checkbox"
-                            bind:checked={columnVisibility.type}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.type")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-entry"
-                            name="colVisEntry"
-                            type="checkbox"
-                            bind:checked={columnVisibility.entry}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.entry")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-exit"
-                            name="colVisExit"
-                            type="checkbox"
-                            bind:checked={columnVisibility.exit}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.exit")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-sl"
-                            name="colVisSl"
-                            type="checkbox"
-                            bind:checked={columnVisibility.sl}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.sl")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-size"
-                            name="colVisSize"
-                            type="checkbox"
-                            bind:checked={columnVisibility.size}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.size")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-pnl"
-                            name="colVisPnl"
-                            type="checkbox"
-                            bind:checked={columnVisibility.pnl}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.pnl")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-funding"
-                            name="colVisFunding"
-                            type="checkbox"
-                            bind:checked={columnVisibility.funding}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm"
-                            >{$_("journal.table.funding")}</span
+                            <input
+                                id="col-vis-date"
+                                name="colVisDate"
+                                type="checkbox"
+                                bind:checked={columnVisibility.date}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.date")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-rr"
-                            name="colVisRr"
-                            type="checkbox"
-                            bind:checked={columnVisibility.rr}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.rr")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-mae"
-                            name="colVisMae"
-                            type="checkbox"
-                            bind:checked={columnVisibility.mae}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.mae")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-mfe"
-                            name="colVisMfe"
-                            type="checkbox"
-                            bind:checked={columnVisibility.mfe}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.mfe")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-efficiency"
-                            name="colVisEfficiency"
-                            type="checkbox"
-                            bind:checked={columnVisibility.efficiency}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm"
-                            >{$_("journal.table.efficiency")}</span
+                            <input
+                                id="col-vis-symbol"
+                                name="colVisSymbol"
+                                type="checkbox"
+                                bind:checked={columnVisibility.symbol}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.symbol")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-duration"
-                            name="colVisDuration"
-                            type="checkbox"
-                            bind:checked={columnVisibility.duration}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm"
-                            >{$_("journal.table.duration")}</span
+                            <input
+                                id="col-vis-type"
+                                name="colVisType"
+                                type="checkbox"
+                                bind:checked={columnVisibility.type}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.type")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-status"
-                            name="colVisStatus"
-                            type="checkbox"
-                            bind:checked={columnVisibility.status}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.status")}</span
+                            <input
+                                id="col-vis-entry"
+                                name="colVisEntry"
+                                type="checkbox"
+                                bind:checked={columnVisibility.entry}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.entry")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-screenshot"
-                            name="colVisScreenshot"
-                            type="checkbox"
-                            bind:checked={columnVisibility.screenshot}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm"
-                            >{$_("journal.table.screenshot")}</span
+                            <input
+                                id="col-vis-exit"
+                                name="colVisExit"
+                                type="checkbox"
+                                bind:checked={columnVisibility.exit}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.exit")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
                         >
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-tags"
-                            name="colVisTags"
-                            type="checkbox"
-                            bind:checked={columnVisibility.tags}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.tags")}</span>
-                    </label>
-                    <label
-                        class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
-                    >
-                        <input
-                            id="col-vis-notes"
-                            name="colVisNotes"
-                            type="checkbox"
-                            bind:checked={columnVisibility.notes}
-                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
-                        />
-                        <span class="text-sm">{$_("journal.table.notes")}</span>
-                    </label>
+                            <input
+                                id="col-vis-sl"
+                                name="colVisSl"
+                                type="checkbox"
+                                bind:checked={columnVisibility.sl}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm">{$_("journal.table.sl")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-size"
+                                name="colVisSize"
+                                type="checkbox"
+                                bind:checked={columnVisibility.size}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.size")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-pnl"
+                                name="colVisPnl"
+                                type="checkbox"
+                                bind:checked={columnVisibility.pnl}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.pnl")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-funding"
+                                name="colVisFunding"
+                                type="checkbox"
+                                bind:checked={columnVisibility.funding}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.funding")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-rr"
+                                name="colVisRr"
+                                type="checkbox"
+                                bind:checked={columnVisibility.rr}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm">{$_("journal.table.rr")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-mae"
+                                name="colVisMae"
+                                type="checkbox"
+                                bind:checked={columnVisibility.mae}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.mae")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-mfe"
+                                name="colVisMfe"
+                                type="checkbox"
+                                bind:checked={columnVisibility.mfe}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.mfe")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-efficiency"
+                                name="colVisEfficiency"
+                                type="checkbox"
+                                bind:checked={columnVisibility.efficiency}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.efficiency")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-duration"
+                                name="colVisDuration"
+                                type="checkbox"
+                                bind:checked={columnVisibility.duration}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.duration")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-status"
+                                name="colVisStatus"
+                                type="checkbox"
+                                bind:checked={columnVisibility.status}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.status")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-screenshot"
+                                name="colVisScreenshot"
+                                type="checkbox"
+                                bind:checked={columnVisibility.screenshot}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.screenshot")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-tags"
+                                name="colVisTags"
+                                type="checkbox"
+                                bind:checked={columnVisibility.tags}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.tags")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-notes"
+                                name="colVisNotes"
+                                type="checkbox"
+                                bind:checked={columnVisibility.notes}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.notes")}</span
+                            >
+                        </label>
+                        <label
+                            class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none"
+                        >
+                            <input
+                                id="col-vis-action"
+                                name="colVisAction"
+                                type="checkbox"
+                                bind:checked={columnVisibility.action}
+                                class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0"
+                            />
+                            <span class="text-sm"
+                                >{$_("journal.table.action")}</span
+                            >
+                        </label>
+                    </div>
                 </div>
             {/if}
         </div>
@@ -2189,7 +2230,9 @@
                             {#if columnVisibility.notes}
                                 <th>{$_("journal.table.notes")}</th>
                             {/if}
-                            <th>{$_("journal.table.action")}</th>
+                            {#if columnVisibility.action}
+                                <th>{$_("journal.table.action")}</th>
+                            {/if}
                         </tr>
                     </thead>
                     <tbody>
@@ -2530,18 +2573,20 @@
                                         />
                                     </td>
                                 {/if}
-                                <td class="text-center"
-                                    ><button
-                                        class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full"
-                                        data-id={trade.id}
-                                        title={$_("journal.delete")}
-                                        on:click={() =>
-                                            confirmDeleteTrade(trade.id)}
+                                {#if columnVisibility.action}
+                                    <td class="text-center"
+                                        ><button
+                                            class="delete-trade-btn text-[var(--danger-color)] hover:opacity-80 p-1 rounded-full"
+                                            data-id={trade.id}
+                                            title={$_("journal.delete")}
+                                            on:click={() =>
+                                                confirmDeleteTrade(trade.id)}
+                                        >
+                                            <!-- svelte-ignore svelte/no-at-html-tags -->
+                                            {@html icons.delete}</button
+                                        ></td
                                     >
-                                        <!-- svelte-ignore svelte/no-at-html-tags -->
-                                        {@html icons.delete}</button
-                                    ></td
-                                >
+                                {/if}
                             </tr>
                         {/each}
                         {#if paginatedTrades.length === 0}
