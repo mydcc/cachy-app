@@ -1,5 +1,5 @@
 import { get } from 'svelte/store';
-import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp } from '../utils/utils';
+import { parseDecimal, formatDynamicDecimal, parseDateString, parseTimestamp, normalizeJournalEntry } from '../utils/utils';
 import { CONSTANTS } from '../lib/constants';
 import { apiService } from './apiService';
 import { modalManager } from './modalManager';
@@ -432,18 +432,7 @@ export const app = {
             const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || '[]';
             const parsedData = JSON.parse(d);
             if (!Array.isArray(parsedData)) return [];
-            return parsedData.map(trade => {
-                const newTrade = { ...trade };
-                Object.keys(newTrade).forEach(key => {
-                    if (['accountSize', 'riskPercentage', 'entryPrice', 'exitPrice', 'mae', 'mfe', 'efficiency', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
-                        newTrade[key] = new Decimal(newTrade[key] || 0);
-                    }
-                });
-                if (newTrade.targets && Array.isArray(newTrade.targets)) {
-                    newTrade.targets = newTrade.targets.map((tp: { price: string | number; percent: string | number }) => ({ ...tp, price: new Decimal(tp.price || 0), percent: new Decimal(tp.percent || 0) }));
-                }
-                return newTrade as JournalEntry;
-            });
+            return parsedData.map(trade => normalizeJournalEntry(trade));
         } catch {
             console.warn("Could not load journal from localStorage.");
             uiStore.showError("Journal konnte nicht geladen werden.");
@@ -790,9 +779,9 @@ export const app = {
                         realizedPnl: parseDecimal(entry['Realized PnL'] || '0'),
                         isManual: entry['Is Manual'] ? entry['Is Manual'] === 'true' : true,
                         entryDate: entry['Einstiegsdatum'] ? new Date(entry['Einstiegsdatum']).toISOString() : undefined,
-                        calculatedTpDetails: [] // Assuming not exported/imported usually or calculated
+                        calculatedTpDetails: []
                     };
-                    return importedTrade;
+                    return normalizeJournalEntry(importedTrade);
                 } catch (err: unknown) {
                     console.warn("Fehler beim Verarbeiten einer Zeile:", entry, err);
                     return null;

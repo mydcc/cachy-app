@@ -2,6 +2,7 @@ import { writable } from 'svelte/store';
 import { browser } from '$app/environment';
 import { Decimal } from 'decimal.js';
 import { CONSTANTS } from '../lib/constants';
+import { normalizeJournalEntry } from '../utils/utils';
 import type { JournalEntry } from './types';
 
 function loadJournalFromLocalStorage(): JournalEntry[] {
@@ -10,24 +11,7 @@ function loadJournalFromLocalStorage(): JournalEntry[] {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || '[]';
         const parsedData = JSON.parse(d);
         if (!Array.isArray(parsedData)) return [];
-        return parsedData.map(trade => {
-            const newTrade = { ...trade };
-            Object.keys(newTrade).forEach(key => {
-                if (['accountSize', 'riskPercentage', 'entryPrice', 'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier', 'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees', 'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee', 'realizedPnl'].includes(key)) {
-                    newTrade[key] = new Decimal(newTrade[key] || 0);
-                }
-            });
-            // Ensure defaults for new fields if missing (migration)
-            if (newTrade.isManual === undefined) newTrade.isManual = true; // Assume existing are manual
-            if (!newTrade.fundingFee) newTrade.fundingFee = new Decimal(0);
-            if (!newTrade.tradingFee) newTrade.tradingFee = new Decimal(0);
-            if (!newTrade.realizedPnl) newTrade.realizedPnl = new Decimal(0);
-            if (!Array.isArray(newTrade.tags)) newTrade.tags = [];
-            if (newTrade.targets && Array.isArray(newTrade.targets)) {
-                newTrade.targets = newTrade.targets.map((tp: {price: string | number; percent: string | number}) => ({ ...tp, price: new Decimal(tp.price || 0), percent: new Decimal(tp.percent || 0) }));
-            }
-            return newTrade as JournalEntry;
-        });
+        return parsedData.map(trade => normalizeJournalEntry(trade));
     } catch (e) {
         console.warn("Could not load journal from localStorage.", e);
         // showError("Journal konnte nicht geladen werden."); // This would cause dependency cycle

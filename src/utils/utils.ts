@@ -1,8 +1,9 @@
 import { Decimal } from 'decimal.js';
+import type { JournalEntry } from '../stores/types';
 
 export function debounce<T extends (...args: unknown[]) => void>(func: T, delay: number) {
     let timeout: ReturnType<typeof setTimeout>;
-    return function(this: ThisParameterType<T>, ...args: Parameters<T>) {
+    return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
         // eslint-disable-next-line @typescript-eslint/no-this-alias
         const context = this;
         clearTimeout(timeout);
@@ -182,10 +183,10 @@ export function normalizeTimeframeInput(input: string): string {
 
         // Logic for converting hours to days
         if (unit === 'h') {
-             if (num % 24 === 0 && num !== 0) {
+            if (num % 24 === 0 && num !== 0) {
                 return (num / 24) + 'd';
-             }
-             return num + 'h';
+            }
+            return num + 'h';
         }
 
         return num + unit;
@@ -220,4 +221,61 @@ export function getIntervalMs(timeframe: string): number {
     // Let's rely on standard 'm', 'h', 'd'.
 
     return num * multiplier;
+}
+
+/**
+ * Normalizes a plain object into a properly typed JournalEntry with Decimal instances.
+ * This is crucial for data loaded from localStorage or imported via CSV.
+ */
+export function normalizeJournalEntry(trade: any): JournalEntry {
+    const newTrade = { ...trade };
+
+    // Numerical fields that must be Decimal
+    const decimalFields = [
+        'accountSize', 'riskPercentage', 'entryPrice', 'exitPrice',
+        'stopLossPrice', 'leverage', 'fees', 'atrValue', 'atrMultiplier',
+        'totalRR', 'totalNetProfit', 'netLoss', 'riskAmount', 'totalFees',
+        'maxPotentialProfit', 'positionSize', 'fundingFee', 'tradingFee',
+        'realizedPnl', 'mae', 'mfe', 'efficiency'
+    ];
+
+    decimalFields.forEach(key => {
+        if (Object.prototype.hasOwnProperty.call(newTrade, key)) {
+            newTrade[key] = parseDecimal(newTrade[key]);
+        }
+    });
+
+    // Handle nested targets array
+    if (newTrade.targets && Array.isArray(newTrade.targets)) {
+        newTrade.targets = newTrade.targets.map((tp: any) => ({
+            ...tp,
+            price: parseDecimal(tp.price),
+            percent: parseDecimal(tp.percent),
+            isLocked: !!tp.isLocked
+        }));
+    } else {
+        newTrade.targets = [];
+    }
+
+    // Handle nested calculatedTpDetails
+    if (newTrade.calculatedTpDetails && Array.isArray(newTrade.calculatedTpDetails)) {
+        newTrade.calculatedTpDetails = newTrade.calculatedTpDetails.map((tp: any) => ({
+            ...tp,
+            netProfit: parseDecimal(tp.netProfit),
+            riskRewardRatio: parseDecimal(tp.riskRewardRatio),
+            priceChangePercent: parseDecimal(tp.priceChangePercent),
+            returnOnCapital: parseDecimal(tp.returnOnCapital),
+            partialVolume: parseDecimal(tp.partialVolume),
+            exitFee: parseDecimal(tp.exitFee),
+            percentSold: parseDecimal(tp.percentSold)
+        }));
+    } else {
+        newTrade.calculatedTpDetails = [];
+    }
+
+    // Default flags and arrays
+    if (newTrade.isManual === undefined) newTrade.isManual = true;
+    if (!Array.isArray(newTrade.tags)) newTrade.tags = [];
+
+    return newTrade as JournalEntry;
 }
