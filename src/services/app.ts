@@ -19,6 +19,7 @@ import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
 import { trackCustomEvent } from './trackingService';
 import { onboardingService } from './onboardingService';
+import { storageUtils } from '../utils/storageUtils';
 
 interface CSVTradeEntry {
     'ID': string;
@@ -118,7 +119,7 @@ export const app = {
                 const symbolKey = state.symbol.toUpperCase();
                 // Check exact symbol or with P suffix logic or USDT suffix logic to be robust
                 const marketData = data[symbolKey] || data[symbolKey.replace('P', '')] || data[symbolKey + 'USDT'];
-                
+
                 if (marketData && marketData.lastPrice) {
                     // Update Entry Price
                     const newPrice = marketData.lastPrice.toNumber();
@@ -143,7 +144,7 @@ export const app = {
 
         // Watch settings and symbol changes to adjust interval
         settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
-        
+
         // Initial setup
         app.refreshPriceUpdateInterval();
     },
@@ -169,24 +170,24 @@ export const app = {
             const uiState = get(uiStore);
 
             if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
-                 // 1. Auto Update Price Input (REST Fallback)
-                 if (settings.autoUpdatePriceInput) {
-                     // If provider is Binance, we MUST use REST (no WS impl yet).
-                     if (settings.apiProvider === 'binance') {
+                // 1. Auto Update Price Input (REST Fallback)
+                if (settings.autoUpdatePriceInput) {
+                    // If provider is Binance, we MUST use REST (no WS impl yet).
+                    if (settings.apiProvider === 'binance') {
                         app.handleFetchPrice(true);
-                     } else {
-                         // Bitunix: Use REST only if WS is NOT connected to avoid race conditions/jitter
-                         const wsStatus = get(wsStatusStore);
-                         if (wsStatus !== 'connected') {
+                    } else {
+                        // Bitunix: Use REST only if WS is NOT connected to avoid race conditions/jitter
+                        const wsStatus = get(wsStatusStore);
+                        if (wsStatus !== 'connected') {
                             app.handleFetchPrice(true);
-                         }
-                     }
-                 }
+                        }
+                    }
+                }
 
-                 // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
-                 if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-                     app.fetchAtr(true);
-                 }
+                // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
+                if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
+                    app.fetchAtr(true);
+                }
             }
         }, intervalMs);
     },
@@ -365,7 +366,7 @@ export const app = {
             if (tp.price.gt(0) && tp.percent.gt(0)) {
                 const details = calculator.calculateIndividualTp(tp.price, tp.percent, baseMetrics, values, index);
                 if ((currentTradeState.tradeType === 'long' && tp.price.gt(values.entryPrice)) || (currentTradeState.tradeType === 'short' && tp.price.lt(values.entryPrice))) {
-                   calculatedTpDetails.push(details);
+                    calculatedTpDetails.push(details);
                 }
             }
         });
@@ -441,9 +442,17 @@ export const app = {
     saveJournal: (d: JournalEntry[]) => {
         if (!browser) return;
         try {
-            localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, JSON.stringify(d));
-        } catch {
-            uiStore.showError("Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.");
+            const jsonData = JSON.stringify(d);
+            // P0 Fix: Use safe storage with quota checking
+            storageUtils.safeSetItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, jsonData);
+        } catch (error) {
+            const message = error instanceof Error ? error.message :
+                "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.";
+            uiStore.showError(message);
+
+            // Log quota status for debugging
+            const quota = storageUtils.checkQuota();
+            console.error('LocalStorage Status:', quota);
         }
     },
     addTrade: () => {
@@ -592,21 +601,21 @@ export const app = {
         if (journalData.length === 0) { uiStore.showError("Journal ist leer."); return; }
         trackCustomEvent('Journal', 'Export', 'CSV', journalData.length);
         const headers = ['ID', 'Datum', 'Uhrzeit', 'Symbol', 'Typ', 'Status', 'Konto Guthaben', 'Risiko %', 'Hebel', 'Gebuehren %', 'Einstieg', 'Stop Loss', 'Gewichtetes R/R', 'Gesamt Netto-Gewinn', 'Risiko pro Trade (Waehrung)', 'Gesamte Gebuehren', 'Max. potenzieller Gewinn', 'Notizen', 'Tags', 'Screenshot',
-        // New headers
-        'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
-         ...Array.from({length: 5}, (_, i) => [`TP${i+1} Preis`, `TP${i+1} %`]).flat()];
+            // New headers
+            'Trade ID', 'Order ID', 'Funding Fee', 'Trading Fee', 'Realized PnL', 'Is Manual', 'Entry Date',
+            ...Array.from({ length: 5 }, (_, i) => [`TP${i + 1} Preis`, `TP${i + 1} %`]).flat()];
         const rows = journalData.map(trade => {
             const date = new Date(trade.date);
             const notes = trade.notes ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, ' ')}"` : '';
             const tags = trade.tags && trade.tags.length > 0 ? `"${trade.tags.join(';')}"` : '';
             const screenshot = trade.screenshot || '';
-            const tpData = Array.from({length: 5}, (_, i) => [ (trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2) ]).flat();
-            return [ trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
-                (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
-                (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, tags, screenshot,
-                // New values
-                trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
-                ...tpData ].join(',');
+            const tpData = Array.from({ length: 5 }, (_, i) => [(trade.targets[i]?.price || new Decimal(0)).toFixed(4), (trade.targets[i]?.percent || new Decimal(0)).toFixed(2)]).flat();
+            return [trade.id, date.toLocaleDateString('de-DE'), date.toLocaleTimeString('de-DE'), trade.symbol, trade.tradeType, trade.status,
+            (trade.accountSize || new Decimal(0)).toFixed(2), (trade.riskPercentage || new Decimal(0)).toFixed(2), (trade.leverage || new Decimal(0)).toFixed(2), (trade.fees || new Decimal(0)).toFixed(2), (trade.entryPrice || new Decimal(0)).toFixed(4), (trade.stopLossPrice || new Decimal(0)).toFixed(4),
+            (trade.totalRR || new Decimal(0)).toFixed(2), (trade.totalNetProfit || new Decimal(0)).toFixed(2), (trade.riskAmount || new Decimal(0)).toFixed(2), (trade.totalFees || new Decimal(0)).toFixed(2), (trade.maxPotentialProfit || new Decimal(0)).toFixed(2), notes, tags, screenshot,
+            // New values
+            trade.tradeId || '', trade.orderId || '', (trade.fundingFee || new Decimal(0)).toFixed(4), (trade.tradingFee || new Decimal(0)).toFixed(4), (trade.realizedPnl || new Decimal(0)).toFixed(4), trade.isManual !== false ? 'true' : 'false', trade.entryDate || '',
+            ...tpData].join(',');
         });
         const csvContent = "data:text/csv;charset=utf-8," + headers.join(",") + "\n" + rows.join("\n");
         const link = document.createElement("a");
@@ -621,10 +630,33 @@ export const app = {
     },
     importFromCSV: (file: File) => {
         if (!browser) return;
+
+        // P0 Fix: File size validation
+        const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
+        if (file.size > MAX_FILE_SIZE) {
+            uiStore.showError(
+                `Die CSV-Datei ist zu groß (${(file.size / 1024 / 1024).toFixed(1)}MB). ` +
+                `Maximum: 5MB. Bitte teilen Sie die Datei auf.`
+            );
+            return;
+        }
+
         const reader = new FileReader();
         reader.onload = async (e) => {
             const text = e.target?.result as string;
             const lines = text.split('\n').filter(line => line.trim() !== '');
+
+            // P0 Fix: Maximum 1000 trades per import to prevent browser freeze
+            const MAX_IMPORT_LINES = 1001; // 1 header + 1000 trades
+            if (lines.length > MAX_IMPORT_LINES) {
+                uiStore.showError(
+                    `Zu viele Zeilen (${lines.length - 1} Trades). ` +
+                    `Maximum: 1000 Trades pro Import. ` +
+                    `Bitte teilen Sie die CSV-Datei auf.`
+                );
+                return;
+            }
+
             if (lines.length < 2) {
                 uiStore.showError("CSV ist leer oder hat nur eine Kopfzeile.");
                 return;
@@ -685,14 +717,14 @@ export const app = {
                     if (mappedKey) {
                         entry[mappedKey] = values[index] ? values[index].trim() : '';
                     } else if (header.startsWith('TP') && (header.includes('Preis') || header.includes('Price') || header.includes('%'))) {
-                         // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
-                         // We normalize them to "TP{n} Preis" and "TP{n} %"
-                         const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
-                         if (match) {
-                             const num = match[1];
-                             const type = match[2] === '%' ? '%' : 'Preis';
-                             entry[`TP${num} ${type}`] = values[index] ? values[index].trim() : '';
-                         }
+                        // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
+                        // We normalize them to "TP{n} Preis" and "TP{n} %"
+                        const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
+                        if (match) {
+                            const num = match[1];
+                            const type = match[2] === '%' ? '%' : 'Preis';
+                            entry[`TP${num} ${type}`] = values[index] ? values[index].trim() : '';
+                        }
                     }
                 });
 
@@ -773,10 +805,10 @@ export const app = {
             if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
             return;
         }
-        
+
         // Don't show global spinner for auto-updates to avoid flashing
         if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
-        
+
         try {
             let price: Decimal;
             if (settings.apiProvider === 'binance') {
@@ -785,10 +817,10 @@ export const app = {
                 price = await apiService.fetchBitunixPrice(symbol);
             }
             updateTradeStore(state => ({ ...state, entryPrice: price.toDP(4).toNumber() }));
-            
+
             // Only show feedback on manual fetch
             if (!isAuto) uiStore.showFeedback('save', 700); // Use 'save' (checkmark) instead of 'copy'
-            
+
             app.calculateAndDisplay();
         } catch (error) {
             // Suppress errors for auto-updates to avoid spamming the user
@@ -829,12 +861,12 @@ export const app = {
         const settings = get(settingsStore);
         const symbol = currentTradeState.symbol.toUpperCase().replace('/', '');
         if (!symbol) {
-             if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
+            if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
             return;
         }
-        
+
         if (!isAuto) uiStore.update(state => ({ ...state, isPriceFetching: true }));
-        
+
         try {
             let klines;
             if (settings.apiProvider === 'binance') {
@@ -849,10 +881,10 @@ export const app = {
             }
             updateTradeStore(state => ({ ...state, atrValue: atr.toDP(4).toNumber() }));
             app.calculateAndDisplay();
-            
+
             if (!isAuto) uiStore.showFeedback('save', 700);
         } catch (error) {
-             if (!isAuto) {
+            if (!isAuto) {
                 const message = error instanceof Error ? error.message : String(error);
                 uiStore.showError(message);
             }
@@ -864,11 +896,11 @@ export const app = {
     selectSymbolSuggestion: (symbol: string) => {
         updateTradeStore(s => ({ ...s, symbol: symbol }));
         uiStore.update(s => ({ ...s, showSymbolSuggestions: false, symbolSuggestions: [] }));
-        
+
         // Immediate fetch upon selection
         app.handleFetchPrice();
         if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-             app.fetchAtr();
+            app.fetchAtr();
         }
     },
 
@@ -967,7 +999,7 @@ export const app = {
 
         // We will trigger ATR fetch for the ACTIVE timeframe:
         if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-             await app.fetchAtr(isAuto);
+            await app.fetchAtr(isAuto);
         }
     },
 
@@ -1039,6 +1071,6 @@ export const app = {
             }
         }
 
-        updateTradeStore(state => ({ ...state, targets: finalTargets.map(t => ({price: t.price.toNumber(), percent: t.percent.toNumber(), isLocked: t.isLocked})) }));
+        updateTradeStore(state => ({ ...state, targets: finalTargets.map(t => ({ price: t.price.toNumber(), percent: t.percent.toNumber(), isLocked: t.isLocked })) }));
     },
 };
