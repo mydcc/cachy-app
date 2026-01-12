@@ -310,7 +310,7 @@
     isOpen={$uiStore.showSettingsModal}
     title={$_('settings.title') || 'Settings'}
     on:close={close}
-    extraClasses="!w-auto !max-w-[85vw] !h-[80vh] flex flex-col overflow-hidden"
+    extraClasses="!w-[1000px] !max-w-[95vw] !h-[90vh] flex flex-col overflow-hidden"
     alignment="top"
 >
     <!-- Main Content Container (Split View) -->

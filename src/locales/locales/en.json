@@ -447,6 +447,7 @@
     "layoutFloatingDesc": "Expandable chatbox (max 38vh)",
     "sidePanelDesc": "Collapsible panel on the left edge.",
     "showTechnicals": "Show Technicals Panel",
+    "showIndicatorParams": "Show Indicator Parameters",
     "hideUnfilledOrders": "Hide Unfilled Orders",
     "feePreference": "Fee Preference",
     "feePreferenceDesc": "Select which fee rate to use by default when syncing from API.",
