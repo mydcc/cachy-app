@@ -1,15 +1,15 @@
 <script lang="ts">
-    import { icons } from '../../lib/constants';
-    import { debounce } from '../../utils/utils';
-    import { createEventDispatcher } from 'svelte';
-    import { numberInput } from '../../utils/inputUtils';
-    import { enhancedInput } from '../../lib/actions/inputEnhancements';
-    import { _ } from '../../locales/i18n';
-    import { trackCustomEvent } from '../../services/trackingService';
-    import { onboardingService } from '../../services/onboardingService';
-    import { updateTradeStore, tradeStore } from '../../stores/tradeStore';
-    import { settingsStore } from '../../stores/settingsStore';
-    import { app } from '../../services/app';
+    import { icons } from "../../lib/constants";
+    import { debounce } from "../../utils/utils";
+    import { createEventDispatcher } from "svelte";
+    import { numberInput } from "../../utils/inputUtils";
+    import { enhancedInput } from "../../lib/actions/inputEnhancements";
+    import { _ } from "../../locales/i18n";
+    import { trackCustomEvent } from "../../services/trackingService";
+    import { onboardingService } from "../../services/onboardingService";
+    import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
+    import { settingsStore } from "../../stores/settingsStore";
+    import { app } from "../../services/app";
 
     const dispatch = createEventDispatcher();
 
@@ -19,7 +19,7 @@
     export let atrValue: number | null;
     export let atrMultiplier: number | null;
     export let stopLossPrice: number | null;
-    export let atrMode: 'manual' | 'auto';
+    export let atrMode: "manual" | "auto";
     export let atrTimeframe: string;
 
     export let atrFormulaDisplay: string;
@@ -29,12 +29,12 @@
     export let showSymbolSuggestions: boolean;
 
     function toggleAtrSl() {
-        trackCustomEvent('ATR', 'Toggle', useAtrSl ? 'On' : 'Off');
-        dispatch('toggleAtrInputs', useAtrSl);
+        trackCustomEvent("ATR", "Toggle", useAtrSl ? "On" : "Off");
+        dispatch("toggleAtrInputs", useAtrSl);
     }
 
     function handleFetchPriceClick() {
-        trackCustomEvent('Price', 'Fetch', symbol);
+        trackCustomEvent("Price", "Fetch", symbol);
         // Use unified fetch
         app.fetchAllAnalysisData(symbol, false);
     }
@@ -43,69 +43,106 @@
         app.updateSymbolSuggestions(symbol);
         // Automatically fetch price and ATR when user stops typing a valid symbol
         if (symbol && symbol.length >= 3) {
-             // Unified Fetch
-             app.fetchAllAnalysisData(symbol, true);
+            // Unified Fetch
+            app.fetchAllAnalysisData(symbol, true);
         }
     }, 500);
 
     function selectSuggestion(s: string) {
-        trackCustomEvent('Symbol', 'SelectSuggestion', s);
-        dispatch('selectSymbolSuggestion', s);
+        trackCustomEvent("Symbol", "SelectSuggestion", s);
+        dispatch("selectSymbolSuggestion", s);
     }
 
     function handleKeyDownSuggestion(event: KeyboardEvent, s: string) {
-        if (event.key === 'Enter') {
+        if (event.key === "Enter") {
             selectSuggestion(s);
         }
     }
 
     function handleClickOutside(event: MouseEvent) {
         const target = event.target as HTMLElement;
-        if (!target.closest('.symbol-input-container')) {
-            app.updateSymbolSuggestions(''); // Clear suggestions
+        if (!target.closest(".symbol-input-container")) {
+            app.updateSymbolSuggestions(""); // Clear suggestions
         }
     }
 
-    const format = (val: number | null) => (val === null || val === undefined) ? '' : String(val);
+    const format = (val: number | null) =>
+        val === null || val === undefined ? "" : String(val);
 
     function handleEntryPriceInput(e: Event) {
         const target = e.target as HTMLInputElement;
         const value = target.value;
-        updateTradeStore(s => ({ ...s, entryPrice: value === '' ? null : parseFloat(value) }));
+        updateTradeStore((s) => ({
+            ...s,
+            entryPrice: value === "" ? null : parseFloat(value),
+        }));
     }
 
     function handleAtrValueInput(e: Event) {
         const target = e.target as HTMLInputElement;
         const value = target.value;
-        updateTradeStore(s => ({ ...s, atrValue: value === '' ? null : parseFloat(value) }));
+        updateTradeStore((s) => ({
+            ...s,
+            atrValue: value === "" ? null : parseFloat(value),
+        }));
     }
 
     function handleAtrMultiplierInput(e: Event) {
         const target = e.target as HTMLInputElement;
         const value = target.value;
-        updateTradeStore(s => ({ ...s, atrMultiplier: value === '' ? null : parseFloat(value) }));
+        updateTradeStore((s) => ({
+            ...s,
+            atrMultiplier: value === "" ? null : parseFloat(value),
+        }));
     }
 
     function handleStopLossPriceInput(e: Event) {
         const target = e.target as HTMLInputElement;
         const value = target.value;
-        updateTradeStore(s => ({ ...s, stopLossPrice: value === '' ? null : parseFloat(value) }));
+        updateTradeStore((s) => ({
+            ...s,
+            stopLossPrice: value === "" ? null : parseFloat(value),
+        }));
     }
 
     function toggleAutoUpdatePrice() {
-        settingsStore.update(s => ({ ...s, autoUpdatePriceInput: !s.autoUpdatePriceInput }));
+        settingsStore.update((s) => ({
+            ...s,
+            autoUpdatePriceInput: !s.autoUpdatePriceInput,
+        }));
     }
 
     function handleAtrTimeframeChange(e: Event) {
         const val = (e.target as HTMLSelectElement).value;
-        dispatch('setAtrTimeframe', val);
-        trackCustomEvent('ATR', 'ChangeTimeframe', val);
+        dispatch("setAtrTimeframe", val);
+        trackCustomEvent("ATR", "ChangeTimeframe", val);
     }
 
     // Determine dynamic step based on price magnitude
-    $: priceStep = entryPrice && entryPrice > 1000 ? 0.5 : (entryPrice && entryPrice > 100 ? 0.1 : 0.01);
+    $: priceStep =
+        entryPrice && entryPrice > 1000
+            ? 0.5
+            : entryPrice && entryPrice > 100
+              ? 0.1
+              : 0.01;
 
-    const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
+    const availableTimeframes = [
+        "1m",
+        "3m",
+        "5m",
+        "15m",
+        "30m",
+        "1h",
+        "2h",
+        "4h",
+        "6h",
+        "8h",
+        "12h",
+        "1d",
+        "3d",
+        "1w",
+        "1M",
+    ];
     // MTF-ATR: Ensure we only show the user's favorites from Settings
     // NOTE: multiAtrData is now in tradeStore
     $: sortedMultiAtrData = Object.entries($tradeStore.multiAtrData)
@@ -120,23 +157,15 @@
 
     function applyAtr(tf: string, val: number) {
         // Apply ATR to inputs but DO NOT change the dropdown timeframe unless desired.
-        updateTradeStore(s => ({ ...s, atrTimeframe: tf, atrValue: val }));
-        dispatch('setAtrTimeframe', tf);
+        updateTradeStore((s) => ({ ...s, atrTimeframe: tf, atrValue: val }));
+        dispatch("setAtrTimeframe", tf);
     }
 </script>
-
-<style>
-    .input-field:focus {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border-color: var(--accent-color);
-        z-index: 10;
-    }
-</style>
 
 <svelte:window on:click={handleClickOutside} />
 
 <div>
-    <h2 class="section-header">{$_('dashboard.tradeSetupInputs.header')}</h2>
+    <h2 class="section-header">{$_("dashboard.tradeSetupInputs.header")}</h2>
     <div class="flex gap-4 mb-4">
         <div class="relative flex-grow symbol-input-container">
             <input
@@ -144,22 +173,42 @@
                 name="symbol"
                 type="text"
                 bind:value={symbol}
-                on:input={() => { handleSymbolInput(); onboardingService.trackFirstInput(); }}
+                on:input={() => {
+                    handleSymbolInput();
+                    onboardingService.trackFirstInput();
+                }}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
-                placeholder="{$_('dashboard.tradeSetupInputs.symbolPlaceholder')}"
+                placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
                 autocomplete="off"
-            >
+            />
             <button
                 type="button"
-                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}"
-                title="{$_('dashboard.tradeSetupInputs.fetchPriceTitle')}"
-                aria-label="{$_('dashboard.tradeSetupInputs.fetchPriceAriaLabel')}"
+                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching
+                    ? 'animate-spin'
+                    : ''}"
+                title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
+                aria-label={$_(
+                    "dashboard.tradeSetupInputs.fetchPriceAriaLabel",
+                )}
                 on:click={handleFetchPriceClick}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    fill="currentColor"
+                    viewBox="0 0 16 16"
+                    ><path
+                        d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"
+                    /><path
+                        d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+                    /></svg
+                >
             </button>
             {#if showSymbolSuggestions}
-                <div class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]">
+                <div
+                    class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]"
+                >
                     {#each symbolSuggestions as s}
                         <div
                             class="suggestion-item p-2 cursor-pointer hover:bg-[var(--accent-color)] hover:text-white"
@@ -180,47 +229,81 @@
                 name="entryPrice"
                 type="text"
                 use:numberInput={{ maxDecimalPlaces: 4 }}
-                use:enhancedInput={{ step: priceStep, min: 0, rightOffset: '40px' }}
+                use:enhancedInput={{
+                    step: priceStep,
+                    min: 0,
+                    rightOffset: "40px",
+                }}
                 value={format(entryPrice)}
                 on:input={handleEntryPriceInput}
                 class="input-field w-full px-4 py-2 rounded-md"
-                placeholder="{$_('dashboard.tradeSetupInputs.entryPricePlaceholder')}"
+                placeholder={$_(
+                    "dashboard.tradeSetupInputs.entryPricePlaceholder",
+                )}
                 on:input={onboardingService.trackFirstInput}
-            >
+            />
 
             <!-- Auto Update Price Toggle -->
             <button
                 class="absolute top-2 right-2 rounded-full transition-colors duration-300 z-30"
-                style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput ? 'var(--success-color)' : 'var(--danger-color)'};"
-                title={$settingsStore.autoUpdatePriceInput ? 'Auto-Update On' : 'Auto-Update Off'}
+                style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput
+                    ? 'var(--success-color)'
+                    : 'var(--danger-color)'};"
+                title={$settingsStore.autoUpdatePriceInput
+                    ? "Auto-Update On"
+                    : "Auto-Update Off"}
                 on:click={toggleAutoUpdatePrice}
                 aria-label="Toggle Auto Update Price"
             ></button>
         </div>
     </div>
 
-    <div class="p-2 rounded-lg mb-4" style="background-color: var(--bg-tertiary);">
-        <div class="flex items-center mb-2 {useAtrSl ? 'justify-between' : 'justify-end'}">
+    <div
+        class="p-2 rounded-lg mb-4"
+        style="background-color: var(--bg-tertiary);"
+    >
+        <div
+            class="flex items-center mb-2 {useAtrSl
+                ? 'justify-between'
+                : 'justify-end'}"
+        >
             {#if useAtrSl}
-            <div class="atr-mode-switcher">
-                <button
-                    class="btn-switcher {atrMode === 'manual' ? 'active' : ''}"
-                    on:click={() => dispatch('setAtrMode', 'manual')}
-                >
-                    {$_('dashboard.tradeSetupInputs.atrModeManual')}
-                </button>
-                <button
-                    class="btn-switcher {atrMode === 'auto' ? 'active' : ''}"
-                    on:click={() => dispatch('setAtrMode', 'auto')}
-                >
-                    {$_('dashboard.tradeSetupInputs.atrModeAuto')}
-                </button>
-            </div>
+                <div class="atr-mode-switcher">
+                    <button
+                        class="btn-switcher {atrMode === 'manual'
+                            ? 'active'
+                            : ''}"
+                        on:click={() => dispatch("setAtrMode", "manual")}
+                    >
+                        {$_("dashboard.tradeSetupInputs.atrModeManual")}
+                    </button>
+                    <button
+                        class="btn-switcher {atrMode === 'auto'
+                            ? 'active'
+                            : ''}"
+                        on:click={() => dispatch("setAtrMode", "auto")}
+                    >
+                        {$_("dashboard.tradeSetupInputs.atrModeAuto")}
+                    </button>
+                </div>
             {/if}
             <label class="flex items-center cursor-pointer">
-                <span class="mr-2 text-sm">{$_('dashboard.tradeSetupInputs.atrStopLossLabel')}</span>
-                <input id="use-atr-sl-checkbox" name="useAtrSl" type="checkbox" bind:checked={useAtrSl} on:change={toggleAtrSl} class="sr-only peer" role="switch" aria-checked={useAtrSl}>
-                <div class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"></div>
+                <span class="mr-2 text-sm"
+                    >{$_("dashboard.tradeSetupInputs.atrStopLossLabel")}</span
+                >
+                <input
+                    id="use-atr-sl-checkbox"
+                    name="useAtrSl"
+                    type="checkbox"
+                    bind:checked={useAtrSl}
+                    on:change={toggleAtrSl}
+                    class="sr-only peer"
+                    role="switch"
+                    aria-checked={useAtrSl}
+                />
+                <div
+                    class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"
+                ></div>
             </label>
         </div>
         {#if !useAtrSl}
@@ -234,23 +317,55 @@
                     value={format(stopLossPrice)}
                     on:input={handleStopLossPriceInput}
                     class="input-field w-full px-4 py-2 rounded-md"
-                    placeholder="{$_('dashboard.tradeSetupInputs.manualStopLossPlaceholder')}"
-                >
+                    placeholder={$_(
+                        "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
+                    )}
+                />
             </div>
         {:else}
-            {#if atrMode === 'manual'}
+            {#if atrMode === "manual"}
                 <div class="grid grid-cols-2 gap-2 mt-2">
                     <div class="relative">
-                        <input id="atr-value-input" name="atrValue" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0 }} value={format(atrValue)} on:input={handleAtrValueInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.atrValuePlaceholder')}">
+                        <input
+                            id="atr-value-input"
+                            name="atrValue"
+                            type="text"
+                            use:numberInput={{ maxDecimalPlaces: 4 }}
+                            use:enhancedInput={{ step: 0.1, min: 0 }}
+                            value={format(atrValue)}
+                            on:input={handleAtrValueInput}
+                            class="input-field w-full px-4 py-2 rounded-md"
+                            placeholder={$_(
+                                "dashboard.tradeSetupInputs.atrValuePlaceholder",
+                            )}
+                        />
                     </div>
                     <div class="relative">
-                        <input id="atr-multiplier-input" name="atrMultiplier" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="{$_('dashboard.tradeSetupInputs.multiplierPlaceholder')}">
+                        <input
+                            id="atr-multiplier-input"
+                            name="atrMultiplier"
+                            type="text"
+                            use:numberInput={{ maxDecimalPlaces: 4 }}
+                            use:enhancedInput={{ step: 0.1, min: 0.1 }}
+                            value={format(atrMultiplier)}
+                            on:input={handleAtrMultiplierInput}
+                            class="input-field w-full px-4 py-2 rounded-md"
+                            placeholder={$_(
+                                "dashboard.tradeSetupInputs.multiplierPlaceholder",
+                            )}
+                        />
                     </div>
                 </div>
             {:else}
                 <div class="grid grid-cols-3 gap-2 mt-2 items-end">
                     <div>
-                        <label for="atr-timeframe" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrTimeframeLabel')}</label>
+                        <label
+                            for="atr-timeframe"
+                            class="input-label !mb-1 text-xs"
+                            >{$_(
+                                "dashboard.tradeSetupInputs.atrTimeframeLabel",
+                            )}</label
+                        >
                         <!-- Dynamic Dropdown based on Favorites -->
                         <div class="relative">
                             <select
@@ -260,59 +375,108 @@
                                 on:change={handleAtrTimeframeChange}
                                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
                             >
-                                {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ['5m', '15m', '1h', '4h'] as tf}
+                                {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
                                     <option value={tf}>{tf}</option>
                                 {/each}
                             </select>
                             <!-- Arrow Icon -->
-                            <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-secondary)]">
-                                <svg class="fill-current h-4 w-4" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20"><path d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"/></svg>
+                            <div
+                                class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-[var(--text-secondary)]"
+                            >
+                                <svg
+                                    class="fill-current h-4 w-4"
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    viewBox="0 0 20 20"
+                                    ><path
+                                        d="M9.293 12.95l.707.707L15.657 8l-1.414-1.414L10 10.828 5.757 6.586 4.343 8z"
+                                    /></svg
+                                >
                             </div>
                         </div>
                     </div>
                     <div>
-                        <label for="atr-value-input-auto" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrLabel')}</label>
+                        <label
+                            for="atr-value-input-auto"
+                            class="input-label !mb-1 text-xs"
+                            >{$_("dashboard.tradeSetupInputs.atrLabel")}</label
+                        >
                         <div class="relative">
                             <input
                                 id="atr-value-input-auto"
                                 name="atrValueAuto"
                                 type="text"
                                 use:numberInput={{ maxDecimalPlaces: 4 }}
-                                use:enhancedInput={{ step: 0.1, min: 0, rightOffset: '40px' }}
+                                use:enhancedInput={{
+                                    step: 0.1,
+                                    min: 0,
+                                    rightOffset: "40px",
+                                }}
                                 value={format(atrValue)}
                                 on:input={handleAtrValueInput}
                                 class="input-field w-full px-4 py-2 rounded-md pr-10"
                                 placeholder="ATR"
-                            >
-                            <button 
-                                type="button" 
-                                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching ? 'animate-spin' : ''}"
+                            />
+                            <button
+                                type="button"
+                                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching
+                                    ? 'animate-spin'
+                                    : ''}"
                                 on:click={() => {
-                                    trackCustomEvent('ATR', 'Fetch', symbol);
-                                    dispatch('fetchAtr');
+                                    trackCustomEvent("ATR", "Fetch", symbol);
+                                    dispatch("fetchAtr");
                                     // Also refresh Multi-ATR on manual click
                                     app.scanMultiAtr(symbol);
                                 }}
                                 title="Fetch ATR Value"
                             >
-                                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" viewBox="0 0 16 16"><path d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"/><path d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"/></svg>
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    fill="currentColor"
+                                    viewBox="0 0 16 16"
+                                    ><path
+                                        d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"
+                                    /><path
+                                        d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+                                    /></svg
+                                >
                             </button>
                         </div>
                     </div>
                     <div>
-                        <label for="atr-multiplier-input-auto" class="input-label !mb-1 text-xs">{$_('dashboard.tradeSetupInputs.atrMultiplierLabel')}</label>
+                        <label
+                            for="atr-multiplier-input-auto"
+                            class="input-label !mb-1 text-xs"
+                            >{$_(
+                                "dashboard.tradeSetupInputs.atrMultiplierLabel",
+                            )}</label
+                        >
                         <div class="relative">
-                             <input id="atr-multiplier-input-auto" name="atrMultiplierAuto" type="text" use:numberInput={{ maxDecimalPlaces: 4 }} use:enhancedInput={{ step: 0.1, min: 0.1 }} value={format(atrMultiplier)} on:input={handleAtrMultiplierInput} class="input-field w-full px-4 py-2 rounded-md" placeholder="1.2">
+                            <input
+                                id="atr-multiplier-input-auto"
+                                name="atrMultiplierAuto"
+                                type="text"
+                                use:numberInput={{ maxDecimalPlaces: 4 }}
+                                use:enhancedInput={{ step: 0.1, min: 0.1 }}
+                                value={format(atrMultiplier)}
+                                on:input={handleAtrMultiplierInput}
+                                class="input-field w-full px-4 py-2 rounded-md"
+                                placeholder="1.2"
+                            />
                         </div>
                     </div>
                 </div>
             {/if}
 
             {#if showAtrFormulaDisplay}
-                {@const lastEq = atrFormulaDisplay.lastIndexOf('=')}
+                {@const lastEq = atrFormulaDisplay.lastIndexOf("=")}
                 {@const formula = atrFormulaDisplay.substring(0, lastEq + 1)}
                 {@const result = atrFormulaDisplay.substring(lastEq + 1)}
-                <div class="text-center text-xs mt-2" style="color: var(--text-primary);">
+                <div
+                    class="text-center text-xs mt-2"
+                    style="color: var(--text-primary);"
+                >
                     <span>{formula}</span>
                     <span style="color: var(--danger-color);">{result}</span>
                 </div>
@@ -321,22 +485,40 @@
 
         <!-- Multi-ATR Preview (Minimalist) -->
         {#if useAtrSl}
-        <div class="mt-3 border-t border-[var(--border-color)] pt-2">
-            <div class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]">
-                {#if sortedMultiAtrData.length > 0}
-                    {#each sortedMultiAtrData as [tf, val]}
-                         <button class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-white transition-colors border border-[var(--border-color)]"
-                             on:click={() => applyAtr(tf, val)}
-                             title="Apply {tf} ATR"
-                         >
-                            <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
-                         </button>
-                    {/each}
-                {:else if symbol}
-                     <span class="text-[var(--text-secondary)] italic opacity-50 ml-1">...</span>
-                {/if}
+            <div class="mt-3 border-t border-[var(--border-color)] pt-2">
+                <div
+                    class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]"
+                >
+                    {#if sortedMultiAtrData.length > 0}
+                        {#each sortedMultiAtrData as [tf, val]}
+                            <button
+                                class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors border border-[var(--border-color)]"
+                                on:click={() => applyAtr(tf, val)}
+                                title="Apply {tf} ATR"
+                            >
+                                <span class="font-bold opacity-70 mr-1"
+                                    >{tf}:</span
+                                >{val}
+                            </button>
+                        {/each}
+                    {:else if symbol}
+                        <span
+                            class="text-[var(--text-secondary)] italic opacity-50 ml-1"
+                            >...</span
+                        >
+                    {/if}
+                </div>
             </div>
-        </div>
         {/if}
     </div>
 </div>
+
+<style>
+    .input-field:focus {
+        box-shadow:
+            0 4px 6px -1px rgba(0, 0, 0, 0.3),
+            0 2px 4px -1px rgba(0, 0, 0, 0.06);
+        border-color: var(--accent-color);
+        z-index: 10;
+    }
+</style>
