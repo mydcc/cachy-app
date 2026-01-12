@@ -1158,11 +1158,11 @@
     <div class="flex flex-wrap gap-4 my-4 items-end bg-[var(--bg-secondary)] p-3 rounded-lg border border-[var(--border-color)]">
         <div class="flex-1 min-w-[200px]">
             <label for="journal-search" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.search')}</label>
-            <input id="journal-search" type="text" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}>
+            <input id="journal-search" name="journalSearch" type="text" class="input-field w-full px-3 py-2 rounded-md" placeholder="{$_('journal.searchSymbolPlaceholder')}" bind:value={$tradeStore.journalSearchQuery}>
         </div>
         <div class="w-32">
              <label for="journal-status" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.status')}</label>
-            <select id="journal-status" class="input-field w-full px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}>
+            <select id="journal-status" name="journalStatus" class="input-field w-full px-3 py-2 rounded-md" bind:value={$tradeStore.journalFilterStatus}>
                 <option value="all">{$_('journal.filterAll')}</option>
                 <option value="Open">{$_('journal.filterOpen')}</option>
                 <option value="Won">{$_('journal.filterWon')}</option>
@@ -1171,16 +1171,16 @@
         </div>
         <div class="w-36">
              <label for="journal-date-start" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.from')}</label>
-             <input id="journal-date-start" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateStart} />
+             <input id="journal-date-start" name="journalDateStart" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateStart} />
         </div>
          <div class="w-36">
              <label for="journal-date-end" class="text-xs text-[var(--text-secondary)] block mb-1">{$_('journal.labels.to')}</label>
-             <input id="journal-date-end" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
+             <input id="journal-date-end" name="journalDateEnd" type="date" class="input-field w-full px-3 py-2 rounded-md" bind:value={filterDateEnd} />
         </div>
 
         <div class="flex items-center gap-2 pb-2 relative">
             <label class="flex items-center gap-2 select-none {!$settingsStore.isPro ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}">
-                <input type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
+                <input id="pivot-mode-toggle" name="pivotMode" type="checkbox" bind:checked={groupBySymbol} disabled={!$settingsStore.isPro} class="form-checkbox h-5 w-5 text-[var(--accent-color)] rounded focus:ring-0 disabled:cursor-not-allowed" />
                 <span class="text-sm font-bold">{$_('journal.labels.pivotMode')}</span>
             </label>
             <button
@@ -1200,75 +1200,75 @@
                     <div class="text-xs font-bold text-[var(--text-secondary)] px-2 py-1 uppercase tracking-wider">{$_('journal.labels.tableSettings')}</div>
 
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.date} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-date" name="colVisDate" type="checkbox" bind:checked={columnVisibility.date} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.date')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.symbol} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-symbol" name="colVisSymbol" type="checkbox" bind:checked={columnVisibility.symbol} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.symbol')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.type} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-type" name="colVisType" type="checkbox" bind:checked={columnVisibility.type} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.type')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.entry} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-entry" name="colVisEntry" type="checkbox" bind:checked={columnVisibility.entry} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.entry')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.exit} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-exit" name="colVisExit" type="checkbox" bind:checked={columnVisibility.exit} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.exit')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.sl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-sl" name="colVisSl" type="checkbox" bind:checked={columnVisibility.sl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.sl')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.size} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-size" name="colVisSize" type="checkbox" bind:checked={columnVisibility.size} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.size')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.pnl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-pnl" name="colVisPnl" type="checkbox" bind:checked={columnVisibility.pnl} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.pnl')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.funding} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-funding" name="colVisFunding" type="checkbox" bind:checked={columnVisibility.funding} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.funding')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.rr} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-rr" name="colVisRr" type="checkbox" bind:checked={columnVisibility.rr} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.rr')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.mae} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-mae" name="colVisMae" type="checkbox" bind:checked={columnVisibility.mae} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.mae')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.mfe} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-mfe" name="colVisMfe" type="checkbox" bind:checked={columnVisibility.mfe} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.mfe')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.efficiency} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-efficiency" name="colVisEfficiency" type="checkbox" bind:checked={columnVisibility.efficiency} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.efficiency')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.duration} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-duration" name="colVisDuration" type="checkbox" bind:checked={columnVisibility.duration} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.duration')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.status} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-status" name="colVisStatus" type="checkbox" bind:checked={columnVisibility.status} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.status')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.screenshot} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-screenshot" name="colVisScreenshot" type="checkbox" bind:checked={columnVisibility.screenshot} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.screenshot')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.tags} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-tags" name="colVisTags" type="checkbox" bind:checked={columnVisibility.tags} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.tags')}</span>
                     </label>
                     <label class="flex items-center gap-2 px-2 py-1.5 hover:bg-[var(--bg-tertiary)] rounded cursor-pointer select-none">
-                        <input type="checkbox" bind:checked={columnVisibility.notes} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
+                        <input id="col-vis-notes" name="colVisNotes" type="checkbox" bind:checked={columnVisibility.notes} class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded focus:ring-0" />
                         <span class="text-sm">{$_('journal.table.notes')}</span>
                     </label>
                 </div>
@@ -1427,7 +1427,7 @@
                                                 {trade.status}
                                             </span>
                                         {:else}
-                                            <select class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
+                                            <select id="status-select-{trade.id}" name="statusSelect" class="status-select input-field p-1" data-id="{trade.id}" on:change={(e) => handleStatusChange(trade.id, e)}>
                                                 <option value="Open" selected={trade.status === 'Open'}>{$_('journal.filterOpen')}</option>
                                                 <option value="Won" selected={trade.status === 'Won'}>{$_('journal.filterWon')}</option>
                                                 <option value="Lost" selected={trade.status === 'Lost'}>{$_('journal.filterLost')}</option>
@@ -1465,7 +1465,7 @@
                                                         {@html icons.eye || '👁️'}
                                                     </button>
                                                     <label class="p-1 hover:text-[var(--warning-color)] cursor-pointer" title="{$_('journal.labels.replaceScreenshot')}">
-                                                        <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} on:click|stopPropagation />
+                                                        <input id="screenshot-upload-replace-{trade.id}" name="screenshotUploadReplace" type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} on:click|stopPropagation />
                                                         <!-- svelte-ignore svelte/no-at-html-tags -->
                                                         {@html icons.refresh || '🔄'}
                                                     </label>
@@ -1479,7 +1479,7 @@
                                             <label class="cursor-pointer block w-full h-full flex flex-col items-center justify-center opacity-50 hover:opacity-100 transition-opacity" title="{$_('journal.labels.uploadScreenshot')}">
                                                 <!-- svelte-ignore svelte/no-at-html-tags -->
                                                 <span class="text-[var(--accent-color)]">{@html icons.plus || '+'}</span>
-                                                <input type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
+                                                <input id="screenshot-upload-{trade.id}" name="screenshotUpload" type="file" accept="image/*" class="hidden" on:change={(e) => handleScreenshotUpload(trade.id, e)} />
                                             </label>
                                         {/if}
                                     </td>
@@ -1487,13 +1487,15 @@
 
                                 {#if columnVisibility.tags}
                                     <td>
-                                        <JournalEntryTags tags={trade.tags} availableTags={allUniqueTags} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
+                                        <JournalEntryTags tags={trade.tags} availableTags={allUniqueTags} tradeId={trade.id} onTagsChange={(newTags) => handleTagsUpdate(trade.id, newTags)} />
                                     </td>
                                 {/if}
 
                                 {#if columnVisibility.notes}
                                     <td class="notes-cell">
                                         <input
+                                            id="notes-input-{trade.id}"
+                                            name="notesInput"
                                             type="text"
                                             class="notes-input"
                                             placeholder="{$_('journal.placeholder.notes')}"
@@ -1521,7 +1523,7 @@
         <div class="flex justify-between items-center mt-4 text-sm text-[var(--text-secondary)]">
             <div class="flex items-center gap-2">
                 <span>{$_('journal.pagination.rows')}</span>
-                <select bind:value={itemsPerPage} class="input-field p-1 rounded">
+                <select id="items-per-page" name="itemsPerPage" bind:value={itemsPerPage} class="input-field p-1 rounded">
                     <option value={10}>10</option>
                     <option value={20}>20</option>
                     <option value={50}>50</option>
@@ -1779,7 +1781,7 @@
         <button id="export-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]" title="{$_('journal.exportCsvTitle')}" on:click={app.exportToCSV}>
             <!-- svelte-ignore svelte/no-at-html-tags -->
             {@html icons.export}<span class="hidden sm:inline">{$_('journal.export')}</span></button>
-        <input type="file" id="import-csv-input" accept=".csv" class="hidden" on:change={handleImportCsv}/>
+        <input type="file" id="import-csv-input" name="importCsv" accept=".csv" class="hidden" on:change={handleImportCsv}/>
         <button id="import-csv-btn" class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)]" title="{$_('journal.importCsvTitle')}" on:click={() => document.getElementById('import-csv-input')?.click()}>
             <!-- svelte-ignore svelte/no-at-html-tags -->
             {@html icons.import}<span class="hidden sm:inline">{$_('journal.import')}</span></button>

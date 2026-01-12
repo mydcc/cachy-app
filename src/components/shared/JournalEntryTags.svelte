@@ -4,6 +4,7 @@
 
     export let tags: string[] = [];
     export let availableTags: string[] = [];
+    export let tradeId: number;
     export let onTagsChange: (newTags: string[]) => void;
 
     let tagInput = '';
@@ -67,6 +68,8 @@
         </span>
     {/each}
     <input
+        id="journal-entry-tag-input-{tradeId}"
+        name="journalEntryTagInput"
         type="text"
         class="bg-transparent outline-none flex-grow min-w-[50px] text-xs journal-tag-input"
         placeholder={safeTags.length === 0 ? '+' : ''}

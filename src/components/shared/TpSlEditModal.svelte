@@ -67,6 +67,7 @@
             <label for="tpsl-trigger-price" class="text-xs font-bold text-[var(--text-secondary)]">Trigger Price</label>
             <input
                 id="tpsl-trigger-price"
+                name="tpslTriggerPrice"
                 type="number"
                 step="any"
                 bind:value={triggerPrice}
@@ -78,6 +79,7 @@
             <label for="tpsl-amount" class="text-xs font-bold text-[var(--text-secondary)]">Amount (Qty)</label>
             <input
                 id="tpsl-amount"
+                name="tpslAmount"
                 type="number"
                 step="any"
                 bind:value={amount}
