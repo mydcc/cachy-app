@@ -87,7 +87,7 @@
     --toggle-bg-off: var(--blue-700);
     --toggle-bg-on: var(--sky-500);
     --toggle-circle-bg: var(--blue-100);
-    --toggle-circle-bg-on: var(--blue-950);
+    --toggle-circle-bg-on: var(--blue-100);
     --overlay-color: var(--black-overlay);
 }
 
@@ -141,7 +141,7 @@
     --toggle-bg-off: var(--slate-400);
     --toggle-bg-on: var(--sky-400);
     --toggle-circle-bg: var(--slate-100);
-    --toggle-circle-bg-on: var(--slate-800);
+    --toggle-circle-bg-on: var(--slate-100);
     --overlay-color: var(--white-transparent);
 }
 
@@ -195,7 +195,7 @@
     --toggle-bg-off: var(--core-meteorite);
     --toggle-bg-on: var(--core-blue-pro);
     --toggle-circle-bg: var(--text-primary);
-    --toggle-circle-bg-on: var(--purple-dark);
+    --toggle-circle-bg-on: var(--purple-light);
     --overlay-color: var(--overlay-derived);
 }
 
@@ -250,7 +250,7 @@
     --toggle-bg-off: var(--core-meteorite);
     --toggle-bg-on: var(--core-blue-pro);
     --toggle-circle-bg: var(--text-primary);
-    --toggle-circle-bg-on: var(--blue-pro-dark);
+    --toggle-circle-bg-on: var(--blue-pro-light);
     --overlay-color: var(--overlay-derived);
 }
 
@@ -354,7 +354,7 @@
     --toggle-bg-off: var(--green-700);
     --toggle-bg-on: var(--green-400);
     --toggle-circle-bg: var(--matrix-base);
-    --toggle-circle-bg-on: var(--green-700);
+    --toggle-circle-bg-on: var(--green-400);
     --overlay-color: var(--black-overlay);
 }
 
@@ -405,7 +405,7 @@
     --toggle-bg-off: var(--dark-purple-600);
     --toggle-bg-on: var(--purple);
     --toggle-circle-bg: var(--text-primary);
-    --toggle-circle-bg-on: var(--dark-purple-600);
+    --toggle-circle-bg-on: var(--purple-100);
     --overlay-color: var(--black-overlay);
 }
 
@@ -459,7 +459,7 @@
     --toggle-bg-off: var(--base02);
     --toggle-bg-on: var(--blue);
     --toggle-circle-bg: var(--base3);
-    --toggle-circle-bg-on: var(--base2);
+    --toggle-circle-bg-on: var(--base3);
     --overlay-color: var(--white-overlay);
 }
 
@@ -510,7 +510,7 @@
     --toggle-bg-off: var(--polar-night-3);
     --toggle-bg-on: var(--frost-3);
     --toggle-circle-bg: var(--snow-storm-1);
-    --toggle-circle-bg-on: var(--polar-night-1);
+    --toggle-circle-bg-on: var(--nord-snow-100);
     --overlay-color: var(--black-overlay);
 }
 
@@ -568,7 +568,7 @@
     --toggle-bg-off: var(--gruv-dark2);
     --toggle-bg-on: var(--gruv-aqua-bright);
     --toggle-circle-bg: var(--gruv-light1);
-    --toggle-circle-bg-on: var(--gruv-dark0-hard);
+    --toggle-circle-bg-on: var(--gruvbox-light-0);
     --overlay-color: var(--black-overlay);
 }
 
@@ -624,7 +624,7 @@
     --toggle-bg-off: var(--mono-bg-light);
     --toggle-bg-on: var(--mono-pink);
     --toggle-circle-bg: var(--mono-fg);
-    --toggle-circle-bg-on: var(--mono-bg-dark);
+    --toggle-circle-bg-on: var(--monokai-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -681,7 +681,7 @@
     --toggle-bg-off: var(--tokyo-comment);
     --toggle-bg-on: var(--tokyo-blue);
     --toggle-circle-bg: var(--tokyo-fg);
-    --toggle-circle-bg-on: var(--tokyo-bg);
+    --toggle-circle-bg-on: var(--tokyo-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -738,7 +738,7 @@
     --toggle-bg-off: var(--ever-gray);
     --toggle-bg-on: var(--ever-aqua);
     --toggle-circle-bg: var(--ever-fg);
-    --toggle-circle-bg-on: var(--ever-bg);
+    --toggle-circle-bg-on: var(--everforest-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -794,7 +794,7 @@
     --toggle-bg-off: var(--base01);
     --toggle-bg-on: var(--blue);
     --toggle-circle-bg: var(--base0);
-    --toggle-circle-bg-on: var(--base03);
+    --toggle-circle-bg-on: var(--base3);
     --overlay-color: var(--black-overlay);
 }
 
@@ -853,7 +853,7 @@
     --toggle-bg-off: var(--cat-surface1);
     --toggle-bg-on: var(--cat-lavender);
     --toggle-circle-bg: var(--cat-text);
-    --toggle-circle-bg-on: var(--cat-crust);
+    --toggle-circle-bg-on: var(--cat-text);
     --overlay-color: var(--black-overlay);
 }
 
@@ -909,7 +909,7 @@
     --toggle-bg-off: var(--one-comment);
     --toggle-bg-on: var(--one-blue);
     --toggle-circle-bg: var(--one-fg);
-    --toggle-circle-bg-on: var(--one-bg);
+    --toggle-circle-bg-on: var(--one-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -963,7 +963,7 @@
     --toggle-bg-off: var(--obsidian-border);
     --toggle-bg-on: var(--obsidian-blue);
     --toggle-circle-bg: var(--obsidian-fg);
-    --toggle-circle-bg-on: var(--obsidian-bg);
+    --toggle-circle-bg-on: var(--obsidian-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1016,7 +1016,7 @@
     --toggle-bg-off: var(--drac-soft-border);
     --toggle-bg-on: var(--drac-soft-purple);
     --toggle-circle-bg: var(--drac-soft-fg);
-    --toggle-circle-bg-on: var(--drac-soft-bg);
+    --toggle-circle-bg-on: var(--dracula-soft-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1073,7 +1073,7 @@
     --toggle-bg-off: var(--ayu-border);
     --toggle-bg-on: var(--ayu-entity);
     --toggle-circle-bg: var(--ayu-fg);
-    --toggle-circle-bg-on: var(--ayu-bg);
+    --toggle-circle-bg-on: var(--ayu-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1128,7 +1128,7 @@
     --toggle-bg-off: var(--cobalt-bg-alt);
     --toggle-bg-on: var(--cobalt-yellow);
     --toggle-circle-bg: var(--cobalt-bg);
-    --toggle-circle-bg-on: var(--cobalt-bg-dark);
+    --toggle-circle-bg-on: var(--cobalt-bg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1184,7 +1184,7 @@
     --toggle-bg-off: var(--owl-bg-lighter);
     --toggle-bg-on: var(--owl-purple);
     --toggle-circle-bg: var(--owl-fg);
-    --toggle-circle-bg-on: var(--owl-bg);
+    --toggle-circle-bg-on: var(--owl-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1288,7 +1288,7 @@
     --toggle-bg-off: var(--ayu-light-border);
     --toggle-bg-on: var(--ayu-light-accent);
     --toggle-circle-bg: var(--ayu-light-bg);
-    --toggle-circle-bg-on: var(--ayu-light-fg);
+    --toggle-circle-bg-on: var(--ayu-light-bg);
     --overlay-color: var(--white-overlay);
 }
 
@@ -1340,7 +1340,7 @@
     --toggle-bg-off: var(--ayu-mirage-border);
     --toggle-bg-on: var(--ayu-mirage-accent);
     --toggle-circle-bg: var(--ayu-mirage-fg);
-    --toggle-circle-bg-on: var(--ayu-mirage-bg);
+    --toggle-circle-bg-on: var(--ayu-mirage-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1398,7 +1398,7 @@
     --toggle-bg-off: var(--gh-dark-border);
     --toggle-bg-on: var(--gh-dark-blue);
     --toggle-circle-bg: var(--gh-dark-fg);
-    --toggle-circle-bg-on: var(--gh-dark-bg);
+    --toggle-circle-bg-on: var(--gh-dark-fg);
     --overlay-color: var(--black-overlay);
 }
 
