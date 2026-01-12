@@ -9,12 +9,12 @@ This guide explains **every single feature** and **every chart** in detail – f
 
 ### Table of Contents
 
-1. [The Philosophy: Plan & Execute](#the-philosophy-plan--execute)
+1. [The Philosophy: Plan & Execute](#the-philosophy-plan-execute)
 2. [Getting Started](#getting-started)
-   - [Journal Overview & Navigation](#journal-overview--navigation)
+   - [Journal Overview & Navigation](#journal-overview-navigation)
    - [Data Management](#data-management)
-   - [Filter & Search Functions](#filter--search-functions)
-   - [Tags & Notes System](#tags--notes-system)
+   - [Filter & Search Functions](#filter-search-functions)
+   - [Tags & Notes System](#tags-notes-system)
    - [Pivot Mode](#pivot-mode-pro)
 3. [Performance Dashboard](#performance-dashboard)
    - [Performance Tab](#1-performance-tab)
@@ -30,11 +30,11 @@ This guide explains **every single feature** and **every chart** in detail – f
    - [Assets](#5-assets---symbol-performance)
    - [Risk](#6-risk---risk-management)
    - [Market](#7-market---market-conditions)
-   - [Psychology](#8-psychology---discipline--mental-game)
+   - [Psychology](#8-psychology---discipline-mental-game)
    - [Strategies](#9-strategies---strategy-performance)
    - [Calendar](#10-calendar---calendar-view)
-5. [Formulas & Calculations](#formulas--calculations)
-6. [Best Practices & Tips](#best-practices--tips)
+5. [Formulas & Calculations](#formulas-calculations)
+6. [Best Practices & Tips](#best-practices-tips)
 
 ---
 

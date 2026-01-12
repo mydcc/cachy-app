@@ -9,12 +9,12 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
 
 ### Inhaltsverzeichnis
 
-1. [Die Philosophie: Plan & Execute](#die-philosophie-plan--execute)
+1. [Die Philosophie: Plan & Execute](#die-philosophie-plan-execute)
 2. [Erste Schritte](#erste-schritte)
-   - [Journal-Übersicht & Navigation](#journal-übersicht--navigation)
+   - [Journal-Übersicht & Navigation](#journal-ubersicht-navigation)
    - [Datenmanagement](#datenmanagement)
-   - [Filter & Suchfunktionen](#filter--suchfunktionen)
-   - [Tags & Notizen System](#tags--notizen-system)
+   - [Filter & Suchfunktionen](#filter-suchfunktionen)
+   - [Tags & Notizen System](#tags-notizen-system)
    - [Pivot-Modus](#pivot-modus-pro)
 3. [Performance Dashboard](#performance-dashboard)
    - [Performance Tab](#1-performance-tab)
@@ -30,11 +30,11 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
    - [Assets](#5-assets---symbol-performance)
    - [Risk](#6-risk---risikomanagement)
    - [Market](#7-market---marktbedingungen)
-   - [Psychology](#8-psychology---psychologie--disziplin)
+   - [Psychology](#8-psychology---psychologie-disziplin)
    - [Strategies](#9-strategies---strategie-performance)
    - [Calendar](#10-calendar---kalenderansicht)
-5. [Formeln & Berechnungen](#formeln--berechnungen)
-6. [Best Practices & Tipps](#best-practices--tipps)
+5. [Formeln & Berechnungen](#formeln-berechnungen)
+6. [Best Practices & Tipps](#best-practices-tipps)
 
 ---
 
