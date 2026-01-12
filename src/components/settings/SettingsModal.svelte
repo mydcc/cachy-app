@@ -7,6 +7,7 @@
     import { createBackup, restoreFromBackup } from '../../services/backupService';
     import { trackCustomEvent } from '../../services/trackingService';
     import { normalizeTimeframeInput } from '../../utils/utils';
+    import HotkeySettings from './HotkeySettings.svelte';
 
     // Local state for the form inputs
     let apiProvider: 'bitunix' | 'binance';
@@ -65,7 +66,7 @@
     let isPro: boolean;
 
     // Track active tab
-    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' = 'general';
+    let activeTab: 'general' | 'api' | 'ai' | 'behavior' | 'system' | 'sidebar' | 'indicators' | 'hotkeys' = 'general';
     let isInitialized = false;
 
     const availableTimeframes = ['1m', '3m', '5m', '15m', '30m', '1h', '2h', '4h', '6h', '8h', '12h', '1d', '3d', '1w', '1M'];
@@ -356,6 +357,15 @@
             {$_('settings.tabs.behavior')}
         </button>
         <button
+            class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'hotkeys' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
+            on:click={() => activeTab = 'hotkeys'}
+            role="tab"
+            aria-selected={activeTab === 'hotkeys'}
+            aria-controls="tab-hotkeys"
+        >
+            Hotkeys
+        </button>
+        <button
             class="px-4 py-2 text-sm font-medium border-b-2 transition-colors whitespace-nowrap {activeTab === 'sidebar' ? 'border-[var(--accent-color)] text-[var(--accent-color)]' : 'border-transparent text-[var(--text-secondary)] hover:text-[var(--text-primary)]'}"
             on:click={() => activeTab = 'sidebar'}
             role="tab"
@@ -571,22 +581,46 @@
                 <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
                      <span class="text-sm font-medium">Hotkey Profile</span>
                      <select bind:value={hotkeyMode} class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]">
-                        <option value="mode2">Safety Mode (Alt + Key) - Default</option>
+                        <option value="custom">Custom (Fully Configurable)</option>
+                        <option value="mode2">Safety Mode (Alt + Key)</option>
                         <option value="mode1">Direct Mode (Fast)</option>
                         <option value="mode3">Hybrid Mode</option>
                      </select>
-                     <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
-                        <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
-                        <div class="grid grid-cols-2 gap-x-4 gap-y-1">
-                            {#each hotkeyDescriptions[hotkeyMode] as desc}
-                                <div class="flex justify-between">
-                                    <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
-                                    <span>{desc.action}</span>
-                                </div>
-                            {/each}
-                        </div>
-                     </div>
+                     {#if hotkeyMode !== 'custom'}
+                         <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
+                            <div class="font-bold mb-2 text-[var(--text-primary)]">Active Hotkeys:</div>
+                            <div class="grid grid-cols-2 gap-x-4 gap-y-1">
+                                {#each hotkeyDescriptions[hotkeyMode] as desc}
+                                    <div class="flex justify-between">
+                                        <span class="font-mono text-[var(--accent-color)]">{desc.keys}</span>
+                                        <span>{desc.action}</span>
+                                    </div>
+                                {/each}
+                            </div>
+                         </div>
+                     {:else}
+                         <div class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1">
+                            <p>Configure your custom hotkeys in the "Hotkeys" tab.</p>
+                         </div>
+                     {/if}
                 </div>
+            </div>
+
+        {:else if activeTab === 'hotkeys'}
+            <div class="flex flex-col h-full" role="tabpanel" id="tab-hotkeys">
+                {#if hotkeyMode !== 'custom'}
+                    <div class="flex flex-col items-center justify-center h-full p-6 text-center text-[var(--text-secondary)]">
+                        <p class="mb-4">You are currently using a preset Hotkey Mode.</p>
+                        <button
+                            class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded font-bold text-sm"
+                            on:click={() => hotkeyMode = 'custom'}
+                        >
+                            Switch to Custom Mode to Edit
+                        </button>
+                    </div>
+                {:else}
+                    <HotkeySettings />
+                {/if}
             </div>
 
         {:else if activeTab === 'sidebar'}
