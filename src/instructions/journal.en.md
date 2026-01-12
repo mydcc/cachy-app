@@ -9,35 +9,36 @@ This guide explains **every single feature** and **every chart** in detail – f
 
 ### Table of Contents
 
-1. [The Philosophy: Plan & Execute](#the-philosophy-plan-execute)
+1. [The Philosophy: Plan & Execute](#philosophy)
 2. [Getting Started](#getting-started)
-   - [Journal Overview & Navigation](#journal-overview-navigation)
+   - [Journal Overview & Navigation](#journal-overview)
    - [Data Management](#data-management)
-   - [Filter & Search Functions](#filter-search-functions)
-   - [Tags & Notes System](#tags-notes-system)
-   - [Pivot Mode](#pivot-mode-pro)
+   - [Filter & Search Functions](#filter-search)
+   - [Tags & Notes System](#tags-notes)
+   - [Pivot Mode (Pro)](#pivot-mode)
 3. [Performance Dashboard](#performance-dashboard)
-   - [Performance Tab](#1-performance-tab)
-   - [Quality Tab](#2-quality-tab)
-   - [Direction Tab](#3-direction-tab)
-   - [Discipline Tab](#4-discipline-tab)
-   - [Costs Tab](#5-costs-tab)
-4. [Deep Dive Analytics](#deep-dive-analytics-pro)
-   - [Forecast](#1-forecast---future-projection)
-   - [Trends](#2-trends---metric-evolution)
-   - [Leakage](#3-leakage---identify-profit-leaks)
-   - [Timing](#4-timing---time-analysis)
-   - [Assets](#5-assets---symbol-performance)
-   - [Risk](#6-risk---risk-management)
-   - [Market](#7-market---market-conditions)
-   - [Psychology](#8-psychology---discipline-mental-game)
-   - [Strategies](#9-strategies---strategy-performance)
-   - [Calendar](#10-calendar---calendar-view)
-5. [Formulas & Calculations](#formulas-calculations)
-6. [Best Practices & Tips](#best-practices-tips)
+   - [Performance Tab](#perf-tab)
+   - [Quality Tab](#quality-tab)
+   - [Direction Tab](#direction-tab)
+   - [Discipline Tab](#discipline-tab)
+   - [Costs Tab](#costs-tab)
+4. [Deep Dive Analytics (Pro)](#deep-dive)
+   - [Forecast](#dd-forecast)
+   - [Trends](#dd-trends)
+   - [Leakage](#dd-leakage)
+   - [Timing](#dd-timing)
+   - [Assets](#dd-assets)
+   - [Risk](#dd-risk)
+   - [Market](#dd-market)
+   - [Psychology](#dd-psychology)
+   - [Strategies](#dd-strategies)
+   - [Calendar](#dd-calendar)
+5. [Formulas & Calculations](#formulas)
+6. [Best Practices & Tips](#best-practices)
 
 ---
 
+<a id="philosophy"></a>
 ### The Philosophy: Plan & Execute
 
 Successful trading is based on a repeatable process. The **Calculator** and the **Journal** work hand in hand:
@@ -54,8 +55,10 @@ Successful trading is based on a repeatable process. The **Calculator** and the 
 
 ---
 
+<a id="getting-started"></a>
 ## Getting Started
 
+<a id="journal-overview"></a>
 ### Journal Overview & Navigation
 
 The Journal consists of two main areas:
@@ -66,6 +69,7 @@ The Journal consists of two main areas:
 
 2. **Table Area (bottom):** Shows all your trades in a detailed overview with filter and sort functions.
 
+<a id="data-management"></a>
 ### Data Management
 
 **Data Sources:**
@@ -78,6 +82,7 @@ The Journal consists of two main areas:
 
 - **Screenshots:** Upload chart screenshots for each trade. A picture is worth 1000 numbers – save your setup and execution visually.
 
+<a id="filter-search"></a>
 ### Filter & Search Functions
 
 The toolbar above the table offers several filters:
@@ -87,6 +92,7 @@ The toolbar above the table offers several filters:
 - **Date Filter:** From/To for time range selection
 - **Column Settings:** Via the gear icon you can choose which columns to display
 
+<a id="tags-notes"></a>
 ### Tags & Notes System
 
 **Tags are your most powerful tool for qualitative analysis!**
@@ -102,6 +108,7 @@ Later in **Deep Dive → Strategies** you can see exactly which strategy prints 
 **Notes:**
 Write brief notes for each trade: What was the plan? How did you feel? What went well/badly?
 
+<a id="pivot-mode"></a>
 ### Pivot Mode (Pro)
 
 **What is it?**
@@ -118,10 +125,12 @@ Immediately recognize which assets you harmonize with and which coins destroy yo
 
 ---
 
+<a id="performance-dashboard"></a>
 ## Performance Dashboard
 
 The Performance Dashboard offers 5 specialized views. Choose between tabs in the dropdown at the top.
 
+<a id="perf-tab"></a>
 ### 1. Performance Tab
 
 This tab shows the **health of your account** at a glance.
@@ -194,6 +203,7 @@ Your consistency over months. Each bar = one month.
 
 ---
 
+<a id="quality-tab"></a>
 ### 2. Quality Tab
 
 This tab shows the **quality of your trades** and important metrics.
@@ -255,6 +265,7 @@ Central metrics of your trading performance in a compact overview.
 
 ---
 
+<a id="direction-tab"></a>
 ### 3. Direction Tab
 
 This tab shows your performance in **Long vs. Short** trades.
@@ -298,6 +309,7 @@ Shows additional statistics specifically for Long vs. Short:
 
 ---
 
+<a id="discipline-tab"></a>
 ### 4. Discipline Tab
 
 This tab checks your **discipline and consistency**.
@@ -363,6 +375,7 @@ After a losing streak, traders tend to tilt → revenge trades, impulsive behavi
 
 ---
 
+<a id="costs-tab"></a>
 ### 5. Costs Tab
 
 This tab shows all **costs and fees** of your trading.
@@ -423,10 +436,12 @@ Donut chart with breakdown of fee types:
 
 ---
 
+<a id="deep-dive"></a>
 ## Deep Dive Analytics (Pro)
 
 The Deep Dive analytics are for advanced traders and require Pro access. This is where you dive deep into your performance.
 
+<a id="dd-forecast"></a>
 ### 1. Forecast - Future Projection
 
 #### 🔮 Monte Carlo Simulation
@@ -452,6 +467,7 @@ A statistical forecast of how your account could develop in the future, based on
 
 ---
 
+<a id="dd-trends"></a>
 ### 2. Trends - Metric Evolution
 
 This tab shows how your most important metrics develop over time (rolling/moving).
@@ -517,6 +533,7 @@ SQN = (√Number of Trades × Average R-Multiple) / Standard Deviation of R-Mult
 
 ---
 
+<a id="dd-leakage"></a>
 ### 3. Leakage - Identify Profit Leaks
 
 This tab shows you where you're losing money ("Leakage" = leaks in your profit).
@@ -572,6 +589,7 @@ The hours when you lose the most money.
 
 ---
 
+<a id="dd-timing"></a>
 ### 4. Timing - Time Analysis
 
 When are you at your best? This tab analyzes time-related patterns.
@@ -658,6 +676,7 @@ Trades grouped into time windows (e.g., 0-15 Min, 15-30 Min, 30-60 Min, etc.).
 
 ---
 
+<a id="dd-assets"></a>
 ### 5. Assets - Symbol Performance
 
 #### 🔵 Asset Bubble Matrix
@@ -687,6 +706,7 @@ A bubble chart matrix positioning all symbols by **Win Rate** and **PnL**.
 
 ---
 
+<a id="dd-risk"></a>
 ### 6. Risk - Risk Management
 
 #### 📊 R-Multiple Distribution
@@ -741,6 +761,7 @@ Scatter plot: Does your risk correlate with the result?
 
 ---
 
+<a id="dd-market"></a>
 ### 7. Market - Market Conditions
 
 This tab analyzes how you perform in different market phases (Trending, Ranging, Volatile, etc.).
@@ -754,6 +775,7 @@ Performance broken down by recognized market conditions.
 
 ---
 
+<a id="dd-psychology"></a>
 ### 8. Psychology - Discipline & Mental Game
 
 #### 🔥 Streak Analysis (Detailed)
@@ -784,6 +806,7 @@ Extended analysis of your winning and losing streaks, including visualization of
 
 ---
 
+<a id="dd-strategies"></a>
 ### 9. Strategies - Strategy Performance
 
 #### 🏷️ Tag-based PnL
@@ -824,6 +847,7 @@ Detailed comparison of multiple strategies with additional metrics:
 
 ---
 
+<a id="dd-calendar"></a>
 ### 10. Calendar - Calendar View
 
 #### 📅 Calendar Heat Map
@@ -847,6 +871,7 @@ A calendar where each day is color-coded based on the PnL of that day.
 
 ---
 
+<a id="formulas"></a>
 ## Formulas & Calculations
 
 The Journal uses precise mathematical formulas for all KPIs.
@@ -981,6 +1006,7 @@ $$
 
 ---
 
+<a id="best-practices"></a>
 ## Best Practices & Tips
 
 ### Workflow Recommendation

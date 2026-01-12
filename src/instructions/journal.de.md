@@ -9,35 +9,36 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
 
 ### Inhaltsverzeichnis
 
-1. [Die Philosophie: Plan & Execute](#die-philosophie-plan-execute)
+1. [Die Philosophie: Plan & Execute](#philosophie)
 2. [Erste Schritte](#erste-schritte)
-   - [Journal-Übersicht & Navigation](#journal-ubersicht-navigation)
+   - [Journal-Übersicht & Navigation](#journal-uebersicht)
    - [Datenmanagement](#datenmanagement)
    - [Filter & Suchfunktionen](#filter-suchfunktionen)
-   - [Tags & Notizen System](#tags-notizen-system)
-   - [Pivot-Modus](#pivot-modus-pro)
+   - [Tags & Notizen System](#tags-notizen)
+   - [Pivot-Modus (Pro)](#pivot-modus)
 3. [Performance Dashboard](#performance-dashboard)
-   - [Performance Tab](#1-performance-tab)
-   - [Quality Tab](#2-quality-tab)
-   - [Direction Tab](#3-direction-tab)
-   - [Discipline Tab](#4-discipline-tab)
-   - [Costs Tab](#5-costs-tab)
-4. [Deep Dive Analysen](#deep-dive-analysen-pro)
-   - [Forecast](#1-forecast---zukunftsprognose)
-   - [Trends](#2-trends---entwicklung-der-kennzahlen)
-   - [Leakage](#3-leakage---gewinnlecks-aufdecken)
-   - [Timing](#4-timing---zeitanalyse)
-   - [Assets](#5-assets---symbol-performance)
-   - [Risk](#6-risk---risikomanagement)
-   - [Market](#7-market---marktbedingungen)
-   - [Psychology](#8-psychology---psychologie-disziplin)
-   - [Strategies](#9-strategies---strategie-performance)
-   - [Calendar](#10-calendar---kalenderansicht)
-5. [Formeln & Berechnungen](#formeln-berechnungen)
-6. [Best Practices & Tipps](#best-practices-tipps)
+   - [Performance Tab](#perf-tab)
+   - [Quality Tab](#quality-tab)
+   - [Direction Tab](#direction-tab)
+   - [Discipline Tab](#discipline-tab)
+   - [Costs Tab](#costs-tab)
+4. [Deep Dive Analysen (Pro)](#deep-dive)
+   - [Forecast](#dd-forecast)
+   - [Trends](#dd-trends)
+   - [Leakage](#dd-leakage)
+   - [Timing](#dd-timing)
+   - [Assets](#dd-assets)
+   - [Risk](#dd-risk)
+   - [Market](#dd-market)
+   - [Psychology](#dd-psychology)
+   - [Strategies](#dd-strategies)
+   - [Calendar](#dd-calendar)
+5. [Formeln & Berechnungen](#formeln)
+6. [Best Practices & Tipps](#best-practices)
 
 ---
 
+<a id="philosophie"></a>
 ### Die Philosophie: Plan & Execute
 
 Erfolgreiches Trading basiert auf einem wiederholbaren Prozess. Der **Calculator** und das **Journal** arbeiten Hand in Hand:
@@ -54,8 +55,10 @@ Erfolgreiches Trading basiert auf einem wiederholbaren Prozess. Der **Calculator
 
 ---
 
+<a id="erste-schritte"></a>
 ## Erste Schritte
 
+<a id="journal-uebersicht"></a>
 ### Journal-Übersicht & Navigation
 
 Das Journal besteht aus zwei Hauptbereichen:
@@ -66,6 +69,7 @@ Das Journal besteht aus zwei Hauptbereichen:
 
 2. **Tabellen-Bereich (unten):** Zeigt alle deine Trades in einer detaillierten Übersicht mit Filter- und Sortierfunktionen.
 
+<a id="datenmanagement"></a>
 ### Datenmanagement
 
 **Datenquellen:**
@@ -78,6 +82,7 @@ Das Journal besteht aus zwei Hauptbereichen:
 
 - **Screenshots:** Lade Chart-Screenshots für jeden Trade hoch. Ein Bild sagt mehr als 1000 Zahlen – speichere Setup und Ausführung visuell.
 
+<a id="filter-suchfunktionen"></a>
 ### Filter & Suchfunktionen
 
 Die Toolbar über der Tabelle bietet mehrere Filter:
@@ -87,6 +92,7 @@ Die Toolbar über der Tabelle bietet mehrere Filter:
 - **Datums-Filter:** Von/Bis für zeitliche Eingrenzung
 - **Spalten-Einstellungen:** Über das Zahnrad-Icon kannst du wählen, welche Spalten angezeigt werden
 
+<a id="tags-notizen"></a>
 ### Tags & Notizen System
 
 **Tags sind dein mächtigstes Werkzeug für qualitative Analyse!**
@@ -102,6 +108,7 @@ Später im **Deep Dive → Strategies** kannst du exakt sehen, welche Strategie 
 **Notizen:**
 Schreibe kurze Notizen zu jedem Trade: Was war der Plan? Wie hast du dich gefühlt? Was lief gut/schlecht?
 
+<a id="pivot-modus"></a>
 ### Pivot-Modus (Pro)
 
 **Was ist das?**
@@ -118,10 +125,12 @@ Erkenne sofort, mit welchen Assets du harmonierst und welche Coins dein Konto ve
 
 ---
 
+<a id="performance-dashboard"></a>
 ## Performance Dashboard
 
 Das Performance Dashboard bietet 5 spezialisierte Ansichten. Wähle oben im Dropdown zwischen den Tabs.
 
+<a id="perf-tab"></a>
 ### 1. Performance Tab
 
 Dieser Tab zeigt die **Gesundheit deines Accounts** auf einen Blick.
@@ -194,6 +203,7 @@ Deine Konsistenz über Monate hinweg. Jeder Balken = ein Monat.
 
 ---
 
+<a id="quality-tab"></a>
 ### 2. Quality Tab
 
 Dieser Tab zeigt die **Qualität deiner Trades** und wichtige Kennzahlen.
@@ -255,6 +265,7 @@ Zentrale Kennzahlen deiner Trading-Performance in einer kompakten Übersicht.
 
 ---
 
+<a id="direction-tab"></a>
 ### 3. Direction Tab
 
 Dieser Tab zeigt deine Performance in **Long vs. Short** Trades.
@@ -298,6 +309,7 @@ Zeigt zusätzliche Statistiken speziell für Long vs. Short:
 
 ---
 
+<a id="discipline-tab"></a>
 ### 4. Discipline Tab
 
 Dieser Tab prüft deine **Disziplin und Konsistenz**.
@@ -363,6 +375,7 @@ Nach einer Verlustserie neigen Trader zu Tilt → Rache-Trades, impulsives Hande
 
 ---
 
+<a id="costs-tab"></a>
 ### 5. Costs Tab
 
 Dieser Tab zeigt alle **Kosten und Gebühren** deines Tradings.
@@ -423,10 +436,12 @@ Doughnut-Chart mit Aufteilung der Gebührenarten:
 
 ---
 
+<a id="deep-dive"></a>
 ## Deep Dive Analysen (Pro)
 
 Die Deep Dive Analysen sind für fortgeschrittene Trader und erfordern Pro-Zugang. Hier geht es in die Tiefe deiner Performance.
 
+<a id="dd-forecast"></a>
 ### 1. Forecast - Zukunftsprognose
 
 #### 🔮 Monte Carlo Simulation
@@ -452,6 +467,7 @@ Eine statistische Prognose, wie dein Konto sich in Zukunft entwickeln könnte, b
 
 ---
 
+<a id="dd-trends"></a>
 ### 2. Trends - Entwicklung der Kennzahlen
 
 Dieser Tab zeigt, wie sich deine wichtigsten Metriken über die Zeit entwickeln (rolling/gleitend).
@@ -517,6 +533,7 @@ SQN = (√Anzahl Trades × Durchschnitt R-Multiple) / Standardabweichung R-Multi
 
 ---
 
+<a id="dd-leakage"></a>
 ### 3. Leakage - Gewinnlecks aufdecken
 
 Dieser Tab zeigt dir, wo du Geld verlierst ("Leakage" = Lecks in deinem Profit).
@@ -572,6 +589,7 @@ Die Stunden, in denen du am meisten Geld verlierst.
 
 ---
 
+<a id="dd-timing"></a>
 ### 4. Timing - Zeitanalyse
 
 Wann bist du am besten? Dieser Tab analysiert Zeit-bezogene Muster.
@@ -658,6 +676,7 @@ Trades gruppiert in Zeitfenster (z.B. 0-15 Min, 15-30 Min, 30-60 Min, etc.).
 
 ---
 
+<a id="dd-assets"></a>
 ### 5. Assets - Symbol-Performance
 
 #### 🔵 Asset Bubble Matrix
@@ -687,6 +706,7 @@ Eine Bubble-Chart-Matrix, die alle Symbole nach **Win Rate** und **PnL** positio
 
 ---
 
+<a id="dd-risk"></a>
 ### 6. Risk - Risikomanagement
 
 #### 📊 R-Multiple Distribution
@@ -741,6 +761,7 @@ Scatter Plot: Korreliert dein Risiko mit dem Ergebnis?
 
 ---
 
+<a id="dd-market"></a>
 ### 7. Market - Marktbedingungen
 
 Dieser Tab analysiert, wie du in verschiedenen Marktphasen performst (Trending, Ranging, Volatile, etc.).
@@ -754,6 +775,7 @@ Performance aufgeschlüsselt nach erkannten Marktbedingungen.
 
 ---
 
+<a id="dd-psychology"></a>
 ### 8. Psychology - Psychologie & Disziplin
 
 #### 🔥 Streak Analysis (Detailliert)
@@ -784,6 +806,7 @@ Erweiterte Analyse deiner Gewinn- und Verlustserien, inkl. Visualisierung aller 
 
 ---
 
+<a id="dd-strategies"></a>
 ### 9. Strategies - Strategie-Performance
 
 #### 🏷️ Tag-based PnL
@@ -824,6 +847,7 @@ Detaillierter Vergleich mehrerer Strategien mit zusätzlichen Metriken:
 
 ---
 
+<a id="dd-calendar"></a>
 ### 10. Calendar - Kalenderansicht
 
 #### 📅 Calendar Heat Map
@@ -847,6 +871,7 @@ Ein Kalender, bei dem jeder Tag farblich markiert ist basierend auf dem PnL dies
 
 ---
 
+<a id="formeln"></a>
 ## Formeln & Berechnungen
 
 Das Journal nutzt präzise mathematische Formeln für alle KPIs.
@@ -981,6 +1006,7 @@ $$
 
 ---
 
+<a id="best-practices"></a>
 ## Best Practices & Tipps
 
 ### Workflow-Empfehlung
