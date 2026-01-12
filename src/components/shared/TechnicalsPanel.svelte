@@ -285,6 +285,10 @@
                 <button
                     type="button"
                     class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
+                    on:click={() =>
+                        ($settingsStore.showIndicatorParams =
+                            !$settingsStore.showIndicatorParams)}
+                    title="Toggle Indikator-Parameter"
                 >
                     Technicals
                     <span
