@@ -179,6 +179,7 @@
     "noTradesYet": "Noch keine Trades im Journal vorhanden.",
     "clickToExpand": "Klicken zum Ausklappen",
     "delete": "Löschen",
+    "confirmDelete": "Möchten Sie diesen Trade wirklich löschen?",
     "performancePerSymbol": "Performance pro Symbol",
     "trades": "Trades",
     "profitPercent": "Gewinn %",
@@ -208,9 +209,15 @@
       "to": "Bis",
       "pivotMode": "Pivot Modus",
       "uploadScreenshot": "Screenshot hochladen",
+      "pasteScreenshot": "Bild einfügen (Strg+V)",
+      "replaceScreenshot": "Ersetzen",
+      "deleteScreenshot": "Screenshot löschen",
       "advancedMetrics": "Erweiterte Metriken",
       "showScreenshots": "Screenshots anzeigen",
       "tableSettings": "Tabelleneinstellungen"
+    },
+    "placeholder": {
+      "notes": "Notizen hinzufügen..."
     },
     "table": {
       "date": "Datum",
