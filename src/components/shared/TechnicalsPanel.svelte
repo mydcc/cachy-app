@@ -275,7 +275,9 @@
 
 {#if showPanel}
     <div
-        class="technicals-panel p-3 flex flex-col gap-2 w-full md:w-64 transition-all relative"
+        class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative"
+        class:md:w-64={!$settingsStore.showIndicatorParams}
+        class:md:w-[19rem]={$settingsStore.showIndicatorParams}
     >
         <!-- Header -->
         <div
@@ -332,29 +334,29 @@
                 >
                     <div class="grid grid-cols-3 gap-2">
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1m")}>1m</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("5m")}>5m</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("15m")}>15m</button
                         >
                     </div>
                     <div class="grid grid-cols-3 gap-2">
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1h")}>1h</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("4h")}>4h</button
                         >
                         <button
-                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={() => setTimeframe("1d")}>1d</button
                         >
                     </div>
@@ -371,7 +373,7 @@
                                 handleCustomTimeframeSubmit()}
                         />
                         <button
-                            class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white rounded text-sm font-medium"
+                            class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--bg-primary)] rounded text-sm font-medium text-[var(--text-primary)]"
                             on:click={handleCustomTimeframeSubmit}>OK</button
                         >
                     </div>
