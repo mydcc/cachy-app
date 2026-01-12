@@ -153,4 +153,5 @@ export interface JournalEntry {
     isManual?: boolean;
     tags?: string[];
     screenshot?: string;
+    positionSize?: Decimal;
 }
