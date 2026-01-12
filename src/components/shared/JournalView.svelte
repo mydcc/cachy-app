@@ -771,7 +771,8 @@
     // --- Table State ---
     let currentPage = 1;
     let itemsPerPage = 10;
-    let sortField: keyof import("../../stores/types").JournalEntry = "date";
+    // Allow 'duration' as a virtual sort field
+    let sortField: keyof import("../../stores/types").JournalEntry | "duration" = "date";
     let sortDirection: "asc" | "desc" = "desc";
     let filterDateStart = "";
     let filterDateEnd = "";
