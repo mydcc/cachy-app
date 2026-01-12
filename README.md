@@ -9,7 +9,6 @@
 Cachy is a comprehensive web application for crypto traders designed to precisely calculate position sizes, manage risk, and maintain a trading journal. It is entirely local (client-side), privacy-focused, and supports real-time market data from Bitunix and Binance.
 
 ![Cachy Dashboard](docs/dashboard-preview.png)
-*(Note: Replace this path with a real screenshot if available)*
 
 ---
 
