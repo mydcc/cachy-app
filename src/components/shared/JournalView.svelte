@@ -833,15 +833,15 @@
 
             // Handle virtual field 'duration'
             if (field === "duration") {
-                const startA = new Date(a.entryDate || 0).getTime();
-                const endA = new Date(a.date || 0).getTime();
+                const startA = new Date(a.entryDate || a.date).getTime();
+                const endA = new Date(a.date).getTime();
                 valA =
                     isNaN(startA) || isNaN(endA)
                         ? 0
                         : Math.max(0, endA - startA);
 
-                const startB = new Date(b.entryDate || 0).getTime();
-                const endB = new Date(b.date || 0).getTime();
+                const startB = new Date(b.entryDate || b.date).getTime();
+                const endB = new Date(b.date).getTime();
                 valB =
                     isNaN(startB) || isNaN(endB)
                         ? 0
@@ -852,20 +852,16 @@
             if (valA instanceof Decimal) valA = valA.toNumber();
             if (valB instanceof Decimal) valB = valB.toNumber();
 
-            // Handle undefined/null for numbers
-            if (
-                (valA === undefined || valA === null) &&
-                typeof valB === "number"
-            )
-                valA = 0;
-            if (
-                (valB === undefined || valB === null) &&
-                typeof valA === "number"
-            )
-                valB = 0;
+            // Handle null/undefined for comparison
+            if (valA === undefined || valA === null)
+                valA =
+                    field === "symbol" || field === "status" ? "" : -Infinity;
+            if (valB === undefined || valB === null)
+                valB =
+                    field === "symbol" || field === "status" ? "" : -Infinity;
 
-            // Handle Dates
-            if (field === "date") {
+            // Handle Dates (if not handled by numeric conversion)
+            if (field === "date" && typeof valA === "string") {
                 valA = new Date(valA).getTime();
                 valB = new Date(valB).getTime();
             }
