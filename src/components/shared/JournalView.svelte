@@ -2020,7 +2020,7 @@
                 {/if}
                 {#if columnVisibility.sl}
                   <td
-                    >{trade.stopLossPrice.gt(0)
+                    >{trade.stopLossPrice?.gt(0)
                       ? formatDynamicDecimal(trade.stopLossPrice, 4)
                       : "-"}</td
                   >
@@ -2034,18 +2034,18 @@
                 {/if}
                 {#if columnVisibility.pnl}
                   <td
-                    class={trade.totalNetProfit.gt(0)
+                    class={trade.totalNetProfit?.gt(0)
                       ? "text-[var(--success-color)]"
-                      : trade.totalNetProfit.lt(0)
+                      : trade.totalNetProfit?.lt(0)
                       ? "text-[var(--danger-color)]"
                       : ""}>{formatDynamicDecimal(trade.totalNetProfit, 2)}</td
                   >
                 {/if}
                 {#if columnVisibility.funding}
                   <td
-                    class={trade.fundingFee.lt(0)
+                    class={trade.fundingFee?.lt(0)
                       ? "text-[var(--danger-color)]"
-                      : trade.fundingFee.gt(0)
+                      : trade.fundingFee?.gt(0)
                       ? "text-[var(--success-color)]"
                       : "text-[var(--text-secondary)]"}
                     >{formatDynamicDecimal(trade.fundingFee, 4)}</td
@@ -2053,13 +2053,13 @@
                 {/if}
                 {#if columnVisibility.rr}
                   <td
-                    class={trade.totalRR.gte(2)
+                    class={trade.totalRR?.gte(2)
                       ? "text-[var(--success-color)]"
-                      : trade.totalRR.gte(1.5)
+                      : trade.totalRR?.gte(1.5)
                       ? "text-[var(--warning-color)]"
                       : "text-[var(--danger-color)]"}
                   >
-                    {!trade.totalRR.isZero()
+                    {!trade.totalRR?.isZero()
                       ? formatDynamicDecimal(trade.totalRR, 2)
                       : "-"}
                   </td>
