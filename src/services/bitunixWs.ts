@@ -87,6 +87,8 @@ class BitunixWebSocketService {
     }
 
     private connectPublic() {
+        if (this.isDestroyed) return;
+
         if (this.wsPublic) {
             if (this.wsPublic.readyState === WebSocket.OPEN ||
                 this.wsPublic.readyState === WebSocket.CONNECTING) {
@@ -107,12 +109,12 @@ class BitunixWebSocketService {
             // Set connection timeout to detect hanging initial connections
             if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
             this.connectionTimeoutPublic = setTimeout(() => {
+                if (this.isDestroyed) return;
                 if (ws.readyState !== WebSocket.OPEN) {
                     console.warn('Bitunix Public WS Connection Timeout. Closing to trigger retry.');
                     // P0 Fix: Explicit cleanup to prevent timer leaks
                     if (this.wsPublic === ws) {
                         this.cleanup('public');
-                        ws.close();
                         this.scheduleReconnect('public');
                     } else {
                         ws.close();
@@ -173,6 +175,8 @@ class BitunixWebSocketService {
     }
 
     private connectPrivate() {
+        if (this.isDestroyed) return;
+
         const settings = get(settingsStore);
         const apiKey = settings.apiKeys?.bitunix?.key;
         const apiSecret = settings.apiKeys?.bitunix?.secret;
@@ -199,12 +203,12 @@ class BitunixWebSocketService {
             // Set connection timeout
             if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
             this.connectionTimeoutPrivate = setTimeout(() => {
+                if (this.isDestroyed) return;
                 if (ws.readyState !== WebSocket.OPEN) {
                     console.warn('Bitunix Private WS Connection Timeout. Closing to trigger retry.');
                     // P0 Fix: Explicit cleanup to prevent timer leaks
                     if (this.wsPrivate === ws) {
                         this.cleanup('private');
-                        ws.close();
                         this.scheduleReconnect('private');
                     } else {
                         ws.close();
@@ -372,7 +376,6 @@ class BitunixWebSocketService {
     private cleanup(type: 'public' | 'private') {
         this.stopHeartbeat(type);
         if (type === 'public') {
-            // P0 Fix: Clear connection timeout timer to prevent memory leaks
             if (this.connectionTimeoutPublic) {
                 clearTimeout(this.connectionTimeoutPublic);
                 this.connectionTimeoutPublic = null;
@@ -381,9 +384,18 @@ class BitunixWebSocketService {
                 clearTimeout(this.reconnectTimerPublic);
                 this.reconnectTimerPublic = null;
             }
+            if (this.wsPublic) {
+                this.wsPublic.onopen = null;
+                this.wsPublic.onmessage = null;
+                this.wsPublic.onerror = null;
+                this.wsPublic.onclose = null;
+                if (this.wsPublic.readyState === WebSocket.OPEN || this.wsPublic.readyState === WebSocket.CONNECTING) {
+                    this.wsPublic.close();
+                }
+            }
             this.wsPublic = null;
+            this.isReconnectingPublic = false;
         } else {
-            // P0 Fix: Clear connection timeout timer to prevent memory leaks
             if (this.connectionTimeoutPrivate) {
                 clearTimeout(this.connectionTimeoutPrivate);
                 this.connectionTimeoutPrivate = null;
@@ -392,7 +404,17 @@ class BitunixWebSocketService {
                 clearTimeout(this.reconnectTimerPrivate);
                 this.reconnectTimerPrivate = null;
             }
+            if (this.wsPrivate) {
+                this.wsPrivate.onopen = null;
+                this.wsPrivate.onmessage = null;
+                this.wsPrivate.onerror = null;
+                this.wsPrivate.onclose = null;
+                if (this.wsPrivate.readyState === WebSocket.OPEN || this.wsPrivate.readyState === WebSocket.CONNECTING) {
+                    this.wsPrivate.close();
+                }
+            }
             this.wsPrivate = null;
+            this.isReconnectingPrivate = false;
         }
     }
 

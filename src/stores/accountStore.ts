@@ -64,7 +64,10 @@ function createAccountStore() {
                 const currentPositions = [...store.positions];
                 const index = currentPositions.findIndex(p => String(p.positionId) === String(data.positionId));
                 
-                if (data.event === 'CLOSE') {
+                // Robust check for close event or zero quantity
+                const isClose = (data.event === 'CLOSE') || (data.qty !== undefined && Number(data.qty) === 0);
+
+                if (isClose) {
                     if (index !== -1) {
                         currentPositions.splice(index, 1);
                     }

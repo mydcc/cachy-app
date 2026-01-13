@@ -746,8 +746,22 @@ export const app = {
                         }
                     }
 
+                    // P0 Fix: Handle large IDs (precision loss) by generating new internal ID
+                    let internalId = parseFloat(entry.ID);
+                    const originalIdAsString = entry.ID;
+
+                    // Check if ID is potentially unsafe (too large for JS Number exact precision)
+                    if (originalIdAsString && (originalIdAsString.length >= 16 || !Number.isSafeInteger(internalId))) {
+                        // Use deterministic hash for idempotency (djb2 variant)
+                        let hash = 5381;
+                        for (let i = 0; i < originalIdAsString.length; i++) {
+                            hash = (hash * 33) ^ originalIdAsString.charCodeAt(i);
+                        }
+                        internalId = Math.abs(hash >>> 0);
+                    }
+
                     const importedTrade: JournalEntry = {
-                        id: parseFloat(entry.ID),
+                        id: internalId,
                         date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
                         symbol: entry.Symbol,
                         tradeType: entry.Typ.toLowerCase(),
@@ -772,7 +786,7 @@ export const app = {
                         screenshot: entry.Screenshot || undefined,
                         targets: targets,
                         // New fields
-                        tradeId: entry['Trade ID'] || undefined,
+                        tradeId: entry['Trade ID'] || (originalIdAsString.length >= 16 ? originalIdAsString : undefined),
                         orderId: entry['Order ID'] || undefined,
                         fundingFee: parseDecimal(entry['Funding Fee'] || '0'),
                         tradingFee: parseDecimal(entry['Trading Fee'] || '0'),

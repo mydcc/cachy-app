@@ -93,19 +93,14 @@ async function fetchAllPages(
 
         // Ensure we have a valid time field before parsing
         if (timeField !== undefined && timeField !== null) {
-            const parsedTime = parseInt(String(timeField), 10);
+            // Use simple numeric parsing as Bitunix timestamps are standard
+            // We avoid parseInt(..., 10) on strings that might be floating point (rare for timestamps but possible in some systems)
+            const parsedTime = Number(timeField);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                // Determine if ms or seconds based on magnitude (Year 2000 in ms is ~946mil, in seconds it's smaller)
-                // If > 10000000000 (10 digits), it's likely milliseconds (or seconds far in future).
-                // Actually, current time in ms is ~13 digits (1.7e12). Seconds is 10 digits (1.7e9).
-                // If it is 13 digits, subtract 1ms. If 10 digits, subtract 1s.
-                // Threshold: Year 2286 is 10000000000 seconds (11 digits). So anything > 1e11 is definitely MS.
-                const isMs = parsedTime > 100000000000;
-                const decrement = isMs ? 1 : 1; // Actually logic is simpler: 1 unit of whatever it is.
-
-                // Subtract 1 unit to prevent overlap if the API is inclusive
-                currentEndTime = parsedTime - decrement;
+                // Decrement by 1 unit (ms or s) to get the next page
+                // We assume the API is inclusive of endTime (<=)
+                currentEndTime = parsedTime - 1;
             } else {
                 break; // Invalid timestamp, stop paging
             }
@@ -174,7 +169,9 @@ async function fetchBitunixData(apiKey: string, apiSecret: string, path: string,
         } catch (e) {
             // ignore
         }
-        throw new Error(`Bitunix API error [${path}]: ${response.status} ${text}`);
+        // Truncate text to avoid massive logs or leaking too much info
+        const safeText = text.length > 200 ? text.substring(0, 200) + '...' : text;
+        throw new Error(`Bitunix API error [${path}]: ${response.status} ${safeText}`);
     }
 
     const data = await response.json();
