@@ -1432,63 +1432,132 @@ export const app = {
       targets: [...state.targets, { price, percent, isLocked }],
     }));
   },
-  scanMultiAtr: async (symbol: string) => {
+  // Helper to fetch K-lines with retry logic for 429 errors
+  fetchKlinesWithRetry: async (symbol: string, tf: string, retries = 3): Promise<any> => {
     const settings = get(settingsStore);
-    // Use global favorites (ensure sorted or sort here)
-    const timeframes =
-      settings.favoriteTimeframes && settings.favoriteTimeframes.length > 0
-        ? settings.favoriteTimeframes
-        : ["5m", "15m", "1h", "4h"];
-
-    // Clear old data to prevent stale values during fetch
-    updateTradeStore((state) => ({ ...state, multiAtrData: {} }));
-
-    const fetchAndSet = async (tf: string) => {
-      try {
-        let klines;
-        if (settings.apiProvider === "binance") {
-          klines = await apiService.fetchBinanceKlines(symbol, tf);
-        } else {
-          klines = await apiService.fetchBitunixKlines(symbol, tf);
-        }
-        const atr = calculator.calculateATR(klines);
-        if (atr.gt(0)) {
-          // Incrementally update the store
-          updateTradeStore((state) => ({
-            ...state,
-            multiAtrData: {
-              ...state.multiAtrData,
-              [tf]: atr.toDP(4).toNumber(),
-            },
-          }));
-        }
-      } catch (e) {
-        console.warn(`Failed to fetch ATR for ${tf}`, e);
+    try {
+      if (settings.apiProvider === "binance") {
+        return await apiService.fetchBinanceKlines(symbol, tf);
+      } else {
+        return await apiService.fetchBitunixKlines(symbol, tf);
       }
-    };
-
-    // PROCESS SEQUENTIALLY with delay to avoid "request too frequently"
-    for (const tf of timeframes) {
-      await fetchAndSet(tf);
-      // Small delay between requests (300ms)
-      await new Promise((resolve) => setTimeout(resolve, 300));
+    } catch (e: any) {
+      if (retries > 0 && e.message.includes("apiErrors.klineError")) {
+        // Likely rate limit or temporary error. Wait and retry.
+        // Exponential backoff: 300ms, 600ms, 1200ms
+        const delay = 300 * Math.pow(2, 3 - retries);
+        await new Promise((resolve) => setTimeout(resolve, delay));
+        return app.fetchKlinesWithRetry(symbol, tf, retries - 1);
+      }
+      throw e;
     }
+  },
+
+  scanMultiAtr: async (symbol: string) => {
+    // This is now just a wrapper or can be deprecated/merged if we always use fetchAllAnalysisData
+    // For now we keep it but it might be redundant if fetchAll does everything
+    // But sometimes we might want to JUST scan multi ATR (e.g. changing favorites)
+    // So we implement it safely using the deduplicated approach internally if needed,
+    // or just let it be. But to ensure "all at same time", we should batch.
+
+    // Actually, distinct usage:
+    // fetchAllAnalysisData -> Called on Symbol Change (Load everything)
+    // scanMultiAtr -> Called when Favorites key changes? No, mainly called by fetchAll.
+    // If we call it manually, we should use the same batched logic.
+
+    // Reuse the logic in fetchAllAnalysisData for consistency
+    // But since fetchAll does everything, maybe we just expose a "fetchKlinesForTimeframes" helper?
+
+    // For this specific User Request, let's make fetchAllAnalysisData the master and scanMultiAtr a subset.
+    const settings = get(settingsStore);
+    const timeframes = settings.favoriteTimeframes?.length > 0
+      ? settings.favoriteTimeframes
+      : ["5m", "15m", "1h", "4h"];
+
+    const results: Record<string, number> = {};
+    const promises = timeframes.map(tf =>
+      app.fetchKlinesWithRetry(symbol, tf)
+        .then(klines => {
+          const atr = calculator.calculateATR(klines);
+          if (atr.gt(0)) results[tf] = atr.toDP(4).toNumber();
+        })
+        .catch(e => console.warn(`Failed to fetch ATR for ${tf}`, e))
+    );
+
+    await Promise.all(promises);
+    updateTradeStore((state) => ({ ...state, multiAtrData: results }));
   },
 
   // New unified fetch function for Price + ATR + Analysis
   fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
     if (!symbol || symbol.length < 3) return;
 
-    // 1. CRITICAL: Fetch Price and Current ATR immediately (Parallel)
+    // 1. Fetch Price Immediately (Critical, Independent)
     const pricePromise = app.handleFetchPrice(isAuto);
-    const currentAtrPromise = app.fetchAtr(isAuto);
 
-    await Promise.allSettled([pricePromise, currentAtrPromise]);
+    // 2. Identify ALL valid Timeframes needed (Current + Favorites)
+    const state = get(tradeStore);
+    const settings = get(settingsStore);
 
-    // 2. BACKGROUND: Scan Multi-ATR (Non-blocking for the user flow)
-    // We don't await this, so the user sees the price/SL immediately.
-    // The chips will pop in one by one.
-    app.scanMultiAtr(symbol);
+    const currentTf = state.atrTimeframe;
+    const favoriteTfs = settings.favoriteTimeframes?.length > 0
+      ? settings.favoriteTimeframes
+      : ["5m", "15m", "1h", "4h"];
+
+    // Unique set
+    const allTfs = Array.from(new Set([currentTf, ...favoriteTfs]));
+
+    // Clear old Multi-ATR data to show we are refreshing (or keep stale?)
+    // User wants "all at same time" new values. Clearing makes it obvious.
+    updateTradeStore((s) => ({ ...s, multiAtrData: {} }));
+
+    // 3. Fetch All Klines in Parallel with Retry
+    const klineResults: Record<string, number> = {};
+
+    // We Map each TF to a promise that fetches, calculates, and stores result in temp object
+    const tasks = allTfs.map(async (tf) => {
+      try {
+        const klines = await app.fetchKlinesWithRetry(symbol, tf);
+        const atr = calculator.calculateATR(klines);
+        if (atr.gt(0)) {
+          klineResults[tf] = atr.toDP(4).toNumber();
+        }
+      } catch (e) {
+        console.warn(`Failed to load ${tf}`, e);
+      }
+    });
+
+    // Wait for Price (so user sees it ASAP, but we also want ATRs)
+    // Actually, we can let price update whenever it finishes.
+    // We await all klines to finish batching.
+    await Promise.allSettled([pricePromise, ...tasks]);
+
+    // 4. Update Stores from the single source of truth
+    updateTradeStore((s) => {
+      const newMultiAtr: Record<string, number> = {};
+
+      // Populate MultiATR
+      favoriteTfs.forEach(tf => {
+        if (klineResults[tf]) newMultiAtr[tf] = klineResults[tf];
+      });
+
+      // Update Current ATR Value if available
+      let newAtrValue = s.atrValue;
+      if (klineResults[currentTf]) {
+        newAtrValue = klineResults[currentTf];
+      }
+
+      return {
+        ...s,
+        multiAtrData: newMultiAtr,
+        atrValue: newAtrValue
+      };
+    });
+
+    // Trigger Recalculate if we are in Auto-Mode
+    if (state.useAtrSl && state.atrMode === 'auto') {
+      app.calculateAndDisplay();
+    }
   },
 
   adjustTpPercentages: (changedIndex: number | null) => {
