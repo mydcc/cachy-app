@@ -28,6 +28,16 @@
   export let symbolSuggestions: string[];
   export let showSymbolSuggestions: boolean;
 
+  // Local state for input to prevent immediate store updates
+  let localSymbol = symbol;
+
+  // Sync local state when prop changes (e.g. from Preset or internal selection)
+  // We use a flag to prevent cyclic updates if necessary, but simple reactivity might suffice
+  // providing we don't cause a loop.
+  $: if (symbol !== localSymbol) {
+    localSymbol = symbol;
+  }
+
   function toggleAtrSl() {
     trackCustomEvent("ATR", "Toggle", useAtrSl ? "On" : "Off");
     dispatch("toggleAtrInputs", useAtrSl);
@@ -42,17 +52,28 @@
   }
 
   const handleSymbolInput = debounce(() => {
-    app.updateSymbolSuggestions(symbol);
+    // 1. Update Global Store (this triggers reactivity in app.ts / +page.svelte)
+    // Only update if it's different to avoid redundant triggers
+    if (symbol !== localSymbol) {
+      updateTradeStore((s) => ({ ...s, symbol: localSymbol }));
+    }
+
+    app.updateSymbolSuggestions(localSymbol);
+
     // Automatically fetch price and ATR when user stops typing a valid symbol
-    if (symbol && symbol.length >= 3) {
+    if (localSymbol && localSymbol.length >= 3) {
       // Unified Fetch
-      app.fetchAllAnalysisData(symbol, true);
+      app.fetchAllAnalysisData(localSymbol, true);
     }
   }, 500);
 
   function selectSuggestion(s: string) {
     trackCustomEvent("Symbol", "SelectSuggestion", s);
     dispatch("selectSymbolSuggestion", s);
+    // When selecting suggestion, we want immediate update
+    localSymbol = s;
+    updateTradeStore((s) => ({ ...s, symbol: localSymbol }));
+    app.fetchAllAnalysisData(localSymbol, true);
   }
 
   function handleKeyDownSuggestion(event: KeyboardEvent, s: string) {
@@ -144,6 +165,7 @@
     "3d",
     "1w",
     "1M",
+    "1month",
   ];
   // MTF-ATR: Ensure we only show the user's favorites from Settings
   // NOTE: multiAtrData is now in tradeStore
@@ -200,7 +222,7 @@
         id="symbol-input"
         name="symbol"
         type="text"
-        bind:value={symbol}
+        bind:value={localSymbol}
         on:input={() => {
           handleSymbolInput();
           onboardingService.trackFirstInput();
