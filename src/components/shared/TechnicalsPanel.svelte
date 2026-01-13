@@ -165,13 +165,13 @@
         updateTechnicals();
     }
 
-    function updateTechnicals() {
+    async function updateTechnicals() {
         if (!klinesHistory.length) return;
         // Calculate technicals using the FULL history including live candle.
         // The Service now handles Data normalization and Decimal conversion internally.
-        data = technicalsService.calculateTechnicals(
+        data = await technicalsService.calculateTechnicals(
             klinesHistory,
-            indicatorSettings,
+            indicatorSettings
         );
     }
 
@@ -185,10 +185,10 @@
             const klines = await apiService.fetchBitunixKlines(
                 symbol,
                 timeframe,
-                limit,
+                limit
             );
             klinesHistory = klines;
-            updateTechnicals();
+            await updateTechnicals();
         } catch (e) {
             console.error("Technicals fetch error:", e);
             error = "Failed to load";
@@ -249,7 +249,7 @@
         if (
             showTimeframePopup &&
             !(event.target as HTMLElement).closest(
-                ".timeframe-selector-container",
+                ".timeframe-selector-container"
             )
         ) {
             showTimeframePopup = false;
@@ -328,9 +328,9 @@
                         stroke-linecap="round"
                         stroke-linejoin="round"
                     >
-                        <circle cx="12" cy="12" r="10"></circle>
-                        <line x1="12" y1="16" x2="12" y2="12"></line>
-                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
                     </svg>
                 </button>
             </div>
@@ -404,7 +404,7 @@
             <div class="flex justify-center py-8">
                 <div
                     class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"
-                ></div>
+                />
             </div>
         {:else if error}
             <div class="text-[var(--danger-color)] text-center text-sm py-4">
@@ -436,7 +436,7 @@
                         >
                         <span
                             class="text-right font-bold {getActionColor(
-                                osc.action,
+                                osc.action
                             )}">{osc.action}</span
                         >
                     {/each}
@@ -468,7 +468,7 @@
                         >
                         <span
                             class="text-right font-bold {getActionColor(
-                                ma.action,
+                                ma.action
                             )}">{ma.action}</span
                         >
                     {/each}
@@ -489,7 +489,7 @@
                 <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
                     {#each Object.entries(data.pivots.classic).sort( (a, b) => b[1]
                                 .minus(a[1])
-                                .toNumber(), ) as [key, val]}
+                                .toNumber() ) as [key, val]}
                         <span class="text-[var(--text-secondary)] w-6 uppercase"
                             >{key}</span
                         >

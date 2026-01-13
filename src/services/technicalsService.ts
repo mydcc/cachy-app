@@ -1,13 +1,26 @@
-import { RSI, MACD, Stochastic, CCI, ADX, AwesomeOscillator, SMA, EMA } from 'technicalindicators';
+import * as talib from 'talib-web';
 import { Decimal } from 'decimal.js';
 import type { IndicatorSettings } from '../stores/indicatorStore';
-import { indicators } from '../utils/indicators';
 import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
 export type { Kline, TechnicalsData, IndicatorResult };
 
+// Initialize talib-web WASM module
+let talibReady = false;
+const talibInit = talib.init().then(() => {
+    talibReady = true;
+    console.log('talib-web initialized successfully');
+}).catch(err => {
+    console.error('Failed to initialize talib-web:', err);
+});
+
 export const technicalsService = {
-    calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): TechnicalsData {
+    async calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
+        // Ensure talib is initialized
+        if (!talibReady) {
+            await talibInit;
+        }
+
         // 1. Normalize Data to strict Kline format with Decimals
         const klines: Kline[] = [];
         let prevClose = new Decimal(0);
@@ -32,7 +45,7 @@ export const technicalsService = {
             const volume = toDec(k.volume, new Decimal(0));
 
             if (!safeClose.isZero()) {
-                 klines.push({
+                klines.push({
                     open, high, low, close: safeClose, volume, time
                 });
                 prevClose = safeClose;
@@ -55,252 +68,224 @@ export const technicalsService = {
             }
         };
 
+        // Convert Decimal arrays to number arrays for talib
+        const highsNum = klines.map(k => k.high.toNumber());
+        const lowsNum = klines.map(k => k.low.toNumber());
+        const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
 
         // --- Oscillators ---
         const oscillators: IndicatorResult[] = [];
 
-        // 1. RSI
-        const rsiLen = settings?.rsi?.length || 14;
-        const rsiSigLen = settings?.rsi?.signalLength || 14;
-        const rsiSource = getSource(settings?.rsi?.source || 'close');
-        const rsiVal = indicators.calculateRSI(rsiSource, rsiLen);
+        try {
+            // 1. RSI
+            const rsiLen = settings?.rsi?.length || 14;
+            const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
+            const rsiResult = await talib.RSI(rsiSource, rsiLen);
+            const rsiOutput = rsiResult?.output || [];
+            const rsiVal = rsiOutput.length > 0
+                ? new Decimal(rsiOutput[rsiOutput.length - 1])
+                : new Decimal(0);
 
-        oscillators.push({
-            name: 'RSI',
-            params: `${rsiLen}, ${rsiSigLen}`,
-            value: rsiVal ?? new Decimal(0),
-            action: this.getRsiAction(rsiVal)
-        });
+            oscillators.push({
+                name: 'RSI',
+                params: `${rsiLen}`,
+                value: rsiVal,
+                action: this.getRsiAction(rsiVal)
+            });
 
-        // 2. Stochastic
-        const stochK = settings?.stochastic?.kPeriod || 14;
-        const stochD = settings?.stochastic?.dPeriod || 3;
-        const stochKSmooth = settings?.stochastic?.kSmoothing || 1; // Default 1 = No smoothing (Fast %K)
+            // 2. Stochastic
+            const stochK = settings?.stochastic?.kPeriod || 14;
+            const stochD = settings?.stochastic?.dPeriod || 3;
+            const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
-        // Convert Decimals to Numbers for library
-        const highsNum = klines.map(k => k.high.toNumber());
-        const lowsNum = klines.map(k => k.low.toNumber());
-        const closesNum = klines.map(k => k.close.toNumber());
+            const stochResult = await talib.STOCH(
+                highsNum,
+                lowsNum,
+                closesNum,
+                stochK,
+                stochKSmooth,
+                stochD
+            );
 
-        // We calculate basic Stochastic first
-        // Library returns { k, d } where d is SMA(k, signalPeriod)
-        const stochValues = Stochastic.calculate({
-            high: highsNum,
-            low: lowsNum,
-            close: closesNum,
-            period: stochK,
-            signalPeriod: stochD
-        });
+            let stochKVal = new Decimal(0);
+            let stochDVal = new Decimal(0);
 
-        let stochKVal = new Decimal(0);
-        let stochDVal = new Decimal(0);
-
-        if (stochValues.length > 0) {
-            if (stochKSmooth > 1) {
-                // Apply Smoothing to K values
-                const rawKValues = stochValues.map(v => v.k);
-                // Use library SMA for smoothing (trading view uses SMA for %K smoothing usually)
-                const smoothedKValues = SMA.calculate({ values: rawKValues, period: stochKSmooth });
-
-                if (smoothedKValues.length > 0) {
-                    const lastSmoothedK = smoothedKValues[smoothedKValues.length - 1];
-                    stochKVal = new Decimal(lastSmoothedK);
-
-                    // Recalculate D based on Smoothed K
-                    // D is SMA of K with period D
-                    // We need the history of Smoothed K to calculate D
-                    const smoothedDValues = SMA.calculate({ values: smoothedKValues, period: stochD });
-                    const lastSmoothedD = smoothedDValues[smoothedDValues.length - 1];
-                    stochDVal = lastSmoothedD !== undefined ? new Decimal(lastSmoothedD) : new Decimal(0);
-                }
-            } else {
-                // No K Smoothing (Fast Stochastic)
-                const lastStoch = stochValues[stochValues.length - 1];
-                stochKVal = new Decimal(lastStoch.k);
-                stochDVal = new Decimal(lastStoch.d);
+            if (stochResult && stochResult.slowK && stochResult.slowD) {
+                const lastIdx = stochResult.slowK.length - 1;
+                stochKVal = new Decimal(stochResult.slowK[lastIdx] || 0);
+                stochDVal = new Decimal(stochResult.slowD[lastIdx] || 0);
             }
-        }
 
-        let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal)) stochAction = 'Buy';
-        else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal)) stochAction = 'Sell';
+            let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+            if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal)) stochAction = 'Buy';
+            else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal)) stochAction = 'Sell';
 
-        oscillators.push({
-            name: 'Stoch',
-            params: `${stochK}, ${stochKSmooth}, ${stochD}`,
-            value: stochKVal,
-            action: stochAction
-        });
+            oscillators.push({
+                name: 'Stoch',
+                params: `${stochK}, ${stochKSmooth}, ${stochD}`,
+                value: stochKVal,
+                action: stochAction
+            });
 
-        // 3. CCI
-        const cciLen = settings?.cci?.length || 20;
-        const cciSourceType = settings?.cci?.source || 'close'; // Now used? Wait, CCI library usually uses typical price.
-        // Library CCI signature: { high, low, close, period }. It calculates TP internally.
-        // If we want custom source, we might need a custom implementation, but TV CCI usually uses TP (HLC3).
-        // The screenshot shows Source dropdown for CCI.
-        // If user selects "Close", CCI should use Close instead of TP?
-        // Standard CCI is (TP - SMA(TP)) / (0.015 * MeanDev).
-        // If Source is Close, it becomes (Close - SMA(Close)) / ...
-        // We will respect source if possible. The Library doesn't easily support custom source for standard CCI call.
-        // But we can trick it? No, it expects high/low/close.
-        // Custom CCI implementation for custom source:
-        // CCI = (Source - SMA(Source, N)) / (0.015 * MeanDev(Source, N))
+            // 3. CCI
+            const cciLen = settings?.cci?.length || 20;
+            const cciResult = await talib.CCI(highsNum, lowsNum, closesNum, cciLen);
+            const cciOutput = cciResult?.output || [];
+            const cciVal = cciOutput.length > 0
+                ? new Decimal(cciOutput[cciOutput.length - 1])
+                : new Decimal(0);
 
-        const cciSource = getSource(cciSourceType);
-        const cciSourceNum = cciSource.map(d => d.toNumber());
-        const cciThreshold = settings?.cci?.threshold || 100;
-        const cciSmoothType = settings?.cci?.smoothingType || 'sma';
-        const cciSmoothLen = settings?.cci?.smoothingLength || 14;
+            const cciThreshold = settings?.cci?.threshold || 100;
+            let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+            if (cciVal.lt(-cciThreshold)) cciAction = 'Buy';
+            else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
 
-        // Custom CCI Calculation to support Source
-        const cciValues = this.calculateCCI(cciSourceNum, cciLen);
-        const lastCci = cciValues[cciValues.length - 1];
+            oscillators.push({
+                name: 'CCI',
+                params: `${cciLen}`,
+                value: cciVal,
+                action: cciAction
+            });
 
-        // Smoothing
-        let cciSignalVal = new Decimal(0);
-        if (cciValues.length >= cciSmoothLen) {
-             const smoothFn = cciSmoothType === 'ema' ? EMA.calculate : SMA.calculate;
-             const smoothed = smoothFn({ values: cciValues, period: cciSmoothLen });
-             const lastSmooth = smoothed[smoothed.length - 1];
-             if (lastSmooth !== undefined) cciSignalVal = new Decimal(lastSmooth);
-        }
+            // 4. ADX
+            const adxSmooth = settings?.adx?.adxSmoothing || 14;
+            const adxResult = await talib.ADX(highsNum, lowsNum, closesNum, adxSmooth);
+            const adxOutput = adxResult?.output || [];
+            const adxVal = adxOutput.length > 0
+                ? new Decimal(adxOutput[adxOutput.length - 1])
+                : new Decimal(0);
 
-        let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        const cciVal = lastCci !== undefined ? new Decimal(lastCci) : new Decimal(0);
+            // Get +DI and -DI for action
+            const pdiResult = await talib.PLUS_DI(highsNum, lowsNum, closesNum, adxSmooth);
+            const mdiResult = await talib.MINUS_DI(highsNum, lowsNum, closesNum, adxSmooth);
 
-        if (cciVal.lt(-cciThreshold)) cciAction = 'Buy';
-        else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
+            const pdiOutput = pdiResult?.output || [];
+            const mdiOutput = mdiResult?.output || [];
+            const pdi = pdiOutput.length > 0 ? pdiOutput[pdiOutput.length - 1] : 0;
+            const mdi = mdiOutput.length > 0 ? mdiOutput[mdiOutput.length - 1] : 0;
 
-        oscillators.push({
-            name: 'CCI',
-            params: `${cciLen}, ${cciSmoothLen}`,
-            value: cciVal,
-            signal: cciSignalVal,
-            action: cciAction
-        });
+            const adxThreshold = settings?.adx?.threshold || 25;
+            let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
 
-        // 4. ADX (Custom implementation to support separate DI Length)
-        const adxSmooth = settings?.adx?.adxSmoothing || 14; // Default to old length if missing
-        const diLen = settings?.adx?.diLength || 14;
-        const adxThreshold = settings?.adx?.threshold || 25;
+            if (adxVal.toNumber() > adxThreshold) {
+                if (pdi > mdi) adxAction = 'Buy';
+                else if (mdi > pdi) adxAction = 'Sell';
+            }
 
-        // Custom ADX Calculation
-        const adxResult = this.calculateADX(highsNum, lowsNum, closesNum, diLen, adxSmooth);
+            oscillators.push({
+                name: 'ADX',
+                params: `${adxSmooth}`,
+                value: adxVal,
+                action: adxAction
+            });
 
-        let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        const adxVal = new Decimal(adxResult.adx);
+            // 5. Awesome Oscillator (nicht in talib-web)
+            const aoFast = settings?.ao?.fastLength || 5;
+            const aoSlow = settings?.ao?.slowLength || 34;
+            const aoVal = await this.calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
 
-        if (adxResult.adx > adxThreshold) {
-            if (adxResult.pdi > adxResult.mdi) adxAction = 'Buy';
-            else if (adxResult.mdi > adxResult.pdi) adxAction = 'Sell';
-        }
+            let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+            if (aoVal.gt(0)) aoAction = 'Buy';
+            else if (aoVal.lt(0)) aoAction = 'Sell';
 
-        oscillators.push({
-            name: 'ADX',
-            params: `${adxSmooth}, ${diLen}`,
-            value: adxVal,
-            action: adxAction
-        });
+            oscillators.push({
+                name: 'Awesome Osc.',
+                params: `${aoFast}, ${aoSlow}`,
+                value: aoVal,
+                action: aoAction
+            });
 
-        // 5. Awesome Oscillator
-        const aoFast = settings?.ao?.fastLength || 5;
-        const aoSlow = settings?.ao?.slowLength || 34;
-        const aoValues = AwesomeOscillator.calculate({ high: highsNum, low: lowsNum, fastPeriod: aoFast, slowPeriod: aoSlow });
-        const lastAo = aoValues[aoValues.length - 1];
+            // 6. Momentum
+            const momLen = settings?.momentum?.length || 10;
+            const momSource = getSource(settings?.momentum?.source || 'close').map(d => d.toNumber());
+            const momResult = await talib.MOM(momSource, momLen);
+            const momOutput = momResult?.output || [];
+            const momVal = momOutput.length > 0
+                ? new Decimal(momOutput[momOutput.length - 1])
+                : new Decimal(0);
 
-        let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        const aoVal = lastAo !== undefined ? new Decimal(lastAo) : new Decimal(0);
-
-        if (aoVal.gt(0)) aoAction = 'Buy';
-        else if (aoVal.lt(0)) aoAction = 'Sell';
-
-        oscillators.push({
-            name: 'Awesome Osc.',
-            params: `${aoFast}, ${aoSlow}`,
-            value: aoVal,
-            action: aoAction
-        });
-
-        // 6. Momentum
-        const momLen = settings?.momentum?.length || 10;
-        const momSource = getSource(settings?.momentum?.source || 'close');
-        let momVal = new Decimal(0);
-        let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-
-        if (momSource.length > momLen) {
-            const current = momSource[momSource.length - 1];
-            const prev = momSource[momSource.length - 1 - momLen];
-            momVal = current.minus(prev);
-
+            let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (momVal.gt(0)) momAction = 'Buy';
             else if (momVal.lt(0)) momAction = 'Sell';
+
+            oscillators.push({
+                name: 'Momentum',
+                params: `${momLen}`,
+                value: momVal,
+                action: momAction
+            });
+
+            // 7. MACD
+            const macdFast = settings?.macd?.fastLength || 12;
+            const macdSlow = settings?.macd?.slowLength || 26;
+            const macdSig = settings?.macd?.signalLength || 9;
+            const macdSource = getSource(settings?.macd?.source || 'close').map(d => d.toNumber());
+
+            const macdResult = await talib.MACD(
+                macdSource,
+                macdFast,
+                macdSlow,
+                macdSig
+            );
+
+            let macdVal = new Decimal(0);
+            let macdSignalVal = new Decimal(0);
+            let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
+
+            if (macdResult && macdResult.MACD && macdResult.MACDSignal) {
+                const lastIdx = macdResult.MACD.length - 1;
+                const macd = macdResult.MACD[lastIdx];
+                const signal = macdResult.MACDSignal[lastIdx];
+
+                macdVal = new Decimal(macd || 0);
+                macdSignalVal = new Decimal(signal || 0);
+
+                if (macd !== undefined && signal !== undefined) {
+                    if (macd > signal) macdAction = 'Buy';
+                    else if (macd < signal) macdAction = 'Sell';
+                }
+            }
+
+            oscillators.push({
+                name: 'MACD',
+                params: `${macdFast}, ${macdSlow}, ${macdSig}`,
+                value: macdVal,
+                signal: macdSignalVal,
+                action: macdAction
+            });
+
+        } catch (error) {
+            console.error('Error calculating oscillators:', error);
         }
-
-        oscillators.push({
-            name: 'Momentum',
-            params: `${momLen}`,
-            value: momVal,
-            action: momAction
-        });
-
-        // 7. MACD
-        const macdFast = settings?.macd?.fastLength || 12;
-        const macdSlow = settings?.macd?.slowLength || 26;
-        const macdSig = settings?.macd?.signalLength || 9;
-        const macdOscType = settings?.macd?.oscillatorMaType || 'ema';
-        const macdSigType = settings?.macd?.signalMaType || 'ema';
-
-        const macdSourceNum = getSource(settings?.macd?.source || 'close').map(d => d.toNumber());
-
-        const macdValues = MACD.calculate({
-            values: macdSourceNum,
-            fastPeriod: macdFast,
-            slowPeriod: macdSlow,
-            signalPeriod: macdSig,
-            SimpleMAOscillator: macdOscType === 'sma',
-            SimpleMASignal: macdSigType === 'sma'
-        });
-
-        const lastMacd = macdValues[macdValues.length - 1];
-        let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-        const macdVal = lastMacd && lastMacd.MACD ? new Decimal(lastMacd.MACD) : new Decimal(0);
-        const macdSignalVal = lastMacd && lastMacd.signal ? new Decimal(lastMacd.signal) : new Decimal(0);
-
-        if (lastMacd && lastMacd.MACD !== undefined && lastMacd.signal !== undefined) {
-            if (lastMacd.MACD > lastMacd.signal) macdAction = 'Buy';
-            else if (lastMacd.MACD < lastMacd.signal) macdAction = 'Sell';
-        }
-
-        oscillators.push({
-            name: 'MACD',
-            params: `${macdFast}, ${macdSlow}, ${macdSig}`,
-            value: macdVal,
-            signal: macdSignalVal,
-            action: macdAction
-        });
 
         // --- Moving Averages ---
         const movingAverages: IndicatorResult[] = [];
-        const ema1 = settings?.ema?.ema1Length || 20;
-        const ema2 = settings?.ema?.ema2Length || 50;
-        const ema3 = settings?.ema?.ema3Length || 200;
+        try {
+            const ema1 = settings?.ema?.ema1Length || 20;
+            const ema2 = settings?.ema?.ema2Length || 50;
+            const ema3 = settings?.ema?.ema3Length || 200;
 
-        const periods = [ema1, ema2, ema3];
-        const closesDecimal = klines.map(k => k.close);
+            const periods = [ema1, ema2, ema3];
 
-        periods.forEach(period => {
-            const emaVal = indicators.calculateEMA(closesDecimal, period);
+            for (const period of periods) {
+                const emaResult = await talib.EMA(closesNum, period);
+                const emaOutput = emaResult?.output || [];
 
-            if (emaVal) {
-                movingAverages.push({
-                    name: 'EMA',
-                    params: `${period}`,
-                    value: emaVal,
-                    action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
-                });
+                if (emaOutput.length > 0) {
+                    const emaVal = new Decimal(emaOutput[emaOutput.length - 1]);
+
+                    movingAverages.push({
+                        name: 'EMA',
+                        params: `${period}`,
+                        value: emaVal,
+                        action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
+                    });
+                }
             }
-        });
+        } catch (error) {
+            console.error('Error calculating moving averages:', error);
+        }
 
         // --- Pivots ---
         const pivotType = settings?.pivots?.type || 'classic';
@@ -332,174 +317,27 @@ export const technicalsService = {
 
     // --- Helpers ---
 
-    calculateCCI(source: number[], period: number): number[] {
-        // CCI = (Src - SMA(Src)) / (0.015 * MeanDev)
-        // MeanDev = SMA(|Src - SMA(Src)|)
+    // Awesome Oscillator (nicht in talib-web)
+    async calculateAwesomeOscillator(high: number[], low: number[], fastPeriod: number, slowPeriod: number): Promise<Decimal> {
+        try {
+            // AO = SMA(HL2, 5) - SMA(HL2, 34)
+            const hl2 = high.map((h, i) => (h + low[i]) / 2);
 
-        if (source.length < period) return [];
+            const fastSMA = await talib.SMA(hl2, fastPeriod);
+            const slowSMA = await talib.SMA(hl2, slowPeriod);
 
-        const sma = SMA.calculate({ values: source, period });
-        // SMA array length is source.length - period + 1
-        // We need to align them. source[i] corresponds to sma[i - (period-1)]
+            const fastOutput = fastSMA?.output || [];
+            const slowOutput = slowSMA?.output || [];
 
-        const cci: number[] = [];
-
-        // Start from the first valid SMA point
-        for (let i = 0; i < sma.length; i++) {
-            const currentSma = sma[i];
-            const sourceIndex = i + (period - 1);
-
-            // Calculate Mean Deviation for this window
-            // Window is from source[i] to source[sourceIndex] inclusive?
-            // SMA calculation: last point is sourceIndex. Window is [sourceIndex - period + 1, ..., sourceIndex]
-
-            let sumDev = 0;
-            for (let j = 0; j < period; j++) {
-                sumDev += Math.abs(source[sourceIndex - j] - currentSma);
+            if (fastOutput.length > 0 && slowOutput.length > 0) {
+                const lastFast = fastOutput[fastOutput.length - 1];
+                const lastSlow = slowOutput[slowOutput.length - 1];
+                return new Decimal(lastFast - lastSlow);
             }
-            const meanDev = sumDev / period;
-
-            const val = (source[sourceIndex] - currentSma) / (0.015 * meanDev);
-            cci.push(val);
+        } catch (error) {
+            console.error('Error calculating Awesome Oscillator:', error);
         }
-
-        return cci;
-    },
-
-    calculateADX(high: number[], low: number[], close: number[], diLength: number, adxSmoothing: number): { adx: number, pdi: number, mdi: number } {
-        if (high.length < diLength + adxSmoothing) return { adx: 0, pdi: 0, mdi: 0 };
-
-        const tr: number[] = [];
-        const pdm: number[] = [];
-        const mdm: number[] = [];
-
-        // 1. Calculate TR, +DM, -DM
-        for (let i = 0; i < high.length; i++) {
-            if (i === 0) {
-                tr.push(0); // First value usually ignored or handled differently. Wilder uses simple first, then accumulate.
-                // We'll mimic Library/Wilder: First TR is H-L.
-                // Actually to match sequence, we need prev close.
-                // Let's assume index 0 has no prev close, so TR = H-L
-                tr[0] = high[0] - low[0];
-                pdm.push(0);
-                mdm.push(0);
-                continue;
-            }
-
-            const h = high[i];
-            const l = low[i];
-            const pc = close[i - 1];
-            const ph = high[i - 1];
-            const pl = low[i - 1];
-
-            const trueRange = Math.max(h - l, Math.abs(h - pc), Math.abs(l - pc));
-            tr.push(trueRange);
-
-            const upMove = h - ph;
-            const downMove = pl - l;
-
-            if (upMove > downMove && upMove > 0) {
-                pdm.push(upMove);
-            } else {
-                pdm.push(0);
-            }
-
-            if (downMove > upMove && downMove > 0) {
-                mdm.push(downMove);
-            } else {
-                mdm.push(0);
-            }
-        }
-
-        // 2. Smooth TR, +DM, -DM using Wilder's Smoothing (RMA) over diLength
-        const smoothTr = this.rma(tr, diLength);
-        const smoothPdm = this.rma(pdm, diLength);
-        const smoothMdm = this.rma(mdm, diLength);
-
-        // 3. Calculate DX
-        // DX = 100 * |+DI - -DI| / (+DI + -DI)
-        // +DI = 100 * SmoothPdm / SmoothTr
-        const dx: number[] = [];
-        let pdi = 0;
-        let mdi = 0;
-
-        // Ensure arrays align. RMA returns array shorter by (period-1) ?
-        // My RMA impl returns same length, filling first (period-1) with null/partial?
-        // Let's check RMA impl below.
-
-        const offset = diLength - 1; // Basic valid index start
-
-        for (let i = 0; i < smoothTr.length; i++) {
-            const sTr = smoothTr[i];
-            const sPdm = smoothPdm[i];
-            const sMdm = smoothMdm[i];
-
-            if (sTr && sTr > 0) {
-                pdi = 100 * sPdm / sTr;
-                mdi = 100 * sMdm / sTr;
-                const sum = pdi + mdi;
-                const val = sum === 0 ? 0 : (100 * Math.abs(pdi - mdi) / sum);
-                dx.push(val);
-            } else {
-                dx.push(0);
-            }
-        }
-
-        // 4. ADX = RMA of DX over adxSmoothing
-        // Note: DX is calculated starting from index 'offset'.
-        // The first valid DX is at index 'offset'.
-        // So we really only have valid DX data from there.
-        // But for simplicity, we kept array aligned (0 values at start).
-        // RMA should handle it if we slice or handle 0s?
-        // Wilder's usually starts calculation after period data is available.
-
-        // Let's pass the whole DX array to RMA. The early 0s might skew it if not handled,
-        // but classical RMA initialization is usually SMA of first N values.
-
-        // To be precise: We should take DX values starting from where they are valid.
-        const validDx = dx.slice(diLength - 1);
-        const smoothDx = this.rma(validDx, adxSmoothing);
-
-        const lastAdx = smoothDx[smoothDx.length - 1];
-
-        return {
-            adx: lastAdx || 0,
-            pdi,
-            mdi
-        };
-    },
-
-    // Wilder's Smoothing (RMA)
-    // First value is SMA of first 'period' values.
-    // Subsequent: (Prev * (period - 1) + Curr) / period
-    rma(values: number[], period: number): number[] {
-        const result: number[] = [];
-        if (values.length < period) return result;
-
-        let sum = 0;
-        for (let i = 0; i < period; i++) {
-            sum += values[i];
-        }
-        const firstVal = sum / period;
-
-        // Fill initial gaps with 0 or null?
-        // We'll align result to end of window.
-        // i.e. result[0] corresponds to input[period-1]
-        // But to keep arrays index-aligned with input (for easy access):
-        // We push nulls/0s?
-        // Let's align to match input length.
-        for(let i=0; i < period - 1; i++) result.push(0);
-
-        result.push(firstVal);
-
-        for (let i = period; i < values.length; i++) {
-            const prev = result[i - 1];
-            const curr = values[i];
-            const val = (prev * (period - 1) + curr) / period;
-            result.push(val);
-        }
-
-        return result;
+        return new Decimal(0);
     },
 
     calculatePivots(klines: Kline[], type: string) {
