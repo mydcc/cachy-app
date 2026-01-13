@@ -16,9 +16,10 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.98"></a>Version 0.98 (Februar 2025)
+## <a name="v0.98"></a>Version 0.98 (Januar 2026)
 - **Neu:** **Jules API**: Intelligentes KI-gestütztes Fehleranalyse- und Berichtssystem für sofortige Diagnosen.
-- **Neu:** **Technicals Panel**: Erweitertes Chart-Overlay mit RSI, MACD, Stochastic und Auto-Pivots (powered by `technicalindicators`).
+- **Neu:** **Technicals Panel**: Erweitertes Chart-Overlay mit RSI, MACD, Stochastic und Auto-Pivots.
+- **Upgrade:** **Präzisere Indikatorberechnungen**: Migration zu `talib-web` (WebAssembly) für exakte Übereinstimmung mit TradingView. Alle technischen Indikatoren (RSI, Stochastic, CCI, ADX, MACD, Momentum, EMA) verwenden jetzt die gleichen Algorithmen wie professionelle Trading-Plattformen.
 - **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat (erfordert experimentelle API).
 - **Architektur:** Verbesserter "Jules Service" für sichere System-Snapshots und Telemetrie ohne Beeinträchtigung der Privatsphäre.
 

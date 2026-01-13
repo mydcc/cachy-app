@@ -5,22 +5,8 @@ import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
 export type { Kline, TechnicalsData, IndicatorResult };
 
-// Initialize talib-web WASM module
-let talibReady = false;
-const talibInit = talib.init().then(() => {
-    talibReady = true;
-    console.log('talib-web initialized successfully');
-}).catch(err => {
-    console.error('Failed to initialize talib-web:', err);
-});
-
 export const technicalsService = {
     async calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
-        // Ensure talib is initialized
-        if (!talibReady) {
-            await talibInit;
-        }
-
         // 1. Normalize Data to strict Kline format with Decimals
         const klines: Kline[] = [];
         let prevClose = new Decimal(0);
