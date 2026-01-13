@@ -286,47 +286,49 @@
             <div class="flex items-center gap-2">
                 <button
                     type="button"
-                    class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] flex items-center gap-2 bg-transparent border-none p-0"
+                    class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] bg-transparent border-none p-0"
                     on:click={() =>
                         ($settingsStore.showIndicatorParams =
                             !$settingsStore.showIndicatorParams)}
                     title="Toggle Indikator-Parameter"
                 >
                     Technicals
-                    <span
-                        role="button"
-                        tabindex="0"
-                        class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] ml-1 hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
-                        on:mouseenter={handleDropdownEnter}
-                        on:mouseleave={handleDropdownLeave}
-                    >
-                        {timeframe}
-                    </span>
                 </button>
-
-                <div class="relative group">
-                    <button
-                        class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
-                        on:click={copyDebugData}
-                    >
-                        <svg
-                            xmlns="http://www.w3.org/2000/svg"
-                            width="12"
-                            height="12"
-                            viewBox="0 0 24 24"
-                            fill="none"
-                            stroke="currentColor"
-                            stroke-width="2"
-                            stroke-linecap="round"
-                            stroke-linejoin="round"
-                        >
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <line x1="12" y1="16" x2="12" y2="12"></line>
-                            <line x1="12" y1="8" x2="12.01" y2="8"></line>
-                        </svg>
-                    </button>
-                </div>
+                <span
+                    role="button"
+                    tabindex="0"
+                    class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
+                    on:mouseenter={handleDropdownEnter}
+                    on:mouseleave={handleDropdownLeave}
+                    on:click|stopPropagation={toggleTimeframePopup}
+                >
+                    {timeframe}
+                </span>
             </div>
+
+            <div class="relative group">
+                <button
+                    class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
+                    on:click={copyDebugData}
+                >
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    >
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="16" x2="12" y2="12"></line>
+                        <line x1="12" y1="8" x2="12.01" y2="8"></line>
+                    </svg>
+                </button>
+            </div>
+        </div>
 
             {#if showTimeframePopup}
                 <div

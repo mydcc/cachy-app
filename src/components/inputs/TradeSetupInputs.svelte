@@ -578,7 +578,7 @@
         font-size: 1.5rem;
         pointer-events: none;
         z-index: 9999;
-        animation: fadeOut 1s ease-out;
+        animation: fadeOut 1s ease-out forwards;
     }
 
     @keyframes fadeOut {
