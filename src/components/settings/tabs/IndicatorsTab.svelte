@@ -3,13 +3,13 @@
   import { _ } from "../../../locales/i18n";
   import Toggle from "../../shared/Toggle.svelte";
   import { enhancedInput } from "../../../lib/actions/inputEnhancements";
+  import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
   import type { IndicatorSettings } from "../../../stores/indicatorStore";
 
   export let precision: number;
   export let historyLimit: number;
-  export let favoriteTimeframesInput: string;
-  export let handleTimeframeInput: (e: Event) => void;
-  export let handleTimeframeBlur: () => void;
+  export let favoriteTimeframes: string[];
+  export let availableTimeframes: string[];
   export let syncRsiTimeframe: boolean;
   export let isPro: boolean;
   export let rsiSettings: IndicatorSettings["rsi"];
@@ -67,14 +67,11 @@
         >{$_("settings.indicators.favoriteTimeframes") ||
           "Favorite Timeframes"}</label
       >
-      <input
-        id="favorite-timeframes"
-        type="text"
-        value={favoriteTimeframesInput}
-        on:input={handleTimeframeInput}
-        on:blur={handleTimeframeBlur}
-        placeholder="e.g., 1h, 4h, 1d, 1w"
-        class="input-field rounded flex-1 ml-4"
+      <TimeframeSelector
+        bind:selected={favoriteTimeframes}
+        options={availableTimeframes}
+        placeholder={$_("settings.indicators.addTimeframe") ||
+          "Add timeframe..."}
       />
     </div>
 
