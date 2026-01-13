@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createHmac, createHash, randomBytes } from 'crypto';
+import { CONSTANTS } from '$lib/constants';
 
 export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json();
@@ -19,6 +20,33 @@ export const POST: RequestHandler = async ({ request }) => {
                 result = { orders: await fetchBitunixHistoryOrders(apiKey, apiSecret) };
             } else if (type === 'place-order') {
                 result = await placeBitunixOrder(apiKey, apiSecret, body);
+            } else if (type === 'modify-order') {
+                 // Cancel & Replace Strategy
+                 if (!body.orderId || !body.symbol) {
+                     throw new Error('Modify order requires orderId and symbol');
+                 }
+
+                 // 1. Cancel existing order
+                 await cancelBitunixOrder(apiKey, apiSecret, {
+                     symbol: body.symbol,
+                     orderId: body.orderId
+                 });
+
+                 // 2. Place new order
+                 // We reuse the body but ensure the type is set correctly for the new order (usually LIMIT)
+                 const newOrderData = {
+                     ...body,
+                     type: body.newOrderType || 'LIMIT', // Default to LIMIT for modifications if not specified
+                 };
+                 // Remove fields that shouldn't be sent to place_order
+                 delete newOrderData.orderId;
+                 delete newOrderData.exchange;
+                 delete newOrderData.apiKey;
+                 delete newOrderData.apiSecret;
+                 // TP/SL should be preserved if passed in body
+
+                 result = await placeBitunixOrder(apiKey, apiSecret, newOrderData);
+
             } else if (type === 'close-position') {
                 // To close a position, we place a MARKET order in the opposite direction
                 // body should contain: symbol, side (buy/sell), amount (qty)
@@ -37,13 +65,59 @@ export const POST: RequestHandler = async ({ request }) => {
 
         return json(result);
     } catch (e: any) {
-        console.error(`Error processing ${type} on ${exchange}:`, e);
+        // Sanitize error logging
+        console.error(`Error processing ${type} on ${exchange}:`, e.message || 'Unknown error');
         return json({ error: e.message || `Failed to process ${type}` }, { status: 500 });
     }
 };
 
+async function cancelBitunixOrder(apiKey: string, apiSecret: string, orderData: { symbol: string, orderId: string }): Promise<any> {
+    const baseUrl = CONSTANTS.BITUNIX_API_URL;
+    const path = '/api/v1/futures/trade/cancel_order';
+
+    const payload = {
+        symbol: orderData.symbol,
+        orderId: orderData.orderId
+    };
+
+    const nonce = randomBytes(16).toString('hex');
+    const timestamp = Date.now().toString();
+
+    const bodyStr = JSON.stringify(payload);
+    const digestInput = nonce + timestamp + apiKey + bodyStr;
+    const digest = createHash('sha256').update(digestInput).digest('hex');
+    const signInput = digest + apiSecret;
+    const signature = createHash('sha256').update(signInput).digest('hex');
+
+    const url = `${baseUrl}${path}`;
+
+    const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+            'api-key': apiKey,
+            'timestamp': timestamp,
+            'nonce': nonce,
+            'sign': signature,
+            'Content-Type': 'application/json'
+        },
+        body: bodyStr
+    });
+
+    if (!response.ok) {
+        const text = await response.text();
+        throw new Error(`Bitunix API error (Cancel): ${response.status} ${text}`);
+    }
+
+    const res = await response.json();
+    if (res.code !== 0 && res.code !== '0') {
+        throw new Error(`Bitunix API error code (Cancel): ${res.code} - ${res.msg || 'Unknown error'}`);
+    }
+
+    return res.data;
+}
+
 async function placeBitunixOrder(apiKey: string, apiSecret: string, orderData: any): Promise<any> {
-    const baseUrl = 'https://fapi.bitunix.com';
+    const baseUrl = CONSTANTS.BITUNIX_API_URL;
     const path = '/api/v1/futures/trade/place_order';
 
     // Construct Payload
@@ -107,7 +181,7 @@ async function placeBitunixOrder(apiKey: string, apiSecret: string, orderData: a
 }
 
 async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Promise<any[]> {
-    const baseUrl = 'https://fapi.bitunix.com';
+    const baseUrl = CONSTANTS.BITUNIX_API_URL;
     const path = '/api/v1/futures/trade/get_pending_orders';
     
     const params: Record<string, string> = {};
@@ -181,7 +255,7 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
 }
 
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string): Promise<any[]> {
-    const baseUrl = 'https://fapi.bitunix.com';
+    const baseUrl = CONSTANTS.BITUNIX_API_URL;
     const path = '/api/v1/futures/trade/get_history_orders';
     
     // Default limit 20

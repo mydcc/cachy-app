@@ -1,6 +1,7 @@
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 import { createHash, randomBytes } from 'crypto';
+import { CONSTANTS } from '$lib/constants';
 
 export const POST: RequestHandler = async ({ request }) => {
     const { apiKey, apiSecret, limit } = await request.json();
@@ -112,7 +113,7 @@ async function fetchAllPages(
 }
 
 async function fetchBitunixData(apiKey: string, apiSecret: string, path: string, limit: number = 100, endTime?: number): Promise<any[]> {
-    const baseUrl = 'https://fapi.bitunix.com';
+    const baseUrl = CONSTANTS.BITUNIX_API_URL;
     
     // Params for the request
     const params: Record<string, string> = {

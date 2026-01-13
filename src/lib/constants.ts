@@ -14,7 +14,8 @@ export const CONSTANTS = {
     DEFAULT_FEES: '0.0140',
     DEFAULT_ATR_MULTIPLIER: '1.2',
     BITUNIX_WS_PUBLIC_URL: 'wss://fapi.bitunix.com/public/',
-    BITUNIX_WS_PRIVATE_URL: 'wss://fapi.bitunix.com/private/'
+    BITUNIX_WS_PRIVATE_URL: 'wss://fapi.bitunix.com/private/',
+    BITUNIX_API_URL: 'https://fapi.bitunix.com'
 };
 
 export const themes = ['dark', 'ayu-dark', 'ayu-mirage', 'catppuccin', 'cobalt2', 'dracula', 'dracula-soft', 'everforest-dark', 'github-dark', 'gruvbox-dark', 'matrix', 'midnight', 'monokai', 'night-owl', 'nord', 'obsidian', 'one-dark-pro', 'solarized-dark', 'tokyo-night', 'VIP', 'ayu-light', 'github-light', 'solarized-light', 'steel', 'meteorite', 'light'];

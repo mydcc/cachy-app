@@ -578,7 +578,7 @@ class BitunixWebSocketService {
     subscribe(symbol: string, channel: string) {
         if (!symbol) return;
         const normalizedSymbol = symbol.toUpperCase();
-        const subKey = `${channel}:${normalizedSymbol}`;
+        const subKey = `${channel}|${normalizedSymbol}`;
 
         if (this.publicSubscriptions.has(subKey)) return;
 
@@ -593,7 +593,7 @@ class BitunixWebSocketService {
 
     unsubscribe(symbol: string, channel: string) {
         const normalizedSymbol = symbol.toUpperCase();
-        const subKey = `${channel}:${normalizedSymbol}`;
+        const subKey = `${channel}|${normalizedSymbol}`;
 
         if (this.publicSubscriptions.has(subKey)) {
             this.publicSubscriptions.delete(subKey);
@@ -634,7 +634,13 @@ class BitunixWebSocketService {
 
     private resubscribePublic() {
         this.publicSubscriptions.forEach(subKey => {
-            const [channel, symbol] = subKey.split(':');
+            // Robust parsing using pipe separator
+            const parts = subKey.split('|');
+            if (parts.length < 2) return;
+
+            const channel = parts[0];
+            const symbol = parts[1]; // Handles simple symbols. If symbol contains pipes, this logic needs review, but | is illegal in most tickers.
+
             if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
                 this.sendSubscribe(this.wsPublic, symbol, channel);
             }
