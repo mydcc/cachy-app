@@ -462,6 +462,14 @@
       "api": "API & Verbindung",
       "behavior": "Verhalten",
       "system": "System"
+    },
+    "indicators": {
+      "title": "Indikator Einstellungen",
+      "general": "Allgemein",
+      "precision": "Präzision",
+      "historyLimit": "Historie Limit",
+      "favoriteTimeframes": "Favorisierte Timeframes",
+      "syncRsiTimeframe": "RSI Timeframe synchronisieren"
     }
   },
   "common": {

@@ -472,6 +472,14 @@
       "api": "API & Connection",
       "behavior": "Behavior",
       "system": "System"
+    },
+    "indicators": {
+      "title": "Indicator Settings",
+      "general": "General Settings",
+      "precision": "Precision",
+      "historyLimit": "History Limit",
+      "favoriteTimeframes": "Favorite Timeframes",
+      "syncRsiTimeframe": "Sync RSI Timeframe"
     }
   },
   "common": {
