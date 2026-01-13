@@ -93,7 +93,7 @@ const defaultSettings: IndicatorSettings = {
     },
     stochastic: {
         kPeriod: 14,
-        kSmoothing: 1,
+        kSmoothing: 3,
         dPeriod: 3
     },
     cci: {
@@ -101,7 +101,7 @@ const defaultSettings: IndicatorSettings = {
         source: 'close',
         threshold: 100,
         smoothingType: 'sma',
-        smoothingLength: 14
+        smoothingLength: 5
     },
     adx: {
         adxSmoothing: 14,
@@ -117,9 +117,9 @@ const defaultSettings: IndicatorSettings = {
         source: 'close'
     },
     ema: {
-        ema1: { length: 20, offset: 0, smoothingType: 'none', smoothingLength: 5 },
-        ema2: { length: 50, offset: 0, smoothingType: 'none', smoothingLength: 5 },
-        ema3: { length: 200, offset: 0, smoothingType: 'none', smoothingLength: 5 },
+        ema1: { length: 20, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
+        ema2: { length: 50, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
+        ema3: { length: 200, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
         source: 'close'
     },
     pivots: {
