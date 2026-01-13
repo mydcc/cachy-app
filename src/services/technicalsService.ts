@@ -89,6 +89,18 @@ export const technicalsService = {
         const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
 
+        // Helper to extract value from talib result
+        const getVal = (res: any, key: string = 'output'): Decimal => {
+            if (!res) return new Decimal(0);
+            // Some functions return { output: [...] }, some { outReal: [...] }, some { [key]: [...] }
+            const out = res[key] || res.output || res.outReal || (Array.isArray(res) ? res : []);
+            if (out && out.length > 0) {
+                const val = out[out.length - 1];
+                return new Decimal(val !== undefined && !isNaN(val) ? val : 0);
+            }
+            return new Decimal(0);
+        };
+
         // Debug: Check input data
         console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
 
