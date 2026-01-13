@@ -84,14 +84,14 @@ export const technicalsService = {
         };
 
         // Convert Decimal arrays to number arrays for talib
-        const highsNum = klines.map(k => k.high.toNumber());
-        const lowsNum = klines.map(k => k.low.toNumber());
-        const closesNum = klines.map(k => k.close.toNumber());
+        const highsNum = new Float64Array(klines.map(k => k.high.toNumber()));
+        const lowsNum = new Float64Array(klines.map(k => k.low.toNumber()));
+        const closesNum = new Float64Array(klines.map(k => k.close.toNumber()));
         const currentPrice = klines[klines.length - 1].close;
 
         console.log(`[Technicals] Input Klines Count: ${klines.length}`);
-        console.log(`[Technicals] Sample Prices (First 3):`, closesNum.slice(0, 3));
-        console.log(`[Technicals] Sample Prices (Last 3):`, closesNum.slice(-3));
+        console.log(`[Technicals] Sample Prices (First 3):`, Array.from(closesNum.slice(0, 3)));
+        console.log(`[Technicals] Sample Prices (Last 3):`, Array.from(closesNum.slice(-3)));
         console.log(`[Technicals] talibReady Status: ${talibReady}`);
 
         // Helper to extract value from talib result
@@ -115,13 +115,16 @@ export const technicalsService = {
         try {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
-            const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
+            const rsiSource = new Float64Array(getSource(settings?.rsi?.source || 'close').map(d => d.toNumber()));
 
-            console.log(`[Technicals] RSI Input Length: ${rsiSource.length}, Sample:`, rsiSource.slice(-3));
+            console.log(`[Technicals] RSI Input Length: ${rsiSource.length}, Sample:`, Array.from(rsiSource.slice(-3)));
 
-            const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
+            const rsiResult = await talib.RSI({ inReal: Array.from(rsiSource), timePeriod: rsiLen });
 
             console.log('[Technicals] RSI Result Raw:', rsiResult);
+            if (rsiResult?.output) {
+                console.log('[Technicals] RSI Output Sample (Indices 14-19):', rsiResult.output.slice(14, 20));
+            }
 
             const rsiVal = getVal(rsiResult);
             console.log('[Technicals] RSI Final Value:', rsiVal.toString());
@@ -139,9 +142,9 @@ export const technicalsService = {
             const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
             const stochResult = await talib.STOCH({
-                high: highsNum,
-                low: lowsNum,
-                close: closesNum,
+                high: Array.from(highsNum),
+                low: Array.from(lowsNum),
+                close: Array.from(closesNum),
                 fastK_Period: stochK,
                 slowK_Period: stochKSmooth,
                 slowD_Period: stochD
@@ -163,7 +166,12 @@ export const technicalsService = {
 
             // 3. CCI
             const cciLen = settings?.cci?.length || 20;
-            const cciResult = await talib.CCI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: cciLen });
+            const cciResult = await talib.CCI({
+                high: Array.from(highsNum),
+                low: Array.from(lowsNum),
+                close: Array.from(closesNum),
+                timePeriod: cciLen
+            });
             const cciVal = getVal(cciResult);
 
             const cciThreshold = settings?.cci?.threshold || 100;
@@ -180,12 +188,27 @@ export const technicalsService = {
 
             // 4. ADX
             const adxSmooth = settings?.adx?.adxSmoothing || 14;
-            const adxResult = await talib.ADX({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
+            const adxResult = await talib.ADX({
+                high: Array.from(highsNum),
+                low: Array.from(lowsNum),
+                close: Array.from(closesNum),
+                timePeriod: adxSmooth
+            });
             const adxVal = getVal(adxResult);
 
             // Get +DI and -DI for action
-            const pdiResult = await talib.PLUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
-            const mdiResult = await talib.MINUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
+            const pdiResult = await talib.PLUS_DI({
+                high: Array.from(highsNum),
+                low: Array.from(lowsNum),
+                close: Array.from(closesNum),
+                timePeriod: adxSmooth
+            });
+            const mdiResult = await talib.MINUS_DI({
+                high: Array.from(highsNum),
+                low: Array.from(lowsNum),
+                close: Array.from(closesNum),
+                timePeriod: adxSmooth
+            });
 
             const pdi = getVal(pdiResult).toNumber();
             const mdi = getVal(mdiResult).toNumber();
@@ -225,8 +248,8 @@ export const technicalsService = {
 
             // 6. Momentum
             const momLen = settings?.momentum?.length || 10;
-            const momSource = getSource(settings?.momentum?.source || 'close').map(d => d.toNumber());
-            const momResult = await talib.MOM({ inReal: momSource, timePeriod: momLen });
+            const momSource = new Float64Array(getSource(settings?.momentum?.source || 'close').map(d => d.toNumber()));
+            const momResult = await talib.MOM({ inReal: Array.from(momSource), timePeriod: momLen });
             const momVal = getVal(momResult);
 
             let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
@@ -244,10 +267,10 @@ export const technicalsService = {
             const macdFast = settings?.macd?.fastLength || 12;
             const macdSlow = settings?.macd?.slowLength || 26;
             const macdSig = settings?.macd?.signalLength || 9;
-            const macdSource = getSource(settings?.macd?.source || 'close').map(d => d.toNumber());
+            const macdSource = new Float64Array(getSource(settings?.macd?.source || 'close').map(d => d.toNumber()));
 
             const macdResult = await talib.MACD({
-                inReal: macdSource,
+                inReal: Array.from(macdSource),
                 fastPeriod: macdFast,
                 slowPeriod: macdSlow,
                 signalPeriod: macdSig
@@ -284,7 +307,7 @@ export const technicalsService = {
             const emaPeriods = [ema1, ema2, ema3]; // Renamed 'periods' to 'emaPeriods' to avoid conflict if 'periods' was used elsewhere
 
             for (const period of emaPeriods) {
-                const emaResult = await talib.EMA({ inReal: closesNum, timePeriod: period });
+                const emaResult = await talib.EMA({ inReal: Array.from(closesNum), timePeriod: period });
                 const emaVal = getVal(emaResult);
 
                 console.log(`[Technicals] EMA(${period}) Result Raw:`, emaResult);
@@ -334,22 +357,27 @@ export const technicalsService = {
     // --- Helpers ---
 
     // Awesome Oscillator (nicht in talib-web)
-    async calculateAwesomeOscillator(high: number[], low: number[], fastPeriod: number, slowPeriod: number): Promise<Decimal> {
+    async calculateAwesomeOscillator(high: number[] | Float64Array, low: number[] | Float64Array, fastPeriod: number, slowPeriod: number): Promise<Decimal> {
         try {
-            // AO = SMA(HL2, 5) - SMA(HL2, 34)
-            const hl2 = high.map((h, i) => (h + low[i]) / 2);
+            const h = Array.from(high);
+            const l = Array.from(low);
+            const hl2 = h.map((val, i) => (val + l[i]) / 2);
 
-            const fastSMA = await talib.SMA({ inReal: hl2, timePeriod: fastPeriod });
-            const slowSMA = await talib.SMA({ inReal: hl2, timePeriod: slowPeriod });
+            const getSMA = (data: number[], period: number): number => {
+                if (data.length < period) return 0;
+                let sum = 0;
+                for (let i = data.length - period; i < data.length; i++) {
+                    sum += data[i];
+                }
+                return sum / period;
+            };
 
-            const fastOutput = fastSMA?.output || [];
-            const slowOutput = slowSMA?.output || [];
+            const fastSMA = getSMA(hl2, fastPeriod);
+            const slowSMA = getSMA(hl2, slowPeriod);
 
-            if (fastOutput.length > 0 && slowOutput.length > 0) {
-                const lastFast = fastOutput[fastOutput.length - 1];
-                const lastSlow = slowOutput[slowOutput.length - 1];
-                return new Decimal(lastFast - lastSlow);
-            }
+            console.log(`[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA}`);
+
+            return new Decimal(fastSMA - slowSMA);
         } catch (error) {
             console.error('Error calculating Awesome Oscillator:', error);
         }
