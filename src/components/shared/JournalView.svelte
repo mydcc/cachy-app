@@ -10,6 +10,7 @@
   import { icons, CONSTANTS } from "../../lib/constants";
   import { browser } from "$app/environment";
   import { getComputedColor, hexToRgba } from "../../utils/colors";
+  import { formatDynamicDecimal } from "../../utils/utils";
   import ModalFrame from "./ModalFrame.svelte";
   import DashboardNav from "./DashboardNav.svelte";
   import LineChart from "./charts/LineChart.svelte";
@@ -1235,7 +1236,7 @@
                   ? 'text-[var(--success-color)]'
                   : 'text-[var(--danger-color)]'}"
               >
-                {qualData.stats.winRate.toFixed(2)}%
+                {formatDynamicDecimal(qualData.stats.winRate, 2)}%
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -1250,7 +1251,7 @@
                   ? 'text-[var(--warning-color)]'
                   : 'text-[var(--danger-color)]'}"
               >
-                {qualData.detailedStats.profitFactor.toFixed(2)}
+                {formatDynamicDecimal(qualData.detailedStats.profitFactor, 2)}
               </span>
             </div>
             <div class="flex justify-between items-center">
@@ -1263,7 +1264,7 @@
                   ? 'text-[var(--success-color)]'
                   : 'text-[var(--danger-color)]'}"
               >
-                ${qualData.detailedStats.expectancy.toFixed(2)}
+                ${formatDynamicDecimal(qualData.detailedStats.expectancy, 2)}
               </span>
             </div>
             <div class="flex justify-between items-center text-[11px]">
@@ -1271,11 +1272,17 @@
               >
               <div class="flex gap-1">
                 <span class="text-[var(--success-color)]"
-                  >${qualData.detailedStats.avgWin.toFixed(2)}</span
+                  >${formatDynamicDecimal(
+                    qualData.detailedStats.avgWin,
+                    2
+                  )}</span
                 >
                 <span class="text-[var(--text-secondary)]">/</span>
                 <span class="text-[var(--danger-color)]"
-                  >${qualData.detailedStats.avgLoss.toFixed(2)}</span
+                  >${formatDynamicDecimal(
+                    qualData.detailedStats.avgLoss,
+                    2
+                  )}</span
                 >
               </div>
             </div>
@@ -1285,10 +1292,16 @@
               >
               <div class="flex gap-2">
                 <span style="color: {hexToRgba(themeColors.success, 1)}"
-                  >L: {qualData.detailedStats.winRateLong.toFixed(1)}%</span
+                  >L: {formatDynamicDecimal(
+                    qualData.detailedStats.winRateLong,
+                    1
+                  )}%</span
                 >
                 <span style="color: {hexToRgba(themeColors.success, 0.6)}"
-                  >S: {qualData.detailedStats.winRateShort.toFixed(1)}%</span
+                  >S: {formatDynamicDecimal(
+                    qualData.detailedStats.winRateShort,
+                    1
+                  )}%</span
                 >
               </div>
             </div>
@@ -1754,7 +1767,7 @@
                     ? 'text-[var(--success-color)]'
                     : 'text-[var(--danger-color)]'}"
                 >
-                  {group.totalProfitLoss.toFixed(2)}
+                  {formatDynamicDecimal(group.totalProfitLoss, 2)}
                 </td>
               </tr>
             {/each}
@@ -2000,22 +2013,22 @@
                   >
                 {/if}
                 {#if columnVisibility.entry}
-                  <td>{trade.entryPrice.toFixed(4)}</td>
+                  <td>{formatDynamicDecimal(trade.entryPrice, 4)}</td>
                 {/if}
                 {#if columnVisibility.exit}
-                  <td>{trade.exitPrice ? trade.exitPrice.toFixed(4) : "-"}</td>
+                  <td>{formatDynamicDecimal(trade.exitPrice, 4)}</td>
                 {/if}
                 {#if columnVisibility.sl}
                   <td
                     >{trade.stopLossPrice.gt(0)
-                      ? trade.stopLossPrice.toFixed(4)
+                      ? formatDynamicDecimal(trade.stopLossPrice, 4)
                       : "-"}</td
                   >
                 {/if}
                 {#if columnVisibility.size}
                   <td
                     >{trade.positionSize
-                      ? trade.positionSize.toFixed(4)
+                      ? formatDynamicDecimal(trade.positionSize, 4)
                       : "-"}</td
                   >
                 {/if}
@@ -2025,7 +2038,7 @@
                       ? "text-[var(--success-color)]"
                       : trade.totalNetProfit.lt(0)
                       ? "text-[var(--danger-color)]"
-                      : ""}>{trade.totalNetProfit.toFixed(2)}</td
+                      : ""}>{formatDynamicDecimal(trade.totalNetProfit, 2)}</td
                   >
                 {/if}
                 {#if columnVisibility.funding}
@@ -2035,7 +2048,7 @@
                       : trade.fundingFee.gt(0)
                       ? "text-[var(--success-color)]"
                       : "text-[var(--text-secondary)]"}
-                    >{trade.fundingFee.toFixed(4)}</td
+                    >{formatDynamicDecimal(trade.fundingFee, 4)}</td
                   >
                 {/if}
                 {#if columnVisibility.rr}
@@ -2046,23 +2059,25 @@
                       ? "text-[var(--warning-color)]"
                       : "text-[var(--danger-color)]"}
                   >
-                    {!trade.totalRR.isZero() ? trade.totalRR.toFixed(2) : "-"}
+                    {!trade.totalRR.isZero()
+                      ? formatDynamicDecimal(trade.totalRR, 2)
+                      : "-"}
                   </td>
                 {/if}
                 {#if columnVisibility.mae}
                   <td class="text-[var(--danger-color)]"
-                    >{trade.mae ? trade.mae.toFixed(4) : "-"}</td
+                    >{trade.mae ? formatDynamicDecimal(trade.mae, 4) : "-"}</td
                   >
                 {/if}
                 {#if columnVisibility.mfe}
                   <td class="text-[var(--success-color)]"
-                    >{trade.mfe ? trade.mfe.toFixed(4) : "-"}</td
+                    >{trade.mfe ? formatDynamicDecimal(trade.mfe, 4) : "-"}</td
                   >
                 {/if}
                 {#if columnVisibility.efficiency}
                   <td
                     >{trade.efficiency
-                      ? trade.efficiency.toFixed(2) + "%"
+                      ? formatDynamicDecimal(trade.efficiency, 2) + "%"
                       : "-"}</td
                   >
                 {/if}
@@ -2578,7 +2593,7 @@
                             ? "text-[var(--success-color)]"
                             : "text-[var(--danger-color)]"}
                         >
-                          PnL: {cell.pnl.toFixed(2)}
+                          PnL: {formatDynamicDecimal(cell.pnl, 2)}
                         </div>
                         <div>Trades: {cell.count}</div>
                       </div>
@@ -2613,7 +2628,7 @@
                   {dirData.topSymbols.labels[0]}
                 </div>
                 <div class="text-lg text-[var(--text-primary)]">
-                  ${dirData.topSymbols.data[0]?.toFixed(2)}
+                  ${formatDynamicDecimal(dirData.topSymbols.data[0], 2)}
                 </div>
               {:else}
                 <div class="text-xl">-</div>
@@ -2724,7 +2739,7 @@
                     #{tagData.labels[bestIdx]}
                   </div>
                   <div class="text-[var(--text-primary)]">
-                    ${tagData.pnlData[bestIdx].toFixed(2)}
+                    ${formatDynamicDecimal(tagData.pnlData[bestIdx], 2)}
                   </div>
                 {:else}
                   <div class="text-xl">-</div>

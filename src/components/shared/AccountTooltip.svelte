@@ -47,7 +47,7 @@
       class="flex justify-between mt-1 text-[10px] text-[var(--text-secondary)]"
     >
       <span>Margin Level</span>
-      <span style="color: {healthColor}">{marginLevel.toFixed(1)}%</span>
+      <span style="color: {healthColor}">{(marginLevel ?? 0).toFixed(1)}%</span>
     </div>
   </div>
 
