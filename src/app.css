@@ -1589,9 +1589,9 @@ input[type=number] {
 
 .input-wrapper {
     position: relative;
-    display: inline-flex;
+    display: inline-block;
     vertical-align: middle;
-    width: fit-content;
+    width: 100%;
 }
 
 .custom-spin-buttons {
@@ -1606,6 +1606,16 @@ input[type=number] {
     gap: -2px;
     pointer-events: none;
     z-index: 10;
+    transition: opacity 0.2s ease;
+}
+
+.custom-spin-buttons.hover-only {
+    opacity: 0;
+}
+
+.input-wrapper:hover .custom-spin-buttons.hover-only,
+.input-wrapper:focus-within .custom-spin-buttons.hover-only {
+    opacity: 1;
 }
 
 .spin-btn {

@@ -1278,6 +1278,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             bind:value={precision}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 0,
                                                 max: 8,
                                             }}
@@ -1305,6 +1306,7 @@
                                             class="input-field rounded compact-number-input text-xs !w-[70px]"
                                             bind:value={historyLimit}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 200,
                                                 max: 5000,
                                                 step: 100,
@@ -1422,6 +1424,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -1506,6 +1509,8 @@
                                                     class="input-field rounded compact-number-input text-xs"
                                                     disabled={!isPro}
                                                     use:enhancedInput={{
+                                                        showSpinButtons:
+                                                            "hover",
                                                         min: 2,
                                                         max: 100,
                                                     }}
@@ -1560,6 +1565,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -1580,6 +1586,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -1600,6 +1607,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -1711,6 +1719,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 500,
                                             }}
@@ -1731,6 +1740,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: -100,
                                                 max: 100,
                                             }}
@@ -1784,6 +1794,7 @@
                                                 emaSettings.ema1
                                                     .smoothingType === "none"}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}
@@ -1834,6 +1845,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 500,
                                             }}
@@ -1854,6 +1866,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: -100,
                                                 max: 100,
                                             }}
@@ -1907,6 +1920,7 @@
                                                 emaSettings.ema2
                                                     .smoothingType === "none"}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}
@@ -1957,6 +1971,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 500,
                                             }}
@@ -1977,6 +1992,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: -100,
                                                 max: 100,
                                             }}
@@ -2030,6 +2046,7 @@
                                                 emaSettings.ema3
                                                     .smoothingType === "none"}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}
@@ -2129,6 +2146,7 @@
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 50,
                                             }}
@@ -2151,6 +2169,7 @@
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}

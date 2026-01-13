@@ -1,37 +1,55 @@
-export function enhancedInput(node: HTMLInputElement, options: { step?: number, min?: number, max?: number, noDecimals?: boolean } = {}) {
+export function enhancedInput(node: HTMLInputElement, options: {
+    step?: number,
+    min?: number,
+    max?: number,
+    noDecimals?: boolean,
+    showSpinButtons?: boolean | 'hover',
+    rightOffset?: string
+} = {}) {
     const step = options.step || 1;
+    const showSpinButtons = options.showSpinButtons !== undefined ? options.showSpinButtons : true;
 
-    // Create wrapper and container for custom spin buttons
-    const wrapper = document.createElement('div');
-    wrapper.className = 'input-wrapper';
-    wrapper.style.position = 'relative';
-    wrapper.style.display = 'inline-block';
+    let wrapper: HTMLDivElement | null = null;
+    let upBtn: HTMLDivElement | null = null;
+    let downBtn: HTMLDivElement | null = null;
 
-    // Position the wrapper in the DOM
-    if (node.parentNode) {
-        node.parentNode.insertBefore(wrapper, node);
-        wrapper.appendChild(node);
+    if (showSpinButtons !== false) {
+        // Create wrapper and container for custom spin buttons
+        wrapper = document.createElement('div');
+        wrapper.className = 'input-wrapper';
+        wrapper.style.position = 'relative';
+        wrapper.style.display = 'inline-block';
+        wrapper.style.width = '100%';
+
+        // Position the wrapper in the DOM
+        if (node.parentNode) {
+            node.parentNode.insertBefore(wrapper, node);
+            wrapper.appendChild(node);
+        }
+
+        const container = document.createElement('div');
+        container.className = 'custom-spin-buttons';
+        if (showSpinButtons === 'hover') {
+            container.classList.add('hover-only');
+        }
+
+        // Up Button
+        upBtn = document.createElement('div');
+        upBtn.className = 'spin-btn up';
+        upBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+
+        // Down Button
+        downBtn = document.createElement('div');
+        downBtn.className = 'spin-btn down';
+        downBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+        container.appendChild(upBtn);
+        container.appendChild(downBtn);
+        wrapper.appendChild(container);
+
+        // Add padding to input to avoid text overlap
+        node.style.paddingRight = '20px';
     }
-
-    const container = document.createElement('div');
-    container.className = 'custom-spin-buttons';
-
-    // Up Button
-    const upBtn = document.createElement('div');
-    upBtn.className = 'spin-btn up';
-    upBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
-
-    // Down Button
-    const downBtn = document.createElement('div');
-    downBtn.className = 'spin-btn down';
-    downBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
-
-    container.appendChild(upBtn);
-    container.appendChild(downBtn);
-    wrapper.appendChild(container);
-
-    // Add padding to input to avoid text overlap
-    node.style.paddingRight = '20px';
 
     function triggerInput() {
         node.dispatchEvent(new Event('input', { bubbles: true }));
@@ -75,15 +93,15 @@ export function enhancedInput(node: HTMLInputElement, options: { step?: number, 
     };
 
     node.addEventListener('wheel', handleWheel, { passive: false });
-    upBtn.addEventListener('click', onUp);
-    downBtn.addEventListener('click', onDown);
+    if (upBtn) upBtn.addEventListener('click', onUp);
+    if (downBtn) downBtn.addEventListener('click', onDown);
 
     return {
         destroy() {
             node.removeEventListener('wheel', handleWheel);
-            upBtn.removeEventListener('click', onUp);
-            downBtn.removeEventListener('click', onDown);
-            if (wrapper.parentNode) {
+            if (upBtn) upBtn.removeEventListener('click', onUp);
+            if (downBtn) downBtn.removeEventListener('click', onDown);
+            if (wrapper && wrapper.parentNode) {
                 wrapper.parentNode.insertBefore(node, wrapper);
                 wrapper.parentNode.removeChild(wrapper);
             }

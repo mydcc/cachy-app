@@ -263,6 +263,7 @@
                     step: priceStep,
                     min: 0,
                     rightOffset: "40px",
+                    showSpinButtons: false,
                 }}
                 value={format(entryPrice)}
                 on:input={handleEntryPriceInput}
@@ -440,6 +441,7 @@
                                     step: 0.1,
                                     min: 0,
                                     rightOffset: "40px",
+                                    showSpinButtons: false,
                                 }}
                                 value={format(atrValue)}
                                 on:input={handleAtrValueInput}
