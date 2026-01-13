@@ -1,0 +1,33 @@
+
+> cachy-app@0.98.0 check
+> svelte-kit sync && svelte-check --tsconfig ./tsconfig.json
+
+Loading svelte-check in workspace: /home/pat/Dokumente/GitHub/cachy-app
+Getting Svelte diagnostics...
+
+/home/pat/Dokumente/GitHub/cachy-app/src/services/hotkeyService.test.ts:127:21
+Error: Argument of type '{ showSettingsModal: false; currentTheme: string; showJournalModal: false; showChangelogModal: false; showGuideModal: false; showPrivacyModal: false; showWhitepaperModal: false; showCopyFeedback: false; ... 7 more ...; loadingMessage: string; }' is not assignable to parameter of type 'UiState'.
+  Property 'settingsTab' is missing in type '{ showSettingsModal: false; currentTheme: string; showJournalModal: false; showChangelogModal: false; showGuideModal: false; showPrivacyModal: false; showWhitepaperModal: false; showCopyFeedback: false; ... 7 more ...; loadingMessage: string; }' but required in type 'UiState'. 
+
+        uiStore.set({
+            showSettingsModal: false,
+            // activeInputId: null // Removed
+            currentTheme: 'dark',
+            showJournalModal: false,
+            showChangelogModal: false,
+            showGuideModal: false,
+            showPrivacyModal: false,
+            showWhitepaperModal: false, // Fixed: Added missing property
+            showCopyFeedback: false,
+            showSaveFeedback: false,
+            errorMessage: '',
+            showErrorMessage: false,
+            isPriceFetching: false,
+            symbolSuggestions: [],
+            showSymbolSuggestions: false,
+            isLoading: false,
+            loadingMessage: ''
+        });
+
+====================================
+svelte-check found 1 error and 0 warnings in 1 file

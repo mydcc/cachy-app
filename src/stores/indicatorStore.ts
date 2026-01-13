@@ -3,6 +3,7 @@ import { browser } from '$app/environment';
 
 export interface IndicatorSettings {
     historyLimit: number; // Global setting for calculation depth
+    precision: number; // Global precision for indicator values
     rsi: {
         length: number;
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
@@ -48,6 +49,7 @@ export interface IndicatorSettings {
         ema1Length: number;
         ema2Length: number;
         ema3Length: number;
+        source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
     };
     pivots: {
         type: 'classic' | 'woodie' | 'camarilla' | 'fibonacci';
@@ -57,6 +59,7 @@ export interface IndicatorSettings {
 
 const defaultSettings: IndicatorSettings = {
     historyLimit: 750,
+    precision: 4,
     rsi: {
         length: 14,
         source: 'close',
@@ -101,7 +104,8 @@ const defaultSettings: IndicatorSettings = {
     ema: {
         ema1Length: 20,
         ema2Length: 50,
-        ema3Length: 200
+        ema3Length: 200,
+        source: 'close'
     },
     pivots: {
         type: 'classic',
@@ -128,6 +132,7 @@ function createIndicatorStore() {
 
             initial = {
                 historyLimit: parsed.historyLimit || defaultSettings.historyLimit,
+                precision: parsed.precision !== undefined ? parsed.precision : defaultSettings.precision,
                 rsi: { ...defaultSettings.rsi, ...parsed.rsi },
                 macd: { ...defaultSettings.macd, ...parsed.macd },
                 stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },

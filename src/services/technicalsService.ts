@@ -353,11 +353,12 @@ export const technicalsService = {
             const ema1 = settings?.ema?.ema1Length || 20;
             const ema2 = settings?.ema?.ema2Length || 50;
             const ema3 = settings?.ema?.ema3Length || 200;
+            const emaSource = getSource(settings?.ema?.source || 'close').map(d => d.toNumber());
 
-            const emaPeriods = [ema1, ema2, ema3]; // Renamed 'periods' to 'emaPeriods' to avoid conflict if 'periods' was used elsewhere
+            const emaPeriods = [ema1, ema2, ema3];
 
             for (const period of emaPeriods) {
-                const emaResults = JSIndicators.ema(Array.from(closesNum), period);
+                const emaResults = JSIndicators.ema(emaSource, period);
                 const emaVal = new Decimal(emaResults[emaResults.length - 1]);
 
 

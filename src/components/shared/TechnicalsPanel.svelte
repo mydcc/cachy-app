@@ -3,6 +3,7 @@
     import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
     import { settingsStore } from "../../stores/settingsStore";
     import { indicatorStore } from "../../stores/indicatorStore";
+    import { uiStore } from "../../stores/uiStore";
     import { marketStore } from "../../stores/marketStore";
     import { bitunixWs } from "../../services/bitunixWs";
     import { apiService } from "../../services/apiService";
@@ -209,7 +210,8 @@
 
     function formatVal(val: Decimal) {
         // val is now strictly a Decimal object
-        return val.toDecimalPlaces(4).toString();
+        const prec = indicatorSettings?.precision ?? 4;
+        return val.toDecimalPlaces(prec).toString();
     }
 
     function toggleTimeframePopup() {
@@ -287,10 +289,8 @@
                 <button
                     type="button"
                     class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] bg-transparent border-none p-0"
-                    on:click={() =>
-                        ($settingsStore.showIndicatorParams =
-                            !$settingsStore.showIndicatorParams)}
-                    title="Toggle Indikator-Parameter"
+                    on:click={() => uiStore.openSettings("indicators")}
+                    title="Open Technicals Settings"
                 >
                     Technicals
                 </button>

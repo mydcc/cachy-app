@@ -17,6 +17,7 @@ interface UiState {
     symbolSuggestions: string[];
     showSymbolSuggestions: boolean;
     showSettingsModal: boolean;
+    settingsTab: string;
     // Loading State
     isLoading: boolean;
     loadingMessage: string;
@@ -30,6 +31,7 @@ const initialUiState: UiState = {
     showPrivacyModal: false,
     showWhitepaperModal: false,
     showSettingsModal: false,
+    settingsTab: 'general',
     showCopyFeedback: false,
     showSaveFeedback: false,
     errorMessage: '',
@@ -74,6 +76,7 @@ function createUiStore() {
         togglePrivacyModal: (show: boolean) => update(state => ({ ...state, showPrivacyModal: show })),
         toggleWhitepaperModal: (show: boolean) => update(state => ({ ...state, showWhitepaperModal: show })),
         toggleSettingsModal: (show: boolean) => update(state => ({ ...state, showSettingsModal: show })),
+        openSettings: (tab = 'general') => update(state => ({ ...state, showSettingsModal: true, settingsTab: tab })),
         showFeedback: (type: 'copy' | 'save', duration = 2000) => {
             const key = type === 'copy' ? 'showCopyFeedback' : 'showSaveFeedback';
             update(state => ({ ...state, [key]: true }));

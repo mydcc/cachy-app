@@ -27,6 +27,7 @@ vi.mock('../stores/uiStore', () => {
     return {
         uiStore: writable({
             showSettingsModal: false,
+            settingsTab: 'general',
             // activeInputId not in UI store, removed
         })
     };
@@ -44,8 +45,8 @@ const mockElement = {
 global.document.getElementById = vi.fn().mockReturnValue(mockElement);
 // @ts-ignore - activeElement is readonly in TS lib but writable in JSDOM/Tests usually
 Object.defineProperty(global.document, 'activeElement', {
-  value: document.body,
-  writable: true
+    value: document.body,
+    writable: true
 });
 
 describe('HotkeyService', () => {
@@ -138,6 +139,7 @@ describe('HotkeyService', () => {
             errorMessage: '',
             showErrorMessage: false,
             isPriceFetching: false,
+            settingsTab: 'general',
             symbolSuggestions: [],
             showSymbolSuggestions: false,
             isLoading: false,
