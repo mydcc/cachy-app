@@ -7,6 +7,93 @@ import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
 export type { Kline, TechnicalsData, IndicatorResult };
 
+// --- Native JS implementations for stability ---
+const JSIndicators = {
+    sma(data: number[], period: number): number[] {
+        const result = new Array(data.length).fill(0);
+        if (data.length < period) return result;
+        let sum = 0;
+        for (let i = 0; i < period; i++) sum += data[i];
+        result[period - 1] = sum / period;
+        for (let i = period; i < data.length; i++) {
+            sum = sum - data[i - period] + data[i];
+            result[i] = sum / period;
+        }
+        return result;
+    },
+
+    ema(data: number[], period: number): number[] {
+        const result = new Array(data.length).fill(0);
+        if (data.length < period) return result;
+        const k = 2 / (period + 1);
+        let sum = 0;
+        for (let i = 0; i < period; i++) sum += data[i];
+        let currentEma = sum / period;
+        result[period - 1] = currentEma;
+        for (let i = period; i < data.length; i++) {
+            currentEma = (data[i] - currentEma) * k + currentEma;
+            result[i] = currentEma;
+        }
+        return result;
+    },
+
+    rsi(data: number[], period: number): number[] {
+        const result = new Array(data.length).fill(0);
+        if (data.length <= period) return result;
+        let sumGain = 0;
+        let sumLoss = 0;
+        for (let i = 1; i <= period; i++) {
+            const diff = data[i] - data[i - 1];
+            if (diff >= 0) sumGain += diff;
+            else sumLoss -= diff;
+        }
+        let avgGain = sumGain / period;
+        let avgLoss = sumLoss / period;
+        result[period] = 100 - (100 / (1 + avgGain / (avgLoss || 1)));
+
+        for (let i = period + 1; i < data.length; i++) {
+            const diff = data[i] - data[i - 1];
+            const gain = diff >= 0 ? diff : 0;
+            const loss = diff < 0 ? -diff : 0;
+            avgGain = (avgGain * (period - 1) + gain) / period;
+            avgLoss = (avgLoss * (period - 1) + loss) / period;
+            result[i] = 100 - (100 / (1 + avgGain / (avgLoss || 1)));
+        }
+        return result;
+    },
+
+    stoch(high: number[], low: number[], close: number[], kPeriod: number): number[] {
+        const result = new Array(close.length).fill(0);
+        if (close.length < kPeriod) return result;
+        for (let i = kPeriod - 1; i < close.length; i++) {
+            const lookbackHigh = Math.max(...high.slice(i - kPeriod + 1, i + 1));
+            const lookbackLow = Math.min(...low.slice(i - kPeriod + 1, i + 1));
+            const range = lookbackHigh - lookbackLow;
+            result[i] = range === 0 ? 50 : ((close[i] - lookbackLow) / range) * 100;
+        }
+        return result;
+    },
+
+    macd(data: number[], fast: number, slow: number, signal: number) {
+        const emaFast = this.ema(data, fast);
+        const emaSlow = this.ema(data, slow);
+        const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
+        // Only calculate signal from where MACD line has valid data (approx starting at 'slow' index)
+        const macdSignal = this.ema(macdLine.slice(slow - 1), signal);
+        // Pad macdSignal back to original length
+        const paddedSignal = new Array(slow - 1).fill(0).concat(macdSignal);
+        return { macd: macdLine, signal: paddedSignal };
+    },
+
+    mom(data: number[], period: number): number[] {
+        const result = new Array(data.length).fill(0);
+        for (let i = period; i < data.length; i++) {
+            result[i] = data[i] - data[i - period];
+        }
+        return result;
+    }
+};
+
 // Initialize talib-web WASM module
 let talibReady = false;
 // Explicitly point to the WASM file using Vite asset URL
@@ -138,27 +225,17 @@ export const technicalsService = {
         try {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
-            const rsiSource = new Float64Array(getSource(settings?.rsi?.source || 'close').map(d => d.toNumber()));
+            const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
+            const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+            const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
 
-            console.log(`[Technicals] RSI Input Length: ${rsiSource.length}, Sample:`, Array.from(rsiSource.slice(-3)));
-
-            const rsiResult = await talib.RSI({ inReal: Array.from(rsiSource), timePeriod: rsiLen });
-
-            console.log('[Technicals] RSI Result Raw:', rsiResult);
-            if (rsiResult?.output) {
-                console.log('[Technicals] RSI Output Sample (Indices 14-19):', rsiResult.output.slice(14, 20));
-                console.log('[Technicals] RSI Output Sample (Indices 190-199):', rsiResult.output.slice(190, 201));
-                console.log('[Technicals] RSI Output Sample (Last 5):', rsiResult.output.slice(-5));
-            }
-
-            const rsiVal = getVal(rsiResult, 'RSI', 'output');
-            console.log('[Technicals] RSI Final Value:', rsiVal.toString());
+            console.log('[Technicals] RSI JS Result:', rsiVal.toString());
 
             oscillators.push({
                 name: 'RSI',
-                params: `${rsiLen}`,
                 value: rsiVal,
-                action: this.getRsiAction(rsiVal)
+                params: rsiLen.toString(),
+                action: this.getRsiAction(rsiVal, settings?.rsi?.overbought || 70, settings?.rsi?.oversold || 30)
             });
 
             // 2. Stochastic
@@ -166,17 +243,12 @@ export const technicalsService = {
             const stochD = settings?.stochastic?.dPeriod || 3;
             const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
-            const stochResult = await talib.STOCH({
-                high: Array.from(highsNum),
-                low: Array.from(lowsNum),
-                close: Array.from(closesNum),
-                fastK_Period: stochK,
-                slowK_Period: stochKSmooth,
-                slowD_Period: stochD
-            });
+            let kLine = JSIndicators.stoch(Array.from(highsNum), Array.from(lowsNum), Array.from(closesNum), stochK);
+            if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
+            const dLine = JSIndicators.sma(kLine, stochD);
 
-            const stochKVal = getVal(stochResult, 'StochK', 'slowK');
-            const stochDVal = getVal(stochResult, 'StochD', 'slowD');
+            const stochKVal = new Decimal(kLine[kLine.length - 1]);
+            const stochDVal = new Decimal(dLine[dLine.length - 1]);
 
             let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal)) stochAction = 'Buy';
@@ -273,9 +345,9 @@ export const technicalsService = {
 
             // 6. Momentum
             const momLen = settings?.momentum?.length || 10;
-            const momSource = new Float64Array(getSource(settings?.momentum?.source || 'close').map(d => d.toNumber()));
-            const momResult = await talib.MOM({ inReal: Array.from(momSource), timePeriod: momLen });
-            const momVal = getVal(momResult, 'Momentum', 'output');
+            const momSource = getSource(settings?.momentum?.source || 'close').map(d => d.toNumber());
+            const momResults = JSIndicators.mom(momSource, momLen);
+            const momVal = new Decimal(momResults[momResults.length - 1]);
 
             let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (momVal.gt(0)) momAction = 'Buy';
@@ -292,17 +364,11 @@ export const technicalsService = {
             const macdFast = settings?.macd?.fastLength || 12;
             const macdSlow = settings?.macd?.slowLength || 26;
             const macdSig = settings?.macd?.signalLength || 9;
-            const macdSource = new Float64Array(getSource(settings?.macd?.source || 'close').map(d => d.toNumber()));
+            const macdSource = getSource(settings?.macd?.source || 'close').map(d => d.toNumber());
 
-            const macdResult = await talib.MACD({
-                inReal: Array.from(macdSource),
-                fastPeriod: macdFast,
-                slowPeriod: macdSlow,
-                signalPeriod: macdSig
-            });
-
-            const macdVal = getVal(macdResult, 'MACD', 'MACD');
-            const macdSignalVal = getVal(macdResult, 'MACDSignal', 'MACDSignal');
+            const macdResults = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+            const macdVal = new Decimal(macdResults.macd[macdResults.macd.length - 1]);
+            const macdSignalVal = new Decimal(macdResults.signal[macdResults.signal.length - 1]);
 
             let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (!macdVal.isZero() || !macdSignalVal.isZero()) {
@@ -332,20 +398,17 @@ export const technicalsService = {
             const emaPeriods = [ema1, ema2, ema3]; // Renamed 'periods' to 'emaPeriods' to avoid conflict if 'periods' was used elsewhere
 
             for (const period of emaPeriods) {
-                const emaResult = await talib.EMA({ inReal: Array.from(closesNum), timePeriod: period });
-                const emaVal = getVal(emaResult, `EMA(${period})`);
+                const emaResults = JSIndicators.ema(Array.from(closesNum), period);
+                const emaVal = new Decimal(emaResults[emaResults.length - 1]);
 
-                console.log(`[Technicals] EMA(${period}) Result Raw:`, emaResult);
                 console.log(`[Technicals] EMA(${period}) Final Value: ${emaVal.toString()}`);
 
-                if (!emaVal.isZero()) {
-                    movingAverages.push({
-                        name: 'EMA',
-                        params: `${period}`,
-                        value: emaVal,
-                        action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
-                    });
-                }
+                movingAverages.push({
+                    name: 'EMA',
+                    params: `${period}`,
+                    value: emaVal,
+                    action: currentPrice.gt(emaVal) ? 'Buy' : 'Sell'
+                });
             }
         } catch (error) {
             console.error('Error calculating moving averages:', error);
