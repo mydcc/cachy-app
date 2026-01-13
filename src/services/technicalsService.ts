@@ -21,7 +21,17 @@ export const technicalsService = {
     async calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
         // Ensure talib is initialized
         if (!talibReady) {
-            await talibInit;
+            console.log('Waiting for talib-web initialization...');
+            try {
+                await talibInit;
+                if (!talibReady) {
+                    console.error('talib-web initialization failed or timed out.');
+                    return this.getEmptyData();
+                }
+            } catch (e) {
+                console.error('Error awaiting talibInit:', e);
+                return this.getEmptyData();
+            }
         }
 
         // 1. Normalize Data to strict Kline format with Decimals
@@ -77,6 +87,9 @@ export const technicalsService = {
         const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
 
+        // Debug: Check input data
+        // console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
+
         // --- Oscillators ---
         const oscillators: IndicatorResult[] = [];
 
@@ -85,6 +98,12 @@ export const technicalsService = {
             const rsiLen = settings?.rsi?.length || 14;
             const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
             const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
+
+            // Debug RSI
+            // if (!rsiResult || !rsiResult.output || rsiResult.output.length === 0) {
+            //     console.warn('RSI calculation returned empty result:', rsiResult);
+            // }
+
             const rsiOutput = rsiResult?.output || [];
             const rsiVal = rsiOutput.length > 0
                 ? new Decimal(rsiOutput[rsiOutput.length - 1])
