@@ -1467,7 +1467,11 @@ export const app = {
       }
     };
 
-    await Promise.all(timeframes.map((tf) => fetchAndSet(tf)));
+    // Limit concurrency to 2 requests at a time to avoid rate limits
+    for (let i = 0; i < timeframes.length; i += 2) {
+      const chunk = timeframes.slice(i, i + 2);
+      await Promise.all(chunk.map((tf) => fetchAndSet(tf)));
+    }
   },
 
   // New unified fetch function for Price + ATR + Analysis

@@ -107,7 +107,19 @@ export const apiService = {
       if (endTime) url += `&end=${endTime}`;
 
       const response = await fetch(url);
-      if (!response.ok) throw new Error("apiErrors.klineError");
+      if (!response.ok) {
+        // Try to parse error details
+        try {
+          const errData = await response.json();
+          if (errData.error) {
+            console.error(`fetchBitunixKlines failed with ${response.status}: ${errData.error}`);
+            // If it's a rate limit or specific error, we might want to preserve it
+            // But for now, let's at least log it and maybe throw a more descriptive error if possible
+            // keeping the key for i18n but logged the real cause
+          }
+        } catch { /* ignore parsing error */ }
+        throw new Error("apiErrors.klineError");
+      }
       const res = await response.json();
 
       // Backend returns the mapped array directly
