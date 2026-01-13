@@ -91,6 +91,55 @@ const JSIndicators = {
             result[i] = data[i] - data[i - period];
         }
         return result;
+    },
+
+    cci(high: number[], low: number[], close: number[], period: number): number[] {
+        const result = new Array(close.length).fill(0);
+        if (close.length < period) return result;
+        const tp = high.map((h, i) => (h + low[i] + close[i]) / 3);
+        for (let i = period - 1; i < close.length; i++) {
+            const slice = tp.slice(i - period + 1, i + 1);
+            const avgTp = slice.reduce((a, b) => a + b, 0) / period;
+            const meanDev = slice.reduce((a, b) => a + Math.abs(b - avgTp), 0) / period;
+            result[i] = meanDev === 0 ? 0 : (tp[i] - avgTp) / (0.015 * meanDev);
+        }
+        return result;
+    },
+
+    adx(high: number[], low: number[], close: number[], period: number): number[] {
+        const result = new Array(close.length).fill(0);
+        if (close.length < period * 2) return result;
+
+        const upMove = new Array(close.length).fill(0);
+        const downMove = new Array(close.length).fill(0);
+        const tr = new Array(close.length).fill(0);
+
+        for (let i = 1; i < close.length; i++) {
+            const up = high[i] - high[i - 1];
+            const down = low[i - 1] - low[i];
+            upMove[i] = (up > down && up > 0) ? up : 0;
+            downMove[i] = (down > up && down > 0) ? down : 0;
+
+            tr[i] = Math.max(
+                high[i] - low[i],
+                Math.abs(high[i] - close[i - 1]),
+                Math.abs(low[i] - close[i - 1])
+            );
+        }
+
+        const plusDI_S = this.ema(upMove, period);
+        const minusDI_S = this.ema(downMove, period);
+        const tr_S = this.ema(tr, period);
+
+        const dx = new Array(close.length).fill(0);
+        for (let i = 0; i < close.length; i++) {
+            const pDI = (plusDI_S[i] / (tr_S[i] || 1)) * 100;
+            const mDI = (minusDI_S[i] / (tr_S[i] || 1)) * 100;
+            const sum = pDI + mDI;
+            dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
+        }
+
+        return this.ema(dx, period);
     }
 };
 
@@ -106,8 +155,9 @@ const talibInit = talib.init(wasmPath).then(() => {
 });
 
 export const technicalsService = {
-    async calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
-        // Ensure talib is initialized
+    async calculateTechnicals(klinesInput: any[], rawSettings?: any): Promise<TechnicalsData> {
+        const settings = rawSettings as any;
+        // Ensure talib is initialized (though we use JS fallbacks for most)
         if (!talibReady) {
             console.log('Waiting for talib-web initialization...');
 
@@ -127,36 +177,28 @@ export const technicalsService = {
         const klines: Kline[] = [];
         let prevClose = new Decimal(0);
 
-        rawKlines.forEach((k, index) => {
-            const time = Number(k.time || k.ts || 0);
+        const toDec = (val: any, fallback: Decimal) => {
+            if (val instanceof Decimal) return val;
+            if (typeof val === 'number' && !isNaN(val)) return new Decimal(val);
+            return fallback;
+        };
 
-            // Helper to safe convert
-            const toDec = (val: any, fallback: Decimal): Decimal => {
-                if (val instanceof Decimal) return val;
-                if (val === undefined || val === null || val === '') return fallback;
-                const d = new Decimal(val);
-                return d.isFinite() ? d : fallback;
-            };
-
+        klinesInput.forEach(k => {
+            const time = k.time;
             const close = toDec(k.close, prevClose);
             const safeClose = close.isZero() && !prevClose.isZero() ? prevClose : close;
-
             const open = toDec(k.open, safeClose);
             const high = toDec(k.high, safeClose);
             const low = toDec(k.low, safeClose);
             const volume = toDec(k.volume, new Decimal(0));
 
             if (!safeClose.isZero()) {
-                klines.push({
-                    open, high, low, close: safeClose, volume, time
-                });
+                klines.push({ open, high, low, close: safeClose, volume, time });
                 prevClose = safeClose;
             }
         });
 
-        if (klines.length < 2) {
-            return this.getEmptyData();
-        }
+        if (klines.length < 2) return this.getEmptyData();
 
         // Helper to get source array based on config (returns Decimal[])
         const getSource = (sourceType: string): Decimal[] => {
@@ -171,50 +213,10 @@ export const technicalsService = {
         };
 
         // Convert Decimal arrays to number arrays for talib
-        const highsNum = new Float64Array(klines.map(k => k.high.toNumber()));
-        const lowsNum = new Float64Array(klines.map(k => k.low.toNumber()));
-        const closesNum = new Float64Array(klines.map(k => k.close.toNumber()));
+        const highsNum = klines.map(k => k.high.toNumber());
+        const lowsNum = klines.map(k => k.low.toNumber());
+        const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
-
-        console.log(`[Technicals] Input Klines Count: ${klines.length}`);
-        console.log(`[Technicals] Sample Prices (First 3):`, Array.from(closesNum.slice(0, 3)));
-        console.log(`[Technicals] Sample Prices (Last 3):`, Array.from(closesNum.slice(-3)));
-        console.log(`[Technicals] talibReady Status: ${talibReady}`);
-
-        // Helper to extract value from talib result
-        const getVal = (res: any, name: string = 'Indicator', key: string = 'output'): Decimal => {
-            if (!res) {
-                console.log(`[Technicals] ${name} result is null/undefined`);
-                return new Decimal(0);
-            }
-            const arr = res[key] || res.outReal || res.output || [];
-            if (arr.length === 0) {
-                console.log(`[Technicals] ${name} result array is empty`);
-                return new Decimal(0);
-            }
-
-            // Find last non-zero, non-NaN value
-            let lastVal = 0;
-            let found = false;
-            for (let i = arr.length - 1; i >= 0; i--) {
-                const v = arr[i];
-                if (v !== 0 && !isNaN(v) && v !== undefined && v !== null) {
-                    lastVal = v;
-                    found = true;
-                    // console.log(`[Technicals] ${name} found valid value ${v} at index ${i}/${arr.length-1}`);
-                    break;
-                }
-            }
-
-            if (!found) {
-                console.log(`[Technicals] ${name} - NO VALID VALUE FOUND in array of length ${arr.length}. Sample (Last 5):`, arr.slice(-5));
-            } else {
-                // Periodisches Loggen zur Diagnose (z.B. nur alle X Aufrufe oder bei Bedarf)
-                // console.log(`[Technicals] ${name} - Last Value: ${lastVal}, Array Length: ${arr.length}`);
-            }
-
-            return new Decimal(lastVal);
-        };
 
         // Debug: Check input data
         console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
@@ -263,66 +265,26 @@ export const technicalsService = {
 
             // 3. CCI
             const cciLen = settings?.cci?.length || 20;
-            const cciResult = await talib.CCI({
-                high: Array.from(highsNum),
-                low: Array.from(lowsNum),
-                close: Array.from(closesNum),
-                timePeriod: cciLen
-            });
-            const cciVal = getVal(cciResult, 'CCI');
-
-            const cciThreshold = settings?.cci?.threshold || 100;
-            let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-            if (cciVal.lt(-cciThreshold)) cciAction = 'Buy';
-            else if (cciVal.gt(cciThreshold)) cciAction = 'Sell';
+            const cciResults = JSIndicators.cci(Array.from(highsNum), Array.from(lowsNum), Array.from(closesNum), cciLen);
+            const cciVal = new Decimal(cciResults[cciResults.length - 1]);
 
             oscillators.push({
                 name: 'CCI',
-                params: `${cciLen}`,
                 value: cciVal,
-                action: cciAction
+                params: cciLen.toString(),
+                action: cciVal.gt(100) ? 'Sell' : (cciVal.lt(-100) ? 'Buy' : 'Neutral')
             });
 
             // 4. ADX
-            const adxSmooth = settings?.adx?.adxSmoothing || 14;
-            const adxResult = await talib.ADX({
-                high: Array.from(highsNum),
-                low: Array.from(lowsNum),
-                close: Array.from(closesNum),
-                timePeriod: adxSmooth
-            });
-            const adxVal = getVal(adxResult, 'ADX');
-
-            // Get +DI and -DI for action
-            const pdiResult = await talib.PLUS_DI({
-                high: Array.from(highsNum),
-                low: Array.from(lowsNum),
-                close: Array.from(closesNum),
-                timePeriod: adxSmooth
-            });
-            const mdiResult = await talib.MINUS_DI({
-                high: Array.from(highsNum),
-                low: Array.from(lowsNum),
-                close: Array.from(closesNum),
-                timePeriod: adxSmooth
-            });
-
-            const pdi = getVal(pdiResult, 'PDI').toNumber();
-            const mdi = getVal(mdiResult, 'MDI').toNumber();
-
-            const adxThreshold = settings?.adx?.threshold || 25;
-            let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-
-            if (adxVal.toNumber() > adxThreshold) {
-                if (pdi > mdi) adxAction = 'Buy';
-                else if (mdi > pdi) adxAction = 'Sell';
-            }
+            const adxLen = settings?.adx?.adxSmoothing || 14;
+            const adxResults = JSIndicators.adx(Array.from(highsNum), Array.from(lowsNum), Array.from(closesNum), adxLen);
+            const adxVal = new Decimal(adxResults[adxResults.length - 1]);
 
             oscillators.push({
                 name: 'ADX',
-                params: `${adxSmooth}`,
                 value: adxVal,
-                action: adxAction
+                params: adxLen.toString(),
+                action: adxVal.gt(25) ? 'Buy' : 'Neutral'
             });
 
             // 5. Awesome Oscillator (manually calculated)
@@ -543,10 +505,11 @@ export const technicalsService = {
         };
     },
 
-    getRsiAction(val: Decimal | null): 'Buy' | 'Sell' | 'Neutral' {
+    getRsiAction(val: Decimal | null, overbought: number = 70, oversold: number = 30): 'Buy' | 'Sell' | 'Neutral' {
         if (!val) return 'Neutral';
-        if (val.gte(70)) return 'Sell';
-        if (val.lte(30)) return 'Buy';
+        const v = val.toNumber();
+        if (v >= overbought) return 'Sell';
+        if (v <= oversold) return 'Buy';
         return 'Neutral';
     },
 
