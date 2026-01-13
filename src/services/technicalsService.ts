@@ -93,15 +93,32 @@ const JSIndicators = {
         return result;
     },
 
-    cci(high: number[], low: number[], close: number[], period: number): number[] {
-        const result = new Array(close.length).fill(0);
-        if (close.length < period) return result;
-        const tp = high.map((h, i) => (h + low[i] + close[i]) / 3);
-        for (let i = period - 1; i < close.length; i++) {
-            const slice = tp.slice(i - period + 1, i + 1);
-            const avgTp = slice.reduce((a, b) => a + b, 0) / period;
-            const meanDev = slice.reduce((a, b) => a + Math.abs(b - avgTp), 0) / period;
-            result[i] = meanDev === 0 ? 0 : (tp[i] - avgTp) / (0.015 * meanDev);
+    cci(data: number[], period: number): number[] {
+        const result = new Array(data.length).fill(0);
+        if (data.length < period) return result;
+
+        for (let i = period - 1; i < data.length; i++) {
+            const slice = data.slice(i - period + 1, i + 1);
+
+            // Use Decimal for stability during sum and mean deviation calculation
+            let sum = new Decimal(0);
+            for (const val of slice) sum = sum.plus(val);
+            const avg = sum.dividedBy(period);
+
+            let sumAbsDiff = new Decimal(0);
+            for (const val of slice) {
+                sumAbsDiff = sumAbsDiff.plus(new Decimal(val).minus(avg).abs());
+            }
+            const meanDev = sumAbsDiff.dividedBy(period);
+
+            if (meanDev.isZero()) {
+                result[i] = 0;
+            } else {
+                // CCI = (Price - SMA) / (0.015 * Mean Deviation)
+                const diff = new Decimal(data[i]).minus(avg);
+                const divisor = meanDev.times(0.015);
+                result[i] = diff.dividedBy(divisor).toNumber();
+            }
         }
         return result;
     },
@@ -263,13 +280,29 @@ export const technicalsService = {
 
             // 3. CCI
             const cciLen = settings?.cci?.length || 20;
-            const cciResults = JSIndicators.cci(Array.from(highsNum), Array.from(lowsNum), Array.from(closesNum), cciLen);
+            const cciSmoothLen = settings?.cci?.smoothingLength || 1;
+            const cciSmoothType = settings?.cci?.smoothingType || 'sma';
+
+            // Default CCI source is Typical Price (HLC3)
+            const cciSource = getSource(settings?.cci?.source || 'hlc3').map(d => d.toNumber());
+
+            let cciResults = JSIndicators.cci(cciSource, cciLen);
+
+            // Apply smoothing if requested
+            if (cciSmoothLen > 1) {
+                if (cciSmoothType === 'ema') {
+                    cciResults = JSIndicators.ema(cciResults, cciSmoothLen);
+                } else {
+                    cciResults = JSIndicators.sma(cciResults, cciSmoothLen);
+                }
+            }
+
             const cciVal = new Decimal(cciResults[cciResults.length - 1]);
 
             oscillators.push({
                 name: 'CCI',
                 value: cciVal,
-                params: cciLen.toString(),
+                params: cciSmoothLen > 1 ? `${cciLen}, ${cciSmoothLen} (${cciSmoothType.toUpperCase()})` : cciLen.toString(),
                 action: cciVal.gt(100) ? 'Sell' : (cciVal.lt(-100) ? 'Buy' : 'Neutral')
             });
 
