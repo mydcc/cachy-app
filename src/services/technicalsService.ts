@@ -99,22 +99,8 @@ export const technicalsService = {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
             const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
-
-            // Debug Inputs
-            // console.log('RSI Source (last 5):', rsiSource.slice(-5));
-
             const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
-
-            // Debug RSI
-            if (!rsiResult || !rsiResult.output || rsiResult.output.length === 0) {
-                console.warn('RSI calculation returned empty result:', rsiResult);
-                console.warn('RSI Source length:', rsiSource.length);
-            }
-
-            const rsiOutput = rsiResult?.output || [];
-            const rsiVal = rsiOutput.length > 0
-                ? new Decimal(rsiOutput[rsiOutput.length - 1])
-                : new Decimal(0);
+            const rsiVal = getVal(rsiResult);
 
             oscillators.push({
                 name: 'RSI',
@@ -137,14 +123,8 @@ export const technicalsService = {
                 slowD_Period: stochD
             });
 
-            let stochKVal = new Decimal(0);
-            let stochDVal = new Decimal(0);
-
-            if (stochResult && stochResult.slowK && stochResult.slowD) {
-                const lastIdx = stochResult.slowK.length - 1;
-                stochKVal = new Decimal(stochResult.slowK[lastIdx] || 0);
-                stochDVal = new Decimal(stochResult.slowD[lastIdx] || 0);
-            }
+            const stochKVal = getVal(stochResult, 'slowK');
+            const stochDVal = getVal(stochResult, 'slowD');
 
             let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal)) stochAction = 'Buy';
@@ -160,10 +140,7 @@ export const technicalsService = {
             // 3. CCI
             const cciLen = settings?.cci?.length || 20;
             const cciResult = await talib.CCI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: cciLen });
-            const cciOutput = cciResult?.output || [];
-            const cciVal = cciOutput.length > 0
-                ? new Decimal(cciOutput[cciOutput.length - 1])
-                : new Decimal(0);
+            const cciVal = getVal(cciResult);
 
             const cciThreshold = settings?.cci?.threshold || 100;
             let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
@@ -180,19 +157,14 @@ export const technicalsService = {
             // 4. ADX
             const adxSmooth = settings?.adx?.adxSmoothing || 14;
             const adxResult = await talib.ADX({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
-            const adxOutput = adxResult?.output || [];
-            const adxVal = adxOutput.length > 0
-                ? new Decimal(adxOutput[adxOutput.length - 1])
-                : new Decimal(0);
+            const adxVal = getVal(adxResult);
 
             // Get +DI and -DI for action
             const pdiResult = await talib.PLUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
             const mdiResult = await talib.MINUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
 
-            const pdiOutput = pdiResult?.output || [];
-            const mdiOutput = mdiResult?.output || [];
-            const pdi = pdiOutput.length > 0 ? pdiOutput[pdiOutput.length - 1] : 0;
-            const mdi = mdiOutput.length > 0 ? mdiOutput[mdiOutput.length - 1] : 0;
+            const pdi = getVal(pdiResult).toNumber();
+            const mdi = getVal(mdiResult).toNumber();
 
             const adxThreshold = settings?.adx?.threshold || 25;
             let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
@@ -209,7 +181,7 @@ export const technicalsService = {
                 action: adxAction
             });
 
-            // 5. Awesome Oscillator (nicht in talib-web)
+            // 5. Awesome Oscillator (manually calculated)
             const aoFast = settings?.ao?.fastLength || 5;
             const aoSlow = settings?.ao?.slowLength || 34;
             const aoVal = await this.calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
@@ -229,10 +201,7 @@ export const technicalsService = {
             const momLen = settings?.momentum?.length || 10;
             const momSource = getSource(settings?.momentum?.source || 'close').map(d => d.toNumber());
             const momResult = await talib.MOM({ inReal: momSource, timePeriod: momLen });
-            const momOutput = momResult?.output || [];
-            const momVal = momOutput.length > 0
-                ? new Decimal(momOutput[momOutput.length - 1])
-                : new Decimal(0);
+            const momVal = getVal(momResult);
 
             let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (momVal.gt(0)) momAction = 'Buy';
@@ -258,22 +227,13 @@ export const technicalsService = {
                 signalPeriod: macdSig
             });
 
-            let macdVal = new Decimal(0);
-            let macdSignalVal = new Decimal(0);
+            const macdVal = getVal(macdResult, 'MACD');
+            const macdSignalVal = getVal(macdResult, 'MACDSignal');
+
             let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
-
-            if (macdResult && macdResult.MACD && macdResult.MACDSignal) {
-                const lastIdx = macdResult.MACD.length - 1;
-                const macd = macdResult.MACD[lastIdx];
-                const signal = macdResult.MACDSignal[lastIdx];
-
-                macdVal = new Decimal(macd || 0);
-                macdSignalVal = new Decimal(signal || 0);
-
-                if (macd !== undefined && signal !== undefined) {
-                    if (macd > signal) macdAction = 'Buy';
-                    else if (macd < signal) macdAction = 'Sell';
-                }
+            if (!macdVal.isZero() || !macdSignalVal.isZero()) {
+                if (macdVal.gt(macdSignalVal)) macdAction = 'Buy';
+                else if (macdVal.lt(macdSignalVal)) macdAction = 'Sell';
             }
 
             oscillators.push({
@@ -299,11 +259,9 @@ export const technicalsService = {
 
             for (const period of periods) {
                 const emaResult = await talib.EMA({ inReal: closesNum, timePeriod: period });
-                const emaOutput = emaResult?.output || [];
+                const emaVal = getVal(emaResult);
 
-                if (emaOutput.length > 0) {
-                    const emaVal = new Decimal(emaOutput[emaOutput.length - 1]);
-
+                if (!emaVal.isZero()) {
                     movingAverages.push({
                         name: 'EMA',
                         params: `${period}`,
