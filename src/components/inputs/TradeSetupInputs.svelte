@@ -347,7 +347,6 @@
                     use:enhancedInput={{
                         step: priceStep,
                         min: 0,
-                        showSpinButtons: "hover",
                     }}
                     value={format(stopLossPrice)}
                     on:input={handleStopLossPriceInput}
@@ -505,7 +504,6 @@
                                 use:enhancedInput={{
                                     step: 0.1,
                                     min: 0.1,
-                                    showSpinButtons: "hover",
                                 }}
                                 value={format(atrMultiplier)}
                                 on:input={handleAtrMultiplierInput}

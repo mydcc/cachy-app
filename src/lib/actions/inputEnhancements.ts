@@ -1,3 +1,6 @@
+import { get } from 'svelte/store';
+import { settingsStore, type Settings } from '../../stores/settingsStore';
+
 export function enhancedInput(node: HTMLInputElement, options: {
     step?: number,
     min?: number,
@@ -7,7 +10,10 @@ export function enhancedInput(node: HTMLInputElement, options: {
     rightOffset?: string
 } = {}) {
     const step = options.step || 1;
-    const showSpinButtons = options.showSpinButtons !== undefined ? options.showSpinButtons : true;
+
+    // Use option if provided, otherwise fallback to global setting
+    const globalShow = (get(settingsStore) as Settings).showSpinButtons;
+    const showSpinButtons = options.showSpinButtons !== undefined ? options.showSpinButtons : globalShow;
 
     let wrapper: HTMLDivElement | null = null;
     let upBtn: HTMLDivElement | null = null;
@@ -18,8 +24,7 @@ export function enhancedInput(node: HTMLInputElement, options: {
         wrapper = document.createElement('div');
         wrapper.className = 'input-wrapper';
         wrapper.style.position = 'relative';
-        wrapper.style.display = 'inline-block';
-        wrapper.style.width = '100%';
+        wrapper.style.display = 'inline-flex';
 
         // Position the wrapper in the DOM
         if (node.parentNode) {
@@ -31,6 +36,10 @@ export function enhancedInput(node: HTMLInputElement, options: {
         container.className = 'custom-spin-buttons';
         if (showSpinButtons === 'hover') {
             container.classList.add('hover-only');
+        }
+
+        if (options.rightOffset) {
+            container.style.right = options.rightOffset;
         }
 
         // Up Button

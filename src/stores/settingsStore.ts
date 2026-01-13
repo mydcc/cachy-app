@@ -59,7 +59,8 @@ export interface Settings {
     anthropicApiKey: string;
     anthropicModel: string;
 
-    // Legal
+    // UI Settings
+    showSpinButtons: boolean | 'hover';
     disclaimerAccepted: boolean;
 }
 
@@ -99,6 +100,8 @@ const defaultSettings: Settings = {
     anthropicApiKey: '',
     anthropicModel: 'claude-3-5-sonnet-20240620',
 
+    // UI Defaults
+    showSpinButtons: 'hover',
     disclaimerAccepted: false
 };
 
@@ -108,17 +111,17 @@ function loadSettingsFromLocalStorage(): Settings {
         const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
         if (!d) return defaultSettings;
         const parsed = JSON.parse(d);
-        
+
         // Ensure we merge with defaults to handle new keys in existing storage
-        const settings = { 
-            ...defaultSettings, 
+        const settings = {
+            ...defaultSettings,
             ...parsed,
             apiKeys: {
                 ...defaultSettings.apiKeys,
                 ...(parsed.apiKeys || {})
             }
         };
-        
+
         // Migration logic:
 
         // 1. If 'manual' was stored in interval (very old legacy)
@@ -135,13 +138,13 @@ function loadSettingsFromLocalStorage(): Settings {
                 settings.autoUpdatePriceInput = false;
             }
         }
-        
+
         // 3. Ensure ImgBB defaults if missing (even if other settings existed)
         if (!settings.imgbbApiKey) {
             settings.imgbbApiKey = defaultSettings.imgbbApiKey;
         }
         if (settings.imgbbExpiration === undefined) {
-             settings.imgbbExpiration = defaultSettings.imgbbExpiration;
+            settings.imgbbExpiration = defaultSettings.imgbbExpiration;
         }
 
         // 4. Ensure AI Settings defaults
@@ -193,6 +196,7 @@ function loadSettingsFromLocalStorage(): Settings {
             geminiModel: settings.geminiModel,
             anthropicApiKey: settings.anthropicApiKey,
             anthropicModel: settings.anthropicModel,
+            showSpinButtons: settings.showSpinButtons ?? defaultSettings.showSpinButtons,
             disclaimerAccepted: settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted
         };
 

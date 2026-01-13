@@ -141,7 +141,6 @@
                         max: 125,
                         noDecimals: true,
                         rightOffset: "24px",
-                        showSpinButtons: "hover",
                     }}
                     value={format(leverage)}
                     on:input={handleLeverageInput}
@@ -183,7 +182,6 @@
                         step: 0.01,
                         min: 0,
                         rightOffset: "24px",
-                        showSpinButtons: "hover",
                     }}
                     value={format(fees)}
                     on:input={handleFeesInput}
