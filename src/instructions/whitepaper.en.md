@@ -1,6 +1,7 @@
 # Cachy Technical Whitepaper
-**Version:** 0.98.0
+**Version:** 1.0.0
 **Date:** January 2026
+**Last Updated:** January 13, 2026
 
 ---
 
@@ -183,6 +184,139 @@ The system iterates through every closed trade and buckets the PnL by Hour of Da
   hourlyNetPnl[date.getHours()].plus(trade.pnl);
   ```
 - **Result**: A heat map showing "Danger Zones" (e.g., Friday Afternoons) where the trader historically loses money.
+
+### The Journal Deep Dive System (10 Specialized Analytics Tabs)
+
+Beyond basic analytics, Cachy provides a complete **Deep Dive Analytics System** - a Pro feature suite with 10 specialized tabs:
+
+**1. Forecast** - Monte Carlo Simulation for probabilistic future projections based on historical R-Multiple distribution (minimum 5 trades required).
+
+**2. Trends** - Rolling Metrics over sliding windows:
+- Rolling Win Rate (last 20 trades)
+- Rolling Profit Factor
+- Rolling SQN (System Quality Number): `SQN = (√N × Ø R) / σ(R)` with quality levels (<1.6: poor, >2.5: excellent)
+
+**3. Leakage** - Identifies "Profit Leaks":
+- Profit Retention Waterfall (Gross PnL → Fees → Net PnL)
+- Strategy Leakage (loss-making tags)
+- Time Leakage (Worst Trading Hours)
+
+**4. Timing** - Time-based patterns:
+- Hourly PnL with Gross Wins/Losses
+- Day of Week Analysis
+- Duration vs PnL Scatter Plot
+- Duration Buckets (0-15min, 15-30min, etc.)
+
+**5. Assets** - Symbol Performance Matrix:
+- Asset Bubble Chart (X: Win Rate, Y: PnL, Size: Trade Count)
+- Quadrant Analysis to identify "Best Performers" vs. "Account Killers"
+
+**6. Risk** - Risk Management Validation:
+- R-Multiple Distribution Histogram
+- Risk vs Realized PnL Correlation
+
+**7. Market** - Performance by Market Conditions (Trending, Ranging, Volatile)
+
+**8. Psychology** - Behavioral Finance:
+- Streak Visualization
+- Overconfidence/Tilt Detection after long series
+
+**9. Strategies** - Tag-based Attribution:
+- PnL per Tag (requires consistent tagging)
+- Strategy Comparison with Win Rate, PF, Expectancy per Tag
+
+**10. Calendar** - Temporal Heatmap with color-coded days (green: profit, red: loss)
+
+**Implementation**: All calculations are performed in `src/lib/calculators/` (charts.ts, stats.ts) with Decimal.js for financial precision.
+
+### Performance Dashboard (5 Core Analytics Tabs)
+
+The Performance Dashboard provides real-time insights across 5 specialized views:
+
+**1. Performance Tab**:
+- Equity Curve (capital progression)
+- Drawdown Chart (Max DD from All-Time High)
+- Monthly PnL Bar Chart
+
+**2. Quality Tab**:
+- Win Rate Chart
+- Trading Stats Dashboard:
+  - Total Win Rate (color-coded: green ≥50%, red <50%)
+  - Profit Factor (green ≥1.5, yellow ≥1.0, red <1.0)
+  - Expectancy ($ per Trade)
+  - Avg Win/Loss Ratio
+  - Long/Short Win Rate Split
+
+**3. Direction Tab**:
+- Long vs Short PnL Comparison
+- Direction Evolution (cumulative over time)
+- Directional Bias Detection
+
+**4. Discipline Tab**:
+- Hourly PnL Heatmap (0-23h)
+- Risk Consistency Validation
+- Streak Statistics (longest Win/Loss series)
+
+**5. Costs Tab**:
+- Gross vs Net PnL Comparison
+- Cumulative Fees Line Chart
+- Fee Breakdown Donut (Trading vs Funding Fees)
+
+**Technical Details**: Chart.js Canvas Rendering for performance with 1000+ data points, reactive Svelte Stores for real-time updates.
+
+### Advanced Trading Metrics
+
+Cachy implements institutional metrics that go beyond standard Win Rate:
+
+**SQN (System Quality Number)**:
+```
+SQN = (√Number of Trades × Average R-Multiple) / σ(R-Multiple)
+```
+Interpretation: Statistical measure of system quality. >2.5 = excellent, <1.6 = needs revision.
+
+**MAE (Maximum Adverse Excursion)**:
+```
+MAE = Max(Entry - Lowest Price during Trade)
+```
+Shows how far the trade went against the trader before recovery.
+
+**MFE (Maximum Favorable Excursion)**:
+```
+MFE = Max(Highest Price - Entry during Trade)
+```
+Shows unrealized peak profit.
+
+**Efficiency**:
+```
+Efficiency = (Realized PnL / MFE) × 100%
+```
+>80% = excellent exit timing, <50% = exits too early.
+
+**R-Multiple System**:
+Normalizes trades relative to initial risk:
+```
+R = Realized PnL / Initial Risk Amount
+```
+Enables comparability across different account sizes.
+
+**Implementation**: All metrics are calculated in `calculator.ts` (Stats module), visualized via Chart.js.
+
+### Tag System & Strategy Attribution
+
+Cachy's Tag System enables qualitative analysis:
+
+**Tag Categories**:
+- Strategies: `Breakout`, `Reversal`, `Support/Resistance`
+- Mistakes: `FOMO`, `Revenge`, `TooEarly`
+- Setups: `LongSetup`, `ShortSetup`, `Scalp`
+
+**Features**:
+- Multi-Tag Support per Trade
+- Tag-based PnL Aggregation
+- Strategy Leakage Detection (which tags systematically lose money)
+- Tag Evolution Charts (PnL development per tag over time)
+
+**Data Structure**: Tags are stored as String Array in `JournalEntry`, CSV Import/Export preserves tags.
 
 ---
 
