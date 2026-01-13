@@ -62,6 +62,7 @@ export const syncService = {
             });
 
             let orders: any[] = [];
+            let isPartialSync = false;
             try {
                 const orderResult = await orderResponse.json();
                 if (orderResult.isPartial) {
@@ -69,6 +70,9 @@ export const syncService = {
                 }
                 if (!orderResult.error && Array.isArray(orderResult.data)) {
                     orders = orderResult.data;
+                    if (orderResult.isPartial) {
+                        isPartialSync = true;
+                    }
                 }
             } catch (err) {
                 console.warn("Failed to fetch orders:", err);
@@ -332,10 +336,20 @@ export const syncService = {
             if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
                 journalStore.set(updatedJournal);
                 syncService.saveJournal(updatedJournal);
-                uiStore.showFeedback('save', 2000);
+
+                if (isPartialSync) {
+                    uiStore.showError("Sync unvollständig (Zeitüberschreitung). Bitte erneut versuchen, um ältere Daten zu laden.");
+                } else {
+                    uiStore.showFeedback('save', 2000);
+                }
+
                 trackCustomEvent('Journal', 'Sync', 'Bitunix-Positions', addedCount);
             } else {
-                 uiStore.showError("Keine neuen Positionen gefunden.");
+                 if (isPartialSync) {
+                     uiStore.showError("Sync unvollständig. Keine neuen Positionen, aber möglicherweise fehlen Daten.");
+                 } else {
+                     uiStore.showError("Keine neuen Positionen gefunden.");
+                 }
             }
 
         } catch (e: any) {
