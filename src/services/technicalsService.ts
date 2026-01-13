@@ -89,6 +89,11 @@ export const technicalsService = {
         const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
 
+        console.log(`[Technicals] Input Klines Count: ${klines.length}`);
+        console.log(`[Technicals] Sample Prices (First 3):`, closesNum.slice(0, 3));
+        console.log(`[Technicals] Sample Prices (Last 3):`, closesNum.slice(-3));
+        console.log(`[Technicals] talibReady Status: ${talibReady}`);
+
         // Helper to extract value from talib result
         const getVal = (res: any, key: string = 'output'): Decimal => {
             if (!res) return new Decimal(0);
@@ -111,8 +116,15 @@ export const technicalsService = {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
             const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
+
+            console.log(`[Technicals] RSI Input Length: ${rsiSource.length}, Sample:`, rsiSource.slice(-3));
+
             const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
+
+            console.log('[Technicals] RSI Result Raw:', rsiResult);
+
             const rsiVal = getVal(rsiResult);
+            console.log('[Technicals] RSI Final Value:', rsiVal.toString());
 
             oscillators.push({
                 name: 'RSI',
@@ -198,6 +210,8 @@ export const technicalsService = {
             const aoSlow = settings?.ao?.slowLength || 34;
             const aoVal = await this.calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
 
+            console.log(`[Technicals] Awesome Oscillator (${aoFast}, ${aoSlow}) Final Value: ${aoVal.toString()}`);
+
             let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (aoVal.gt(0)) aoAction = 'Buy';
             else if (aoVal.lt(0)) aoAction = 'Sell';
@@ -267,11 +281,14 @@ export const technicalsService = {
             const ema2 = settings?.ema?.ema2Length || 50;
             const ema3 = settings?.ema?.ema3Length || 200;
 
-            const periods = [ema1, ema2, ema3];
+            const emaPeriods = [ema1, ema2, ema3]; // Renamed 'periods' to 'emaPeriods' to avoid conflict if 'periods' was used elsewhere
 
-            for (const period of periods) {
+            for (const period of emaPeriods) {
                 const emaResult = await talib.EMA({ inReal: closesNum, timePeriod: period });
                 const emaVal = getVal(emaResult);
+
+                console.log(`[Technicals] EMA(${period}) Result Raw:`, emaResult);
+                console.log(`[Technicals] EMA(${period}) Final Value: ${emaVal.toString()}`);
 
                 if (!emaVal.isZero()) {
                     movingAverages.push({
