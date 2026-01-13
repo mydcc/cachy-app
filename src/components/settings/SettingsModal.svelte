@@ -377,7 +377,7 @@
             role="tablist"
         >
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'general'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -388,7 +388,7 @@
                 {$_("settings.tabs.general")}
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'api'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -399,7 +399,7 @@
                 {$_("settings.tabs.api")}
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'ai'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -410,7 +410,7 @@
                 AI Chat
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'behavior'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -421,7 +421,7 @@
                 {$_("settings.tabs.behavior")}
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'hotkeys'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -432,7 +432,7 @@
                 Hotkeys
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'sidebar'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -443,7 +443,7 @@
                 Sidebar
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'indicators'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
@@ -454,7 +454,7 @@
                 Technicals
             </button>
             <button
-                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none whitespace-nowrap {activeTab ===
+                class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
                 'system'
                     ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
                     : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"

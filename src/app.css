@@ -12,7 +12,6 @@
     src: url('/fonts/Inter_18pt-Regular.ttf') format('truetype');
 }
 
-/* ... rest of the file remains unchanged ... */
 @font-face {
     font-family: 'Inter';
     font-style: normal;
@@ -510,7 +509,7 @@
     --toggle-bg-off: var(--polar-night-3);
     --toggle-bg-on: var(--frost-3);
     --toggle-circle-bg: var(--snow-storm-1);
-    --toggle-circle-bg-on: var(--nord-snow-100);
+    --toggle-circle-bg-on: var(--snow-storm-1);
     --overlay-color: var(--black-overlay);
 }
 
@@ -568,7 +567,7 @@
     --toggle-bg-off: var(--gruv-dark2);
     --toggle-bg-on: var(--gruv-aqua-bright);
     --toggle-circle-bg: var(--gruv-light1);
-    --toggle-circle-bg-on: var(--gruvbox-light-0);
+    --toggle-circle-bg-on: var(--gruv-light1);
     --overlay-color: var(--black-overlay);
 }
 
@@ -624,7 +623,7 @@
     --toggle-bg-off: var(--mono-bg-light);
     --toggle-bg-on: var(--mono-pink);
     --toggle-circle-bg: var(--mono-fg);
-    --toggle-circle-bg-on: var(--monokai-fg);
+    --toggle-circle-bg-on: var(--mono-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -738,7 +737,7 @@
     --toggle-bg-off: var(--ever-gray);
     --toggle-bg-on: var(--ever-aqua);
     --toggle-circle-bg: var(--ever-fg);
-    --toggle-circle-bg-on: var(--everforest-fg);
+    --toggle-circle-bg-on: var(--ever-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1016,7 +1015,7 @@
     --toggle-bg-off: var(--drac-soft-border);
     --toggle-bg-on: var(--drac-soft-purple);
     --toggle-circle-bg: var(--drac-soft-fg);
-    --toggle-circle-bg-on: var(--dracula-soft-fg);
+    --toggle-circle-bg-on: var(--drac-soft-fg);
     --overlay-color: var(--black-overlay);
 }
 
@@ -1480,12 +1479,6 @@ body {
     background-color: var(--bg-tertiary);
     border: 1px solid var(--border-color);
     color: var(--text-primary);
-}
-
-.compact-number-input {
-    width: 60px;
-    text-align: left;
-    padding: 0.25rem 0.5rem;
 }
 
 .settings-number-input {
@@ -2132,6 +2125,12 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 
 ::-webkit-scrollbar-thumb:hover {
     background-color: var(--accent-color);
+}
+
+/* Firefox Scrollbar Styles */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
 }
 
 /* Modal Size Utilities */
