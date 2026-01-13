@@ -96,9 +96,16 @@ async function fetchAllPages(
             const parsedTime = parseInt(String(timeField), 10);
 
             if (!isNaN(parsedTime) && parsedTime > 0) {
-                // Subtract 1ms (or 1s) to prevent overlap if the API is inclusive
-                // Bitunix usually uses milliseconds. Safe to subtract 1.
-                currentEndTime = parsedTime - 1;
+                // Determine if ms or seconds based on magnitude (Year 2000 in ms is ~946mil, in seconds it's smaller)
+                // If > 10000000000 (10 digits), it's likely milliseconds (or seconds far in future).
+                // Actually, current time in ms is ~13 digits (1.7e12). Seconds is 10 digits (1.7e9).
+                // If it is 13 digits, subtract 1ms. If 10 digits, subtract 1s.
+                // Threshold: Year 2286 is 10000000000 seconds (11 digits). So anything > 1e11 is definitely MS.
+                const isMs = parsedTime > 100000000000;
+                const decrement = isMs ? 1 : 1; // Actually logic is simpler: 1 unit of whatever it is.
+
+                // Subtract 1 unit to prevent overlap if the API is inclusive
+                currentEndTime = parsedTime - decrement;
             } else {
                 break; // Invalid timestamp, stop paging
             }
