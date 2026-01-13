@@ -46,7 +46,7 @@
         <option value={2592000}>{$_("settings.imgbb1m")}</option>
       </select>
     </div>
-    <p class="text-[10px] text-[var(--text-secondary)]">
+    <p class="text-xs text-[var(--text-secondary)]">
       {$_("settings.imgbbGetKey")}
       <a
         href="https://api.imgbb.com/"

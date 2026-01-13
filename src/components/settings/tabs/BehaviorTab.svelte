@@ -19,7 +19,7 @@
       <span class="text-sm font-bold text-[var(--accent-color)]"
         >{$_("settings.showSpinButtons")}</span
       >
-      <span class="text-[10px] text-[var(--text-secondary)] mb-2"
+      <span class="text-xs text-[var(--text-secondary)] mb-2"
         >Globale Sichtbarkeit der Scroll-Buttons in Eingabefeldern</span
       >
     </div>

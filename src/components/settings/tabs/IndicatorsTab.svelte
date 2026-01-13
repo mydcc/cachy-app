@@ -110,7 +110,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -209,7 +209,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -288,7 +288,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="macd-osc-type"
-                class="text-[10px] text-[var(--text-secondary)]">Osc MA</label
+                class="text-xs text-[var(--text-secondary)]">Osc MA</label
               >
               <select
                 id="macd-osc-type"
@@ -303,7 +303,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="macd-sig-type"
-                class="text-[10px] text-[var(--text-secondary)]">Sig MA</label
+                class="text-xs text-[var(--text-secondary)]">Sig MA</label
               >
               <select
                 id="macd-sig-type"
@@ -338,7 +338,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -385,8 +385,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema1-smth-type"
-                class="text-[10px] text-[var(--text-secondary)]"
-                >Smoothing</label
+                class="text-xs text-[var(--text-secondary)]">Smoothing</label
               >
               <select
                 id="ema1-smth-type"
@@ -405,7 +404,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema1-smth-len"
-                class="text-[10px] text-[var(--text-secondary)]">Smth Len</label
+                class="text-xs text-[var(--text-secondary)]">Smth Len</label
               >
               <input
                 id="ema1-smth-len"
@@ -444,7 +443,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -491,8 +490,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema2-smth-type"
-                class="text-[10px] text-[var(--text-secondary)]"
-                >Smoothing</label
+                class="text-xs text-[var(--text-secondary)]">Smoothing</label
               >
               <select
                 id="ema2-smth-type"
@@ -511,7 +509,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema2-smth-len"
-                class="text-[10px] text-[var(--text-secondary)]">Smth Len</label
+                class="text-xs text-[var(--text-secondary)]">Smth Len</label
               >
               <input
                 id="ema2-smth-len"
@@ -550,7 +548,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -597,8 +595,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema3-smth-type"
-                class="text-[10px] text-[var(--text-secondary)]"
-                >Smoothing</label
+                class="text-xs text-[var(--text-secondary)]">Smoothing</label
               >
               <select
                 id="ema3-smth-type"
@@ -617,7 +614,7 @@
             <div class="flex items-center justify-between">
               <label
                 for="ema3-smth-len"
-                class="text-[10px] text-[var(--text-secondary)]">Smth Len</label
+                class="text-xs text-[var(--text-secondary)]">Smth Len</label
               >
               <input
                 id="ema3-smth-len"
@@ -679,7 +676,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
@@ -687,9 +684,8 @@
 
           <div class="grid grid-cols-3 gap-2 mt-1">
             <div class="flex flex-col gap-1 items-center">
-              <label
-                for="stoch-k"
-                class="text-[10px] text-[var(--text-secondary)]">%K Len</label
+              <label for="stoch-k" class="text-xs text-[var(--text-secondary)]"
+                >%K Len</label
               >
               <input
                 id="stoch-k"
@@ -708,7 +704,7 @@
             <div class="flex flex-col gap-1 items-center">
               <label
                 for="stoch-k-smooth"
-                class="text-[10px] text-[var(--text-secondary)]">%K Smth</label
+                class="text-xs text-[var(--text-secondary)]">%K Smth</label
               >
               <input
                 id="stoch-k-smooth"
@@ -727,7 +723,7 @@
             <div class="flex flex-col gap-1 items-center">
               <label
                 for="stoch-d-smooth"
-                class="text-[10px] text-[var(--text-secondary)]">%D Smth</label
+                class="text-xs text-[var(--text-secondary)]">%D Smth</label
               >
               <input
                 id="stoch-d-smooth"
@@ -766,7 +762,7 @@
             </h4>
             {#if !isPro}
               <span
-                class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
                 >PRO</span
               >
             {/if}
