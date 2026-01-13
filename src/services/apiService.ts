@@ -62,13 +62,18 @@ class RequestManager {
       return this.pending.get(key) as Promise<T>;
     }
 
-    console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Queued: ${key} (Pri: ${priority})`, "color: #9ca3af");
-
     // 2. Wrap in queue logic
+    const scheduleTime = performance.now();
     const promise = new Promise<T>((resolve, reject) => {
       const run = async () => {
         this.activeCount++;
-        console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Running: ${key} (Active: ${this.activeCount}/${this.MAX_CONCURRENCY})`, "color: #3b82f6");
+        const startTime = performance.now();
+        const queueDuration = startTime - scheduleTime;
+
+        if (this.currentLog.length < this.LOG_LIMIT) { // Limit log spam
+          console.log(`%c[ReqMgr] Running: ${key} (Active: ${this.activeCount}/${this.MAX_CONCURRENCY}) (Waited: ${queueDuration.toFixed(0)}ms)`, 'color: orange');
+        }
+
         try {
           const result = await task();
           resolve(result);
@@ -76,9 +81,14 @@ class RequestManager {
           reject(e);
         } finally {
           this.activeCount--;
-          console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Finished: ${key}`, "color: #10b981");
           this.pending.delete(key);
-          this.next(); // Trigger next
+
+          const duration = performance.now() - startTime;
+          if (this.currentLog.length < this.LOG_LIMIT) {
+            console.log(`%c[ReqMgr] Finished: ${key} (Took: ${duration.toFixed(0)}ms)`, 'color: green');
+          }
+
+          this.next();
         }
       };
 
@@ -86,6 +96,14 @@ class RequestManager {
         run();
       } else {
         // Enqueue based on priority
+        this.currentLog.push(`[ReqMgr] Queued: ${key} (Pri: ${priority})`);
+        if (this.currentLog.length > this.LOG_LIMIT) this.currentLog.shift(); // Keep log size manageable
+
+        // Log only if it's the first time identifying this queue pressure
+        if (this.activeCount >= this.MAX_CONCURRENCY) {
+          console.log(`%c[ReqMgr] Queued: ${key} (Pri: ${priority})`, 'color: gray');
+        }
+
         if (priority === 'high') {
           this.highPriorityQueue.push(run);
         } else {
