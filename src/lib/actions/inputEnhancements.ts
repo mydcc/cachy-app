@@ -1,10 +1,37 @@
-export function enhancedInput(node: HTMLElement, options: { step?: number, min?: number, max?: number, noDecimals?: boolean, rightOffset?: string } = {}) {
+export function enhancedInput(node: HTMLInputElement, options: { step?: number, min?: number, max?: number, noDecimals?: boolean } = {}) {
     const step = options.step || 1;
-    // The visual arrow buttons are removed as per user request, but we keep the logic structure
-    // in case we need to re-enable them later or for wheel support.
 
-    // Ensure parent is relative for absolute positioning if we were adding elements,
-    // but now we just attach wheel listener.
+    // Create wrapper and container for custom spin buttons
+    const wrapper = document.createElement('div');
+    wrapper.className = 'input-wrapper';
+    wrapper.style.position = 'relative';
+    wrapper.style.display = 'inline-block';
+
+    // Position the wrapper in the DOM
+    if (node.parentNode) {
+        node.parentNode.insertBefore(wrapper, node);
+        wrapper.appendChild(node);
+    }
+
+    const container = document.createElement('div');
+    container.className = 'custom-spin-buttons';
+
+    // Up Button
+    const upBtn = document.createElement('div');
+    upBtn.className = 'spin-btn up';
+    upBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"></polyline></svg>`;
+
+    // Down Button
+    const downBtn = document.createElement('div');
+    downBtn.className = 'spin-btn down';
+    downBtn.innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>`;
+
+    container.appendChild(upBtn);
+    container.appendChild(downBtn);
+    wrapper.appendChild(container);
+
+    // Add padding to input to avoid text overlap
+    node.style.paddingRight = '20px';
 
     function triggerInput() {
         node.dispatchEvent(new Event('input', { bubbles: true }));
@@ -12,13 +39,12 @@ export function enhancedInput(node: HTMLElement, options: { step?: number, min?:
     }
 
     function updateValue(delta: number) {
-        const input = node as HTMLInputElement;
-        let val = parseFloat(input.value);
-        if (isNaN(val)) val = 0;
+        let val = parseFloat(node.value);
+        if (isNaN(val)) val = options.min || 0;
 
         let newVal = val + delta;
 
-        // Precision handling to avoid floating point errors (e.g. 0.1 + 0.2)
+        // Precision handling
         const stepStr = String(step);
         const decimals = stepStr.includes('.') ? stepStr.split('.')[1].length : 0;
         newVal = parseFloat(newVal.toFixed(decimals));
@@ -26,7 +52,7 @@ export function enhancedInput(node: HTMLElement, options: { step?: number, min?:
         if (options.min !== undefined && newVal < options.min) newVal = options.min;
         if (options.max !== undefined && newVal > options.max) newVal = options.max;
 
-        input.value = String(newVal);
+        node.value = String(newVal);
         triggerInput();
     }
 
@@ -36,11 +62,31 @@ export function enhancedInput(node: HTMLElement, options: { step?: number, min?:
         else updateValue(-step);
     };
 
+    const onUp = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateValue(step);
+    };
+
+    const onDown = (e: MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        updateValue(-step);
+    };
+
     node.addEventListener('wheel', handleWheel, { passive: false });
+    upBtn.addEventListener('click', onUp);
+    downBtn.addEventListener('click', onDown);
 
     return {
         destroy() {
             node.removeEventListener('wheel', handleWheel);
+            upBtn.removeEventListener('click', onUp);
+            downBtn.removeEventListener('click', onDown);
+            if (wrapper.parentNode) {
+                wrapper.parentNode.insertBefore(node, wrapper);
+                wrapper.parentNode.removeChild(wrapper);
+            }
         }
     };
 }

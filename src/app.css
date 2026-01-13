@@ -1575,8 +1575,54 @@ body {
     }
 }
 
+input[type=number]::-webkit-inner-spin-button,
+input[type=number]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    appearance: none;
+    margin: 0;
+}
 
-/* Spin buttons remain visible */
+input[type=number] {
+    -moz-appearance: textfield;
+    appearance: textfield;
+}
+
+.input-wrapper {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    width: auto;
+}
+
+.custom-spin-buttons {
+    position: absolute;
+    right: 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    pointer-events: none;
+    z-index: 5;
+}
+
+.spin-btn {
+    pointer-events: auto;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--text-secondary);
+    transition: color 0.2s ease;
+    padding: 1px;
+}
+
+.spin-btn:hover {
+    color: var(--accent-color);
+}
+
+.spin-btn svg {
+    width: 10px;
+    height: 10px;
+}
 
 .trade-type-switch button {
     padding: 0.5rem 1rem;
