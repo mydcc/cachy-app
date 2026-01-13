@@ -15,11 +15,10 @@ export function getTradePnL(t: JournalEntry): Decimal {
 
     // Manual trades fallback logic based on Status
     if (t.status === 'Won') return new Decimal(t.totalNetProfit || 0);
-    // For Lost manual trades, if net profit is 0/undefined, assume loss of full risk amount
+    // For Lost manual trades, we should not assume -1R loss automatically as it skews data.
+    // User must enter the actual loss amount.
     if (t.status === 'Lost') {
-         const risk = new Decimal(t.riskAmount || 0);
-         // If risk is 0, we can't guess the loss.
-         return risk.negated();
+         return new Decimal(t.totalNetProfit || 0);
     }
     return new Decimal(0);
 }

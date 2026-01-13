@@ -150,7 +150,7 @@ describe('Calculator - Core Functions', () => {
         it('should calculate performance stats correctly', () => {
             const journalData = [
                 { id: 1, date: '2024-01-01', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), totalRR: new Decimal(5), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT' },
-                { id: 2, date: '2024-01-02', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), totalRR: new Decimal(-1), tradeType: CONSTANTS.TRADE_TYPE_SHORT, symbol: 'BTCUSDT' },
+                { id: 2, date: '2024-01-02', status: 'Lost', totalNetProfit: new Decimal(-10), riskAmount: new Decimal(10), totalRR: new Decimal(-1), tradeType: CONSTANTS.TRADE_TYPE_SHORT, symbol: 'BTCUSDT' },
                 { id: 3, date: '2024-01-03', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), totalRR: new Decimal(3), tradeType: CONSTANTS.TRADE_TYPE_LONG, symbol: 'BTCUSDT' },
             ];
 
@@ -170,7 +170,7 @@ describe('Calculator - Core Functions', () => {
         it('should calculate symbol performance correctly', () => {
             const journalData = [
                 { id: 1, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(50), riskAmount: new Decimal(10), tradeType: 'long', date: '2024-01-01' },
-                { id: 2, symbol: 'ETHUSDT', status: 'Lost', totalNetProfit: new Decimal(0), riskAmount: new Decimal(10), tradeType: 'short', date: '2024-01-02' },
+                { id: 2, symbol: 'ETHUSDT', status: 'Lost', totalNetProfit: new Decimal(-10), riskAmount: new Decimal(10), tradeType: 'short', date: '2024-01-02' },
                 { id: 3, symbol: 'BTCUSDT', status: 'Won', totalNetProfit: new Decimal(30), riskAmount: new Decimal(10), tradeType: 'long', date: '2024-01-03' },
             ];
 

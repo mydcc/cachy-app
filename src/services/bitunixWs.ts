@@ -47,8 +47,10 @@ class BitunixWebSocketService {
     private readonly CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
 
     private isAuthenticated = false;
+    private isDestroyed = false;
 
     private handleOnline = () => {
+        if (this.isDestroyed) return;
         this.connect();
     };
 
@@ -68,6 +70,7 @@ class BitunixWebSocketService {
     }
 
     destroy() {
+        this.isDestroyed = true;
         if (typeof window !== 'undefined') {
             window.removeEventListener('online', this.handleOnline);
             window.removeEventListener('offline', this.handleOffline);
@@ -258,6 +261,8 @@ class BitunixWebSocketService {
     }
 
     private scheduleReconnect(type: 'public' | 'private') {
+        if (this.isDestroyed) return;
+
         if (type === 'public') {
             if (this.isReconnectingPublic) return;
             this.isReconnectingPublic = true;
@@ -265,7 +270,7 @@ class BitunixWebSocketService {
             if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
             this.reconnectTimerPublic = setTimeout(() => {
                 this.isReconnectingPublic = false;
-                this.connectPublic();
+                if (!this.isDestroyed) this.connectPublic();
             }, RECONNECT_DELAY);
         } else {
             if (this.isReconnectingPrivate) return;
@@ -273,7 +278,7 @@ class BitunixWebSocketService {
             if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
             this.reconnectTimerPrivate = setTimeout(() => {
                 this.isReconnectingPrivate = false;
-                this.connectPrivate();
+                if (!this.isDestroyed) this.connectPrivate();
             }, RECONNECT_DELAY);
         }
     }
