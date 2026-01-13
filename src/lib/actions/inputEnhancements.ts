@@ -95,6 +95,14 @@ export function enhancedInput(
     else updateValue(-step);
   };
 
+  const onFocus = () => {
+    node.addEventListener("wheel", handleWheel, { passive: false });
+  };
+
+  const onBlur = () => {
+    node.removeEventListener("wheel", handleWheel);
+  };
+
   const onUp = (e: MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
@@ -107,12 +115,15 @@ export function enhancedInput(
     updateValue(-step);
   };
 
-  node.addEventListener("wheel", handleWheel, { passive: false });
+  node.addEventListener("focus", onFocus);
+  node.addEventListener("blur", onBlur);
   if (upBtn) upBtn.addEventListener("click", onUp);
   if (downBtn) downBtn.addEventListener("click", onDown);
 
   return {
     destroy() {
+      node.removeEventListener("focus", onFocus);
+      node.removeEventListener("blur", onBlur);
       node.removeEventListener("wheel", handleWheel);
       if (upBtn) upBtn.removeEventListener("click", onUp);
       if (downBtn) downBtn.removeEventListener("click", onDown);
