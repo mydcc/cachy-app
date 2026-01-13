@@ -2124,6 +2124,7 @@
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -2222,6 +2223,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -2287,6 +2289,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}
@@ -2339,6 +2342,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -2359,6 +2363,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -2411,6 +2416,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}
@@ -2431,6 +2437,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 2,
                                                 max: 100,
                                             }}
@@ -2483,6 +2490,7 @@
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                             use:enhancedInput={{
+                                                showSpinButtons: "hover",
                                                 min: 1,
                                                 max: 100,
                                             }}

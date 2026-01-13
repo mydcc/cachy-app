@@ -344,7 +344,11 @@
                     name="stopLossPrice"
                     type="text"
                     use:numberInput={{ maxDecimalPlaces: 4 }}
-                    use:enhancedInput={{ step: priceStep, min: 0 }}
+                    use:enhancedInput={{
+                        step: priceStep,
+                        min: 0,
+                        showSpinButtons: "hover",
+                    }}
                     value={format(stopLossPrice)}
                     on:input={handleStopLossPriceInput}
                     class="input-field w-full px-4 py-2 rounded-md"
@@ -362,7 +366,11 @@
                             name="atrValue"
                             type="text"
                             use:numberInput={{ maxDecimalPlaces: 4 }}
-                            use:enhancedInput={{ step: 0.1, min: 0 }}
+                            use:enhancedInput={{
+                                step: 0.1,
+                                min: 0,
+                                showSpinButtons: "hover",
+                            }}
                             value={format(atrValue)}
                             on:input={handleAtrValueInput}
                             class="input-field w-full px-4 py-2 rounded-md"
@@ -377,7 +385,11 @@
                             name="atrMultiplier"
                             type="text"
                             use:numberInput={{ maxDecimalPlaces: 4 }}
-                            use:enhancedInput={{ step: 0.1, min: 0.1 }}
+                            use:enhancedInput={{
+                                step: 0.1,
+                                min: 0.1,
+                                showSpinButtons: "hover",
+                            }}
                             value={format(atrMultiplier)}
                             on:input={handleAtrMultiplierInput}
                             class="input-field w-full px-4 py-2 rounded-md"
@@ -490,7 +502,11 @@
                                 name="atrMultiplierAuto"
                                 type="text"
                                 use:numberInput={{ maxDecimalPlaces: 4 }}
-                                use:enhancedInput={{ step: 0.1, min: 0.1 }}
+                                use:enhancedInput={{
+                                    step: 0.1,
+                                    min: 0.1,
+                                    showSpinButtons: "hover",
+                                }}
                                 value={format(atrMultiplier)}
                                 on:input={handleAtrMultiplierInput}
                                 class="input-field w-full px-4 py-2 rounded-md"
