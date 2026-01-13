@@ -1480,7 +1480,11 @@ export const app = {
 
     // 2. Fetch Current ATR (Critical) -> Update Immediately
     // We treat this separate from the batch so it's as fast as possible
-    app.fetchKlinesWithRetry(symbol, currentTf).then(klines => {
+    const fetchFn = settings.apiProvider === "binance"
+      ? apiService.fetchBinanceKlines
+      : apiService.fetchBitunixKlines;
+
+    fetchFn(symbol, currentTf).then(klines => {
       const atr = calculator.calculateATR(klines);
       if (atr.gt(0)) {
         updateTradeStore(s => ({
@@ -1502,7 +1506,8 @@ export const app = {
 
     const favTasks = favoriteTfs.map(async tf => {
       try {
-        const klines = await app.fetchKlinesWithRetry(symbol, tf);
+        // Re-select fetchFn or use the same one (it's safe)
+        const klines = await fetchFn(symbol, tf);
         const atr = calculator.calculateATR(klines);
         return { tf, val: atr.gt(0) ? atr.toDP(4).toNumber() : null };
       } catch (e) {

@@ -41,32 +41,22 @@
       $marketStore[symbol + "USDT"]
     : null;
 
-  let fetchTimeout: number | null = null;
-
   // Trigger fetch/subscribe when relevant props change
   $: if (showPanel && symbol && timeframe) {
     // If symbol or timeframe changed, we need to reset and fetch fresh
     if (currentSubscription !== `${symbol}:${timeframe}`) {
-      unsubscribeWs(); // Unsubscribe previous immediately
-
-      // Debounce/Delay fetch to prioritize Critical Trade Setup Data (ATR/Price)
-      if (fetchTimeout) clearTimeout(fetchTimeout);
-      fetchTimeout = window.setTimeout(() => {
-        fetchData().then(() => {
-          subscribeWs(); // Subscribe new
-        });
-      }, 1200); // 1.2s delay to let TradeSetup finish
-
+      unsubscribeWs(); // Unsubscribe previous
+      fetchData().then(() => {
+        subscribeWs(); // Subscribe new
+      });
       currentSubscription = `${symbol}:${timeframe}`;
     }
   } else if (!showPanel) {
-    if (fetchTimeout) clearTimeout(fetchTimeout);
     unsubscribeWs();
     currentSubscription = null;
   }
 
   onDestroy(() => {
-    if (fetchTimeout) clearTimeout(fetchTimeout);
     unsubscribeWs();
   });
 
