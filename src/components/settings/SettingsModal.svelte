@@ -868,6 +868,76 @@
                     role="tabpanel"
                     id="tab-behavior"
                 >
+                    <!-- Spin Buttons Global Toggle -->
+                    <div
+                        class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] mb-2"
+                    >
+                        <div class="flex flex-col">
+                            <span
+                                class="text-sm font-bold text-[var(--accent-color)]"
+                                >{$_("settings.showSpinButtons")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)] mb-2"
+                                >Globale Sichtbarkeit der Scroll-Buttons in
+                                Eingabefeldern</span
+                            >
+                        </div>
+                        <div class="flex gap-2">
+                            <label
+                                class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
+                                class:bg-[var(--bg-tertiary)]={showSpinButtons ===
+                                    true}
+                                class:border-[var(--accent-color)]={showSpinButtons ===
+                                    true}
+                            >
+                                <input
+                                    type="radio"
+                                    bind:group={showSpinButtons}
+                                    value={true}
+                                    class="accent-[var(--accent-color)]"
+                                />
+                                <span class="text-xs font-medium"
+                                    >{$_("settings.spinButtonsAlways")}</span
+                                >
+                            </label>
+                            <label
+                                class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
+                                class:bg-[var(--bg-tertiary)]={showSpinButtons ===
+                                    "hover"}
+                                class:border-[var(--accent-color)]={showSpinButtons ===
+                                    "hover"}
+                            >
+                                <input
+                                    type="radio"
+                                    bind:group={showSpinButtons}
+                                    value="hover"
+                                    class="accent-[var(--accent-color)]"
+                                />
+                                <span class="text-xs font-medium"
+                                    >{$_("settings.spinButtonsHover")}</span
+                                >
+                            </label>
+                            <label
+                                class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
+                                class:bg-[var(--bg-tertiary)]={showSpinButtons ===
+                                    false}
+                                class:border-[var(--accent-color)]={showSpinButtons ===
+                                    false}
+                            >
+                                <input
+                                    type="radio"
+                                    bind:group={showSpinButtons}
+                                    value={false}
+                                    class="accent-[var(--accent-color)]"
+                                />
+                                <span class="text-xs font-medium"
+                                    >{$_("settings.spinButtonsHidden")}</span
+                                >
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="flex flex-col gap-1">
                         <label
                             for="market-data-interval"
@@ -929,30 +999,6 @@
                             class="accent-[var(--accent-color)] h-4 w-4 rounded"
                         />
                     </label>
-                    <div
-                        class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]"
-                    >
-                        <label
-                            for="spin-buttons-mode"
-                            class="text-sm font-medium"
-                            >{$_("settings.showSpinButtons")}</label
-                        >
-                        <select
-                            id="spin-buttons-mode"
-                            bind:value={showSpinButtons}
-                            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
-                        >
-                            <option value={true}
-                                >{$_("settings.spinButtonsAlways")}</option
-                            >
-                            <option value="hover"
-                                >{$_("settings.spinButtonsHover")}</option
-                            >
-                            <option value={false}
-                                >{$_("settings.spinButtonsHidden")}</option
-                            >
-                        </select>
-                    </div>
                     <div
                         class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]"
                     >
