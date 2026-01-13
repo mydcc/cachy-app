@@ -54,17 +54,17 @@ class RequestManager {
   async schedule<T>(key: string, task: () => Promise<T>): Promise<T> {
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
-      console.log(`%c[ReqMgr] Deduped: ${key}`, "color: #fbbf24");
+      console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Deduped: ${key}`, "color: #fbbf24");
       return this.pending.get(key) as Promise<T>;
     }
 
-    console.log(`%c[ReqMgr] Queued: ${key}`, "color: #9ca3af");
+    console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Queued: ${key}`, "color: #9ca3af");
 
     // 2. Wrap in queue logic
     const promise = new Promise<T>((resolve, reject) => {
       const run = async () => {
         this.activeCount++;
-        console.log(`%c[ReqMgr] Running: ${key} (Active: ${this.activeCount}/${this.MAX_CONCURRENCY})`, "color: #3b82f6");
+        console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Running: ${key} (Active: ${this.activeCount}/${this.MAX_CONCURRENCY})`, "color: #3b82f6");
         try {
           const result = await task();
           resolve(result);
@@ -72,7 +72,7 @@ class RequestManager {
           reject(e);
         } finally {
           this.activeCount--;
-          console.log(`%c[ReqMgr] Finished: ${key} (Active: ${this.activeCount})`, "color: #10b981");
+          console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Finished: ${key} (Active: ${this.activeCount})`, "color: #10b981");
           this.pending.delete(key); // Cleanup pending map
           this.next(); // Trigger next in queue
         }
