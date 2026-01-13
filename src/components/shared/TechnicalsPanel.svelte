@@ -301,6 +301,12 @@
                     on:mouseenter={handleDropdownEnter}
                     on:mouseleave={handleDropdownLeave}
                     on:click|stopPropagation={toggleTimeframePopup}
+                    on:keydown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                            e.preventDefault();
+                            toggleTimeframePopup();
+                        }
+                    }}
                 >
                     {timeframe}
                 </span>
