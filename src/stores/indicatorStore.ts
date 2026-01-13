@@ -46,9 +46,24 @@ export interface IndicatorSettings {
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
     };
     ema: {
-        ema1Length: number;
-        ema2Length: number;
-        ema3Length: number;
+        ema1: {
+            length: number;
+            offset: number;
+            smoothingType: 'none' | 'sma' | 'ema' | 'smma' | 'wma' | 'vwma';
+            smoothingLength: number;
+        };
+        ema2: {
+            length: number;
+            offset: number;
+            smoothingType: 'none' | 'sma' | 'ema' | 'smma' | 'wma' | 'vwma';
+            smoothingLength: number;
+        };
+        ema3: {
+            length: number;
+            offset: number;
+            smoothingType: 'none' | 'sma' | 'ema' | 'smma' | 'wma' | 'vwma';
+            smoothingLength: number;
+        };
         source: 'close' | 'open' | 'high' | 'low' | 'hl2' | 'hlc3';
     };
     pivots: {
@@ -102,9 +117,9 @@ const defaultSettings: IndicatorSettings = {
         source: 'close'
     },
     ema: {
-        ema1Length: 20,
-        ema2Length: 50,
-        ema3Length: 200,
+        ema1: { length: 20, offset: 0, smoothingType: 'none', smoothingLength: 5 },
+        ema2: { length: 50, offset: 0, smoothingType: 'none', smoothingLength: 5 },
+        ema3: { length: 200, offset: 0, smoothingType: 'none', smoothingLength: 5 },
         source: 'close'
     },
     pivots: {
@@ -140,7 +155,12 @@ function createIndicatorStore() {
                 adx: adxParsed,
                 ao: { ...defaultSettings.ao, ...parsed.ao },
                 momentum: { ...defaultSettings.momentum, ...parsed.momentum },
-                ema: { ...defaultSettings.ema, ...parsed.ema },
+                ema: parsed.ema ? {
+                    ema1: { ...defaultSettings.ema.ema1, ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }) },
+                    ema2: { ...defaultSettings.ema.ema2, ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }) },
+                    ema3: { ...defaultSettings.ema.ema3, ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }) },
+                    source: parsed.ema.source || defaultSettings.ema.source
+                } : defaultSettings.ema,
                 pivots: { ...defaultSettings.pivots, ...parsed.pivots }
             };
         } catch (e) {

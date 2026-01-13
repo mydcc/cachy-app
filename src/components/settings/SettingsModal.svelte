@@ -22,6 +22,7 @@
     import { normalizeTimeframeInput } from "../../utils/utils";
     import HotkeySettings from "./HotkeySettings.svelte";
     import Toggle from "../shared/Toggle.svelte";
+    import { enhancedInput } from "../../lib/actions/inputEnhancements";
     import {
         HOTKEY_ACTIONS,
         MODE1_MAP,
@@ -1276,6 +1277,10 @@
                                             step="1"
                                             class="input-field rounded compact-number-input text-xs"
                                             bind:value={precision}
+                                            use:enhancedInput={{
+                                                min: 0,
+                                                max: 8,
+                                            }}
                                         />
                                         <span
                                             class="text-[10px] text-[var(--text-secondary)]"
@@ -1299,6 +1304,11 @@
                                             step="100"
                                             class="input-field rounded compact-number-input text-xs !w-[70px]"
                                             bind:value={historyLimit}
+                                            use:enhancedInput={{
+                                                min: 200,
+                                                max: 5000,
+                                                step: 100,
+                                            }}
                                         />
                                         <span
                                             class="text-[10px] text-[var(--text-secondary)]"
@@ -1411,6 +1421,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1491,6 +1505,10 @@
                                                     max="100"
                                                     class="input-field rounded compact-number-input text-xs"
                                                     disabled={!isPro}
+                                                    use:enhancedInput={{
+                                                        min: 2,
+                                                        max: 100,
+                                                    }}
                                                 />
                                             </div>
                                         </div>
@@ -1541,6 +1559,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1557,6 +1579,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1573,6 +1599,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1655,7 +1685,7 @@
                                     <h4
                                         class="text-xs font-bold uppercase text-[var(--text-secondary)]"
                                     >
-                                        EMAs
+                                        EMA 1
                                     </h4>
                                     {#if !isPro}
                                         <span
@@ -1665,82 +1695,100 @@
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-3 gap-2 mt-1">
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
                                     <div
-                                        class="flex flex-col gap-1 items-center"
+                                        class="flex items-center justify-between"
                                     >
-                                        <label
-                                            for="ema1"
-                                            class="text-[10px] text-[var(--text-secondary)]"
-                                            >EMA 1</label
+                                        <label for="ema1-len" class="text-xs"
+                                            >Length</label
                                         >
                                         <input
-                                            id="ema1"
+                                            id="ema1-len"
                                             type="number"
-                                            bind:value={emaSettings.ema1Length}
+                                            bind:value={emaSettings.ema1.length}
                                             min="2"
                                             max="500"
-                                            class="input-field rounded compact-number-input text-xs !w-full"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 500,
+                                            }}
                                         />
                                     </div>
                                     <div
-                                        class="flex flex-col gap-1 items-center"
+                                        class="flex items-center justify-between"
                                     >
-                                        <label
-                                            for="ema2"
-                                            class="text-[10px] text-[var(--text-secondary)]"
-                                            >EMA 2</label
+                                        <label for="ema1-offset" class="text-xs"
+                                            >Offset</label
                                         >
                                         <input
-                                            id="ema2"
+                                            id="ema1-offset"
                                             type="number"
-                                            bind:value={emaSettings.ema2Length}
-                                            min="2"
-                                            max="500"
-                                            class="input-field rounded compact-number-input text-xs !w-full"
+                                            bind:value={emaSettings.ema1.offset}
+                                            min="-100"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
-                                        />
-                                    </div>
-                                    <div
-                                        class="flex flex-col gap-1 items-center"
-                                    >
-                                        <label
-                                            for="ema3"
-                                            class="text-[10px] text-[var(--text-secondary)]"
-                                            >EMA 3</label
-                                        >
-                                        <input
-                                            id="ema3"
-                                            type="number"
-                                            bind:value={emaSettings.ema3Length}
-                                            min="2"
-                                            max="500"
-                                            class="input-field rounded compact-number-input text-xs !w-full"
-                                            disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: -100,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                 </div>
 
                                 <div
-                                    class="flex items-center justify-between mt-1 pt-2 border-t border-[var(--border-color)]"
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pt-2 border-t border-[var(--border-color)]"
                                 >
-                                    <label for="ema-source" class="text-xs"
-                                        >Source</label
+                                    <div
+                                        class="flex items-center justify-between"
                                     >
-                                    <select
-                                        id="ema-source"
-                                        bind:value={emaSettings.source}
-                                        class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
-                                        disabled={!isPro}
+                                        <label
+                                            for="ema1-smth-type"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smoothing</label
+                                        >
+                                        <select
+                                            id="ema1-smth-type"
+                                            bind:value={emaSettings.ema1
+                                                .smoothingType}
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                            disabled={!isPro}
+                                        >
+                                            <option value="none">None</option>
+                                            <option value="sma">SMA</option>
+                                            <option value="ema">EMA</option>
+                                            <option value="smma">SMMA</option>
+                                            <option value="wma">WMA</option>
+                                            <option value="vwma">VWMA</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
                                     >
-                                        <option value="close">Close</option>
-                                        <option value="open">Open</option>
-                                        <option value="high">High</option>
-                                        <option value="low">Low</option>
-                                        <option value="hl2">HL/2</option>
-                                        <option value="hlc3">HLC/3</option>
-                                    </select>
+                                        <label
+                                            for="ema1-smth-len"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smth Len</label
+                                        >
+                                        <input
+                                            id="ema1-smth-len"
+                                            type="number"
+                                            bind:value={emaSettings.ema1
+                                                .smoothingLength}
+                                            min="1"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro ||
+                                                emaSettings.ema1
+                                                    .smoothingType === "none"}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
+                                        />
+                                    </div>
                                 </div>
 
                                 {#if !isPro}
@@ -1748,6 +1796,274 @@
                                         class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
                                     />
                                 {/if}
+                            </div>
+
+                            <!-- EMA 2 -->
+                            <div
+                                class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+                            >
+                                <div
+                                    class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+                                >
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        EMA 2
+                                    </h4>
+                                    {#if !isPro}
+                                        <span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
+                                        >
+                                    {/if}
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ema2-len" class="text-xs"
+                                            >Length</label
+                                        >
+                                        <input
+                                            id="ema2-len"
+                                            type="number"
+                                            bind:value={emaSettings.ema2.length}
+                                            min="2"
+                                            max="500"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 500,
+                                            }}
+                                        />
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ema2-offset" class="text-xs"
+                                            >Offset</label
+                                        >
+                                        <input
+                                            id="ema2-offset"
+                                            type="number"
+                                            bind:value={emaSettings.ema2.offset}
+                                            min="-100"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: -100,
+                                                max: 100,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pt-2 border-t border-[var(--border-color)]"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label
+                                            for="ema2-smth-type"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smoothing</label
+                                        >
+                                        <select
+                                            id="ema2-smth-type"
+                                            bind:value={emaSettings.ema2
+                                                .smoothingType}
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                            disabled={!isPro}
+                                        >
+                                            <option value="none">None</option>
+                                            <option value="sma">SMA</option>
+                                            <option value="ema">EMA</option>
+                                            <option value="smma">SMMA</option>
+                                            <option value="wma">WMA</option>
+                                            <option value="vwma">VWMA</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label
+                                            for="ema2-smth-len"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smth Len</label
+                                        >
+                                        <input
+                                            id="ema2-smth-len"
+                                            type="number"
+                                            bind:value={emaSettings.ema2
+                                                .smoothingLength}
+                                            min="1"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro ||
+                                                emaSettings.ema2
+                                                    .smoothingType === "none"}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {#if !isPro}
+                                    <div
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
+                                {/if}
+                            </div>
+
+                            <!-- EMA 3 -->
+                            <div
+                                class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+                            >
+                                <div
+                                    class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+                                >
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        EMA 3
+                                    </h4>
+                                    {#if !isPro}
+                                        <span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
+                                        >
+                                    {/if}
+                                </div>
+
+                                <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ema3-len" class="text-xs"
+                                            >Length</label
+                                        >
+                                        <input
+                                            id="ema3-len"
+                                            type="number"
+                                            bind:value={emaSettings.ema3.length}
+                                            min="2"
+                                            max="500"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 500,
+                                            }}
+                                        />
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ema3-offset" class="text-xs"
+                                            >Offset</label
+                                        >
+                                        <input
+                                            id="ema3-offset"
+                                            type="number"
+                                            bind:value={emaSettings.ema3.offset}
+                                            min="-100"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: -100,
+                                                max: 100,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pt-2 border-t border-[var(--border-color)]"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label
+                                            for="ema3-smth-type"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smoothing</label
+                                        >
+                                        <select
+                                            id="ema3-smth-type"
+                                            bind:value={emaSettings.ema3
+                                                .smoothingType}
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                            disabled={!isPro}
+                                        >
+                                            <option value="none">None</option>
+                                            <option value="sma">SMA</option>
+                                            <option value="ema">EMA</option>
+                                            <option value="smma">SMMA</option>
+                                            <option value="wma">WMA</option>
+                                            <option value="vwma">VWMA</option>
+                                        </select>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label
+                                            for="ema3-smth-len"
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smth Len</label
+                                        >
+                                        <input
+                                            id="ema3-smth-len"
+                                            type="number"
+                                            bind:value={emaSettings.ema3
+                                                .smoothingLength}
+                                            min="1"
+                                            max="100"
+                                            class="input-field rounded compact-number-input text-xs"
+                                            disabled={!isPro ||
+                                                emaSettings.ema3
+                                                    .smoothingType === "none"}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                {#if !isPro}
+                                    <div
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
+                                {/if}
+                            </div>
+
+                            <!-- Source selection for all EMAs -->
+                            <div
+                                class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex items-center justify-between"
+                            >
+                                <label for="ema-source" class="text-xs"
+                                    >Common Source</label
+                                >
+                                <select
+                                    id="ema-source"
+                                    bind:value={emaSettings.source}
+                                    class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                    disabled={!isPro}
+                                >
+                                    <option value="close">Close</option>
+                                    <option value="open">Open</option>
+                                    <option value="high">High</option>
+                                    <option value="low">Low</option>
+                                    <option value="hl2">HL/2</option>
+                                    <option value="hlc3">HLC/3</option>
+                                </select>
                             </div>
                         </div>
 
@@ -1790,6 +2106,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1808,6 +2128,10 @@
                                             max="50"
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 50,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1826,6 +2150,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -1874,6 +2202,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1935,6 +2267,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -1983,6 +2319,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -1999,6 +2339,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -2047,6 +2391,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div
@@ -2063,6 +2411,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 2,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                 </div>
@@ -2111,6 +2463,10 @@
                                             max="100"
                                             class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
+                                            use:enhancedInput={{
+                                                min: 1,
+                                                max: 100,
+                                            }}
                                         />
                                     </div>
                                     <div

@@ -31,11 +31,9 @@ export function enhancedInput(node: HTMLElement, options: { step?: number, min?:
     }
 
     const handleWheel = (e: WheelEvent) => {
-        if (document.activeElement === node) {
-            e.preventDefault();
-            if (e.deltaY < 0) updateValue(step);
-            else updateValue(-step);
-        }
+        e.preventDefault();
+        if (e.deltaY < 0) updateValue(step);
+        else updateValue(-step);
     };
 
     node.addEventListener('wheel', handleWheel, { passive: false });

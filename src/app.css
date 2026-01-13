@@ -1575,15 +1575,8 @@ body {
     }
 }
 
-input[type=number]::-webkit-inner-spin-button,
-input[type=number]::-webkit-outer-spin-button {
-    -webkit-appearance: none;
-    margin: 0;
-}
 
-input[type=number] {
-    -moz-appearance: textfield;
-}
+/* Spin buttons remain visible */
 
 .trade-type-switch button {
     padding: 0.5rem 1rem;
