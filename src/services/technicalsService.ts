@@ -218,8 +218,7 @@ export const technicalsService = {
         const closesNum = klines.map(k => k.close.toNumber());
         const currentPrice = klines[klines.length - 1].close;
 
-        // Debug: Check input data
-        console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
+        // Initializing technicals...
 
         // --- Oscillators ---
         const oscillators: IndicatorResult[] = [];
@@ -231,7 +230,6 @@ export const technicalsService = {
             const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
             const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
 
-            console.log('[Technicals] RSI JS Result:', rsiVal.toString());
 
             oscillators.push({
                 name: 'RSI',
@@ -292,7 +290,6 @@ export const technicalsService = {
             const aoSlow = settings?.ao?.slowLength || 34;
             const aoVal = await this.calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
 
-            console.log(`[Technicals] Awesome Oscillator (${aoFast}, ${aoSlow}) Final Value: ${aoVal.toString()}`);
 
             let aoAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (aoVal.gt(0)) aoAction = 'Buy';
@@ -363,7 +360,6 @@ export const technicalsService = {
                 const emaResults = JSIndicators.ema(Array.from(closesNum), period);
                 const emaVal = new Decimal(emaResults[emaResults.length - 1]);
 
-                console.log(`[Technicals] EMA(${period}) Final Value: ${emaVal.toString()}`);
 
                 movingAverages.push({
                     name: 'EMA',
