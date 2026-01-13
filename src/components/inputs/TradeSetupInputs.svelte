@@ -35,6 +35,8 @@
 
     function handleFetchPriceClick() {
         trackCustomEvent("Price", "Fetch", symbol);
+        // Force ATR SL to be active when fetching price manually
+        updateTradeStore((s) => ({ ...s, useAtrSl: true, atrMode: "auto" }));
         // Use unified fetch
         app.fetchAllAnalysisData(symbol, false);
     }
@@ -123,8 +125,8 @@
         entryPrice && entryPrice > 1000
             ? 0.5
             : entryPrice && entryPrice > 100
-              ? 0.1
-              : 0.01;
+            ? 0.1
+            : 0.01;
 
     const availableTimeframes = [
         "1m",
@@ -168,7 +170,7 @@
 
     async function copyStopLossToClipboard(
         value: string,
-        event: MouseEvent | KeyboardEvent,
+        event: MouseEvent | KeyboardEvent
     ) {
         try {
             await navigator.clipboard.writeText(value);
@@ -216,7 +218,7 @@
                     : ''}"
                 title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
                 aria-label={$_(
-                    "dashboard.tradeSetupInputs.fetchPriceAriaLabel",
+                    "dashboard.tradeSetupInputs.fetchPriceAriaLabel"
                 )}
                 on:click={handleFetchPriceClick}
             >
@@ -266,7 +268,7 @@
                 on:input={handleEntryPriceInput}
                 class="input-field w-full px-4 py-2 rounded-md"
                 placeholder={$_(
-                    "dashboard.tradeSetupInputs.entryPricePlaceholder",
+                    "dashboard.tradeSetupInputs.entryPricePlaceholder"
                 )}
                 on:input={onboardingService.trackFirstInput}
             />
@@ -282,7 +284,7 @@
                     : "Auto-Update Off"}
                 on:click={toggleAutoUpdatePrice}
                 aria-label="Toggle Auto Update Price"
-            ></button>
+            />
         </div>
     </div>
 
@@ -331,7 +333,7 @@
                 />
                 <div
                     class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"
-                ></div>
+                />
             </label>
         </div>
         {#if !useAtrSl}
@@ -346,7 +348,7 @@
                     on:input={handleStopLossPriceInput}
                     class="input-field w-full px-4 py-2 rounded-md"
                     placeholder={$_(
-                        "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
+                        "dashboard.tradeSetupInputs.manualStopLossPlaceholder"
                     )}
                 />
             </div>
@@ -364,7 +366,7 @@
                             on:input={handleAtrValueInput}
                             class="input-field w-full px-4 py-2 rounded-md"
                             placeholder={$_(
-                                "dashboard.tradeSetupInputs.atrValuePlaceholder",
+                                "dashboard.tradeSetupInputs.atrValuePlaceholder"
                             )}
                         />
                     </div>
@@ -379,7 +381,7 @@
                             on:input={handleAtrMultiplierInput}
                             class="input-field w-full px-4 py-2 rounded-md"
                             placeholder={$_(
-                                "dashboard.tradeSetupInputs.multiplierPlaceholder",
+                                "dashboard.tradeSetupInputs.multiplierPlaceholder"
                             )}
                         />
                     </div>
@@ -391,7 +393,7 @@
                             for="atr-timeframe"
                             class="input-label !mb-1 text-xs"
                             >{$_(
-                                "dashboard.tradeSetupInputs.atrTimeframeLabel",
+                                "dashboard.tradeSetupInputs.atrTimeframeLabel"
                             )}</label
                         >
                         <!-- Dynamic Dropdown based on Favorites -->
@@ -477,7 +479,7 @@
                             for="atr-multiplier-input-auto"
                             class="input-label !mb-1 text-xs"
                             >{$_(
-                                "dashboard.tradeSetupInputs.atrMultiplierLabel",
+                                "dashboard.tradeSetupInputs.atrMultiplierLabel"
                             )}</label
                         >
                         <div class="relative">
@@ -566,8 +568,7 @@
 
 <style>
     .input-field:focus {
-        box-shadow:
-            0 4px 6px -1px rgba(0, 0, 0, 0.3),
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
             0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border-color: var(--accent-color);
         z-index: 10;

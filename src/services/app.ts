@@ -1002,13 +1002,13 @@ export const app = {
         // 1. Fetch Price (updateTradeStore handles UI)
         await app.handleFetchPrice(isAuto);
 
-        // 2. Fetch Multi-ATR
+        // 2. Fetch Multi-ATR (MTF)
         app.scanMultiAtr(symbol);
 
-        // We will trigger ATR fetch for the ACTIVE timeframe:
-        if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === 'auto') {
-            await app.fetchAtr(isAuto);
-        }
+        // 3. Fetch specific ATR for active timeframe
+        // Important: Even if not Auto-Mode, we fetch it once on manual click/favorite select
+        // to ensure the values are present immediately.
+        await app.fetchAtr(isAuto);
     },
 
     adjustTpPercentages: (changedIndex: number | null) => {
