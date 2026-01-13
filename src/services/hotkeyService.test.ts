@@ -98,7 +98,6 @@ describe("HotkeyService", () => {
       riskPercentage: 1,
       leverage: 10,
       tradeType: "long",
-      multiAtrData: {},
       // Add other required properties to satisfy TS if needed, or cast
       symbol: "BTCUSDT",
       accountSize: 1000,

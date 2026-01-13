@@ -1,5 +1,6 @@
 <script lang="ts">
   import { formatDynamicDecimal } from "../../utils/utils";
+  import { _ } from "../../locales/i18n";
 
   export let account: any;
 
@@ -28,7 +29,9 @@
   <!-- Header: Equity -->
   <div class="flex flex-col mb-2 border-b border-[var(--border-color)] pb-2">
     <div class="flex justify-between items-center mb-1">
-      <span class="font-bold text-sm">Total Equity</span>
+      <span class="font-bold text-sm"
+        >{$_("dashboard.account.totalEquity")}</span
+      >
       <span class="font-bold text-sm"
         >{formatDynamicDecimal(equity, 2)} {account.marginCoin || "USDT"}</span
       >
@@ -46,7 +49,7 @@
     <div
       class="flex justify-between mt-1 text-[10px] text-[var(--text-secondary)]"
     >
-      <span>Margin Level</span>
+      <span>{$_("dashboard.account.marginLevel")}</span>
       <span style="color: {healthColor}">{(marginLevel ?? 0).toFixed(1)}%</span>
     </div>
   </div>
@@ -54,7 +57,9 @@
   <!-- Details Grid -->
   <div class="grid grid-cols-1 gap-1">
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Wallet Balance:</span>
+      <span class="text-[var(--text-secondary)]"
+        >{$_("dashboard.account.walletBalance")}:</span
+      >
       <span
         >{formatDynamicDecimal(
           (account.available || 0) +
@@ -70,17 +75,21 @@
     >
       <div class="flex justify-between">
         <span class="text-[var(--text-secondary)] text-[10px]"
-          >Transferable:</span
+          >{$_("dashboard.account.transferable")}:</span
         >
         <span class="text-[10px]">{formatDynamicDecimal(account.transfer)}</span
         >
       </div>
       <div class="flex justify-between">
-        <span class="text-[var(--text-secondary)] text-[10px]">Bonus:</span>
+        <span class="text-[var(--text-secondary)] text-[10px]"
+          >{$_("dashboard.account.bonus")}:</span
+        >
         <span class="text-[10px]">{formatDynamicDecimal(account.bonus)}</span>
       </div>
       <div class="flex justify-between">
-        <span class="text-[var(--text-secondary)] text-[10px]">Frozen:</span>
+        <span class="text-[var(--text-secondary)] text-[10px]"
+          >{$_("dashboard.account.frozen")}:</span
+        >
         <span class="text-[10px]">{formatDynamicDecimal(account.frozen)}</span>
       </div>
     </div>
@@ -88,12 +97,16 @@
     <div
       class="flex justify-between pt-1 border-t border-[var(--border-color)]"
     >
-      <span class="text-[var(--text-secondary)]">Mode:</span>
+      <span class="text-[var(--text-secondary)]"
+        >{$_("dashboard.account.mode")}:</span
+      >
       <span class="capitalize">{account.positionMode || "-"}</span>
     </div>
 
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Cross PnL:</span>
+      <span class="text-[var(--text-secondary)]"
+        >{$_("dashboard.account.crossPnl")}:</span
+      >
       <span
         class:text-[var(--success-color)]={account.crossUnrealizedPNL > 0}
         class:text-[var(--danger-color)]={account.crossUnrealizedPNL < 0}
@@ -103,7 +116,9 @@
     </div>
     {#if account.isolationUnrealizedPNL !== 0}
       <div class="flex justify-between">
-        <span class="text-[var(--text-secondary)]">Iso PnL:</span>
+        <span class="text-[var(--text-secondary)]"
+          >{$_("dashboard.account.isoPnl")}:</span
+        >
         <span
           class:text-[var(--success-color)]={account.isolationUnrealizedPNL > 0}
           class:text-[var(--danger-color)]={account.isolationUnrealizedPNL < 0}

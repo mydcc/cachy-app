@@ -8,7 +8,7 @@
   import { bitunixWs } from "../../services/bitunixWs";
   import { apiService } from "../../services/apiService";
   import { technicalsService } from "../../services/technicalsService";
-  import type { TechnicalsData } from "../../services/technicalsTypes"; // Import strict types
+  import type { Kline, TechnicalsData } from "../../services/technicalsTypes"; // Import strict types
   import {
     normalizeTimeframeInput,
     parseTimestamp,
@@ -16,10 +16,11 @@
   } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import Tooltip from "../shared/Tooltip.svelte";
+  import { _ } from "../../locales/i18n";
 
   export let isVisible: boolean = false;
 
-  let klinesHistory: any[] = [];
+  let klinesHistory: Kline[] = [];
   let data: TechnicalsData | null = null;
   let loading = false;
   let error: string | null = null;
@@ -132,10 +133,10 @@
 
     const lastIdx = klinesHistory.length - 1;
     const lastHistoryCandle = klinesHistory[lastIdx];
-    const lastTime = lastHistoryCandle.time || lastHistoryCandle.ts || 0; // Already parsed by apiService
+    const lastTime = lastHistoryCandle.time || 0; // Already parsed by apiService
 
     // Ensure we handle Decimal objects or strings/numbers correctly for history
-    const newCandleObj = {
+    const newCandleObj: Kline = {
       open: newKline.open ? new Decimal(newKline.open) : new Decimal(0),
       high: newKline.high ? new Decimal(newKline.high) : new Decimal(0),
       low: newKline.low ? new Decimal(newKline.low) : new Decimal(0),
@@ -202,9 +203,24 @@
     unsubscribeWs();
   });
 
+  function handleDropdownLeave() {
+    if (hoverTimeout) clearTimeout(hoverTimeout);
+    hoverTimeout = window.setTimeout(() => {
+      showTimeframePopup = false;
+      hoverTimeout = null;
+    }, 300);
+  }
+
+  function translateAction(action: string): string {
+    const key = action.toLowerCase().replace(" ", "");
+    // key will be buy, sell, strongbuy, strongsell, neutral
+    return $_(`settings.technicals.${key}`) || action;
+  }
+
   function getActionColor(action: string) {
-    if (action === "Buy") return "text-[var(--success-color)]";
-    if (action === "Sell") return "text-[var(--danger-color)]";
+    const a = action.toLowerCase();
+    if (a.includes("buy")) return "text-[var(--success-color)]";
+    if (a.includes("sell")) return "text-[var(--danger-color)]";
     return "text-[var(--text-secondary)]";
   }
 
@@ -224,13 +240,6 @@
       hoverTimeout = null;
     }
     showTimeframePopup = true;
-  }
-
-  function handleDropdownLeave() {
-    if (hoverTimeout) clearTimeout(hoverTimeout);
-    hoverTimeout = window.setTimeout(() => {
-      showTimeframePopup = false;
-    }, 200); // 200ms delay
   }
 
   function setTimeframe(tf: string) {
@@ -391,7 +400,7 @@
       {#if data?.summary}
         <div class="flex items-center gap-2 text-sm font-bold">
           <span class={getActionColor(data.summary.action)}
-            >{data.summary.action.toUpperCase()}</span
+            >{translateAction(data.summary.action).toUpperCase()}</span
           >
         </div>
       {/if}
@@ -411,7 +420,7 @@
       <!-- Oscillators & MAs (Standard) -->
       <div class="flex flex-col gap-2">
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
-          Oscillators
+          {$_("settings.technicals.oscillators")}
         </h4>
         <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
           {#each data.oscillators as osc}
@@ -425,7 +434,7 @@
               >{formatVal(osc.value)}</span
             >
             <span class="text-right font-bold {getActionColor(osc.action)}"
-              >{osc.action}</span
+              >{translateAction(osc.action)}</span
             >
           {/each}
         </div>
@@ -434,7 +443,7 @@
         class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]"
       >
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
-          Moving Averages
+          {$_("settings.technicals.movingAverages")}
         </h4>
         <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
           {#each data.movingAverages as ma}
@@ -448,7 +457,7 @@
               >{formatVal(ma.value)}</span
             >
             <span class="text-right font-bold {getActionColor(ma.action)}"
-              >{ma.action}</span
+              >{translateAction(ma.action)}</span
             >
           {/each}
         </div>
@@ -460,8 +469,10 @@
       >
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
           {indicatorSettings?.pivots?.type
-            ? `Pivots (${indicatorSettings.pivots.type})`
-            : "Pivots"}
+            ? `${$_("settings.technicals.pivots")} (${
+                indicatorSettings.pivots.type
+              })`
+            : $_("settings.technicals.pivots")}
         </h4>
         <div class="text-xs grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
           {#each Object.entries(data.pivots.classic).sort((a, b) => b[1]

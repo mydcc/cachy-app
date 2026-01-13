@@ -27,7 +27,7 @@
     <div class="flex items-center gap-1">
       <span
         class="text-xs text-[var(--text-secondary)] border-b border-dashed border-[var(--text-secondary)]"
-        >{$_("dashboard.balance") || "Available"}</span
+        >{$_("dashboard.account.balance")}</span
       >
     </div>
     <span class="text-sm font-bold text-[var(--text-primary)]"
@@ -54,7 +54,7 @@
 
   <div class="flex justify-between items-center">
     <span class="text-xs text-[var(--text-secondary)]"
-      >{$_("dashboard.margin") || "Margin"}</span
+      >{$_("dashboard.account.margin")}</span
     >
     <span class="text-sm font-bold text-[var(--text-primary)]"
       >{formatDynamicDecimal(margin, 2)} {currency}</span
@@ -65,7 +65,7 @@
     class="flex justify-between items-center pt-1 border-t border-[var(--border-primary)] border-dashed"
   >
     <span class="text-xs text-[var(--text-secondary)]"
-      >{$_("dashboard.pnl") || "Total PnL"}</span
+      >{$_("dashboard.account.pnl")}</span
     >
     <span
       class="text-sm font-bold"

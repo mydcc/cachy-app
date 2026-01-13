@@ -193,7 +193,7 @@
     labels: perfData.equityCurve.map((d) => new Date(d.x).toLocaleDateString()),
     datasets: [
       {
-        label: "Equity",
+        label: $_("journal.deepDive.charts.labels.equity"),
         data: perfData.equityCurve.map((d) => d.y),
         borderColor: themeColors.success,
         backgroundColor: hexToRgba(themeColors.success, 0.1),
@@ -208,7 +208,7 @@
     ),
     datasets: [
       {
-        label: "Drawdown",
+        label: $_("journal.deepDive.charts.titles.drawdown"),
         data: perfData.drawdownSeries.map((d) => d.y),
         borderColor: themeColors.danger,
         backgroundColor: hexToRgba(themeColors.danger, 0.2),
@@ -221,7 +221,7 @@
     labels: perfData.monthlyLabels,
     datasets: [
       {
-        label: "Monthly PnL",
+        label: $_("journal.deepDive.charts.titles.monthlyPnl"),
         data: perfData.monthlyData,
         backgroundColor: perfData.monthlyData.map((d) =>
           d >= 0 ? themeColors.success : themeColors.danger
@@ -234,12 +234,12 @@
   $: qualData = $qualityMetrics;
   $: winLossChartData = {
     labels: [
-      "Win Long",
-      "Win Short",
-      "Loss Long",
-      "Loss Short",
-      "BE Long",
-      "BE Short",
+      $_("journal.deepDive.charts.labels.winLong"),
+      $_("journal.deepDive.charts.labels.winShort"),
+      $_("journal.deepDive.charts.labels.lossLong"),
+      $_("journal.deepDive.charts.labels.lossShort"),
+      $_("journal.deepDive.charts.labels.beLong"),
+      $_("journal.deepDive.charts.labels.beShort"),
     ],
     datasets: [
       {
@@ -261,7 +261,7 @@
     labels: Object.keys(qualData.rHistogram),
     datasets: [
       {
-        label: "Trades",
+        label: $_("journal.deepDive.charts.labels.trades"),
         data: Object.values(qualData.rHistogram),
         backgroundColor: themeColors.accent,
       },
@@ -273,7 +273,7 @@
     ),
     datasets: [
       {
-        label: "Cumulative R",
+        label: $_("journal.deepDive.charts.titles.cumulativeR"),
         data: qualData.cumulativeRCurve.map((d) => d.y),
         borderColor: themeColors.accent,
         backgroundColor: hexToRgba(themeColors.accent, 0.1),
@@ -286,10 +286,10 @@
   // Direction Data
   $: dirData = calculator.getDirectionData(journal);
   $: longShortData = {
-    labels: ["Long", "Short"],
+    labels: [$_("journal.labels.long"), $_("journal.labels.short")],
     datasets: [
       {
-        label: "Net PnL",
+        label: $_("journal.deepDive.charts.labels.netPnl"),
         data: [dirData.longPnl, dirData.shortPnl],
         backgroundColor: [
           dirData.longPnl >= 0 ? themeColors.success : themeColors.danger,
@@ -302,7 +302,7 @@
     labels: dirData.topSymbols.labels,
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: dirData.topSymbols.data,
         backgroundColor: themeColors.success,
       },
@@ -312,7 +312,7 @@
     labels: dirData.bottomSymbols.labels,
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: dirData.bottomSymbols.data,
         backgroundColor: themeColors.danger,
       },
@@ -323,7 +323,11 @@
     labels: dirData.longCurve.map((d) => new Date(d.x).toLocaleDateString()),
     datasets: [
       {
-        label: "Long Cumulative PnL",
+        label:
+          $_("journal.deepDive.charts.titles.longVsShortEvolution") +
+          " (" +
+          $_("journal.labels.long") +
+          ")",
         data: dirData.longCurve.map((d) => d.y),
         borderColor: themeColors.success,
         backgroundColor: hexToRgba(themeColors.success, 0.1),
@@ -331,7 +335,11 @@
         tension: 0.1,
       },
       {
-        label: "Short Cumulative PnL",
+        label:
+          $_("journal.deepDive.charts.titles.longVsShortEvolution") +
+          " (" +
+          $_("journal.labels.short") +
+          ")",
         data: dirData.shortCurve.map((d) => d.y),
         borderColor: themeColors.danger,
         backgroundColor: hexToRgba(themeColors.danger, 0.1),
@@ -347,7 +355,7 @@
     labels: tagData.labels,
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: tagData.pnlData,
         backgroundColor: tagData.pnlData.map((d) =>
           d >= 0 ? themeColors.success : themeColors.danger
@@ -390,7 +398,7 @@
     labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: discData.hourlyPnl,
         backgroundColor: discData.hourlyPnl.map((d) =>
           d >= 0 ? themeColors.success : themeColors.danger
@@ -402,7 +410,7 @@
     labels: Object.keys(discData.riskBuckets),
     datasets: [
       {
-        label: "Trades",
+        label: $_("journal.deepDive.charts.labels.trades"),
         data: Object.values(discData.riskBuckets),
         backgroundColor: themeColors.warning,
       },
@@ -412,10 +420,10 @@
   // Cost Data
   $: costData = $costMetrics;
   $: grossNetData = {
-    labels: ["Gross", "Net"],
+    labels: [$_("journal.labels.gross"), $_("journal.labels.net")],
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: [costData.gross, costData.net],
         backgroundColor: [
           themeColors.accent,
@@ -428,7 +436,7 @@
     labels: costData.feeCurve.map((d) => new Date(d.x).toLocaleDateString()),
     datasets: [
       {
-        label: "Cumulative Fees",
+        label: $_("journal.deepDive.charts.titles.cumulativeFees"),
         data: costData.feeCurve.map((d) => d.y),
         borderColor: themeColors.warning,
         fill: true,
@@ -437,7 +445,10 @@
     ],
   };
   $: feeStructureData = {
-    labels: ["Trading", "Funding"],
+    labels: [
+      $_("journal.deepDive.charts.labels.trading"),
+      $_("journal.deepDive.charts.labels.funding"),
+    ],
     datasets: [
       {
         data: [costData.feeStructure.trading, costData.feeStructure.funding],
@@ -457,7 +468,7 @@
     labels: durationStats.labels,
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: durationStats.pnlData,
         backgroundColor: durationStats.pnlData.map((d) =>
           d >= 0 ? themeColors.success : themeColors.danger
@@ -465,7 +476,7 @@
         yAxisID: "y",
       },
       {
-        label: "Win Rate %",
+        label: $_("journal.deepDive.charts.titles.winRate"),
         data: durationStats.winRateData,
         type: "line",
         borderColor: themeColors.accent,
@@ -480,12 +491,12 @@
     labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
     datasets: [
       {
-        label: "Gross Profit",
+        label: $_("journal.deepDive.charts.labels.grossProfit"),
         data: timingData.hourlyGrossProfit,
         backgroundColor: themeColors.success,
       },
       {
-        label: "Gross Loss",
+        label: $_("journal.deepDive.charts.labels.grossLoss"),
         data: timingData.hourlyGrossLoss,
         backgroundColor: themeColors.danger,
       },
@@ -496,12 +507,12 @@
     labels: timingData.dayLabels,
     datasets: [
       {
-        label: "Gross Profit",
+        label: $_("journal.deepDive.charts.labels.grossProfit"),
         data: timingData.dayOfWeekGrossProfit,
         backgroundColor: themeColors.success,
       },
       {
-        label: "Gross Loss",
+        label: $_("journal.deepDive.charts.labels.grossLoss"),
         data: timingData.dayOfWeekGrossLoss,
         backgroundColor: themeColors.danger,
       },
@@ -513,7 +524,7 @@
   $: durationScatterData = {
     datasets: [
       {
-        label: "Trades",
+        label: $_("journal.deepDive.charts.labels.trades"),
         data: durationDataRaw.scatterData,
         backgroundColor: durationDataRaw.scatterData.map((d) =>
           d.y >= 0 ? themeColors.success : themeColors.danger
@@ -545,7 +556,7 @@
   $: assetBubbleData = {
     datasets: [
       {
-        label: "Assets",
+        label: $_("journal.deepDive.assets"),
         data: assetData.bubbleData,
         backgroundColor: assetData.bubbleData.map((d) =>
           d.y >= 0
@@ -561,7 +572,7 @@
   $: riskRewardScatter = {
     datasets: [
       {
-        label: "Trades",
+        label: $_("journal.deepDive.charts.labels.trades"),
         data: riskScatterData.scatterData,
         backgroundColor: riskScatterData.scatterData.map((d) =>
           d.y >= 0 ? themeColors.success : themeColors.danger
@@ -573,7 +584,10 @@
   // Market
   $: marketData = $marketMetrics;
   $: longShortWinData = {
-    labels: ["Long Win Rate", "Short Win Rate"],
+    labels: [
+      $_("journal.deepDive.charts.labels.longWinRate"),
+      $_("journal.deepDive.charts.labels.shortWinRate"),
+    ],
     datasets: [
       {
         data: marketData.longShortWinRate,
@@ -586,7 +600,7 @@
     labels: marketData.leverageLabels,
     datasets: [
       {
-        label: "Count",
+        label: $_("journal.deepDive.charts.labels.count"),
         data: marketData.leverageDist,
         backgroundColor: themeColors.accent,
       },
@@ -599,7 +613,7 @@
     labels: psychData.streakLabels,
     datasets: [
       {
-        label: "Frequency",
+        label: $_("journal.deepDive.charts.labels.frequency"),
         data: psychData.winStreakData,
         backgroundColor: themeColors.success,
       },
@@ -609,7 +623,7 @@
     labels: psychData.streakLabels,
     datasets: [
       {
-        label: "Frequency",
+        label: $_("journal.deepDive.charts.labels.frequency"),
         data: psychData.lossStreakData,
         backgroundColor: themeColors.danger,
       },
@@ -624,7 +638,7 @@
         labels: monteCarloData.labels,
         datasets: [
           {
-            label: "90th Percentile (Best)",
+            label: $_("journal.deepDive.charts.labels.simBest"),
             data: monteCarloData.upperPath,
             borderColor: themeColors.success,
             backgroundColor: "transparent",
@@ -633,7 +647,7 @@
             pointRadius: 0,
           },
           {
-            label: "Median",
+            label: $_("journal.deepDive.charts.labels.simMedian"),
             data: monteCarloData.medianPath,
             borderColor: themeColors.accent,
             backgroundColor: "transparent",
@@ -641,7 +655,7 @@
             pointRadius: 0,
           },
           {
-            label: "10th Percentile (Worst)",
+            label: $_("journal.deepDive.charts.labels.simWorst"),
             data: monteCarloData.lowerPath,
             borderColor: themeColors.danger,
             backgroundColor: "transparent",
@@ -669,7 +683,7 @@
         labels: rollingData.labels,
         datasets: [
           {
-            label: "Rolling Win Rate (20)",
+            label: $_("journal.deepDive.charts.labels.rollingWinRate"),
             data: rollingData.winRates,
             borderColor: themeColors.success,
             backgroundColor: hexToRgba(themeColors.success, 0.1),
@@ -685,7 +699,7 @@
         labels: rollingData.labels,
         datasets: [
           {
-            label: "Rolling Profit Factor (20)",
+            label: $_("journal.deepDive.charts.labels.rollingPF"),
             data: rollingData.profitFactors,
             borderColor: themeColors.warning,
             backgroundColor: hexToRgba(themeColors.warning, 0.1),
@@ -701,7 +715,7 @@
         labels: rollingData.labels,
         datasets: [
           {
-            label: "Rolling SQN (20)",
+            label: $_("journal.deepDive.charts.labels.rollingSQN"),
             data: rollingData.sqnValues,
             borderColor: themeColors.accent,
             backgroundColor: hexToRgba(themeColors.accent, 0.1),
@@ -725,7 +739,7 @@
     ],
     datasets: [
       {
-        label: "PnL Breakdown",
+        label: $_("journal.deepDive.charts.labels.pnlBreakdown"),
         data: [
           leakageData.waterfallData.grossProfit,
           leakageData.waterfallData.fees,
@@ -752,7 +766,7 @@
     ),
     datasets: [
       {
-        label: "PnL",
+        label: $_("journal.deepDive.charts.labels.pnl"),
         data: leakageData.worstTags.map((t) => t.pnl),
         backgroundColor: themeColors.danger,
       },
@@ -762,7 +776,7 @@
     labels: leakageData.worstHours.map((h) => `${h.hour}h`),
     datasets: [
       {
-        label: "Gross Loss",
+        label: $_("journal.deepDive.charts.labels.grossLoss"),
         data: leakageData.worstHours.map((h) => h.loss), // Absolute positive values for display
         backgroundColor: themeColors.danger,
       },
@@ -1026,7 +1040,7 @@
   }
 
   async function uploadScreenshot(tradeId: number, file: File) {
-    uiStore.showLoading("Uploading screenshot...");
+    uiStore.showLoading($_("journal.messages.uploading"));
 
     try {
       const url = await imgbbService.uploadToImgbb(file);
@@ -1044,7 +1058,7 @@
       uiStore.showFeedback("save"); // Re-use save success
     } catch (error: any) {
       console.error(error);
-      uiStore.showError(error.message || "Screenshot upload failed");
+      uiStore.showError(error.message || $_("journal.messages.uploadFailed"));
     } finally {
       uiStore.hideLoading();
     }
@@ -1226,7 +1240,7 @@
         >
           <LineChart
             data={directionEvolutionData}
-            title="Long vs Short Evolution"
+            title={$_("journal.deepDive.charts.titles.longVsShortEvolution")}
             description={$_(
               "journal.deepDive.charts.descriptions.directionEvolution"
             )}
@@ -1240,13 +1254,13 @@
           <div class="text-center mb-4">
             <span
               class="text-xs font-bold text-[#94a3b8] uppercase tracking-wider"
-              >Trading Stats</span
+              >{$_("journal.deepDive.charts.labels.tradingStats")}</span
             >
           </div>
           <div class="flex flex-col gap-3 text-sm">
             <div class="flex justify-between items-center">
               <span class="text-[var(--text-secondary)] text-[10px] uppercase"
-                >Win Rate</span
+                >{$_("journal.deepDive.charts.titles.winRate")}</span
               >
               <span
                 class="font-mono font-bold {qualData.stats.winRate.greaterThanOrEqualTo(
@@ -1260,7 +1274,7 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-[var(--text-secondary)] text-[10px] uppercase"
-                >Profit Factor</span
+                >{$_("journal.deepDive.charts.labels.profitFactor")}</span
               >
               <span
                 class="font-mono font-bold {qualData.detailedStats
@@ -1275,7 +1289,7 @@
             </div>
             <div class="flex justify-between items-center">
               <span class="text-[var(--text-secondary)] text-[10px] uppercase"
-                >Expectancy</span
+                >{$_("journal.deepDive.charts.labels.expectancy")}</span
               >
               <span
                 class="font-mono font-bold {qualData.detailedStats.expectancy >
@@ -1287,7 +1301,8 @@
               </span>
             </div>
             <div class="flex justify-between items-center text-[11px]">
-              <span class="text-[var(--text-secondary)] uppercase">Avg W/L</span
+              <span class="text-[var(--text-secondary)] uppercase"
+                >{$_("journal.deepDive.charts.labels.avgWinLoss")}</span
               >
               <div class="flex gap-1">
                 <span class="text-[var(--success-color)]"
@@ -1307,17 +1322,17 @@
             </div>
             <div class="flex justify-between items-center text-[10px]">
               <span class="text-[var(--text-secondary)] uppercase"
-                >L/S Win Rate</span
+                >{$_("journal.deepDive.charts.labels.winRateLS")}</span
               >
               <div class="flex gap-2">
                 <span style="color: {hexToRgba(themeColors.success, 1)}"
-                  >L: {formatDynamicDecimal(
+                  >{$_("journal.labels.long")}: {formatDynamicDecimal(
                     qualData.detailedStats.winRateLong,
                     1
                   )}%</span
                 >
                 <span style="color: {hexToRgba(themeColors.success, 0.6)}"
-                  >S: {formatDynamicDecimal(
+                  >{$_("journal.labels.short")}: {formatDynamicDecimal(
                     qualData.detailedStats.winRateShort,
                     1
                   )}%</span
@@ -1352,7 +1367,7 @@
         >
           <div class="text-center">
             <div class="text-xs uppercase text-[var(--text-secondary)]">
-              Longest Win Streak
+              {$_("journal.deepDive.charts.labels.longestWinStreak")}
             </div>
             <div class="text-3xl font-bold text-[var(--success-color)]">
               {discData.streak.win}
@@ -1360,7 +1375,7 @@
           </div>
           <div class="text-center">
             <div class="text-xs uppercase text-[var(--text-secondary)]">
-              Longest Loss Streak
+              {$_("journal.deepDive.charts.labels.longestLossStreak")}
             </div>
             <div class="text-3xl font-bold text-[var(--danger-color)]">
               {discData.streak.loss}
@@ -2167,7 +2182,10 @@
 
                         <!-- Preview -->
                         <div class="thumbnail-popup">
-                          <img src={trade.screenshot} alt="Trade Screenshot" />
+                          <img
+                            src={trade.screenshot}
+                            alt={$_("journal.labels.screenshotAlt")}
+                          />
                         </div>
 
                         <!-- Overlay Actions (Hover) -->
@@ -2388,7 +2406,8 @@
               <div
                 class="flex items-center justify-center h-full text-[var(--text-secondary)]"
               >
-                {$_("journal.noData")} (Min 5 Trades)
+                {$_("journal.noData")}
+                {$_("journal.messages.min5Trades")}
               </div>
             {/if}
           </div>
@@ -2436,7 +2455,8 @@
               <div
                 class="flex items-center justify-center h-full text-[var(--text-secondary)]"
               >
-                {$_("journal.noData")} (Min 20 Trades)
+                {$_("journal.noData")}
+                {$_("journal.messages.min20Trades")}
               </div>
             {/if}
           </div>
@@ -2458,7 +2478,7 @@
             {#if leakageData.worstTags.length > 0}
               <BarChart
                 data={leakageTagData}
-                title="Strategy Leakage"
+                title={$_("journal.deepDive.charts.titles.strategyLeakage")}
                 horizontal={true}
                 description={$_(
                   "journal.deepDive.charts.descriptions.leakageTags"
@@ -2468,7 +2488,8 @@
               <div
                 class="flex items-center justify-center h-full text-[var(--text-secondary)]"
               >
-                {$_("journal.noData")} (No Strategy Losses)
+                {$_("journal.noData")}
+                {$_("journal.messages.noStrategyLosses")}
               </div>
             {/if}
           </div>
@@ -2478,7 +2499,7 @@
             {#if leakageData.worstHours.length > 0}
               <BarChart
                 data={leakageTimingData}
-                title="Time Leakage (Worst Hours)"
+                title={$_("journal.deepDive.charts.titles.timeLeakage")}
                 description={$_(
                   "journal.deepDive.charts.descriptions.leakageTiming"
                 )}
@@ -2487,7 +2508,8 @@
               <div
                 class="flex items-center justify-center h-full text-[var(--text-secondary)]"
               >
-                {$_("journal.noData")} (No Timing Losses)
+                {$_("journal.noData")}
+                {$_("journal.messages.noTimingLosses")}
               </div>
             {/if}
           </div>
@@ -2498,7 +2520,7 @@
             <BarChart
               data={hourlyPnlData}
               title={$_("journal.deepDive.charts.hourlyPnl")}
-              description="Brutto-Gewinne (Grün) und Brutto-Verluste (Rot) pro Tageszeit. Hilft zu erkennen, wann du profitabel bist und wann du Geld verlierst."
+              description={$_("journal.deepDive.charts.descriptions.hourlyPnl")}
             />
           </div>
           <div
@@ -2507,7 +2529,9 @@
             <BarChart
               data={dayOfWeekPnlData}
               title={$_("journal.deepDive.charts.dayOfWeekPnl")}
-              description="Brutto-Gewinne und -Verluste pro Wochentag."
+              description={$_(
+                "journal.deepDive.charts.descriptions.dayOfWeekPnl"
+              )}
             />
           </div>
           <div
@@ -2515,10 +2539,12 @@
           >
             <BubbleChart
               data={durationScatterData}
-              title="Duration vs PnL"
+              title={$_("journal.deepDive.charts.titles.durationVsPnl")}
               xLabel="Dauer (Min)"
               yLabel="PnL ($)"
-              description="Verhältnis von Haltedauer zum Gewinn/Verlust. Erkennst du Muster bei kurzen vs. langen Trades?"
+              description={$_(
+                "journal.deepDive.charts.descriptions.durationVsPnl"
+              )}
             />
           </div>
           <div
@@ -2612,9 +2638,14 @@
                             ? "text-[var(--success-color)]"
                             : "text-[var(--danger-color)]"}
                         >
-                          PnL: {formatDynamicDecimal(cell.pnl, 2)}
+                          {$_("journal.deepDive.charts.labels.pnl")}: {formatDynamicDecimal(
+                            cell.pnl,
+                            2
+                          )}
                         </div>
-                        <div>Trades: {cell.count}</div>
+                        <div>
+                          {$_("journal.deepDive.charts.labels.trades")}: {cell.count}
+                        </div>
                       </div>
                     {/if}
                   </div>
@@ -2633,15 +2664,19 @@
               data={assetBubbleData}
               title={$_("journal.deepDive.charts.assetBubble")}
               xLabel="Win Rate (%)"
-              yLabel="Total PnL ($)"
-              description="Asset-Matrix: Oben rechts sind deine besten Coins (hohe Winrate, viel Gewinn). Größe der Blase = Anzahl Trades."
+              yLabel={$_("journal.totalPL") + " ($)"}
+              description={$_(
+                "journal.deepDive.charts.descriptions.assetBubble"
+              )}
             />
           </div>
           <div
             class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex items-center justify-center"
           >
             <div class="text-center">
-              <div class="text-sm text-[var(--text-secondary)]">Top Asset</div>
+              <div class="text-sm text-[var(--text-secondary)]">
+                {$_("journal.labels.topAsset")}
+              </div>
               {#if dirData.topSymbols.labels.length > 0}
                 <div class="text-2xl font-bold text-[var(--success-color)]">
                   {dirData.topSymbols.labels[0]}
@@ -2663,7 +2698,9 @@
               title={$_("journal.deepDive.charts.riskRewardScatter")}
               xLabel="Risk Amount ($)"
               yLabel="Realized PnL ($)"
-              description="Risk/Reward Scatter: Zeigt das Verhältnis von eingesetztem Risiko zum tatsächlichen Ergebnis. Ideal: Geringes Risiko, hoher Gewinn (oben links)."
+              description={$_(
+                "journal.deepDive.charts.descriptions.riskRewardScatter"
+              )}
             />
           </div>
           <div
@@ -2671,8 +2708,10 @@
           >
             <BarChart
               data={rDistData}
-              title="R-Multiple Distribution"
-              description="Häufigkeitsverteilung deiner Ergebnisse in R-Multiples."
+              title={$_("journal.deepDive.charts.titles.rMultipleDist")}
+              description={$_(
+                "journal.deepDive.charts.descriptions.rMultipleDist"
+              )}
             />
           </div>
         {:else if activeDeepDivePreset === "market"}
@@ -2682,7 +2721,9 @@
             <DoughnutChart
               data={longShortWinData}
               title={$_("journal.deepDive.charts.longShortWinRate")}
-              description="Vergleich der Gewinnrate zwischen Long- und Short-Trades."
+              description={$_(
+                "journal.deepDive.charts.descriptions.longShortWinRate"
+              )}
             />
           </div>
           <div
@@ -2691,7 +2732,9 @@
             <BarChart
               data={leverageDistData}
               title={$_("journal.deepDive.charts.leverageDist")}
-              description="Verteilung der verwendeten Hebel (Leverage)."
+              description={$_(
+                "journal.deepDive.charts.descriptions.leverageDist"
+              )}
             />
           </div>
         {:else if activeDeepDivePreset === "psychology"}
@@ -2701,7 +2744,7 @@
             <BarChart
               data={winStreakData}
               title={$_("journal.deepDive.charts.winStreak")}
-              description="Häufigkeit von Gewinnserien unterschiedlicher Länge."
+              description={$_("journal.deepDive.charts.descriptions.winStreak")}
             />
           </div>
           <div
@@ -2710,7 +2753,9 @@
             <BarChart
               data={lossStreakData}
               title={$_("journal.deepDive.charts.lossStreak")}
-              description="Häufigkeit von Verlustserien unterschiedlicher Länge."
+              description={$_(
+                "journal.deepDive.charts.descriptions.lossStreak"
+              )}
             />
           </div>
           <div
@@ -2720,7 +2765,7 @@
               data={drawdownData}
               title={$_("journal.deepDive.charts.recovery")}
               yLabel="Drawdown ($)"
-              description="Verlauf deiner Drawdowns. Zeigt wie schnell du dich von Verlusten erholst."
+              description={$_("journal.deepDive.charts.descriptions.recovery")}
             />
           </div>
         {:else if activeDeepDivePreset === "strategies"}
@@ -2729,7 +2774,7 @@
           >
             <LineChart
               data={tagEvolutionChartData}
-              title="Strategy Evolution"
+              title={$_("journal.deepDive.charts.titles.strategyEvolution")}
               description={$_(
                 "journal.deepDive.charts.descriptions.tagEvolution"
               )}
@@ -2748,7 +2793,7 @@
           >
             <div class="text-center p-4">
               <div class="text-[var(--text-secondary)] text-sm mb-2">
-                Most Profitable Strategy
+                {$_("journal.labels.mostProfitableStrategy")}
               </div>
               {#if tagData.labels.length > 0 && tagData.pnlData.length > 0}
                 {@const maxVal = Math.max(...tagData.pnlData)}

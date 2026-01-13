@@ -26,6 +26,7 @@
         bind:value={imgbbApiKey}
         class="input-field p-1 px-2 rounded text-sm"
         placeholder="Paste ImgBB Key"
+        on:blur={() => (imgbbApiKey = imgbbApiKey.trim())}
       />
     </div>
     <div class="flex flex-col gap-1">
@@ -85,6 +86,7 @@
           bind:value={bitunixKeys.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
+          on:blur={() => (bitunixKeys.key = bitunixKeys.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -96,6 +98,7 @@
           bind:value={bitunixKeys.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
+          on:blur={() => (bitunixKeys.secret = bitunixKeys.secret.trim())}
         />
       </div>
     </div>
@@ -115,6 +118,7 @@
           bind:value={binanceKeys.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
+          on:blur={() => (binanceKeys.key = binanceKeys.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -126,6 +130,7 @@
           bind:value={binanceKeys.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
+          on:blur={() => (binanceKeys.secret = binanceKeys.secret.trim())}
         />
       </div>
     </div>

@@ -1305,12 +1305,18 @@ export const app = {
       if (settings.apiProvider === "binance") {
         klines = await apiService.fetchBinanceKlines(
           symbol,
-          currentTradeState.atrTimeframe
+          currentTradeState.atrTimeframe,
+          15, // Default limit for ATR
+          "high"
         );
       } else {
         klines = await apiService.fetchBitunixKlines(
           symbol,
-          currentTradeState.atrTimeframe
+          currentTradeState.atrTimeframe,
+          15, // Default limit for ATR
+          undefined,
+          undefined,
+          "high"
         );
       }
 
@@ -1432,32 +1438,6 @@ export const app = {
       targets: [...state.targets, { price, percent, isLocked }],
     }));
   },
-  scanMultiAtr: async (symbol: string) => {
-    // This is now just a wrapper or can be deprecated/merged if we always use fetchAllAnalysisData
-    // For now we keep it but it might be redundant if fetchAll does everything
-    const settings = get(settingsStore);
-    const timeframes = settings.favoriteTimeframes?.length > 0
-      ? settings.favoriteTimeframes
-      : ["5m", "15m", "1h", "4h"];
-
-    const results: Record<string, number> = {};
-    const promises = timeframes.map(tf => {
-      const fetchFn = settings.apiProvider === "binance"
-        ? apiService.fetchBinanceKlines
-        : apiService.fetchBitunixKlines;
-
-      return fetchFn(symbol, tf)
-        .then(klines => {
-          const atr = calculator.calculateATR(klines);
-          if (atr.gt(0)) results[tf] = atr.toDP(4).toNumber();
-        })
-        .catch(e => console.warn(`Failed to fetch ATR for ${tf}`, e));
-    });
-
-    await Promise.all(promises);
-    updateTradeStore((state) => ({ ...state, multiAtrData: results }));
-  },
-
   // New unified fetch function for Price + ATR + Analysis
   fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
     if (!symbol || symbol.length < 3) return;
@@ -1471,12 +1451,6 @@ export const app = {
     const settings = get(settingsStore);
 
     const currentTf = state.atrTimeframe;
-    const favoriteTfs = settings.favoriteTimeframes?.length > 0
-      ? settings.favoriteTimeframes
-      : ["5m", "15m", "1h", "4h"];
-
-    // Clear old Multi-ATR data to show we are refreshing
-    updateTradeStore((s) => ({ ...s, multiAtrData: {} }));
 
     // 2. Fetch Current ATR (Critical) -> Update Immediately
     // We run this with High Priority to jump the queue if Technicals are loading
@@ -1504,25 +1478,6 @@ export const app = {
     } catch (e) {
       console.warn(`Failed to load Current ATR ${currentTf}`, e);
     }
-  },
-
-  scanMultiAtr: async (symbol: string) => {
-    // DISABLED (User Request): 
-    // We no longer calculate MTF ATRs in the background to save API requests.
-    // The chips in the UI now act purely as selectors.
-    // We keep the function here to avoid breaking call sites in other components.
-    const favoriteTfs = get(settingsStore).favoriteTimeframes;
-
-    // We update the store with empty values just to be sure
-    const newMultiAtr: Record<string, number> = {};
-    favoriteTfs.forEach(tf => {
-      newMultiAtr[tf] = 0; // 0 indicates no value calculated
-    });
-
-    updateTradeStore(s => ({
-      ...s,
-      multiAtrData: newMultiAtr
-    }));
   },
 
   adjustTpPercentages: (changedIndex: number | null) => {

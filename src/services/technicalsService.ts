@@ -186,10 +186,16 @@ const talibInit = talib
 
 export const technicalsService = {
   async calculateTechnicals(
-    klinesInput: any[],
-    rawSettings?: any
+    klinesInput: {
+      time: number;
+      open: number | string | Decimal;
+      high: number | string | Decimal;
+      low: number | string | Decimal;
+      close: number | string | Decimal;
+      volume?: number | string | Decimal;
+    }[],
+    settings?: IndicatorSettings
   ): Promise<TechnicalsData> {
-    const settings = rawSettings as any;
     // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
       console.log("Waiting for talib-web initialization...");
@@ -210,9 +216,13 @@ export const technicalsService = {
     const klines: Kline[] = [];
     let prevClose = new Decimal(0);
 
-    const toDec = (val: any, fallback: Decimal) => {
+    const toDec = (val: number | string | Decimal | undefined, fallback: Decimal): Decimal => {
       if (val instanceof Decimal) return val;
       if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
+      if (typeof val === "string") {
+        const parsed = parseFloat(val);
+        if (!isNaN(parsed)) return new Decimal(val);
+      }
       return fallback;
     };
 
@@ -444,9 +454,9 @@ export const technicalsService = {
     // --- Moving Averages ---
     const movingAverages: IndicatorResult[] = [];
     try {
-      const ema1 = settings?.ema?.ema1Length || 20;
-      const ema2 = settings?.ema?.ema2Length || 50;
-      const ema3 = settings?.ema?.ema3Length || 200;
+      const ema1 = settings?.ema?.ema1?.length || 20;
+      const ema2 = settings?.ema?.ema2?.length || 50;
+      const ema3 = settings?.ema?.ema3?.length || 200;
       const emaSource = getSource(settings?.ema?.source || "close").map((d) =>
         d.toNumber()
       );
@@ -523,8 +533,7 @@ export const technicalsService = {
       const slowSMA = getSMA(hl2, slowPeriod);
 
       console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${
-          fastSMA - slowSMA
+        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA
         }`
       );
 

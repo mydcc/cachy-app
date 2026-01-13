@@ -10,6 +10,8 @@ export interface IndicatorSettings {
     showSignal: boolean;
     signalType: "sma" | "ema";
     signalLength: number;
+    overbought: number;
+    oversold: number;
     defaultTimeframe: string; // Used if sync is disabled
   };
   macd: {
@@ -81,6 +83,8 @@ const defaultSettings: IndicatorSettings = {
     showSignal: true,
     signalType: "sma",
     signalLength: 14,
+    overbought: 70,
+    oversold: 30,
     defaultTimeframe: "1d",
   },
   macd: {
@@ -155,7 +159,10 @@ function createIndicatorStore() {
           parsed.precision !== undefined
             ? parsed.precision
             : defaultSettings.precision,
-        rsi: { ...defaultSettings.rsi, ...parsed.rsi },
+        rsi: {
+          ...defaultSettings.rsi,
+          ...parsed.rsi
+        },
         macd: { ...defaultSettings.macd, ...parsed.macd },
         stochastic: { ...defaultSettings.stochastic, ...parsed.stochastic },
         cci: { ...defaultSettings.cci, ...parsed.cci },
@@ -164,20 +171,20 @@ function createIndicatorStore() {
         momentum: { ...defaultSettings.momentum, ...parsed.momentum },
         ema: parsed.ema
           ? {
-              ema1: {
-                ...defaultSettings.ema.ema1,
-                ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
-              },
-              ema2: {
-                ...defaultSettings.ema.ema2,
-                ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
-              },
-              ema3: {
-                ...defaultSettings.ema.ema3,
-                ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
-              },
-              source: parsed.ema.source || defaultSettings.ema.source,
-            }
+            ema1: {
+              ...defaultSettings.ema.ema1,
+              ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
+            },
+            ema2: {
+              ...defaultSettings.ema.ema2,
+              ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
+            },
+            ema3: {
+              ...defaultSettings.ema.ema3,
+              ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
+            },
+            source: parsed.ema.source || defaultSettings.ema.source,
+          }
           : defaultSettings.ema,
         pivots: { ...defaultSettings.pivots, ...parsed.pivots },
       };

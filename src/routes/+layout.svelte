@@ -10,8 +10,7 @@
   import { onMount } from "svelte";
   import { initZoomPlugin } from "../lib/chartSetup";
 
-  // Removed Svelte 5 $props() and children destructuring
-  // let { children, data } = $props();
+  import { _ } from "../locales/i18n";
   export let data; // Restore standard Svelte 4 data prop
 
   import "../app.css";
@@ -24,6 +23,24 @@
   onMount(() => {
     // Initialize Zoom Plugin (Client-side only)
     initZoomPlugin();
+
+    // Global Error Handling
+    const handleGlobalError = (event: ErrorEvent) => {
+      console.error("Caught global error:", event.error);
+      uiStore.showError(event.message || "An unexpected error occurred.");
+    };
+
+    const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
+      console.error("Caught unhandled rejection:", event.reason);
+      const message =
+        event.reason instanceof Error
+          ? event.reason.message
+          : String(event.reason);
+      uiStore.showError(message);
+    };
+
+    window.addEventListener("error", handleGlobalError);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     // The server provides a theme from the cookie.
     // On the client, we prioritize localStorage as it might be more up-to-date
@@ -84,6 +101,11 @@
       if (evtSource) {
         evtSource.close();
       }
+      window.removeEventListener("error", handleGlobalError);
+      window.removeEventListener(
+        "unhandledrejection",
+        handleUnhandledRejection
+      );
     };
   });
 
@@ -107,7 +129,7 @@
 </script>
 
 <svelte:head>
-  <title>Cachy - Position Size & Risk Calculator</title>
+  <title>{$_("seo.pageTitle")}</title>
   <meta
     name="description"
     content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."

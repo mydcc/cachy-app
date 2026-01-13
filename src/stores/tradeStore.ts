@@ -37,7 +37,6 @@ export const initialTradeState: Pick<
   | "remoteTakerFee"
   | "feeMode"
   | "exitFees"
-  | "multiAtrData"
 > = {
   tradeType: CONSTANTS.TRADE_TYPE_LONG,
   accountSize: 1000,
@@ -73,7 +72,6 @@ export const initialTradeState: Pick<
   remoteTakerFee: undefined,
   feeMode: "maker_taker",
   exitFees: undefined,
-  multiAtrData: {},
 };
 
 function loadTradeStateFromLocalStorage(): typeof initialTradeState {
@@ -117,9 +115,6 @@ tradeStore.subscribe((value) => {
       // currentTradeData contains Decimal objects which stringify to strings, but we re-calculate on load anyway.
       // Also it might be large.
       stateToSave.currentTradeData = null;
-
-      // We DO NOT persist multiAtrData as it is transient and symbol-specific
-      stateToSave.multiAtrData = {};
 
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY,

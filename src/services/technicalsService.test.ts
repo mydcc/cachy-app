@@ -45,6 +45,7 @@ function generateKlines(count: number) {
       low: new Decimal(price - 2),
       close: new Decimal(price),
       volume: new Decimal(1000),
+      time: Date.now() + i * 60000,
     });
   }
   return klines;
