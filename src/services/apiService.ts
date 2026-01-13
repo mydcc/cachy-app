@@ -42,7 +42,10 @@ type BinanceKline = [
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
   private pending = new Map<string, Promise<any>>();
-  private queue: (() => void)[] = [];
+  // Two queues for Priority handling
+  private highPriorityQueue: (() => void)[] = [];
+  private normalQueue: (() => void)[] = [];
+
   private activeCount = 0;
   private readonly MAX_CONCURRENCY = 3;
 
@@ -50,15 +53,16 @@ class RequestManager {
    * Execute a fetch usage deduping and queuing.
    * @param key Unique key for deduplication (e.g. "BITUNIX:BTCUSDT:1h")
    * @param task The async function that performs the actual fetch
+   * @param priority 'high' or 'normal' (default)
    */
-  async schedule<T>(key: string, task: () => Promise<T>): Promise<T> {
+  async schedule<T>(key: string, task: () => Promise<T>, priority: 'high' | 'normal' = 'normal'): Promise<T> {
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
-      console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Deduped: ${key}`, "color: #fbbf24");
+      console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Deduped: ${key} (${priority})`, "color: #fbbf24");
       return this.pending.get(key) as Promise<T>;
     }
 
-    console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Queued: ${key}`, "color: #9ca3af");
+    console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Queued: ${key} (Pri: ${priority})`, "color: #9ca3af");
 
     // 2. Wrap in queue logic
     const promise = new Promise<T>((resolve, reject) => {
@@ -72,16 +76,21 @@ class RequestManager {
           reject(e);
         } finally {
           this.activeCount--;
-          console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Finished: ${key} (Active: ${this.activeCount})`, "color: #10b981");
-          this.pending.delete(key); // Cleanup pending map
-          this.next(); // Trigger next in queue
+          console.log(`%c[${new Date().toLocaleTimeString()}] [ReqMgr] Finished: ${key}`, "color: #10b981");
+          this.pending.delete(key);
+          this.next(); // Trigger next
         }
       };
 
       if (this.activeCount < this.MAX_CONCURRENCY) {
         run();
       } else {
-        this.queue.push(run);
+        // Enqueue based on priority
+        if (priority === 'high') {
+          this.highPriorityQueue.push(run);
+        } else {
+          this.normalQueue.push(run);
+        }
       }
     });
 
@@ -90,9 +99,15 @@ class RequestManager {
   }
 
   private next() {
-    if (this.queue.length > 0 && this.activeCount < this.MAX_CONCURRENCY) {
-      const nextTask = this.queue.shift();
-      nextTask?.();
+    // Drain High Priority first
+    if (this.activeCount < this.MAX_CONCURRENCY) {
+      if (this.highPriorityQueue.length > 0) {
+        const nextTask = this.highPriorityQueue.shift();
+        nextTask?.();
+      } else if (this.normalQueue.length > 0) {
+        const nextTask = this.normalQueue.shift();
+        nextTask?.();
+      }
     }
   }
 }
@@ -158,7 +173,8 @@ export const apiService = {
     interval: string,
     limit: number = 15,
     startTime?: number,
-    endTime?: number
+    endTime?: number,
+    priority: "high" | "normal" = "normal"
   ): Promise<Kline[]> {
     const key = `BITUNIX:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
     return requestManager.schedule(key, async () => {
@@ -221,7 +237,7 @@ export const apiService = {
         }
         throw new Error("apiErrors.generic");
       }
-    });
+    }, priority);
   },
 
   async fetchBinancePrice(symbol: string): Promise<Decimal> {
@@ -252,7 +268,8 @@ export const apiService = {
   async fetchBinanceKlines(
     symbol: string,
     interval: string,
-    limit: number = 15
+    limit: number = 15,
+    priority: "high" | "normal" = "normal"
   ): Promise<Kline[]> {
     const key = `BINANCE:${symbol}:${interval}:${limit}`;
     return requestManager.schedule(key, async () => {
@@ -286,7 +303,7 @@ export const apiService = {
         }
         throw new Error("apiErrors.generic");
       }
-    });
+    }, priority);
   },
 
   async fetchTicker24h(

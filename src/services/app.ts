@@ -1479,12 +1479,17 @@ export const app = {
     updateTradeStore((s) => ({ ...s, multiAtrData: {} }));
 
     // 2. Fetch Current ATR (Critical) -> Update Immediately
-    // We treat this separate from the batch so it's as fast as possible
-    const fetchFn = settings.apiProvider === "binance"
-      ? apiService.fetchBinanceKlines
-      : apiService.fetchBitunixKlines;
+    // We run this with High Priority to jump the queue if Technicals are loading
+    try {
+      let klines;
+      if (settings.apiProvider === "binance") {
+        // Binance Signature: symbol, interval, limit, priority
+        klines = await apiService.fetchBinanceKlines(symbol, currentTf, 99, "high");
+      } else {
+        // Bitunix Signature: symbol, interval, limit, start, end, priority
+        klines = await apiService.fetchBitunixKlines(symbol, currentTf, 99, undefined, undefined, "high");
+      }
 
-    fetchFn(symbol, currentTf).then(klines => {
       const atr = calculator.calculateATR(klines);
       if (atr.gt(0)) {
         updateTradeStore(s => ({
@@ -1496,25 +1501,28 @@ export const app = {
           app.calculateAndDisplay();
         }
       }
-    }).catch(e => console.warn(`Failed to load Current ATR ${currentTf}`, e));
+    } catch (e) {
+      console.warn(`Failed to load Current ATR ${currentTf}`, e);
+    }
 
     // 3. Fetch Favorites (Background Batch) -> Update Simultaneous
-    // Filter out currentTf if it's in favorites to avoid double fetching? 
-    // Actually, network cache might handle it, but safer to just fetch everything we need 
-    // or let the browser cache identical requests. 
-    // To ensure "simultaneous display" of chips, we fetch all favs, wait, then update.
-
-    const favTasks = favoriteTfs.map(async tf => {
+    const fetchFavPromise = async (tf: string) => {
       try {
-        // Re-select fetchFn or use the same one (it's safe)
-        const klines = await fetchFn(symbol, tf);
+        let klines;
+        if (settings.apiProvider === "binance") {
+          klines = await apiService.fetchBinanceKlines(symbol, tf, 99);
+        } else {
+          klines = await apiService.fetchBitunixKlines(symbol, tf, 99);
+        }
         const atr = calculator.calculateATR(klines);
         return { tf, val: atr.gt(0) ? atr.toDP(4).toNumber() : null };
       } catch (e) {
         console.warn(`Failed to load Fav ATR ${tf}`, e);
         return { tf, val: null };
       }
-    });
+    };
+
+    const favTasks = favoriteTfs.map(fetchFavPromise);
 
     Promise.all(favTasks).then(results => {
       const newMultiAtr: Record<string, number> = {};
