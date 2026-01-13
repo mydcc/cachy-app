@@ -49,6 +49,10 @@ class RequestManager {
   private activeCount = 0;
   private readonly MAX_CONCURRENCY = 3;
 
+  // Logging for debugging latency
+  private currentLog: string[] = [];
+  private readonly LOG_LIMIT = 50;
+
   /**
    * Execute a fetch usage deduping and queuing.
    * @param key Unique key for deduplication (e.g. "BITUNIX:BTCUSDT:1h")
