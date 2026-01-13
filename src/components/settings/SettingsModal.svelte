@@ -530,16 +530,13 @@
                 />
             {:else if activeTab === "indicators"}
                 <IndicatorsTab
-                    bind:showIndicatorParams
                     bind:precision
                     bind:historyLimit
-                    bind:favoriteTimeframes
                     bind:favoriteTimeframesInput
                     {handleTimeframeInput}
                     {handleTimeframeBlur}
                     bind:syncRsiTimeframe
                     {isPro}
-                    {availableTimeframes}
                     bind:rsiSettings
                     bind:macdSettings
                     bind:emaSettings
