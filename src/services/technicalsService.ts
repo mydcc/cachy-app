@@ -95,15 +95,38 @@ export const technicalsService = {
         console.log(`[Technicals] talibReady Status: ${talibReady}`);
 
         // Helper to extract value from talib result
-        const getVal = (res: any, key: string = 'output'): Decimal => {
-            if (!res) return new Decimal(0);
-            // Some functions return { output: [...] }, some { outReal: [...] }, some { [key]: [...] }
-            const out = res[key] || res.output || res.outReal || (Array.isArray(res) ? res : []);
-            if (out && out.length > 0) {
-                const val = out[out.length - 1];
-                return new Decimal(val !== undefined && !isNaN(val) ? val : 0);
+        const getVal = (res: any, name: string = 'Indicator', key: string = 'output'): Decimal => {
+            if (!res) {
+                console.log(`[Technicals] ${name} result is null/undefined`);
+                return new Decimal(0);
             }
-            return new Decimal(0);
+            const arr = res[key] || res.outReal || res.output || [];
+            if (arr.length === 0) {
+                console.log(`[Technicals] ${name} result array is empty`);
+                return new Decimal(0);
+            }
+
+            // Find last non-zero, non-NaN value
+            let lastVal = 0;
+            let found = false;
+            for (let i = arr.length - 1; i >= 0; i--) {
+                const v = arr[i];
+                if (v !== 0 && !isNaN(v) && v !== undefined && v !== null) {
+                    lastVal = v;
+                    found = true;
+                    // console.log(`[Technicals] ${name} found valid value ${v} at index ${i}/${arr.length-1}`);
+                    break;
+                }
+            }
+
+            if (!found) {
+                console.log(`[Technicals] ${name} - NO VALID VALUE FOUND in array of length ${arr.length}. Sample (Last 5):`, arr.slice(-5));
+            } else {
+                // Periodisches Loggen zur Diagnose (z.B. nur alle X Aufrufe oder bei Bedarf)
+                // console.log(`[Technicals] ${name} - Last Value: ${lastVal}, Array Length: ${arr.length}`);
+            }
+
+            return new Decimal(lastVal);
         };
 
         // Debug: Check input data
@@ -124,9 +147,11 @@ export const technicalsService = {
             console.log('[Technicals] RSI Result Raw:', rsiResult);
             if (rsiResult?.output) {
                 console.log('[Technicals] RSI Output Sample (Indices 14-19):', rsiResult.output.slice(14, 20));
+                console.log('[Technicals] RSI Output Sample (Indices 190-199):', rsiResult.output.slice(190, 201));
+                console.log('[Technicals] RSI Output Sample (Last 5):', rsiResult.output.slice(-5));
             }
 
-            const rsiVal = getVal(rsiResult);
+            const rsiVal = getVal(rsiResult, 'RSI', 'output');
             console.log('[Technicals] RSI Final Value:', rsiVal.toString());
 
             oscillators.push({
@@ -150,8 +175,8 @@ export const technicalsService = {
                 slowD_Period: stochD
             });
 
-            const stochKVal = getVal(stochResult, 'slowK');
-            const stochDVal = getVal(stochResult, 'slowD');
+            const stochKVal = getVal(stochResult, 'StochK', 'slowK');
+            const stochDVal = getVal(stochResult, 'StochD', 'slowD');
 
             let stochAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal)) stochAction = 'Buy';
@@ -172,7 +197,7 @@ export const technicalsService = {
                 close: Array.from(closesNum),
                 timePeriod: cciLen
             });
-            const cciVal = getVal(cciResult);
+            const cciVal = getVal(cciResult, 'CCI');
 
             const cciThreshold = settings?.cci?.threshold || 100;
             let cciAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
@@ -194,7 +219,7 @@ export const technicalsService = {
                 close: Array.from(closesNum),
                 timePeriod: adxSmooth
             });
-            const adxVal = getVal(adxResult);
+            const adxVal = getVal(adxResult, 'ADX');
 
             // Get +DI and -DI for action
             const pdiResult = await talib.PLUS_DI({
@@ -210,8 +235,8 @@ export const technicalsService = {
                 timePeriod: adxSmooth
             });
 
-            const pdi = getVal(pdiResult).toNumber();
-            const mdi = getVal(mdiResult).toNumber();
+            const pdi = getVal(pdiResult, 'PDI').toNumber();
+            const mdi = getVal(mdiResult, 'MDI').toNumber();
 
             const adxThreshold = settings?.adx?.threshold || 25;
             let adxAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
@@ -250,7 +275,7 @@ export const technicalsService = {
             const momLen = settings?.momentum?.length || 10;
             const momSource = new Float64Array(getSource(settings?.momentum?.source || 'close').map(d => d.toNumber()));
             const momResult = await talib.MOM({ inReal: Array.from(momSource), timePeriod: momLen });
-            const momVal = getVal(momResult);
+            const momVal = getVal(momResult, 'Momentum', 'output');
 
             let momAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (momVal.gt(0)) momAction = 'Buy';
@@ -276,8 +301,8 @@ export const technicalsService = {
                 signalPeriod: macdSig
             });
 
-            const macdVal = getVal(macdResult, 'MACD');
-            const macdSignalVal = getVal(macdResult, 'MACDSignal');
+            const macdVal = getVal(macdResult, 'MACD', 'MACD');
+            const macdSignalVal = getVal(macdResult, 'MACDSignal', 'MACDSignal');
 
             let macdAction: 'Buy' | 'Sell' | 'Neutral' = 'Neutral';
             if (!macdVal.isZero() || !macdSignalVal.isZero()) {
@@ -308,7 +333,7 @@ export const technicalsService = {
 
             for (const period of emaPeriods) {
                 const emaResult = await talib.EMA({ inReal: Array.from(closesNum), timePeriod: period });
-                const emaVal = getVal(emaResult);
+                const emaVal = getVal(emaResult, `EMA(${period})`);
 
                 console.log(`[Technicals] EMA(${period}) Result Raw:`, emaResult);
                 console.log(`[Technicals] EMA(${period}) Final Value: ${emaVal.toString()}`);
