@@ -180,10 +180,10 @@
             smileyX = x;
             smileyY = y;
             showSmiley = true;
-            // Hide after 400ms
+            // Hide after 1s
             setTimeout(() => {
                 showSmiley = false;
-            }, 400);
+            }, 1000);
         } catch (err) {
             console.error("Failed to copy:", err);
         }
@@ -578,7 +578,7 @@
         font-size: 1.5rem;
         pointer-events: none;
         z-index: 9999;
-        animation: fadeOut 0.4s ease-out;
+        animation: fadeOut 1s ease-out;
     }
 
     @keyframes fadeOut {
