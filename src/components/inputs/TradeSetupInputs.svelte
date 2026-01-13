@@ -168,21 +168,25 @@
     "1month",
   ];
   // MTF-ATR: Ensure we only show the user's favorites from Settings
-  // NOTE: multiAtrData is now in tradeStore
-  $: sortedMultiAtrData = Object.entries($tradeStore.multiAtrData)
-    .filter(([tf]) => $settingsStore.favoriteTimeframes.includes(tf))
-    .sort((a, b) => {
-      const ia = availableTimeframes.indexOf(a[0]);
-      const ib = availableTimeframes.indexOf(b[0]);
-      const valA = ia === -1 ? 999 : ia;
-      const valB = ib === -1 ? 999 : ib;
-      return valA - valB;
-    });
+  // We iterate over favorites directly now, not calculated data
+  $: sortedFavoriteTimeframes = availableTimeframes.filter((tf) =>
+    $settingsStore.favoriteTimeframes.includes(tf)
+  );
 
   function applyAtr(tf: string, val: number) {
-    // Apply ATR to inputs but DO NOT change the dropdown timeframe unless desired.
-    updateTradeStore((s) => ({ ...s, atrTimeframe: tf, atrValue: val }));
+    // Apply ATR: Since we don't have a value anymore, we just set the Timeframe.
+    // The main flow will then trigger a fetch for this specific timeframe via 'atrTimeframe' change
+    // OR we trigger a manual fetch here.
+    // Actually, setting 'atrTimeframe' triggers the bind in the parent/store?
+    // Let's explicitly trigger the setup.
+    updateTradeStore((s) => ({ ...s, atrTimeframe: tf }));
     dispatch("setAtrTimeframe", tf);
+
+    // We immediately trigger a fetch for the NEW main timeframe
+    // But only if we have a symbol.
+    if ($tradeStore.symbol) {
+      app.fetchAtr(); // This fetches the main ATR for the new timeframe
+    }
   }
 
   // Copy to clipboard with smiley feedback
@@ -546,23 +550,27 @@
     <!-- Multi-ATR Preview (Minimalist) -->
     {#if useAtrSl}
       <div class="mt-3 border-t border-[var(--border-color)] pt-2">
-        <div class="flex items-center gap-2 flex-wrap text-xs min-h-[24px]">
-          {#if sortedMultiAtrData.length > 0}
-            {#each sortedMultiAtrData as [tf, val]}
+        <!-- MTF ATR Chips (Favorites only) -->
+        {#if $settingsStore.showMultiTimeframeAtr}
+          <div class="flex flex-wrap gap-2 mt-2">
+            {#each sortedFavoriteTimeframes as tf}
               <button
-                class="px-2 py-0.5 rounded bg-[var(--bg-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors border border-[var(--border-color)]"
-                on:click={() => applyAtr(tf, val)}
-                title="Apply {tf} ATR"
+                class="px-2 py-1 text-xs rounded-md border transition-colors duration-200"
+                class:bg-[var(--accent-color)]={tf === atrTimeframe}
+                class:text-white={tf === atrTimeframe}
+                class:border-transparent={tf === atrTimeframe}
+                class:bg-[var(--bg-tertiary)]={tf !== atrTimeframe}
+                class:text-[var(--text-secondary)]={tf !== atrTimeframe}
+                class:border-[var(--border-color)]={tf !== atrTimeframe}
+                class:hover:border-[var(--accent-color)]={tf !== atrTimeframe}
+                on:click={() => applyAtr(tf, 0)}
+                type="button"
               >
-                <span class="font-bold opacity-70 mr-1">{tf}:</span>{val}
+                {tf}
               </button>
             {/each}
-          {:else if symbol}
-            <span class="text-[var(--text-secondary)] italic opacity-50 ml-1"
-              >...</span
-            >
-          {/if}
-        </div>
+          </div>
+        {/if}
       </div>
     {/if}
   </div>
