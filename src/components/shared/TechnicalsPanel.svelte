@@ -328,7 +328,6 @@
                     </svg>
                 </button>
             </div>
-        </div>
 
             {#if showTimeframePopup}
                 <div
