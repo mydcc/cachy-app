@@ -117,9 +117,9 @@ const defaultSettings: IndicatorSettings = {
         source: 'close'
     },
     ema: {
-        ema1: { length: 20, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
-        ema2: { length: 50, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
-        ema3: { length: 200, offset: 0, smoothingType: 'sma', smoothingLength: 5 },
+        ema1: { length: 20, offset: 0, smoothingType: 'sma', smoothingLength: 14 },
+        ema2: { length: 50, offset: 0, smoothingType: 'sma', smoothingLength: 14 },
+        ema3: { length: 200, offset: 0, smoothingType: 'sma', smoothingLength: 14 },
         source: 'close'
     },
     pivots: {
