@@ -251,7 +251,7 @@ export const app = {
         atrValue: parseDecimal(currentTradeState.atrValue),
         atrMultiplier: parseDecimal(
           currentTradeState.atrMultiplier ||
-            parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
+          parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
         ),
         stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
         targets: currentTradeState.targets.map((t) => ({
@@ -296,18 +296,17 @@ export const app = {
         values.stopLossPrice =
           currentTradeState.tradeType === CONSTANTS.TRADE_TYPE_LONG
             ? values.entryPrice.minus(
-                values.atrValue.times(values.atrMultiplier)
-              )
+              values.atrValue.times(values.atrMultiplier)
+            )
             : values.entryPrice.plus(
-                values.atrValue.times(values.atrMultiplier)
-              );
+              values.atrValue.times(values.atrMultiplier)
+            );
 
         newResults.showAtrFormulaDisplay = true;
         newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
           4
-        )} ${operator} (${values.atrValue} × ${
-          values.atrMultiplier
-        }) = ${values.stopLossPrice.toFixed(4)}`;
+        )} ${operator} (${values.atrValue} × ${values.atrMultiplier
+          }) = ${values.stopLossPrice.toFixed(4)}`;
       } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
         return { status: CONSTANTS.STATUS_INCOMPLETE };
       }
@@ -979,8 +978,8 @@ export const app = {
       if (lines.length > MAX_IMPORT_LINES) {
         uiStore.showError(
           `Zu viele Zeilen (${lines.length - 1} Trades). ` +
-            `Maximum: 1000 Trades pro Import. ` +
-            `Bitte teilen Sie die CSV-Datei auf.`
+          `Maximum: 1000 Trades pro Import. ` +
+          `Bitte teilen Sie die CSV-Datei auf.`
         );
         return;
       }
@@ -1168,9 +1167,9 @@ export const app = {
                 : "",
               tags: entry.Tags
                 ? entry.Tags.replace(/"/g, "")
-                    .split(";")
-                    .map((t) => t.trim())
-                    .filter(Boolean)
+                  .split(";")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
                 : [],
               screenshot: entry.Screenshot || undefined,
               targets: targets,
@@ -1441,9 +1440,10 @@ export const app = {
         ? settings.favoriteTimeframes
         : ["5m", "15m", "1h", "4h"];
 
-    const results: Record<string, number> = {};
+    // Clear old data to prevent stale values during fetch
+    updateTradeStore((state) => ({ ...state, multiAtrData: {} }));
 
-    const fetchPromise = async (tf: string) => {
+    const fetchAndSet = async (tf: string) => {
       try {
         let klines;
         if (settings.apiProvider === "binance") {
@@ -1453,31 +1453,33 @@ export const app = {
         }
         const atr = calculator.calculateATR(klines);
         if (atr.gt(0)) {
-          results[tf] = atr.toDP(4).toNumber();
+          // Incrementally update the store
+          updateTradeStore((state) => ({
+            ...state,
+            multiAtrData: {
+              ...state.multiAtrData,
+              [tf]: atr.toDP(4).toNumber(),
+            },
+          }));
         }
       } catch (e) {
         console.warn(`Failed to fetch ATR for ${tf}`, e);
       }
     };
 
-    await Promise.all(timeframes.map((tf) => fetchPromise(tf)));
-    updateTradeStore((state) => ({ ...state, multiAtrData: results }));
+    await Promise.all(timeframes.map((tf) => fetchAndSet(tf)));
   },
 
   // New unified fetch function for Price + ATR + Analysis
   fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
     if (!symbol || symbol.length < 3) return;
 
-    // 1. Fetch Price (updateTradeStore handles UI)
-    await app.handleFetchPrice(isAuto);
+    // Fetch everything in parallel to minimize wait time
+    const pricePromise = app.handleFetchPrice(isAuto);
+    const multiAtrPromise = app.scanMultiAtr(symbol);
+    const currentAtrPromise = app.fetchAtr(isAuto);
 
-    // 2. Fetch Multi-ATR (MTF)
-    app.scanMultiAtr(symbol);
-
-    // 3. Fetch specific ATR for active timeframe
-    // Important: Even if not Auto-Mode, we fetch it once on manual click/favorite select
-    // to ensure the values are present immediately.
-    await app.fetchAtr(isAuto);
+    await Promise.allSettled([pricePromise, multiAtrPromise, currentAtrPromise]);
   },
 
   adjustTpPercentages: (changedIndex: number | null) => {

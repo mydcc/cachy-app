@@ -1,6 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte";
     import { normalizeTimeframeInput } from "../../utils/utils";
+    import { _ } from "../../locales/i18n";
     import { fade, scale } from "svelte/transition";
     import { quintOut } from "svelte/easing";
 
@@ -149,7 +150,9 @@
 
     {#if selected.length >= maxItems}
         <div class="text-[10px] text-[var(--text-tertiary)] mt-1 px-1">
-            Max {maxItems} timeframes selected.
+            {$_("settings.indicators.maxTimeframesSelected", {
+                values: { max: maxItems },
+            })}
         </div>
     {/if}
 </div>

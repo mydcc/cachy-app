@@ -469,6 +469,8 @@
       "precision": "Präzision",
       "historyLimit": "Historie Limit",
       "favoriteTimeframes": "Favorisierte Timeframes",
+      "addTimeframe": "Timeframe hinzufügen...",
+      "maxTimeframesSelected": "Max {max} Timeframes ausgewählt.",
       "syncRsiTimeframe": "RSI Timeframe synchronisieren"
     }
   },
