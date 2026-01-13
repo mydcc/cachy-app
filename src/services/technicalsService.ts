@@ -1,6 +1,7 @@
 import * as talib from 'talib-web';
 import { Decimal } from 'decimal.js';
 import { browser } from '$app/environment';
+import talibWasmUrl from 'talib-web/lib/talib.wasm?url';
 import type { IndicatorSettings } from '../stores/indicatorStore';
 import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
@@ -8,13 +9,13 @@ export type { Kline, TechnicalsData, IndicatorResult };
 
 // Initialize talib-web WASM module
 let talibReady = false;
-// Explicitly point to the WASM file in static directory if in browser
-const wasmPath = browser ? '/talib.wasm' : undefined;
+// Explicitly point to the WASM file using Vite asset URL
+const wasmPath = browser ? talibWasmUrl : undefined;
 const talibInit = talib.init(wasmPath).then(() => {
     talibReady = true;
-    console.log('talib-web initialized successfully');
+    console.log(`talib-web initialized successfully from ${wasmPath}`);
 }).catch(err => {
-    console.error('Failed to initialize talib-web:', err);
+    console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
 });
 
 export const technicalsService = {
@@ -22,6 +23,7 @@ export const technicalsService = {
         // Ensure talib is initialized
         if (!talibReady) {
             console.log('Waiting for talib-web initialization...');
+
             try {
                 await talibInit;
                 if (!talibReady) {
@@ -88,7 +90,7 @@ export const technicalsService = {
         const currentPrice = klines[klines.length - 1].close;
 
         // Debug: Check input data
-        // console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
+        console.log(`Calculating technicals for ${klines.length} candles. Last close: ${currentPrice}`);
 
         // --- Oscillators ---
         const oscillators: IndicatorResult[] = [];
@@ -97,12 +99,17 @@ export const technicalsService = {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
             const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
+
+            // Debug Inputs
+            // console.log('RSI Source (last 5):', rsiSource.slice(-5));
+
             const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
 
             // Debug RSI
-            // if (!rsiResult || !rsiResult.output || rsiResult.output.length === 0) {
-            //     console.warn('RSI calculation returned empty result:', rsiResult);
-            // }
+            if (!rsiResult || !rsiResult.output || rsiResult.output.length === 0) {
+                console.warn('RSI calculation returned empty result:', rsiResult);
+                console.warn('RSI Source length:', rsiSource.length);
+            }
 
             const rsiOutput = rsiResult?.output || [];
             const rsiVal = rsiOutput.length > 0
