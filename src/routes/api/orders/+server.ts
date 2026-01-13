@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHmac, createHash, randomBytes } from "crypto";
+import { CONSTANTS } from "../../../lib/constants";
 
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
@@ -50,7 +51,24 @@ async function placeBitunixOrder(
   apiSecret: string,
   orderData: any
 ): Promise<any> {
-  const baseUrl = "https://fapi.bitunix.com";
+  // Input Validation
+  if (!orderData.symbol || !orderData.side || !orderData.type) {
+    throw new Error("Missing required order fields: symbol, side, type.");
+  }
+
+  const qty = parseFloat(orderData.qty);
+  if (isNaN(qty) || qty <= 0) {
+    throw new Error("Invalid order quantity. Must be a positive number.");
+  }
+
+  if (orderData.type.toUpperCase() === "LIMIT") {
+    const price = parseFloat(orderData.price);
+    if (isNaN(price) || price <= 0) {
+      throw new Error("Invalid order price. Must be a positive number.");
+    }
+  }
+
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/place_order";
 
   // Construct Payload
@@ -121,7 +139,7 @@ async function fetchBitunixPendingOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_pending_orders";
 
   const params: Record<string, string> = {};
@@ -205,7 +223,7 @@ async function fetchBitunixHistoryOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_history_orders";
 
   // Default limit 20

@@ -5,10 +5,8 @@ import { settingsStore } from "../stores/settingsStore";
 import { CONSTANTS } from "../lib/constants";
 import CryptoJS from "crypto-js";
 
-const WS_PUBLIC_URL =
-  CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";
-const WS_PRIVATE_URL =
-  CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
+const WS_PUBLIC_URL = CONSTANTS.BITUNIX_WS_PUBLIC_URL;
+const WS_PRIVATE_URL = CONSTANTS.BITUNIX_WS_PRIVATE_URL;
 
 const PING_INTERVAL = 20000; // 20 seconds (standard interval)
 const WATCHDOG_TIMEOUT = 30000; // 30 seconds (safe buffer above ping interval)
