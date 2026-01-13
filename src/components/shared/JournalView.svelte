@@ -772,7 +772,9 @@
     let currentPage = 1;
     let itemsPerPage = 10;
     // Allow 'duration' as a virtual sort field
-    let sortField: keyof import("../../stores/types").JournalEntry | "duration" = "date";
+    let sortField:
+        | keyof import("../../stores/types").JournalEntry
+        | "duration" = "date";
     let sortDirection: "asc" | "desc" = "desc";
     let filterDateStart = "";
     let filterDateEnd = "";
@@ -2708,7 +2710,7 @@
                     </div>
                 {:else if activeDeepDivePreset === "timing"}
                     <div
-                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                     >
                         <BarChart
                             data={hourlyPnlData}
@@ -2717,7 +2719,7 @@
                         />
                     </div>
                     <div
-                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                     >
                         <BarChart
                             data={dayOfWeekPnlData}
@@ -2726,7 +2728,7 @@
                         />
                     </div>
                     <div
-                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
                     >
                         <BubbleChart
                             data={durationScatterData}
@@ -2737,7 +2739,7 @@
                         />
                     </div>
                     <div
-                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2"
+                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-1 h-[250px]"
                     >
                         <BarChart
                             data={durationChartData}
@@ -2765,7 +2767,7 @@
                         />
                     </div>
                     <div
-                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-3"
+                        class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px] overflow-auto"
                     >
                         <div
                             class="text-sm font-bold text-[var(--text-secondary)] mb-2 uppercase tracking-wider"
