@@ -1482,6 +1482,12 @@ body {
     color: var(--text-primary);
 }
 
+.compact-number-input {
+    width: 60px;
+    text-align: center;
+    padding: 0.25rem;
+}
+
 .input-field:disabled {
     background-color: var(--bg-secondary);
     cursor: not-allowed;

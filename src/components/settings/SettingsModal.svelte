@@ -21,6 +21,7 @@
     import { trackCustomEvent } from "../../services/trackingService";
     import { normalizeTimeframeInput } from "../../utils/utils";
     import HotkeySettings from "./HotkeySettings.svelte";
+    import Toggle from "../shared/Toggle.svelte";
     import {
         HOTKEY_ACTIONS,
         MODE1_MAP,
@@ -1233,92 +1234,77 @@
                     role="tabpanel"
                     id="tab-indicators"
                 >
-                    <!-- Moved Toggle Here -->
-                    <label
-                        class="flex items-center justify-between p-3 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer border border-[var(--border-color)] bg-[var(--bg-tertiary)] mb-2"
+                    <div
+                        class="flex items-center justify-between p-3 rounded border border-[var(--border-color)] bg-[var(--bg-tertiary)]"
                     >
-                        <span class="text-sm font-medium"
-                            >{$_("settings.showIndicatorParams")}</span
-                        >
-                        <input
-                            id="show-ind-params"
-                            name="showIndicatorParams"
-                            type="checkbox"
-                            bind:checked={showIndicatorParams}
-                            class="accent-[var(--accent-color)] h-4 w-4 rounded"
-                        />
-                    </label>
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.showIndicatorParams")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Zeigt Parameter wie Länge/Quelle direkt im
+                                Panel an</span
+                            >
+                        </div>
+                        <Toggle bind:checked={showIndicatorParams} />
+                    </div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <!-- Left Column -->
+                        <!-- Left Column: Global & Core Indicators -->
                         <div class="flex flex-col gap-4">
+                            <!-- Global Technical Settings -->
                             <div
                                 class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]"
                             >
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-bold"
-                                        >Technicals Precision</span
+                                <h4
+                                    class="text-xs uppercase font-bold text-[var(--text-secondary)] mb-1"
+                                >
+                                    Global Settings
+                                </h4>
+
+                                <div class="flex items-center justify-between">
+                                    <label for="precision" class="text-xs"
+                                        >Technicals Precision</label
                                     >
-                                </div>
-                                <div class="flex flex-col gap-1 mt-1">
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="precision"
-                                            name="indicatorPrecision"
                                             type="number"
                                             min="0"
                                             max="8"
                                             step="1"
-                                            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm w-full"
+                                            class="input-field rounded compact-number-input text-xs"
                                             bind:value={precision}
                                         />
                                         <span
-                                            class="text-xs text-[var(--text-secondary)] whitespace-nowrap"
-                                            >Decimals</span
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >dec</span
                                         >
                                     </div>
-                                    <p
-                                        class="text-[10px] text-[var(--text-secondary)]"
-                                    >
-                                        Adjust the number of decimal places for
-                                        all indicator values.
-                                    </p>
                                 </div>
-                            </div>
 
-                            <!-- History Limit Settings -->
-                            <div
-                                class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]"
-                            >
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-bold"
-                                        >Calculation History Depth</span
+                                <div
+                                    class="flex items-center justify-between mt-1"
+                                >
+                                    <label for="history-limit" class="text-xs"
+                                        >History Depth</label
                                     >
-                                </div>
-                                <div class="flex flex-col gap-1 mt-1">
                                     <div class="flex items-center gap-2">
                                         <input
                                             id="history-limit"
-                                            name="historyLimit"
                                             type="number"
                                             min="200"
                                             max="5000"
                                             step="100"
-                                            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm w-full"
+                                            class="input-field rounded compact-number-input text-xs !w-[70px]"
                                             bind:value={historyLimit}
                                         />
                                         <span
-                                            class="text-xs text-[var(--text-secondary)] whitespace-nowrap"
-                                            >Candles</span
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >bars</span
                                         >
                                     </div>
-                                    <p
-                                        class="text-[10px] text-[var(--text-secondary)]"
-                                    >
-                                        Higher values (e.g. 2000) improve
-                                        accuracy for EMA/RSI but require more
-                                        data.
-                                    </p>
                                 </div>
                             </div>
 
@@ -1326,38 +1312,32 @@
                             <div
                                 class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)]"
                             >
-                                <div class="flex justify-between items-center">
-                                    <span class="text-sm font-bold"
-                                        >Favorite Timeframes (Max 4)</span
+                                <div
+                                    class="flex justify-between items-center mb-1"
+                                >
+                                    <h4
+                                        class="text-xs uppercase font-bold text-[var(--text-secondary)]"
                                     >
+                                        Timeframes
+                                    </h4>
                                     <span
-                                        class="text-xs text-[var(--text-secondary)]"
+                                        class="text-[10px] text-[var(--text-secondary)]"
                                         >{favoriteTimeframes.length}/4</span
                                     >
                                 </div>
-                                <div class="flex flex-col gap-1 mt-1">
-                                    <input
-                                        id="fav-timeframes"
-                                        name="favoriteTimeframes"
-                                        type="text"
-                                        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
-                                        value={favoriteTimeframesInput}
-                                        on:input={handleTimeframeInput}
-                                        on:blur={handleTimeframeBlur}
-                                        placeholder="e.g. 5m, 15m, 1h, 4h"
-                                    />
-                                    <p
-                                        class="text-[10px] text-[var(--text-secondary)]"
-                                    >
-                                        Enter up to 4 comma-separated
-                                        timeframes. Inputs like '60m' or '1S'
-                                        are automatically normalized.
-                                    </p>
-                                </div>
-                                <div class="flex flex-wrap gap-2 mt-2">
+                                <input
+                                    id="fav-timeframes"
+                                    type="text"
+                                    class="input-field p-2 rounded text-xs bg-[var(--bg-secondary)]"
+                                    value={favoriteTimeframesInput}
+                                    on:input={handleTimeframeInput}
+                                    on:blur={handleTimeframeBlur}
+                                    placeholder="e.g. 5m, 15m, 1h, 4h"
+                                />
+                                <div class="flex flex-wrap gap-1.5 mt-1">
                                     {#each favoriteTimeframes as tf}
                                         <span
-                                            class="px-2 py-1 text-xs rounded bg-[var(--accent-color)] text-[var(--btn-accent-text)] border border-[var(--accent-color)]"
+                                            class="px-2 py-0.5 text-[10px] rounded bg-[var(--accent-color)] text-[var(--btn-accent-text)] font-bold"
                                         >
                                             {tf}
                                         </span>
@@ -1372,44 +1352,39 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Relative Strength Index (RSI)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        RSI
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <label
-                                    class="flex items-center justify-between cursor-pointer"
-                                >
-                                    <span class="text-xs font-medium"
-                                        >Sync with Calculator Timeframe</span
-                                    >
-                                    <input
-                                        id="rsi-sync"
-                                        name="syncRsiTimeframe"
-                                        type="checkbox"
+                                <div class="flex items-center justify-between">
+                                    <span class="text-xs">Sync Timeframe</span>
+                                    <Toggle
                                         bind:checked={syncRsiTimeframe}
-                                        class="accent-[var(--accent-color)] h-4 w-4 rounded"
+                                        disabled={!isPro}
                                     />
-                                </label>
+                                </div>
 
                                 {#if !syncRsiTimeframe}
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <label
                                             for="rsi-timeframe"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Default RSI Timeframe</label
+                                            class="text-xs">Default TF</label
                                         >
                                         <select
                                             id="rsi-timeframe"
-                                            name="rsiTimeframe"
                                             bind:value={rsiSettings.defaultTimeframe}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             {#each availableTimeframes as tf}
@@ -1419,35 +1394,35 @@
                                     </div>
                                 {/if}
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="rsi-length"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="rsi-length" class="text-xs"
                                             >Length</label
                                         >
                                         <input
                                             id="rsi-length"
-                                            name="rsiLength"
                                             type="number"
                                             bind:value={rsiSettings.length}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="rsi-source"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="rsi-source" class="text-xs"
                                             >Source</label
                                         >
                                         <select
                                             id="rsi-source"
-                                            name="rsiSource"
                                             bind:value={rsiSettings.source}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="close">Close</option>
@@ -1463,37 +1438,33 @@
                                 <div
                                     class="border-t border-[var(--border-color)] pt-3 mt-1"
                                 >
-                                    <label
-                                        class="flex items-center gap-2 cursor-pointer mb-2"
+                                    <div
+                                        class="flex items-center justify-between mb-2"
                                     >
-                                        <input
-                                            id="rsi-show-signal"
-                                            name="rsiShowSignal"
-                                            type="checkbox"
+                                        <span class="text-xs"
+                                            >Signal Line (MA)</span
+                                        >
+                                        <Toggle
                                             bind:checked={rsiSettings.showSignal}
-                                            class="accent-[var(--accent-color)] h-3 w-3 rounded"
                                             disabled={!isPro}
                                         />
-                                        <span class="text-xs font-medium"
-                                            >Show Signal Line (MA)</span
-                                        >
-                                    </label>
+                                    </div>
 
                                     {#if rsiSettings.showSignal}
                                         <div
-                                            class="grid grid-cols-2 gap-3 pl-5"
+                                            class="grid grid-cols-2 gap-x-4 gap-y-2"
                                         >
-                                            <div class="flex flex-col gap-1">
+                                            <div
+                                                class="flex items-center justify-between"
+                                            >
                                                 <label
                                                     for="rsi-signal-type"
-                                                    class="text-xs font-medium text-[var(--text-secondary)]"
-                                                    >Type</label
+                                                    class="text-xs">Type</label
                                                 >
                                                 <select
                                                     id="rsi-signal-type"
-                                                    name="rsiSignalType"
                                                     bind:value={rsiSettings.signalType}
-                                                    class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                                    class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                                     disabled={!isPro}
                                                 >
                                                     <option value="sma"
@@ -1504,20 +1475,21 @@
                                                     >
                                                 </select>
                                             </div>
-                                            <div class="flex flex-col gap-1">
+                                            <div
+                                                class="flex items-center justify-between"
+                                            >
                                                 <label
                                                     for="rsi-signal-length"
-                                                    class="text-xs font-medium text-[var(--text-secondary)]"
+                                                    class="text-xs"
                                                     >Length</label
                                                 >
                                                 <input
                                                     id="rsi-signal-length"
-                                                    name="rsiSignalLength"
                                                     type="number"
                                                     bind:value={rsiSettings.signalLength}
                                                     min="2"
                                                     max="100"
-                                                    class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                                    class="input-field rounded compact-number-input text-xs"
                                                     disabled={!isPro}
                                                 />
                                             </div>
@@ -1527,22 +1499,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize RSI
-                                                calculation.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -1553,81 +1511,80 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        MACD (Moving Average Convergence
-                                        Divergence)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        MACD
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="macd-fast"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Fast Length</label
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="macd-fast" class="text-xs"
+                                            >Fast Len</label
                                         >
                                         <input
                                             id="macd-fast"
-                                            name="macdFastLength"
                                             type="number"
                                             bind:value={macdSettings.fastLength}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="macd-slow"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Slow Length</label
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="macd-slow" class="text-xs"
+                                            >Slow Len</label
                                         >
                                         <input
                                             id="macd-slow"
-                                            name="macdSlowLength"
                                             type="number"
                                             bind:value={macdSettings.slowLength}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="macd-signal"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Signal Length</label
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="macd-signal" class="text-xs"
+                                            >Signal Len</label
                                         >
                                         <input
                                             id="macd-signal"
-                                            name="macdSignalLength"
                                             type="number"
                                             bind:value={macdSettings.signalLength}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="macd-source"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="macd-source" class="text-xs"
                                             >Source</label
                                         >
                                         <select
                                             id="macd-source"
-                                            name="macdSource"
                                             bind:value={macdSettings.source}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="close">Close</option>
@@ -1639,38 +1596,40 @@
                                         </select>
                                     </div>
                                 </div>
-                                <!-- NEW: MA Types -->
+
                                 <div
-                                    class="grid grid-cols-2 gap-3 mt-1 pt-2 border-t border-[var(--border-color)]"
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pt-2 border-t border-[var(--border-color)]"
                                 >
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <label
                                             for="macd-osc-type"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Oscillator MA Type</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Osc MA</label
                                         >
                                         <select
                                             id="macd-osc-type"
-                                            name="macdOscillatorMaType"
                                             bind:value={macdSettings.oscillatorMaType}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="ema">EMA</option>
                                             <option value="sma">SMA</option>
                                         </select>
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <label
                                             for="macd-sig-type"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Signal MA Type</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Sig MA</label
                                         >
                                         <select
                                             id="macd-sig-type"
-                                            name="macdSignalMaType"
                                             bind:value={macdSettings.signalMaType}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="ema">EMA</option>
@@ -1681,22 +1640,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize
-                                                MACD.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -1707,84 +1652,86 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Moving Averages (EMA)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        EMAs
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-3 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
+                                <div class="grid grid-cols-3 gap-2 mt-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="ema1"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                            class="text-[10px] text-[var(--text-secondary)]"
                                             >EMA 1</label
                                         >
                                         <input
                                             id="ema1"
-                                            name="ema1Length"
                                             type="number"
                                             bind:value={emaSettings.ema1Length}
                                             min="2"
                                             max="500"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="ema2"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                            class="text-[10px] text-[var(--text-secondary)]"
                                             >EMA 2</label
                                         >
                                         <input
                                             id="ema2"
-                                            name="ema2Length"
                                             type="number"
                                             bind:value={emaSettings.ema2Length}
                                             min="2"
                                             max="500"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="ema3"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                            class="text-[10px] text-[var(--text-secondary)]"
                                             >EMA 3</label
                                         >
                                         <input
                                             id="ema3"
-                                            name="ema3Length"
                                             type="number"
                                             bind:value={emaSettings.ema3Length}
                                             min="2"
                                             max="500"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
                                 </div>
 
                                 <div
-                                    class="flex flex-col gap-1 mt-1 pt-2 border-t border-[var(--border-color)]"
+                                    class="flex items-center justify-between mt-1 pt-2 border-t border-[var(--border-color)]"
                                 >
-                                    <label
-                                        for="ema-source"
-                                        class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <label for="ema-source" class="text-xs"
                                         >Source</label
                                     >
                                     <select
                                         id="ema-source"
-                                        name="emaSource"
                                         bind:value={emaSettings.source}
-                                        class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                        class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                         disabled={!isPro}
                                     >
                                         <option value="close">Close</option>
@@ -1798,22 +1745,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize
-                                                EMAs.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
                         </div>
@@ -1827,66 +1760,71 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Stochastic Oscillator
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        Stochastic
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-3 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
+                                <div class="grid grid-cols-3 gap-2 mt-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="stoch-k"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >%K Length</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >%K Len</label
                                         >
                                         <input
                                             id="stoch-k"
-                                            name="stochKPeriod"
                                             type="number"
                                             bind:value={stochSettings.kPeriod}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="stoch-k-smooth"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >%K Smooth</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >%K Smth</label
                                         >
                                         <input
                                             id="stoch-k-smooth"
-                                            name="stochKSmoothing"
                                             type="number"
                                             bind:value={stochSettings.kSmoothing}
                                             min="1"
                                             max="50"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex flex-col gap-1 items-center"
+                                    >
                                         <label
                                             for="stoch-d-smooth"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >%D Smooth</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >%D Smth</label
                                         >
                                         <input
                                             id="stoch-d-smooth"
-                                            name="stochDSmoothing"
                                             type="number"
                                             bind:value={stochSettings.dPeriod}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs !w-full"
                                             disabled={!isPro}
                                         />
                                     </div>
@@ -1894,22 +1832,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize
-                                                Stochastic.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -1920,46 +1844,48 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Commodity Channel Index (CCI)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        CCI
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="cci-length"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="cci-length" class="text-xs"
                                             >Length</label
                                         >
                                         <input
                                             id="cci-length"
-                                            name="cciLength"
                                             type="number"
                                             bind:value={cciSettings.length}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="cci-source"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="cci-source" class="text-xs"
                                             >Source</label
                                         >
                                         <select
                                             id="cci-source"
-                                            name="cciSource"
                                             bind:value={cciSettings.source}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="close">Close</option>
@@ -1973,39 +1899,41 @@
                                 </div>
 
                                 <div
-                                    class="border-t border-[var(--border-color)] pt-3 mt-1 grid grid-cols-2 gap-3"
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1 pt-2 border-t border-[var(--border-color)]"
                                 >
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <label
                                             for="cci-smooth-type"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Smoothing Type</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smth Type</label
                                         >
                                         <select
                                             id="cci-smooth-type"
-                                            name="cciSmoothingType"
                                             bind:value={cciSettings.smoothingType}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="sma">SMA</option>
                                             <option value="ema">EMA</option>
                                         </select>
                                     </div>
-                                    <div class="flex flex-col gap-1">
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
                                         <label
                                             for="cci-smooth-len"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >Smoothing Len</label
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Smth Len</label
                                         >
                                         <input
                                             id="cci-smooth-len"
-                                            name="cciSmoothingLength"
                                             type="number"
                                             bind:value={cciSettings.smoothingLength}
                                             min="1"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
@@ -2013,21 +1941,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize CCI.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -2038,49 +1953,51 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Average Directional Index (ADX)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        ADX
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="adx-smooth"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >ADX Smoothing</label
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="adx-smooth" class="text-xs"
+                                            >Smoothing</label
                                         >
                                         <input
                                             id="adx-smooth"
-                                            name="adxSmoothing"
                                             type="number"
                                             bind:value={adxSettings.adxSmoothing}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="adx-di"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
-                                            >DI Length</label
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="adx-di" class="text-xs"
+                                            >DI Len</label
                                         >
                                         <input
                                             id="adx-di"
-                                            name="adxDiLength"
                                             type="number"
                                             bind:value={adxSettings.diLength}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
@@ -2088,21 +2005,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize ADX.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -2113,49 +2017,51 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Awesome Oscillator (AO)
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        AO
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="ao-fast"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ao-fast" class="text-xs"
                                             >Fast Period</label
                                         >
                                         <input
                                             id="ao-fast"
-                                            name="aoFastLength"
                                             type="number"
                                             bind:value={aoSettings.fastLength}
                                             min="1"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="ao-slow"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="ao-slow" class="text-xs"
                                             >Slow Period</label
                                         >
                                         <input
                                             id="ao-slow"
-                                            name="aoSlowLength"
                                             type="number"
                                             bind:value={aoSettings.slowLength}
                                             min="2"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
@@ -2163,21 +2069,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize AO.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -2188,44 +2081,48 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">Momentum</h4>
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        Momentum
+                                    </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="grid grid-cols-2 gap-3 mt-1">
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="mom-length"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="mom-length" class="text-xs"
                                             >Length</label
                                         >
                                         <input
                                             id="mom-length"
-                                            name="momentumLength"
                                             type="number"
                                             bind:value={momentumSettings.length}
                                             min="1"
                                             max="100"
-                                            class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                                            class="input-field rounded compact-number-input text-xs"
                                             disabled={!isPro}
                                         />
                                     </div>
-                                    <div class="flex flex-col gap-1">
-                                        <label
-                                            for="mom-source"
-                                            class="text-xs font-medium text-[var(--text-secondary)]"
+                                    <div
+                                        class="flex items-center justify-between"
+                                    >
+                                        <label for="mom-source" class="text-xs"
                                             >Source</label
                                         >
                                         <select
                                             id="mom-source"
-                                            name="momentumSource"
                                             bind:value={momentumSettings.source}
-                                            class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
                                             disabled={!isPro}
                                         >
                                             <option value="close">Close</option>
@@ -2240,22 +2137,8 @@
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize
-                                                Momentum.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
 
@@ -2266,84 +2149,77 @@
                                 <div
                                     class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
                                 >
-                                    <h4 class="text-sm font-bold">
-                                        Pivot Points
+                                    <h4
+                                        class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+                                    >
+                                        Pivots
                                     </h4>
                                     {#if !isPro}
                                         <span
-                                            class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-2 py-0.5 rounded-full"
-                                            >PRO Feature</span
+                                            class="text-[9px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                                            >PRO</span
                                         >
                                     {/if}
                                 </div>
 
-                                <div class="flex flex-col gap-1 mt-1">
-                                    <label
-                                        for="pivot-type"
-                                        class="text-xs font-medium text-[var(--text-secondary)]"
-                                        >Type</label
+                                <div
+                                    class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1"
+                                >
+                                    <div
+                                        class="flex items-center justify-between"
                                     >
-                                    <select
-                                        id="pivot-type"
-                                        name="pivotType"
-                                        bind:value={pivotSettings.type}
-                                        class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
-                                        disabled={!isPro}
+                                        <label for="pivot-type" class="text-xs"
+                                            >Type</label
+                                        >
+                                        <select
+                                            id="pivot-type"
+                                            bind:value={pivotSettings.type}
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                            disabled={!isPro}
+                                        >
+                                            <option value="classic"
+                                                >Classic</option
+                                            >
+                                            <option value="woodie"
+                                                >Woodie</option
+                                            >
+                                            <option value="camarilla"
+                                                >Camarilla</option
+                                            >
+                                            <option value="fibonacci"
+                                                >Fibonacci</option
+                                            >
+                                        </select>
+                                    </div>
+                                    <div
+                                        class="flex items-center justify-between"
                                     >
-                                        <option value="classic">Classic</option>
-                                        <option value="woodie">Woodie</option>
-                                        <option value="camarilla"
-                                            >Camarilla</option
+                                        <label for="pivot-view" class="text-xs"
+                                            >View</label
                                         >
-                                        <option value="fibonacci"
-                                            >Fibonacci</option
+                                        <select
+                                            id="pivot-view"
+                                            bind:value={pivotSettings.viewMode}
+                                            class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)]"
+                                            disabled={!isPro}
                                         >
-                                    </select>
-                                </div>
-
-                                <div class="flex flex-col gap-1 mt-1">
-                                    <label
-                                        for="pivot-view"
-                                        class="text-xs font-medium text-[var(--text-secondary)]"
-                                        >View Mode</label
-                                    >
-                                    <select
-                                        id="pivot-view"
-                                        name="pivotViewMode"
-                                        bind:value={pivotSettings.viewMode}
-                                        class="input-field p-1 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
-                                        disabled={!isPro}
-                                    >
-                                        <option value="integrated"
-                                            >Integrated (Recommended)</option
-                                        >
-                                        <option value="separated"
-                                            >Separated</option
-                                        >
-                                        <option value="abstract"
-                                            >Abstract (Gauge)</option
-                                        >
-                                    </select>
+                                            <option value="integrated"
+                                                >Int</option
+                                            >
+                                            <option value="separated"
+                                                >Sep</option
+                                            >
+                                            <option value="abstract"
+                                                >Gauge</option
+                                            >
+                                        </select>
+                                    </div>
                                 </div>
 
                                 {#if !isPro}
                                     <div
-                                        class="absolute inset-0 bg-black/40 backdrop-blur-[1px] flex items-center justify-center rounded z-10"
-                                    >
-                                        <div
-                                            class="bg-[var(--bg-secondary)] p-3 rounded shadow border border-[var(--border-color)] text-center"
-                                        >
-                                            <p class="text-xs font-bold mb-1">
-                                                Advanced Settings Locked
-                                            </p>
-                                            <p
-                                                class="text-[10px] text-[var(--text-secondary)]"
-                                            >
-                                                Upgrade to Pro to customize
-                                                Pivots.
-                                            </p>
-                                        </div>
-                                    </div>
+                                        class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+                                    />
                                 {/if}
                             </div>
                         </div>
