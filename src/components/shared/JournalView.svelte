@@ -1,7 +1,25 @@
 <script lang="ts">
   import { tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
-  import { journalStore } from "../../stores/journalStore";
+  import {
+    journalStore,
+    performanceMetrics,
+    qualityMetrics,
+    directionMetrics,
+    tagMetrics,
+    calendarMetrics,
+    disciplineMetrics,
+    costMetrics,
+    timingMetrics,
+    confluenceMetrics,
+    durationStatsMetrics,
+    durationDataMetrics,
+    tagEvolutionMetrics,
+    assetMetrics,
+    riskMetrics,
+    marketMetrics,
+    psychologyMetrics,
+  } from "../../stores/journalStore";
   import { uiStore } from "../../stores/uiStore";
   import { app } from "../../services/app";
   import { imgbbService } from "../../services/imgbbService";
@@ -138,7 +156,8 @@
   });
 
   // --- Reactive Data for Charts ---
-  $: journal = $journalStore;
+  // Note: Most checks (performance, quality etc) now use derived stores from journalStore
+  $: journal = $journalStore; // Kept for local filters if needed, though most charts use stores now
 
   // Theme Color Management
   let themeColors = {
@@ -169,7 +188,7 @@
   }
 
   // Performance Data
-  $: perfData = calculator.getPerformanceData(journal);
+  $: perfData = $performanceMetrics;
   $: equityData = {
     labels: perfData.equityCurve.map((d) => new Date(d.x).toLocaleDateString()),
     datasets: [
@@ -212,7 +231,7 @@
   };
 
   // Quality Data
-  $: qualData = calculator.getQualityData(journal);
+  $: qualData = $qualityMetrics;
   $: winLossChartData = {
     labels: [
       "Win Long",
@@ -323,7 +342,7 @@
   };
 
   // Strategies (Tags)
-  $: tagData = calculator.getTagData(journal);
+  $: tagData = $tagMetrics;
   $: tagPnlData = {
     labels: tagData.labels,
     datasets: [
@@ -338,7 +357,7 @@
   };
 
   // Calendar Data
-  $: calendarData = calculator.getCalendarData(journal);
+  $: calendarData = $calendarMetrics;
 
   function handleCalendarClick(event: CustomEvent) {
     const dateStr = event.detail.date;
@@ -366,7 +385,7 @@
   // No, keep it simple. User can select.
 
   // Discipline Data
-  $: discData = calculator.getDisciplineData(journal);
+  $: discData = $disciplineMetrics;
   $: hourlyData = {
     labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
     datasets: [
@@ -391,7 +410,7 @@
   };
 
   // Cost Data
-  $: costData = calculator.getCostData(journal);
+  $: costData = $costMetrics;
   $: grossNetData = {
     labels: ["Gross", "Net"],
     datasets: [
@@ -430,9 +449,9 @@
 
   // --- Deep Dive Data ---
   // Timing
-  $: timingData = calculator.getTimingData(journal);
-  $: confluenceData = calculator.getConfluenceData(journal);
-  $: durationStats = calculator.getDurationStats(journal);
+  $: timingData = $timingMetrics;
+  $: confluenceData = $confluenceMetrics;
+  $: durationStats = $durationStatsMetrics;
 
   $: durationChartData = {
     labels: durationStats.labels,
@@ -490,7 +509,7 @@
   };
 
   // Duration
-  $: durationDataRaw = calculator.getDurationData(journal);
+  $: durationDataRaw = $durationDataMetrics;
   $: durationScatterData = {
     datasets: [
       {
@@ -503,7 +522,7 @@
     ],
   };
 
-  $: tagEvolutionData = calculator.getTagEvolution(journal);
+  $: tagEvolutionData = $tagEvolutionMetrics;
   $: tagEvolutionChartData = {
     datasets: tagEvolutionData.datasets.map((ds, i) => ({
       label: ds.label,
@@ -522,7 +541,7 @@
   };
 
   // Assets
-  $: assetData = calculator.getAssetData(journal);
+  $: assetData = $assetMetrics;
   $: assetBubbleData = {
     datasets: [
       {
@@ -538,7 +557,7 @@
   };
 
   // Risk
-  $: riskScatterData = calculator.getRiskData(journal);
+  $: riskScatterData = $riskMetrics;
   $: riskRewardScatter = {
     datasets: [
       {
@@ -552,7 +571,7 @@
   };
 
   // Market
-  $: marketData = calculator.getMarketData(journal);
+  $: marketData = $marketMetrics;
   $: longShortWinData = {
     labels: ["Long Win Rate", "Short Win Rate"],
     datasets: [
@@ -575,7 +594,7 @@
   };
 
   // Psychology
-  $: psychData = calculator.getPsychologyData(journal);
+  $: psychData = $psychologyMetrics;
   $: winStreakData = {
     labels: psychData.streakLabels,
     datasets: [
