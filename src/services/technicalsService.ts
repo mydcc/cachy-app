@@ -1,5 +1,6 @@
 import * as talib from 'talib-web';
 import { Decimal } from 'decimal.js';
+import { browser } from '$app/environment';
 import type { IndicatorSettings } from '../stores/indicatorStore';
 import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
@@ -7,7 +8,9 @@ export type { Kline, TechnicalsData, IndicatorResult };
 
 // Initialize talib-web WASM module
 let talibReady = false;
-const talibInit = talib.init().then(() => {
+// Explicitly point to the WASM file in static directory if in browser
+const wasmPath = browser ? '/talib.wasm' : undefined;
+const talibInit = talib.init(wasmPath).then(() => {
     talibReady = true;
     console.log('talib-web initialized successfully');
 }).catch(err => {
@@ -103,9 +106,9 @@ export const technicalsService = {
                 high: highsNum,
                 low: lowsNum,
                 close: closesNum,
-                fastK_period: stochK,
-                slowK_period: stochKSmooth,
-                slowD_period: stochD
+                fastK_Period: stochK,
+                slowK_Period: stochKSmooth,
+                slowD_Period: stochD
             });
 
             let stochKVal = new Decimal(0);
