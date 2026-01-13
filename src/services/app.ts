@@ -1493,9 +1493,10 @@ export const app = {
     if (!symbol || symbol.length < 3) return;
 
     // 1. Fetch Price Immediately (Critical, Independent)
-    const pricePromise = app.handleFetchPrice(isAuto);
+    // We don't await this blocking other things, but we want UI to update on it.
+    // handleFetchPrice already updates the store.
+    app.handleFetchPrice(isAuto);
 
-    // 2. Identify ALL valid Timeframes needed (Current + Favorites)
     const state = get(tradeStore);
     const settings = get(settingsStore);
 
@@ -1504,60 +1505,54 @@ export const app = {
       ? settings.favoriteTimeframes
       : ["5m", "15m", "1h", "4h"];
 
-    // Unique set
-    const allTfs = Array.from(new Set([currentTf, ...favoriteTfs]));
-
-    // Clear old Multi-ATR data to show we are refreshing (or keep stale?)
-    // User wants "all at same time" new values. Clearing makes it obvious.
+    // Clear old Multi-ATR data to show we are refreshing
     updateTradeStore((s) => ({ ...s, multiAtrData: {} }));
 
-    // 3. Fetch All Klines in Parallel with Retry
-    const klineResults: Record<string, number> = {};
+    // 2. Fetch Current ATR (Critical) -> Update Immediately
+    // We treat this separate from the batch so it's as fast as possible
+    app.fetchKlinesWithRetry(symbol, currentTf).then(klines => {
+      const atr = calculator.calculateATR(klines);
+      if (atr.gt(0)) {
+        updateTradeStore(s => ({
+          ...s,
+          atrValue: atr.toDP(4).toNumber()
+        }));
+        // Trigger Recalculate if we are in Auto-Mode
+        if (state.useAtrSl && state.atrMode === 'auto') {
+          app.calculateAndDisplay();
+        }
+      }
+    }).catch(e => console.warn(`Failed to load Current ATR ${currentTf}`, e));
 
-    // We Map each TF to a promise that fetches, calculates, and stores result in temp object
-    const tasks = allTfs.map(async (tf) => {
+    // 3. Fetch Favorites (Background Batch) -> Update Simultaneous
+    // Filter out currentTf if it's in favorites to avoid double fetching? 
+    // Actually, network cache might handle it, but safer to just fetch everything we need 
+    // or let the browser cache identical requests. 
+    // To ensure "simultaneous display" of chips, we fetch all favs, wait, then update.
+
+    const favTasks = favoriteTfs.map(async tf => {
       try {
         const klines = await app.fetchKlinesWithRetry(symbol, tf);
         const atr = calculator.calculateATR(klines);
-        if (atr.gt(0)) {
-          klineResults[tf] = atr.toDP(4).toNumber();
-        }
+        return { tf, val: atr.gt(0) ? atr.toDP(4).toNumber() : null };
       } catch (e) {
-        console.warn(`Failed to load ${tf}`, e);
+        console.warn(`Failed to load Fav ATR ${tf}`, e);
+        return { tf, val: null };
       }
     });
 
-    // Wait for Price (so user sees it ASAP, but we also want ATRs)
-    // Actually, we can let price update whenever it finishes.
-    // We await all klines to finish batching.
-    await Promise.allSettled([pricePromise, ...tasks]);
-
-    // 4. Update Stores from the single source of truth
-    updateTradeStore((s) => {
+    Promise.all(favTasks).then(results => {
       const newMultiAtr: Record<string, number> = {};
-
-      // Populate MultiATR
-      favoriteTfs.forEach(tf => {
-        if (klineResults[tf]) newMultiAtr[tf] = klineResults[tf];
+      results.forEach(r => {
+        if (r.val !== null) newMultiAtr[r.tf] = r.val;
       });
 
-      // Update Current ATR Value if available
-      let newAtrValue = s.atrValue;
-      if (klineResults[currentTf]) {
-        newAtrValue = klineResults[currentTf];
-      }
-
-      return {
+      // Batch Update Chips
+      updateTradeStore(s => ({
         ...s,
-        multiAtrData: newMultiAtr,
-        atrValue: newAtrValue
-      };
+        multiAtrData: newMultiAtr
+      }));
     });
-
-    // Trigger Recalculate if we are in Auto-Mode
-    if (state.useAtrSl && state.atrMode === 'auto') {
-      app.calculateAndDisplay();
-    }
   },
 
   adjustTpPercentages: (changedIndex: number | null) => {
