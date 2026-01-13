@@ -166,12 +166,19 @@
     let smileyX = 0;
     let smileyY = 0;
 
-    async function copyStopLossToClipboard(value: string, event: MouseEvent) {
+    async function copyStopLossToClipboard(
+        value: string,
+        event: MouseEvent | KeyboardEvent,
+    ) {
         try {
             await navigator.clipboard.writeText(value);
-            // Show smiley at mouse position
-            smileyX = event.clientX;
-            smileyY = event.clientY;
+            // Show smiley at mouse/keyboard position
+            const x =
+                event instanceof MouseEvent ? event.clientX : smileyX || 0;
+            const y =
+                event instanceof MouseEvent ? event.clientY : smileyY || 0;
+            smileyX = x;
+            smileyY = y;
             showSmiley = true;
             // Hide after 400ms
             setTimeout(() => {
@@ -500,9 +507,17 @@
                 >
                     <span>{formula}</span>
                     <span
+                        role="button"
+                        tabindex="0"
                         style="color: var(--danger-color); cursor: pointer;"
                         on:click={(e) =>
                             copyStopLossToClipboard(result.trim(), e)}
+                        on:keydown={(e) => {
+                            if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                copyStopLossToClipboard(result.trim(), e);
+                            }
+                        }}
                         title="In Zwischenablage kopieren">{result}</span
                     >
                 </div>
@@ -545,7 +560,7 @@
         class="smiley-feedback"
         style="left: {smileyX + 10}px; top: {smileyY - 10}px;"
     >
-        :-)
+        🙂
     </div>
 {/if}
 
