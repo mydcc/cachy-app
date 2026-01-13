@@ -160,6 +160,27 @@
         updateTradeStore((s) => ({ ...s, atrTimeframe: tf, atrValue: val }));
         dispatch("setAtrTimeframe", tf);
     }
+
+    // Copy to clipboard with smiley feedback
+    let showSmiley = false;
+    let smileyX = 0;
+    let smileyY = 0;
+
+    async function copyStopLossToClipboard(value: string, event: MouseEvent) {
+        try {
+            await navigator.clipboard.writeText(value);
+            // Show smiley at mouse position
+            smileyX = event.clientX;
+            smileyY = event.clientY;
+            showSmiley = true;
+            // Hide after 400ms
+            setTimeout(() => {
+                showSmiley = false;
+            }, 400);
+        } catch (err) {
+            console.error("Failed to copy:", err);
+        }
+    }
 </script>
 
 <svelte:window on:click={handleClickOutside} />
@@ -478,7 +499,12 @@
                     style="color: var(--text-primary);"
                 >
                     <span>{formula}</span>
-                    <span style="color: var(--danger-color);">{result}</span>
+                    <span
+                        style="color: var(--danger-color); cursor: pointer;"
+                        on:click={(e) =>
+                            copyStopLossToClipboard(result.trim(), e)}
+                        title="In Zwischenablage kopieren">{result}</span
+                    >
                 </div>
             {/if}
         {/if}
@@ -513,6 +539,16 @@
     </div>
 </div>
 
+<!-- Smiley Feedback -->
+{#if showSmiley}
+    <div
+        class="smiley-feedback"
+        style="left: {smileyX + 10}px; top: {smileyY - 10}px;"
+    >
+        :-)
+    </div>
+{/if}
+
 <style>
     .input-field:focus {
         box-shadow:
@@ -520,5 +556,24 @@
             0 2px 4px -1px rgba(0, 0, 0, 0.06);
         border-color: var(--accent-color);
         z-index: 10;
+    }
+
+    .smiley-feedback {
+        position: fixed;
+        font-size: 1.5rem;
+        pointer-events: none;
+        z-index: 9999;
+        animation: fadeOut 0.4s ease-out;
+    }
+
+    @keyframes fadeOut {
+        0% {
+            opacity: 1;
+            transform: translateY(0);
+        }
+        100% {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
     }
 </style>
