@@ -61,6 +61,7 @@ let priceUpdateIntervalId: any = null;
 let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
 let tradeStoreUnsubscribe: (() => void) | null = null;
+let settingsStoreUnsubscribe: (() => void) | null = null;
 let lastCalculationTime = 0;
 const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per second
 
@@ -85,6 +86,10 @@ export const app = {
         if (tradeStoreUnsubscribe) {
             tradeStoreUnsubscribe();
             tradeStoreUnsubscribe = null;
+        }
+        if (settingsStoreUnsubscribe) {
+            settingsStoreUnsubscribe();
+            settingsStoreUnsubscribe = null;
         }
 
         // Watch for symbol changes to manage WS subscriptions
@@ -114,6 +119,34 @@ export const app = {
                     currentSubscribedSymbol = null;
                 }
             }, 500); // 500ms debounce to prevent rapid sub/unsub during typing
+        });
+
+        // Watch for Settings changes (API Keys)
+        let lastApiKey = '';
+        let lastApiSecret = '';
+        settingsStoreUnsubscribe = settingsStore.subscribe((settings) => {
+             const newKey = settings.apiKeys?.bitunix?.key || '';
+             const newSecret = settings.apiKeys?.bitunix?.secret || '';
+
+             // Initial Set
+             if (lastApiKey === '' && lastApiSecret === '') {
+                 lastApiKey = newKey;
+                 lastApiSecret = newSecret;
+                 return;
+             }
+
+             // If keys changed, reconnect WS
+             if (newKey !== lastApiKey || newSecret !== lastApiSecret) {
+                 console.log('Bitunix API Keys changed, reconnecting WebSocket...');
+                 lastApiKey = newKey;
+                 lastApiSecret = newSecret;
+
+                 // Force reconnect to use new keys
+                 bitunixWs.destroy();
+                 setTimeout(() => {
+                     bitunixWs.connect();
+                 }, 500); // Small delay to ensure clean teardown
+             }
         });
 
         // Watch for Market Data updates (from WS)
