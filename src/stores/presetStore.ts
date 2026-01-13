@@ -1,17 +1,19 @@
-import { writable } from 'svelte/store';
+import { writable } from "svelte/store";
 
 export interface PresetState {
-    availablePresets: string[];
-    selectedPreset: string;
+  availablePresets: string[];
+  selectedPreset: string;
 }
 
 const initialPresetState: PresetState = {
-    availablePresets: [],
-    selectedPreset: '',
+  availablePresets: [],
+  selectedPreset: "",
 };
 
 export const presetStore = writable<PresetState>(initialPresetState);
 
-export const updatePresetStore = (updater: (state: PresetState) => PresetState) => {
-    presetStore.update(updater);
+export const updatePresetStore = (
+  updater: (state: PresetState) => PresetState
+) => {
+  presetStore.update(updater);
 };

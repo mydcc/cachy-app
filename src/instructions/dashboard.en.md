@@ -24,42 +24,50 @@ This guide shows you how to make optimal use of the Dashboard to take your tradi
 ---
 
 <a id="dashboard-overview"></a>
+
 ## 1. Dashboard Overview
 
 The Cachy Dashboard is your all-in-one solution for disciplined trading. It combines precise calculations with comprehensive performance analysis.
 
 <a id="main-areas"></a>
+
 ### Main Areas
 
 The Dashboard consists of three main areas:
 
 **📊 Home / Dashboard**
+
 - Overview and quick access
 - Account balance display
 - Access to all tool areas
 
 **🧮 Position Calculator**
+
 - Precise position size calculation
 - Risk management tools
 - ATR-based stop-loss calculation
 - Multiple take-profit planning
 
 **📖 Trading Journal**
+
 - Detailed trade history
 - Performance analyses and charts
 - Tag-based strategy evaluation
 - Deep Dive Analytics (Pro)
 
 <a id="navigation"></a>
+
 ### Navigation
 
 **Sidebar Menu (left):**
+
 - **Home:** Back to homepage
 - **Calculator:** Opens the Position Size Calculator
 - **Journal:** Opens your Trading Journal
 - **Settings:** Theme, language, account settings
 
 **Top Bar:**
+
 - **Account Balance:** Shows your current capital
 - **Theme Toggle:** Switch between Light/Dark/VIP themes
 - **Language Switcher:** DE/EN
@@ -68,6 +76,7 @@ The Dashboard consists of three main areas:
 ---
 
 <a id="position-calculator"></a>
+
 ## 2. The Position Calculator
 
 The Calculator is the heart of your risk management. It calculates for you how large your position must be to maintain exactly your desired risk.
@@ -76,6 +85,7 @@ The Calculator is the heart of your risk management. It calculates for you how l
 Successful trading is not gambling – it's a business with disciplined risk management. The Calculator ensures that you **never risk too much** and always know exactly what you're doing.
 
 <a id="standard-workflow"></a>
+
 ### Standard Workflow: Calculating Position Size
 
 This is the most common use case. You specify what percentage of your capital you want to risk, and the Calculator computes the **exact position size**.
@@ -83,6 +93,7 @@ This is the most common use case. You specify what percentage of your capital yo
 #### Example Scenario:
 
 **Your Inputs:**
+
 - **Account Balance:** €10,000
 - **Risk per Trade:** 1% (= €100)
 - **Symbol:** BTC/USDT
@@ -93,18 +104,21 @@ This is the most common use case. You specify what percentage of your capital yo
 #### The Calculation in 3 Steps:
 
 **Step 1: Risk Amount in €**
+
 ```
 Risk Amount = Account Balance × (Risk % / 100)
 Example: €10,000 × 0.01 = €100
 ```
 
 **Step 2: Risk per Unit**
+
 ```
 Risk per Unit = |Entry Price - Stop-Loss Price|
 Example: |50,000 - 49,500| = €500
 ```
 
 **Step 3: Position Size**
+
 ```
 Position Size = Risk Amount / Risk per Unit
 Example: €100 / €500 = 0.2 BTC
@@ -117,6 +131,7 @@ Example: €100 / €500 = 0.2 BTC
 ---
 
 <a id="lock-functions"></a>
+
 ### Lock Functions: Alternative Workflows
 
 Sometimes you want to perform the calculation the other way around. That's what the **Lock Buttons** (🔒) are for.
@@ -127,6 +142,7 @@ Sometimes you want to perform the calculation the other way around. That's what 
 When you think in **fixed monetary amounts**: "I'm risking €50 today" (instead of percentages).
 
 **How it works:**
+
 1. Click the 🔒 next to "Risk Amount"
 2. Enter your desired amount (e.g., €50)
 3. The "Risk per Trade %" field is automatically adjusted
@@ -139,6 +155,7 @@ When you think in **fixed monetary amounts**: "I'm risking €50 today" (instead
 When you want to trade a **fixed position size** (e.g., always 1 whole coin, always 0.5 ETH).
 
 **How it works:**
+
 1. Click the 🔒 next to "Position Size"
 2. Enter your desired size
 3. Adjust Entry and Stop-Loss
@@ -149,6 +166,7 @@ When you want to trade a **fixed position size** (e.g., always 1 whole coin, alw
 ---
 
 <a id="atr-stop-loss"></a>
+
 ### ATR Stop-Loss: Volatility-Based Stop Placement
 
 The **ATR (Average True Range)** Stop-Loss helps you intelligently adjust your stop to current market volatility.
@@ -156,12 +174,14 @@ The **ATR (Average True Range)** Stop-Loss helps you intelligently adjust your s
 #### What is the ATR?
 
 The ATR measures the **average price fluctuation** over a period:
+
 - **High ATR** = High volatility (market moves strongly)
 - **Low ATR** = Low volatility (market moves calmly)
 
 #### Calculation:
 
 For the last 14 periods, the "True Range" is calculated:
+
 ```
 True Range = Maximum of:
 1. Current High - Current Low
@@ -192,12 +212,14 @@ ATR = Average of the 14 True Ranges
 - **Stop-Loss (Long):** 50,000 - (800 × 2) = **€48,400**
 
 **Advantage:** Your stop adapts intelligently:
+
 - High volatility → More room to breathe
 - Low volatility → Tighter stop, less risk
 
 ---
 
 <a id="multiple-take-profits"></a>
+
 ### Multiple Take-Profits: Gradual Exit
 
 Professional traders don't sell their position all at once, but **gradually at multiple targets**.
@@ -207,16 +229,19 @@ Professional traders don't sell their position all at once, but **gradually at m
 **Define up to 3 Take-Profit targets:**
 
 **Take-Profit 1:**
+
 - Price: €52,000
 - Exit %: 50% (You sell half)
 - R/R: 4:1
 
 **Take-Profit 2:**
+
 - Price: €54,000
 - Exit %: 30%
 - R/R: 8:1
 
 **Take-Profit 3:**
+
 - Price: €56,000
 - Exit %: 20%
 - R/R: 12:1
@@ -228,6 +253,7 @@ Professional traders don't sell their position all at once, but **gradually at m
 3. **Total Expected Profit** at all targets
 
 **Advantage:**
+
 - You secure profits early (TP1)
 - Let winners run (TP2, TP3)
 - Optimal risk-to-reward ratio
@@ -235,6 +261,7 @@ Professional traders don't sell their position all at once, but **gradually at m
 ---
 
 <a id="risk-reward-ratio"></a>
+
 ### Risk/Reward Ratio (R/R): The Most Important Metric
 
 The R/R ratio shows you how much you can win in relation to your risk.
@@ -250,21 +277,25 @@ The R/R ratio shows you how much you can win in relation to your risk.
 **Mathematical Example:**
 
 With **50% Win Rate** and **2:1 R/R**:
+
 - 10 Trades: 5 winners × €200 = €1,000
 - 10 Trades: 5 losers × €100 = -€500
 - **Net: +€500 profit**
 
 With **50% Win Rate** but **1:1 R/R**:
+
 - 10 Trades: 5 winners × €100 = €500
 - 10 Trades: 5 losers × €100 = -€500
 - **Net: ±€0 (Breakeven)**
 
-**The Rule:** 
+**The Rule:**
+
 - R/R < 1:1 → Long-term you lose money
 - R/R ≥ 2:1 → Good trading opportunities
 - R/R ≥ 3:1 → Excellent setups
 
 **The Calculator shows you:**
+
 - Individual R/R for each TP
 - Weighted Average R/R for the entire trade
 
@@ -273,6 +304,7 @@ With **50% Win Rate** but **1:1 R/R**:
 ---
 
 <a id="calculator-to-journal"></a>
+
 ## 3. From Calculator to Journal
 
 The Calculator plans your trade – the **Journal documents and analyzes** it.
@@ -280,14 +312,17 @@ The Calculator plans your trade – the **Journal documents and analyzes** it.
 ### The Perfect Workflow:
 
 1. **Calculator:** Plan trade
+
    - Calculate position size
    - Set stop-loss and TPs
    - Check R/R
 
 2. **Broker:** Execute trade
+
    - Place order based on Calculator values
 
 3. **Journal:** Document trade
+
    - Automatic import (Bitunix API)
    - Or manual addition
    - Add tags (strategy, setup, etc.)
@@ -307,6 +342,7 @@ The Calculator plans your trade – the **Journal documents and analyzes** it.
 ---
 
 <a id="trading-workflow"></a>
+
 ## 4. The Trading Workflow: Plan → Execute → Analyze
 
 Successful trading is a **repeatable process**:
@@ -314,6 +350,7 @@ Successful trading is a **repeatable process**:
 ### Phase 1: PLAN (Calculator)
 
 **Before each trade:**
+
 1. Define your risk (e.g., 1%)
 2. Identify entry point
 3. Set stop-loss (manual or ATR)
@@ -327,6 +364,7 @@ Successful trading is a **repeatable process**:
 ### Phase 2: EXECUTE (Broker)
 
 **At the broker:**
+
 1. Place order with exact values from Calculator
 2. Set stop-loss and TPs
 3. Make notes (setup, feeling, etc.)
@@ -336,6 +374,7 @@ Successful trading is a **repeatable process**:
 ### Phase 3: DOCUMENT (Journal)
 
 **After trade completion:**
+
 1. Enter trade in journal
    - Automatically via API sync
    - Or add manually
@@ -350,6 +389,7 @@ Successful trading is a **repeatable process**:
 ### Phase 4: ANALYZE (Journal Deep Dive)
 
 **Weekly/Monthly:**
+
 1. View performance charts
 2. Check Win Rate and Profit Factor
 3. Compare strategies (which tags work?)
@@ -361,11 +401,13 @@ Successful trading is a **repeatable process**:
 ---
 
 <a id="best-practices"></a>
+
 ## 5. Best Practices & Tips
 
 ### ✅ DO's (Do This!)
 
 **In the Calculator:**
+
 - ✅ **Use it ALWAYS** before each trade
 - ✅ **Keep your risk constant** (e.g., always 1%)
 - ✅ **Check the R/R** – only enter trades ≥ 2:1
@@ -373,6 +415,7 @@ Successful trading is a **repeatable process**:
 - ✅ **Multiple TPs** for better risk management
 
 **In the Journal:**
+
 - ✅ **Document every trade** immediately after completion
 - ✅ **Use tags** consistently for strategies and mistakes
 - ✅ **Upload screenshots** for visual analysis
@@ -382,12 +425,14 @@ Successful trading is a **repeatable process**:
 ### ❌ DON'Ts (Avoid This!)
 
 **In the Calculator:**
+
 - ❌ **No trades** without prior calculation
 - ❌ **Don't deviate** from the calculated plan
 - ❌ **No "gut feeling"** for position sizes
 - ❌ **No trades with R/R < 1:1**
 
 **In the Journal:**
+
 - ❌ **Don't forget** to document
 - ❌ **No emotional notes** ("Shit!", "Fuck!")
   - Better: objective analysis ("Entry too early", "SL too tight")
@@ -397,26 +442,31 @@ Successful trading is a **repeatable process**:
 ### 🎯 Pro Tips
 
 **1. Consistency is King**
+
 - Always trade with the same risk (e.g., 1%)
 - Always use the same Calculator workflow
 - Always document according to the same scheme
 
 **2. The 2% Maximum**
+
 - Never risk more than 2% per trade
 - Better: 0.5% - 1% for beginners
 - Only experienced traders: up to 2%
 
 **3. The 6% Rule**
+
 - Maximum 6% total risk simultaneously
 - Example: 3 open trades × 2% = 6%
 - More open trades? Reduce risk per trade!
 
 **4. Stop-Loss is Sacred**
+
 - **NEVER** move the stop to avoid losses
 - If the stop doesn't fit, replan the trade
 - Better no trade than one without a reasonable stop
 
 **5. Turn Off Emotions**
+
 - After 2 losses in a row: PAUSE
 - After big win: PAUSE (Overconfidence!)
 - Tired, stressed, emotional? NO TRADING
@@ -432,6 +482,7 @@ The Cachy Dashboard is your **complete trading ecosystem**:
 - **Workflow:** From planning to optimization
 
 **The Key to Success:**
+
 1. Plan **every** trade in the Calculator
 2. Stick **strictly** to your plan
 3. Document **everything** in the Journal

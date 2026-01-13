@@ -1,13 +1,13 @@
-import type { LayoutServerLoad } from './$types';
-import { CONSTANTS } from '../lib/constants';
-import { initialTradeState } from '../stores/tradeStore'; // Import initialTradeState
+import type { LayoutServerLoad } from "./$types";
+import { CONSTANTS } from "../lib/constants";
+import { initialTradeState } from "../stores/tradeStore"; // Import initialTradeState
 
 export const prerender = true;
 
 export const load: LayoutServerLoad = async ({ cookies }) => {
-    const theme = cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || 'dark'; // Default to dark if no cookie
-    return {
-        theme,
-        initialTradeState // Pass initialTradeState to the layout
-    };
+  const theme = cookies.get(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark"; // Default to dark if no cookie
+  return {
+    theme,
+    initialTradeState, // Pass initialTradeState to the layout
+  };
 };

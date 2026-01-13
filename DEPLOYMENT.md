@@ -4,9 +4,9 @@ This guide walks you through installing **Cachy** on a server running **aaPanel*
 
 ## Prerequisites
 
-*   A server with **aaPanel** installed.
-*   **Node.js Version Manager** (installed via aaPanel App Store). Recommended: Node v18 or v20.
-*   Domains pointing to the server IP (e.g., `cachy.app` and `dev.cachy.app`).
+- A server with **aaPanel** installed.
+- **Node.js Version Manager** (installed via aaPanel App Store). Recommended: Node v18 or v20.
+- Domains pointing to the server IP (e.g., `cachy.app` and `dev.cachy.app`).
 
 ---
 
@@ -15,14 +15,15 @@ This guide walks you through installing **Cachy** on a server running **aaPanel*
 It is recommended to run two separate environments:
 
 1.  **Staging (`dev.cachy.app`):**
-    *   For testing new features.
-    *   Updated manually or automatically on every push to the `dev` branch.
-    *   Runs on a dedicated port (e.g., 3002).
+
+    - For testing new features.
+    - Updated manually or automatically on every push to the `dev` branch.
+    - Runs on a dedicated port (e.g., 3002).
 
 2.  **Production (`cachy.app`):**
-    *   The stable version for end-users.
-    *   Updated only after staging has been successfully tested (push to `main`).
-    *   Runs on a dedicated port (e.g., 3001).
+    - The stable version for end-users.
+    - Updated only after staging has been successfully tested (push to `main`).
+    - Runs on a dedicated port (e.g., 3001).
 
 ---
 
@@ -31,6 +32,7 @@ It is recommended to run two separate environments:
 The following steps apply to both environments (just adjust directory names).
 
 ### Step 1: Upload Files
+
 1.  Go to **Files** in aaPanel.
 2.  Create the folder `/www/wwwroot/cachy.app` (for Production) or `/www/wwwroot/dev.cachy.app` (for Staging).
 3.  Upload the project files or clone the repo directly in the terminal:
@@ -40,6 +42,7 @@ The following steps apply to both environments (just adjust directory names).
     ```
 
 ### Step 2: Install Dependencies & Build
+
 1.  Open the terminal in aaPanel or via SSH.
 2.  Navigate to the directory:
     ```bash
@@ -50,21 +53,23 @@ The following steps apply to both environments (just adjust directory names).
     npm install
     npm run build
     ```
-    *This creates the `build/` folder containing the startable server application.*
+    _This creates the `build/` folder containing the startable server application._
 
 ### Step 3: Create Node Project (Website > Node project)
+
 1.  Go to **Website** -> **Node project** in the aaPanel menu.
 2.  Click on **Add Node project**.
 3.  Fill in the fields:
-    *   **Path:** `/www/wwwroot/cachy.app`
-    *   **Name:** `cachy-prod` (or `cachy-dev`)
-    *   **Run Command:** Select `Custom Command` and enter: `node build/index.js`
-        *(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)*
-    *   **Port:** `3001` (default for Production). *Ensure the port is open in the firewall or used internally.*
-    *   **Node Version:** v18 or higher.
+    - **Path:** `/www/wwwroot/cachy.app`
+    - **Name:** `cachy-prod` (or `cachy-dev`)
+    - **Run Command:** Select `Custom Command` and enter: `node build/index.js`
+      _(By default, aaPanel often looks for `app.js` or `index.js`, but SvelteKit is located in `build/index.js`)_
+    - **Port:** `3001` (default for Production). _Ensure the port is open in the firewall or used internally._
+    - **Node Version:** v18 or higher.
 4.  Click **Submit**.
 
 ### Step 4: Domain Mapping & SSL
+
 1.  After creating, click on **Mapping** (or "Domain" depending on version) in the Node projects list.
 2.  Add your domain (e.g., `cachy.app`).
 3.  Go to the **SSL** tab and apply for a free "Let's Encrypt" certificate. Enable "Force HTTPS".
@@ -76,6 +81,7 @@ The following steps apply to both environments (just adjust directory names).
 When you have made changes, update the instance as follows:
 
 **Manually via Terminal:**
+
 ```bash
 # 1. Switch to directory
 cd /www/wwwroot/cachy.app
@@ -101,13 +107,14 @@ If you need to change configurations (like ports or API secrets), you can create
 PORT=3001
 ORIGIN=https://cachy.app
 ```
-*Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors.*
+
+_Note: `ORIGIN` is important for SvelteKit Form Actions to avoid CSRF errors._
 
 ---
 
 ## Port Summary (Example)
 
-| Environment | Path | Port | Domain |
-| :--- | :--- | :--- | :--- |
-| **Production** | `/www/wwwroot/cachy.app` | `3001` | `cachy.app` |
-| **Staging** | `/www/wwwroot/dev.cachy.app` | `3002` | `dev.cachy.app` |
+| Environment    | Path                         | Port   | Domain          |
+| :------------- | :--------------------------- | :----- | :-------------- |
+| **Production** | `/www/wwwroot/cachy.app`     | `3001` | `cachy.app`     |
+| **Staging**    | `/www/wwwroot/dev.cachy.app` | `3002` | `dev.cachy.app` |

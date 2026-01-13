@@ -1,13 +1,21 @@
-import { _, register, init, getLocaleFromNavigator, locale as svelteLocale } from 'svelte-i18n';
-import { writable } from 'svelte/store';
+import {
+  _,
+  register,
+  init,
+  getLocaleFromNavigator,
+  locale as svelteLocale,
+} from "svelte-i18n";
+import { writable } from "svelte/store";
 
-import * as en from './locales/en.json';
-import * as de from './locales/de.json';
+import * as en from "./locales/en.json";
+import * as de from "./locales/de.json";
 
-register('en', () => Promise.resolve(en));
-register('de', () => Promise.resolve(de));
+register("en", () => Promise.resolve(en));
+register("de", () => Promise.resolve(de));
 
-function getSafeLocale(getter: () => string | undefined | null): string | undefined | null {
+function getSafeLocale(
+  getter: () => string | undefined | null
+): string | undefined | null {
   try {
     return getter();
   } catch (e) {
@@ -16,25 +24,26 @@ function getSafeLocale(getter: () => string | undefined | null): string | undefi
   }
 }
 
-const storedLocale = typeof localStorage !== 'undefined' ? localStorage.getItem('locale') : null;
+const storedLocale =
+  typeof localStorage !== "undefined" ? localStorage.getItem("locale") : null;
 
 let initialLocaleValue: string;
 
-if (storedLocale && (storedLocale === 'en' || storedLocale === 'de')) {
+if (storedLocale && (storedLocale === "en" || storedLocale === "de")) {
   initialLocaleValue = storedLocale;
 } else {
   const browserLocale = getSafeLocale(getLocaleFromNavigator);
-  if (browserLocale && browserLocale.startsWith('de')) {
-    initialLocaleValue = 'de';
-  } else if (browserLocale && browserLocale.startsWith('en')) {
-    initialLocaleValue = 'en';
+  if (browserLocale && browserLocale.startsWith("de")) {
+    initialLocaleValue = "de";
+  } else if (browserLocale && browserLocale.startsWith("en")) {
+    initialLocaleValue = "en";
   } else {
-    initialLocaleValue = 'en'; // Fallback to English
+    initialLocaleValue = "en"; // Fallback to English
   }
 }
 
 init({
-  fallbackLocale: 'en',
+  fallbackLocale: "en",
   initialLocale: initialLocaleValue,
 });
 
@@ -43,8 +52,8 @@ export const locale = writable<string | null>(initialLocaleValue);
 locale.subscribe((value) => {
   if (value) {
     svelteLocale.set(value);
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('locale', value);
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem("locale", value);
     }
   }
 });

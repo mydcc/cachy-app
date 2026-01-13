@@ -1,5 +1,5 @@
 <script lang="ts">
-  export let text = '';
+  export let text = "";
   let visible = false;
   let tooltipEl: HTMLElement;
 

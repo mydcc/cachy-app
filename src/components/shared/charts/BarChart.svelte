@@ -1,33 +1,33 @@
 <script lang="ts">
-  import { Bar } from 'svelte-chartjs';
-  import '../../../lib/chartSetup';
-  import Tooltip from '../Tooltip.svelte';
+  import { Bar } from "svelte-chartjs";
+  import "../../../lib/chartSetup";
+  import Tooltip from "../Tooltip.svelte";
 
   export let data: any;
-  export let title: string = '';
+  export let title: string = "";
   export let horizontal: boolean = false;
-  export let description: string = '';
+  export let description: string = "";
   export let options: any = undefined; // Allow overriding options
 
   $: defaultOptions = {
     responsive: true,
     maintainAspectRatio: false,
-    indexAxis: horizontal ? 'y' as const : 'x' as const,
+    indexAxis: horizontal ? ("y" as const) : ("x" as const),
     plugins: {
       legend: { display: false },
-      title: { display: !!title, text: title }
+      title: { display: !!title, text: title },
     },
     scales: {
       x: { grid: { display: false } },
-      y: { grid: { display: true } }
-    }
+      y: { grid: { display: true } },
+    },
   };
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
   {#if description}
     <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
-       <Tooltip text={description} />
+      <Tooltip text={description} />
     </div>
   {/if}
   <Bar {data} options={options || defaultOptions} />

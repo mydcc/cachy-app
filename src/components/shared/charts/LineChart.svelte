@@ -1,31 +1,31 @@
 <script lang="ts">
-  import { Line } from 'svelte-chartjs';
-  import '../../../lib/chartSetup';
-  import Tooltip from '../Tooltip.svelte';
-  import type { ChartOptions } from 'chart.js';
+  import { Line } from "svelte-chartjs";
+  import "../../../lib/chartSetup";
+  import Tooltip from "../Tooltip.svelte";
+  import type { ChartOptions } from "chart.js";
 
   export let data: any;
-  export let title: string = '';
-  export let yLabel: string = '';
-  export let description: string = '';
+  export let title: string = "";
+  export let yLabel: string = "";
+  export let description: string = "";
 
-  const options: ChartOptions<'line'> = {
+  const options: ChartOptions<"line"> = {
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
       legend: { display: false },
-      title: { display: !!title, text: title }
+      title: { display: !!title, text: title },
     },
     scales: {
       x: {
-        grid: { display: false }
+        grid: { display: false },
       },
       y: {
-        title: { display: !!yLabel, text: yLabel }
-      }
+        title: { display: !!yLabel, text: yLabel },
+      },
     },
     interaction: {
-      mode: 'index',
+      mode: "index",
       intersect: false,
     },
   };
@@ -34,7 +34,7 @@
 <div class="w-full h-full min-h-[200px] relative">
   {#if description}
     <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
-       <Tooltip text={description} />
+      <Tooltip text={description} />
     </div>
   {/if}
   <Line {data} {options} />

@@ -15,11 +15,13 @@ To update the application correctly, you must **restart** the server process imm
 We have included a `deploy.sh` script to automate this.
 
 **For Production:**
+
 ```bash
 ./deploy.sh cachy-app
 ```
 
 **For Staging:**
+
 ```bash
 ./deploy.sh devcachyapp
 ```

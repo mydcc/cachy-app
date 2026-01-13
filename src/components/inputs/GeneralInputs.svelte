@@ -1,221 +1,219 @@
 <script lang="ts">
-    import { CONSTANTS } from "../../lib/constants";
-    import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
-    import { settingsStore } from "../../stores/settingsStore";
-    import { numberInput } from "../../utils/inputUtils";
-    import { enhancedInput } from "../../lib/actions/inputEnhancements";
-    import { _ } from "../../locales/i18n";
-    import { trackClick } from "../../lib/actions";
-    import { Decimal } from "decimal.js";
+  import { CONSTANTS } from "../../lib/constants";
+  import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
+  import { settingsStore } from "../../stores/settingsStore";
+  import { numberInput } from "../../utils/inputUtils";
+  import { enhancedInput } from "../../lib/actions/inputEnhancements";
+  import { _ } from "../../locales/i18n";
+  import { trackClick } from "../../lib/actions";
+  import { Decimal } from "decimal.js";
 
-    export let tradeType: string;
-    export let leverage: number | null;
-    export let fees: number | null;
+  export let tradeType: string;
+  export let leverage: number | null;
+  export let fees: number | null;
 
-    function setTradeType(type: string) {
-        updateTradeStore((s) => ({ ...s, tradeType: type }));
+  function setTradeType(type: string) {
+    updateTradeStore((s) => ({ ...s, tradeType: type }));
+  }
+
+  const format = (val: number | null) =>
+    val === null || val === undefined ? "" : String(val);
+
+  function handleLeverageInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const value = target.value;
+    updateTradeStore((s) => ({
+      ...s,
+      leverage: value === "" ? null : parseFloat(value),
+    }));
+  }
+
+  function handleFeesInput(e: Event) {
+    const target = e.target as HTMLInputElement;
+    const value = target.value;
+    updateTradeStore((s) => ({
+      ...s,
+      fees: value === "" ? null : parseFloat(value),
+    }));
+  }
+
+  // Leverage Sync Status
+  $: remoteLev = $tradeStore.remoteLeverage;
+  $: isLeverageSynced = remoteLev !== undefined && leverage === remoteLev;
+
+  function syncLeverage() {
+    if (remoteLev !== undefined) {
+      updateTradeStore((s) => ({ ...s, leverage: remoteLev }));
     }
+  }
 
-    const format = (val: number | null) =>
-        val === null || val === undefined ? "" : String(val);
+  // Fee Logic
+  // If API Keys are present, we might want to default to auto-filling fees if they are known.
+  // However, the store logic updates fees if remote fees are found.
+  // Here we just provide the input.
+  // We add a sync indicator for Fees similar to Leverage if remote fees match current input.
 
-    function handleLeverageInput(e: Event) {
-        const target = e.target as HTMLInputElement;
-        const value = target.value;
-        updateTradeStore((s) => ({
-            ...s,
-            leverage: value === "" ? null : parseFloat(value),
-        }));
+  // Determine target remote fee based on feeMode (Entry fee)
+  // feeMode is usually 'maker_taker' etc.
+  // Standard logic in tradeStore uses entry fee for 'fees' property.
+  // If tradeType is LONG/SHORT, does it matter? Usually Maker/Taker depends on order type (Limit/Market).
+  // Let's assume Limit = Maker, Market = Taker for simplicity, OR use the feeMode toggle.
+  // The `feeMode` toggle determines what we *expect* to pay.
+  $: feeMode = $tradeStore.feeMode || "maker_taker";
+  $: entryType = feeMode.split("_")[0] as "maker" | "taker";
+  $: targetRemoteFee =
+    entryType === "maker"
+      ? $tradeStore.remoteMakerFee
+      : $tradeStore.remoteTakerFee;
+
+  $: isFeeSynced = targetRemoteFee !== undefined && fees === targetRemoteFee;
+
+  function syncFee() {
+    if (targetRemoteFee !== undefined) {
+      updateTradeStore((s) => ({ ...s, fees: targetRemoteFee }));
     }
-
-    function handleFeesInput(e: Event) {
-        const target = e.target as HTMLInputElement;
-        const value = target.value;
-        updateTradeStore((s) => ({
-            ...s,
-            fees: value === "" ? null : parseFloat(value),
-        }));
-    }
-
-    // Leverage Sync Status
-    $: remoteLev = $tradeStore.remoteLeverage;
-    $: isLeverageSynced = remoteLev !== undefined && leverage === remoteLev;
-
-    function syncLeverage() {
-        if (remoteLev !== undefined) {
-            updateTradeStore((s) => ({ ...s, leverage: remoteLev }));
-        }
-    }
-
-    // Fee Logic
-    // If API Keys are present, we might want to default to auto-filling fees if they are known.
-    // However, the store logic updates fees if remote fees are found.
-    // Here we just provide the input.
-    // We add a sync indicator for Fees similar to Leverage if remote fees match current input.
-
-    // Determine target remote fee based on feeMode (Entry fee)
-    // feeMode is usually 'maker_taker' etc.
-    // Standard logic in tradeStore uses entry fee for 'fees' property.
-    // If tradeType is LONG/SHORT, does it matter? Usually Maker/Taker depends on order type (Limit/Market).
-    // Let's assume Limit = Maker, Market = Taker for simplicity, OR use the feeMode toggle.
-    // The `feeMode` toggle determines what we *expect* to pay.
-    $: feeMode = $tradeStore.feeMode || "maker_taker";
-    $: entryType = feeMode.split("_")[0] as "maker" | "taker";
-    $: targetRemoteFee =
-        entryType === "maker"
-            ? $tradeStore.remoteMakerFee
-            : $tradeStore.remoteTakerFee;
-
-    $: isFeeSynced = targetRemoteFee !== undefined && fees === targetRemoteFee;
-
-    function syncFee() {
-        if (targetRemoteFee !== undefined) {
-            updateTradeStore((s) => ({ ...s, fees: targetRemoteFee }));
-        }
-    }
+  }
 </script>
 
 <div>
-    <h2 class="section-header" id="trade-type-label">
-        {$_("dashboard.generalInputs.header")}
-    </h2>
-    <div class="grid grid-cols-1 gap-4 mb-4">
-        <!-- Trade Type Switch -->
-        <div
-            class="trade-type-switch p-1 rounded-lg flex"
-            role="radiogroup"
-            aria-labelledby="trade-type-label"
-        >
-            <button
-                id="trade-long-btn"
-                name="tradeType"
-                value={CONSTANTS.TRADE_TYPE_LONG}
-                class="long w-1/2"
-                class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
-                role="radio"
-                aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
-                on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
-                use:trackClick={{
-                    category: "GeneralInputs",
-                    action: "SetTradeType",
-                    name: "Long",
-                }}>{$_("dashboard.generalInputs.longButton")}</button
-            >
-            <button
-                id="trade-short-btn"
-                name="tradeType"
-                value={CONSTANTS.TRADE_TYPE_SHORT}
-                class="short w-1/2"
-                class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
-                role="radio"
-                aria-checked={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
-                on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_SHORT)}
-                use:trackClick={{
-                    category: "GeneralInputs",
-                    action: "SetTradeType",
-                    name: "Short",
-                }}>{$_("dashboard.generalInputs.shortButton")}</button
-            >
-        </div>
-
-        <div class="grid grid-cols-2 gap-4">
-            <!-- Leverage Input Wrapper -->
-            <div class="relative">
-                <label
-                    for="leverage-input"
-                    class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-                    >Leverage</label
-                >
-                <input
-                    id="leverage-input"
-                    name="leverage"
-                    type="text"
-                    use:numberInput={{
-                        noDecimals: true,
-                        maxValue: 125,
-                        minValue: 1,
-                    }}
-                    use:enhancedInput={{
-                        step: 1,
-                        min: 1,
-                        max: 125,
-                        noDecimals: true,
-                        rightOffset: "24px",
-                    }}
-                    value={format(leverage)}
-                    on:input={handleLeverageInput}
-                    class="input-field w-full px-4 py-2 rounded-md transition-colors"
-                    class:border-green-500={isLeverageSynced}
-                    class:text-green-400={isLeverageSynced}
-                    placeholder={$_(
-                        "dashboard.generalInputs.leveragePlaceholder"
-                    )}
-                />
-                <!-- Sync Indicator -->
-                {#if remoteLev !== undefined}
-                    <button
-                        class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
-                        style="background-color: {isLeverageSynced
-                            ? 'var(--success-color)'
-                            : 'var(--warning-color)'}; margin-right: 14px;"
-                        title={isLeverageSynced
-                            ? "Synced with API"
-                            : `Manual Override (Click to sync to ${remoteLev}x)`}
-                        on:click={syncLeverage}
-                    />
-                {/if}
-            </div>
-
-            <!-- Fees Input Wrapper -->
-            <div class="relative">
-                <label
-                    for="fees-input"
-                    class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-                    >Fees (%)</label
-                >
-                <input
-                    id="fees-input"
-                    name="fees"
-                    type="text"
-                    use:numberInput={{ maxDecimalPlaces: 4 }}
-                    use:enhancedInput={{
-                        step: 0.01,
-                        min: 0,
-                        rightOffset: "24px",
-                    }}
-                    value={format(fees)}
-                    on:input={handleFeesInput}
-                    class="input-field w-full px-4 py-2 rounded-md transition-colors"
-                    class:border-green-500={isFeeSynced}
-                    class:text-green-400={isFeeSynced}
-                    placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
-                />
-                <!-- Sync Indicator for Fees -->
-                {#if targetRemoteFee !== undefined}
-                    <button
-                        class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
-                        style="background-color: {isFeeSynced
-                            ? 'var(--success-color)'
-                            : 'var(--warning-color)'}; margin-right: 14px;"
-                        title={isFeeSynced
-                            ? "Synced with API"
-                            : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
-                        on:click={syncFee}
-                    />
-                {/if}
-            </div>
-        </div>
-        <!-- Spacer -->
-        <div class="mb-0" />
+  <h2 class="section-header" id="trade-type-label">
+    {$_("dashboard.generalInputs.header")}
+  </h2>
+  <div class="grid grid-cols-1 gap-4 mb-4">
+    <!-- Trade Type Switch -->
+    <div
+      class="trade-type-switch p-1 rounded-lg flex"
+      role="radiogroup"
+      aria-labelledby="trade-type-label"
+    >
+      <button
+        id="trade-long-btn"
+        name="tradeType"
+        value={CONSTANTS.TRADE_TYPE_LONG}
+        class="long w-1/2"
+        class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
+        role="radio"
+        aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
+        on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
+        use:trackClick={{
+          category: "GeneralInputs",
+          action: "SetTradeType",
+          name: "Long",
+        }}>{$_("dashboard.generalInputs.longButton")}</button
+      >
+      <button
+        id="trade-short-btn"
+        name="tradeType"
+        value={CONSTANTS.TRADE_TYPE_SHORT}
+        class="short w-1/2"
+        class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
+        role="radio"
+        aria-checked={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
+        on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_SHORT)}
+        use:trackClick={{
+          category: "GeneralInputs",
+          action: "SetTradeType",
+          name: "Short",
+        }}>{$_("dashboard.generalInputs.shortButton")}</button
+      >
     </div>
+
+    <div class="grid grid-cols-2 gap-4">
+      <!-- Leverage Input Wrapper -->
+      <div class="relative">
+        <label
+          for="leverage-input"
+          class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
+          >Leverage</label
+        >
+        <input
+          id="leverage-input"
+          name="leverage"
+          type="text"
+          use:numberInput={{
+            noDecimals: true,
+            maxValue: 125,
+            minValue: 1,
+          }}
+          use:enhancedInput={{
+            step: 1,
+            min: 1,
+            max: 125,
+            noDecimals: true,
+            rightOffset: "24px",
+          }}
+          value={format(leverage)}
+          on:input={handleLeverageInput}
+          class="input-field w-full px-4 py-2 rounded-md transition-colors"
+          class:border-green-500={isLeverageSynced}
+          class:text-green-400={isLeverageSynced}
+          placeholder={$_("dashboard.generalInputs.leveragePlaceholder")}
+        />
+        <!-- Sync Indicator -->
+        {#if remoteLev !== undefined}
+          <button
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
+            style="background-color: {isLeverageSynced
+              ? 'var(--success-color)'
+              : 'var(--warning-color)'}; margin-right: 14px;"
+            title={isLeverageSynced
+              ? "Synced with API"
+              : `Manual Override (Click to sync to ${remoteLev}x)`}
+            on:click={syncLeverage}
+          />
+        {/if}
+      </div>
+
+      <!-- Fees Input Wrapper -->
+      <div class="relative">
+        <label
+          for="fees-input"
+          class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
+          >Fees (%)</label
+        >
+        <input
+          id="fees-input"
+          name="fees"
+          type="text"
+          use:numberInput={{ maxDecimalPlaces: 4 }}
+          use:enhancedInput={{
+            step: 0.01,
+            min: 0,
+            rightOffset: "24px",
+          }}
+          value={format(fees)}
+          on:input={handleFeesInput}
+          class="input-field w-full px-4 py-2 rounded-md transition-colors"
+          class:border-green-500={isFeeSynced}
+          class:text-green-400={isFeeSynced}
+          placeholder={$_("dashboard.generalInputs.feesPlaceholder")}
+        />
+        <!-- Sync Indicator for Fees -->
+        {#if targetRemoteFee !== undefined}
+          <button
+            class="absolute right-2 top-1/2 -translate-y-1/2 w-2 h-2 rounded-full transition-colors duration-300 focus:outline-none z-30"
+            style="background-color: {isFeeSynced
+              ? 'var(--success-color)'
+              : 'var(--warning-color)'}; margin-right: 14px;"
+            title={isFeeSynced
+              ? "Synced with API"
+              : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
+            on:click={syncFee}
+          />
+        {/if}
+      </div>
+    </div>
+    <!-- Spacer -->
+    <div class="mb-0" />
+  </div>
 </div>
 
 <style>
-    /* Add subtle shadow for focused inputs */
-    .input-field:focus {
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
-            0 2px 4px -1px rgba(0, 0, 0, 0.06);
-        border-color: var(--accent-color);
-        z-index: 10;
-    }
+  /* Add subtle shadow for focused inputs */
+  .input-field:focus {
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border-color: var(--accent-color);
+    z-index: 10;
+  }
 </style>

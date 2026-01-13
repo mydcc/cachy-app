@@ -10,26 +10,31 @@
  * @param name An optional name for the event (e.g., 'With ATR').
  * @param value An optional numeric value for the event.
  */
-export function trackCustomEvent(category: string, action: string, name?: string, value?: number) {
+export function trackCustomEvent(
+  category: string,
+  action: string,
+  name?: string,
+  value?: number
+) {
   if (!window._mtm) {
     // Matomo Tag Manager is not available, do nothing.
     // This can happen if it's blocked or not yet loaded.
-    console.warn('Matomo Tag Manager not available. Skipping custom event.');
+    console.warn("Matomo Tag Manager not available. Skipping custom event.");
     return;
   }
 
   const eventData: { [key: string]: string | number } = {
-    event: 'customEvent',
-    'custom-event-category': category,
-    'custom-event-action': action,
+    event: "customEvent",
+    "custom-event-category": category,
+    "custom-event-action": action,
   };
 
   if (name) {
-    eventData['custom-event-name'] = name;
+    eventData["custom-event-name"] = name;
   }
 
   if (value !== undefined) {
-    eventData['custom-event-value'] = value;
+    eventData["custom-event-value"] = value;
   }
 
   window._mtm.push(eventData);

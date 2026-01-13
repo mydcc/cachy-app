@@ -15,18 +15,18 @@ export default [
   {
     files: ["**/*.{js,ts}"],
     plugins: {
-      '@typescript-eslint': tsPlugin,
+      "@typescript-eslint": tsPlugin,
     },
     languageOptions: {
       parser: tsParser,
       globals: {
         ...globals.browser, // For things like localStorage, fetch
-        ...globals.node,    // For things like process, __dirname
-      }
+        ...globals.node, // For things like process, __dirname
+      },
     },
     rules: {
-        ...js.configs.recommended.rules,
-        ...tsPlugin.configs.recommended.rules
+      ...js.configs.recommended.rules,
+      ...tsPlugin.configs.recommended.rules,
     },
   },
 
@@ -35,7 +35,7 @@ export default [
     files: ["**/*.svelte"],
     plugins: {
       svelte: svelte,
-      '@typescript-eslint': tsPlugin,
+      "@typescript-eslint": tsPlugin,
     },
     languageOptions: {
       parser: svelteParser,
@@ -58,12 +58,12 @@ export default [
   {
     files: ["**/*.test.ts"],
     plugins: {
-        '@typescript-eslint': tsPlugin,
+      "@typescript-eslint": tsPlugin,
     },
     languageOptions: {
-        globals: {
-            ...globals.vitest,
-        }
-    }
-  }
+      globals: {
+        ...globals.vitest,
+      },
+    },
+  },
 ];
