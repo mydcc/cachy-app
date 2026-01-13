@@ -39,6 +39,61 @@ type BinanceKline = [
   string // Ignore
 ];
 
+// --- Request Manager for Global Concurrency & Deduplication ---
+class RequestManager {
+  private pending = new Map<string, Promise<any>>();
+  private queue: (() => void)[] = [];
+  private activeCount = 0;
+  private readonly MAX_CONCURRENCY = 3;
+
+  /**
+   * Execute a fetch usage deduping and queuing.
+   * @param key Unique key for deduplication (e.g. "BITUNIX:BTCUSDT:1h")
+   * @param task The async function that performs the actual fetch
+   */
+  async schedule<T>(key: string, task: () => Promise<T>): Promise<T> {
+    // 1. Deduplication: If already fetching this key, return existing promise
+    if (this.pending.has(key)) {
+      return this.pending.get(key) as Promise<T>;
+    }
+
+    // 2. Wrap in queue logic
+    const promise = new Promise<T>((resolve, reject) => {
+      const run = async () => {
+        this.activeCount++;
+        try {
+          const result = await task();
+          resolve(result);
+        } catch (e) {
+          reject(e);
+        } finally {
+          this.activeCount--;
+          this.pending.delete(key); // Cleanup pending map
+          this.next(); // Trigger next in queue
+        }
+      };
+
+      if (this.activeCount < this.MAX_CONCURRENCY) {
+        run();
+      } else {
+        this.queue.push(run);
+      }
+    });
+
+    this.pending.set(key, promise);
+    return promise;
+  }
+
+  private next() {
+    if (this.queue.length > 0 && this.activeCount < this.MAX_CONCURRENCY) {
+      const nextTask = this.queue.shift();
+      nextTask?.();
+    }
+  }
+}
+
+export const requestManager = new RequestManager();
+
 export const apiService = {
   // Helper to normalize symbols for API calls
   normalizeSymbol(symbol: string, provider: "bitunix" | "binance"): string {
@@ -100,65 +155,68 @@ export const apiService = {
     startTime?: number,
     endTime?: number
   ): Promise<Kline[]> {
-    try {
-      const normalized = apiService.normalizeSymbol(symbol, "bitunix");
-      let url = `/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`;
-      if (startTime) url += `&start=${startTime}`;
-      if (endTime) url += `&end=${endTime}`;
+    const key = `BITUNIX:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
+    return requestManager.schedule(key, async () => {
+      try {
+        const normalized = apiService.normalizeSymbol(symbol, "bitunix");
+        let url = `/api/klines?provider=bitunix&symbol=${normalized}&interval=${interval}&limit=${limit}`;
+        if (startTime) url += `&start=${startTime}`;
+        if (endTime) url += `&end=${endTime}`;
 
-      const response = await fetch(url);
-      if (!response.ok) {
-        // Try to parse error details
-        try {
-          const errData = await response.json();
-          if (errData.error) {
-            console.error(`fetchBitunixKlines failed with ${response.status}: ${errData.error}`);
-            // If it's a rate limit or specific error, we might want to preserve it
-            // But for now, let's at least log it and maybe throw a more descriptive error if possible
-            // keeping the key for i18n but logged the real cause
-          }
-        } catch { /* ignore parsing error */ }
-        throw new Error("apiErrors.klineError");
-      }
-      const res = await response.json();
+        const response = await fetch(url);
+        if (!response.ok) {
+          // Try to parse error details
+          try {
+            const errData = await response.json();
+            if (errData.error) {
+              console.error(`fetchBitunixKlines failed with ${response.status}: ${errData.error}`);
+              // If it's a rate limit or specific error, we might want to preserve it
+              // But for now, let's at least log it and maybe throw a more descriptive error if possible
+              // keeping the key for i18n but logged the real cause
+            }
+          } catch { /* ignore parsing error */ }
+          throw new Error("apiErrors.klineError");
+        }
+        const res = await response.json();
 
-      // Backend returns the mapped array directly
-      if (!Array.isArray(res)) {
-        if (res.error) throw new Error(res.error);
-        throw new Error("apiErrors.invalidResponse");
-      }
+        // Backend returns the mapped array directly
+        if (!Array.isArray(res)) {
+          if (res.error) throw new Error(res.error);
+          throw new Error("apiErrors.invalidResponse");
+        }
 
-      // Map the response data to the required Kline interface
-      return res.map(
-        (kline: {
-          open: string;
-          high: string;
-          low: string;
-          close: string;
-          timestamp?: number;
-          time?: number;
-          ts?: number;
-        }) => ({
-          open: new Decimal(kline.open),
-          high: new Decimal(kline.high),
-          low: new Decimal(kline.low),
-          close: new Decimal(kline.close),
-          // Backend sends 'timestamp', but we also fallback to 'time' or 'ts' just in case.
-          // parseTimestamp handles seconds/milliseconds normalization.
-          time: parseTimestamp(kline.timestamp || kline.time || kline.ts),
-        })
-      );
-    } catch (e) {
-      console.error(`fetchBitunixKlines error for ${symbol}:`, e);
-      if (
-        e instanceof Error &&
-        (e.message.startsWith("apiErrors.") ||
-          e.message.startsWith("bitunixErrors."))
-      ) {
-        throw e;
+        // Map the response data to the required Kline interface
+        return res.map(
+          (kline: {
+            open: string;
+            high: string;
+            low: string;
+            close: string;
+            timestamp?: number;
+            time?: number;
+            ts?: number;
+          }) => ({
+            open: new Decimal(kline.open),
+            high: new Decimal(kline.high),
+            low: new Decimal(kline.low),
+            close: new Decimal(kline.close),
+            // Backend sends 'timestamp', but we also fallback to 'time' or 'ts' just in case.
+            // parseTimestamp handles seconds/milliseconds normalization.
+            time: parseTimestamp(kline.timestamp || kline.time || kline.ts),
+          })
+        );
+      } catch (e) {
+        console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+        if (
+          e instanceof Error &&
+          (e.message.startsWith("apiErrors.") ||
+            e.message.startsWith("bitunixErrors."))
+        ) {
+          throw e;
+        }
+        throw new Error("apiErrors.generic");
       }
-      throw new Error("apiErrors.generic");
-    }
+    });
   },
 
   async fetchBinancePrice(symbol: string): Promise<Decimal> {
@@ -191,36 +249,39 @@ export const apiService = {
     interval: string,
     limit: number = 15
   ): Promise<Kline[]> {
-    try {
-      const normalized = apiService.normalizeSymbol(symbol, "binance");
-      const response = await fetch(
-        `/api/klines?provider=binance&symbol=${normalized}&interval=${interval}&limit=${limit}`
-      );
-      if (!response.ok) throw new Error("apiErrors.klineError");
-      const data = await response.json();
+    const key = `BINANCE:${symbol}:${interval}:${limit}`;
+    return requestManager.schedule(key, async () => {
+      try {
+        const normalized = apiService.normalizeSymbol(symbol, "binance");
+        const response = await fetch(
+          `/api/klines?provider=binance&symbol=${normalized}&interval=${interval}&limit=${limit}`
+        );
+        if (!response.ok) throw new Error("apiErrors.klineError");
+        const data = await response.json();
 
-      if (!Array.isArray(data)) {
-        throw new Error("apiErrors.invalidResponse");
-      }
+        if (!Array.isArray(data)) {
+          throw new Error("apiErrors.invalidResponse");
+        }
 
-      // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
-      return data.map((kline: BinanceKline) => ({
-        open: new Decimal(kline[1]),
-        high: new Decimal(kline[2]),
-        low: new Decimal(kline[3]),
-        close: new Decimal(kline[4]),
-        time: parseTimestamp(kline[0]),
-      }));
-    } catch (e) {
-      if (
-        e instanceof Error &&
-        (e.message === "apiErrors.klineError" ||
-          e.message === "apiErrors.invalidResponse")
-      ) {
-        throw e;
+        // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
+        return data.map((kline: BinanceKline) => ({
+          open: new Decimal(kline[1]),
+          high: new Decimal(kline[2]),
+          low: new Decimal(kline[3]),
+          close: new Decimal(kline[4]),
+          time: parseTimestamp(kline[0]),
+        }));
+      } catch (e) {
+        if (
+          e instanceof Error &&
+          (e.message === "apiErrors.klineError" ||
+            e.message === "apiErrors.invalidResponse")
+        ) {
+          throw e;
+        }
+        throw new Error("apiErrors.generic");
       }
-      throw new Error("apiErrors.generic");
-    }
+    });
   },
 
   async fetchTicker24h(

@@ -1432,57 +1432,27 @@ export const app = {
       targets: [...state.targets, { price, percent, isLocked }],
     }));
   },
-  // Helper to fetch K-lines with retry logic for 429 errors
-  fetchKlinesWithRetry: async (symbol: string, tf: string, retries = 3): Promise<any> => {
-    const settings = get(settingsStore);
-    try {
-      if (settings.apiProvider === "binance") {
-        return await apiService.fetchBinanceKlines(symbol, tf);
-      } else {
-        return await apiService.fetchBitunixKlines(symbol, tf);
-      }
-    } catch (e: any) {
-      if (retries > 0 && e.message.includes("apiErrors.klineError")) {
-        // Likely rate limit or temporary error. Wait and retry.
-        // Exponential backoff: 300ms, 600ms, 1200ms
-        const delay = 300 * Math.pow(2, 3 - retries);
-        await new Promise((resolve) => setTimeout(resolve, delay));
-        return app.fetchKlinesWithRetry(symbol, tf, retries - 1);
-      }
-      throw e;
-    }
-  },
-
   scanMultiAtr: async (symbol: string) => {
     // This is now just a wrapper or can be deprecated/merged if we always use fetchAllAnalysisData
     // For now we keep it but it might be redundant if fetchAll does everything
-    // But sometimes we might want to JUST scan multi ATR (e.g. changing favorites)
-    // So we implement it safely using the deduplicated approach internally if needed,
-    // or just let it be. But to ensure "all at same time", we should batch.
-
-    // Actually, distinct usage:
-    // fetchAllAnalysisData -> Called on Symbol Change (Load everything)
-    // scanMultiAtr -> Called when Favorites key changes? No, mainly called by fetchAll.
-    // If we call it manually, we should use the same batched logic.
-
-    // Reuse the logic in fetchAllAnalysisData for consistency
-    // But since fetchAll does everything, maybe we just expose a "fetchKlinesForTimeframes" helper?
-
-    // For this specific User Request, let's make fetchAllAnalysisData the master and scanMultiAtr a subset.
     const settings = get(settingsStore);
     const timeframes = settings.favoriteTimeframes?.length > 0
       ? settings.favoriteTimeframes
       : ["5m", "15m", "1h", "4h"];
 
     const results: Record<string, number> = {};
-    const promises = timeframes.map(tf =>
-      app.fetchKlinesWithRetry(symbol, tf)
+    const promises = timeframes.map(tf => {
+      const fetchFn = settings.apiProvider === "binance"
+        ? apiService.fetchBinanceKlines
+        : apiService.fetchBitunixKlines;
+
+      return fetchFn(symbol, tf)
         .then(klines => {
           const atr = calculator.calculateATR(klines);
           if (atr.gt(0)) results[tf] = atr.toDP(4).toNumber();
         })
-        .catch(e => console.warn(`Failed to fetch ATR for ${tf}`, e))
-    );
+        .catch(e => console.warn(`Failed to fetch ATR for ${tf}`, e));
+    });
 
     await Promise.all(promises);
     updateTradeStore((state) => ({ ...state, multiAtrData: results }));
