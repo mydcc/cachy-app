@@ -5,8 +5,22 @@ import type { Kline, TechnicalsData, IndicatorResult } from './technicalsTypes';
 
 export type { Kline, TechnicalsData, IndicatorResult };
 
+// Initialize talib-web WASM module
+let talibReady = false;
+const talibInit = talib.init().then(() => {
+    talibReady = true;
+    console.log('talib-web initialized successfully');
+}).catch(err => {
+    console.error('Failed to initialize talib-web:', err);
+});
+
 export const technicalsService = {
     async calculateTechnicals(rawKlines: any[], settings?: IndicatorSettings): Promise<TechnicalsData> {
+        // Ensure talib is initialized
+        if (!talibReady) {
+            await talibInit;
+        }
+
         // 1. Normalize Data to strict Kline format with Decimals
         const klines: Kline[] = [];
         let prevClose = new Decimal(0);
@@ -67,7 +81,7 @@ export const technicalsService = {
             // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
             const rsiSource = getSource(settings?.rsi?.source || 'close').map(d => d.toNumber());
-            const rsiResult = await talib.RSI(rsiSource, rsiLen);
+            const rsiResult = await talib.RSI({ inReal: rsiSource, timePeriod: rsiLen });
             const rsiOutput = rsiResult?.output || [];
             const rsiVal = rsiOutput.length > 0
                 ? new Decimal(rsiOutput[rsiOutput.length - 1])
@@ -85,14 +99,14 @@ export const technicalsService = {
             const stochD = settings?.stochastic?.dPeriod || 3;
             const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
 
-            const stochResult = await talib.STOCH(
-                highsNum,
-                lowsNum,
-                closesNum,
-                stochK,
-                stochKSmooth,
-                stochD
-            );
+            const stochResult = await talib.STOCH({
+                high: highsNum,
+                low: lowsNum,
+                close: closesNum,
+                fastK_period: stochK,
+                slowK_period: stochKSmooth,
+                slowD_period: stochD
+            });
 
             let stochKVal = new Decimal(0);
             let stochDVal = new Decimal(0);
@@ -116,7 +130,7 @@ export const technicalsService = {
 
             // 3. CCI
             const cciLen = settings?.cci?.length || 20;
-            const cciResult = await talib.CCI(highsNum, lowsNum, closesNum, cciLen);
+            const cciResult = await talib.CCI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: cciLen });
             const cciOutput = cciResult?.output || [];
             const cciVal = cciOutput.length > 0
                 ? new Decimal(cciOutput[cciOutput.length - 1])
@@ -136,15 +150,15 @@ export const technicalsService = {
 
             // 4. ADX
             const adxSmooth = settings?.adx?.adxSmoothing || 14;
-            const adxResult = await talib.ADX(highsNum, lowsNum, closesNum, adxSmooth);
+            const adxResult = await talib.ADX({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
             const adxOutput = adxResult?.output || [];
             const adxVal = adxOutput.length > 0
                 ? new Decimal(adxOutput[adxOutput.length - 1])
                 : new Decimal(0);
 
             // Get +DI and -DI for action
-            const pdiResult = await talib.PLUS_DI(highsNum, lowsNum, closesNum, adxSmooth);
-            const mdiResult = await talib.MINUS_DI(highsNum, lowsNum, closesNum, adxSmooth);
+            const pdiResult = await talib.PLUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
+            const mdiResult = await talib.MINUS_DI({ high: highsNum, low: lowsNum, close: closesNum, timePeriod: adxSmooth });
 
             const pdiOutput = pdiResult?.output || [];
             const mdiOutput = mdiResult?.output || [];
@@ -185,7 +199,7 @@ export const technicalsService = {
             // 6. Momentum
             const momLen = settings?.momentum?.length || 10;
             const momSource = getSource(settings?.momentum?.source || 'close').map(d => d.toNumber());
-            const momResult = await talib.MOM(momSource, momLen);
+            const momResult = await talib.MOM({ inReal: momSource, timePeriod: momLen });
             const momOutput = momResult?.output || [];
             const momVal = momOutput.length > 0
                 ? new Decimal(momOutput[momOutput.length - 1])
@@ -208,12 +222,12 @@ export const technicalsService = {
             const macdSig = settings?.macd?.signalLength || 9;
             const macdSource = getSource(settings?.macd?.source || 'close').map(d => d.toNumber());
 
-            const macdResult = await talib.MACD(
-                macdSource,
-                macdFast,
-                macdSlow,
-                macdSig
-            );
+            const macdResult = await talib.MACD({
+                inReal: macdSource,
+                fastPeriod: macdFast,
+                slowPeriod: macdSlow,
+                signalPeriod: macdSig
+            });
 
             let macdVal = new Decimal(0);
             let macdSignalVal = new Decimal(0);
@@ -255,7 +269,7 @@ export const technicalsService = {
             const periods = [ema1, ema2, ema3];
 
             for (const period of periods) {
-                const emaResult = await talib.EMA(closesNum, period);
+                const emaResult = await talib.EMA({ inReal: closesNum, timePeriod: period });
                 const emaOutput = emaResult?.output || [];
 
                 if (emaOutput.length > 0) {
@@ -309,8 +323,8 @@ export const technicalsService = {
             // AO = SMA(HL2, 5) - SMA(HL2, 34)
             const hl2 = high.map((h, i) => (h + low[i]) / 2);
 
-            const fastSMA = await talib.SMA(hl2, fastPeriod);
-            const slowSMA = await talib.SMA(hl2, slowPeriod);
+            const fastSMA = await talib.SMA({ inReal: hl2, timePeriod: fastPeriod });
+            const slowSMA = await talib.SMA({ inReal: hl2, timePeriod: slowPeriod });
 
             const fastOutput = fastSMA?.output || [];
             const slowOutput = slowSMA?.output || [];
