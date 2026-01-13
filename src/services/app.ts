@@ -1467,10 +1467,11 @@ export const app = {
       }
     };
 
-    // Limit concurrency to 2 requests at a time to avoid rate limits
-    for (let i = 0; i < timeframes.length; i += 2) {
-      const chunk = timeframes.slice(i, i + 2);
-      await Promise.all(chunk.map((tf) => fetchAndSet(tf)));
+    // PROCESS SEQUENTIALLY with delay to avoid "request too frequently"
+    for (const tf of timeframes) {
+      await fetchAndSet(tf);
+      // Small delay between requests (300ms)
+      await new Promise((resolve) => setTimeout(resolve, 300));
     }
   },
 
@@ -1478,12 +1479,16 @@ export const app = {
   fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
     if (!symbol || symbol.length < 3) return;
 
-    // Fetch everything in parallel to minimize wait time
+    // 1. CRITICAL: Fetch Price and Current ATR immediately (Parallel)
     const pricePromise = app.handleFetchPrice(isAuto);
-    const multiAtrPromise = app.scanMultiAtr(symbol);
     const currentAtrPromise = app.fetchAtr(isAuto);
 
-    await Promise.allSettled([pricePromise, multiAtrPromise, currentAtrPromise]);
+    await Promise.allSettled([pricePromise, currentAtrPromise]);
+
+    // 2. BACKGROUND: Scan Multi-ATR (Non-blocking for the user flow)
+    // We don't await this, so the user sees the price/SL immediately.
+    // The chips will pop in one by one.
+    app.scanMultiAtr(symbol);
   },
 
   adjustTpPercentages: (changedIndex: number | null) => {
