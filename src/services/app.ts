@@ -76,7 +76,6 @@ interface CSVTradeEntry {
 }
 
 let priceUpdateIntervalId: any = null;
-let currentSubscribedSymbol: string | null = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
 let tradeStoreUnsubscribe: (() => void) | null = null;
 let lastCalculationTime = 0;

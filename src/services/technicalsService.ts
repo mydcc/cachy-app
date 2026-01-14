@@ -210,7 +210,8 @@ export const technicalsService = {
 
     // 0. Cache Check
     const lastKline = klinesInput[klinesInput.length - 1];
-    const cacheKey = `${klinesInput.length}-${lastKline.time}-${JSON.stringify(
+    const lastPrice = lastKline.close?.toString() || "0";
+    const cacheKey = `${klinesInput.length}-${lastKline.time}-${lastPrice}-${JSON.stringify(
       settings
     )}`;
     const cached = calculationCache.get(cacheKey);

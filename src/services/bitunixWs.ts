@@ -34,7 +34,7 @@ class BitunixWebSocketService {
   private lastWatchdogResetPrivate = 0;
   private readonly WATCHDOG_THROTTLE_MS = 2000; // Reset watchdog max every 2 seconds
 
-  private publicSubscriptions: Set<string> = new Set();
+  public publicSubscriptions: Set<string> = new Set();
 
   private reconnectTimerPublic: any = null;
   private reconnectTimerPrivate: any = null;

@@ -66,28 +66,38 @@ class MarketWatcher {
         const settings = get(settingsStore);
         if (settings.apiProvider !== "bitunix") return;
 
-        // Bitunix WebSocket Sync
-        // 1. Collect all intended subscriptions
-        const currentSubs = new Set<string>(); // "SYMBOL:channel"
+        // 1. Collect all intended subscriptions from requests
+        // map of key (channel:symbol) -> { symbol, channel }
+        const intended = new Map<string, { symbol: string; channel: string }>();
         this.requests.forEach((channels, symbol) => {
             channels.forEach(ch => {
-                currentSubs.add(`${symbol}:${ch}`);
-            });
-        });
-
-        // Note: bitunixWs currently handles deduplication internally, 
-        // but MarketWatcher provides a cleaner high-level registry.
-
-        this.requests.forEach((channels, symbol) => {
-            channels.forEach(ch => {
+                let bitunixChannel = ch;
                 if (ch === "price") {
-                    bitunixWs.subscribe(symbol, "price");
+                    bitunixChannel = "price";
                 } else if (ch.startsWith("kline_")) {
                     const timeframe = ch.replace("kline_", "");
                     const bitunixInterval = this.mapTimeframeToBitunix(timeframe);
-                    bitunixWs.subscribe(symbol, `market_kline_${bitunixInterval}`);
+                    bitunixChannel = `market_kline_${bitunixInterval}`;
                 }
+                const key = `${bitunixChannel}:${symbol}`;
+                intended.set(key, { symbol, channel: bitunixChannel });
             });
+        });
+
+        // 2. Diff and Sync
+        // Subscribe to additions
+        intended.forEach((sub, key) => {
+            if (!bitunixWs.publicSubscriptions.has(key)) {
+                bitunixWs.subscribe(sub.symbol, sub.channel);
+            }
+        });
+
+        // Unsubscribe from removals
+        bitunixWs.publicSubscriptions.forEach(key => {
+            if (!intended.has(key)) {
+                const [channel, symbol] = key.split(":");
+                bitunixWs.unsubscribe(symbol, channel);
+            }
         });
     }
 

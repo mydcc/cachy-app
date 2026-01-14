@@ -38,9 +38,7 @@
   $: indicatorSettings = $indicatorStore;
 
   // React to Market Store updates for real-time processing
-  $: wsData = symbol
-    ? $marketStore[normalizeSymbol(symbol, "bitunix")]
-    : null;
+  $: wsData = symbol ? $marketStore[normalizeSymbol(symbol, "bitunix")] : null;
 
   $: currentKline = wsData?.klines ? wsData.klines[timeframe] : null;
 
@@ -49,8 +47,10 @@
     const subKey = `${symbol}:${timeframe}`;
     if (currentSubscription !== subKey) {
       isStale = true;
-      
-      const [oldSym, oldTf] = currentSubscription ? currentSubscription.split(":") : ["", ""];
+
+      const [oldSym, oldTf] = currentSubscription
+        ? currentSubscription.split(":")
+        : ["", ""];
       if (oldSym) {
         marketWatcher.unregister(oldSym, `kline_${oldTf}`);
         marketWatcher.unregister(oldSym, "price");
@@ -58,7 +58,7 @@
 
       marketWatcher.register(symbol, `kline_${timeframe}`);
       marketWatcher.register(symbol, "price");
-      
+
       fetchData().then(() => {
         isStale = false;
       });
@@ -86,6 +86,12 @@
 
   // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
   $: if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
+    if ($settingsStore.debugMode) {
+      console.log(
+        `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
+        currentKline
+      );
+    }
     handleRealTimeUpdate(currentKline);
   }
 
@@ -100,19 +106,16 @@
     const close = newKline.close ? new Decimal(newKline.close) : new Decimal(0);
 
     if (rawTime <= 0 || close.lte(0)) {
-      // Invalid data packet, ignore
       return;
     }
 
     // --- ALIGNMENT FIX ---
-    // Even if WebSocket sends a timestamp like "12:07:33", we MUST snap it to "12:00:00" for 15m candle.
-    // This prevents creating ghost candles if the WS sends event time instead of kline start time.
     const intervalMs = getIntervalMs(timeframe);
     const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
 
     const lastIdx = klinesHistory.length - 1;
     const lastHistoryCandle = klinesHistory[lastIdx];
-    const lastTime = lastHistoryCandle.time || 0; // Already parsed by apiService
+    const lastTime = lastHistoryCandle.time || 0;
 
     // Ensure we handle Decimal objects or strings/numbers correctly for history
     const newCandleObj: Kline = {
