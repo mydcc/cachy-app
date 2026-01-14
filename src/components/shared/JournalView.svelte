@@ -208,11 +208,11 @@
 
       if (field === "duration") {
         const startA = new Date(a.entryDate || a.date).getTime();
-        const endA = new Date(a.date).getTime();
+        const endA = new Date(a.exitDate || a.date).getTime();
         valA = isNaN(startA) || isNaN(endA) ? 0 : Math.max(0, endA - startA);
 
         const startB = new Date(b.entryDate || b.date).getTime();
-        const endB = new Date(b.date).getTime();
+        const endB = new Date(b.exitDate || b.date).getTime();
         valB = isNaN(startB) || isNaN(endB) ? 0 : Math.max(0, endB - startB);
       }
 
@@ -224,7 +224,10 @@
       if (valB === undefined || valB === null)
         valB = field === "symbol" || field === "status" ? "" : -Infinity;
 
-      if (field === "date" && typeof valA === "string") {
+      if (
+        (field === "date" || field === "exitDate") &&
+        typeof valA === "string"
+      ) {
         valA = new Date(valA).getTime();
         valB = new Date(valB).getTime();
       }
@@ -470,12 +473,13 @@
       bind:itemsPerPage
       {columnVisibility}
       {groupBySymbol}
-      on:sort={(e) => handleSort(e.detail.field)}
-      on:deleteTrade={(e) => confirmDeleteTrade(e.detail.id)}
-      on:statusChange={(e) =>
+      on:sort={(e: any) => handleSort(e.detail.field)}
+      on:deleteTrade={(e: any) => confirmDeleteTrade(e.detail.id)}
+      on:statusChange={(e: any) =>
         app.updateTradeStatus(e.detail.id, e.detail.status)}
-      on:pageChange={(e) => (currentPage = e.detail.page)}
-      on:uploadScreenshot={handleScreenshotUpload}
+      on:updateTrade={(e: any) => app.updateTrade(e.detail.id, e.detail)}
+      on:pageChange={(e: any) => (currentPage = e.detail.page)}
+      on:uploadScreenshot={(e: any) => handleScreenshotUpload(e)}
     />
   </div>
 

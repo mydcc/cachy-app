@@ -131,7 +131,8 @@ export const syncService = {
           maxPotentialProfit: new Decimal(0),
           targets: [],
           calculatedTpDetails: [],
-          tags: []
+          tags: [],
+          fundingFee: funding
         });
         addedCount++;
       }
@@ -226,7 +227,9 @@ export const syncService = {
             notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
             isManual: false,
             positionSize: qty,
-            accountSize: new Decimal(0), riskPercentage: new Decimal(0), fees: new Decimal(0), maxPotentialProfit: new Decimal(0), targets: [], calculatedTpDetails: [], tags: []
+            accountSize: new Decimal(0), riskPercentage: new Decimal(0), fees: new Decimal(0), maxPotentialProfit: new Decimal(0), targets: [], calculatedTpDetails: [], tags: [],
+            fundingFee: funding,
+            exitDate: new Date(closeTime).toISOString()
           };
         });
 

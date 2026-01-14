@@ -61,15 +61,40 @@
         } else {
             expandedGroups.add(symbol);
         }
-        expandedGroups = expandedGroups; // Trigger reactivity
+        expandedGroups = expandedGroups;
     }
+
+    function addTag(tradeId: number, tag: string, currentTags: string[] = []) {
+        if (!tag || tag.trim() === "") return;
+        const trimmedTag = tag.trim();
+        if (currentTags.includes(trimmedTag)) return;
+
+        const newTags = [...currentTags, trimmedTag];
+        dispatch("updateTrade", { id: tradeId, tags: newTags });
+    }
+
+    function removeTag(
+        tradeId: number,
+        tagToRemove: string,
+        currentTags: string[]
+    ) {
+        const newTags = currentTags.filter((t) => t !== tagToRemove);
+        dispatch("updateTrade", { id: tradeId, tags: newTags });
+    }
+
+    let tagInputValues: Record<number, string> = {};
 
     function formatDuration(minutes: number) {
         if (!minutes || minutes < 0) return "-";
-        const h = Math.floor(minutes / 60);
+        const d = Math.floor(minutes / (60 * 24));
+        const h = Math.floor((minutes % (60 * 24)) / 60);
         const m = Math.floor(minutes % 60);
-        if (h > 0) return `${h}h ${m}m`;
-        return `${m}m`;
+
+        let parts = [];
+        if (d > 0) parts.push(`${d}d`);
+        if (h > 0) parts.push(`${h}h`);
+        if (m > 0 || parts.length === 0) parts.push(`${m}m`);
+        return parts.join(" ");
     }
 
     function getProfitClass(pnl: Decimal | undefined | string) {
@@ -135,9 +160,21 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.type}<th
-                                    >{$_("journal.table.type")}</th
-                                >{/if}
+                            {#if columnVisibility.type}
+                                <th
+                                    on:click={() => handleSort("tradeType")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.type")}
+                                    <span class="sort-icon"
+                                        >{sortField === "tradeType"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
                             {#if columnVisibility.entry}
                                 <th
                                     on:click={() => handleSort("entryPrice")}
@@ -153,15 +190,51 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.exit}<th
-                                    >{$_("journal.table.exit")}</th
-                                >{/if}
-                            {#if columnVisibility.sl}<th
-                                    >{$_("journal.table.sl")}</th
-                                >{/if}
-                            {#if columnVisibility.size}<th
-                                    >{$_("journal.table.size")}</th
-                                >{/if}
+                            {#if columnVisibility.exit}
+                                <th
+                                    on:click={() => handleSort("exitPrice")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.exit")}
+                                    <span class="sort-icon"
+                                        >{sortField === "exitPrice"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
+                            {#if columnVisibility.sl}
+                                <th
+                                    on:click={() => handleSort("stopLossPrice")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.sl")}
+                                    <span class="sort-icon"
+                                        >{sortField === "stopLossPrice"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
+                            {#if columnVisibility.size}
+                                <th
+                                    on:click={() => handleSort("positionSize")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.size")}
+                                    <span class="sort-icon"
+                                        >{sortField === "positionSize"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
                             {#if columnVisibility.pnl}
                                 <th
                                     on:click={() =>
@@ -178,9 +251,21 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.funding}<th
-                                    >{$_("journal.table.funding")}</th
-                                >{/if}
+                            {#if columnVisibility.funding}
+                                <th
+                                    on:click={() => handleSort("fundingFee")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.funding")}
+                                    <span class="sort-icon"
+                                        >{sortField === "fundingFee"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
                             {#if columnVisibility.rr}
                                 <th
                                     on:click={() => handleSort("totalRR")}
@@ -196,18 +281,66 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.mae}<th
-                                    >{$_("journal.table.mae")}</th
-                                >{/if}
-                            {#if columnVisibility.mfe}<th
-                                    >{$_("journal.table.mfe")}</th
-                                >{/if}
-                            {#if columnVisibility.efficiency}<th
-                                    >{$_("journal.table.efficiency")}</th
-                                >{/if}
-                            {#if columnVisibility.duration}<th
-                                    >{$_("journal.table.duration")}</th
-                                >{/if}
+                            {#if columnVisibility.mae}
+                                <th
+                                    on:click={() => handleSort("mae")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.mae")}
+                                    <span class="sort-icon"
+                                        >{sortField === "mae"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
+                            {#if columnVisibility.mfe}
+                                <th
+                                    on:click={() => handleSort("mfe")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.mfe")}
+                                    <span class="sort-icon"
+                                        >{sortField === "mfe"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
+                            {#if columnVisibility.efficiency}
+                                <th
+                                    on:click={() => handleSort("efficiency")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.efficiency")}
+                                    <span class="sort-icon"
+                                        >{sortField === "efficiency"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
+                            {#if columnVisibility.duration}
+                                <th
+                                    on:click={() => handleSort("duration")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.duration")}
+                                    <span class="sort-icon"
+                                        >{sortField === "duration"
+                                            ? sortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
                             {#if columnVisibility.status}
                                 <th
                                     on:click={() => handleSort("status")}
@@ -345,26 +478,28 @@
                                     <td
                                         >{formatDynamicDecimal(
                                             item.entryPrice,
-                                            2
+                                            4
                                         )}</td
                                     >
                                 {/if}
                                 {#if columnVisibility.exit}
                                     <td
-                                        >{item.exitPrice
+                                        >{item.exitPrice &&
+                                        !item.exitPrice.isZero()
                                             ? formatDynamicDecimal(
                                                   item.exitPrice,
-                                                  2
+                                                  4
                                               )
                                             : "-"}</td
                                     >
                                 {/if}
                                 {#if columnVisibility.sl}
                                     <td class="text-danger"
-                                        >{item.stopLossPrice
+                                        >{item.stopLossPrice &&
+                                        !item.stopLossPrice.isZero()
                                             ? formatDynamicDecimal(
                                                   item.stopLossPrice,
-                                                  2
+                                                  4
                                               )
                                             : "-"}</td
                                     >
@@ -497,43 +632,61 @@
 
                                 {#if columnVisibility.screenshot}
                                     <td class="screenshot-cell">
-                                        {#if item.screenshot}
-                                            <div class="screenshot-preview">
+                                        <div class="flex items-center gap-2">
+                                            {#if item.screenshot}
                                                 <a
                                                     href={item.screenshot}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
-                                                >
-                                                    <img
-                                                        src={item.screenshot}
-                                                        alt="Screenshot"
-                                                        class="thumbnail"
-                                                    />
-                                                </a>
-                                                <button
-                                                    class="upload-btn mini"
-                                                    on:click={() =>
-                                                        triggerFileUpload(
-                                                            item.id
-                                                        )}
+                                                    class="screenshot-icon-wrapper relative group text-lg"
                                                     title={$_(
-                                                        "journal.labels.replaceScreenshot"
+                                                        "journal.labels.view"
                                                     )}
                                                 >
-                                                    ↻
+                                                    🖼️
+                                                    <div
+                                                        class="screenshot-hover-preview hidden group-hover:block absolute z-[100] bottom-full left-0 mb-2 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl"
+                                                    >
+                                                        <img
+                                                            src={item.screenshot}
+                                                            alt="Preview"
+                                                            class="w-[240px] h-auto rounded"
+                                                        />
+                                                    </div>
+                                                </a>
+                                                <button
+                                                    class="text-xs opacity-50 hover:opacity-100 text-danger"
+                                                    on:click={() =>
+                                                        dispatch(
+                                                            "updateTrade",
+                                                            {
+                                                                id: item.id,
+                                                                screenshot:
+                                                                    undefined,
+                                                            }
+                                                        )}
+                                                    title={$_(
+                                                        "journal.labels.removeScreenshot"
+                                                    )}
+                                                >
+                                                    🗑️
                                                 </button>
-                                            </div>
-                                        {:else}
+                                            {/if}
                                             <button
-                                                class="upload-btn"
+                                                class="text-xs opacity-50 hover:opacity-100"
                                                 on:click={() =>
                                                     triggerFileUpload(item.id)}
+                                                title={item.screenshot
+                                                    ? $_(
+                                                          "journal.labels.replaceScreenshot"
+                                                      )
+                                                    : $_(
+                                                          "journal.labels.uploadScreenshot"
+                                                      )}
                                             >
-                                                {$_(
-                                                    "journal.labels.uploadScreenshot"
-                                                )}
+                                                {item.screenshot ? "↻" : "➕"}
                                             </button>
-                                        {/if}
+                                        </div>
                                         <input
                                             type="file"
                                             id="file-upload-{item.id}"
@@ -554,18 +707,68 @@
                                 {/if}
 
                                 {#if columnVisibility.tags}
-                                    <td
-                                        class="text-xs italic text-[var(--text-secondary)] text-ellipsis max-w-[100px] overflow-hidden"
-                                    >
-                                        {item.tags?.join(", ") || "-"}
+                                    <td class="tags-cell">
+                                        <div
+                                            class="flex flex-wrap gap-1 items-center"
+                                        >
+                                            {#if item.tags && item.tags.length > 0}
+                                                {#each item.tags as tag}
+                                                    <span
+                                                        class="tag-chip text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-color)] text-white flex items-center gap-1 group/tag"
+                                                    >
+                                                        {tag}
+                                                        <button
+                                                            class="opacity-50 hover:opacity-100 font-bold leading-none"
+                                                            on:click|stopPropagation={() =>
+                                                                removeTag(
+                                                                    item.id,
+                                                                    tag,
+                                                                    item.tags ||
+                                                                        []
+                                                                )}>×</button
+                                                        >
+                                                    </span>
+                                                {/each}
+                                            {/if}
+                                            <input
+                                                type="text"
+                                                placeholder="+"
+                                                class="tag-add-input text-[10px] bg-transparent border-0 w-8 focus:w-20 transition-all outline-none opacity-50 focus:opacity-100"
+                                                bind:value={tagInputValues[
+                                                    item.id
+                                                ]}
+                                                on:keydown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        addTag(
+                                                            item.id,
+                                                            tagInputValues[
+                                                                item.id
+                                                            ],
+                                                            item.tags || []
+                                                        );
+                                                        tagInputValues[
+                                                            item.id
+                                                        ] = "";
+                                                    }
+                                                }}
+                                            />
+                                        </div>
                                     </td>
                                 {/if}
                                 {#if columnVisibility.notes}
-                                    <td
-                                        class="max-w-[150px] truncate text-xs"
-                                        title={item.notes}
-                                    >
-                                        {item.notes || "-"}
+                                    <td class="notes-cell">
+                                        <input
+                                            type="text"
+                                            value={item.notes || ""}
+                                            class="notes-input bg-transparent border-0 text-xs w-full focus:bg-[var(--bg-secondary)] rounded px-1"
+                                            placeholder="-"
+                                            on:change={(e) =>
+                                                dispatch("updateTrade", {
+                                                    id: item.id,
+                                                    notes: e.currentTarget
+                                                        .value,
+                                                })}
+                                        />
                                     </td>
                                 {/if}
                                 {#if columnVisibility.action}
@@ -683,10 +886,13 @@
     }
 
     .journal-table td {
-        padding: 0.6rem 1rem;
+        padding: 0.3rem 0.6rem;
         border-bottom: 1px solid var(--border-color);
         white-space: nowrap;
         vertical-align: middle;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 250px;
     }
 
     .trade-row:hover {
@@ -836,11 +1042,29 @@
         cursor: not-allowed;
     }
 
+    .notes-input {
+        color: var(--text-primary);
+        min-width: 120px;
+    }
+
+    .notes-input:focus {
+        outline: 1px solid var(--accent-color);
+    }
+
+    .screenshot-cell {
+        min-width: 60px;
+    }
+
+    .tag-chip {
+        white-space: nowrap;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
     .pagination-info {
-        font-size: 0.85rem;
+        font-size: 0.75rem;
         color: var(--text-secondary);
         font-weight: 500;
-        min-width: 100px;
+        min-width: 80px;
         text-align: center;
     }
 
