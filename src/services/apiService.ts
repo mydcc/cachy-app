@@ -102,8 +102,8 @@ class RequestManager {
                   })`,
                   e
                 );
-                // Wait a bit before retry
-                await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
+                // Wait a bit before retry (increased for rate limit recovery)
+                await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
                 return executeWithRetry(attempt + 1);
               }
               throw e;

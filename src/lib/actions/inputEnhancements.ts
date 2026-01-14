@@ -90,13 +90,14 @@ export function enhancedInput(
   }
 
   const handleWheel = (e: WheelEvent) => {
-    e.preventDefault();
+    // We remove preventDefault() to allow passive scrolling, 
+    // and rely on focus state to decide if we want to change value.
     if (e.deltaY < 0) updateValue(step);
     else updateValue(-step);
   };
 
   const onFocus = () => {
-    node.addEventListener("wheel", handleWheel, { passive: false });
+    node.addEventListener("wheel", handleWheel, { passive: true });
   };
 
   const onBlur = () => {

@@ -146,10 +146,11 @@ export const syncService = {
       });
 
       // Batch size for parallel kline requests
-      const BATCH_SIZE = 5;
+      const BATCH_SIZE = 2; // Reduced for rate limiting
       for (let i = 0; i < filteredHistory.length; i += BATCH_SIZE) {
         const batch = filteredHistory.slice(i, i + BATCH_SIZE);
         const batchPromises = batch.map(async (p: any) => {
+          // ... (rest of the map remains the same, but I need to include it for the tool)
           const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
           const realizedPnl = new Decimal(p.realizedPNL || 0);
           const funding = new Decimal(p.funding || 0);
@@ -181,7 +182,7 @@ export const syncService = {
           let mae, mfe, efficiency;
           try {
             if (posTime > 0 && closeTime > posTime) {
-              const klines = await apiService.fetchBitunixKlines(p.symbol, "1m", 1000, posTime, closeTime, "normal", 15000);
+              const klines = await apiService.fetchBitunixKlines(p.symbol, "1m", 1000, posTime, closeTime, "normal", 30000);
               if (klines?.length > 0) {
                 let maxHigh = new Decimal(0), minLow = new Decimal(Infinity);
                 klines.forEach((k) => {
@@ -196,7 +197,7 @@ export const syncService = {
                 }
               }
             }
-          } catch (err) { console.warn("MAE/MFE failed", err); }
+          } catch (err) { console.warn(`MAE/MFE failed for ${p.symbol}:`, err); }
 
           let riskAmount = new Decimal(0), totalRR = new Decimal(0);
           if (stopLoss.gt(0) && entryPrice.gt(0) && qty.gt(0)) {
@@ -231,6 +232,11 @@ export const syncService = {
 
         const batchResults = await Promise.all(batchPromises);
         newEntries.push(...batchResults.filter(Boolean));
+
+        // Anti-Rate-Limit delay between batches
+        if (i + BATCH_SIZE < filteredHistory.length) {
+          await new Promise(r => setTimeout(r, 1200));
+        }
       }
 
       // Safe Swap
