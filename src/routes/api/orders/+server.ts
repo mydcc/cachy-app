@@ -37,9 +37,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing ${type} on ${exchange}:`, e);
+    // Sanitize error logging to prevent leaking sensitive info (keys)
+    const errorMsg = e.message || "Unknown error";
+    // Avoid logging full error object if it could contain request config with headers
+    console.error(`Error processing ${type} on ${exchange}: ${errorMsg}`);
+
     return json(
-      { error: e.message || `Failed to process ${type}` },
+      { error: errorMsg || `Failed to process ${type}` },
       { status: 500 }
     );
   }
@@ -52,6 +56,12 @@ async function placeBitunixOrder(
 ): Promise<any> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
+
+  // Validate inputs
+  const qty = parseFloat(orderData.qty);
+  if (isNaN(qty) || qty <= 0) {
+    throw new Error("Quantity must be a positive number");
+  }
 
   // Construct Payload
   // Required: symbol, side, type, qty
@@ -66,6 +76,10 @@ async function placeBitunixOrder(
 
   if (payload.type === "LIMIT") {
     if (!orderData.price) throw new Error("Price required for limit order");
+    const price = parseFloat(orderData.price);
+    if (isNaN(price) || price <= 0) {
+      throw new Error("Price must be a positive number");
+    }
     payload.price = String(orderData.price);
   }
 

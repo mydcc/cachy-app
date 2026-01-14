@@ -1,6 +1,11 @@
 import { describe, it, expect, vi } from "vitest";
 import { Decimal } from "decimal.js";
 
+// Mock browser env
+vi.mock("$app/environment", () => ({
+  browser: true,
+}));
+
 // Mock talib-web before importing service
 vi.mock("talib-web", () => {
   return {

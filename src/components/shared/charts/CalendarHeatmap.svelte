@@ -21,16 +21,16 @@
   const months = [
     "Jan",
     "Feb",
-    "Mar",
+    "Mär",
     "Apr",
-    "May",
+    "Mai",
     "Jun",
     "Jul",
     "Aug",
     "Sep",
-    "Oct",
+    "Okt",
     "Nov",
-    "Dec",
+    "Dez",
   ];
 
   function getDaysInMonth(m: number, y: number) {
@@ -39,7 +39,9 @@
 
   function getFirstDayOfMonth(m: number, y: number) {
     // 0 = Sun, 1 = Mon ...
-    return new Date(y, m, 1).getDay();
+    const day = new Date(y, m, 1).getDay();
+    // Convert to Monday start: Mon(1)->0, ..., Sun(0)->6
+    return (day + 6) % 7;
   }
 
   // Map data to easy lookup
@@ -168,8 +170,8 @@
       </div>
 
       <div class="days-grid grid grid-cols-7 gap-1 flex-1 content-start">
-        <!-- Day headers -->
-        {#each ["S", "M", "T", "W", "T", "F", "S"] as dayHead}
+        <!-- Day headers (Monday start) -->
+        {#each ["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"] as dayHead}
           <div class="text-[0.6rem] text-center text-[var(--text-tertiary)]">
             {dayHead}
           </div>
@@ -185,7 +187,6 @@
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
           {@const tooltipContent = getTooltipHtml(entry, dateStr)}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
           <div
             role="button"
             tabindex="0"
@@ -197,6 +198,10 @@
               ? { content: tooltipContent, allowHtml: true, placement: "top" }
               : { content: dateStr, placement: "top" }}
             on:click={() => entry && handleDayClick(dateStr)}
+            on:keydown={(e) =>
+              (e.key === "Enter" || e.key === " ") &&
+              entry &&
+              handleDayClick(dateStr)}
           />
         {/each}
       </div>

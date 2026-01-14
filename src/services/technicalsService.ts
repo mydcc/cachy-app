@@ -175,15 +175,20 @@ const JSIndicators = {
 let talibReady = false;
 // Explicitly point to the WASM file using Vite asset URL
 const wasmPath = browser ? talibWasmUrl : undefined;
-const talibInit = talib
-  .init(wasmPath)
-  .then(() => {
-    talibReady = true;
-    console.log(`talib-web initialized successfully from ${wasmPath}`);
-  })
-  .catch((err) => {
-    console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
-  });
+
+let talibInit: Promise<void> | null = null;
+
+if (browser) {
+  talibInit = talib
+    .init(wasmPath)
+    .then(() => {
+      talibReady = true;
+      console.log(`talib-web initialized successfully from ${wasmPath}`);
+    })
+    .catch((err) => {
+      console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
+    });
+}
 
 export const technicalsService = {
   async calculateTechnicals(
@@ -199,6 +204,9 @@ export const technicalsService = {
   ): Promise<TechnicalsData> {
     // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
+      if (!browser || !talibInit) {
+        return this.getEmptyData();
+      }
       console.log("Waiting for talib-web initialization...");
 
       try {
@@ -535,12 +543,6 @@ export const technicalsService = {
 
       const fastSMA = getSMA(hl2, fastPeriod);
       const slowSMA = getSMA(hl2, slowPeriod);
-
-      console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${
-          fastSMA - slowSMA
-        }`
-      );
 
       return new Decimal(fastSMA - slowSMA);
     } catch (error) {
