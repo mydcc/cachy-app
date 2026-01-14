@@ -6,77 +6,153 @@
     export let performanceData: any;
     export let qualityData: any;
     export let isPro: boolean = false;
+    export let minimal: boolean = false;
 </script>
 
 {#if isPro}
-    <div class="journal-statistics">
-        <div class="stats-grid">
-            <!-- Total P/L -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.totalPnL")}</div>
-                <div
-                    class="stat-value"
-                    class:positive={(performanceData?.totalPnl ?? 0) >= 0}
-                    class:negative={(performanceData?.totalPnl ?? 0) < 0}
-                >
-                    {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
-                        performanceData?.totalPnl ?? 0
-                    ).toFixed(2)} $
+    <div class="journal-statistics" class:minimal>
+        {#if minimal}
+            <div class="stats-minimal">
+                <!-- Total P/L -->
+                <div class="stat-mini">
+                    <span class="mini-label"
+                        >{$_("journal.stats.totalPnL")}</span
+                    >
+                    <span
+                        class="mini-value"
+                        class:positive={(performanceData?.totalPnl ?? 0) >= 0}
+                        class:negative={(performanceData?.totalPnl ?? 0) < 0}
+                    >
+                        {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
+                            performanceData?.totalPnl ?? 0
+                        ).toFixed(0)}$
+                    </span>
                 </div>
-            </div>
 
-            <!-- Win Rate -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.winRate")}</div>
-                <div
-                    class="stat-value"
-                    class:positive={(performanceData?.winRate ?? 0) >= 50}
-                    class:neutral={(performanceData?.winRate ?? 0) < 50}
-                >
-                    {(performanceData?.winRate ?? 0).toFixed(1)}%
+                <!-- Win Rate -->
+                <div class="stat-mini">
+                    <span class="mini-label">{$_("journal.stats.winRate")}</span
+                    >
+                    <span class="mini-value">
+                        {(performanceData?.winRate ?? 0).toFixed(0)}%
+                    </span>
                 </div>
-            </div>
 
-            <!-- Profit Factor -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.profitFactor")}</div>
-                <div
-                    class="stat-value"
-                    class:positive={(performanceData?.profitFactor ?? 0) >= 1.5}
-                    class:neutral={(performanceData?.profitFactor ?? 0) < 1.5}
-                >
-                    {(performanceData?.profitFactor ?? 0).toFixed(2)}
+                <!-- Profit Factor -->
+                <div class="stat-mini">
+                    <span class="mini-label"
+                        >{$_("journal.stats.profitFactor")}</span
+                    >
+                    <span class="mini-value">
+                        {(performanceData?.profitFactor ?? 0).toFixed(1)}
+                    </span>
                 </div>
-            </div>
 
-            <!-- Total Trades -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.totalTrades")}</div>
-                <div class="stat-value neutral">
-                    {performanceData?.totalTrades ?? 0}
+                <!-- Total Trades -->
+                <div class="stat-mini">
+                    <span class="mini-label"
+                        >{$_("journal.stats.totalTrades")}</span
+                    >
+                    <span class="mini-value">
+                        {performanceData?.totalTrades ?? 0}
+                    </span>
                 </div>
-            </div>
 
-            <!-- Avg R/R -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.avgRR")}</div>
-                <div
-                    class="stat-value"
-                    class:positive={(qualityData?.avgR ?? 0) >= 1}
-                    class:neutral={(qualityData?.avgR ?? 0) < 1}
-                >
-                    {(qualityData?.avgR ?? 0).toFixed(2)}R
+                <!-- Avg R -->
+                <div class="stat-mini">
+                    <span class="mini-label">{$_("journal.stats.avgRR")}</span>
+                    <span class="mini-value">
+                        {(qualityData?.avgR ?? 0).toFixed(1)}R
+                    </span>
                 </div>
-            </div>
 
-            <!-- Max Drawdown -->
-            <div class="stat-card">
-                <div class="stat-label">{$_("journal.stats.maxDrawdown")}</div>
-                <div class="stat-value negative">
-                    {(performanceData?.maxDrawdown ?? 0).toFixed(2)} $
+                <!-- Max DD -->
+                <div class="stat-mini">
+                    <span class="mini-label"
+                        >{$_("journal.stats.maxDrawdown")}</span
+                    >
+                    <span class="mini-value negative">
+                        -{(performanceData?.maxDrawdown ?? 0).toFixed(0)}$
+                    </span>
                 </div>
             </div>
-        </div>
+        {:else}
+            <div class="stats-grid">
+                <!-- Total P/L -->
+                <div class="stat-card">
+                    <div class="stat-label">{$_("journal.stats.totalPnL")}</div>
+                    <div
+                        class="stat-value"
+                        class:positive={(performanceData?.totalPnl ?? 0) >= 0}
+                        class:negative={(performanceData?.totalPnl ?? 0) < 0}
+                    >
+                        {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
+                            performanceData?.totalPnl ?? 0
+                        ).toFixed(2)} $
+                    </div>
+                </div>
+
+                <!-- Win Rate -->
+                <div class="stat-card">
+                    <div class="stat-label">{$_("journal.stats.winRate")}</div>
+                    <div
+                        class="stat-value"
+                        class:positive={(performanceData?.winRate ?? 0) >= 50}
+                        class:neutral={(performanceData?.winRate ?? 0) < 50}
+                    >
+                        {(performanceData?.winRate ?? 0).toFixed(1)}%
+                    </div>
+                </div>
+
+                <!-- Profit Factor -->
+                <div class="stat-card">
+                    <div class="stat-label">
+                        {$_("journal.stats.profitFactor")}
+                    </div>
+                    <div
+                        class="stat-value"
+                        class:positive={(performanceData?.profitFactor ?? 0) >=
+                            1.5}
+                        class:neutral={(performanceData?.profitFactor ?? 0) <
+                            1.5}
+                    >
+                        {(performanceData?.profitFactor ?? 0).toFixed(2)}
+                    </div>
+                </div>
+
+                <!-- Total Trades -->
+                <div class="stat-card">
+                    <div class="stat-label">
+                        {$_("journal.stats.totalTrades")}
+                    </div>
+                    <div class="stat-value neutral">
+                        {performanceData?.totalTrades ?? 0}
+                    </div>
+                </div>
+
+                <!-- Avg R/R -->
+                <div class="stat-card">
+                    <div class="stat-label">{$_("journal.stats.avgRR")}</div>
+                    <div
+                        class="stat-value"
+                        class:positive={(qualityData?.avgR ?? 0) >= 1}
+                        class:neutral={(qualityData?.avgR ?? 0) < 1}
+                    >
+                        {(qualityData?.avgR ?? 0).toFixed(2)}R
+                    </div>
+                </div>
+
+                <!-- Max Drawdown -->
+                <div class="stat-card">
+                    <div class="stat-label">
+                        {$_("journal.stats.maxDrawdown")}
+                    </div>
+                    <div class="stat-value negative">
+                        {(performanceData?.maxDrawdown ?? 0).toFixed(2)} $
+                    </div>
+                </div>
+            </div>
+        {/if}
     </div>
 {/if}
 
@@ -87,6 +163,43 @@
         padding: 1.5rem;
         margin-bottom: 1.5rem;
         box-shadow: var(--shadow-sm);
+    }
+
+    .journal-statistics.minimal {
+        background: transparent;
+        padding: 0;
+        margin: 0;
+        box-shadow: none;
+        width: 100%;
+    }
+
+    .stats-minimal {
+        display: flex;
+        justify-content: space-around;
+        align-items: center;
+        width: 100%;
+        gap: 0.5rem;
+    }
+
+    .stat-mini {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-width: 60px;
+    }
+
+    .mini-label {
+        font-size: 0.6rem;
+        text-transform: uppercase;
+        color: var(--text-secondary);
+        font-weight: 700;
+        white-space: nowrap;
+    }
+
+    .mini-value {
+        font-size: 0.85rem;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
     }
 
     .stats-grid {

@@ -392,22 +392,20 @@
   on:close={() => uiStore.toggleJournalModal(false)}
   extraClasses="modal-size-journal"
 >
+  <div slot="header-extra">
+    {#if $settingsStore.isPro}
+      <JournalStatistics
+        {performanceData}
+        {qualityData}
+        isPro={$settingsStore.isPro}
+        minimal={true}
+      />
+    {/if}
+  </div>
   <!-- Dashboard Section -->
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <DashboardNav {activePreset} on:select={(e) => (activePreset = e.detail)} />
   {/if}
-
-  <!-- Journal Filters Component - MOVED TO TOP -->
-  <JournalFilters
-    bind:searchQuery={$tradeStore.journalSearchQuery}
-    bind:filterStatus={$tradeStore.journalFilterStatus}
-    bind:filterDateStart
-    bind:filterDateEnd
-    bind:groupBySymbol
-    totalTrades={$journalStore.length}
-    filteredCount={processedTrades.length}
-    on:toggleSettings={() => (showColumnSettings = !showColumnSettings)}
-  />
 
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <!-- JournalCharts Component - All Chart Presets -->
@@ -418,6 +416,18 @@
       {themeColors}
     />
   {/if}
+
+  <!-- Journal Filters Component - MOVED ABOVE TABLE -->
+  <JournalFilters
+    bind:searchQuery={$tradeStore.journalSearchQuery}
+    bind:filterStatus={$tradeStore.journalFilterStatus}
+    bind:filterDateStart
+    bind:filterDateEnd
+    bind:groupBySymbol
+    totalTrades={$journalStore.length}
+    filteredCount={processedTrades.length}
+    on:toggleSettings={() => (showColumnSettings = !showColumnSettings)}
+  />
 
   <!-- Column Settings Popover -->
   {#if showColumnSettings}
@@ -449,14 +459,7 @@
     </div>
   {/if}
 
-  <!-- Journal Statistics Component -->
-  {#if $settingsStore.isPro}
-    <JournalStatistics
-      {performanceData}
-      {qualityData}
-      isPro={$settingsStore.isPro}
-    />
-  {/if}
+  <!-- Statistics at previous position removed - now in header -->
 
   <div class="border border-[var(--border-color)] rounded-lg overflow-hidden">
     <JournalTable

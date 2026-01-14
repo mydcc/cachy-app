@@ -38,6 +38,9 @@
     >
       <div class="modal-header">
         <h2 id="modal-title" class="modal-title">{title}</h2>
+        <div class="header-extra">
+          <slot name="header-extra" />
+        </div>
         <button
           class="modal-close-btn"
           aria-label="Schließen"
@@ -81,6 +84,14 @@
     padding-bottom: 1rem;
     margin-bottom: 1rem;
     flex-shrink: 0;
+    gap: 1rem;
+  }
+  .header-extra {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    overflow: hidden;
   }
   .modal-title {
     font-size: 1.25rem;
