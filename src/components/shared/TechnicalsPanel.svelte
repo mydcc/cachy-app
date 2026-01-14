@@ -28,6 +28,7 @@
   let customTimeframeInput = "";
   let currentSubscription: string | null = null;
   let hoverTimeout: number | null = null;
+  let isStale = false; // Added for Seamless Swap
 
   // Use analysisTimeframe for Technicals
   $: symbol = $tradeStore.symbol;
@@ -46,9 +47,11 @@
   $: if (showPanel && symbol && timeframe) {
     // If symbol or timeframe changed, we need to reset and fetch fresh
     if (currentSubscription !== `${symbol}:${timeframe}`) {
+      isStale = true; // Visual cue: We are changing context
       unsubscribeWs(); // Unsubscribe previous
       fetchData().then(() => {
         subscribeWs(); // Subscribe new
+        isStale = false; // Transition complete
       });
       currentSubscription = `${symbol}:${timeframe}`;
     }
@@ -67,8 +70,8 @@
     updateTechnicals();
   }
 
-  // Handle Real-Time Updates
-  $: if (showPanel && wsData?.kline && klinesHistory.length > 0) {
+  // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
+  $: if (showPanel && wsData?.kline && klinesHistory.length > 0 && !isStale) {
     handleRealTimeUpdate(wsData.kline);
   }
 
@@ -189,8 +192,13 @@
         timeframe,
         limit
       );
-      klinesHistory = klines;
-      await updateTechnicals();
+
+      // Before updating state, double check if we are still on the same request context
+      // This prevents race conditions where you switch fast and an old request finishes last
+      if (`${symbol}:${timeframe}` === currentSubscription) {
+        klinesHistory = klines;
+        await updateTechnicals();
+      }
     } catch (e) {
       console.error("Technicals fetch error:", e);
       error = "Failed to load";
@@ -292,7 +300,11 @@
     <div
       class="flex justify-between items-center pb-2 timeframe-selector-container relative"
     >
-      <div class="flex items-center gap-2">
+      <div
+        class="flex items-center gap-2"
+        class:opacity-40={isStale && !loading}
+        class:transition-opacity={true}
+      >
         <button
           type="button"
           class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] bg-transparent border-none p-0"
@@ -318,6 +330,20 @@
           {timeframe}
         </span>
       </div>
+
+      {#if isStale || loading}
+        <div class="absolute top-0 right-10">
+          <div class="animate-pulse flex space-x-1">
+            <div class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full" />
+            <div
+              class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-200"
+            />
+            <div
+              class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-400"
+            />
+          </div>
+        </div>
+      {/if}
 
       <div class="relative group">
         <button
@@ -398,7 +424,11 @@
       {/if}
 
       {#if data?.summary}
-        <div class="flex items-center gap-2 text-sm font-bold">
+        <div
+          class="flex items-center gap-2 text-sm font-bold"
+          class:opacity-40={isStale}
+          class:transition-opacity={true}
+        >
           <span class={getActionColor(data.summary.action)}
             >{translateAction(data.summary.action).toUpperCase()}</span
           >
@@ -418,7 +448,10 @@
       </div>
     {:else if data}
       <!-- Oscillators & MAs (Standard) -->
-      <div class="flex flex-col gap-2">
+      <div
+        class="flex flex-col gap-2 transition-opacity duration-300"
+        class:opacity-40={isStale}
+      >
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
           {$_("settings.technicals.oscillators")}
         </h4>
@@ -440,7 +473,8 @@
         </div>
       </div>
       <div
-        class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]"
+        class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)] transition-opacity duration-300"
+        class:opacity-40={isStale}
       >
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
           {$_("settings.technicals.movingAverages")}
@@ -465,7 +499,8 @@
 
       <!-- Pivots Section -->
       <div
-        class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]"
+        class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)] transition-opacity duration-300"
+        class:opacity-40={isStale}
       >
         <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase">
           {indicatorSettings?.pivots?.type
@@ -493,5 +528,12 @@
 <style>
   .technicals-panel {
     max-width: 100%;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+  .animation-delay-400 {
+    animation-delay: 400ms;
   }
 </style>
