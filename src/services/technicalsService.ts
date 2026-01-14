@@ -204,12 +204,15 @@ export const technicalsService = {
       try {
         await talibInit;
         if (!talibReady) {
-          console.error("talib-web initialization failed or timed out.");
-          return this.getEmptyData();
+          console.warn(
+            "talib-web initialization failed. Falling back to native JS indicators."
+          );
         }
       } catch (e) {
-        console.error("Error awaiting talibInit:", e);
-        return this.getEmptyData();
+        console.warn(
+          "Error awaiting talibInit. Falling back to native JS indicators.",
+          e
+        );
       }
     }
 

@@ -1785,6 +1785,11 @@
               <tr
                 class="hover:bg-[var(--bg-secondary)] cursor-pointer border-b border-[var(--border-color)] last:border-0"
                 on:click={() => toggleGroupExpand(group.symbol)}
+                on:keydown={(e) =>
+                  (e.key === "Enter" || e.key === " ") &&
+                  toggleGroupExpand(group.symbol)}
+                tabindex="0"
+                role="button"
               >
                 <td class="p-3 font-bold">{group.symbol}</td>
                 <td class="text-right p-3"
@@ -1827,6 +1832,10 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("date")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") && handleSort("date")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.date")}
                   {sortField === "date"
                     ? sortDirection === "asc"
@@ -1839,6 +1848,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("symbol")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("symbol")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.symbol")}
                   {sortField === "symbol"
                     ? sortDirection === "asc"
@@ -1851,6 +1865,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("tradeType")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("tradeType")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.type")}
                   {sortField === "tradeType"
                     ? sortDirection === "asc"
@@ -1863,6 +1882,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("entryPrice")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("entryPrice")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.entry")}
                   {sortField === "entryPrice"
                     ? sortDirection === "asc"
@@ -1875,6 +1899,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("exitPrice")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("exitPrice")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.exit")}
                   {sortField === "exitPrice"
                     ? sortDirection === "asc"
@@ -1887,6 +1916,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("stopLossPrice")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("stopLossPrice")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.sl")}
                   {sortField === "stopLossPrice"
                     ? sortDirection === "asc"
@@ -1899,6 +1933,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("positionSize")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("positionSize")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.size")}
                   {sortField === "positionSize"
                     ? sortDirection === "asc"
@@ -1911,6 +1950,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("totalNetProfit")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("totalNetProfit")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.pnl")}
                   {sortField === "totalNetProfit"
                     ? sortDirection === "asc"
@@ -1923,6 +1967,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("fundingFee")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("fundingFee")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.funding")}
                   {sortField === "fundingFee"
                     ? sortDirection === "asc"
@@ -1935,6 +1984,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("totalRR")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("totalRR")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.rr")}
                   {sortField === "totalRR"
                     ? sortDirection === "asc"
@@ -1947,6 +2001,10 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("mae")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") && handleSort("mae")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.mae")}
                   {sortField === "mae"
                     ? sortDirection === "asc"
@@ -1959,6 +2017,10 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("mfe")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") && handleSort("mfe")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.mfe")}
                   {sortField === "mfe"
                     ? sortDirection === "asc"
@@ -1971,6 +2033,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("efficiency")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("efficiency")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.efficiency")}
                   {sortField === "efficiency"
                     ? sortDirection === "asc"
@@ -1983,6 +2050,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("duration")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("duration")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.duration")}
                   {sortField === "duration"
                     ? sortDirection === "asc"
@@ -1995,6 +2067,11 @@
                 <th
                   class="cursor-pointer hover:text-[var(--text-primary)]"
                   on:click={() => handleSort("status")}
+                  on:keydown={(e) =>
+                    (e.key === "Enter" || e.key === " ") &&
+                    handleSort("status")}
+                  tabindex="0"
+                  role="button"
                   >{$_("journal.table.status")}
                   {sortField === "status"
                     ? sortDirection === "asc"
@@ -2154,13 +2231,23 @@
                 {/if}
 
                 {#if columnVisibility.screenshot}
-                  <!-- svelte-ignore a11y-no-noninteractive-tabindex -->
                   <td
                     class="text-center screenshot-cell relative {dragOverTradeId ===
                     trade.id
                       ? 'drag-over'
                       : ''}"
                     tabindex="0"
+                    role="button"
+                    on:keydown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        if (!trade.screenshot) {
+                          document
+                            .getElementById(`screenshot-upload-${trade.id}`)
+                            ?.click();
+                        }
+                      }
+                    }}
                     on:dragover={(e) => handleDragOver(trade.id, e)}
                     on:dragleave={(e) => handleDragLeave(trade.id, e)}
                     on:drop={(e) => handleDrop(trade.id, e)}

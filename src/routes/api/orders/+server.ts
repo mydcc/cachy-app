@@ -6,8 +6,19 @@ export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
   const { exchange, apiKey, apiSecret, type } = body;
 
-  if (!exchange || !apiKey || !apiSecret) {
-    return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  if (
+    !exchange ||
+    !apiKey ||
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    !apiSecret ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json(
+      { error: "Invalid or missing credentials or exchange" },
+      { status: 400 }
+    );
   }
 
   try {
@@ -53,19 +64,35 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
+  // Validate required fields
+  if (
+    !orderData.symbol ||
+    !orderData.side ||
+    !orderData.type ||
+    orderData.qty === undefined ||
+    orderData.qty === null
+  ) {
+    throw new Error("Missing required order parameters (symbol, side, type, qty)");
+  }
+
+  // Validate numeric fields
+  if (isNaN(Number(orderData.qty)) || Number(orderData.qty) <= 0) {
+    throw new Error("Invalid quantity: must be a positive number");
+  }
+
   // Construct Payload
-  // Required: symbol, side, type, qty
-  // Optional: price, reduceOnly, leverage, marginMode...
   const payload: any = {
-    symbol: orderData.symbol,
-    side: orderData.side.toUpperCase(),
-    type: orderData.type.toUpperCase(),
+    symbol: String(orderData.symbol),
+    side: String(orderData.side).toUpperCase(),
+    type: String(orderData.type).toUpperCase(),
     qty: String(orderData.qty),
-    reduceOnly: orderData.reduceOnly || false,
+    reduceOnly: !!orderData.reduceOnly,
   };
 
   if (payload.type === "LIMIT") {
-    if (!orderData.price) throw new Error("Price required for limit order");
+    if (!orderData.price || isNaN(Number(orderData.price))) {
+      throw new Error("Valid price required for limit order");
+    }
     payload.price = String(orderData.price);
   }
 

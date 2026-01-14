@@ -33,7 +33,8 @@ class BitunixWebSocketService {
   private lastWatchdogResetPrivate = 0;
   private readonly WATCHDOG_THROTTLE_MS = 2000; // Reset watchdog max every 2 seconds
 
-  private publicSubscriptions: Set<string> = new Set();
+  // Use Map for reference counting: key -> count
+  private publicSubscriptions: Map<string, number> = new Map();
 
   private reconnectTimerPublic: any = null;
   private reconnectTimerPrivate: any = null;
@@ -623,14 +624,16 @@ class BitunixWebSocketService {
     const normalizedSymbol = symbol.toUpperCase();
     const subKey = `${channel}:${normalizedSymbol}`;
 
-    if (this.publicSubscriptions.has(subKey)) return;
+    const currentCount = this.publicSubscriptions.get(subKey) || 0;
+    this.publicSubscriptions.set(subKey, currentCount + 1);
 
-    this.publicSubscriptions.add(subKey);
-
-    if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-      this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
-    } else {
-      this.connectPublic();
+    // Only send subscribe if this is the first subscription
+    if (currentCount === 0) {
+      if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+        this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
+      } else {
+        this.connectPublic();
+      }
     }
   }
 
@@ -639,9 +642,14 @@ class BitunixWebSocketService {
     const subKey = `${channel}:${normalizedSymbol}`;
 
     if (this.publicSubscriptions.has(subKey)) {
-      this.publicSubscriptions.delete(subKey);
-      if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-        this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+      const currentCount = this.publicSubscriptions.get(subKey) || 1;
+      if (currentCount > 1) {
+        this.publicSubscriptions.set(subKey, currentCount - 1);
+      } else {
+        this.publicSubscriptions.delete(subKey);
+        if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+          this.sendUnsubscribe(this.wsPublic, normalizedSymbol, channel);
+        }
       }
     }
   }
@@ -676,7 +684,7 @@ class BitunixWebSocketService {
   }
 
   private resubscribePublic() {
-    this.publicSubscriptions.forEach((subKey) => {
+    this.publicSubscriptions.forEach((_, subKey) => {
       const [channel, symbol] = subKey.split(":");
       if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
         this.sendSubscribe(this.wsPublic, symbol, channel);
