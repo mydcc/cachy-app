@@ -85,7 +85,8 @@
     let tagInputValues: Record<number, string> = {};
 
     function formatDuration(minutes: number) {
-        if (!minutes || minutes < 0) return "-";
+        if (minutes < 0) return "-";
+        if (minutes === 0) return "0m";
         const d = Math.floor(minutes / (60 * 24));
         const h = Math.floor((minutes % (60 * 24)) / 60);
         const m = Math.floor(minutes % 60);
@@ -530,7 +531,8 @@
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
                                     >
-                                        {item.fundingFee
+                                        {item.fundingFee !== undefined &&
+                                        item.fundingFee !== null
                                             ? formatDynamicDecimal(
                                                   item.fundingFee,
                                                   2
@@ -544,30 +546,35 @@
                                             ? 'text-success'
                                             : item.totalRR?.gt(1)
                                             ? 'text-warning'
-                                            : 'text-danger'}"
+                                            : item.totalRR?.lt(0)
+                                            ? 'text-danger'
+                                            : 'text-[var(--text-secondary)]'}"
                                     >
-                                        {item.totalRR && item.totalRR.gt(0)
-                                            ? item.totalRR.toFixed(2)
+                                        {item.totalRR && !item.totalRR.isZero()
+                                            ? item.totalRR.toFixed(2) + "R"
                                             : "-"}
                                     </td>
                                 {/if}
                                 {#if columnVisibility.mae}
                                     <td class="text-xs text-danger"
-                                        >{item.mae
+                                        >{item.mae !== undefined &&
+                                        item.mae !== null
                                             ? formatDynamicDecimal(item.mae, 2)
                                             : "-"}</td
                                     >
                                 {/if}
                                 {#if columnVisibility.mfe}
                                     <td class="text-xs text-success"
-                                        >{item.mfe
+                                        >{item.mfe !== undefined &&
+                                        item.mfe !== null
                                             ? formatDynamicDecimal(item.mfe, 2)
                                             : "-"}</td
                                     >
                                 {/if}
                                 {#if columnVisibility.efficiency}
                                     <td class="text-xs">
-                                        {item.efficiency
+                                        {item.efficiency !== undefined &&
+                                        item.efficiency !== null
                                             ? (item.efficiency * 100).toFixed(
                                                   0
                                               ) + "%"
