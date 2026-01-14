@@ -1,9 +1,21 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHmac, createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
+import { CONSTANTS } from "../../../lib/constants";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { exchange, apiKey, apiSecret } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { exchange, apiKey, apiSecret } = body;
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
@@ -20,9 +32,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(account);
   } catch (e: any) {
-    console.error(`Error fetching account from ${exchange}:`, e);
+    // Sanitize logs
+    const msg = e.message || "Unknown error";
+    console.error(`Error fetching account from ${exchange}: ${msg}`);
     return json(
-      { error: e.message || "Failed to fetch account" },
+      { error: msg },
       { status: 500 }
     );
   }
@@ -32,7 +46,7 @@ async function fetchBitunixAccount(
   apiKey: string,
   apiSecret: string
 ): Promise<any> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
 
   // We assume USDT for now as it's the standard
@@ -69,7 +83,7 @@ async function fetchBitunixAccount(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    throw new Error(`Bitunix API error: ${response.status} ${text.substring(0, 200)}`);
   }
 
   const res = await response.json();

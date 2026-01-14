@@ -1,9 +1,21 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
+import { CONSTANTS } from "../../../../lib/constants";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { apiKey, apiSecret, limit } = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid request body" }, { status: 400 });
+  }
+
+  const { apiKey, apiSecret, limit } = body;
 
   if (!apiKey || !apiSecret) {
     return json({ error: "Missing credentials" }, { status: 400 });
@@ -155,7 +167,7 @@ async function fetchBitunixData(
   limit: number = 100,
   endTime?: number
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
 
   // Params for the request
   const params: Record<string, string> = {

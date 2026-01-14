@@ -1,9 +1,20 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHmac, createHash, randomBytes } from "crypto";
+import { CONSTANTS } from "../../../lib/constants";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+  let body;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid request body" }, { status: 400 });
+  }
+
   const { exchange, apiKey, apiSecret, type } = body;
 
   if (!exchange || !apiKey || !apiSecret) {
@@ -22,6 +33,9 @@ export const POST: RequestHandler = async ({ request }) => {
       } else if (type === "close-position") {
         // To close a position, we place a MARKET order in the opposite direction
         // body should contain: symbol, side (buy/sell), amount (qty)
+        if (!body.symbol || !body.side || !body.amount) {
+           throw new Error("Missing parameters for close-position");
+        }
         const closeOrder = {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
@@ -37,9 +51,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing ${type} on ${exchange}:`, e);
+    // Sanitize error logging
+    const errorMsg = e.message || "Unknown error";
+    console.error(`Error processing ${type} on ${exchange}: ${errorMsg}`);
+
+    // Check if error message contains sensitive info and strip it if necessary
+    // For now, we assume e.message is safe enough, but avoid logging full objects 'e'
     return json(
-      { error: e.message || `Failed to process ${type}` },
+      { error: errorMsg },
       { status: 500 }
     );
   }
@@ -50,16 +69,20 @@ async function placeBitunixOrder(
   apiSecret: string,
   orderData: any
 ): Promise<any> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
+  // Validate critical fields
+  if (!orderData.symbol) throw new Error("Symbol is required");
+  if (!orderData.side) throw new Error("Side is required");
+  if (!orderData.type) throw new Error("Type is required");
+  if (!orderData.qty) throw new Error("Qty is required");
+
   // Construct Payload
-  // Required: symbol, side, type, qty
-  // Optional: price, reduceOnly, leverage, marginMode...
   const payload: any = {
     symbol: orderData.symbol,
-    side: orderData.side.toUpperCase(),
-    type: orderData.type.toUpperCase(),
+    side: String(orderData.side).toUpperCase(),
+    type: String(orderData.type).toUpperCase(),
     qty: String(orderData.qty),
     reduceOnly: orderData.reduceOnly || false,
   };
@@ -78,10 +101,6 @@ async function placeBitunixOrder(
   const nonce = randomBytes(16).toString("hex");
   const timestamp = Date.now().toString();
 
-  // Sort keys for signature (body is usually empty for GET, but this is POST)
-  // Bitunix POST signature: digestInput = nonce + timestamp + apiKey + queryParams + bodyStr
-  // For POST, queryParams is empty usually.
-  // bodyStr is JSON string of payload
   const bodyStr = JSON.stringify(payload);
   const digestInput = nonce + timestamp + apiKey + bodyStr;
   const digest = createHash("sha256").update(digestInput).digest("hex");
@@ -104,7 +123,8 @@ async function placeBitunixOrder(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    // Sanitize upstream error
+    throw new Error(`Bitunix API error: ${response.status} ${text.substring(0, 200)}`);
   }
 
   const res = await response.json();
@@ -121,7 +141,7 @@ async function fetchBitunixPendingOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
 
   const params: Record<string, string> = {};
@@ -153,7 +173,7 @@ async function fetchBitunixPendingOrders(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    throw new Error(`Bitunix API error: ${response.status} ${text.substring(0, 200)}`);
   }
 
   const res = await response.json();
@@ -163,12 +183,6 @@ async function fetchBitunixPendingOrders(
     );
   }
 
-  // Map to normalized format
-  const list = res.data || []; // Note: doc says res.data is list, not res.data.orderList for pending? Need check. Code had orderList.
-  // If previous code had orderList, stick with it, but verify if `data` IS the list.
-  // Usually Bitunix returns { data: [...] } or { data: { rows: [...] } }
-  // Let's assume the previous implementation was correct about structure or check response.
-  // Wait, the previous code had `res.data?.orderList`. I will preserve that safe access.
   const listData = Array.isArray(res.data)
     ? res.data
     : res.data?.orderList || [];
@@ -178,8 +192,8 @@ async function fetchBitunixPendingOrders(
     orderId: o.orderId,
     clientId: o.clientId,
     symbol: o.symbol,
-    type: o.type, // LIMIT, MARKET
-    side: o.side, // BUY, SELL
+    type: o.type,
+    side: o.side,
     price: parseFloat(o.price || "0"),
     amount: parseFloat(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
@@ -205,10 +219,9 @@ async function fetchBitunixHistoryOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
 
-  // Default limit 20
   const params: Record<string, string> = {
     limit: "20",
   };
@@ -242,7 +255,7 @@ async function fetchBitunixHistoryOrders(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    throw new Error(`Bitunix API error: ${response.status} ${text.substring(0, 200)}`);
   }
 
   const res = await response.json();
@@ -265,7 +278,7 @@ async function fetchBitunixHistoryOrders(
     avgPrice: parseFloat(o.avgPrice || o.averagePrice || "0"),
     realizedPnL: parseFloat(o.realizedPNL || "0"),
     fee: parseFloat(o.fee || "0"),
-    role: o.role, // Assuming 'MAKER' or 'TAKER' or similar string
+    role: o.role,
     status: o.status,
     time: o.ctime,
   }));

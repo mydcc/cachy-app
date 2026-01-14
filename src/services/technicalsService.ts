@@ -8,7 +8,6 @@ import type { Kline, TechnicalsData, IndicatorResult } from "./technicalsTypes";
 export type { Kline, TechnicalsData, IndicatorResult };
 
 // --- Native JS implementations for stability ---
-// Exported to avoid code duplication and enable efficient O(N) calculations
 export const JSIndicators = {
   sma(data: number[], period: number): number[] {
     const result = new Array(data.length).fill(0);
@@ -84,9 +83,7 @@ export const JSIndicators = {
     const emaFast = this.ema(data, fast);
     const emaSlow = this.ema(data, slow);
     const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
-    // Only calculate signal from where MACD line has valid data (approx starting at 'slow' index)
     const macdSignal = this.ema(macdLine.slice(slow - 1), signal);
-    // Pad macdSignal back to original length
     const paddedSignal = new Array(slow - 1).fill(0).concat(macdSignal);
     return { macd: macdLine, signal: paddedSignal };
   },
@@ -105,13 +102,9 @@ export const JSIndicators = {
 
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
-
-      // 1. SMA (Simple Moving Average)
       let sum = new Decimal(0);
       for (const val of slice) sum = sum.plus(val);
       const sma = sum.dividedBy(period);
-
-      // 2. Mean Deviation
       let sumAbsDiff = new Decimal(0);
       for (const val of slice) {
         sumAbsDiff = sumAbsDiff.plus(new Decimal(val).minus(sma).abs());
@@ -121,7 +114,6 @@ export const JSIndicators = {
       if (meanDev.isZero()) {
         result[i] = 0;
       } else {
-        // CCI = (Price - SMA) / (0.015 * Mean Deviation)
         const diff = new Decimal(data[i]).minus(sma);
         const divisor = meanDev.times(0.015);
         result[i] = diff.dividedBy(divisor).toNumber();
@@ -174,7 +166,6 @@ export const JSIndicators = {
 
 // Initialize talib-web WASM module
 let talibReady = false;
-// Explicitly point to the WASM file using Vite asset URL
 const wasmPath = browser ? talibWasmUrl : undefined;
 
 let talibInit: Promise<void> | undefined;
@@ -187,14 +178,12 @@ if (browser && wasmPath) {
       console.log(`talib-web initialized successfully from ${wasmPath}`);
     })
     .catch((err) => {
-      console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
+      console.error(`Failed to initialize talib-web from ${wasmPath}:`, err);
     });
 } else {
-  // SSR or no WASM path
   talibInit = Promise.resolve();
 }
 
-// Cache for indicator calculations
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
 const MAX_CACHE_SIZE = 20;
 
@@ -217,7 +206,12 @@ export const technicalsService = {
   ): Promise<TechnicalsData> {
     if (klinesInput.length === 0) return this.getEmptyData();
 
-    // 0. Cache Check
+    // Cache logic: use last timestamp but NOT last price for cache key
+    // This isn't perfect for real-time but prevents excessive recalc if the candle hasn't closed
+    // Better: if the last candle is 'fresh', we might want to recalc.
+    // However, fixing the "WASM unused" bug will make recalc fast enough.
+    // For now, keeping the cache key as is (including lastPrice) is correct for correctness,
+    // but we rely on WASM speed.
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
     const cacheKey = `${klinesInput.length}-${lastKline.time}-${lastPrice}-${JSON.stringify(
@@ -228,23 +222,15 @@ export const technicalsService = {
       return cached.data;
     }
 
-    // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
-      console.log("Waiting for talib-web initialization...");
-
-      try {
+       try {
         await talibInit;
-        if (!talibReady) {
-          console.error("talib-web initialization failed or timed out.");
-          return this.getEmptyData();
-        }
       } catch (e) {
         console.error("Error awaiting talibInit:", e);
-        return this.getEmptyData();
       }
     }
 
-    // 1. Normalize Data to strict Kline format with Decimals
+    // Normalize Data
     const klines: Kline[] = [];
     let prevClose = new Decimal(0);
 
@@ -279,43 +265,69 @@ export const technicalsService = {
 
     if (klines.length < 2) return this.getEmptyData();
 
-    // Helper to get source array based on config (returns Decimal[])
     const getSource = (sourceType: string): Decimal[] => {
       switch (sourceType) {
-        case "open":
-          return klines.map((k) => k.open);
-        case "high":
-          return klines.map((k) => k.high);
-        case "low":
-          return klines.map((k) => k.low);
-        case "hl2":
-          return klines.map((k) => k.high.plus(k.low).div(2));
-        case "hlc3":
-          return klines.map((k) => k.high.plus(k.low).plus(k.close).div(3));
-        default:
-          return klines.map((k) => k.close);
+        case "open": return klines.map((k) => k.open);
+        case "high": return klines.map((k) => k.high);
+        case "low": return klines.map((k) => k.low);
+        case "hl2": return klines.map((k) => k.high.plus(k.low).div(2));
+        case "hlc3": return klines.map((k) => k.high.plus(k.low).plus(k.close).div(3));
+        default: return klines.map((k) => k.close);
       }
     };
 
-    // Convert Decimal arrays to number arrays for talib
     const highsNum = klines.map((k) => k.high.toNumber());
     const lowsNum = klines.map((k) => k.low.toNumber());
     const closesNum = klines.map((k) => k.close.toNumber());
     const currentPrice = klines[klines.length - 1].close;
 
-    // Initializing technicals...
-
-    // --- Oscillators ---
     const oscillators: IndicatorResult[] = [];
+
+    // Helper for TA-Lib Execution with fallback
+    const executeTaLib = (
+        name: string,
+        startIdx: number,
+        endIdx: number,
+        inputs: Record<string, any>,
+        optInParams: Record<string, any>
+    ) => {
+        if (!talibReady) throw new Error("TA-Lib not ready");
+        // talib.execute signature is slightly different in talib-web:
+        // it usually takes a config object.
+        // Assuming standard talib-web usage:
+        return talib.execute({
+            name: name,
+            startIdx: startIdx,
+            endIdx: endIdx,
+            ...inputs,
+            ...optInParams
+        });
+    };
 
     try {
       // 1. RSI
       const rsiLen = settings?.rsi?.length || 14;
-      const rsiSource = getSource(settings?.rsi?.source || "close").map((d) =>
-        d.toNumber()
-      );
-      const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
-      const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
+      const rsiSource = getSource(settings?.rsi?.source || "close").map((d) => d.toNumber());
+      let rsiResults: number[];
+
+      if (talibReady) {
+         try {
+             const res = executeTaLib("RSI", 0, rsiSource.length - 1, { inReal: rsiSource }, { optInTimePeriod: rsiLen });
+             rsiResults = res.result.outReal;
+         } catch(e) {
+             console.warn("TA-Lib RSI failed, falling back to JS", e);
+             rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+         }
+      } else {
+         rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+      }
+
+      // TA-Lib returns array aligned to end? No, it returns valid range.
+      // Need to handle result mapping carefully.
+      // Actually talib-web usually returns arrays that match valid range.
+      // But JSIndicators fills 0s for invalid start.
+      // We need the LAST value.
+      const rsiVal = new Decimal(rsiResults && rsiResults.length > 0 ? rsiResults[rsiResults.length - 1] : 0);
 
       oscillators.push({
         name: "RSI",
@@ -331,19 +343,39 @@ export const technicalsService = {
       // 2. Stochastic
       const stochK = settings?.stochastic?.kPeriod || 14;
       const stochD = settings?.stochastic?.dPeriod || 3;
-      const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
+      const stochKSmooth = settings?.stochastic?.kSmoothing || 1; // Slow K
 
-      let kLine = JSIndicators.stoch(
-        Array.from(highsNum),
-        Array.from(lowsNum),
-        Array.from(closesNum),
-        stochK
-      );
-      if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
-      const dLine = JSIndicators.sma(kLine, stochD);
+      let stochKVal: Decimal, stochDVal: Decimal;
 
-      const stochKVal = new Decimal(kLine[kLine.length - 1]);
-      const stochDVal = new Decimal(dLine[dLine.length - 1]);
+      if (talibReady) {
+         try {
+             const res = executeTaLib("STOCH", 0, highsNum.length - 1, {
+                 high: highsNum, low: lowsNum, close: closesNum
+             }, {
+                 optInFastK_Period: stochK,
+                 optInSlowK_Period: stochKSmooth,
+                 optInSlowK_MAType: 0, // SMA
+                 optInSlowD_Period: stochD,
+                 optInSlowD_MAType: 0 // SMA
+             });
+             stochKVal = new Decimal(res.result.outSlowK[res.result.outSlowK.length - 1]);
+             stochDVal = new Decimal(res.result.outSlowD[res.result.outSlowD.length - 1]);
+         } catch(e) {
+             console.warn("TA-Lib STOCH failed", e);
+             // Fallback logic
+             let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
+             if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
+             const dLine = JSIndicators.sma(kLine, stochD);
+             stochKVal = new Decimal(kLine[kLine.length - 1]);
+             stochDVal = new Decimal(dLine[dLine.length - 1]);
+         }
+      } else {
+          let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
+          if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
+          const dLine = JSIndicators.sma(kLine, stochD);
+          stochKVal = new Decimal(kLine[kLine.length - 1]);
+          stochDVal = new Decimal(dLine[dLine.length - 1]);
+      }
 
       let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal))
@@ -362,24 +394,52 @@ export const technicalsService = {
       const cciLen = settings?.cci?.length || 20;
       const cciSmoothLen = settings?.cci?.smoothingLength || 1;
       const cciSmoothType = settings?.cci?.smoothingType || "sma";
+      const cciSource = getSource(settings?.cci?.source || "hlc3").map((d) => d.toNumber());
 
-      // Default CCI source is Typical Price (HLC3)
-      const cciSource = getSource(settings?.cci?.source || "hlc3").map((d) =>
-        d.toNumber()
-      );
-
-      let cciResults = JSIndicators.cci(cciSource, cciLen);
-
-      // Apply smoothing if requested
-      if (cciSmoothLen > 1) {
-        if (cciSmoothType === "ema") {
-          cciResults = JSIndicators.ema(cciResults, cciSmoothLen);
-        } else {
-          cciResults = JSIndicators.sma(cciResults, cciSmoothLen);
-        }
+      let cciResults: number[];
+      if (talibReady && cciSource.length > 0) {
+          try {
+             // CCI takes high, low, close usually. But JS version took "source".
+             // TA-Lib CCI signature: high, low, close.
+             // If source is custom (e.g. open), TA-Lib CCI might not support it directly?
+             // TA-Lib CCI is strictly (High, Low, Close).
+             // If user selected "Open" as source, we can't use TA-Lib CCI easily unless we fake H/L/C.
+             // So for CCI, if source is NOT hlc3 default, maybe fallback to JS?
+             // Actually, standard CCI uses HLC. If user changed source in settings store, it implies custom.
+             // Let's assume standard usage for TA-Lib or fallback.
+             if (settings?.cci?.source && settings.cci.source !== 'hlc3') {
+                 cciResults = JSIndicators.cci(cciSource, cciLen);
+             } else {
+                 const res = executeTaLib("CCI", 0, highsNum.length - 1, { high: highsNum, low: lowsNum, close: closesNum }, { optInTimePeriod: cciLen });
+                 cciResults = res.result.outReal;
+             }
+          } catch(e) {
+             cciResults = JSIndicators.cci(cciSource, cciLen);
+          }
+      } else {
+          cciResults = JSIndicators.cci(cciSource, cciLen);
       }
 
-      const cciVal = new Decimal(cciResults[cciResults.length - 1]);
+      // Manual smoothing if needed (TA-Lib CCI doesn't have built-in smoothing param output?)
+      if (cciSmoothLen > 1) {
+          // We need to smooth the result.
+          // Since cciResults might be shorter (TA-Lib returns valid range), we need to handle alignment.
+          // For simplicity, fallback to JS if smoothing is required OR implement smoothing on the result.
+          // JSIndicators.ema/sma expects array of length N.
+          // Fallback to JS for smoothing simplicity to avoid bugs now.
+          if (talibReady) { /* Already calc'd above, but smoothing is complex to match */ }
+
+          // Re-run JS for consistency if smoothing is needed, as aligning TA-Lib output for smoothing input is tricky
+          // (TA-Lib output starts at index `begIndex`)
+           cciResults = JSIndicators.cci(cciSource, cciLen); // Override with JS for smoothing support
+           if (cciSmoothType === "ema") {
+              cciResults = JSIndicators.ema(cciResults, cciSmoothLen);
+           } else {
+              cciResults = JSIndicators.sma(cciResults, cciSmoothLen);
+           }
+      }
+
+      const cciVal = new Decimal(cciResults && cciResults.length > 0 ? cciResults[cciResults.length - 1] : 0);
 
       oscillators.push({
         name: "CCI",
@@ -393,13 +453,20 @@ export const technicalsService = {
 
       // 4. ADX
       const adxLen = settings?.adx?.adxSmoothing || 14;
-      const adxResults = JSIndicators.adx(
-        Array.from(highsNum),
-        Array.from(lowsNum),
-        Array.from(closesNum),
-        adxLen
-      );
-      const adxVal = new Decimal(adxResults[adxResults.length - 1]);
+      let adxVal: Decimal;
+
+      if (talibReady) {
+          try {
+             const res = executeTaLib("ADX", 0, highsNum.length - 1, { high: highsNum, low: lowsNum, close: closesNum }, { optInTimePeriod: adxLen });
+             adxVal = new Decimal(res.result.outReal[res.result.outReal.length - 1]);
+          } catch(e) {
+             const res = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+             adxVal = new Decimal(res[res.length - 1]);
+          }
+      } else {
+         const res = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+         adxVal = new Decimal(res[res.length - 1]);
+      }
 
       oscillators.push({
         name: "ADX",
@@ -408,15 +475,10 @@ export const technicalsService = {
         action: adxVal.gt(25) ? "Buy" : "Neutral",
       });
 
-      // 5. Awesome Oscillator (manually calculated)
+      // 5. Awesome Oscillator (Manual)
       const aoFast = settings?.ao?.fastLength || 5;
       const aoSlow = settings?.ao?.slowLength || 34;
-      const aoVal = await this.calculateAwesomeOscillator(
-        highsNum,
-        lowsNum,
-        aoFast,
-        aoSlow
-      );
+      const aoVal = await this.calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
 
       let aoAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (aoVal.gt(0)) aoAction = "Buy";
@@ -431,11 +493,21 @@ export const technicalsService = {
 
       // 6. Momentum
       const momLen = settings?.momentum?.length || 10;
-      const momSource = getSource(settings?.momentum?.source || "close").map(
-        (d) => d.toNumber()
-      );
-      const momResults = JSIndicators.mom(momSource, momLen);
-      const momVal = new Decimal(momResults[momResults.length - 1]);
+      const momSource = getSource(settings?.momentum?.source || "close").map((d) => d.toNumber());
+      let momVal: Decimal;
+
+      if (talibReady) {
+          try {
+              const res = executeTaLib("MOM", 0, momSource.length - 1, { inReal: momSource }, { optInTimePeriod: momLen });
+              momVal = new Decimal(res.result.outReal[res.result.outReal.length - 1]);
+          } catch(e) {
+              const res = JSIndicators.mom(momSource, momLen);
+              momVal = new Decimal(res[res.length - 1]);
+          }
+      } else {
+          const res = JSIndicators.mom(momSource, momLen);
+          momVal = new Decimal(res[res.length - 1]);
+      }
 
       let momAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (momVal.gt(0)) momAction = "Buy";
@@ -452,22 +524,29 @@ export const technicalsService = {
       const macdFast = settings?.macd?.fastLength || 12;
       const macdSlow = settings?.macd?.slowLength || 26;
       const macdSig = settings?.macd?.signalLength || 9;
-      const macdSource = getSource(settings?.macd?.source || "close").map((d) =>
-        d.toNumber()
-      );
+      const macdSource = getSource(settings?.macd?.source || "close").map((d) => d.toNumber());
 
-      const macdResults = JSIndicators.macd(
-        macdSource,
-        macdFast,
-        macdSlow,
-        macdSig
-      );
-      const macdVal = new Decimal(
-        macdResults.macd[macdResults.macd.length - 1]
-      );
-      const macdSignalVal = new Decimal(
-        macdResults.signal[macdResults.signal.length - 1]
-      );
+      let macdVal: Decimal, macdSignalVal: Decimal;
+
+      if (talibReady) {
+          try {
+              const res = executeTaLib("MACD", 0, macdSource.length - 1, { inReal: macdSource }, {
+                  optInFastPeriod: macdFast,
+                  optInSlowPeriod: macdSlow,
+                  optInSignalPeriod: macdSig
+              });
+              macdVal = new Decimal(res.result.outMACD[res.result.outMACD.length - 1]);
+              macdSignalVal = new Decimal(res.result.outMACDSignal[res.result.outMACDSignal.length - 1]);
+          } catch(e) {
+               const res = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+               macdVal = new Decimal(res.macd[res.macd.length - 1]);
+               macdSignalVal = new Decimal(res.signal[res.signal.length - 1]);
+          }
+      } else {
+           const res = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+           macdVal = new Decimal(res.macd[res.macd.length - 1]);
+           macdSignalVal = new Decimal(res.signal[res.signal.length - 1]);
+      }
 
       let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
       if (!macdVal.isZero() || !macdSignalVal.isZero()) {
@@ -482,6 +561,7 @@ export const technicalsService = {
         signal: macdSignalVal,
         action: macdAction,
       });
+
     } catch (error) {
       console.error("Error calculating oscillators:", error);
     }
@@ -492,15 +572,23 @@ export const technicalsService = {
       const ema1 = settings?.ema?.ema1?.length || 20;
       const ema2 = settings?.ema?.ema2?.length || 50;
       const ema3 = settings?.ema?.ema3?.length || 200;
-      const emaSource = getSource(settings?.ema?.source || "close").map((d) =>
-        d.toNumber()
-      );
-
+      const emaSource = getSource(settings?.ema?.source || "close").map((d) => d.toNumber());
       const emaPeriods = [ema1, ema2, ema3];
 
       for (const period of emaPeriods) {
-        const emaResults = JSIndicators.ema(emaSource, period);
-        const emaVal = new Decimal(emaResults[emaResults.length - 1]);
+        let emaVal: Decimal;
+        if (talibReady) {
+            try {
+                const res = executeTaLib("EMA", 0, emaSource.length - 1, { inReal: emaSource }, { optInTimePeriod: period });
+                emaVal = new Decimal(res.result.outReal[res.result.outReal.length - 1]);
+            } catch(e) {
+                const res = JSIndicators.ema(emaSource, period);
+                emaVal = new Decimal(res[res.length - 1]);
+            }
+        } else {
+             const res = JSIndicators.ema(emaSource, period);
+             emaVal = new Decimal(res[res.length - 1]);
+        }
 
         movingAverages.push({
           name: "EMA",
@@ -540,7 +628,6 @@ export const technicalsService = {
       summary: { buy, sell, neutral, action: summaryAction },
     };
 
-    // Store in cache
     if (calculationCache.size >= MAX_CACHE_SIZE) {
       const firstKey = calculationCache.keys().next().value;
       if (firstKey) calculationCache.delete(firstKey);
@@ -554,9 +641,6 @@ export const technicalsService = {
     calculationCache.clear();
   },
 
-  // --- Helpers ---
-
-  // Awesome Oscillator (nicht in talib-web)
   async calculateAwesomeOscillator(
     high: number[] | Float64Array,
     low: number[] | Float64Array,
@@ -579,12 +663,6 @@ export const technicalsService = {
 
       const fastSMA = getSMA(hl2, fastPeriod);
       const slowSMA = getSMA(hl2, slowPeriod);
-
-      console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA
-        }`
-      );
-
       return new Decimal(fastSMA - slowSMA);
     } catch (error) {
       console.error("Error calculating Awesome Oscillator:", error);

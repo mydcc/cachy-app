@@ -110,6 +110,7 @@ export const CONSTANTS = {
   DEFAULT_LEVERAGE: "10",
   DEFAULT_FEES: "0.0140",
   DEFAULT_ATR_MULTIPLIER: "1.2",
+  BITUNIX_API_URL: "https://fapi.bitunix.com",
   BITUNIX_WS_PUBLIC_URL: "wss://fapi.bitunix.com/public/",
   BITUNIX_WS_PRIVATE_URL: "wss://fapi.bitunix.com/private/",
 };
