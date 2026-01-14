@@ -335,6 +335,55 @@
     filterDateStart = dateStr;
     filterDateEnd = dateStr;
   }
+
+  // Reactive Stats for Filtered Trades
+  $: filteredPerformance = calculator.calculatePerformanceStats(
+    processedTrades
+  ) || {
+    totalTrades: 0,
+    winRate: 0,
+    profitFactor: new Decimal(0),
+    maxDrawdown: new Decimal(0),
+    avgRMultiple: new Decimal(0),
+  };
+  $: filteredJournal = calculator.calculateJournalStats(processedTrades);
+
+  // Combine for JournalStatistics expected format
+  $: performanceData = {
+    ...filteredPerformance,
+    totalPnl: filteredJournal.totalNetProfit?.toNumber() || 0,
+  };
+  $: qualityData = {
+    avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
+  };
+
+  async function handleScreenshotUpload(
+    event: CustomEvent<{ id: number; file: File }>
+  ) {
+    const { id, file } = event.detail;
+    try {
+      uiStore.update((s) => ({
+        ...s,
+        isLoading: true,
+        loadingMessage: $_("journal.messages.uploading"),
+      }));
+      const url = await imgbbService.uploadToImgbb(file);
+      // Update trade in store
+      const trade = $journalStore.find((t) => t.id === id);
+      if (trade) {
+        app.updateTrade(id, { screenshot: url });
+        uiStore.showFeedback("save");
+      }
+    } catch (e: any) {
+      uiStore.update((s) => ({
+        ...s,
+        errorMessage: e.message || $_("journal.messages.uploadFailed"),
+        showErrorMessage: true,
+      }));
+    } finally {
+      uiStore.update((s) => ({ ...s, isLoading: false }));
+    }
+  }
 </script>
 
 <ModalFrame
@@ -401,8 +450,8 @@
   <!-- Journal Statistics Component -->
   {#if $settingsStore.isPro}
     <JournalStatistics
-      performanceData={$performanceMetrics}
-      qualityData={$qualityMetrics}
+      {performanceData}
+      {qualityData}
       isPro={$settingsStore.isPro}
     />
   {/if}
@@ -421,6 +470,7 @@
       on:statusChange={(e) =>
         app.updateTradeStatus(e.detail.id, e.detail.status)}
       on:pageChange={(e) => (currentPage = e.detail.page)}
+      on:uploadScreenshot={handleScreenshotUpload}
     />
   </div>
 

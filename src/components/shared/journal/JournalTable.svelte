@@ -76,6 +76,11 @@
         if (val.lt(0)) return "text-danger";
         return "";
     }
+
+    function triggerFileUpload(id: number) {
+        const el = document.getElementById(`file-upload-${id}`);
+        if (el) (el as HTMLInputElement).click();
+    }
 </script>
 
 <div class="journal-table-container">
@@ -195,12 +200,20 @@
                             {#if columnVisibility.duration}<th
                                     >{$_("journal.table.duration")}</th
                                 >{/if}
-                            {#if columnVisibility.status}<th
-                                    >{$_("journal.table.status")}</th
-                                >{/if}
-                            {#if columnVisibility.tags}<th
-                                    >{$_("journal.table.tags")}</th
-                                >{/if}
+                            {#if columnVisibility.status}
+                                <th
+                                    on:click={() => handleSort("status")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.status")}
+                                </th>
+                            {/if}
+                            {#if columnVisibility.screenshot}
+                                <th>{$_("journal.table.screenshot")}</th>
+                            {/if}
+                            {#if columnVisibility.tags}
+                                <th>{$_("journal.table.tags")}</th>
+                            {/if}
                             {#if columnVisibility.notes}<th
                                     >{$_("journal.table.notes")}</th
                                 >{/if}
@@ -447,11 +460,6 @@
                                                     "journal.filterOpen"
                                                 )}</option
                                             >
-                                            <option value="Won"
-                                                >{$_(
-                                                    "journal.filterWon"
-                                                )}</option
-                                            >
                                             <option value="Lost"
                                                 >{$_(
                                                     "journal.filterLost"
@@ -460,6 +468,65 @@
                                         </select>
                                     </td>
                                 {/if}
+
+                                {#if columnVisibility.screenshot}
+                                    <td class="screenshot-cell">
+                                        {#if item.screenshot}
+                                            <div class="screenshot-preview">
+                                                <a
+                                                    href={item.screenshot}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                >
+                                                    <img
+                                                        src={item.screenshot}
+                                                        alt="Screenshot"
+                                                        class="thumbnail"
+                                                    />
+                                                </a>
+                                                <button
+                                                    class="upload-btn mini"
+                                                    on:click={() =>
+                                                        triggerFileUpload(
+                                                            item.id
+                                                        )}
+                                                    title={$_(
+                                                        "journal.labels.replaceScreenshot"
+                                                    )}
+                                                >
+                                                    ↻
+                                                </button>
+                                            </div>
+                                        {:else}
+                                            <button
+                                                class="upload-btn"
+                                                on:click={() =>
+                                                    triggerFileUpload(item.id)}
+                                            >
+                                                {$_(
+                                                    "journal.labels.uploadScreenshot"
+                                                )}
+                                            </button>
+                                        {/if}
+                                        <input
+                                            type="file"
+                                            id="file-upload-{item.id}"
+                                            class="hidden"
+                                            accept="image/*"
+                                            on:change={(e) => {
+                                                const file =
+                                                    e.currentTarget.files?.[0];
+                                                if (file) {
+                                                    dispatch(
+                                                        "uploadScreenshot",
+                                                        { id: item.id, file }
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </td>
+                                {/if}
+
                                 {#if columnVisibility.tags}
                                     <td
                                         class="text-xs italic text-[var(--text-secondary)] text-ellipsis max-w-[100px] overflow-hidden"
@@ -626,51 +693,59 @@
         color: var(--warning-color);
     }
 
-    .pagination {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 1.5rem;
-        padding: 1.25rem;
-        background: var(--bg-tertiary);
-        border-top: 1px solid var(--border-color);
-    }
-
-    .pagination-btn {
-        padding: 0.4rem 1rem;
-        border: 1px solid var(--border-color);
-        border-radius: 6px;
-        background: var(--card-bg);
-        color: var(--text-primary);
-        cursor: pointer;
-        transition: 0.2s;
-        font-weight: 600;
-    }
-
-    .pagination-btn:hover:not(:disabled) {
-        border-color: var(--accent-color);
-        background: var(--bg-secondary);
-    }
-
-    .pagination-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
-
-    .pagination-info {
-        font-size: 0.85rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-    }
-
-    .empty-state {
-        padding: 4rem;
-        text-align: center;
-        color: var(--text-secondary);
-        font-style: italic;
-    }
-
     .is-recursive {
         background: transparent !important;
+    }
+
+    .screenshot-cell {
+        min-width: 100px;
+    }
+
+    .screenshot-preview {
+        position: relative;
+        display: inline-block;
+    }
+
+    .thumbnail {
+        width: 40px;
+        height: 40px;
+        object-fit: cover;
+        border-radius: 4px;
+        border: 1px solid var(--border-color);
+        transition: transform 0.2s;
+    }
+
+    .thumbnail:hover {
+        transform: scale(1.1);
+    }
+
+    .upload-btn {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.25rem 0.5rem;
+        border-radius: 4px;
+        font-size: 0.75rem;
+        cursor: pointer;
+        transition: all 0.2s;
+    }
+
+    .upload-btn:hover {
+        border-color: var(--accent-color);
+        background: var(--bg-tertiary);
+    }
+
+    .upload-btn.mini {
+        position: absolute;
+        bottom: -5px;
+        right: -5px;
+        padding: 0 4px;
+        font-size: 0.65rem;
+        background: var(--card-bg);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+    }
+
+    .hidden {
+        display: none;
     }
 </style>

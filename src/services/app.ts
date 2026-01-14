@@ -289,6 +289,15 @@ export const app = {
       trackCustomEvent("Journal", "UpdateStatus", newStatus);
     }
   },
+  updateTrade: (id: number, updates: Partial<JournalEntry>) => {
+    const journalData = app.getJournal();
+    const tradeIndex = journalData.findIndex((t) => t.id == id);
+    if (tradeIndex !== -1) {
+      journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
+      app.saveJournal(journalData);
+      journalStore.set(journalData);
+    }
+  },
   deleteTrade: (id: number) => {
     const d = app.getJournal().filter((t) => t.id != id);
     app.saveJournal(d);

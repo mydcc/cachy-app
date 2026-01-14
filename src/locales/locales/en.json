@@ -215,6 +215,14 @@
       "prev": "Prev",
       "next": "Next"
     },
+    "stats": {
+      "totalPnL": "Total P/L",
+      "winRate": "Win Rate",
+      "profitFactor": "Profit Factor",
+      "totalTrades": "Total Trades",
+      "avgRR": "Avg R/R",
+      "maxDrawdown": "Max Drawdown"
+    },
     "labels": {
       "search": "Search",
       "status": "Status",
