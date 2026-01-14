@@ -171,7 +171,7 @@ export const syncService = {
             if (candidates && posTime > 0) {
               const tolerance = 5000;
               for (let j = candidates.length - 1; j >= 0; j--) {
-                if (Math.abs(candidates[j].ctime - posTime) < 60000 * 60 * 24 * 30) { // 30 day window
+                if (Math.abs(candidates[j].ctime - posTime) < 60000 * 60 * 24 * 60) { // 60 day window
                   if (candidates[j].ctime <= posTime + tolerance) {
                     stopLoss = candidates[j].slPrice;
                     break;
