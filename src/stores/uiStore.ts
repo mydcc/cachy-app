@@ -43,38 +43,8 @@ const initialUiState: UiState = {
   loadingMessage: "",
 };
 
-// Load theme synchronously BEFORE first render to prevent flicker
-function loadInitialTheme(): string {
-  if (!browser) return "dark";
-  try {
-    const storedTheme = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY);
-    if (storedTheme) {
-      // Apply theme class immediately to body
-      document.body.classList.forEach((className) => {
-        if (className.startsWith("theme-")) {
-          document.body.classList.remove(className);
-        }
-      });
-      if (storedTheme !== "dark") {
-        document.body.classList.add(`theme-${storedTheme}`);
-      }
-      return storedTheme;
-    }
-  } catch (e) {
-    console.warn("Could not load theme from localStorage.", e);
-  }
-  return "dark";
-}
-
-// Initialize with the actual user theme, not a default
-const initialTheme = loadInitialTheme();
-const hydratedInitialState: UiState = {
-  ...initialUiState,
-  currentTheme: initialTheme,
-};
-
 function createUiStore() {
-  const { subscribe, update, set } = writable<UiState>(hydratedInitialState);
+  const { subscribe, update, set } = writable<UiState>(initialUiState);
 
   return {
     subscribe,

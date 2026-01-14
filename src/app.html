@@ -77,6 +77,20 @@
       })();
     </script>
     <!-- End Matomo Tag Manager -->
+
+    <!-- Theme Initialization (CRITICAL: Must run before any JS bundle) -->
+    <script>
+      (function() {
+        try {
+          var theme = localStorage.getItem('cachy_theme');
+          if (theme && theme !== 'dark') {
+            document.body.classList.add('theme-' + theme);
+          }
+        } catch (e) {
+          // Silently fail if localStorage is not available
+        }
+      })();
+    </script>
   </head>
   <body
     class="flex items-center justify-center min-h-screen p-4"
