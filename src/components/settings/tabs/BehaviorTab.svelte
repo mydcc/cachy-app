@@ -4,11 +4,11 @@
   import { enhancedInput } from "../../../lib/actions/inputEnhancements";
 
   export let showSpinButtons: boolean | "hover";
-  export let marketDataInterval: number;
-  export let autoUpdatePriceInput: boolean;
-  export let autoFetchBalance: boolean;
-  export let hotkeyMode: HotkeyMode;
-  export let activeDescriptions: Array<{ keys: string; action: string }>;
+  export let marketDataInterval: number = 10;
+  export let autoUpdatePriceInput: boolean = false;
+  export let autoFetchBalance: boolean = false;
+  export let hotkeyMode: HotkeyMode = "mode1";
+  export let activeDescriptions: Array<{ keys: string; action: string }> = [];
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">

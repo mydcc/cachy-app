@@ -169,10 +169,7 @@ export const app = {
     }
 
     const settings = get(settingsStore);
-    let intervalMs = 60000;
-    if (settings.marketDataInterval === "1s") intervalMs = 1000;
-    else if (settings.marketDataInterval === "1m") intervalMs = 60000;
-    else if (settings.marketDataInterval === "10m") intervalMs = 600000;
+    const intervalMs = (settings.marketDataInterval || 10) * 1000;
 
     priceUpdateIntervalId = setInterval(() => {
       const currentSymbol = get(tradeStore).symbol;

@@ -42,7 +42,7 @@
 
   // Local state for the form inputs
   let apiProvider: "bitunix" | "binance";
-  let marketDataInterval: number;
+  let marketDataInterval: number = 10;
   let autoUpdatePriceInput: boolean;
   let autoFetchBalance: boolean;
   let showSidebars: boolean;
@@ -50,7 +50,7 @@
   let showIndicatorParams: boolean;
   let hideUnfilledOrders: boolean;
   let feePreference: "maker" | "taker";
-  let hotkeyMode: HotkeyMode;
+  let hotkeyMode: HotkeyMode = "mode1";
   let positionViewMode: PositionViewMode;
   let showSpinButtons: boolean | "hover";
 
@@ -344,6 +344,7 @@
   }
 
   // Reactive descriptions based on selected mode
+  let activeDescriptions: any[] = [];
   $: activeDescriptions = getHotkeyDescriptions(hotkeyMode);
 </script>
 
