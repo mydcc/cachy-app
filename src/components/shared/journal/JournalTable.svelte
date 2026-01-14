@@ -112,8 +112,11 @@
     }
 
     function triggerFileUpload(id: number) {
-        const el = document.getElementById(`file-upload-${id}`);
-        if (el) (el as HTMLInputElement).click();
+        (
+            document.getElementById(
+                `file-upload-${id}`
+            ) as HTMLInputElement | null
+        )?.click();
     }
 </script>
 
