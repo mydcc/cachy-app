@@ -473,13 +473,13 @@
       bind:itemsPerPage
       {columnVisibility}
       {groupBySymbol}
-      on:sort={(e: any) => handleSort(e.detail.field)}
-      on:deleteTrade={(e: any) => confirmDeleteTrade(e.detail.id)}
-      on:statusChange={(e: any) =>
+      on:sort={(e) => handleSort(e.detail.field)}
+      on:deleteTrade={(e) => confirmDeleteTrade(e.detail.id)}
+      on:statusChange={(e) =>
         app.updateTradeStatus(e.detail.id, e.detail.status)}
-      on:updateTrade={(e: any) => app.updateTrade(e.detail.id, e.detail)}
-      on:pageChange={(e: any) => (currentPage = e.detail.page)}
-      on:uploadScreenshot={(e: any) => handleScreenshotUpload(e)}
+      on:updateTrade={(e) => app.updateTrade(e.detail.id, e.detail)}
+      on:pageChange={(e) => (currentPage = e.detail.page)}
+      on:uploadScreenshot={handleScreenshotUpload}
     />
   </div>
 
