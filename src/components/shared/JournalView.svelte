@@ -524,7 +524,7 @@
         {/if}
         <span class="hidden sm:inline">
           {$uiStore.isPriceFetching
-            ? $_("journal.messages.uploading")
+            ? $_("journal.messages.syncing")
             : $_("journal.syncBitunix")}
         </span>
       </button>

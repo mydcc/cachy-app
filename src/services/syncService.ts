@@ -146,7 +146,7 @@ export const syncService = {
       });
 
       // Batch size for parallel kline requests
-      const BATCH_SIZE = 2; // Reduced for rate limiting
+      const BATCH_SIZE = 3;
       for (let i = 0; i < filteredHistory.length; i += BATCH_SIZE) {
         const batch = filteredHistory.slice(i, i + BATCH_SIZE);
         const batchPromises = batch.map(async (p: any) => {
@@ -235,7 +235,7 @@ export const syncService = {
 
         // Anti-Rate-Limit delay between batches
         if (i + BATCH_SIZE < filteredHistory.length) {
-          await new Promise(r => setTimeout(r, 1200));
+          await new Promise(r => setTimeout(r, 600));
         }
       }
 
