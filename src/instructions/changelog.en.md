@@ -1,4 +1,4 @@
-*feedback@cachy.app*
+*<feedback@cachy.app>*
 
 bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
@@ -8,16 +8,26 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ### Table of Contents
 
-1.  [Version 0.98](#v0.98)
-2.  [Version 0.96](#v0.96)
-3.  [Version 0.94](#v0.94)
-4.  [Version 0.92b2](#v0.92b2)
-5.  [Version 0.92b1](#v0.92b1)
-6.  [Version 0.92b](#v0.92b)
+1. [Version 0.94.2](#v0.94.2)
+2. [Version 0.94.1](#v0.94.1)
+3. [Version 0.94.0](#v0.94.0)
+4. [Version 0.93.0](#v0.93.0)
+5. [Version 0.92.2](#v0.92.2)
+6. [Version 0.92.1](#v0.92.1)
+7. [Version 0.92.0](#v0.92.0)
 
 ---
 
-## <a name="v0.98"></a>Version 0.98 (January 2026)
+## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
+
+- **Architecture:** **Global Subscription Management**: Introduced the `MarketWatcher` service to centralize all WebSocket subscriptions.
+- **System:** **Reference Counting**: Intelligent tracking of data requests to prevent connection drops when multiple panels are open simultaneously.
+- **Robustness:** **Symbol Normalization**: Consistent handling of symbol suffixes (`.P`, `:USDT`) for stable data mapping between API and UI.
+- **Fix:** **Technicals Stability**: Resolved freezing issues when rapidly switching between trading pairs in the Technicals Panel.
+- **New:** **"Debug Mode" Setting**: Opt-in detailed system logs in the browser console for improved troubleshooting.
+- **Improvement:** **Real-time Indicators**: Directly connected RSI and technical calculations to the internal market store for faster updates.
+
+## <a name="v0.94.1"></a>Version 0.94.1 (January 2026)
 
 - **New:** **Jules API**: Intelligent AI-driven error analysis and reporting system for instant diagnostics.
 - **New:** **Technicals Panel**: Advanced charting overlay with RSI, MACD, Stochastic, and Auto-Pivots.
@@ -27,7 +37,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.96"></a>Version 0.96 (January 2026)
+## <a name="v0.94.0"></a>Version 0.94.0 (January 2026)
 
 - **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
 - **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
@@ -37,7 +47,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.94"></a>Version 0.94 (December 21, 2025)
+## <a name="v0.93.0"></a>Version 0.93.0 (December 21, 2025)
 
 - **New:** "Show Sidebars" setting: Toggle visibility of the sidebar (favorites) and Market Overview to save screen space on desktop and mobile.
 - **Improvement:** Enhanced mobile layout with integrated positions view.
@@ -53,14 +63,14 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.92b2"></a>Version 0.92b2 (December 11, 2025)
+## <a name="v0.92.2"></a>Version 0.92.2 (December 11, 2025)
 
 - **New:** "Market Overview" displays 24h data (Price, Volume, Change) for the current symbol.
 - **New:** Expanded settings: Select API provider (Bitunix/Binance) and market data update interval (1s, 1m, 10m).
 
 ---
 
-## <a name="v0.92b1"></a>Version 0.92b1 (September 04, 2025)
+## <a name="v0.92.1"></a>Version 0.92.1 (September 04, 2025)
 
 - **New:** Automatic ATR fetch from Binance API with selectable timeframe (5m, 15m, 1h, 4h, 1d). The fetched value can be manually adjusted.
 - **New:** Advanced locking functions: The risk amount in currency can now be locked to calculate position size and risk percentage.
@@ -69,7 +79,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ---
 
-## <a name="v0.92b"></a>Version 0.92b (August 22, 2025)
+## <a name="v0.92.0"></a>Version 0.92.0 (August 22, 2025)
 
 - **Improvement:** Symbol input field now accepts letters and numbers.
 - **Fixed:** Tooltip border is now theme-dependent and the double border issue has been fixed.
