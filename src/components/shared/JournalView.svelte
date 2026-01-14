@@ -176,9 +176,10 @@
   let filterDateStart = "";
   let filterDateEnd = "";
   let groupBySymbol = false;
+  let showColumnSettings = false;
 
   // Column Visibility State
-  let columnVisibility = {
+  let columnVisibility: Record<string, boolean> = {
     date: true,
     symbol: true,
     type: true,
@@ -267,7 +268,28 @@
     return matchesSearch && matchesStatus && matchesDate;
   });
 
-  $: sortedTrades = sortTrades(processedTrades, sortField, sortDirection);
+  // Pivot Mode Logic
+  $: groupedTrades = groupBySymbol
+    ? Object.entries(
+        calculator.calculateSymbolPerformance(processedTrades)
+      ).map(([symbol, data]) => ({
+        id: `group-${symbol}`,
+        symbol,
+        isGroup: true,
+        ...data,
+        // Add default fields for sorting compatibility
+        date: new Date().toISOString(),
+        tradeType: "group",
+        entryPrice: new Decimal(0),
+        totalNetProfit: data.totalProfitLoss,
+        totalRR: new Decimal(0),
+        status: "Group",
+        trades: processedTrades.filter((t) => t.symbol === symbol),
+      }))
+    : [];
+
+  $: displayTrades = groupBySymbol ? groupedTrades : processedTrades;
+  $: sortedTrades = sortTrades(displayTrades, sortField, sortDirection);
 
   function handleSort(field: any) {
     if (sortField === field) {
@@ -343,7 +365,38 @@
     bind:groupBySymbol
     totalTrades={$journalStore.length}
     filteredCount={processedTrades.length}
+    on:toggleSettings={() => (showColumnSettings = !showColumnSettings)}
   />
+
+  <!-- Column Settings Popover -->
+  {#if showColumnSettings}
+    <div
+      class="column-settings-popover bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-xl p-4 mb-4 animate-in fade-in slide-in-from-top-2"
+    >
+      <div class="flex justify-between items-center mb-3">
+        <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
+        <button
+          class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          on:click={() => (showColumnSettings = false)}
+          >{$_("common.ok")}</button
+        >
+      </div>
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        {#each Object.keys(columnVisibility) as col}
+          <label
+            class="flex items-center gap-2 cursor-pointer hover:bg-[var(--bg-secondary)] p-1 rounded transition-colors"
+          >
+            <input
+              type="checkbox"
+              bind:checked={columnVisibility[col]}
+              class="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
+            />
+            <span class="text-xs truncate">{$_(`journal.table.${col}`)}</span>
+          </label>
+        {/each}
+      </div>
+    </div>
+  {/if}
 
   <!-- Journal Statistics Component -->
   {#if $settingsStore.isPro}
@@ -362,6 +415,7 @@
       bind:currentPage
       {itemsPerPage}
       {columnVisibility}
+      {groupBySymbol}
       on:sort={(e) => handleSort(e.detail.field)}
       on:deleteTrade={(e) => confirmDeleteTrade(e.detail.id)}
       on:statusChange={(e) =>
