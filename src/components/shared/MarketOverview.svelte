@@ -5,7 +5,7 @@
   import { indicatorStore } from "../../stores/indicatorStore";
   import { favoritesStore } from "../../stores/favoritesStore";
   import { marketStore, wsStatusStore } from "../../stores/marketStore";
-  import { bitunixWs } from "../../services/bitunixWs";
+  import { marketWatcher } from "../../services/marketWatcher";
   import {
     apiService,
     type Ticker24h,
@@ -14,6 +14,7 @@
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { indicators } from "../../utils/indicators";
   import { Decimal } from "decimal.js";
   import { app } from "../../services/app";
@@ -26,8 +27,11 @@
   export let isTechnicalsVisible: boolean = false;
 
   // Use custom symbol if provided, otherwise fall back to store symbol
-  $: symbol = (customSymbol || $tradeStore.symbol || "").toUpperCase();
-  $: normalizedSymbolForWs = symbol.replace(".P", "").replace("P", ""); // Basic normalization for WS
+  // Use custom symbol if provided, otherwise fall back to store symbol, always normalized
+  $: symbol = normalizeSymbol(
+    customSymbol || $tradeStore.symbol || "",
+    "bitunix"
+  );
   $: provider = $settingsStore.apiProvider;
   $: displaySymbol = getDisplaySymbol(symbol);
 
@@ -37,11 +41,8 @@
   let restError: string | null = null;
   let restIntervalId: any;
 
-  // WS Data
-  $: wsData =
-    $marketStore[symbol] ||
-    $marketStore[symbol.replace("P", "")] ||
-    $marketStore[symbol + "USDT"]; // Try robust keys
+  // WS Data - Use strictly normalized entry from store
+  $: wsData = $marketStore[symbol] || null;
   $: wsStatus = $wsStatusStore;
 
   // Derived Real-time values (fallback to REST if WS missing)
@@ -92,23 +93,17 @@
   }
 
   // Fetch History on Mount/Symbol/Timeframe Change
+  // Manage dynamic kline subscription via MarketWatcher
+  let currentWsKlineChannel: string | null = null;
   $: if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
     fetchHistoryKlines(effectiveRsiTimeframe);
-    // Update WS Subscription
-    bitunixWs.subscribe(
-      symbol,
-      mapTimeframeToChannel(effectiveRsiTimeframe) as any
-    );
-  }
 
-  let currentWsChannel: string | null = null;
-  $: if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
-    const newChannel = mapTimeframeToChannel(effectiveRsiTimeframe);
-    if (currentWsChannel && currentWsChannel !== newChannel) {
-      bitunixWs.unsubscribe(symbol, currentWsChannel as any);
+    const newChannel = `kline_${effectiveRsiTimeframe}`;
+    if (currentWsKlineChannel && currentWsKlineChannel !== newChannel) {
+      marketWatcher.unregister(symbol, currentWsKlineChannel);
     }
-    bitunixWs.subscribe(symbol, newChannel as any);
-    currentWsChannel = newChannel;
+    marketWatcher.register(symbol, newChannel);
+    currentWsKlineChannel = newChannel;
   }
 
   async function fetchHistoryKlines(tf: string) {
@@ -142,16 +137,22 @@
       return k.close;
     });
 
-    // Update latest candle from WS
-    if (wsData?.kline) {
-      const k = wsData.kline;
-      let currentVal = k.close;
-      if (sourceMode === "open") currentVal = k.open;
-      else if (sourceMode === "high") currentVal = k.high;
-      else if (sourceMode === "low") currentVal = k.low;
-      else if (sourceMode === "hl2") currentVal = k.high.plus(k.low).div(2);
+    // Update latest candle from Market Store (WS klines are now in the store)
+    const liveKline = wsData?.klines
+      ? wsData.klines[effectiveRsiTimeframe]
+      : null;
+    if (liveKline) {
+      let currentVal = liveKline.close;
+      if (sourceMode === "open") currentVal = liveKline.open;
+      else if (sourceMode === "high") currentVal = liveKline.high;
+      else if (sourceMode === "low") currentVal = liveKline.low;
+      else if (sourceMode === "hl2")
+        currentVal = liveKline.high.plus(liveKline.low).div(2);
       else if (sourceMode === "hlc3")
-        currentVal = k.high.plus(k.low).plus(k.close).div(3);
+        currentVal = liveKline.high
+          .plus(liveKline.low)
+          .plus(liveKline.close)
+          .div(3);
 
       // Update last element
       if (values.length > 0) values[values.length - 1] = currentVal;
@@ -269,11 +270,11 @@
   }
 
   // Subscribe to WS when symbol changes
+  // Subscribe to WS when symbol changes via MarketWatcher
   $: if (symbol && provider === "bitunix") {
-    bitunixWs.subscribe(symbol, "price");
-    bitunixWs.subscribe(symbol, "ticker"); // Subscribe to 24h ticker
-    bitunixWs.subscribe(symbol, "depth_book5");
-    // Kline subscription handled above dynamically
+    marketWatcher.register(symbol, "price");
+    marketWatcher.register(symbol, "ticker");
+    marketWatcher.register(symbol, "depth_book5");
   }
 
   // REST Polling for Volume/24h Change (Background)
@@ -318,20 +319,18 @@
   }
 
   onMount(() => {
-    if (symbol && provider === "bitunix") {
-      bitunixWs.connect();
-    }
+    // MarketWatcher handles connections and polling automatically
   });
 
   onDestroy(() => {
     if (restIntervalId) clearInterval(restIntervalId);
     if (countdownInterval) clearInterval(countdownInterval);
     if (symbol && provider === "bitunix") {
-      bitunixWs.unsubscribe(symbol, "price");
-      bitunixWs.unsubscribe(symbol, "ticker");
-      bitunixWs.unsubscribe(symbol, "depth_book5");
-      if (currentWsChannel)
-        bitunixWs.unsubscribe(symbol, currentWsChannel as any);
+      marketWatcher.unregister(symbol, "price");
+      marketWatcher.unregister(symbol, "ticker");
+      marketWatcher.unregister(symbol, "depth_book5");
+      if (currentWsKlineChannel)
+        marketWatcher.unregister(symbol, currentWsKlineChannel);
     }
   });
 

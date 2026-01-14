@@ -84,6 +84,10 @@ class MarketWatcher {
                 let bitunixChannel = ch;
                 if (ch === "price") {
                     bitunixChannel = "price";
+                } else if (ch === "ticker") {
+                    bitunixChannel = "ticker";
+                } else if (ch === "depth_book5") {
+                    bitunixChannel = "depth_book5";
                 } else if (ch.startsWith("kline_")) {
                     const timeframe = ch.replace("kline_", "");
                     const bitunixInterval = this.mapTimeframeToBitunix(timeframe);
