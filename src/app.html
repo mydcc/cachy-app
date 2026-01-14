@@ -91,11 +91,9 @@
 
         var bgColor = bgColors[theme] || bgColors['dark'];
         document.documentElement.style.backgroundColor = bgColor;
-        document.body.style.backgroundColor = bgColor;
       } catch (e) {
         // Silently fail if localStorage is not available
         document.documentElement.style.backgroundColor = '#0f172a';
-        document.body.style.backgroundColor = '#0f172a';
       }
     })();
   </script>
