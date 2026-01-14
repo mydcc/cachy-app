@@ -11,6 +11,10 @@ import {
   ArcElement,
   Filler,
   TimeScale,
+  LineController,
+  BarController,
+  DoughnutController,
+  BubbleController,
 } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import ChartDataLabels from "chartjs-plugin-datalabels";
@@ -27,6 +31,10 @@ ChartJS.register(
   ArcElement,
   Filler,
   TimeScale,
+  LineController,
+  BarController,
+  DoughnutController,
+  BubbleController,
   annotationPlugin,
   ChartDataLabels
 );
