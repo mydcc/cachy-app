@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
   import { onMount } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { accountStore } from "../../stores/accountStore";
@@ -80,7 +78,7 @@
                 console.warn(`TP/SL network error for ${sym}:`, e);
                 return [];
               }
-            })
+            }),
           );
           results.push(...batchResults.flat());
         }
@@ -115,7 +113,7 @@
       // Sort by time (newest first)
       orders.sort(
         (a, b) =>
-          (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0)
+          (b.ctime || b.createTime || 0) - (a.ctime || a.createTime || 0),
       );
     } catch (e) {
       console.error("TP/SL Global Error:", e);
@@ -166,10 +164,10 @@
     fetchOrders();
   }
 
-  run(() => {
+  $effect(() => {
     if (isActive) fetchOrders();
   });
-  run(() => {
+  $effect(() => {
     if (view) fetchOrders();
   });
 
@@ -189,6 +187,7 @@
   }
 </script>
 
+```typescript
 <div class="flex flex-col h-full bg-[var(--bg-secondary)]">
   <!-- Sub-Tabs for Pending/History -->
   <div
@@ -218,7 +217,7 @@
       <div class="flex justify-center p-4">
         <div
           class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-></div>
+        ></div>
       </div>
     {:else if error}
       <div class="text-xs text-[var(--danger-color)] p-2 text-center">

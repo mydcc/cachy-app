@@ -13,7 +13,6 @@
 
   const dispatch = createEventDispatcher();
 
-
   interface Props {
     symbol: string;
     entryPrice: number | null;
@@ -31,19 +30,19 @@
   }
 
   let {
-    symbol,
-    entryPrice,
+    symbol = $bindable(),
+    entryPrice = $bindable(),
     useAtrSl = $bindable(),
-    atrValue,
-    atrMultiplier,
-    stopLossPrice,
-    atrMode,
-    atrTimeframe,
+    atrValue = $bindable(),
+    atrMultiplier = $bindable(),
+    stopLossPrice = $bindable(),
+    atrMode = $bindable(),
+    atrTimeframe = $bindable(),
     atrFormulaDisplay,
     showAtrFormulaDisplay,
     isPriceFetching,
     symbolSuggestions,
-    showSymbolSuggestions
+    showSymbolSuggestions,
   }: Props = $props();
 
   // Local state for input to prevent immediate store updates
@@ -160,12 +159,13 @@
   }
 
   // Determine dynamic step based on price magnitude
-  let priceStep =
-    $derived(entryPrice && entryPrice > 1000
+  let priceStep = $derived(
+    entryPrice && entryPrice > 1000
       ? 0.5
       : entryPrice && entryPrice > 100
-      ? 0.1
-      : 0.01);
+        ? 0.1
+        : 0.01,
+  );
 
   // Copy to clipboard with smiley feedback
   let showSmiley = $state(false);
@@ -174,7 +174,7 @@
 
   async function copyStopLossToClipboard(
     value: string,
-    event: MouseEvent | KeyboardEvent
+    event: MouseEvent | KeyboardEvent,
   ) {
     try {
       await navigator.clipboard.writeText(value);
@@ -285,7 +285,7 @@
           : "Auto-Update Off"}
         onclick={toggleAutoUpdatePrice}
         aria-label="Toggle Auto Update Price"
-></button>
+      ></button>
     </div>
   </div>
 
@@ -330,7 +330,7 @@
         />
         <div
           class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"
-></div>
+        ></div>
       </label>
     </div>
     {#if !useAtrSl}
@@ -348,7 +348,7 @@
           oninput={handleStopLossPriceInput}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_(
-            "dashboard.tradeSetupInputs.manualStopLossPlaceholder"
+            "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
           )}
         />
       </div>
@@ -387,7 +387,7 @@
               oninput={handleAtrMultiplierInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_(
-                "dashboard.tradeSetupInputs.multiplierPlaceholder"
+                "dashboard.tradeSetupInputs.multiplierPlaceholder",
               )}
             />
           </div>
@@ -539,7 +539,8 @@
 
 <style>
   .input-field:focus {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-color: var(--accent-color);
     z-index: 10;

@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { handlers } from 'svelte/legacy';
+  import { handlers } from "svelte/legacy";
 
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
@@ -21,11 +21,11 @@
   }
 
   let {
-    accountSize,
-    riskPercentage,
-    riskAmount,
-    isRiskAmountLocked,
-    isPositionSizeLocked
+    accountSize = $bindable(),
+    riskPercentage = $bindable(),
+    riskAmount = $bindable(),
+    isRiskAmountLocked = $bindable(),
+    isPositionSizeLocked = $bindable(),
   }: Props = $props();
 
   let isFetchingBalance = $state(false);
@@ -148,7 +148,10 @@
             showSpinButtons: false,
           }}
           value={format(accountSize)}
-          oninput={handlers(handleAccountSizeInput, onboardingService.trackFirstInput)}
+          oninput={handlers(
+            handleAccountSizeInput,
+            onboardingService.trackFirstInput,
+          )}
           class="input-field w-full px-4 py-2 rounded-md pr-10"
           placeholder={$_("dashboard.portfolioInputs.accountSizePlaceholder")}
         />
@@ -199,7 +202,10 @@
             showSpinButtons: false,
           }}
           value={format(riskPercentage)}
-          oninput={handlers(handleRiskPercentageInput, onboardingService.trackFirstInput)}
+          oninput={handlers(
+            handleRiskPercentageInput,
+            onboardingService.trackFirstInput,
+          )}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_("dashboard.portfolioInputs.riskPerTradePlaceholder")}
           disabled={isRiskAmountLocked || isPositionSizeLocked}
@@ -267,7 +273,8 @@
 
 <style>
   .input-field:focus {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-color: var(--accent-color);
     z-index: 10;

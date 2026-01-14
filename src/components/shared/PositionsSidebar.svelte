@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
   import { onMount } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { tradeStore } from "../../stores/tradeStore";
@@ -194,9 +192,8 @@
   });
 
   // React to settings changes (e.g. keys added)
-  run(() => {
+  $effect(() => {
     if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
-      // Debounce or just check if we can fetch
       const p = $settingsStore.apiProvider;
       const k = $settingsStore.apiKeys[p];
       if (k?.key && k?.secret && activeTab === "positions") {
@@ -206,27 +203,22 @@
     }
   });
 
-  run(() => {
+  $effect(() => {
     if (activeTab === "orders") fetchOrders("pending");
   });
-  run(() => {
+  $effect(() => {
     if (activeTab === "history") fetchOrders("history");
   });
-  run(() => {
+  $effect(() => {
     if (activeTab === "positions") fetchPositions();
   });
 
   // Filter History
-  let filteredHistoryOrders: any[] = $state([]);
-  run(() => {
-    if ($settingsStore.hideUnfilledOrders) {
-      filteredHistoryOrders = historyOrders.filter(
-        (o) => Number(o.filled || o.dealAmount || 0) > 0
-      );
-    } else {
-      filteredHistoryOrders = historyOrders;
-    }
-  });
+  let filteredHistoryOrders = $derived(
+    $settingsStore.hideUnfilledOrders
+      ? historyOrders.filter((o) => Number(o.filled || o.dealAmount || 0) > 0)
+      : historyOrders,
+  );
 
   function toggle() {
     isOpen = !isOpen;
@@ -299,7 +291,7 @@
       leverage: Number(pos.leverage),
     }));
     alert(
-      `Loaded ${pos.symbol} into trade inputs. Configure TP/SL there and submit.`
+      `Loaded ${pos.symbol} into trade inputs. Configure TP/SL there and submit.`,
     );
   }
 </script>
@@ -417,8 +409,8 @@
           positions={$accountStore.positions}
           loading={loadingPositions}
           error={errorPositions}
-          on:close={handleClosePosition}
-          on:tpSl={handleTpSl}
+          onclose={handleClosePosition}
+          ontpSl={handleTpSl}
         />
       {:else if activeTab === "orders"}
         <OpenOrdersList

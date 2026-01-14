@@ -1,5 +1,4 @@
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
@@ -10,11 +9,18 @@
     positions?: any[];
     loading?: boolean;
     error?: string;
+    // Svelte 5 event props
+    onclose?: (pos: any) => void;
+    ontpSl?: (pos: any) => void;
   }
 
-  let { positions = [], loading = false, error = "" }: Props = $props();
-
-  const dispatch = createEventDispatcher();
+  let {
+    positions = [],
+    loading = false,
+    error = "",
+    onclose,
+    ontpSl,
+  }: Props = $props();
 
   // Tooltip Logic
   let hoveredPosition: any = $state(null);
@@ -70,15 +76,15 @@
         s.pnlViewMode === "value"
           ? "percent"
           : s.pnlViewMode === "percent"
-          ? "bar"
-          : "value";
+            ? "bar"
+            : "value";
       return { ...s, pnlViewMode: nextMode };
     });
   }
 
   function handleClose(pos: any) {
     if (confirm(`Close position for ${pos.symbol}?`)) {
-      dispatch("close", pos);
+      onclose?.(pos);
     }
   }
 
@@ -102,7 +108,7 @@
     <div class="flex justify-center p-4">
       <div
         class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-></div>
+      ></div>
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -165,11 +171,11 @@
                         class="absolute inset-y-0 left-0 transition-all duration-300 opacity-30"
                         style="width: {Math.min(
                           Math.abs(Number(getRoi(pos))),
-                          100
+                          100,
                         )}%; background-color: {pos.unrealizedPnl > 0
                           ? 'var(--success-color)'
                           : 'var(--danger-color)'}"
-></div>
+                      ></div>
                       <span
                         class="text-[10px] font-bold z-10 relative"
                         class:text-[var(--success-color)]={pos.unrealizedPnl >
@@ -217,7 +223,7 @@
               <div class="flex gap-2 pt-1">
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
-                  onclick={() => dispatch("tpSl", pos)}
+                  onclick={() => ontpSl?.(pos)}
                 >
                   TP/SL
                 </button>

@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { run, createBubbler, stopPropagation } from "svelte/legacy";
-
-  const bubble = createBubbler();
   import favicon from "../assets/favicon.svg";
   import { tradeStore } from "../stores/tradeStore";
   import { uiStore } from "../stores/uiStore";
@@ -125,7 +122,7 @@
     }, 50);
   }
   // Dynamic theme color for PWA/Android status bar
-  run(() => {
+  $effect(() => {
     if (typeof document !== "undefined" && $uiStore.currentTheme) {
       updateThemeColor();
     }
@@ -181,7 +178,7 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="bg-[var(--bg-secondary)] text-[var(--text-primary)] p-6 rounded-lg shadow-2xl border border-[var(--accent-color)] max-w-2xl w-full mx-4 relative transform transition-all"
-        onclick={stopPropagation(bubble("click"))}
+        onclick={(e) => e.stopPropagation()}
         role="document"
       >
         <button

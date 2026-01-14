@@ -1,18 +1,12 @@
 <script lang="ts">
-    import JournalTable from './JournalTable.svelte';
-    import { stopPropagation } from 'svelte/legacy';
+    import JournalTable from "./JournalTable.svelte";
 
-    import { createEventDispatcher } from "svelte";
     import { _ } from "../../../locales/i18n";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import type { JournalEntry } from "../../../stores/types";
     import { Decimal } from "decimal.js";
 
-    const dispatch = createEventDispatcher();
-
-    
     interface Props {
-        // Props
         trades?: any[];
         sortField?: string;
         sortDirection?: "asc" | "desc";
@@ -21,17 +15,32 @@
         columnVisibility?: Record<string, boolean>;
         groupBySymbol?: boolean;
         isInternal?: boolean;
+        // Event Props (Svelte 5)
+        onSort?: (field: string) => void;
+        onPageChange?: (page: number) => void;
+        onDeleteTrade?: (id: number) => void;
+        onStatusChange?: (id: number, status: string) => void;
+        onItemsPerPageChange?: (itemsPerPage: number) => void;
+        onUpdateTrade?: (id: number, data: any) => void;
+        onUploadScreenshot?: (id: number, file: File) => void;
     }
 
     let {
         trades = [],
-        sortField = "date",
-        sortDirection = "desc",
+        sortField = $bindable("date"),
+        sortDirection = $bindable("desc"),
         currentPage = $bindable(1),
         itemsPerPage = $bindable(10),
         columnVisibility = {},
         groupBySymbol = false,
-        isInternal = false
+        isInternal = false,
+        onSort,
+        onPageChange,
+        onDeleteTrade,
+        onStatusChange,
+        onItemsPerPageChange,
+        onUpdateTrade,
+        onUploadScreenshot,
     }: Props = $props();
 
     // State for expanded groups
@@ -39,46 +48,49 @@
 
     // Pagination
     let totalPages = $derived(Math.ceil(trades.length / itemsPerPage));
-    let paginatedTrades = $derived(trades.slice(
-        (currentPage - 1) * itemsPerPage,
-        currentPage * itemsPerPage
-    ));
+    let paginatedTrades = $derived(
+        trades.slice(
+            (currentPage - 1) * itemsPerPage,
+            currentPage * itemsPerPage,
+        ),
+    );
 
     function handleSort(field: string) {
         if (!isInternal) {
-            dispatch("sort", { field });
+            onSort?.(field);
         }
     }
 
     function handlePageChange(page: number) {
         if (!isInternal) {
-            dispatch("pageChange", { page });
+            onPageChange?.(page);
         }
     }
 
     function handleDeleteTrade(id: number) {
-        dispatch("deleteTrade", { id });
+        onDeleteTrade?.(id);
     }
 
     function handleStatusChange(id: number, status: string) {
-        dispatch("statusChange", { id, status });
+        onStatusChange?.(id, status);
     }
 
     function handleItemsPerPageChange() {
         currentPage = 1;
         if (!isInternal) {
-            dispatch("itemsPerPageChange", { itemsPerPage });
-            dispatch("pageChange", { page: 1 });
+            onItemsPerPageChange?.(itemsPerPage);
+            onPageChange?.(1);
         }
     }
 
     function toggleGroup(symbol: string) {
-        if (expandedGroups.has(symbol)) {
-            expandedGroups.delete(symbol);
+        const newGroups = new Set(expandedGroups);
+        if (newGroups.has(symbol)) {
+            newGroups.delete(symbol);
         } else {
-            expandedGroups.add(symbol);
+            newGroups.add(symbol);
         }
-        expandedGroups = expandedGroups;
+        expandedGroups = newGroups;
     }
 
     function addTag(tradeId: number, tag: string, currentTags: string[] = []) {
@@ -87,16 +99,16 @@
         if (currentTags.includes(trimmedTag)) return;
 
         const newTags = [...currentTags, trimmedTag];
-        dispatch("updateTrade", { id: tradeId, tags: newTags });
+        onUpdateTrade?.(tradeId, { tags: newTags });
     }
 
     function removeTag(
         tradeId: number,
         tagToRemove: string,
-        currentTags: string[]
+        currentTags: string[],
     ) {
         const newTags = currentTags.filter((t) => t !== tagToRemove);
-        dispatch("updateTrade", { id: tradeId, tags: newTags });
+        onUpdateTrade?.(tradeId, { tags: newTags });
     }
 
     let tagInputValues: Record<number, string> = $state({});
@@ -131,7 +143,7 @@
     function triggerFileUpload(id: number) {
         (
             document.getElementById(
-                `file-upload-${id}`
+                `file-upload-${id}`,
             ) as HTMLInputElement | null
         )?.click();
     }
@@ -258,8 +270,7 @@
                             {/if}
                             {#if columnVisibility.pnl}
                                 <th
-                                    onclick={() =>
-                                        handleSort("totalNetProfit")}
+                                    onclick={() => handleSort("totalNetProfit")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.pnl")}
@@ -415,12 +426,12 @@
                                 {#if columnVisibility.pnl}
                                     <td
                                         class="font-bold {getProfitClass(
-                                            item.totalProfitLoss
+                                            item.totalProfitLoss,
                                         )}"
                                     >
                                         {formatDynamicDecimal(
                                             item.totalProfitLoss,
-                                            2
+                                            2,
                                         )}
                                     </td>
                                 {/if}
@@ -450,14 +461,16 @@
                                         <td
                                             class="border-l-4 border-[var(--accent-color)]"
                                             style="padding: 0;"
-></td>
+                                        ></td>
                                         <td colspan="100" style="padding: 0;">
                                             <JournalTable
                                                 trades={[trade]}
                                                 {columnVisibility}
                                                 isInternal={true}
-                                                on:statusChange
-                                                on:deleteTrade
+                                                {onStatusChange}
+                                                {onDeleteTrade}
+                                                {onUpdateTrade}
+                                                {onUploadScreenshot}
                                             />
                                         </td>
                                     </tr>
@@ -478,7 +491,7 @@
                                                 year: "2-digit",
                                                 hour: "2-digit",
                                                 minute: "2-digit",
-                                            }
+                                            },
                                         )}
                                     </td>
                                 {/if}
@@ -499,7 +512,7 @@
                                     <td
                                         >{formatDynamicDecimal(
                                             item.entryPrice,
-                                            4
+                                            4,
                                         )}</td
                                     >
                                 {/if}
@@ -509,7 +522,7 @@
                                         !item.exitPrice.isZero()
                                             ? formatDynamicDecimal(
                                                   item.exitPrice,
-                                                  4
+                                                  4,
                                               )
                                             : "-"}</td
                                     >
@@ -520,7 +533,7 @@
                                         !item.stopLossPrice.isZero()
                                             ? formatDynamicDecimal(
                                                   item.stopLossPrice,
-                                                  4
+                                                  4,
                                               )
                                             : "-"}</td
                                     >
@@ -530,7 +543,7 @@
                                         >{item.positionSize
                                             ? formatDynamicDecimal(
                                                   item.positionSize,
-                                                  4
+                                                  4,
                                               )
                                             : "-"}</td
                                     >
@@ -538,7 +551,7 @@
                                 {#if columnVisibility.pnl}
                                     <td
                                         class="font-bold {getProfitClass(
-                                            item.totalNetProfit
+                                            item.totalNetProfit,
                                         )}"
                                     >
                                         {item.totalNetProfit.toFixed(2)}
@@ -552,7 +565,7 @@
                                         item.fundingFee !== null
                                             ? formatDynamicDecimal(
                                                   item.fundingFee,
-                                                  2
+                                                  2,
                                               )
                                             : "-"}
                                     </td>
@@ -562,10 +575,10 @@
                                         class="font-bold {item.totalRR?.gt(2)
                                             ? 'text-success'
                                             : item.totalRR?.gt(1)
-                                            ? 'text-warning'
-                                            : item.totalRR?.lt(0)
-                                            ? 'text-danger'
-                                            : 'text-[var(--text-secondary)]'}"
+                                              ? 'text-warning'
+                                              : item.totalRR?.lt(0)
+                                                ? 'text-danger'
+                                                : 'text-[var(--text-secondary)]'}"
                                     >
                                         {item.totalRR &&
                                         item.stopLossPrice &&
@@ -604,17 +617,17 @@
                                     <td class="text-xs">
                                         {(() => {
                                             const start = new Date(
-                                                item.entryDate || item.date
+                                                item.entryDate || item.date,
                                             ).getTime();
                                             const end = new Date(
-                                                item.date
+                                                item.date,
                                             ).getTime();
                                             const diff =
                                                 isNaN(start) || isNaN(end)
                                                     ? 0
                                                     : Math.max(0, end - start);
                                             return formatDuration(
-                                                Math.floor(diff / 60000)
+                                                Math.floor(diff / 60000),
                                             );
                                         })()}
                                     </td>
@@ -627,29 +640,29 @@
                                                 item.status === 'Won'
                                                     ? '1'
                                                     : item.status === 'Lost'
-                                                    ? '-1'
-                                                    : '0'
+                                                      ? '-1'
+                                                      : '0',
                                             )}"
                                             disabled={item.isManual === false}
                                             onchange={(e) =>
                                                 handleStatusChange(
                                                     item.id,
-                                                    e.currentTarget.value
+                                                    e.currentTarget.value,
                                                 )}
                                         >
                                             <option value="Open"
                                                 >{$_(
-                                                    "journal.filterOpen"
+                                                    "journal.filterOpen",
                                                 )}</option
                                             >
                                             <option value="Won"
                                                 >{$_(
-                                                    "journal.filterWon"
+                                                    "journal.filterWon",
                                                 )}</option
                                             >
                                             <option value="Lost"
                                                 >{$_(
-                                                    "journal.filterLost"
+                                                    "journal.filterLost",
                                                 )}</option
                                             >
                                         </select>
@@ -666,7 +679,7 @@
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
                                                     title={$_(
-                                                        "journal.labels.view"
+                                                        "journal.labels.view",
                                                     )}
                                                 >
                                                     🖼️
@@ -683,16 +696,15 @@
                                                 <button
                                                     class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                     onclick={() =>
-                                                        dispatch(
-                                                            "updateTrade",
+                                                        onUpdateTrade?.(
+                                                            item.id,
                                                             {
-                                                                id: item.id,
                                                                 screenshot:
                                                                     undefined,
-                                                            }
+                                                            },
                                                         )}
                                                     title={$_(
-                                                        "journal.labels.removeScreenshot"
+                                                        "journal.labels.removeScreenshot",
                                                     )}
                                                 >
                                                     🗑️
@@ -704,10 +716,10 @@
                                                     triggerFileUpload(item.id)}
                                                 title={item.screenshot
                                                     ? $_(
-                                                          "journal.labels.replaceScreenshot"
+                                                          "journal.labels.replaceScreenshot",
                                                       )
                                                     : $_(
-                                                          "journal.labels.uploadScreenshot"
+                                                          "journal.labels.uploadScreenshot",
                                                       )}
                                             >
                                                 {item.screenshot ? "↻" : "➕"}
@@ -722,9 +734,9 @@
                                                 const file =
                                                     e.currentTarget.files?.[0];
                                                 if (file) {
-                                                    dispatch(
-                                                        "uploadScreenshot",
-                                                        { id: item.id, file }
+                                                    onUploadScreenshot?.(
+                                                        item.id,
+                                                        file,
                                                     );
                                                 }
                                             }}
@@ -745,13 +757,15 @@
                                                         {tag}
                                                         <button
                                                             class="opacity-50 hover:opacity-100 font-bold leading-none"
-                                                            onclick={stopPropagation(() =>
+                                                            onclick={(e) => {
+                                                                e.stopPropagation();
                                                                 removeTag(
                                                                     item.id,
                                                                     tag,
                                                                     item.tags ||
-                                                                        []
-                                                                ))}>×</button
+                                                                        [],
+                                                                );
+                                                            }}>×</button
                                                         >
                                                     </span>
                                                 {/each}
@@ -760,9 +774,9 @@
                                                 type="text"
                                                 placeholder="+"
                                                 class="tag-add-input text-[10px] bg-transparent border-0 w-8 focus:w-20 transition-all outline-none opacity-50 focus:opacity-100"
-                                                bind:value={tagInputValues[
-                                                    item.id
-                                                ]}
+                                                bind:value={
+                                                    tagInputValues[item.id]
+                                                }
                                                 onkeydown={(e) => {
                                                     if (e.key === "Enter") {
                                                         addTag(
@@ -770,7 +784,7 @@
                                                             tagInputValues[
                                                                 item.id
                                                             ],
-                                                            item.tags || []
+                                                            item.tags || [],
                                                         );
                                                         tagInputValues[
                                                             item.id
@@ -789,8 +803,7 @@
                                             class="notes-input bg-transparent border-0 text-xs w-full focus:bg-[var(--bg-secondary)] rounded px-1"
                                             placeholder="-"
                                             onchange={(e) =>
-                                                dispatch("updateTrade", {
-                                                    id: item.id,
+                                                onUpdateTrade?.(item.id, {
                                                     notes: e.currentTarget
                                                         .value,
                                                 })}
@@ -798,14 +811,19 @@
                                     </td>
                                 {/if}
                                 {#if columnVisibility.action}
-                                    <td>
-                                        <button
-                                            class="delete-btn"
-                                            onclick={stopPropagation(() =>
-                                                handleDeleteTrade(item.id))}
-                                        >
-                                            🗑️
-                                        </button>
+                                    <td class="action-cell">
+                                        <div class="flex items-center gap-2">
+                                            <button
+                                                class="text-xs opacity-50 hover:opacity-100 text-danger"
+                                                onclick={() =>
+                                                    handleDeleteTrade(item.id)}
+                                                title={$_(
+                                                    "journal.labels.delete",
+                                                )}
+                                            >
+                                                🗑️
+                                            </button>
+                                        </div>
                                     </td>
                                 {/if}
                             </tr>
@@ -815,46 +833,42 @@
             </table>
         </div>
 
-        {#if !groupBySymbol && !isInternal && trades.length > 0}
-            <div class="pagination">
-                <div class="pagination-left">
-                    <span class="text-xs text-[var(--text-secondary)]"
-                        >{$_("journal.pagination.rows")}</span
+        {#if totalPages > 1 && !isInternal}
+            <div class="pagination-footer">
+                <div class="flex items-center gap-4">
+                    <button
+                        class="p-2 rounded bg-[var(--bg-secondary)] disabled:opacity-50"
+                        disabled={currentPage === 1}
+                        onclick={() => handlePageChange(currentPage - 1)}
+                    >
+                        ◀
+                    </button>
+                    <span class="text-xs">
+                        {currentPage} / {totalPages}
+                    </span>
+                    <button
+                        class="p-2 rounded bg-[var(--bg-secondary)] disabled:opacity-50"
+                        disabled={currentPage === totalPages}
+                        onclick={() => handlePageChange(currentPage + 1)}
+                    >
+                        ▶
+                    </button>
+                </div>
+                <div class="flex items-center gap-2">
+                    <span class="text-xs"
+                        >{$_("journal.table.itemsPerPage")}:</span
                     >
                     <select
                         bind:value={itemsPerPage}
                         onchange={handleItemsPerPageChange}
-                        class="rows-select bg-transparent border border-[var(--border-color)] rounded px-1 text-xs"
+                        class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-xs px-1 py-0.5"
                     >
+                        <option value={5}>5</option>
                         <option value={10}>10</option>
-                        <option value={25}>25</option>
+                        <option value={20}>20</option>
                         <option value={50}>50</option>
                         <option value={100}>100</option>
                     </select>
-                </div>
-
-                <div class="pagination-controls">
-                    <button
-                        class="pagination-btn"
-                        disabled={currentPage === 1}
-                        onclick={() => handlePageChange(currentPage - 1)}
-                    >
-                        ←
-                    </button>
-                    <span class="pagination-info">
-                        {$_("journal.pagination.page")}
-                        {currentPage}
-                        {$_("journal.pagination.of")}
-                        {Math.max(1, totalPages)}
-                    </span>
-                    <button
-                        class="pagination-btn"
-                        disabled={currentPage === totalPages ||
-                            totalPages === 0}
-                        onclick={() => handlePageChange(currentPage + 1)}
-                    >
-                        →
-                    </button>
                 </div>
             </div>
         {/if}
@@ -864,100 +878,81 @@
 <style>
     .journal-table-container {
         width: 100%;
-        background: var(--card-bg);
+        overflow-x: auto;
     }
 
     .table-wrapper {
-        overflow-x: auto;
-        overflow-y: visible;
-        max-height: 70vh;
+        min-width: 800px;
     }
 
     .journal-table {
         width: 100%;
-        border-collapse: separate;
-        border-spacing: 0;
-        font-size: 0.85rem;
+        border-collapse: collapse;
+        font-size: 0.8rem;
     }
 
     .journal-table th {
-        position: sticky;
-        top: 0;
-        background: var(--bg-tertiary);
-        padding: 0.75rem 1rem;
         text-align: left;
-        font-weight: 700;
+        padding: 0.75rem 0.5rem;
+        border-bottom: 2px solid var(--border-color);
         color: var(--text-secondary);
-        border-bottom: 1px solid var(--border-color);
-        white-space: nowrap;
-        z-index: 10;
+        font-weight: 600;
         text-transform: uppercase;
+        font-size: 0.7rem;
         letter-spacing: 0.05em;
     }
 
-    .sortable {
+    .journal-table th.sortable {
         cursor: pointer;
+        user-select: none;
     }
 
-    .sortable:hover {
+    .journal-table th.sortable:hover {
         color: var(--text-primary);
-        background: var(--bg-secondary);
-    }
-
-    .sort-icon {
-        display: inline-block;
-        width: 12px;
-        margin-left: 4px;
-        color: var(--accent-color);
     }
 
     .journal-table td {
-        padding: 0.3rem 0.6rem;
+        padding: 0.5rem;
         border-bottom: 1px solid var(--border-color);
-        white-space: nowrap;
         vertical-align: middle;
-        overflow: hidden;
-        text-overflow: ellipsis;
-        max-width: 250px;
     }
 
     .trade-row:hover {
-        background: var(--bg-secondary);
+        background-color: var(--bg-secondary);
     }
 
     .group-row {
-        background: var(--bg-tertiary);
+        background-color: var(--bg-tertiary);
     }
 
     .group-row:hover {
-        background: var(--bg-secondary);
+        background-color: var(--bg-secondary);
     }
 
-    .expand-icon {
-        font-size: 0.7rem;
-        color: var(--text-secondary);
-        width: 1.5rem;
-        display: inline-block;
-        text-align: center;
+    .sub-row td {
+        background-color: transparent;
+        padding: 0;
+        border-bottom: 0;
+    }
+
+    .is-recursive {
+        background-color: transparent;
+    }
+
+    .is-recursive .journal-table th {
+        display: none;
+    }
+
+    .pagination-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem 0;
     }
 
     .status-select {
         cursor: pointer;
-        padding: 0.2rem;
-        border-radius: 4px;
         outline: none;
-    }
-
-    .delete-btn {
-        background: none;
-        border: none;
-        cursor: pointer;
-        opacity: 0.5;
-        transition: opacity 0.2s;
-    }
-
-    .delete-btn:hover {
-        opacity: 1;
     }
 
     .text-success {
@@ -970,133 +965,15 @@
         color: var(--warning-color);
     }
 
-    .is-recursive {
-        background: transparent !important;
-    }
-
     .screenshot-cell {
-        min-width: 100px;
+        min-width: 80px;
     }
 
-    .screenshot-preview {
-        position: relative;
-        display: inline-block;
-    }
-
-    .thumbnail {
-        width: 40px;
-        height: 40px;
-        object-fit: cover;
-        border-radius: 4px;
-        border: 1px solid var(--border-color);
-        transition: transform 0.2s;
-    }
-
-    .thumbnail:hover {
-        transform: scale(1.1);
-    }
-
-    .upload-btn {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        padding: 0.25rem 0.5rem;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s;
-    }
-
-    .upload-btn:hover {
-        border-color: var(--accent-color);
-        background: var(--bg-tertiary);
-    }
-
-    .upload-btn.mini {
-        position: absolute;
-        bottom: -5px;
-        right: -5px;
-        padding: 0 4px;
-        font-size: 0.65rem;
-        background: var(--card-bg);
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    }
-
-    .hidden {
-        display: none;
-    }
-
-    .pagination {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 1rem;
-        background: var(--bg-tertiary);
-        border-top: 1px solid var(--border-color);
-    }
-
-    .pagination-left {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-    }
-
-    .pagination-controls {
-        display: flex;
-        align-items: center;
-        gap: 1rem;
-    }
-
-    .pagination-btn {
-        background: var(--bg-secondary);
-        border: 1px solid var(--border-color);
-        color: var(--text-primary);
-        padding: 0.35rem 0.75rem;
-        border-radius: 4px;
-        cursor: pointer;
-        transition: all 0.2s;
-        font-weight: 600;
-    }
-
-    .pagination-btn:hover:not(:disabled) {
-        background: var(--bg-tertiary);
-        border-color: var(--accent-color);
-    }
-
-    .pagination-btn:disabled {
-        opacity: 0.3;
-        cursor: not-allowed;
-    }
-
-    .notes-input {
-        color: var(--text-primary);
+    .tags-cell {
         min-width: 120px;
     }
 
-    .notes-input:focus {
-        outline: 1px solid var(--accent-color);
-    }
-
-    .screenshot-cell {
-        min-width: 60px;
-    }
-
-    .tag-chip {
-        white-space: nowrap;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-    }
-
-    .pagination-info {
-        font-size: 0.75rem;
-        color: var(--text-secondary);
-        font-weight: 500;
-        min-width: 80px;
-        text-align: center;
-    }
-
-    .rows-select {
-        color: var(--text-primary);
-        outline: none;
-        cursor: pointer;
+    .notes-cell {
+        min-width: 100px;
     }
 </style>

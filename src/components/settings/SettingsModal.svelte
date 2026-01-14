@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
+  import { onMount, onDestroy } from "svelte";
 
   import ModalFrame from "../shared/ModalFrame.svelte";
   import {
@@ -43,26 +43,31 @@
   import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
 
   // Local state for the form inputs
-  let apiProvider: "bitunix" | "binance" = $state();
+  let apiProvider: "bitunix" | "binance" = $state("bitunix");
   let marketDataInterval: number = $state(10);
-  let autoUpdatePriceInput: boolean = $state();
-  let autoFetchBalance: boolean = $state();
-  let showSidebars: boolean = $state();
-  let showTechnicals: boolean = $state();
-  let showIndicatorParams: boolean = $state();
-  let hideUnfilledOrders: boolean = $state();
-  let feePreference: "maker" | "taker" = $state();
+  let autoUpdatePriceInput: boolean = $state(false);
+  let autoFetchBalance: boolean = $state(false);
+  let showSidebars: boolean = $state(true);
+  let showTechnicals: boolean = $state(true);
+  let showIndicatorParams: boolean = $state(false);
+  let hideUnfilledOrders: boolean = $state(false);
+  let isPro: boolean = $state(false);
+  let feePreference: "maker" | "taker" = $state("taker");
   let hotkeyMode: HotkeyMode = $state("mode1");
-  let positionViewMode: PositionViewMode = $state();
-  let showSpinButtons: boolean | "hover" = $state();
+  let positionViewMode: PositionViewMode = $state("detailed");
+  let showSpinButtons: boolean | "hover" = $state("hover");
+  let syncFavorites: boolean = $state(true);
+  let confirmTradeDeletion: boolean = $state(true);
+  let confirmBulkDeletion: boolean = $state(true);
+  let debugMode: boolean = $state(false);
 
   // Timeframe & RSI Sync
   let favoriteTimeframes: string[] = $state([]);
-  let syncRsiTimeframe: boolean = $state();
+  let syncRsiTimeframe: boolean = $state(true);
 
   // Indicator Settings
-  let historyLimit = $state($indicatorStore.historyLimit || 2000);
-  let precision = $state($indicatorStore.precision || 4);
+  let historyLimit = $state(2000);
+  let precision = $state(4);
   let rsiSettings = $state({ ...$indicatorStore.rsi });
   let macdSettings = $state({ ...$indicatorStore.macd });
   let stochSettings = $state({ ...$indicatorStore.stochastic });
@@ -74,31 +79,30 @@
   let pivotSettings = $state({ ...$indicatorStore.pivots });
 
   // Side Panel Settings
-  let enableSidePanel: boolean = $state();
-  let sidePanelMode: "chat" | "notes" | "ai" = $state();
-  let sidePanelLayout: SidePanelLayout = $state();
+  let enableSidePanel: boolean = $state(false);
+  let sidePanelMode: "chat" | "notes" | "ai" = $state("notes");
+  let sidePanelLayout: SidePanelLayout = $state("standard");
 
   // AI Settings
-  let aiProviderState: AiProvider = $state();
-  let openaiApiKey: string = $state();
-  let openaiModel: string = $state();
-  let geminiApiKey: string = $state();
-  let geminiModel: string = $state();
-  let anthropicApiKey: string = $state();
-  let anthropicModel: string = $state();
+  let aiProviderState: AiProvider = $state("gemini");
+  let openaiApiKey: string = $state("");
+  let openaiModel: string = $state("gpt-4o");
+  let geminiApiKey: string = $state("");
+  let geminiModel: string = $state("gemini-2.0-flash-exp");
+  let anthropicApiKey: string = $state("");
+  let anthropicModel: string = $state("claude-3-5-sonnet-20240620");
 
   // Separate API keys per provider
   let bitunixKeys: ApiKeys = $state({ key: "", secret: "" });
   let binanceKeys: ApiKeys = $state({ key: "", secret: "" });
 
   // ImgBB
-  let imgbbApiKey: string = $state();
-  let imgbbExpiration: number = $state();
+  let imgbbApiKey: string = $state("");
+  let imgbbExpiration: number = $state(604800);
 
   // UI state
-  let currentTheme: string = $state();
-  let currentLanguage: string = $state();
-  let isPro: boolean = $state();
+  let currentTheme: string = $state("dark");
+  let currentLanguage: string = $state("en");
 
   // Track active tab
   let activeTab:
@@ -161,7 +165,7 @@
 
   // Subscribe to store to initialize local state
   // We use a guard to prevent overwriting user changes if the store updates while modal is open
-  run(() => {
+  $effect(() => {
     if ($uiStore.showSettingsModal) {
       if (!isInitialized) {
         apiProvider = $settingsStore.apiProvider;
@@ -169,7 +173,7 @@
         autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
         autoFetchBalance = $settingsStore.autoFetchBalance;
         showSidebars = $settingsStore.showSidebars;
-        showTechnicals = $settingsStore.showTechnicals;
+        showTechnicals = $settingsStore.showTechnicals ?? true;
         showIndicatorParams = $settingsStore.showIndicatorParams;
         hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
         positionViewMode = $settingsStore.positionViewMode || "detailed";
@@ -177,11 +181,15 @@
         hotkeyMode = $settingsStore.hotkeyMode;
         enableSidePanel = $settingsStore.enableSidePanel;
         sidePanelMode = $settingsStore.sidePanelMode;
-        sidePanelLayout = $settingsStore.sidePanelLayout || "standard";
+        sidePanelLayout = $settingsStore.sidePanelLayout || "compact"; // Changed from "standard"
         isPro = $settingsStore.isPro;
         showSpinButtons = $settingsStore.showSpinButtons || "hover";
+        syncFavorites = $settingsStore.syncFavorites; // Added
+        confirmTradeDeletion = $settingsStore.confirmTradeDeletion; // Added
+        confirmBulkDeletion = $settingsStore.confirmBulkDeletion; // Added
+        debugMode = $settingsStore.debugMode; // Added
 
-        aiProviderState = $settingsStore.aiProvider || "gemini";
+        aiProviderState = $settingsStore.aiProvider || "openai"; // Changed from "gemini"
         openaiApiKey = $settingsStore.openaiApiKey || "";
         openaiModel = $settingsStore.openaiModel || "gpt-4o";
         geminiApiKey = $settingsStore.geminiApiKey || "";
@@ -212,7 +220,7 @@
         binanceKeys = { ...$settingsStore.apiKeys.binance };
 
         imgbbApiKey = $settingsStore.imgbbApiKey;
-        imgbbExpiration = $settingsStore.imgbbExpiration;
+        imgbbExpiration = $settingsStore.imgbbExpiration || 604800; // Updated default
 
         currentTheme = $uiStore.currentTheme;
         currentLanguage = $locale || "en";
@@ -225,7 +233,7 @@
   });
 
   // Reactive update for settings (Immediate Save)
-  run(() => {
+  $effect(() => {
     if (isInitialized) {
       settingsStore.update((s) => ({
         ...s,
@@ -254,13 +262,18 @@
         anthropicApiKey,
         anthropicModel,
         showSpinButtons,
+        syncFavorites, // Added
+        confirmTradeDeletion, // Added
+        confirmBulkDeletion, // Added
+        debugMode, // Added
         apiKeys: {
           bitunix: bitunixKeys,
           binance: binanceKeys,
         },
       }));
 
-      indicatorStore.set({
+      indicatorStore.update((s) => ({
+        ...s,
         historyLimit,
         precision,
         rsi: rsiSettings,
@@ -272,19 +285,20 @@
         momentum: momentumSettings,
         ema: emaSettings,
         pivots: pivotSettings,
-      });
+      }));
     }
   });
 
   // Immediate Theme Update
-  run(() => {
+  $effect(() => {
     if (isInitialized && currentTheme !== $uiStore.currentTheme) {
       uiStore.setTheme(currentTheme);
     }
   });
 
   // Immediate Language Update
-  run(() => {
+  // Immediate Language Update
+  $effect(() => {
     if (isInitialized && currentLanguage !== $locale) {
       setLocale(currentLanguage);
     }
@@ -355,7 +369,7 @@
 
   // Reactive descriptions based on selected mode
   let activeDescriptions: any[] = $state([]);
-  run(() => {
+  $effect(() => {
     activeDescriptions = getHotkeyDescriptions(hotkeyMode);
   });
 </script>
@@ -379,7 +393,10 @@
         'general'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "general")}
+        onclick={(e) => {
+          e.stopPropagation();
+          activeTab = "general";
+        }}
         role="tab"
         aria-selected={activeTab === "general"}
       >
@@ -390,7 +407,10 @@
         'api'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "api")}
+        onclick={(e) => {
+          e.stopPropagation();
+          activeTab = "api";
+        }}
         role="tab"
         aria-selected={activeTab === "api"}
       >

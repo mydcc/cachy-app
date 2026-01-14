@@ -20,7 +20,9 @@ export function normalizeSymbol(symbol: string, provider: "bitunix" | "binance" 
 
     // If it's "BTC-USDT", make it "BTCUSDT"
     s = s.replace("-USDT", "USDT");
-
+    if (s.endsWith("USDTP")) {
+        s = s.substring(0, s.length - 1);
+    }
     return s;
 }
 

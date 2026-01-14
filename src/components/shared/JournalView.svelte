@@ -342,8 +342,8 @@
     );
   });
 
-  function handleDateFilterChange(event: CustomEvent) {
-    const dateStr = event.detail.date;
+  function handleDateFilterChange(data: { date: string }) {
+    const dateStr = data.date;
     filterDateStart = dateStr;
     filterDateEnd = dateStr;
   }
@@ -371,10 +371,7 @@
     avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
   });
 
-  async function handleScreenshotUpload(
-    event: CustomEvent<{ id: number; file: File }>,
-  ) {
-    const { id, file } = event.detail;
+  async function handleScreenshotUpload(id: number, file: File) {
     try {
       uiStore.update((s) => ({
         ...s,
@@ -419,7 +416,7 @@
   </div>
   <!-- Dashboard Section -->
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
-    <DashboardNav {activePreset} on:select={(e) => (activePreset = e.detail)} />
+    <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
   {/if}
 
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
@@ -441,7 +438,7 @@
     bind:groupBySymbol
     totalTrades={$journalStore.length}
     filteredCount={processedTrades.length}
-    on:toggleSettings={() => (showColumnSettings = !showColumnSettings)}
+    ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
   />
 
   <!-- Column Settings Popover -->
@@ -484,13 +481,12 @@
       bind:itemsPerPage
       {columnVisibility}
       {groupBySymbol}
-      on:sort={(e) => handleSort(e.detail.field)}
-      on:deleteTrade={(e) => confirmDeleteTrade(e.detail.id)}
-      on:statusChange={(e) =>
-        app.updateTradeStatus(e.detail.id, e.detail.status)}
-      on:updateTrade={(e) => app.updateTrade(e.detail.id, e.detail)}
-      on:pageChange={(e) => (currentPage = e.detail.page)}
-      on:uploadScreenshot={handleScreenshotUpload}
+      onSort={(field) => handleSort(field)}
+      onDeleteTrade={(id) => confirmDeleteTrade(id)}
+      onStatusChange={(id, status) => app.updateTradeStatus(id, status)}
+      onUpdateTrade={(id, data) => app.updateTrade(id, data)}
+      onPageChange={(page) => (currentPage = page)}
+      onUploadScreenshot={(id, file) => handleScreenshotUpload(id, file)}
     />
   </div>
 
@@ -498,7 +494,7 @@
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <JournalDeepDive
       {themeColors}
-      on:filterDateChange={handleDateFilterChange}
+      onfilterDateChange={(data) => handleDateFilterChange(data)}
     />
   {/if}
 

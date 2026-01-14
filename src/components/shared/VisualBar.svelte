@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
-
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -9,19 +7,15 @@
     entryPrice: number | null;
     stopLossPrice: number | null;
     targets: Array<{
-    price: number | null;
-    percent: number | null;
-    isLocked: boolean;
-  }>;
+      price: number | null;
+      percent: number | null;
+      isLocked: boolean;
+    }>;
     calculatedTpDetails: IndividualTpResult[];
   }
 
-  let {
-    entryPrice,
-    stopLossPrice,
-    targets,
-    calculatedTpDetails
-  }: Props = $props();
+  let { entryPrice, stopLossPrice, targets, calculatedTpDetails }: Props =
+    $props();
 
   let isValidData = $state(false);
 
@@ -32,9 +26,10 @@
   let rewardLeft = $state(0);
   let entryPos = $state(0);
   let slPos = $state(0);
-  let tpPositions: Array<{ pos: number; label: string; subLabel: string }> = $state([]);
+  let tpPositions: Array<{ pos: number; label: string; subLabel: string }> =
+    $state([]);
 
-  run(() => {
+  $effect(() => {
     isValidData = !!(
       entryPrice &&
       stopLossPrice &&
@@ -97,7 +92,7 @@
         })
         .filter(
           (p): p is { pos: number; label: string; subLabel: string } =>
-            p !== null
+            p !== null,
         );
     }
   });
@@ -130,13 +125,13 @@
       <div
         class="bar-segment risk-bar"
         style="left: {riskLeft}%; width: {riskWidth}%;"
-></div>
+      ></div>
 
       <!-- Reward Segment (Green) -->
       <div
         class="bar-segment reward-bar"
         style="left: {rewardLeft}%; width: {rewardWidth}%;"
-></div>
+      ></div>
 
       <!-- Markers -->
       <!-- SL Marker -->

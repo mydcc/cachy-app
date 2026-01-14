@@ -1,12 +1,14 @@
 <script lang="ts">
-  import { run, stopPropagation } from 'svelte/legacy';
-
   import { onMount, onDestroy } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
   import { indicatorStore } from "../../stores/indicatorStore";
   import { favoritesStore } from "../../stores/favoritesStore";
-  import { marketStore, wsStatusStore } from "../../stores/marketStore";
+  import {
+    marketStore,
+    wsStatusStore,
+    type MarketData,
+  } from "../../stores/marketStore";
   import { marketWatcher } from "../../services/marketWatcher";
   import {
     apiService,
@@ -35,9 +37,8 @@
     customSymbol = undefined,
     isFavoriteTile = false,
     onToggleTechnicals = undefined,
-    isTechnicalsVisible = false
+    isTechnicalsVisible = false,
   }: Props = $props();
-
 
   // REST Data (24h Stats, Volume, Change)
   let tickerData: Ticker24h | null = $state(null);
@@ -45,15 +46,10 @@
   let restError: string | null = $state(null);
   let restIntervalId: any = $state();
 
-
-
-
-
   // RSI Logic
   let historyKlines: Kline[] = $state([]);
   let rsiValue: Decimal | null = $state(null);
   let signalValue: Decimal | null = $state(null);
-
 
   // Subscribe Channel Mapping
   function mapTimeframeToChannel(tf: string): string {
@@ -87,7 +83,7 @@
       // RSI 14 needs 15. Signal 14 needs 14 more RSIs. Total ~30-40.
       const limit = Math.max(
         $indicatorStore.rsi.length + $indicatorStore.rsi.signalLength + 10,
-        50
+        50,
       );
       const klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
       historyKlines = klines;
@@ -96,12 +92,9 @@
     }
   }
 
-
-
   // Countdown Logic
   let countdownText = $state("--:--:--");
   let countdownInterval: any;
-
 
   function startCountdown() {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -123,8 +116,6 @@
     update();
     countdownInterval = setInterval(update, 1000);
   }
-
-
 
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
@@ -210,25 +201,50 @@
   let provider = $derived($settingsStore.apiProvider);
   let displaySymbol = $derived(getDisplaySymbol(symbol));
   // WS Data - Use strictly normalized entry from store
-  let wsData = $derived($marketStore[symbol] || null);
+  let wsData = $derived.by(() => {
+    if (!symbol) return null;
+    const store = $marketStore as Record<string, MarketData>;
+    return store[symbol] || null;
+  });
   let wsStatus = $derived($wsStatusStore);
   // Derived Real-time values (fallback to REST if WS missing)
-  let currentPrice = $derived(wsData?.lastPrice || tickerData?.lastPrice);
-  let fundingRate = $derived(wsData?.fundingRate);
-  let nextFundingTime = $derived(wsData?.nextFundingTime);
+  let currentPrice = $derived.by(() => {
+    return (wsData?.lastPrice ??
+      tickerData?.lastPrice ??
+      null) as Decimal | null;
+  });
+  let fundingRate = $derived.by(
+    () => (wsData?.fundingRate ?? null) as Decimal | null,
+  );
+  let nextFundingTime = $derived.by(
+    () => (wsData?.nextFundingTime ?? null) as number | null,
+  );
   // 24h Stats (Prefer WS 'ticker' channel data, fallback to REST)
-  let highPrice = $derived(wsData?.highPrice || tickerData?.highPrice);
-  let lowPrice = $derived(wsData?.lowPrice || tickerData?.lowPrice);
-  let volume = $derived(wsData?.volume || tickerData?.volume);
-  let priceChangePercent =
-    $derived(wsData?.priceChangePercent || tickerData?.priceChangePercent);
+  let highPrice = $derived.by(
+    () =>
+      (wsData?.highPrice ?? tickerData?.highPrice ?? null) as Decimal | null,
+  );
+  let lowPrice = $derived.by(
+    () => (wsData?.lowPrice ?? tickerData?.lowPrice ?? null) as Decimal | null,
+  );
+  let volume = $derived.by(
+    () => (wsData?.volume ?? tickerData?.volume ?? null) as Decimal | null,
+  );
+  let priceChangePercent = $derived.by(
+    () =>
+      (wsData?.priceChangePercent ??
+        tickerData?.priceChangePercent ??
+        null) as Decimal | null,
+  );
   // Depth Data
   let depthData = $derived(wsData?.depth);
   // Determine effective Timeframe
-  let effectiveRsiTimeframe = $derived($settingsStore.syncRsiTimeframe
-    ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
-    : $indicatorStore.rsi.defaultTimeframe || "1d");
-  run(() => {
+  let effectiveRsiTimeframe = $derived(
+    $settingsStore.syncRsiTimeframe
+      ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
+      : $indicatorStore.rsi.defaultTimeframe || "1d",
+  );
+  $effect(() => {
     if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
       fetchHistoryKlines(effectiveRsiTimeframe);
 
@@ -241,7 +257,7 @@
     }
   });
   // Reactively Calculate RSI
-  run(() => {
+  $effect(() => {
     if (historyKlines.length > 0) {
       const sourceMode = $indicatorStore.rsi.source || "close";
       const length = $indicatorStore.rsi.length || 14;
@@ -253,7 +269,8 @@
         if (sourceMode === "high") return k.high;
         if (sourceMode === "low") return k.low;
         if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
-        if (sourceMode === "hlc3") return k.high.plus(k.low).plus(k.close).div(3);
+        if (sourceMode === "hlc3")
+          return k.high.plus(k.low).plus(k.close).div(3);
         return k.close;
       });
 
@@ -282,8 +299,6 @@
       }
 
       // Calculate RSI Series (optimized O(N) implementation)
-      // Use JSIndicators.rsi() which returns the entire series in one pass
-      // This is ~100x faster than the previous O(N²) loop approach
       const rsiSeries: Decimal[] = [];
 
       if (values.length > length) {
@@ -294,7 +309,6 @@
         const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
 
         // Convert back to Decimal[] and filter out invalid/zero values
-        // RSI array has zeros for indices where RSI cannot be calculated yet
         for (let i = 0; i < rsiSeriesNum.length; i++) {
           if (rsiSeriesNum[i] > 0) {
             rsiSeries.push(new Decimal(rsiSeriesNum[i]));
@@ -325,14 +339,15 @@
     }
   });
   let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
-  run(() => {
+  $effect(() => {
     if (nextFundingTime) {
       startCountdown();
     }
   });
   // Subscribe to WS when symbol changes
   // Subscribe to WS when symbol changes via MarketWatcher
-  run(() => {
+  // Subscribe to WS when symbol changes via MarketWatcher
+  $effect(() => {
     if (symbol && provider === "bitunix") {
       marketWatcher.register(symbol, "price");
       marketWatcher.register(symbol, "ticker");
@@ -340,7 +355,8 @@
     }
   });
   // REST Polling for Volume/24h Change (Background)
-  run(() => {
+  // REST Polling for Volume/24h Change (Background)
+  $effect(() => {
     if (symbol && provider) {
       // Only run REST polling if we are NOT using Bitunix (or if we want a fallback initially)
       // Bitunix uses WS for this now.
@@ -353,9 +369,6 @@
           clearInterval(restIntervalId);
           restIntervalId = undefined;
         }
-        // Maybe fetch once initially to populate before WS connects?
-        // Optional, but might feel faster.
-        // fetchRestData();
       }
     }
   });
@@ -381,7 +394,10 @@
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
         title="Toggle Technicals"
-        onclick={stopPropagation(onToggleTechnicals)}
+        onclick={(e) => {
+          e.stopPropagation();
+          onToggleTechnicals?.();
+        }}
       >
         {@html icons.chart ||
           '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
@@ -391,7 +407,10 @@
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title="Refresh Stats"
-      onclick={stopPropagation(() => fetchRestData())}
+      onclick={(e) => {
+        e.stopPropagation();
+        fetchRestData();
+      }}
       class:animate-spin={restLoading}
     >
       {@html icons.refresh ||
@@ -434,7 +453,7 @@
           >
             {priceChangePercent.gte(0) ? "+" : ""}{formatValue(
               priceChangePercent,
-              2
+              2,
             )}%
           </span>
         {/if}
@@ -569,7 +588,10 @@
   <button
     class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
     class:text-[var(--accent-color)]={isFavorite}
-    onclick={stopPropagation(toggleFavorite)}
+    onclick={(e) => {
+      e.stopPropagation();
+      toggleFavorite();
+    }}
     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
   >
     {#if isFavorite}

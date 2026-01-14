@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run, stopPropagation } from 'svelte/legacy';
+  import { stopPropagation } from "svelte/legacy";
 
   import { onDestroy } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
@@ -38,10 +38,6 @@
   let hoverTimeout: number | null = null;
   let isStale = $state(false); // Added for Seamless Swap
 
-
-
-
-
   onDestroy(() => {
     if (currentSubscription) {
       const [oldSym, oldTf] = currentSubscription.split(":");
@@ -49,8 +45,6 @@
       marketWatcher.unregister(oldSym, "price");
     }
   });
-
-
 
   // Core Logic for Updating Data and Pivots
   function handleRealTimeUpdate(newKline: any) {
@@ -112,16 +106,16 @@
     try {
       if ($settingsStore.debugMode) {
         console.log(
-          `[Technicals] Calculating for ${symbol}:${timeframe} (${klinesHistory.length} klines)`
+          `[Technicals] Calculating for ${symbol}:${timeframe} (${klinesHistory.length} klines)`,
         );
       }
       data = await technicalsService.calculateTechnicals(
         klinesHistory,
-        indicatorSettings
+        indicatorSettings,
       );
       if ($settingsStore.debugMode) {
         console.log(
-          `[Technicals] Calculation complete in ${Date.now() - startTime}ms`
+          `[Technicals] Calculation complete in ${Date.now() - startTime}ms`,
         );
       }
     } catch (e) {
@@ -139,7 +133,7 @@
       const klines = await apiService.fetchBitunixKlines(
         symbol,
         timeframe,
-        limit
+        limit,
       );
 
       // Before updating state, double check if we are still on the same request context
@@ -240,7 +234,8 @@
   let wsData = $derived(symbol ? $marketStore[symbol] : null);
   let currentKline = $derived(wsData?.klines ? wsData.klines[timeframe] : null);
   // Trigger fetch/subscribe when relevant props change
-  run(() => {
+  // Trigger fetch/subscribe when relevant props change
+  $effect(() => {
     if (showPanel && symbol && timeframe) {
       const subKey = `${symbol}:${timeframe}`;
       if (currentSubscription !== subKey) {
@@ -271,18 +266,18 @@
     }
   });
   // Re-calculate when settings change (without re-fetching)
-  run(() => {
+  $effect(() => {
     if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
       updateTechnicals();
     }
   });
   // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
-  run(() => {
+  $effect(() => {
     if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
       if ($settingsStore.debugMode) {
         console.log(
           `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
-          currentKline
+          currentKline,
         );
       }
       handleRealTimeUpdate(currentKline);
@@ -296,8 +291,8 @@
       console.log(
         `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
           symbol,
-          "bitunix"
-        )}:${timeframe}`
+          "bitunix",
+        )}:${timeframe}`,
       );
     }
   });
@@ -350,13 +345,15 @@
       {#if isStale || loading}
         <div class="absolute top-0 right-10">
           <div class="animate-pulse flex space-x-1">
-            <div class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full"></div>
+            <div
+              class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full"
+            ></div>
             <div
               class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-200"
-></div>
+            ></div>
             <div
               class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-400"
-></div>
+            ></div>
           </div>
         </div>
       {/if}
@@ -462,7 +459,7 @@
       <div class="flex justify-center py-8">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"
-></div>
+        ></div>
       </div>
     {:else if error}
       <div class="text-[var(--danger-color)] text-center text-sm py-4">

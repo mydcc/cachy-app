@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run, preventDefault } from 'svelte/legacy';
+  import { preventDefault } from "svelte/legacy";
 
   import GeneralInputs from "../components/inputs/GeneralInputs.svelte";
   import PortfolioInputs from "../components/inputs/PortfolioInputs.svelte";
@@ -44,7 +44,7 @@
   import SidePanel from "../components/shared/SidePanel.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
-  let fileInput: HTMLInputElement = $state();
+  let fileInput: HTMLInputElement | undefined = $state();
   let changelogContent = $state("");
   let guideContent = $state("");
   let privacyContent = $state("");
@@ -55,8 +55,8 @@
     app.init();
   });
 
-  // Load changelog content when modal is opened
-  run(() => {
+  // Load modal contents when opened
+  $effect(() => {
     if ($uiStore.showChangelogModal && changelogContent === "") {
       loadInstruction("changelog").then((content) => {
         changelogContent = content.html;
@@ -64,8 +64,7 @@
     }
   });
 
-  // Load guide content when modal is opened
-  run(() => {
+  $effect(() => {
     if ($uiStore.showGuideModal && guideContent === "") {
       loadInstruction("guide").then((content) => {
         guideContent = content.html;
@@ -73,8 +72,7 @@
     }
   });
 
-  // Load privacy content when modal is opened
-  run(() => {
+  $effect(() => {
     if ($uiStore.showPrivacyModal && privacyContent === "") {
       loadInstruction("privacy").then((content) => {
         privacyContent = content.html;
@@ -82,8 +80,7 @@
     }
   });
 
-  // Load whitepaper content when modal is opened
-  run(() => {
+  $effect(() => {
     if ($uiStore.showWhitepaperModal && whitepaperContent === "") {
       loadInstruction("whitepaper").then((content) => {
         whitepaperContent = content.html;
@@ -92,20 +89,19 @@
   });
 
   // Reset content when locale changes to force refetch
-  run(() => {
-    if ($locale) {
-      guideContent = "";
-      changelogContent = "";
-      privacyContent = "";
-      whitepaperContent = "";
-    }
+  $effect(() => {
+    const _loc = $locale;
+    guideContent = "";
+    changelogContent = "";
+    privacyContent = "";
+    whitepaperContent = "";
   });
 
-  // Reactive statement to trigger app.calculateAndDisplay() when relevant inputs change
-  run(() => {
-    // Trigger calculation when any of these inputs change
-    // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-    $tradeStore.accountSize,
+  // Reactive effect to trigger app.calculateAndDisplay() when relevant inputs change
+  $effect(() => {
+    // Access all triggers to establish dependencies
+    const _triggers = [
+      $tradeStore.accountSize,
       $tradeStore.riskPercentage,
       $tradeStore.entryPrice,
       $tradeStore.stopLossPrice,
@@ -118,10 +114,10 @@
       $tradeStore.atrMode,
       $tradeStore.atrTimeframe,
       $tradeStore.tradeType,
-      $tradeStore.targets;
+      $tradeStore.targets,
+    ];
 
     // Only trigger if all necessary inputs are defined (not null/undefined from initial load)
-    // and not during initial setup where values might be empty
     if (
       $tradeStore.accountSize !== undefined &&
       $tradeStore.riskPercentage !== undefined &&
@@ -150,7 +146,7 @@
         percent: number | null;
         isLocked: boolean;
       }>
-    >
+    >,
   ) {
     updateTradeStore((s) => ({ ...s, targets: event.detail }));
   }
@@ -178,13 +174,16 @@
 
   // Diese reaktive Variable formatiert den Theme-Namen benutzerfreundlich.
   // z.B. 'solarized-light' wird zu 'Solarized Light'
-  let themeTitle = $derived($uiStore.currentTheme
-    .split("-")
-    .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" "));
+  let themeTitle = $derived(
+    $uiStore.currentTheme
+      .split("-")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" "),
+  );
 
-  let currentThemeIcon =
-    $derived(themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]);
+  let currentThemeIcon = $derived(
+    themeIcons[$uiStore.currentTheme as keyof typeof themeIcons],
+  );
 
   function handlePresetLoad(event: Event) {
     const selectedPreset = (event.target as HTMLSelectElement).value;
@@ -212,7 +211,9 @@
   }
 
   function handleRestoreClick() {
-    fileInput.click();
+    if (fileInput) {
+      fileInput.click();
+    }
   }
 
   function handleFileSelected(event: Event) {
@@ -228,7 +229,7 @@
         .show(
           $_("app.restoreConfirmTitle"),
           $_("app.restoreConfirmMessage"),
-          "confirm"
+          "confirm",
         )
         .then((confirmed) => {
           if (confirmed) {
@@ -267,11 +268,11 @@
   });
 
   // Save to localStorage whenever it changes
-  run(() => {
+  $effect(() => {
     if (typeof localStorage !== "undefined") {
       localStorage.setItem(
         "technicals_panel_visible",
-        JSON.stringify(isTechnicalsVisible)
+        JSON.stringify(isTechnicalsVisible),
       );
     }
   });
@@ -610,8 +611,8 @@
                 style:color={tpDetail.riskRewardRatio.gte(2)
                   ? "var(--success-color)"
                   : tpDetail.riskRewardRatio.gte(1.5)
-                  ? "var(--warning-color)"
-                  : "var(--danger-color)"}
+                    ? "var(--warning-color)"
+                    : "var(--danger-color)"}
                 >{formatDynamicDecimal(tpDetail.riskRewardRatio, 2)}</span
               >
             </div>
@@ -681,7 +682,7 @@
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={$tradeStore.tradeNotes}
-></textarea>
+        ></textarea>
         <div class="flex items-center gap-4">
           <button
             id="save-journal-btn"

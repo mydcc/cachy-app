@@ -18,7 +18,7 @@
   let tooltipEl: HTMLElement | undefined = $state();
   let arrowEl: HTMLElement | undefined = $state();
   let triggerEl: HTMLElement | undefined = $state();
-  let cleanup: (() => void) | null = null;
+  let cleanup: (() => void) | null | undefined = $state();
 
   function show() {
     visible = true;

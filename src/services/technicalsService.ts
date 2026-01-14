@@ -204,6 +204,11 @@ interface TechnicalsResultCacheEntry {
 }
 
 export const technicalsService = {
+  // Test helper to bypass WASM initialization
+  setTalibReady(ready: boolean) {
+    talibReady = ready;
+  },
+
   async calculateTechnicals(
     klinesInput: {
       time: number;

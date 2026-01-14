@@ -11,14 +11,14 @@
 
   interface Props {
     targets: Array<{
-    price: number | null;
-    percent: number | null;
-    isLocked: boolean;
-  }>;
+      price: number | null;
+      percent: number | null;
+      isLocked: boolean;
+    }>;
     calculatedTpDetails?: IndividualTpResult[];
   }
 
-  let { targets, calculatedTpDetails = [] }: Props = $props();
+  let { targets = $bindable(), calculatedTpDetails = [] }: Props = $props();
 
   function addTakeProfitRow() {
     app.addTakeProfitRow();

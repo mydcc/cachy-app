@@ -9,8 +9,8 @@
   import { marked } from "marked";
 
   let isOpen = $state(false);
-  let inputEl: HTMLInputElement = $state();
-  let messagesContainer: HTMLDivElement = $state();
+  let inputEl: HTMLInputElement | undefined = $state();
+  let messagesContainer: HTMLDivElement | undefined = $state();
   let messageText = $state("");
   let isSending = $state(false);
   let errorMessage = $state("");
@@ -107,8 +107,8 @@
       role="button"
       tabindex="0"
       class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
-      on:click={toggle}
-      on:keydown={(e) => (e.key === "Enter" || e.key === " ") && toggle()}
+      onclick={toggle}
+      onkeydown={(e) => (e.key === "Enter" || e.key === " ") && toggle()}
       title={getPanelTitle($settingsStore.sidePanelMode)}
     >
       <div class="mb-4 text-[var(--text-primary)]">
@@ -189,7 +189,7 @@
               <!-- Clear History Button -->
               <button
                 class="text-[var(--text-secondary)] hover:text-[var(--danger-color)]"
-                on:click={() =>
+                onclick={() =>
                   confirm("Clear chat history?") && aiStore.clearHistory()}
                 title="Clear History"
               >
@@ -209,7 +209,7 @@
             <button
               class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
               aria-label="Close"
-              on:click={toggle}
+              onclick={toggle}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
@@ -339,14 +339,14 @@
                 : "Type a message..."}
               maxlength={$settingsStore.sidePanelMode === "ai" ? 1000 : 140}
               bind:value={messageText}
-              on:keydown={handleKeydown}
+              onkeydown={handleKeydown}
               disabled={isSending ||
                 ($settingsStore.sidePanelMode === "ai" && $aiStore.isStreaming)}
             />
             <button
               class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] disabled:opacity-50"
               aria-label="Send message"
-              on:click={handleSend}
+              onclick={handleSend}
               disabled={!messageText.trim() ||
                 isSending ||
                 ($settingsStore.sidePanelMode === "ai" && $aiStore.isStreaming)}

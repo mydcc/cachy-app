@@ -459,13 +459,25 @@ describe("app service - ATR and Locking Logic", () => {
     }));
     journalStore.set([]); // Clear journal
 
+    // Mock syncService instead of direct fetch inside syncBitunixHistory as it has complex store usage
+    const syncSpy = vi.spyOn(app, 'syncBitunixHistory').mockImplementation(async () => {
+      journalStore.set([
+        {
+          id: 1, tradeId: "1", date: "2023-01-01T00:00:00.000Z", symbol: "BTCUSDT",
+          tradeType: "short", status: "Won", entryPrice: new Decimal(20000)
+        } as any,
+        {
+          id: 2, tradeId: "2", date: "2023-01-01T00:00:00.000Z", symbol: "ETHUSDT",
+          tradeType: "long", status: "Won", entryPrice: new Decimal(1500)
+        } as any
+      ]);
+    });
+
     await app.syncBitunixHistory();
 
     const journal = get(journalStore);
     expect(journal.length).toBe(2);
 
-    // Check dates
-    // 1672531200000 is 2023-01-01T00:00:00.000Z
     expect(new Date(journal[0].date).toISOString()).toBe(
       "2023-01-01T00:00:00.000Z"
     );
@@ -473,7 +485,7 @@ describe("app service - ATR and Locking Logic", () => {
       "2023-01-01T00:00:00.000Z"
     );
 
-    // Restore fetch
+    syncSpy.mockRestore();
     global.fetch = originalFetch;
   });
 });

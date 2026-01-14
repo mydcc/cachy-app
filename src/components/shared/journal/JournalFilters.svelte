@@ -1,9 +1,6 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
     import { icons } from "../../../lib/constants";
-    import { createEventDispatcher } from "svelte";
-
-    const dispatch = createEventDispatcher();
 
     interface Props {
         // Props - Filter State (two-way binding)
@@ -15,6 +12,8 @@
         // Props - Additional Data
         totalTrades?: number;
         filteredCount?: number;
+        // Event Props
+        ontoggleSettings?: () => void;
     }
 
     let {
@@ -25,10 +24,11 @@
         groupBySymbol = $bindable(false),
         totalTrades = 0,
         filteredCount = 0,
+        ontoggleSettings,
     }: Props = $props();
 
     function toggleSettings() {
-        dispatch("toggleSettings");
+        ontoggleSettings?.();
     }
 </script>
 

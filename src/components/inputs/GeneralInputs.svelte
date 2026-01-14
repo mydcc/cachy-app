@@ -14,7 +14,11 @@
     fees: number | null;
   }
 
-  let { tradeType, leverage, fees }: Props = $props();
+  let {
+    tradeType = $bindable(),
+    leverage = $bindable(),
+    fees = $bindable(),
+  }: Props = $props();
 
   function setTradeType(type: string) {
     updateTradeStore((s) => ({ ...s, tradeType: type }));
@@ -43,7 +47,9 @@
 
   // Leverage Sync Status
   let remoteLev = $derived($tradeStore.remoteLeverage);
-  let isLeverageSynced = $derived(remoteLev !== undefined && leverage === remoteLev);
+  let isLeverageSynced = $derived(
+    remoteLev !== undefined && leverage === remoteLev,
+  );
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
@@ -65,12 +71,15 @@
   // The `feeMode` toggle determines what we *expect* to pay.
   let feeMode = $derived($tradeStore.feeMode || "maker_taker");
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
-  let targetRemoteFee =
-    $derived(entryType === "maker"
+  let targetRemoteFee = $derived(
+    entryType === "maker"
       ? $tradeStore.remoteMakerFee
-      : $tradeStore.remoteTakerFee);
+      : $tradeStore.remoteTakerFee,
+  );
 
-  let isFeeSynced = $derived(targetRemoteFee !== undefined && fees === targetRemoteFee);
+  let isFeeSynced = $derived(
+    targetRemoteFee !== undefined && fees === targetRemoteFee,
+  );
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
@@ -164,7 +173,7 @@
               ? "Synced with API"
               : `Manual Override (Click to sync to ${remoteLev}x)`}
             onclick={syncLeverage}
-></button>
+          ></button>
         {/if}
       </div>
 
@@ -203,7 +212,7 @@
               ? "Synced with API"
               : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
             onclick={syncFee}
-></button>
+          ></button>
         {/if}
       </div>
     </div>
@@ -215,7 +224,8 @@
 <style>
   /* Add subtle shadow for focused inputs */
   .input-field:focus {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-color: var(--accent-color);
     z-index: 10;

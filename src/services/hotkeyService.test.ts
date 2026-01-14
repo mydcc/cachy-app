@@ -92,6 +92,9 @@ describe("HotkeyService", () => {
       disclaimerAccepted: true,
       customHotkeys: {},
       showSpinButtons: "hover",
+      syncFavorites: true,
+      confirmTradeDeletion: true,
+      confirmBulkDeletion: true,
     });
 
     tradeStore.set({

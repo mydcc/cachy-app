@@ -1,0 +1,38 @@
+
+> cachy-app@0.94.2 test
+> vitest --run
+
+
+[1m[46m RUN [49m[22m [36mv4.0.17 [39m[90m/home/pat/Dokumente/GitHub/cachy-app[39m
+
+ [32m✓[39m src/utils/indicators.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/services/backupService.test.ts [2m([22m[2m6 tests[22m[2m)[22m[32m 15[2mms[22m[39m
+ [32m✓[39m src/utils/inputUtils.test.ts [2m([22m[2m12 tests[22m[2m)[22m[32m 67[2mms[22m[39m
+ [32m✓[39m src/services/apiService.test.ts [2m([22m[2m7 tests[22m[2m)[22m[32m 20[2mms[22m[39m
+[90mstdout[2m | src/services/technicalsService.test.ts[2m > [22m[2mtechnicalsService[2m > [22m[2mshould calculate new oscillators correctly
+[22m[39mWaiting for talib-web initialization...
+
+[90mstdout[2m | src/services/technicalsService.test.ts[2m > [22m[2mtechnicalsService[2m > [22m[2mshould respect custom settings
+[22m[39mWaiting for talib-web initialization...
+
+ [32m✓[39m src/lib/calculator_charts.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 53[2mms[22m[39m
+ [31m❯[39m src/services/technicalsService.test.ts [2m([22m[2m2 tests[22m[2m | [22m[31m2 failed[39m[2m)[22m[32m 87[2mms[22m[39m
+[31m     [31m×[31m should calculate new oscillators correctly[39m[32m 69[2mms[22m[39m
+[31m     [31m×[31m should respect custom settings[39m[32m 13[2mms[22m[39m
+ [32m✓[39m src/lib/calculator.test.ts [2m([22m[2m9 tests[22m[2m)[22m[32m 35[2mms[22m[39m
+ [32m✓[39m src/routes/api/chat-v2/server.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 48[2mms[22m[39m
+ [32m✓[39m src/utils/utils.test.ts [2m([22m[2m20 tests[22m[2m)[22m[32m 29[2mms[22m[39m
+ [32m✓[39m src/services/julesService.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 21[2mms[22m[39m
+ [32m✓[39m src/stores/accountStore.test.ts [2m([22m[2m5 tests[22m[2m)[22m[32m 19[2mms[22m[39m
+ [32m✓[39m src/services/app.test.ts [2m([22m[2m17 tests[22m[2m | [22m[33m1 skipped[39m[2m)[22m[32m 76[2mms[22m[39m
+ [32m✓[39m src/services/hotkeyService.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 24[2mms[22m[39m
+ [32m✓[39m src/utils/utils_timestamp.test.ts [2m([22m[2m10 tests[22m[2m)[22m[32m 37[2mms[22m[39m
+ [32m✓[39m src/lib/calculator_duration.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 14[2mms[22m[39m
+ [32m✓[39m src/stores/marketStore.test.ts [2m([22m[2m2 tests[22m[2m)[22m[32m 8[2mms[22m[39m
+ [32m✓[39m src/utils/errorUtils.test.ts [2m([22m[2m3 tests[22m[2m)[22m[32m 4[2mms[22m[39m
+
+[2m Test Files [22m [1m[31m1 failed[39m[22m[2m | [22m[1m[32m16 passed[39m[22m[90m (17)[39m
+[2m      Tests [22m [1m[31m2 failed[39m[22m[2m | [22m[1m[32m117 passed[39m[22m[2m | [22m[33m1 skipped[39m[90m (120)[39m
+[2m   Start at [22m 00:22:16
+[2m   Duration [22m 9.66s[2m (transform 7.41s, setup 0ms, import 15.33s, tests 572ms, environment 35.00s)[22m
+

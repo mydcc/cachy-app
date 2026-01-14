@@ -1,7 +1,4 @@
 <script lang="ts">
-  import { stopPropagation, createBubbler } from 'svelte/legacy';
-
-  const bubble = createBubbler();
   import { _ } from "../../locales/i18n";
   import { clickOutside } from "../../lib/actions/clickOutside";
 
@@ -16,7 +13,7 @@
     tags = [],
     availableTags = [],
     tradeId,
-    onTagsChange
+    onTagsChange,
   }: Props = $props();
 
   let tagInput = $state("");
@@ -26,9 +23,11 @@
   let safeTags = $derived(Array.isArray(tags) ? tags : []);
 
   // Filter available tags: exclude already added tags and match input
-  let filteredTags = $derived(availableTags
-    .filter((t) => !safeTags.includes(t))
-    .filter((t) => t.toLowerCase().includes(tagInput.toLowerCase())));
+  let filteredTags = $derived(
+    availableTags
+      .filter((t) => !safeTags.includes(t))
+      .filter((t) => t.toLowerCase().includes(tagInput.toLowerCase())),
+  );
 
   function addTag(tagToAdd: string = tagInput) {
     const cleaned = tagToAdd.trim();
@@ -56,7 +55,6 @@
 
   function selectSuggestion(tag: string) {
     addTag(tag);
-    // Keep focus on input? Or just let it be.
   }
 </script>
 
@@ -70,7 +68,10 @@
       #{tag}
       <button
         class="hover:text-[var(--danger-color)] cursor-pointer leading-none"
-        onclick={stopPropagation(() => removeTag(tag))}>×</button
+        onclick={(e) => {
+          e.stopPropagation();
+          removeTag(tag);
+        }}>×</button
       >
     </span>
   {/each}
@@ -83,7 +84,7 @@
     bind:value={tagInput}
     onkeydown={handleTagKeydown}
     onfocus={() => (showSuggestions = true)}
-    onclick={stopPropagation(bubble('click'))}
+    onclick={(e) => e.stopPropagation()}
   />
 
   {#if showSuggestions && filteredTags.length > 0 && tagInput.length > 0}
@@ -99,7 +100,10 @@
         <button
           type="button"
           class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] bg-transparent border-0"
-          onclick={stopPropagation(() => selectSuggestion(suggestion))}
+          onclick={(e) => {
+            e.stopPropagation();
+            selectSuggestion(suggestion);
+          }}
         >
           #{suggestion}
         </button>

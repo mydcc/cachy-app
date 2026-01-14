@@ -64,6 +64,9 @@ export interface Settings {
   disclaimerAccepted: boolean;
   useUtcDateParsing: boolean;
   debugMode: boolean;
+  syncFavorites: boolean;
+  confirmTradeDeletion: boolean;
+  confirmBulkDeletion: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -107,6 +110,9 @@ const defaultSettings: Settings = {
   disclaimerAccepted: false,
   useUtcDateParsing: true,
   debugMode: false,
+  syncFavorites: true,
+  confirmTradeDeletion: true,
+  confirmBulkDeletion: true,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -222,6 +228,11 @@ function loadSettingsFromLocalStorage(): Settings {
       useUtcDateParsing:
         settings.useUtcDateParsing ?? defaultSettings.useUtcDateParsing,
       debugMode: settings.debugMode ?? defaultSettings.debugMode,
+      syncFavorites: settings.syncFavorites ?? defaultSettings.syncFavorites,
+      confirmTradeDeletion:
+        settings.confirmTradeDeletion ?? defaultSettings.confirmTradeDeletion,
+      confirmBulkDeletion:
+        settings.confirmBulkDeletion ?? defaultSettings.confirmBulkDeletion,
     };
 
     return cleanSettings;
