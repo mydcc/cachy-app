@@ -1,5 +1,6 @@
 import { writable } from "svelte/store";
 import { Decimal } from "decimal.js";
+import { browser } from "$app/environment";
 
 export interface MarketData {
   symbol: string;
@@ -33,6 +34,78 @@ export type WSStatus =
   | "error"
   | "reconnecting";
 
+// LRU Cache Configuration
+const MAX_CACHE_SIZE = 30;
+const TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface CacheMetadata {
+  lastAccessed: number;
+  createdAt: number;
+}
+
+const cacheMetadata = new Map<string, CacheMetadata>();
+let cleanupIntervalId: any = null;
+
+// Helper: Touch symbol to update LRU
+function touchSymbol(symbol: string) {
+  const now = Date.now();
+  const existing = cacheMetadata.get(symbol);
+  cacheMetadata.set(symbol, {
+    lastAccessed: now,
+    createdAt: existing?.createdAt || now
+  });
+}
+
+// Helper: Evict LRU symbol
+function evictLRU(currentStore: Record<string, MarketData>): string | null {
+  if (cacheMetadata.size === 0) return null;
+
+  // Find oldest by lastAccessed
+  let oldest: string | null = null;
+  let oldestTime = Infinity;
+
+  cacheMetadata.forEach((meta, symbol) => {
+    if (meta.lastAccessed < oldestTime) {
+      oldestTime = meta.lastAccessed;
+      oldest = symbol;
+    }
+  });
+
+  if (oldest) {
+    cacheMetadata.delete(oldest);
+    return oldest;
+  }
+  return null;
+}
+
+// Helper: Cleanup stale symbols
+function cleanupStaleSymbols(currentStore: Record<string, MarketData>): string[] {
+  const now = Date.now();
+  const stale: string[] = [];
+
+  cacheMetadata.forEach((meta, symbol) => {
+    if (now - meta.lastAccessed > TTL_MS) {
+      stale.push(symbol);
+    }
+  });
+
+  stale.forEach(symbol => cacheMetadata.delete(symbol));
+  return stale;
+}
+
+// Helper: Enforce cache size limit
+function enforceCacheLimit(currentStore: Record<string, MarketData>): Record<string, MarketData> {
+  let store = { ...currentStore };
+
+  while (Object.keys(store).length > MAX_CACHE_SIZE) {
+    const toEvict = evictLRU(store);
+    if (!toEvict) break;
+    delete store[toEvict];
+  }
+
+  return store;
+}
+
 function createMarketStore() {
   const { subscribe, update, set } = writable<Record<string, MarketData>>({});
 
@@ -47,6 +120,7 @@ function createMarketStore() {
         nextFundingTime: string;
       }
     ) => {
+      touchSymbol(symbol); // Update LRU
       update((store) => {
         const current = store[symbol] || {
           symbol,
@@ -67,7 +141,7 @@ function createMarketStore() {
           }
         }
 
-        return {
+        const updated = {
           ...store,
           [symbol]: {
             ...current,
@@ -77,6 +151,8 @@ function createMarketStore() {
             nextFundingTime: nft,
           },
         };
+
+        return enforceCacheLimit(updated);
       });
     },
     updateTicker: (
@@ -91,6 +167,7 @@ function createMarketStore() {
         open: string;
       }
     ) => {
+      touchSymbol(symbol); // Update LRU
       update((store) => {
         const current = store[symbol] || {
           symbol,
@@ -108,7 +185,7 @@ function createMarketStore() {
           pct = last.minus(open).div(open).times(100);
         }
 
-        return {
+        const updated = {
           ...store,
           [symbol]: {
             ...current,
@@ -120,9 +197,12 @@ function createMarketStore() {
             priceChangePercent: pct,
           },
         };
+
+        return enforceCacheLimit(updated);
       });
     },
     updateDepth: (symbol: string, data: { bids: any[]; asks: any[] }) => {
+      touchSymbol(symbol); // Update LRU
       update((store) => {
         const current = store[symbol] || {
           symbol,
@@ -132,7 +212,7 @@ function createMarketStore() {
           nextFundingTime: null,
           klines: {},
         };
-        return {
+        const updated = {
           ...store,
           [symbol]: {
             ...current,
@@ -142,6 +222,8 @@ function createMarketStore() {
             },
           },
         };
+
+        return enforceCacheLimit(updated);
       });
     },
     updateKline: (
@@ -149,6 +231,7 @@ function createMarketStore() {
       timeframe: string,
       data: { o: string; h: string; l: string; c: string; b: string; t: number }
     ) => {
+      touchSymbol(symbol); // Update LRU
       update((store) => {
         const current = store[symbol] || {
           symbol,
@@ -158,7 +241,7 @@ function createMarketStore() {
           nextFundingTime: null,
           klines: {},
         };
-        return {
+        const updated = {
           ...store,
           [symbol]: {
             ...current,
@@ -175,11 +258,32 @@ function createMarketStore() {
             },
           },
         };
+
+        return enforceCacheLimit(updated);
       });
     },
-    reset: () => set({}),
+    reset: () => {
+      cacheMetadata.clear();
+      set({});
+    },
+    // Manual cleanup for stale symbols
+    cleanup: () => {
+      update((store) => {
+        const stale = cleanupStaleSymbols(store);
+        const cleaned = { ...store };
+        stale.forEach(symbol => delete cleaned[symbol]);
+        return cleaned;
+      });
+    },
   };
 }
 
 export const marketStore = createMarketStore();
 export const wsStatusStore = writable<WSStatus>("disconnected");
+
+// Start background cleanup task (runs every 60 seconds)
+if (browser) {
+  cleanupIntervalId = setInterval(() => {
+    marketStore.cleanup();
+  }, 60 * 1000);
+}

@@ -494,6 +494,32 @@ class BitunixWebSocketService {
     }
   }
 
+  // Helper: Validate price-related data to prevent crashes from malformed WS messages
+  private validatePriceData(data: any): boolean {
+    if (!data) return false;
+    // Price fields should be numeric strings or numbers > 0
+    const fields = ['mp', 'ip', 'fr', 'nft'];
+    for (const field of fields) {
+      if (data[field] !== undefined && data[field] !== null) {
+        const val = parseFloat(data[field]);
+        if (isNaN(val)) return false;
+      }
+    }
+    return true;
+  }
+
+  private validateTickerData(data: any): boolean {
+    if (!data) return false;
+    // At least lastPrice and open should be valid
+    const critical = ['la', 'o'];
+    for (const field of critical) {
+      if (!data[field]) return false;
+      const val = parseFloat(data[field]);
+      if (isNaN(val) || val <= 0) return false;
+    }
+    return true;
+  }
+
   private handleMessage(message: any, type: "public" | "private") {
     try {
       // Watchdog reset is handled in onmessage handler to catch ALL events
@@ -528,19 +554,21 @@ class BitunixWebSocketService {
         const rawSymbol = message.symbol;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
-        if (symbol && data) {
+        if (symbol && data && this.validatePriceData(data)) {
           marketStore.updatePrice(symbol, {
             price: data.mp,
             indexPrice: data.ip,
             fundingRate: data.fr,
             nextFundingTime: data.nft,
           });
+        } else if (symbol && data) {
+          console.warn('[BitunixWS] Invalid price data received:', { symbol, data });
         }
       } else if (message.ch === "ticker") {
         const rawSymbol = message.symbol;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
-        if (symbol && data) {
+        if (symbol && data && this.validateTickerData(data)) {
           marketStore.updateTicker(symbol, {
             lastPrice: data.la,
             high: data.h,
@@ -550,6 +578,8 @@ class BitunixWebSocketService {
             change: data.r,
             open: data.o,
           });
+        } else if (symbol && data) {
+          console.warn('[BitunixWS] Invalid ticker data received:', { symbol, data });
         }
       } else if (message.ch === "depth_book5") {
         const rawSymbol = message.symbol;

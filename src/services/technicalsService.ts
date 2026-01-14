@@ -8,7 +8,8 @@ import type { Kline, TechnicalsData, IndicatorResult } from "./technicalsTypes";
 export type { Kline, TechnicalsData, IndicatorResult };
 
 // --- Native JS implementations for stability ---
-const JSIndicators = {
+// Exported to avoid code duplication and enable efficient O(N) calculations
+export const JSIndicators = {
   sma(data: number[], period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length < period) return result;

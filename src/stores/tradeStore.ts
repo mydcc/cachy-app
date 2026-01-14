@@ -4,6 +4,7 @@ import type { AppState } from "./types";
 import { resultsStore, initialResultsState } from "./resultsStore";
 import { uiStore } from "./uiStore";
 import { browser } from "$app/environment";
+import { normalizeSymbol } from "../utils/symbolUtils";
 
 export const initialTradeState: Pick<
   AppState,
@@ -147,4 +148,29 @@ export const resetAllInputs = () => {
   tradeStore.set(JSON.parse(JSON.stringify(initialTradeState)));
   resultsStore.set(initialResultsState);
   uiStore.showError("dashboard.promptForData");
+};
+
+// Helper function to set symbol with automatic normalization (Single Source of Truth)
+export const setSymbol = (
+  symbol: string,
+  provider: "bitunix" | "binance" = "bitunix"
+): boolean => {
+  if (!symbol) {
+    // Empty symbol is allowed (clear)
+    updateTradeStore(state => ({ ...state, symbol: "" }));
+    return true;
+  }
+
+  const normalized = normalizeSymbol(symbol, provider);
+  if (!normalized) {
+    console.warn('[tradeStore] Invalid symbol, normalization failed:', symbol);
+    return false;
+  }
+
+  updateTradeStore(state => ({
+    ...state,
+    symbol: normalized
+  }));
+
+  return true;
 };

@@ -38,8 +38,8 @@
   $: showPanel = $settingsStore.showTechnicals && isVisible;
   $: indicatorSettings = $indicatorStore;
 
-  // React to Market Store updates for real-time processing
-  $: wsData = symbol ? $marketStore[normalizeSymbol(symbol, "bitunix")] : null;
+  // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)
+  $: wsData = symbol ? $marketStore[symbol] : null;
 
   $: currentKline = wsData?.klines ? wsData.klines[timeframe] : null;
 

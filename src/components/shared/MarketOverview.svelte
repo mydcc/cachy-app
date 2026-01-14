@@ -11,6 +11,7 @@
     type Ticker24h,
     type Kline,
   } from "../../services/apiService";
+  import { JSIndicators } from "../../services/technicalsService";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -26,12 +27,8 @@
   export let onToggleTechnicals: (() => void) | undefined = undefined;
   export let isTechnicalsVisible: boolean = false;
 
-  // Use custom symbol if provided, otherwise fall back to store symbol
-  // Use custom symbol if provided, otherwise fall back to store symbol, always normalized
-  $: symbol = normalizeSymbol(
-    customSymbol || $tradeStore.symbol || "",
-    "bitunix"
-  );
+  // Use custom symbol if provided, otherwise fall back to store symbol (already normalized in tradeStore)
+  $: symbol = customSymbol || $tradeStore.symbol || "";
   $: provider = $settingsStore.apiProvider;
   $: displaySymbol = getDisplaySymbol(symbol);
 
@@ -161,58 +158,24 @@
       if (values.length > 0) values[values.length - 1] = currentPrice;
     }
 
-    // Calculate RSI Series (we need series for Signal line)
-    // indicators.calculateRSI returns ONE value. We need a series?
-    // indicators.ts only returns the LAST RSI.
-    // I need to implement calculateRSI_Series or just calculate RSI array manually here?
-    // OR extend indicators.ts to return series?
-    // For Signal Line (MA of RSI), I need at least 'signalLength' RSIs.
-
-    // Let's modify logic:
-    // 1. Calculate RSI for the whole array?
-    // `indicators.calculateRSI` calculates ONE value at the end.
-    // To get a series, I need to call it sliding window? Inefficient.
-    // I should have implemented `calculateRSISeries`.
-
-    // Calculate RSI Series
-    // We need previous RSIs to calculate the Signal Line (MA of RSI).
-    // Since `indicators.calculateRSI` returns only the *last* RSI, we need to manually calculate the series
-    // or loop. Looping is acceptable for ~100 points.
-
+    // Calculate RSI Series (optimized O(N) implementation)
+    // Use JSIndicators.rsi() which returns the entire series in one pass
+    // This is ~100x faster than the previous O(N²) loop approach
     const rsiSeries: Decimal[] = [];
-    // We need enough data points.
-    // Start from index = length.
+
     if (values.length > length) {
-      // Optimization: Only calculate last N RSIs needed for Signal Line
-      // Signal Line is EMA/SMA of RSI. Requires `signalLength` points.
-      const signalLen = $indicatorStore.rsi.signalLength || 14;
-      const pointsNeededForSignal = signalLen + 10; // Buffer
+      // Convert Decimal[] to number[] for JSIndicators
+      const valuesNum = values.map((v) => v.toNumber());
 
-      let startIndex = Math.max(
-        length,
-        values.length - pointsNeededForSignal - 1
-      );
+      // Calculate entire RSI series in O(N) time
+      const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
 
-      // To calculate RSI at 'startIndex', we need previous 'length' price changes.
-      // Actually, standard RSI uses Wilder's Smoothing which depends on ALL previous data for accuracy.
-      // For approximation with limited history, we can start calculation earlier.
-      // Best is to just calculate RSI for the whole available history (limit=50-100 is small enough).
-
-      startIndex = length; // Calculate all possible RSIs from the fetched history
-
-      // We need to implement a loop calling calculateRSI on slices?
-      // No, that's O(N^2).
-      // Better to use `calculateRSI` logic iteratively?
-      // `indicators.ts` doesn't expose iterative logic.
-      // For now, given N=100, O(N^2) is fine (100 * 100 = 10,000 ops -> instant).
-
-      for (let i = startIndex; i < values.length; i++) {
-        // Slice from 0 to i+1 (inclusive of current candle)
-        // Actually `calculateRSI` takes the whole array and returns the last one.
-        // So pass slice 0..i+1
-        const slice = values.slice(0, i + 1);
-        const r = indicators.calculateRSI(slice, length);
-        if (r) rsiSeries.push(r);
+      // Convert back to Decimal[] and filter out invalid/zero values
+      // RSI array has zeros for indices where RSI cannot be calculated yet
+      for (let i = 0; i < rsiSeriesNum.length; i++) {
+        if (rsiSeriesNum[i] > 0) {
+          rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+        }
       }
     }
 
