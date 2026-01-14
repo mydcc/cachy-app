@@ -368,13 +368,13 @@
           "trades": "Trades",
           "count": "Count",
           "frequency": "Frequency",
-          "drawdown": "Drawdown ($)",
+          "drawdown": "Drawdown",
           "grossLoss": "Gross Loss",
           "trading": "Trading",
           "funding": "Funding",
-          "duration": "Duration (Min)",
-          "riskAmount": "Risk Amount ($)",
-          "realizedPnl": "Realized PnL ($)",
+          "duration": "Duration",
+          "riskAmount": "Risk Amount",
+          "realizedPnl": "Realized PnL",
           "topAsset": "Top Asset",
           "mostProfitableStrategy": "Most Profitable Strategy",
           "durationAnalysis": "Duration Analysis",
@@ -383,17 +383,33 @@
           "simMedian": "Median",
           "simWorst": "10th Percentile (Worst)",
           "simRandom": "Sim #",
-          "rollingWinRate": "Rolling Win Rate (20)",
-          "rollingPF": "Rolling Profit Factor (20)",
-          "rollingSQN": "Rolling SQN (20)",
-          "equityChange": "Equity Change ($)",
+          "rollingWinRate": "Rolling Win Rate",
+          "rollingPF": "Rolling Profit Factor",
+          "rollingSQN": "Rolling SQN",
+          "equityChange": "Equity Change",
           "longWinRate": "Long Win Rate",
           "shortWinRate": "Short Win Rate",
           "tradingStats": "Trading Stats",
           "longestWinStreak": "Longest Win Streak",
-          "longestLossStreak": "Longest Loss Streak"
+          "longestLossStreak": "Longest Loss Streak",
+          "winRate": "Win Rate"
+        },
+        "units": {
+          "minutes": "(Min)",
+          "currency": "($)",
+          "percent": "(%)",
+          "trades": "Trades"
         }
       }
+    },
+    "days": {
+      "mon": "Mon",
+      "tue": "Tue",
+      "wed": "Wed",
+      "thu": "Thu",
+      "fri": "Fri",
+      "sat": "Sat",
+      "sun": "Sun"
     }
   },
   "marketOverview": {

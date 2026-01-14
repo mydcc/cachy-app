@@ -40,6 +40,16 @@
     let activeDeepDivePreset = "forecast";
     let selectedYear = new Date().getFullYear();
 
+    const dayMap: Record<string, string> = {
+        Mon: "mon",
+        Tue: "tue",
+        Wed: "wed",
+        Thu: "thu",
+        Fri: "fri",
+        Sat: "sat",
+        Sun: "sun",
+    };
+
     // --- Data Logic derived from stores ---
 
     $: journal = $journalStore;
@@ -78,7 +88,9 @@
                   },
                   // Add a few random paths for "flavor"
                   ...(monteCarloData.randomPaths || []).map((path, i) => ({
-                      label: `Sim #${i + 1}`,
+                      label: `${$_(
+                          "journal.deepDive.charts.labels.simRandom"
+                      )}${i + 1}`,
                       data: path,
                       borderColor: hexToRgba(themeColors.textSecondary, 0.2),
                       backgroundColor: "transparent",
@@ -657,8 +669,12 @@
                 <BubbleChart
                     data={durationScatterData}
                     title={$_("journal.deepDive.charts.titles.durationVsPnl")}
-                    xLabel="Dauer (Min)"
-                    yLabel="PnL ($)"
+                    xLabel="{$_('journal.deepDive.charts.labels.duration')} {$_(
+                        'journal.deepDive.charts.units.minutes'
+                    )}"
+                    yLabel="{$_('journal.deepDive.charts.labels.pnl')} {$_(
+                        'journal.deepDive.charts.units.currency'
+                    )}"
                     description={$_(
                         "journal.deepDive.charts.descriptions.durationVsPnl"
                     )}
@@ -716,7 +732,7 @@
                         <div
                             class="font-bold text-[var(--text-primary)] pr-2 flex items-center h-8"
                         >
-                            {row.day}
+                            {$_("journal.days." + (dayMap[row.day] || "mon"))}
                         </div>
                         {#each row.hours as cell}
                             <div
@@ -751,7 +767,10 @@
                                         class="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-1 z-50 bg-black text-white p-2 rounded text-xs whitespace-nowrap shadow-lg pointer-events-none"
                                     >
                                         <div class="font-bold">
-                                            {row.day}
+                                            {$_(
+                                                "journal.days." +
+                                                    (dayMap[row.day] || "mon")
+                                            )}
                                             {cell.hour}:00
                                         </div>
                                         <div
@@ -790,8 +809,12 @@
                 <BubbleChart
                     data={assetBubbleData}
                     title={$_("journal.deepDive.charts.assetBubble")}
-                    xLabel="Win Rate (%)"
-                    yLabel={$_("journal.totalPL") + " ($)"}
+                    xLabel="{$_('journal.deepDive.charts.labels.winRate')} {$_(
+                        'journal.deepDive.charts.units.percent'
+                    )}"
+                    yLabel="{$_('journal.totalPL')} {$_(
+                        'journal.deepDive.charts.units.currency'
+                    )}"
                     description={$_(
                         "journal.deepDive.charts.descriptions.assetBubble"
                     )}
@@ -828,8 +851,12 @@
                 <BubbleChart
                     data={riskRewardScatter}
                     title={$_("journal.deepDive.charts.riskRewardScatter")}
-                    xLabel="Risk Amount ($)"
-                    yLabel="Realized PnL ($)"
+                    xLabel="{$_(
+                        'journal.deepDive.charts.labels.riskAmount'
+                    )} {$_('journal.deepDive.charts.units.currency')}"
+                    yLabel="{$_(
+                        'journal.deepDive.charts.labels.realizedPnl'
+                    )} {$_('journal.deepDive.charts.units.currency')}"
                     description={$_(
                         "journal.deepDive.charts.descriptions.riskRewardScatter"
                     )}
@@ -904,7 +931,9 @@
                 <LineChart
                     data={drawdownData}
                     title={$_("journal.deepDive.charts.recovery")}
-                    yLabel="Drawdown ($)"
+                    yLabel="{$_('journal.deepDive.charts.titles.drawdown')} {$_(
+                        'journal.deepDive.charts.units.currency'
+                    )}"
                     description={$_(
                         "journal.deepDive.charts.descriptions.recovery"
                     )}

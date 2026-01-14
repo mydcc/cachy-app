@@ -304,7 +304,7 @@
                 <LineChart
                     data={drawdownData}
                     title={$_("journal.deepDive.charts.titles.drawdown")}
-                    yLabel="$"
+                    yLabel={$_("journal.deepDive.charts.units.currency")}
                     description={$_(
                         "journal.deepDive.charts.descriptions.drawdown"
                     )}
@@ -622,7 +622,7 @@
                 <LineChart
                     data={feeCurveData}
                     title={$_("journal.deepDive.charts.titles.cumulativeFees")}
-                    yLabel="$"
+                    yLabel={$_("journal.deepDive.charts.units.currency")}
                     description={$_(
                         "journal.deepDive.charts.descriptions.cumulativeFees"
                     )}

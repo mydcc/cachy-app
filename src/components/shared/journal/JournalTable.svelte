@@ -550,7 +550,9 @@
                                             ? 'text-danger'
                                             : 'text-[var(--text-secondary)]'}"
                                     >
-                                        {item.totalRR && !item.totalRR.isZero()
+                                        {item.totalRR &&
+                                        item.stopLossPrice &&
+                                        !item.stopLossPrice.isZero()
                                             ? item.totalRR.toFixed(2) + "R"
                                             : "-"}
                                     </td>
@@ -575,9 +577,9 @@
                                     <td class="text-xs">
                                         {item.efficiency !== undefined &&
                                         item.efficiency !== null
-                                            ? (item.efficiency * 100).toFixed(
-                                                  0
-                                              ) + "%"
+                                            ? item.efficiency
+                                                  .times(100)
+                                                  .toFixed(0) + "%"
                                             : "-"}
                                     </td>
                                 {/if}

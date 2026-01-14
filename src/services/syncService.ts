@@ -153,7 +153,7 @@ export const syncService = {
         const batchPromises = batch.map(async (p: any) => {
           // ... (rest of the map remains the same, but I need to include it for the tool)
           const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-          const realizedPnl = new Decimal(p.realizedPNL || 0);
+          const realizedPnl = new Decimal(p.realizedPNL || p.realizedPnl || p.pnl || 0);
           const funding = new Decimal(p.funding || 0);
           const fee = new Decimal(p.fee || 0);
           const entryPrice = new Decimal(p.entryPrice || 0);
@@ -183,7 +183,16 @@ export const syncService = {
           let mae, mfe, efficiency;
           try {
             if (posTime > 0 && closeTime > posTime) {
-              const klines = await apiService.fetchBitunixKlines(p.symbol, "1m", 1000, posTime, closeTime, "normal", 30000);
+              // Adaptive interval based on duration
+              const durationMin = (closeTime - posTime) / 60000;
+              let interval = "1m";
+              if (durationMin > 1000) {
+                if (durationMin <= 5000) interval = "5m";
+                else if (durationMin <= 15000) interval = "15m";
+                else interval = "1h";
+              }
+
+              const klines = await apiService.fetchBitunixKlines(p.symbol, interval, 1000, posTime, closeTime, "normal", 30000);
               if (klines?.length > 0) {
                 let maxHigh = new Decimal(0), minLow = new Decimal(Infinity);
                 klines.forEach((k) => {
@@ -194,7 +203,11 @@ export const syncService = {
                 if (minLow.isFinite() && maxHigh.gt(0)) {
                   if (isShort) { mae = maxHigh.minus(entryPrice); mfe = entryPrice.minus(minLow); }
                   else { mae = entryPrice.minus(minLow); mfe = maxHigh.minus(entryPrice); }
-                  if (mfe.gt(0) && qty.gt(0)) efficiency = netPnl.div(mfe.times(qty));
+                  if (mfe.gt(0) && qty.gt(0)) {
+                    efficiency = netPnl.div(mfe.times(qty));
+                  } else if (mfe.isZero() && netPnl.isZero()) {
+                    efficiency = new Decimal(0);
+                  }
                 }
               }
             }
