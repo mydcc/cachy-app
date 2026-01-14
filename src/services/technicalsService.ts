@@ -230,17 +230,16 @@ export const technicalsService = {
 
     // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
-      console.log("Waiting for talib-web initialization...");
-
+      // console.log("Waiting for talib-web initialization...");
       try {
         await talibInit;
-        if (!talibReady) {
-          console.error("talib-web initialization failed or timed out.");
-          return this.getEmptyData();
-        }
       } catch (e) {
-        console.error("Error awaiting talibInit:", e);
-        return this.getEmptyData();
+        console.warn("Error awaiting talibInit:", e);
+      }
+
+      if (!talibReady) {
+        // console.warn("talib-web not ready, falling back to pure JS indicators.");
+        // We continue execution because we have JS implementations for RSI, Stoch, CCI, ADX, etc.
       }
     }
 

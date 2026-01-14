@@ -20,6 +20,10 @@ import type { AppState } from "../stores/types";
 // Mock the uiStore to prevent errors during tests
 vi.mock("../stores/uiStore", () => ({
   uiStore: {
+    subscribe: (run: any) => {
+      run({ isPriceFetching: false });
+      return () => {};
+    },
     showError: vi.fn(),
     showFeedback: vi.fn(),
     update: vi.fn(),
@@ -34,6 +38,38 @@ vi.mock("./apiService", () => ({
     fetchBitunixPrice: vi.fn(),
   },
 }));
+
+// Mock settingsStore to ensure it behaves correctly in tests without localStorage
+vi.mock("../stores/settingsStore", () => {
+  let value = {
+    isPro: false,
+    apiKeys: {
+      bitunix: { key: "", secret: "" },
+      binance: { key: "", secret: "" },
+    },
+    showTechnicals: true,
+    favoriteTimeframes: ["5m", "15m", "1h", "4h"],
+  };
+  const subscribers = new Set<any>();
+
+  return {
+    settingsStore: {
+      subscribe: (run: any) => {
+        subscribers.add(run);
+        run(value);
+        return () => subscribers.delete(run);
+      },
+      update: (fn: any) => {
+        value = fn(value);
+        subscribers.forEach((run) => run(value));
+      },
+      set: (v: any) => {
+        value = v;
+        subscribers.forEach((run) => run(value));
+      },
+    },
+  };
+});
 
 describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
   beforeEach(() => {

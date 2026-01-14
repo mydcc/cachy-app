@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHmac, createHash, randomBytes } from "crypto";
+import { CONSTANTS } from "../../../lib/constants";
 
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
@@ -37,7 +38,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing ${type} on ${exchange}:`, e);
+    // Sanitize error log to prevent leaking sensitive data (headers, keys)
+    console.error(`Error processing ${type} on ${exchange}:`, e.message || "Unknown error");
     return json(
       { error: e.message || `Failed to process ${type}` },
       { status: 500 }
@@ -50,7 +52,7 @@ async function placeBitunixOrder(
   apiSecret: string,
   orderData: any
 ): Promise<any> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/place_order";
 
   // Construct Payload
@@ -121,7 +123,7 @@ async function fetchBitunixPendingOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_pending_orders";
 
   const params: Record<string, string> = {};
@@ -205,7 +207,7 @@ async function fetchBitunixHistoryOrders(
   apiKey: string,
   apiSecret: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL;
   const path = "/api/v1/futures/trade/get_history_orders";
 
   // Default limit 20
