@@ -103,10 +103,11 @@
             <div class="text-left">
                 <div class="text-[var(--text-secondary)] text-xs mb-1">${dateStr}</div>
                 <div class="font-bold mb-1" style="color: ${pnlColor}">
-                    PnL: $${entry.pnl.toFixed(2)}
+                    PnL: $${(entry.pnl ?? 0).toFixed(2)}
                 </div>
                 <div class="text-[var(--text-primary)] text-xs">
                     Trades: ${entry.count}
+                </div>
         `;
 
     if (entry.winCount !== undefined && entry.lossCount !== undefined) {
@@ -120,7 +121,7 @@
                 <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
                     Top: <span class="font-semibold">${entry.bestSymbol}</span>
             `;
-      if (entry.bestSymbolPnl) {
+      if (entry.bestSymbolPnl !== undefined && entry.bestSymbolPnl !== null) {
         const symPnlColor =
           entry.bestSymbolPnl > 0
             ? "var(--success-color)"
@@ -159,7 +160,7 @@
               ? "text-[var(--danger-color)]"
               : "text-[var(--text-secondary)]"}
           >
-            ${stats.totalPnl.toFixed(0)}
+            ${(stats.totalPnl ?? 0).toFixed(0)}
           </div>
           <div class="text-[var(--text-tertiary)]">
             {stats.totalTrades} Trades

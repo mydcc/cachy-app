@@ -176,15 +176,23 @@ export const JSIndicators = {
 let talibReady = false;
 // Explicitly point to the WASM file using Vite asset URL
 const wasmPath = browser ? talibWasmUrl : undefined;
-const talibInit = talib
-  .init(wasmPath)
-  .then(() => {
-    talibReady = true;
-    console.log(`talib-web initialized successfully from ${wasmPath}`);
-  })
-  .catch((err) => {
-    console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
-  });
+
+let talibInit: Promise<void> | undefined;
+
+if (browser && wasmPath) {
+  talibInit = talib
+    .init(wasmPath)
+    .then(() => {
+      talibReady = true;
+      console.log(`talib-web initialized successfully from ${wasmPath}`);
+    })
+    .catch((err) => {
+      console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
+    });
+} else {
+  // SSR or no WASM path
+  talibInit = Promise.resolve();
+}
 
 // Cache for indicator calculations
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();

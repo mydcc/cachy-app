@@ -13,7 +13,6 @@
     export let currentPage: number = 1;
     export let itemsPerPage: number = 10;
     export let columnVisibility: any = {};
-    export let groupBySymbol: boolean = false;
 
     // Pagination
     $: totalPages = Math.ceil(trades.length / itemsPerPage);
