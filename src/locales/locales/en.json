@@ -316,6 +316,16 @@
           "heatmap": "Daily PnL Heatmap",
           "recovery": "Drawdown Recovery"
         },
+        "hourlyPnl": "PnL by Time of Day",
+        "dayOfWeekPnl": "PnL by Day of Week",
+        "assetBubble": "Asset Performance Matrix",
+        "riskRewardScatter": "Risk/Reward Scatter",
+        "longShortWinRate": "Long vs Short Win Rate",
+        "leverageDist": "Leverage Distribution",
+        "winStreak": "Win Streaks",
+        "lossStreak": "Loss Streaks",
+        "recovery": "Drawdown Recovery",
+        "tagPerformance": "Tag Performance (PnL)",
         "descriptions": {
           "leakageWaterfall": "PnL Waterfall: Analysis of gross result minus fees and slippage.",
           "leakageTags": "Strategies or tags causing the biggest losses.",

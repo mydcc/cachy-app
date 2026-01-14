@@ -51,3 +51,6 @@ ChartJS.defaults.scale.grid.color = "#334155";
 ChartJS.defaults.set("plugins.datalabels", {
   display: false,
 });
+
+// Configure passive event listeners to prevent scroll-blocking warnings
+ChartJS.defaults.events = ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'];
