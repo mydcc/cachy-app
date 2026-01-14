@@ -510,7 +510,7 @@
                                         >{item.positionSize
                                             ? formatDynamicDecimal(
                                                   item.positionSize,
-                                                  2
+                                                  4
                                               )
                                             : "-"}</td
                                     >
@@ -521,10 +521,7 @@
                                             item.totalNetProfit
                                         )}"
                                     >
-                                        {formatDynamicDecimal(
-                                            item.totalNetProfit,
-                                            2
-                                        )}
+                                        {item.totalNetProfit.toFixed(2)}
                                     </td>
                                 {/if}
                                 {#if columnVisibility.funding}

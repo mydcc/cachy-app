@@ -11,7 +11,6 @@
   import { initZoomPlugin } from "../lib/chartSetup";
 
   import { _ } from "../locales/i18n";
-  export let data; // Restore standard Svelte 4 data prop
 
   import "../app.css";
 
@@ -43,12 +42,7 @@
     window.addEventListener("error", handleGlobalError);
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
-    // The server provides a theme from the cookie.
-    // On the client, we prioritize localStorage as it might be more up-to-date
-    // if the cookie failed to set for any reason.
-    const storedTheme = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY);
-    const themeToSet = storedTheme || data.theme; // Use localStorage theme, fallback to cookie theme
-    uiStore.setTheme(themeToSet);
+    // Theme is already initialized in uiStore, no need to set it here
 
     // --- CachyLog Integration ---
     // Connect to Server-Sent Events stream for real-time server logs
