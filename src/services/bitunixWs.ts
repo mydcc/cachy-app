@@ -12,7 +12,8 @@ const WS_PRIVATE_URL =
 
 const PING_INTERVAL = 20000; // 20 seconds (standard interval)
 const WATCHDOG_TIMEOUT = 60000; // Increased to 60 seconds for higher stability during network jitter
-const RECONNECT_DELAY = 3000; // 3 seconds
+const RECONNECT_DELAY = 3000; // 3 seconds base delay
+const MAX_RECONNECT_ATTEMPTS = 50; // Max retry attempts before giving up
 
 interface Subscription {
   symbol: string;
@@ -41,6 +42,9 @@ class BitunixWebSocketService {
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
 
+  private reconnectAttemptsPublic = 0;
+  private reconnectAttemptsPrivate = 0;
+
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
 
@@ -53,6 +57,8 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
+    this.reconnectAttemptsPublic = 0;
+    this.reconnectAttemptsPrivate = 0;
     this.connect();
   };
 
@@ -143,6 +149,7 @@ class BitunixWebSocketService {
 
       wsStatusStore.set("connected");
       this.isReconnectingPublic = false;
+      this.reconnectAttemptsPublic = 0; // Reset attempts on success
 
       this.startHeartbeat(ws, "public");
       // Initialize watchdog immediately on connection
@@ -240,6 +247,8 @@ class BitunixWebSocketService {
       if (this.wsPrivate !== ws) return;
 
       this.isReconnectingPrivate = false;
+      this.reconnectAttemptsPrivate = 0; // Reset attempts on success
+
       this.startHeartbeat(ws, "private");
       this.resetWatchdog("private", ws);
       this.login(apiKey, apiSecret);
@@ -282,21 +291,42 @@ class BitunixWebSocketService {
 
     if (type === "public") {
       if (this.isReconnectingPublic) return;
+
+      this.reconnectAttemptsPublic++;
+      if (this.reconnectAttemptsPublic > MAX_RECONNECT_ATTEMPTS) {
+        console.error("Bitunix Public WS: Max reconnect attempts reached. Stopping retry.");
+        return;
+      }
+
+      // Exponential backoff with cap: 3s, 6s, 12s... max 30s
+      const delay = Math.min(30000, RECONNECT_DELAY * Math.pow(1.5, this.reconnectAttemptsPublic - 1));
+      console.log(`Bitunix Public WS: Scheduling reconnect (Attempt ${this.reconnectAttemptsPublic}) in ${delay}ms`);
+
       this.isReconnectingPublic = true;
       wsStatusStore.set("disconnected");
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, RECONNECT_DELAY);
+      }, delay);
     } else {
       if (this.isReconnectingPrivate) return;
+
+      this.reconnectAttemptsPrivate++;
+      if (this.reconnectAttemptsPrivate > MAX_RECONNECT_ATTEMPTS) {
+        console.error("Bitunix Private WS: Max reconnect attempts reached. Stopping retry.");
+        return;
+      }
+
+      const delay = Math.min(30000, RECONNECT_DELAY * Math.pow(1.5, this.reconnectAttemptsPrivate - 1));
+      console.log(`Bitunix Private WS: Scheduling reconnect (Attempt ${this.reconnectAttemptsPrivate}) in ${delay}ms`);
+
       this.isReconnectingPrivate = true;
       if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, RECONNECT_DELAY);
+      }, delay);
     }
   }
 

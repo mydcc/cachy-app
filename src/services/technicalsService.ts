@@ -1,7 +1,4 @@
-import * as talib from "talib-web";
 import { Decimal } from "decimal.js";
-import { browser } from "$app/environment";
-import talibWasmUrl from "talib-web/lib/talib.wasm?url";
 import type { IndicatorSettings } from "../stores/indicatorStore";
 import type { Kline, TechnicalsData, IndicatorResult } from "./technicalsTypes";
 
@@ -171,20 +168,6 @@ const JSIndicators = {
   },
 };
 
-// Initialize talib-web WASM module
-let talibReady = false;
-// Explicitly point to the WASM file using Vite asset URL
-const wasmPath = browser ? talibWasmUrl : undefined;
-const talibInit = talib
-  .init(wasmPath)
-  .then(() => {
-    talibReady = true;
-    console.log(`talib-web initialized successfully from ${wasmPath}`);
-  })
-  .catch((err) => {
-    console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
-  });
-
 export const technicalsService = {
   async calculateTechnicals(
     klinesInput: {
@@ -197,22 +180,6 @@ export const technicalsService = {
     }[],
     settings?: IndicatorSettings
   ): Promise<TechnicalsData> {
-    // Ensure talib is initialized (though we use JS fallbacks for most)
-    if (!talibReady) {
-      console.log("Waiting for talib-web initialization...");
-
-      try {
-        await talibInit;
-        if (!talibReady) {
-          console.error("talib-web initialization failed or timed out.");
-          return this.getEmptyData();
-        }
-      } catch (e) {
-        console.error("Error awaiting talibInit:", e);
-        return this.getEmptyData();
-      }
-    }
-
     // 1. Normalize Data to strict Kline format with Decimals
     const klines: Kline[] = [];
     let prevClose = new Decimal(0);
@@ -266,7 +233,7 @@ export const technicalsService = {
       }
     };
 
-    // Convert Decimal arrays to number arrays for talib
+    // Convert Decimal arrays to number arrays for calculation
     const highsNum = klines.map((k) => k.high.toNumber());
     const lowsNum = klines.map((k) => k.low.toNumber());
     const closesNum = klines.map((k) => k.close.toNumber());
@@ -512,7 +479,7 @@ export const technicalsService = {
 
   // --- Helpers ---
 
-  // Awesome Oscillator (nicht in talib-web)
+  // Awesome Oscillator (manually calculated)
   async calculateAwesomeOscillator(
     high: number[] | Float64Array,
     low: number[] | Float64Array,
@@ -536,11 +503,8 @@ export const technicalsService = {
       const fastSMA = getSMA(hl2, fastPeriod);
       const slowSMA = getSMA(hl2, slowPeriod);
 
-      console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${
-          fastSMA - slowSMA
-        }`
-      );
+      // Logging reduced to avoid spam
+      // console.log(`[Technicals] AO Internal: ...`);
 
       return new Decimal(fastSMA - slowSMA);
     } catch (error) {

@@ -18,15 +18,65 @@ export const POST: RequestHandler = async ({ request }) => {
       } else if (type === "history") {
         result = { orders: await fetchBitunixHistoryOrders(apiKey, apiSecret) };
       } else if (type === "place-order") {
-        result = await placeBitunixOrder(apiKey, apiSecret, body);
+        // Validation for place-order
+        if (!body.symbol || typeof body.symbol !== "string") {
+          return json({ error: "Invalid symbol" }, { status: 400 });
+        }
+        const side = body.side?.toUpperCase();
+        if (side !== "BUY" && side !== "SELL") {
+          return json({ error: "Invalid side. Must be BUY or SELL" }, { status: 400 });
+        }
+
+        // Resolve order type: prefer 'orderType' field, fallback to 'type' if it's not the action name
+        let effectiveOrderType = body.orderType?.toUpperCase();
+        if (!effectiveOrderType && body.type !== "place-order") {
+             effectiveOrderType = body.type?.toUpperCase();
+        }
+
+        if (effectiveOrderType !== "LIMIT" && effectiveOrderType !== "MARKET") {
+          return json({ error: "Invalid order type. Must be LIMIT or MARKET" }, { status: 400 });
+        }
+
+        const qty = parseFloat(body.qty);
+        if (isNaN(qty) || qty <= 0) {
+          return json({ error: "Invalid quantity. Must be > 0" }, { status: 400 });
+        }
+
+        if (effectiveOrderType === "LIMIT") {
+          const price = parseFloat(body.price);
+          if (isNaN(price) || price <= 0) {
+            return json({ error: "Invalid price for LIMIT order. Must be > 0" }, { status: 400 });
+          }
+        }
+
+        // Construct correct order data payload
+        const orderData = {
+            ...body,
+            type: effectiveOrderType
+        };
+
+        result = await placeBitunixOrder(apiKey, apiSecret, orderData);
       } else if (type === "close-position") {
+        // Validation for close-position
+        if (!body.symbol || typeof body.symbol !== "string") {
+          return json({ error: "Invalid symbol" }, { status: 400 });
+        }
+        const side = body.side?.toUpperCase();
+        if (side !== "BUY" && side !== "SELL") {
+          return json({ error: "Invalid side. Must be BUY or SELL" }, { status: 400 });
+        }
+        const amount = parseFloat(body.amount);
+         if (isNaN(amount) || amount <= 0) {
+          return json({ error: "Invalid amount. Must be > 0" }, { status: 400 });
+        }
+
         // To close a position, we place a MARKET order in the opposite direction
         // body should contain: symbol, side (buy/sell), amount (qty)
         const closeOrder = {
           symbol: body.symbol,
-          side: body.side, // Must be opposite of position
+          side: side, // Already validated
           type: "MARKET",
-          qty: body.amount,
+          qty: amount,
           reduceOnly: true,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
@@ -65,6 +115,7 @@ async function placeBitunixOrder(
   };
 
   if (payload.type === "LIMIT") {
+    // Already validated upstream, but good to be safe if reused
     if (!orderData.price) throw new Error("Price required for limit order");
     payload.price = String(orderData.price);
   }
