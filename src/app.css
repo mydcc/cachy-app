@@ -64,6 +64,7 @@
   --bg-tertiary: var(--blue-800);
   --text-primary: var(--blue-100);
   --text-secondary: var(--blue-300);
+  --text-tertiary: var(--blue-600);
   --border-color: var(--blue-700);
   --accent-color: var(--sky-400);
   --accent-color-hover: var(--sky-500);
@@ -118,6 +119,7 @@
   --bg-tertiary: var(--slate-200);
   --text-primary: var(--slate-800);
   --text-secondary: var(--slate-500);
+  --text-tertiary: var(--slate-400);
   --border-color: var(--slate-300);
   --accent-color: var(--sky-400);
   --accent-color-hover: var(--sky-500);
@@ -177,6 +179,7 @@
   --bg-tertiary: var(--gradient-purple-light);
   --text-primary: var(--purple-light);
   --text-secondary: var(--highlight-purple-alt);
+  --text-tertiary: var(--core-meteorite);
   --border-color: var(--core-meteorite);
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
@@ -236,6 +239,7 @@
   --bg-tertiary: var(--bg-tertiary-derived);
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-alt);
+  --text-tertiary: var(--core-meteorite);
   --border-color: var(--core-meteorite);
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
@@ -291,6 +295,7 @@
   --bg-tertiary: var(--gray-700);
   --text-primary: var(--gray-200);
   --text-secondary: var(--gray-400);
+  --text-tertiary: var(--gray-600);
   --border-color: var(--gray-600);
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);

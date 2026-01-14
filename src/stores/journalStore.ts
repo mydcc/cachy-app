@@ -104,4 +104,3 @@ export const marketMetrics = derived(journalStore, ($journal) => {
 export const psychologyMetrics = derived(journalStore, ($journal) => {
   return calculator.getPsychologyData($journal || []);
 });
-

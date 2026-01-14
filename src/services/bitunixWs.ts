@@ -11,7 +11,7 @@ const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
 const PING_INTERVAL = 20000; // 20 seconds (standard interval)
-const WATCHDOG_TIMEOUT = 30000; // 30 seconds (safe buffer above ping interval)
+const WATCHDOG_TIMEOUT = 60000; // Increased to 60 seconds for higher stability during network jitter
 const RECONNECT_DELAY = 3000; // 3 seconds
 
 interface Subscription {
@@ -155,9 +155,10 @@ class BitunixWebSocketService {
       if (this.wsPublic !== ws) return;
 
       try {
-        // Reset watchdog on ANY activity (throttled)
+        // Reset watchdog on ANY activity (throttled to avoid excessive timers)
         const now = Date.now();
-        if (now - this.lastWatchdogResetPublic > this.WATCHDOG_THROTTLE_MS) {
+        if (now - this.lastWatchdogResetPublic > 5000) {
+          // Throttle to 5s
           this.resetWatchdog("public", ws);
           this.lastWatchdogResetPublic = now;
         }

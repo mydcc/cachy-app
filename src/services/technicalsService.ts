@@ -105,14 +105,15 @@ const JSIndicators = {
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
 
-      // Use Decimal for stability during sum and mean deviation calculation
+      // 1. SMA (Simple Moving Average)
       let sum = new Decimal(0);
       for (const val of slice) sum = sum.plus(val);
-      const avg = sum.dividedBy(period);
+      const sma = sum.dividedBy(period);
 
+      // 2. Mean Deviation
       let sumAbsDiff = new Decimal(0);
       for (const val of slice) {
-        sumAbsDiff = sumAbsDiff.plus(new Decimal(val).minus(avg).abs());
+        sumAbsDiff = sumAbsDiff.plus(new Decimal(val).minus(sma).abs());
       }
       const meanDev = sumAbsDiff.dividedBy(period);
 
@@ -120,7 +121,7 @@ const JSIndicators = {
         result[i] = 0;
       } else {
         // CCI = (Price - SMA) / (0.015 * Mean Deviation)
-        const diff = new Decimal(data[i]).minus(avg);
+        const diff = new Decimal(data[i]).minus(sma);
         const divisor = meanDev.times(0.015);
         result[i] = diff.dividedBy(divisor).toNumber();
       }
@@ -216,7 +217,10 @@ export const technicalsService = {
     const klines: Kline[] = [];
     let prevClose = new Decimal(0);
 
-    const toDec = (val: number | string | Decimal | undefined, fallback: Decimal): Decimal => {
+    const toDec = (
+      val: number | string | Decimal | undefined,
+      fallback: Decimal
+    ): Decimal => {
       if (val instanceof Decimal) return val;
       if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
       if (typeof val === "string") {
@@ -533,7 +537,8 @@ export const technicalsService = {
       const slowSMA = getSMA(hl2, slowPeriod);
 
       console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA
+        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${
+          fastSMA - slowSMA
         }`
       );
 

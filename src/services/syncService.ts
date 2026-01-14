@@ -116,7 +116,7 @@ export const syncService = {
       for (const p of pendingPositions) {
         const side =
           (p.side || "").toLowerCase().includes("sell") ||
-            (p.side || "").toLowerCase().includes("short")
+          (p.side || "").toLowerCase().includes("short")
             ? "short"
             : "long";
         // Unique ID for pending: "OPEN-{positionId}" or "OPEN-{symbol}-{side}" if no ID to support Hedge Mode
@@ -149,7 +149,7 @@ export const syncService = {
           symbol: p.symbol,
           tradeType:
             (p.side || "").toLowerCase().includes("sell") ||
-              (p.side || "").toLowerCase().includes("short")
+            (p.side || "").toLowerCase().includes("short")
               ? "short"
               : "long",
           status: "Open",

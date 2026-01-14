@@ -6,24 +6,20 @@ vi.mock("talib-web", () => {
   return {
     init: vi.fn().mockResolvedValue(true),
     RSI: vi.fn().mockResolvedValue({ output: Array(100).fill(50) }),
-    STOCH: vi
-      .fn()
-      .mockResolvedValue({
-        slowK: Array(100).fill(50),
-        slowD: Array(100).fill(50),
-      }),
+    STOCH: vi.fn().mockResolvedValue({
+      slowK: Array(100).fill(50),
+      slowD: Array(100).fill(50),
+    }),
     CCI: vi.fn().mockResolvedValue({ output: Array(100).fill(100) }),
     ADX: vi.fn().mockResolvedValue({ output: Array(100).fill(25) }),
     PLUS_DI: vi.fn().mockResolvedValue({ output: Array(100).fill(20) }),
     MINUS_DI: vi.fn().mockResolvedValue({ output: Array(100).fill(10) }),
     MOM: vi.fn().mockResolvedValue({ output: Array(100).fill(10) }),
-    MACD: vi
-      .fn()
-      .mockResolvedValue({
-        MACD: Array(100).fill(1),
-        MACDSignal: Array(100).fill(0.5),
-        MACDHist: Array(100).fill(0.5),
-      }),
+    MACD: vi.fn().mockResolvedValue({
+      MACD: Array(100).fill(1),
+      MACDSignal: Array(100).fill(0.5),
+      MACDHist: Array(100).fill(0.5),
+    }),
     EMA: vi.fn().mockResolvedValue({ output: Array(100).fill(100) }),
     SMA: vi.fn().mockResolvedValue({ output: Array(100).fill(100) }),
   };

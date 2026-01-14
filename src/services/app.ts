@@ -251,7 +251,7 @@ export const app = {
         atrValue: parseDecimal(currentTradeState.atrValue),
         atrMultiplier: parseDecimal(
           currentTradeState.atrMultiplier ||
-          parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
+            parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
         ),
         stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
         targets: currentTradeState.targets.map((t) => ({
@@ -296,17 +296,18 @@ export const app = {
         values.stopLossPrice =
           currentTradeState.tradeType === CONSTANTS.TRADE_TYPE_LONG
             ? values.entryPrice.minus(
-              values.atrValue.times(values.atrMultiplier)
-            )
+                values.atrValue.times(values.atrMultiplier)
+              )
             : values.entryPrice.plus(
-              values.atrValue.times(values.atrMultiplier)
-            );
+                values.atrValue.times(values.atrMultiplier)
+              );
 
         newResults.showAtrFormulaDisplay = true;
         newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
           4
-        )} ${operator} (${values.atrValue} × ${values.atrMultiplier
-          }) = ${values.stopLossPrice.toFixed(4)}`;
+        )} ${operator} (${values.atrValue} × ${
+          values.atrMultiplier
+        }) = ${values.stopLossPrice.toFixed(4)}`;
       } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
         return { status: CONSTANTS.STATUS_INCOMPLETE };
       }
@@ -978,8 +979,8 @@ export const app = {
       if (lines.length > MAX_IMPORT_LINES) {
         uiStore.showError(
           `Zu viele Zeilen (${lines.length - 1} Trades). ` +
-          `Maximum: 1000 Trades pro Import. ` +
-          `Bitte teilen Sie die CSV-Datei auf.`
+            `Maximum: 1000 Trades pro Import. ` +
+            `Bitte teilen Sie die CSV-Datei auf.`
         );
         return;
       }
@@ -1167,9 +1168,9 @@ export const app = {
                 : "",
               tags: entry.Tags
                 ? entry.Tags.replace(/"/g, "")
-                  .split(";")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
+                    .split(";")
+                    .map((t) => t.trim())
+                    .filter(Boolean)
                 : [],
               screenshot: entry.Screenshot || undefined,
               targets: targets,
@@ -1458,20 +1459,32 @@ export const app = {
       let klines;
       if (settings.apiProvider === "binance") {
         // Binance Signature: symbol, interval, limit, priority
-        klines = await apiService.fetchBinanceKlines(symbol, currentTf, 99, "high");
+        klines = await apiService.fetchBinanceKlines(
+          symbol,
+          currentTf,
+          99,
+          "high"
+        );
       } else {
         // Bitunix Signature: symbol, interval, limit, start, end, priority
-        klines = await apiService.fetchBitunixKlines(symbol, currentTf, 99, undefined, undefined, "high");
+        klines = await apiService.fetchBitunixKlines(
+          symbol,
+          currentTf,
+          99,
+          undefined,
+          undefined,
+          "high"
+        );
       }
 
       const atr = calculator.calculateATR(klines);
       if (atr.gt(0)) {
-        updateTradeStore(s => ({
+        updateTradeStore((s) => ({
           ...s,
-          atrValue: atr.toDP(4).toNumber()
+          atrValue: atr.toDP(4).toNumber(),
         }));
         // Trigger Recalculate if we are in Auto-Mode
-        if (state.useAtrSl && state.atrMode === 'auto') {
+        if (state.useAtrSl && state.atrMode === "auto") {
           app.calculateAndDisplay();
         }
       }

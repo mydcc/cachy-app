@@ -40,7 +40,7 @@ class RequestManager {
   private normalQueue: (() => void)[] = [];
 
   private activeCount = 0;
-  private readonly MAX_CONCURRENCY = 4; // Increased slightly as we have more components now
+  private readonly MAX_CONCURRENCY = 8; // Increased from 4 for better parallelism
   private readonly DEFAULT_TIMEOUT = 10000; // 10s global timeout
 
   // Logging for debugging latency
@@ -81,13 +81,18 @@ class RequestManager {
             try {
               return await task(controller.signal);
             } catch (e) {
-              if (e instanceof Error && e.name === 'AbortError') {
+              if (e instanceof Error && e.name === "AbortError") {
                 console.warn(`[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
-                console.warn(`[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`, e);
+                console.warn(
+                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
+                    retries + 1
+                  })`,
+                  e
+                );
                 // Wait a bit before retry
-                await new Promise(r => setTimeout(r, 500 * (attempt + 1)));
+                await new Promise((r) => setTimeout(r, 500 * (attempt + 1)));
                 return executeWithRetry(attempt + 1);
               }
               throw e;
@@ -193,13 +198,17 @@ export const apiService = {
           const data = res.data[0];
           return new Decimal(data.lastPrice);
         } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
-          if (
-            e instanceof Error &&
-            (e.message.startsWith("apiErrors.") ||
-              e.message.startsWith("bitunixErrors."))
-          ) {
-            throw e;
+          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
+          if (e instanceof Error) {
+            const msg = e.message;
+            if (
+              msg.startsWith("apiErrors.") ||
+              msg.startsWith("bitunixErrors.")
+            ) {
+              throw e;
+            }
+            // Preserve original message if it seems like a specific key
+            if (msg.includes(".")) throw e;
           }
           throw new Error("apiErrors.generic");
         }
@@ -242,12 +251,16 @@ export const apiService = {
             try {
               const errData = await response.json();
               if (errData.error) {
-                console.error(`fetchBitunixKlines failed with ${response.status}: ${errData.error}`);
+                console.error(
+                  `fetchBitunixKlines failed with ${response.status}: ${errData.error}`
+                );
                 // If it's a rate limit or specific error, we might want to preserve it
                 // But for now, let's at least log it and maybe throw a more descriptive error if possible
                 // keeping the key for i18n but logged the real cause
               }
-            } catch { /* ignore parsing error */ }
+            } catch {
+              /* ignore parsing error */
+            }
             throw new Error("apiErrors.klineError");
           }
           const res = await response.json();
@@ -282,7 +295,7 @@ export const apiService = {
           );
         } catch (e) {
           console.error(`fetchBitunixKlines error for ${symbol}:`, e);
-          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
+          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||
@@ -325,7 +338,7 @@ export const apiService = {
           }
           return new Decimal(data.price);
         } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
+          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message === "apiErrors.symbolNotFound" ||
@@ -381,7 +394,7 @@ export const apiService = {
             time: parseTimestamp(kline[0]),
           }));
         } catch (e) {
-          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
+          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message === "apiErrors.klineError" ||
@@ -466,7 +479,7 @@ export const apiService = {
           }
         } catch (e) {
           console.error("fetchTicker24h error", e);
-          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
+          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||

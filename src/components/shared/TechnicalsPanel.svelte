@@ -316,7 +316,7 @@
         <span
           role="button"
           tabindex="0"
-          class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-secondary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
+          class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
           on:mouseenter={handleDropdownEnter}
           on:mouseleave={handleDropdownLeave}
           on:click|stopPropagation={toggleTimeframePopup}
@@ -349,6 +349,8 @@
         <button
           class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
           on:click={copyDebugData}
+          title="Copy Technicals Debug Data"
+          aria-label="Copy Technicals Debug Data"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -457,10 +459,15 @@
         </h4>
         <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
           {#each data.oscillators as osc}
-            <span class="text-[var(--text-primary)]">
+            <span
+              class="text-[var(--text-primary)] truncate"
+              title={osc.name + (osc.params ? " (" + osc.params + ")" : "")}
+            >
               {osc.name}
               {#if $settingsStore.showIndicatorParams && osc.params}
-                <span class="text-[var(--text-secondary)]">({osc.params})</span>
+                <span class="text-[var(--text-secondary)] font-normal"
+                  >({osc.params})</span
+                >
               {/if}
             </span>
             <span class="text-right text-[var(--text-secondary)] font-mono"
@@ -481,10 +488,15 @@
         </h4>
         <div class="text-xs grid grid-cols-[1fr_auto_auto] gap-x-4 gap-y-1">
           {#each data.movingAverages as ma}
-            <span class="text-[var(--text-primary)]">
+            <span
+              class="text-[var(--text-primary)] truncate"
+              title={ma.name + (ma.params ? " (" + ma.params + ")" : "")}
+            >
               {ma.name}
               {#if $settingsStore.showIndicatorParams && ma.params}
-                <span class="text-[var(--text-secondary)]">({ma.params})</span>
+                <span class="text-[var(--text-secondary)] font-normal"
+                  >({ma.params})</span
+                >
               {/if}
             </span>
             <span class="text-right text-[var(--text-secondary)] font-mono"
