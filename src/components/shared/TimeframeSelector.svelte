@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
+  import { run } from "svelte/legacy";
 
   import { createEventDispatcher } from "svelte";
   import { normalizeTimeframeInput } from "../../utils/utils";
@@ -18,12 +18,12 @@
     selected = $bindable([]),
     options = [],
     placeholder = "Add timeframe...",
-    maxItems = 4
+    maxItems = 4,
   }: Props = $props();
 
   const dispatch = createEventDispatcher();
   let inputValue = $state("");
-  let inputElement: HTMLInputElement = $state();
+  let inputElement: HTMLInputElement | null = $state(null);
   let showDropdown = $state(false);
   let filteredOptions: string[] = $state([]);
 
@@ -31,7 +31,7 @@
     filteredOptions = options.filter(
       (opt) =>
         !selected.includes(opt) &&
-        opt.toLowerCase().includes(inputValue.toLowerCase())
+        opt.toLowerCase().includes(inputValue.toLowerCase()),
     );
   });
 
@@ -111,6 +111,7 @@
         <button
           type="button"
           class="hover:text-[var(--text-primary)] focus:outline-none ml-1"
+          aria-label="Remove timeframe"
           onclick={() => removeTimeframe(i)}
         >
           <svg

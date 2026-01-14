@@ -5,9 +5,6 @@
 
     const dispatch = createEventDispatcher();
 
-    
-
-    
     interface Props {
         // Props - Filter State (two-way binding)
         searchQuery?: string;
@@ -27,7 +24,7 @@
         filterDateEnd = $bindable(""),
         groupBySymbol = $bindable(false),
         totalTrades = 0,
-        filteredCount = 0
+        filteredCount = 0,
     }: Props = $props();
 
     function toggleSettings() {
@@ -100,7 +97,6 @@
                 onclick={toggleSettings}
                 title={$_("journal.labels.tableSettings")}
             >
-                <!-- svelte-ignore svelte/no_at_html_tags -->
                 {@html icons.settings}
             </button>
         </div>

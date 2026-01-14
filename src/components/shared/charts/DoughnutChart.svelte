@@ -11,39 +11,25 @@
     options?: any;
   }
 
-  let {
-    data,
-    title = "",
-    description = "",
-    options = {}
-  }: Props = $props();
+  let { data, title = "", description = "", options = {} }: Props = $props();
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
 
-  const defaultOptions = {
+  let mergedOptions = $derived({
     responsive: true,
     maintainAspectRatio: false,
-    plugins: {
-      legend: { position: "right" as const },
-      title: { display: !!title, text: title },
-    },
-  };
-
-  let mergedOptions = $derived({
-    ...defaultOptions,
     ...options,
     plugins: {
-      ...defaultOptions.plugins,
-      ...(options.plugins || {}),
+      ...((options && options.plugins) || {}),
       legend: {
-        ...defaultOptions.plugins.legend,
-        ...(options.plugins?.legend || {}),
+        position: "right" as const,
+        ...((options && options.plugins?.legend) || {}),
       },
       title: {
         display: !!title,
         text: title,
-        ...(options.plugins?.title || {}),
+        ...((options && options.plugins?.title) || {}),
       },
     },
   });

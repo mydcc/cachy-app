@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run } from 'svelte/legacy';
+  import { run } from "svelte/legacy";
 
   import { tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
@@ -46,7 +46,7 @@
     CODE_LOCK.length,
     CODE_SPACE.length,
     CODE_BONUS.length,
-    CODE_STREAK.length
+    CODE_STREAK.length,
   );
 
   let inputBuffer: string[] = [];
@@ -252,51 +252,57 @@
   let journalSearchQuery = $derived($tradeStore.journalSearchQuery);
   let journalFilterStatus = $derived($tradeStore.journalFilterStatus);
 
-  let processedTrades = $derived($journalStore.filter((trade) => {
-    const query = journalSearchQuery.toLowerCase();
-    const matchesSearch =
-      trade.symbol.toLowerCase().includes(query) ||
-      (trade.notes && trade.notes.toLowerCase().includes(query)) ||
-      (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query)));
+  let processedTrades = $derived(
+    $journalStore.filter((trade) => {
+      const query = journalSearchQuery.toLowerCase();
+      const matchesSearch =
+        trade.symbol.toLowerCase().includes(query) ||
+        (trade.notes && trade.notes.toLowerCase().includes(query)) ||
+        (trade.tags && trade.tags.some((t) => t.toLowerCase().includes(query)));
 
-    const matchesStatus =
-      journalFilterStatus === "all" || trade.status === journalFilterStatus;
+      const matchesStatus =
+        journalFilterStatus === "all" || trade.status === journalFilterStatus;
 
-    let matchesDate = true;
-    const tradeDate = new Date(trade.date);
-    if (filterDateStart)
-      matchesDate = matchesDate && tradeDate >= new Date(filterDateStart);
-    if (filterDateEnd) {
-      const endDate = new Date(filterDateEnd);
-      endDate.setHours(23, 59, 59, 999);
-      matchesDate = matchesDate && tradeDate <= endDate;
-    }
+      let matchesDate = true;
+      const tradeDate = new Date(trade.date);
+      if (filterDateStart)
+        matchesDate = matchesDate && tradeDate >= new Date(filterDateStart);
+      if (filterDateEnd) {
+        const endDate = new Date(filterDateEnd);
+        endDate.setHours(23, 59, 59, 999);
+        matchesDate = matchesDate && tradeDate <= endDate;
+      }
 
-    return matchesSearch && matchesStatus && matchesDate;
-  }));
+      return matchesSearch && matchesStatus && matchesDate;
+    }),
+  );
 
   // Pivot Mode Logic
-  let groupedTrades = $derived(groupBySymbol
-    ? Object.entries(
-        calculator.calculateSymbolPerformance(processedTrades)
-      ).map(([symbol, data]) => ({
-        id: `group-${symbol}`,
-        symbol,
-        isGroup: true,
-        ...data,
-        // Add default fields for sorting compatibility
-        date: new Date().toISOString(),
-        tradeType: "group",
-        entryPrice: new Decimal(0),
-        totalNetProfit: data.totalProfitLoss,
-        totalRR: new Decimal(0),
-        status: "Group",
-        trades: processedTrades.filter((t) => t.symbol === symbol),
-      }))
-    : []);
+  let groupedTrades = $derived(
+    groupBySymbol
+      ? Object.entries(
+          calculator.calculateSymbolPerformance(processedTrades),
+        ).map(([symbol, data]) => ({
+          id: `group-${symbol}`,
+          symbol,
+          isGroup: true,
+          ...data,
+          // Add default fields for sorting compatibility
+          date: new Date().toISOString(),
+          tradeType: "group",
+          entryPrice: new Decimal(0),
+          totalNetProfit: data.totalProfitLoss,
+          totalRR: new Decimal(0),
+          status: "Group",
+          trades: processedTrades.filter((t) => t.symbol === symbol),
+        }))
+      : [],
+  );
 
   let displayTrades = $derived(groupBySymbol ? groupedTrades : processedTrades);
-  let sortedTrades = $derived(sortTrades(displayTrades, sortField, sortDirection));
+  let sortedTrades = $derived(
+    sortTrades(displayTrades, sortField, sortDirection),
+  );
 
   function handleSort(field: any) {
     if (sortField === field) {
@@ -335,7 +341,7 @@
       groupBySymbol,
       sortField,
       sortDirection,
-      itemsPerPage
+      itemsPerPage,
     );
   });
 
@@ -346,16 +352,18 @@
   }
 
   // Reactive Stats for Filtered Trades
-  let filteredPerformance = $derived(calculator.calculatePerformanceStats(
-    processedTrades
-  ) || {
-    totalTrades: 0,
-    winRate: 0,
-    profitFactor: new Decimal(0),
-    maxDrawdown: new Decimal(0),
-    avgRMultiple: new Decimal(0),
-  });
-  let filteredJournal = $derived(calculator.calculateJournalStats(processedTrades));
+  let filteredPerformance = $derived(
+    calculator.calculatePerformanceStats(processedTrades) || {
+      totalTrades: 0,
+      winRate: 0,
+      profitFactor: new Decimal(0),
+      maxDrawdown: new Decimal(0),
+      avgRMultiple: new Decimal(0),
+    },
+  );
+  let filteredJournal = $derived(
+    calculator.calculateJournalStats(processedTrades),
+  );
 
   // Combine for JournalStatistics expected format
   let performanceData = $derived({
@@ -367,7 +375,7 @@
   });
 
   async function handleScreenshotUpload(
-    event: CustomEvent<{ id: number; file: File }>
+    event: CustomEvent<{ id: number; file: File }>,
   ) {
     const { id, file } = event.detail;
     try {
@@ -448,8 +456,7 @@
         <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
         <button
           class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          onclick={() => (showColumnSettings = false)}
-          >{$_("common.ok")}</button
+          onclick={() => (showColumnSettings = false)}>{$_("common.ok")}</button
         >
       </div>
       <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -528,9 +535,8 @@
         {#if $uiStore.isPriceFetching}
           <div
             class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
-></div>
+          ></div>
         {:else}
-          <!-- svelte-ignore svelte/no_at_html_tags -->
           {@html icons.refresh}
         {/if}
         <span class="hidden sm:inline">
@@ -546,7 +552,6 @@
       title={$_("journal.exportCsvTitle")}
       onclick={app.exportToCSV}
     >
-      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.export}<span class="hidden sm:inline"
         >{$_("journal.export")}</span
       ></button
@@ -565,7 +570,6 @@
       title={$_("journal.importCsvTitle")}
       onclick={() => document.getElementById("import-csv-input")?.click()}
     >
-      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.import}<span class="hidden sm:inline"
         >{$_("journal.import")}</span
       ></button
@@ -578,7 +582,6 @@
         if (browser) app.clearJournal();
       }}
     >
-      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.delete}<span class="hidden sm:inline"
         >{$_("journal.clearAll")}</span
       ></button
@@ -590,7 +593,6 @@
       aria-label={$_("journal.showJournalInstructionsAriaLabel")}
       onclick={() => app.uiManager.showReadme("journal")}
     >
-      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.book}</button
     >
   </div>

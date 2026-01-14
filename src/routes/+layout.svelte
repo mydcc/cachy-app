@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
+  import { run, createBubbler, stopPropagation } from "svelte/legacy";
 
   const bubble = createBubbler();
   import favicon from "../assets/favicon.svg";
@@ -21,7 +21,7 @@
 
   import { julesStore } from "../stores/julesStore";
   interface Props {
-    children?: import('svelte').Snippet;
+    children?: import("svelte").Snippet;
   }
 
   let { children }: Props = $props();
@@ -70,8 +70,8 @@
               logEntry.level === "error"
                 ? "color: #ff4444;"
                 : logEntry.level === "warn"
-                ? "color: #ffbb33;"
-                : "color: #88ccff;";
+                  ? "color: #ffbb33;"
+                  : "color: #88ccff;";
 
             // "CL: [LEVEL] Message"
             // Note: console.log supports format specifiers like %c
@@ -79,14 +79,14 @@
               `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
               clStyle,
               levelStyle,
-              logEntry.data ? logEntry.data : ""
+              logEntry.data ? logEntry.data : "",
             );
           } catch (e) {
             console.log(
               "%cCL:%c [RAW]",
               "background: #333; color: #00ff9d;",
               "",
-              event.data
+              event.data,
             );
           }
         };
@@ -107,11 +107,10 @@
       window.removeEventListener("error", handleGlobalError);
       window.removeEventListener(
         "unhandledrejection",
-        handleUnhandledRejection
+        handleUnhandledRejection,
       );
     };
   });
-
 
   function updateThemeColor() {
     // Small timeout to allow the DOM/CSS variables to update after class change
@@ -182,11 +181,12 @@
       <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="bg-[var(--bg-secondary)] text-[var(--text-primary)] p-6 rounded-lg shadow-2xl border border-[var(--accent-color)] max-w-2xl w-full mx-4 relative transform transition-all"
-        onclick={stopPropagation(bubble('click'))}
+        onclick={stopPropagation(bubble("click"))}
         role="document"
       >
         <button
           class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          aria-label="Close"
           onclick={() => julesStore.hideReport()}
         >
           <svg
@@ -216,7 +216,7 @@
           <div class="flex flex-col items-center justify-center py-8 gap-4">
             <div
               class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
-></div>
+            ></div>
             <p class="text-sm text-[var(--text-secondary)] animate-pulse">
               Analyzing system state...
             </p>

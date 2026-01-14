@@ -205,6 +205,7 @@
             {/if}
             <button
               class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              aria-label="Close"
               on:click={toggle}
             >
               <svg
@@ -341,6 +342,7 @@
             />
             <button
               class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] disabled:opacity-50"
+              aria-label="Send message"
               on:click={handleSend}
               disabled={!messageText.trim() ||
                 isSending ||

@@ -2,7 +2,6 @@
     import { _ } from "../../../locales/i18n";
     import type { Readable } from "svelte/store";
 
-    
     interface Props {
         // Props - Metrics from derived stores
         performanceData: any;
@@ -15,7 +14,7 @@
         performanceData,
         qualityData,
         isPro = false,
-        minimal = false
+        minimal = false,
     }: Props = $props();
 </script>
 
@@ -232,7 +231,9 @@
         display: flex;
         flex-direction: column;
         gap: 0.5rem;
-        transition: transform 0.2s ease, box-shadow 0.2s ease;
+        transition:
+            transform 0.2s ease,
+            box-shadow 0.2s ease;
     }
 
     .stat-card:hover {
@@ -264,8 +265,7 @@
         color: var(--danger-color);
     }
 
-    .stat-value.neutral,
-    .mini-value.neutral {
+    .stat-value.neutral {
         color: var(--text-primary);
     }
 </style>
