@@ -525,7 +525,8 @@ class BitunixWebSocketService {
       // Handle Data Push
       // Public Channels
       if (message.ch === "price") {
-        const symbol = message.symbol;
+        const rawSymbol = message.symbol;
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
         if (symbol && data) {
           marketStore.updatePrice(symbol, {
@@ -536,7 +537,8 @@ class BitunixWebSocketService {
           });
         }
       } else if (message.ch === "ticker") {
-        const symbol = message.symbol;
+        const rawSymbol = message.symbol;
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
         if (symbol && data) {
           marketStore.updateTicker(symbol, {
@@ -550,7 +552,8 @@ class BitunixWebSocketService {
           });
         }
       } else if (message.ch === "depth_book5") {
-        const symbol = message.symbol;
+        const rawSymbol = message.symbol;
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
         if (symbol && data) {
           marketStore.updateDepth(symbol, {
@@ -564,7 +567,8 @@ class BitunixWebSocketService {
           message.ch === "mark_kline_1day")
       ) {
         // Handle both generic kline channels and the specific mark_kline_1day
-        const symbol = message.symbol;
+        const rawSymbol = message.symbol;
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
         if (symbol && data) {
           // Extract timeframe from channel name: e.g. "market_kline_60min" -> "1h"

@@ -11,20 +11,15 @@
 export function normalizeSymbol(symbol: string, provider: "bitunix" | "binance" | string): string {
     if (!symbol) return "";
 
-    let s = symbol.trim().toUpperCase();
+    let s = symbol.trim().toUpperCase().replace(".P", "").replace(":USDT", "").replace("-P", "");
 
-    // Remove "P" suffix often used for Perpetual/Futures in some UIs if it's followed by USDT or alone
-    // But be careful: some coins might end with P. 
-    // For Bitunix/Binance, we usually want SYMBOLUSDT.
-
-    if (s.endsWith("P") && s.length > 3 && !s.includes("USDT")) {
-        s = s.slice(0, -1);
-    }
-
-    // Ensure USDT suffix for standardized lookups if missing
-    if (!s.includes("USDT") && s !== "USDT") {
+    // If it's just "BTC", make it "BTCUSDT"
+    if (!s.includes("USDT") && s.length <= 5) {
         s = s + "USDT";
     }
+
+    // If it's "BTC-USDT", make it "BTCUSDT"
+    s = s.replace("-USDT", "USDT");
 
     return s;
 }

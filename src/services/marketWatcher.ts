@@ -12,7 +12,7 @@ interface MarketWatchRequest {
 }
 
 class MarketWatcher {
-    private requests = new Map<string, Set<string>>(); // symbol -> channels
+    private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
     private pollingInterval: any = null;
     private readonly DEFAULT_POLLING_MS = 10000;
 
@@ -33,15 +33,18 @@ class MarketWatcher {
      */
     register(symbol: string, channel: string) {
         if (!symbol) return;
-        const normSymbol = normalizeSymbol(symbol, "bitunix"); // Use bitunix as default normalization base
+        const normSymbol = normalizeSymbol(symbol, "bitunix");
 
         if (!this.requests.has(normSymbol)) {
-            this.requests.set(normSymbol, new Set());
+            this.requests.set(normSymbol, new Map());
         }
 
         const channels = this.requests.get(normSymbol)!;
-        if (!channels.has(channel)) {
-            channels.add(channel);
+        const count = channels.get(channel) || 0;
+        channels.set(channel, count + 1);
+
+        // Only sync if this is the first requester for this channel
+        if (count === 0) {
             this.syncSubscriptions();
         }
     }
@@ -50,14 +53,21 @@ class MarketWatcher {
      * Unregister interest.
      */
     unregister(symbol: string, channel: string) {
+        if (!symbol) return;
         const normSymbol = normalizeSymbol(symbol, "bitunix");
         const channels = this.requests.get(normSymbol);
-        if (channels) {
-            channels.delete(channel);
-            if (channels.size === 0) {
-                this.requests.delete(normSymbol);
+
+        if (channels && channels.has(channel)) {
+            const count = channels.get(channel)!;
+            if (count <= 1) {
+                channels.delete(channel);
+                if (channels.size === 0) {
+                    this.requests.delete(normSymbol);
+                }
+                this.syncSubscriptions();
+            } else {
+                channels.set(channel, count - 1);
             }
-            this.syncSubscriptions();
         }
     }
 
@@ -70,7 +80,7 @@ class MarketWatcher {
         // map of key (channel:symbol) -> { symbol, channel }
         const intended = new Map<string, { symbol: string; channel: string }>();
         this.requests.forEach((channels, symbol) => {
-            channels.forEach(ch => {
+            channels.forEach((_, ch) => {
                 let bitunixChannel = ch;
                 if (ch === "price") {
                     bitunixChannel = "price";

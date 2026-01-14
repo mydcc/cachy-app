@@ -18,6 +18,7 @@
   import Tooltip from "../shared/Tooltip.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
   import { normalizeSymbol } from "../../utils/symbolUtils";
+  import { _ } from "../../locales/i18n";
 
   export let isVisible: boolean = false;
 
@@ -59,7 +60,7 @@
       marketWatcher.register(symbol, `kline_${timeframe}`);
       marketWatcher.register(symbol, "price");
 
-      fetchData().then(() => {
+      fetchData().finally(() => {
         isStale = false;
       });
       currentSubscription = subKey;
@@ -69,6 +70,7 @@
     marketWatcher.unregister(oldSym, `kline_${oldTf}`);
     marketWatcher.unregister(oldSym, "price");
     currentSubscription = null;
+    isStale = false;
   }
 
   onDestroy(() => {
@@ -93,6 +95,19 @@
       );
     }
     handleRealTimeUpdate(currentKline);
+  } else if (
+    $settingsStore.debugMode &&
+    showPanel &&
+    !isStale &&
+    !currentKline
+  ) {
+    // Only log if we expect data but have none
+    console.log(
+      `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
+        symbol,
+        "bitunix"
+      )}:${timeframe}`
+    );
   }
 
   // Core Logic for Updating Data and Pivots
@@ -151,12 +166,25 @@
 
   async function updateTechnicals() {
     if (!klinesHistory.length) return;
-    // Calculate technicals using the FULL history including live candle.
-    // The Service now handles Data normalization and Decimal conversion internally.
-    data = await technicalsService.calculateTechnicals(
-      klinesHistory,
-      indicatorSettings
-    );
+    const startTime = Date.now();
+    try {
+      if ($settingsStore.debugMode) {
+        console.log(
+          `[Technicals] Calculating for ${symbol}:${timeframe} (${klinesHistory.length} klines)`
+        );
+      }
+      data = await technicalsService.calculateTechnicals(
+        klinesHistory,
+        indicatorSettings
+      );
+      if ($settingsStore.debugMode) {
+        console.log(
+          `[Technicals] Calculation complete in ${Date.now() - startTime}ms`
+        );
+      }
+    } catch (e) {
+      console.error("[Technicals] Calculation error:", e);
+    }
   }
 
   async function fetchData(silent = false) {
@@ -185,10 +213,6 @@
       loading = false;
     }
   }
-
-  onDestroy(() => {
-    unsubscribeWs();
-  });
 
   function handleDropdownLeave() {
     if (hoverTimeout) clearTimeout(hoverTimeout);
