@@ -3,6 +3,7 @@ import { marketStore, wsStatusStore } from "../stores/marketStore";
 import { accountStore } from "../stores/accountStore";
 import { settingsStore } from "../stores/settingsStore";
 import { CONSTANTS } from "../lib/constants";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import CryptoJS from "crypto-js";
 
 const WS_PUBLIC_URL =
@@ -566,14 +567,36 @@ class BitunixWebSocketService {
         const symbol = message.symbol;
         const data = message.data;
         if (symbol && data) {
-          marketStore.updateKline(symbol, {
+          // Extract timeframe from channel name: e.g. "market_kline_60min" -> "1h"
+          let timeframe = "1h"; // fallback
+          if (message.ch === "mark_kline_1day") {
+            timeframe = "1d";
+          } else {
+            const match = message.ch.match(/market_kline_(.+)/);
+            if (match) {
+              const bitunixTf = match[1];
+              // Map back from Bitunix format to internal format
+              const revMap: Record<string, string> = {
+                "1min": "1m",
+                "5min": "5m",
+                "15min": "15m",
+                "30min": "30m",
+                "60min": "1h",
+                "4h": "4h",
+                "1day": "1d",
+                "1week": "1w",
+                "1month": "1M",
+              };
+              timeframe = revMap[bitunixTf] || bitunixTf;
+            }
+          }
+
+          marketStore.updateKline(symbol, timeframe, {
             o: data.o,
             h: data.h,
             l: data.l,
             c: data.c,
-            b: data.b || data.v, // volume might be b (base vol) or v? Bitunix usually uses b for base volume in ticker, check kline
-            // Use data.id (often timestamp in Bitunix) or data.ts as fallbacks.
-            // Only use Date.now() as a last resort to prevent infinite candle generation if timestamp is missing.
+            b: data.b || data.v,
             t: data.t || data.id || data.ts || Date.now(),
           });
         }
@@ -620,7 +643,7 @@ class BitunixWebSocketService {
 
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
-    const normalizedSymbol = symbol.toUpperCase();
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
     if (this.publicSubscriptions.has(subKey)) return;
@@ -635,7 +658,8 @@ class BitunixWebSocketService {
   }
 
   unsubscribe(symbol: string, channel: string) {
-    const normalizedSymbol = symbol.toUpperCase();
+    if (!symbol) return;
+    const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
 
     if (this.publicSubscriptions.has(subKey)) {

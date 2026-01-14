@@ -16,7 +16,8 @@
   } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import Tooltip from "../shared/Tooltip.svelte";
-  import { _ } from "../../locales/i18n";
+  import { marketWatcher } from "../../services/marketWatcher";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
 
   export let isVisible: boolean = false;
 
@@ -38,79 +39,54 @@
 
   // React to Market Store updates for real-time processing
   $: wsData = symbol
-    ? $marketStore[symbol] ||
-      $marketStore[symbol.replace("P", "")] ||
-      $marketStore[symbol + "USDT"]
+    ? $marketStore[normalizeSymbol(symbol, "bitunix")]
     : null;
+
+  $: currentKline = wsData?.klines ? wsData.klines[timeframe] : null;
 
   // Trigger fetch/subscribe when relevant props change
   $: if (showPanel && symbol && timeframe) {
-    // If symbol or timeframe changed, we need to reset and fetch fresh
-    if (currentSubscription !== `${symbol}:${timeframe}`) {
-      isStale = true; // Visual cue: We are changing context
-      unsubscribeWs(); // Unsubscribe previous
+    const subKey = `${symbol}:${timeframe}`;
+    if (currentSubscription !== subKey) {
+      isStale = true;
+      
+      const [oldSym, oldTf] = currentSubscription ? currentSubscription.split(":") : ["", ""];
+      if (oldSym) {
+        marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+        marketWatcher.unregister(oldSym, "price");
+      }
+
+      marketWatcher.register(symbol, `kline_${timeframe}`);
+      marketWatcher.register(symbol, "price");
+      
       fetchData().then(() => {
-        subscribeWs(); // Subscribe new
-        isStale = false; // Transition complete
+        isStale = false;
       });
-      currentSubscription = `${symbol}:${timeframe}`;
+      currentSubscription = subKey;
     }
-  } else if (!showPanel) {
-    unsubscribeWs();
+  } else if (!showPanel && currentSubscription) {
+    const [oldSym, oldTf] = currentSubscription.split(":");
+    marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+    marketWatcher.unregister(oldSym, "price");
     currentSubscription = null;
   }
 
   onDestroy(() => {
-    unsubscribeWs();
+    if (currentSubscription) {
+      const [oldSym, oldTf] = currentSubscription.split(":");
+      marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+      marketWatcher.unregister(oldSym, "price");
+    }
   });
 
   // Re-calculate when settings change (without re-fetching)
   $: if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
-    // When settings change, we just recalculate based on existing history + live
     updateTechnicals();
   }
 
   // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
-  $: if (showPanel && wsData?.kline && klinesHistory.length > 0 && !isStale) {
-    handleRealTimeUpdate(wsData.kline);
-  }
-
-  const bitunixIntervalMap: Record<string, string> = {
-    "1m": "1min",
-    "5m": "5min",
-    "15m": "15min",
-    "30m": "30min",
-    "1h": "60min",
-    "4h": "4h",
-    "1d": "1day",
-    "1w": "1week",
-    "1M": "1month",
-  };
-
-  function getBitunixChannel(tf: string): string {
-    const mapped = bitunixIntervalMap[tf] || tf;
-    return `market_kline_${mapped}`;
-  }
-
-  function subscribeWs() {
-    if (symbol && timeframe && $settingsStore.apiProvider === "bitunix") {
-      const channel = getBitunixChannel(timeframe);
-      bitunixWs.subscribe(symbol, channel);
-    }
-  }
-
-  function unsubscribeWs() {
-    if (currentSubscription) {
-      const [oldSymbol, oldTimeframe] = currentSubscription.split(":");
-      if (
-        oldSymbol &&
-        oldTimeframe &&
-        $settingsStore.apiProvider === "bitunix"
-      ) {
-        const channel = getBitunixChannel(oldTimeframe);
-        bitunixWs.unsubscribe(oldSymbol, channel);
-      }
-    }
+  $: if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
+    handleRealTimeUpdate(currentKline);
   }
 
   // Core Logic for Updating Data and Pivots

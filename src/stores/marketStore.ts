@@ -16,14 +16,14 @@ export interface MarketData {
   volume?: Decimal | null;
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
-  kline?: {
+  klines: Record<string, {
     open: Decimal;
     high: Decimal;
     low: Decimal;
     close: Decimal;
     volume: Decimal;
     time: number;
-  };
+  }>;
 }
 
 export type WSStatus =
@@ -54,16 +54,12 @@ function createMarketStore() {
           indexPrice: null,
           fundingRate: null,
           nextFundingTime: null,
+          klines: {},
         };
 
         // Bitunix timestamps often come as strings, ensure conversion if needed
         let nft = 0;
         if (data.nextFundingTime) {
-          // Bitunix doc example says "2024-12-04T12:00:00Z" OR sometimes unix timestamp?
-          // The push data example showed: "nft": "2024-12-04T12:00:00Z"
-          // Wait, the doc Push Parameters table says "Milliseconds format of timestamp Unix, e.g. 1597026383085"
-          // BUT the example JSON showed an ISO string. "nft": "2024-12-04T12:00:00Z"
-          // We should handle both robustly.
           if (/^\d+$/.test(data.nextFundingTime)) {
             nft = parseInt(data.nextFundingTime, 10);
           } else {
@@ -102,10 +98,9 @@ function createMarketStore() {
           indexPrice: null,
           fundingRate: null,
           nextFundingTime: null,
+          klines: {},
         };
 
-        // Calculate percentage change manually to be safe
-        // (Last - Open) / Open * 100
         const last = new Decimal(data.lastPrice);
         const open = new Decimal(data.open);
         let pct = new Decimal(0);
@@ -135,6 +130,7 @@ function createMarketStore() {
           indexPrice: null,
           fundingRate: null,
           nextFundingTime: null,
+          klines: {},
         };
         return {
           ...store,
@@ -150,6 +146,7 @@ function createMarketStore() {
     },
     updateKline: (
       symbol: string,
+      timeframe: string,
       data: { o: string; h: string; l: string; c: string; b: string; t: number }
     ) => {
       update((store) => {
@@ -159,18 +156,22 @@ function createMarketStore() {
           indexPrice: null,
           fundingRate: null,
           nextFundingTime: null,
+          klines: {},
         };
         return {
           ...store,
           [symbol]: {
             ...current,
-            kline: {
-              open: new Decimal(data.o),
-              high: new Decimal(data.h),
-              low: new Decimal(data.l),
-              close: new Decimal(data.c),
-              volume: new Decimal(data.b),
-              time: data.t,
+            klines: {
+              ...current.klines,
+              [timeframe]: {
+                open: new Decimal(data.o),
+                high: new Decimal(data.h),
+                low: new Decimal(data.l),
+                close: new Decimal(data.c),
+                volume: new Decimal(data.b),
+                time: data.t,
+              },
             },
           },
         };

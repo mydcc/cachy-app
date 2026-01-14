@@ -36,6 +36,8 @@ import { browser } from "$app/environment";
 import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
 import { storageUtils } from "../utils/storageUtils";
+import { marketWatcher } from "./marketWatcher";
+import { normalizeSymbol } from "../utils/symbolUtils";
 
 interface CSVTradeEntry {
   ID: string;
@@ -102,61 +104,44 @@ export const app = {
       tradeStoreUnsubscribe = null;
     }
 
-    // Watch for symbol changes to manage WS subscriptions
+    // Watch for symbol changes to manage MarketWatcher registrations
+    let currentWatchedSymbol: string | null = null;
     let symbolDebounceTimer: any = null;
 
     tradeStoreUnsubscribe = tradeStore.subscribe((state) => {
-      const settings = get(settingsStore);
-      if (settings.apiProvider !== "bitunix") return;
+      const newSymbol = state.symbol ? normalizeSymbol(state.symbol, "bitunix") : "";
 
-      const newSymbol = state.symbol ? state.symbol.toUpperCase() : "";
-
-      // Clear existing timer
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
 
       symbolDebounceTimer = setTimeout(() => {
-        if (newSymbol && newSymbol.length >= 3) {
-          if (currentSubscribedSymbol !== newSymbol) {
-            if (currentSubscribedSymbol) {
-              bitunixWs.unsubscribe(currentSubscribedSymbol, "price");
-            }
-            bitunixWs.subscribe(newSymbol, "price");
-            currentSubscribedSymbol = newSymbol;
+        if (newSymbol && newSymbol !== currentWatchedSymbol) {
+          if (currentWatchedSymbol) {
+            marketWatcher.unregister(currentWatchedSymbol, "price");
           }
-        } else if (currentSubscribedSymbol) {
-          // Symbol cleared or invalid
-          bitunixWs.unsubscribe(currentSubscribedSymbol, "price");
-          currentSubscribedSymbol = null;
+          marketWatcher.register(newSymbol, "price");
+          currentWatchedSymbol = newSymbol;
+        } else if (!newSymbol && currentWatchedSymbol) {
+          marketWatcher.unregister(currentWatchedSymbol, "price");
+          currentWatchedSymbol = null;
         }
-      }, 500); // 500ms debounce to prevent rapid sub/unsub during typing
+      }, 500);
     });
 
-    // Watch for Market Data updates (from WS)
+    // Watch for Market Data updates
     if (marketStoreUnsubscribe) marketStoreUnsubscribe();
     marketStoreUnsubscribe = marketStore.subscribe((data) => {
       const state = get(tradeStore);
       const settings = get(settingsStore);
 
-      // Only update if:
-      // 1. We have a valid symbol
-      // 2. Auto-update setting is ON
-      // 3. We have WS data for this symbol
       if (state.symbol && settings.autoUpdatePriceInput) {
-        const symbolKey = state.symbol.toUpperCase();
-        // Check exact symbol or with P suffix logic or USDT suffix logic to be robust
-        const marketData =
-          data[symbolKey] ||
-          data[symbolKey.replace("P", "")] ||
-          data[symbolKey + "USDT"];
+        const normSymbol = normalizeSymbol(state.symbol, "bitunix");
+        const marketData = data[normSymbol];
 
         if (marketData && marketData.lastPrice) {
-          // Update Entry Price
           const newPrice = marketData.lastPrice.toNumber();
-          // Avoid redundant updates/re-renders if price hasn't changed significantly or is same
           if (state.entryPrice !== newPrice) {
             updateTradeStore((s) => ({ ...s, entryPrice: newPrice }));
 
-            // Throttle expensive calculations
             const now = Date.now();
             if (now - lastCalculationTime > CALCULATION_THROTTLE_MS) {
               app.calculateAndDisplay();
@@ -185,10 +170,6 @@ export const app = {
     }
 
     const settings = get(settingsStore);
-    // Interval logic: we start the loop if marketDataInterval is set (it is always set in new types)
-    // However, if we want to stop it completely, we'd need an "Off" option. Currently type is '1s'|'1m'|'10m'.
-    // So we assume it always runs.
-
     let intervalMs = 60000;
     if (settings.marketDataInterval === "1s") intervalMs = 1000;
     else if (settings.marketDataInterval === "1m") intervalMs = 60000;
@@ -198,18 +179,11 @@ export const app = {
       const currentSymbol = get(tradeStore).symbol;
       const uiState = get(uiStore);
 
-      if (
-        currentSymbol &&
-        currentSymbol.length >= 3 &&
-        !uiState.isPriceFetching
-      ) {
-        // 1. Auto Update Price Input (REST Fallback)
+      if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
         if (settings.autoUpdatePriceInput) {
-          // If provider is Binance, we MUST use REST (no WS impl yet).
           if (settings.apiProvider === "binance") {
             app.handleFetchPrice(true);
           } else {
-            // Bitunix: Use REST only if WS is NOT connected to avoid race conditions/jitter
             const wsStatus = get(wsStatusStore);
             if (wsStatus !== "connected") {
               app.handleFetchPrice(true);
@@ -217,7 +191,6 @@ export const app = {
           }
         }
 
-        // 2. Auto Update ATR (Independent of price input setting, but depends on ATR mode)
         if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === "auto") {
           app.fetchAtr(true);
         }

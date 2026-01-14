@@ -1,6 +1,7 @@
 import { Decimal } from "decimal.js";
 import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
+import { normalizeSymbol } from "../utils/symbolUtils";
 import type { Kline } from "./technicalsTypes";
 export type { Kline };
 
@@ -170,28 +171,8 @@ export function clearApiCache() {
 }
 
 export const apiService = {
-  // Helper to normalize symbols for API calls
   normalizeSymbol(symbol: string, provider: "bitunix" | "binance"): string {
-    if (!symbol) return "";
-    let s = symbol.toUpperCase();
-
-    // 1. Strip known Futures suffixes
-    // Handle "BTCUSDT.P" -> "BTCUSDT"
-    if (s.endsWith(".P")) {
-      s = s.slice(0, -2);
-    }
-    // Handle "BTCUSDTP" -> "BTCUSDT"
-    // We only strip 'P' if it follows 'USDT' to avoid accidental stripping of coins ending in P
-    else if (s.endsWith("USDTP")) {
-      s = s.slice(0, -1);
-    }
-
-    // 2. Append base pair if missing (assuming USDT defaults for this context)
-    if (!s.includes("USDT") && !s.includes("USD")) {
-      s += "USDT";
-    }
-
-    return s;
+    return normalizeSymbol(symbol, provider);
   },
 
   async fetchBitunixPrice(
