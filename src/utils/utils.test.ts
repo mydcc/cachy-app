@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseDateString, parseTimestamp } from "./utils";
+import { parseDateString, parseTimestamp, escapeHtml } from "./utils";
 
 describe("parseTimestamp", () => {
   const NOW = Date.now();
@@ -107,5 +107,22 @@ describe("parseDateString", () => {
     // match our instance if we don't force UTC.
     const localDate = new Date(`${dateStr}T${timeStr}`);
     expect(date.getTime()).toBe(localDate.getTime());
+  });
+});
+
+describe("escapeHtml", () => {
+  it("should escape unsafe HTML characters", () => {
+    expect(escapeHtml('<script>alert("xss")</script>')).toBe(
+      "&lt;script&gt;alert(&quot;xss&quot;)&lt;/script&gt;"
+    );
+  });
+
+  it("should escape ampersands", () => {
+    expect(escapeHtml("Ben & Jerry's")).toBe("Ben &amp; Jerry&#039;s");
+  });
+
+  it("should return empty string for null/undefined", () => {
+    expect(escapeHtml(null)).toBe("");
+    expect(escapeHtml(undefined)).toBe("");
   });
 });

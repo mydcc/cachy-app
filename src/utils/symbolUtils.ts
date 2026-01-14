@@ -13,6 +13,11 @@ export function normalizeSymbol(symbol: string, provider: "bitunix" | "binance" 
 
     let s = symbol.trim().toUpperCase().replace(".P", "").replace(":USDT", "").replace("-P", "");
 
+    // Handle USDTP suffix (explicitly requested to strip P from USDTP)
+    if (s.endsWith("USDTP")) {
+        s = s.substring(0, s.length - 1);
+    }
+
     // If it's just "BTC", make it "BTCUSDT"
     if (!s.includes("USDT") && s.length <= 5) {
         s = s + "USDT";

@@ -341,3 +341,14 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
 
   return newTrade as JournalEntry;
 }
+
+export function escapeHtml(unsafe: unknown): string {
+  if (unsafe === null || unsafe === undefined) return "";
+  const str = String(unsafe);
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}

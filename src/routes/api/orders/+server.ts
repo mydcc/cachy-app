@@ -37,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing ${type} on ${exchange}:`, e);
+    console.error(`Error processing ${type} on ${exchange}:`, e.message);
     return json(
       { error: e.message || `Failed to process ${type}` },
       { status: 500 }

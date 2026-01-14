@@ -20,7 +20,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(account);
   } catch (e: any) {
-    console.error(`Error fetching account from ${exchange}:`, e);
+    console.error(`Error fetching account from ${exchange}:`, e.message);
     return json(
       { error: e.message || "Failed to fetch account" },
       { status: 500 }
