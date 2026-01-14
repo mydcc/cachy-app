@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount, onDestroy, untrack } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
   import { indicatorStore } from "../../stores/indicatorStore";
@@ -246,14 +246,16 @@
   );
   $effect(() => {
     if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
-      fetchHistoryKlines(effectiveRsiTimeframe);
+      untrack(() => {
+        fetchHistoryKlines(effectiveRsiTimeframe);
 
-      const newChannel = `kline_${effectiveRsiTimeframe}`;
-      if (currentWsKlineChannel && currentWsKlineChannel !== newChannel) {
-        marketWatcher.unregister(symbol, currentWsKlineChannel);
-      }
-      marketWatcher.register(symbol, newChannel);
-      currentWsKlineChannel = newChannel;
+        const newChannel = `kline_${effectiveRsiTimeframe}`;
+        if (currentWsKlineChannel && currentWsKlineChannel !== newChannel) {
+          marketWatcher.unregister(symbol, currentWsKlineChannel);
+        }
+        marketWatcher.register(symbol, newChannel);
+        currentWsKlineChannel = newChannel;
+      });
     }
   });
   // Reactively Calculate RSI

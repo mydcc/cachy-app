@@ -21,7 +21,7 @@
   import { settingsStore } from "../stores/settingsStore"; // Import settings store
   import { favoritesStore } from "../stores/favoritesStore"; // Import favorites store
   import { modalManager } from "../services/modalManager";
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
   import { get } from "svelte/store"; // Import get
   import { loadInstruction } from "../services/markdownLoader";
@@ -131,7 +131,9 @@
       $tradeStore.tradeType !== undefined &&
       $tradeStore.targets !== undefined
     ) {
-      app.calculateAndDisplay();
+      untrack(() => {
+        app.calculateAndDisplay();
+      });
     }
   });
 
