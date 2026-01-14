@@ -1,8 +1,8 @@
 # Cachy Technisches Whitepaper
 
-**Version:** 1.0.0
+**Version:** 0.94.2
 **Datum:** Januar 2026
-**Letzte Aktualisierung:** 13. Januar 2026
+**Letzte Aktualisierung:** 14. Januar 2026
 
 ---
 
@@ -85,16 +85,16 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 
 Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes reaktiven Stores (\`writable\`, \`derived\`). Der Zustand ist in domänenspezifische Module in \`src/stores/\` unterteilt:
 
-1.  **\`accountStore.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
+1. **\`accountStore.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
     - _Verfolgt_: Offene Positionen, Aktive Orders, Wallet-Guthaben.
     - _Update-Mechanismus_: Empfängt atomare Updates von WebSockets (\`updatePositionFromWs\`).
-2.  **\`marketStore.ts\`**: Hochfrequenz-Marktdaten.
+2. **\`marketStore.ts\`**: Hochfrequenz-Marktdaten.
     - _Verfolgt_: Preise, Finanzierungsraten, Orderbuch-Tiefe.
     - _Optimierung_: Verwendet eine Dictionary-Map \`Record<string, MarketData>\` für O(1) Zugriffskomplexität bei Preisaktualisierungen.
-3.  **\`tradeStore.ts\`**: Das "Reißbrett".
+3. **\`tradeStore.ts\`**: Das "Reißbrett".
     - _Verfolgt_: Benutzereingaben für einen _potenziellen_ Trade (Einstieg, SL, TP) vor der Ausführung.
     - _Persistenz_: Synchronisiert automatisch mit \`localStorage\`, sodass Benutzer ihre Arbeit beim Neuladen nicht verlieren.
-4.  **\`journalStore.ts\`**: Die Historische Aufzeichnung.
+4. **\`journalStore.ts\`**: Die Historische Aufzeichnung.
     - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
     - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
 
@@ -117,12 +117,12 @@ Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-
 
 **Die Lösung**:
 
-1.  Der Client sendet eine Anfrage an \`GET /api/sync/orders\`.
-2.  Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
-3.  Der Server (Node.js-Kontext) empfängt die Header.
-4.  Der Server konstruiert die Payload und generiert die SHA256-Signatur mit dem Geheimnis.
-5.  Der Server ruft die Bitunix-API auf.
-6.  Der Server gibt das JSON-Ergebnis an den Client zurück.
+1. Der Client sendet eine Anfrage an \`GET /api/sync/orders\`.
+2. Der Client fügt \`API_KEY\` und \`API_SECRET\` in benutzerdefinierten Headern hinzu (übertragen via HTTPS).
+3. Der Server (Node.js-Kontext) empfängt die Header.
+4. Der Server konstruiert die Payload und generiert die SHA256-Signatur mit dem Geheimnis.
+5. Der Server ruft die Bitunix-API auf.
+6. Der Server gibt das JSON-Ergebnis an den Client zurück.
 
 _Hinweis: Während Geheimnisse vom Client zum Server reisen, ist der Server zustandslos und protokolliert oder speichert sie nicht._
 
@@ -158,13 +158,13 @@ Cachy arbeitet rückwärts: _Ich möchte 100 \$ riskieren -> Wie viel BTC sollte
 
 **Berechnungsschritte**:
 
-1.  **Abstand Bestimmen**:
+1. **Abstand Bestimmen**:
     $$ \Delta = | 50.000 - 49.000 | = 1.000 $$
-2.  **Menge Berechnen (Größe)**:
+2. **Menge Berechnen (Größe)**:
     $$ Qty = \frac{Risiko}{\Delta} = \frac{100}{1.000} = 0,1 \text{ BTC} $$
-3.  **Validierung**:
+3. **Validierung**:
     Wenn der Preis 49.000 \$ erreicht, beträgt der Verlust 0,1 x 1.000 = 100 \$. **Die Mathematik stimmt.**
-4.  **Hebel-Check**:
+4. **Hebel-Check**:
     Wert der Position ist 0,1 x 50.000 = 5.000 \$.
     Wenn der Benutzer 10x Hebel hat, Erforderliche Margin = 500 \$.
     _Das System validiert, dass 500 \$ < Verfügbares Guthaben._
@@ -372,43 +372,43 @@ Um zu verstehen, wie Cachy funktioniert, verfolgen wir den Lebenszyklus eines ei
 
 _Komponente: \`TradeSetupInputs.svelte\`_
 
-1.  **Benutzereingabe**: Benutzer tippt "BTC".
-2.  **Unified Analysis Fetch**: Die Komponente ruft \`app.fetchAllAnalysisData()\` auf, was eine koordinierte Datenernte auslöst.
-3.  **Parallele Ausführung**:
+1. **Benutzereingabe**: Benutzer tippt "BTC".
+2. **Unified Analysis Fetch**: Die Komponente ruft \`app.fetchAllAnalysisData()\` auf, was eine koordinierte Datenernte auslöst.
+3. **Parallele Ausführung**:
     - **WebSocket**: Verbindet sich mit dem \`ticker\`-Kanal für Echtzeitpreise.
     - **REST API (Preis)**: Ruft den neuesten Preis-Snapshot ab.
     - **REST API (ATR)**: Ruft 1440 Minuten Kerzenhistorie für den _primären_ Zeitrahmen ab.
     - **Multi-ATR Scan**: Ruft gleichzeitig Kerzen für _sekundäre_ Zeitrahmen (1h, 4h) im Hintergrund ab.
-4.  **Auto-Fill**: Das System verwendet den primären ATR, um einen "sicheren" Stop-Loss-Preis vorzuschlagen (z. B. $Einstieg - 1,5 \times ATR$).
+4. **Auto-Fill**: Das System verwendet den primären ATR, um einen "sicheren" Stop-Loss-Preis vorzuschlagen (z. B. $Einstieg - 1,5 \times ATR$).
 
 ### Phase 2: Ausführung (Die Proxy-Schicht)
 
 _Komponente: \`TradeSetupInputs.svelte\` -> \`apiService.ts\`_
 
-1.  **Benutzeraktion**: Klickt auf "Long".
-2.  **Payload-Konstruktion**: Die App bündelt Einstieg, SL, TP und Größe in ein standardisiertes JSON.
-3.  **Proxy-Aufruf**: \`POST /api/orders\`.
-4.  **Signierung**: Der Node.js-Server signiert die Anfrage mit dem API-Geheimnis des Benutzers.
-5.  **Börsenbestätigung**: Bitunix gibt eine Order-ID zurück.
+1. **Benutzeraktion**: Klickt auf "Long".
+2. **Payload-Konstruktion**: Die App bündelt Einstieg, SL, TP und Größe in ein standardisiertes JSON.
+3. **Proxy-Aufruf**: \`POST /api/orders\`.
+4. **Signierung**: Der Node.js-Server signiert die Anfrage mit dem API-Geheimnis des Benutzers.
+5. **Börsenbestätigung**: Bitunix gibt eine Order-ID zurück.
 
 ### Phase 3: Überwachung (Die Store-Schicht)
 
 _Komponente: \`PositionsSidebar.svelte\`_
 
-1.  **Socket-Event**: Bitunix sendet ein \`ORDER_UPDATE\` über WebSocket.
-2.  **Store-Update**: \`accountStore\` empfängt das Ereignis. Es sieht Status \`FILLED\`.
-3.  **Atomare Zustandsänderung**:
+1. **Socket-Event**: Bitunix sendet ein \`ORDER_UPDATE\` über WebSocket.
+2. **Store-Update**: \`accountStore\` empfängt das Ereignis. Es sieht Status \`FILLED\`.
+3. **Atomare Zustandsänderung**:
     - Die "Pending Order" wird aus \`openOrders\` entfernt.
     - Eine neue "Position" wird in \`positions\` erstellt.
-4.  **UI-Render**: Die Seitenleiste animiert die neue Position sofort in den Sichtbereich.
+4. **UI-Render**: Die Seitenleiste animiert die neue Position sofort in den Sichtbereich.
 
 ### Phase 4: Schließen & Journalisieren (Die Sync-Schicht)
 
 _Komponente: \`app.ts\` (Sync-Logik)_
 
-1.  **Schließung**: Benutzer klickt auf "Schließen" oder SL wird getroffen.
-2.  **Historien-Abruf**: Die App pollt \`get_history_positions\` (für geschlossene Trades) und \`get_pending_positions\` (für Status-Updates).
-3.  **Der "Safe Swap"**:
+1. **Schließung**: Benutzer klickt auf "Schließen" oder SL wird getroffen.
+2. **Historien-Abruf**: Die App pollt \`get_history_positions\` (für geschlossene Trades) und \`get_pending_positions\` (für Status-Updates).
+3. **Der "Safe Swap"**:
     - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
     - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
     - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalStore\` (Historie).
@@ -434,10 +434,10 @@ Die Konnektivität wird über die Abstraktionsschicht \`src/services/apiService.
 
 Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet Cachy einen hybriden Ansatz:
 
-1.  **Initiales Laden (REST)**:
+1. **Initiales Laden (REST)**:
     - Ruft die vollständige Orderhistorie ab (Paginierung unterstützt).
     - Ruft 1440 Minuten Kerzenhistorie ab (für RSI/ATR-Berechnung).
-2.  **Echtzeit (WebSocket)**:
+2. **Echtzeit (WebSocket)**:
     - **Öffentliche Kanäle**: \`ticker\`, \`depth\`, \`trade\`. Verwendet für Charting und Preisaktualisierungen.
     - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Verwendet zur Aktualisierung des Benutzer-Dashboards.
     - _Heartbeat-Logik_: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
@@ -448,9 +448,9 @@ Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit
 
 **Die Logik (\`src/services/app.ts\`)**:
 
-1.  **Neue Daten abrufen**: Die App ruft die vollständige Liste der offenen Positionen von der API ab.
-2.  **Diffing**: Sie vergleicht die neue Liste mit dem \`accountStore\`.
-3.  **Atomarer Tausch**:
+1. **Neue Daten abrufen**: Die App ruft die vollständige Liste der offenen Positionen von der API ab.
+2. **Diffing**: Sie vergleicht die neue Liste mit dem \`accountStore\`.
+3. **Atomarer Tausch**:
     - Wenn eine Position im Store existiert, aber NICHT in der API -> Sie wurde geschlossen. Verschiebe ins Journal.
     - Wenn eine Position in der API existiert, aber NICHT im Store -> Sie wurde remote geöffnet. Füge zum Store hinzu.
     - Wenn in BEIDEN -> Aktualisiere PnL/Margin-Metriken.
@@ -488,8 +488,8 @@ Cachy fungiert als Durchgangsinstanz.
 
 Durch das Entfernen der Datenbank:
 
-1.  **Eliminierung von Angriffsvektoren**: SQL-Injection und Datenbank-Lecks sind unmöglich.
-2.  **DSGVO/CCPA-Konformität**: Wir verarbeiten keine Benutzerdaten, daher ist die Konformität per Design automatisch gegeben.
+1. **Eliminierung von Angriffsvektoren**: SQL-Injection und Datenbank-Lecks sind unmöglich.
+2. **DSGVO/CCPA-Konformität**: Wir verarbeiten keine Benutzerdaten, daher ist die Konformität per Design automatisch gegeben.
 
 ---
 
@@ -526,7 +526,7 @@ _Ziel: Push in den App Store/Play Store._
 
 # Repository klonen
 
-git clone https://github.com/mydcc/cachy-app.git
+git clone <https://github.com/mydcc/cachy-app.git>
 
 # Abhängigkeiten installieren
 
@@ -550,9 +550,9 @@ Cachy verwendet eine rigorose Testsuite mit **Vitest**.
 
 Der Produktions-Build ist ein Node.js-Adapter-Output.
 
-1.  **Build**: \`npm run build\` (Kompiliert SvelteKit nach \`build/\`)
-2.  **Run**: \`node build/index.js\` oder via PM2: \`pm2 start server.js --name "cachy-app"\`
-3.  **Reverse Proxy**: Nginx wird empfohlen, um SSL-Terminierung zu handhaben und Traffic an Port 3000 weiterzuleiten.
+1. **Build**: \`npm run build\` (Kompiliert SvelteKit nach \`build/\`)
+2. **Run**: \`node build/index.js\` oder via PM2: \`pm2 start server.js --name "cachy-app"\`
+3. **Reverse Proxy**: Nginx wird empfohlen, um SSL-Terminierung zu handhaben und Traffic an Port 3000 weiterzuleiten.
 
 ---
 

@@ -14,15 +14,24 @@ interface MarketWatchRequest {
 class MarketWatcher {
     private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
     private pollingInterval: any = null;
-    private readonly DEFAULT_POLLING_MS = 10000;
+    private currentIntervalSeconds: number = 10;
 
     constructor() {
         if (browser) {
-            this.startPolling();
-            // Watch settings for provider changes
-            settingsStore.subscribe(() => {
+            // Watch settings for provider or interval changes
+            settingsStore.subscribe((settings) => {
+                const newInterval = settings.marketDataInterval || 10;
+
+                // If interval changed, restart polling
+                if (newInterval !== this.currentIntervalSeconds) {
+                    this.currentIntervalSeconds = newInterval;
+                    this.startPolling();
+                }
+
                 this.syncSubscriptions();
             });
+
+            this.startPolling();
         }
     }
 
@@ -148,7 +157,7 @@ class MarketWatcher {
                     // but could be moved here for better consolidation.
                 });
             }
-        }, this.DEFAULT_POLLING_MS);
+        }, this.currentIntervalSeconds * 1000);
     }
 
     public getActiveSymbols(): string[] {

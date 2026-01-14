@@ -298,7 +298,7 @@
 
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
-    const interval = $settingsStore.marketDataInterval === "1s" ? 5000 : 60000;
+    const interval = $settingsStore.marketDataInterval * 1000;
     restIntervalId = setInterval(() => fetchRestData(true), interval);
   }
 

@@ -1,8 +1,8 @@
 # Cachy Technical Whitepaper
 
-**Version:** 1.0.0
+**Version:** 0.94.2
 **Date:** January 2026
-**Last Updated:** January 13, 2026
+**Last Updated:** January 14, 2026
 
 ---
 
@@ -85,16 +85,16 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 
 Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reactive Stores (`writable`, `derived`). The state is divided into domain-specific modules in `src/stores/`:
 
-1.  **`accountStore.ts`**: The "Single Source of Truth" for the user's wallet.
+1. **`accountStore.ts`**: The "Single Source of Truth" for the user's wallet.
     - _Tracks_: Open Positions, Active Orders, Wallet Balances.
     - _Update Mechanism_: Receives atomic updates from WebSockets (`updatePositionFromWs`).
-2.  **`marketStore.ts`**: High-frequency market data.
+2. **`marketStore.ts`**: High-frequency market data.
     - _Tracks_: Prices, Funding Rates, Order Book Depth.
     - _Optimization_: Uses a dictionary map `Record<string, MarketData>` for O(1) access complexity when updating prices.
-3.  **`tradeStore.ts`**: The "Drafting Board".
+3. **`tradeStore.ts`**: The "Drafting Board".
     - _Tracks_: User inputs for a _potential_ trade (Entry, SL, TP) before execution.
     - _Persistence_: Automatically syncs to `localStorage` so users don't lose work on refresh.
-4.  **`journalStore.ts`**: The Historical Record.
+4. **`journalStore.ts`**: The Historical Record.
     - _Tracks_: Array of `JournalEntry` objects (closed trades).
     - _Analytics_: Serves as the raw dataset for the `calculator.ts` analytics engine.
 
@@ -117,12 +117,12 @@ Located in `src/routes/api/`, this layer acts as a security gateway.
 
 **The Solution**:
 
-1.  Client sends request to `GET /api/sync/orders`.
-2.  Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
-3.  Server (Node.js context) receives headers.
-4.  Server constructs the payload, generates the SHA256 signature using the Secret.
-5.  Server calls Bitunix API.
-6.  Server returns the JSON result to Client.
+1. Client sends request to `GET /api/sync/orders`.
+2. Client includes `API_KEY` and `API_SECRET` in custom headers (transported via HTTPS).
+3. Server (Node.js context) receives headers.
+4. Server constructs the payload, generates the SHA256 signature using the Secret.
+5. Server calls Bitunix API.
+6. Server returns the JSON result to Client.
 
 _Note: While secrets travel from Client to Server, the Server is stateless and does not log or store them._
 
@@ -161,13 +161,13 @@ Cachy works backwards: _I want to risk $100 -> How much BTC should I buy?_
 
 **Calculation Steps**:
 
-1.  **Determine Distance**:
+1. **Determine Distance**:
     $$ \Delta = | 50,000 - 49,000 | = 1,000 $$
-2.  **Calculate Quantity (Size)**:
+2. **Calculate Quantity (Size)**:
     $$ Qty = \frac{Risk}{\Delta} = \frac{100}{1,000} = 0.1 \text{ BTC} $$
-3.  **Validation**:
+3. **Validation**:
     If price hits $49,000, loss is $0.1 \times 1,000 = \$100$. **The math holds.**
-4.  **Leverage Check**:
+4. **Leverage Check**:
     Value of position is $0.1 \times 50,000 = \$5,000$.
     If user has 10x leverage, Margin Required = $500.
     _The system validates that $500 < Available Balance._
@@ -187,12 +187,15 @@ Cachy doesn't just calculate one ATR. It executes a **Parallel Scan** of the use
 #### 2. Technical Analysis Engine
 
 _Goal: Provide standard indicators without external charting libraries._
-The `technicalsService.ts` leverages the `technicalindicators` library to compute:
+The `technicalsService.ts` leverages the **`talib-web` library** (WebAssembly port of TA-Lib) to compute:
 
-- **Oscillators**: RSI, Stochastic, CCI, Awesome Oscillator, ADX.
+- **Oscillators**: RSI, Stochastic, CCI, Awesome Oscillator, ADX, Momentum.
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Calculated manually from the previous day's High/Low/Close.
-  This data is visualized in the **Technicals Panel**, a dedicated overlay for rapid market assessment.
+
+**Upgrade (January 2026)**: Migrated from `technicalindicators` to `talib-web` for exact alignment with TradingView. The WebAssembly-based implementation offers maximum accuracy and uses the same algorithms as professional trading platforms.
+
+This data is visualized in the **Technicals Panel**, a dedicated overlay for rapid market assessment.
 
 #### 3. Chronobiological Analysis (Timing)
 
@@ -200,9 +203,11 @@ _Goal: Do you trade better before lunch?_
 The system iterates through every closed trade and buckets the PnL by Hour of Day (0-23) and Day of Week (0-6).
 
 - **Implementation**:
+
   ```typescript
   hourlyNetPnl[date.getHours()].plus(trade.pnl);
   ```
+
 - **Result**: A heat map showing "Danger Zones" (e.g., Friday Afternoons) where the trader historically loses money.
 
 ### The Journal Deep Dive System (10 Specialized Analytics Tabs)
@@ -372,43 +377,43 @@ To understand how Cachy functions, we trace the lifecycle of a single trade from
 
 _Component: `TradeSetupInputs.svelte`_
 
-1.  **User Input**: User types "BTC".
-2.  **Unified Analysis Fetch**: The component calls `app.fetchAllAnalysisData()`, which triggers a coordinated data harvest.
-3.  **Parallel Execution**:
+1. **User Input**: User types "BTC".
+2. **Unified Analysis Fetch**: The component calls `app.fetchAllAnalysisData()`, which triggers a coordinated data harvest.
+3. **Parallel Execution**:
     - **WebSocket**: Connects to `ticker` channel for real-time price.
     - **REST API (Price)**: Fetches the latest price snapshot.
     - **REST API (ATR)**: Fetches 1440 minutes of Kline history for the _primary_ timeframe.
     - **Multi-ATR Scan**: Simultaneously fetches klines for _secondary_ timeframes (1h, 4h) in the background.
-4.  **Auto-Fill**: The system uses the primary ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
+4. **Auto-Fill**: The system uses the primary ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
 
 ### Phase 2: Execution (The Proxy Layer)
 
 _Component: `TradeSetupInputs.svelte` -> `apiService.ts`_
 
-1.  **User Action**: Clicks "Long".
-2.  **Payload Construction**: The App bundles Entry, SL, TP, and Size into a standardized JSON.
-3.  **Proxy Call**: `POST /api/orders`.
-4.  **Signing**: The Node.js server signs the request with the user's API Secret.
-5.  **Exchange Confirmation**: Bitunix returns an Order ID.
+1. **User Action**: Clicks "Long".
+2. **Payload Construction**: The App bundles Entry, SL, TP, and Size into a standardized JSON.
+3. **Proxy Call**: `POST /api/orders`.
+4. **Signing**: The Node.js server signs the request with the user's API Secret.
+5. **Exchange Confirmation**: Bitunix returns an Order ID.
 
 ### Phase 3: Monitoring (The Store Layer)
 
 _Component: `PositionsSidebar.svelte`_
 
-1.  **Socket Event**: Bitunix sends a `ORDER_UPDATE` via WebSocket.
-2.  **Store Update**: `accountStore` receives the event. It sees status `FILLED`.
-3.  **Atomic State Change**:
+1. **Socket Event**: Bitunix sends a `ORDER_UPDATE` via WebSocket.
+2. **Store Update**: `accountStore` receives the event. It sees status `FILLED`.
+3. **Atomic State Change**:
     - The "Pending Order" is removed from `openOrders`.
     - A new "Position" is created in `positions`.
-4.  **UI Render**: The Sidebar instantly animates the new position into view.
+4. **UI Render**: The Sidebar instantly animates the new position into view.
 
 ### Phase 4: Closing & Journaling (The Sync Layer)
 
 _Component: `app.ts` (Sync Logic)_
 
-1.  **Closure**: User clicks "Close" or SL is hit.
-2.  **History Fetch**: The app polls `get_history_positions` (for closed trades) and `get_pending_positions` (for status updates).
-3.  **The "Safe Swap"**:
+1. **Closure**: User clicks "Close" or SL is hit.
+2. **History Fetch**: The app polls `get_history_positions` (for closed trades) and `get_pending_positions` (for status updates).
+3. **The "Safe Swap"**:
     - The system detects a Position ID in History that matches an active ID in `accountStore`.
     - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
     - It moves the object from `accountStore` (Active) to `journalStore` (History).
@@ -434,10 +439,10 @@ Connectivity is handled via the `src/services/apiService.ts` abstraction layer. 
 
 To balance **Responsiveness** vs. **Rate Limits**, Cachy uses a hybrid approach:
 
-1.  **Initial Load (REST)**:
+1. **Initial Load (REST)**:
     - Fetches full Order History (Pagination supported).
     - Fetches 1440 minutes of Kline history (for RSI/ATR calculation).
-2.  **Real-Time (WebSocket)**:
+2. **Real-Time (WebSocket)**:
     - **Public Channels**: `ticker`, `depth`, `trade`. Used for charting and price updates.
     - **Private Channels**: `order`, `position`, `wallet`. Used to update the User Dashboard.
     - _Heartbeat Logic_: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 20 seconds, ensuring 99.9% uptime.
@@ -448,9 +453,9 @@ A critical challenge in syncing local state with remote API state is handling up
 
 **The Logic (`src/services/app.ts`)**:
 
-1.  **Fetch New Data**: The app retrieves the full list of open positions from the API.
-2.  **Diffing**: It compares the new list against the `accountStore`.
-3.  **Atomic Swap**:
+1. **Fetch New Data**: The app retrieves the full list of open positions from the API.
+2. **Diffing**: It compares the new list against the `accountStore`.
+3. **Atomic Swap**:
     - If a position exists in Store but NOT in API -> It was closed. Move to Journal.
     - If a position exists in API but NOT in Store -> It was opened remotely. Add to Store.
     - If in BOTH -> Update PnL/Margin metrics.
@@ -488,8 +493,8 @@ Cachy acts as a pass-through entity.
 
 By removing the database:
 
-1.  **Attack Vector Elimination**: SQL Injection and Database Leaks are impossible.
-2.  **GDPR/CCPA Compliance**: We do not process user data, so compliance is automatic by design.
+1. **Attack Vector Elimination**: SQL Injection and Database Leaks are impossible.
+2. **GDPR/CCPA Compliance**: We do not process user data, so compliance is automatic by design.
 
 ---
 
@@ -546,9 +551,9 @@ Cachy employs a rigorous testing suite using **Vitest**.
 
 The production build is a Node.js adapter output.
 
-1.  **Build**: `npm run build` (Compiles SvelteKit to `build/`)
-2.  **Run**: `node build/index.js` or via PM2: `pm2 start server.js --name "cachy-app"`
-3.  **Reverse Proxy**: Nginx is recommended to handle SSL termination and forward traffic to Port 3000.
+1. **Build**: `npm run build` (Compiles SvelteKit to `build/`)
+2. **Run**: `node build/index.js` or via PM2: `pm2 start server.js --name "cachy-app"`
+3. **Reverse Proxy**: Nginx is recommended to handle SSL termination and forward traffic to Port 3000.
 
 ---
 

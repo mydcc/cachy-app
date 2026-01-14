@@ -42,7 +42,7 @@
 
   // Local state for the form inputs
   let apiProvider: "bitunix" | "binance";
-  let marketDataInterval: "1s" | "1m" | "10m";
+  let marketDataInterval: number;
   let autoUpdatePriceInput: boolean;
   let autoFetchBalance: boolean;
   let showSidebars: boolean;

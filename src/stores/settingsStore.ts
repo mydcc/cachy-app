@@ -2,7 +2,7 @@ import { writable } from "svelte/store";
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 
-export type MarketDataInterval = "1s" | "1m" | "10m";
+export type MarketDataInterval = number; // Seconds
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
@@ -68,7 +68,7 @@ export interface Settings {
 
 const defaultSettings: Settings = {
   apiProvider: "bitunix",
-  marketDataInterval: "1m", // Default interval
+  marketDataInterval: 10, // Default interval in seconds
   autoUpdatePriceInput: false,
   autoFetchBalance: false,
   showSidebars: true,
