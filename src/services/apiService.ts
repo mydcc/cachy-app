@@ -35,13 +35,16 @@ type BinanceKline = [
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
   private pending = new Map<string, Promise<unknown>>();
+  private cache = new Map<string, { data: unknown; timestamp: number }>();
+
   // Two queues for Priority handling
   private highPriorityQueue: (() => void)[] = [];
   private normalQueue: (() => void)[] = [];
 
   private activeCount = 0;
-  private readonly MAX_CONCURRENCY = 8; // Increased from 4 for better parallelism
-  private readonly DEFAULT_TIMEOUT = 10000; // 10s global timeout
+  private readonly MAX_CONCURRENCY = 8;
+  private readonly DEFAULT_TIMEOUT = 10000;
+  private readonly CACHE_TTL = 10000; // 10s cache for successful requests
 
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
@@ -59,6 +62,14 @@ class RequestManager {
     retries = 1,
     timeout?: number
   ): Promise<T> {
+    const now = Date.now();
+
+    // 0. Cache Check
+    const cached = this.cache.get(key);
+    if (cached && now - cached.timestamp < this.CACHE_TTL) {
+      return Promise.resolve(cached.data as T);
+    }
+
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
       return this.pending.get(key) as Promise<T>;
@@ -86,8 +97,7 @@ class RequestManager {
               }
               if (attempt < retries) {
                 console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
-                    retries + 1
+                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
                   })`,
                   e
                 );
@@ -102,6 +112,10 @@ class RequestManager {
           };
 
           const result = await executeWithRetry(0);
+
+          // Store in cache upon success (only if it matches the current request)
+          this.cache.set(key, { data: result, timestamp: Date.now() });
+
           resolve(result);
         } catch (e) {
           reject(e);
@@ -140,9 +154,20 @@ class RequestManager {
       }
     }
   }
+
+  public clearCache(): void {
+    this.cache.clear();
+    this.pending.clear();
+    this.highPriorityQueue = [];
+    this.normalQueue = [];
+  }
 }
 
 export const requestManager = new RequestManager();
+
+export function clearApiCache() {
+  requestManager.clearCache();
+}
 
 export const apiService = {
   // Helper to normalize symbols for API calls
@@ -196,7 +221,11 @@ export const apiService = {
             throw new Error("apiErrors.invalidResponse");
           }
           const data = res.data[0];
-          return new Decimal(data.lastPrice);
+          const lastPrice = Number(data.lastPrice);
+          if (isNaN(lastPrice) || !isFinite(lastPrice)) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+          return new Decimal(lastPrice);
         } catch (e) {
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (e instanceof Error) {
@@ -272,27 +301,47 @@ export const apiService = {
           }
 
           // Map the response data to the required Kline interface
-          return res.map(
-            (kline: {
-              open: string;
-              high: string;
-              low: string;
-              close: string;
-              vol?: string;
-              timestamp?: number;
-              time?: number;
-              ts?: number;
-            }) => ({
-              open: new Decimal(kline.open),
-              high: new Decimal(kline.high),
-              low: new Decimal(kline.low),
-              close: new Decimal(kline.close),
-              volume: new Decimal(kline.vol || 0),
-              // Backend sends 'timestamp', but we also fallback to 'time' or 'ts' just in case.
-              // parseTimestamp handles seconds/milliseconds normalization.
-              time: parseTimestamp(kline.timestamp || kline.time || kline.ts),
-            })
-          );
+          return res
+            .map(
+              (kline: {
+                open: string | number;
+                high: string | number;
+                low: string | number;
+                close: string | number;
+                vol?: string | number;
+                timestamp?: number;
+                time?: number;
+                ts?: number;
+              }) => {
+                try {
+                  const open = new Decimal(kline.open || 0);
+                  const high = new Decimal(kline.high || 0);
+                  const low = new Decimal(kline.low || 0);
+                  const close = new Decimal(kline.close || 0);
+                  const volume = new Decimal(kline.vol || 0);
+                  const time = parseTimestamp(
+                    kline.timestamp || kline.time || kline.ts
+                  );
+
+                  // Validate basic financial consistency
+                  if (
+                    open.isNaN() ||
+                    high.isNaN() ||
+                    low.isNaN() ||
+                    close.isNaN() ||
+                    time === 0
+                  ) {
+                    return null;
+                  }
+
+                  return { open, high, low, close, volume, time };
+                } catch (e) {
+                  console.warn("Skipping invalid kline:", kline, e);
+                  return null;
+                }
+              }
+            )
+            .filter((k): k is Kline => k !== null);
         } catch (e) {
           console.error(`fetchBitunixKlines error for ${symbol}:`, e);
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
@@ -333,10 +382,14 @@ export const apiService = {
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const data = await response.json();
 
-          if (!data || !data.price) {
+          if (!data || data.price === undefined || data.price === null) {
             throw new Error("apiErrors.invalidResponse");
           }
-          return new Decimal(data.price);
+          const price = Number(data.price);
+          if (isNaN(price) || !isFinite(price)) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+          return new Decimal(price);
         } catch (e) {
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
@@ -385,14 +438,33 @@ export const apiService = {
           }
 
           // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
-          return data.map((kline: BinanceKline) => ({
-            open: new Decimal(kline[1]),
-            high: new Decimal(kline[2]),
-            low: new Decimal(kline[3]),
-            close: new Decimal(kline[4]),
-            volume: new Decimal(kline[5]),
-            time: parseTimestamp(kline[0]),
-          }));
+          return data
+            .map((kline: BinanceKline) => {
+              try {
+                const time = parseTimestamp(kline[0]);
+                const open = new Decimal(kline[1] || 0);
+                const high = new Decimal(kline[2] || 0);
+                const low = new Decimal(kline[3] || 0);
+                const close = new Decimal(kline[4] || 0);
+                const volume = new Decimal(kline[5] || 0);
+
+                if (
+                  open.isNaN() ||
+                  high.isNaN() ||
+                  low.isNaN() ||
+                  close.isNaN() ||
+                  time === 0
+                ) {
+                  return null;
+                }
+
+                return { open, high, low, close, volume, time };
+              } catch (e) {
+                console.warn("Skipping invalid Binance kline:", kline, e);
+                return null;
+              }
+            })
+            .filter((k): k is Kline => k !== null);
         } catch (e) {
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
@@ -443,8 +515,23 @@ export const apiService = {
               throw new Error("apiErrors.invalidResponse");
             }
             const ticker = data.data[0];
-            const open = new Decimal(ticker.open);
-            const last = new Decimal(ticker.lastPrice);
+            const openRaw = Number(ticker.open);
+            const lastRaw = Number(ticker.lastPrice);
+            const highRaw = Number(ticker.high);
+            const lowRaw = Number(ticker.low);
+            const baseVolRaw = Number(ticker.baseVol);
+            const quoteVolRaw = Number(ticker.quoteVol);
+
+            if (isNaN(lastRaw) || !isFinite(lastRaw)) {
+              throw new Error("apiErrors.invalidResponse");
+            }
+
+            const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
+            const last = new Decimal(lastRaw);
+            const high = new Decimal(isNaN(highRaw) ? lastRaw : highRaw);
+            const low = new Decimal(isNaN(lowRaw) ? lastRaw : lowRaw);
+            const baseVol = new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw);
+            const quoteVol = new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw);
 
             let change = new Decimal(0);
             if (!open.isZero()) {
@@ -463,18 +550,26 @@ export const apiService = {
             };
           } else {
             // Binance
-            if (!data || !data.lastPrice) {
+            const lastRaw = Number(data.lastPrice);
+            if (isNaN(lastRaw) || !isFinite(lastRaw)) {
               throw new Error("apiErrors.invalidResponse");
             }
+
+            const highRaw = Number(data.highPrice);
+            const lowRaw = Number(data.lowPrice);
+            const baseVolRaw = Number(data.volume);
+            const quoteVolRaw = Number(data.quoteVolume);
+            const changeRaw = Number(data.priceChangePercent);
+
             return {
               provider,
               symbol: normalized,
-              lastPrice: new Decimal(data.lastPrice),
-              highPrice: new Decimal(data.highPrice),
-              lowPrice: new Decimal(data.lowPrice),
-              volume: new Decimal(data.volume),
-              quoteVolume: new Decimal(data.quoteVolume),
-              priceChangePercent: new Decimal(data.priceChangePercent),
+              lastPrice: new Decimal(lastRaw),
+              highPrice: new Decimal(isNaN(highRaw) ? lastRaw : highRaw),
+              lowPrice: new Decimal(isNaN(lowRaw) ? lastRaw : lowRaw),
+              volume: new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw),
+              quoteVolume: new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw),
+              priceChangePercent: new Decimal(isNaN(changeRaw) ? 0 : changeRaw),
             };
           }
         } catch (e) {

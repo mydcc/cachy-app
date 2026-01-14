@@ -185,6 +185,15 @@ const talibInit = talib
     console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
   });
 
+// Cache for indicator calculations
+const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
+const MAX_CACHE_SIZE = 20;
+
+interface TechnicalsResultCacheEntry {
+  data: TechnicalsData;
+  timestamp: number;
+}
+
 export const technicalsService = {
   async calculateTechnicals(
     klinesInput: {
@@ -197,6 +206,18 @@ export const technicalsService = {
     }[],
     settings?: IndicatorSettings
   ): Promise<TechnicalsData> {
+    if (klinesInput.length === 0) return this.getEmptyData();
+
+    // 0. Cache Check
+    const lastKline = klinesInput[klinesInput.length - 1];
+    const cacheKey = `${klinesInput.length}-${lastKline.time}-${JSON.stringify(
+      settings
+    )}`;
+    const cached = calculationCache.get(cacheKey);
+    if (cached) {
+      return cached.data;
+    }
+
     // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
       console.log("Waiting for talib-web initialization...");
@@ -501,13 +522,26 @@ export const technicalsService = {
     if (buy > sell && buy > neutral) summaryAction = "Buy";
     else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
-    return {
+    const result: TechnicalsData = {
       oscillators,
       movingAverages,
       pivots: pivotData.pivots,
       pivotBasis: pivotData.basis,
       summary: { buy, sell, neutral, action: summaryAction },
     };
+
+    // Store in cache
+    if (calculationCache.size >= MAX_CACHE_SIZE) {
+      const firstKey = calculationCache.keys().next().value;
+      if (firstKey) calculationCache.delete(firstKey);
+    }
+    calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+    return result;
+  },
+
+  clearCache(): void {
+    calculationCache.clear();
   },
 
   // --- Helpers ---
@@ -537,8 +571,7 @@ export const technicalsService = {
       const slowSMA = getSMA(hl2, slowPeriod);
 
       console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${
-          fastSMA - slowSMA
+        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA
         }`
       );
 

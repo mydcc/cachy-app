@@ -29,12 +29,17 @@ export function parseDecimal(
   }
 
   // Check if the result is a finite number
-  if (!isFinite(Number(stringValue))) {
+  const numValue = Number(stringValue);
+  if (isNaN(numValue) || !isFinite(numValue)) {
     return new Decimal(0);
   }
 
   // If all checks pass, create the new Decimal
-  return new Decimal(stringValue);
+  try {
+    return new Decimal(stringValue);
+  } catch (e) {
+    return new Decimal(0);
+  }
 }
 
 export function formatDynamicDecimal(
@@ -62,9 +67,14 @@ export function formatDynamicDecimal(
  * Parses a date string which might be in German format (DD.MM.YYYY) into a Date object.
  * @param dateStr Date string (e.g., "23.12.2025" or "2025-12-23")
  * @param timeStr Time string (e.g., "19:40:08")
+ * @param useUtc Whether to treat as UTC (adds 'Z' suffix) or local time
  * @returns Date object
  */
-export function parseDateString(dateStr: string, timeStr: string): Date {
+export function parseDateString(
+  dateStr: string,
+  timeStr: string,
+  useUtc: boolean = true
+): Date {
   if (!dateStr) return new Date();
 
   let isoDate = dateStr;
@@ -84,11 +94,12 @@ export function parseDateString(dateStr: string, timeStr: string): Date {
   const isoTime = timeStr ? timeStr.trim() : "00:00:00";
 
   // Attempt to construct ISO string YYYY-MM-DDTHH:mm:ss
-  const combined = `${isoDate}T${isoTime}`;
+  const combined = `${isoDate}T${isoTime}${useUtc ? "Z" : ""}`;
   const d = new Date(combined);
 
   if (isNaN(d.getTime())) {
     // Fallback for other formats if ISO construction fails
+    // Note: JS parsing might fallback to local time here if no zone is provided
     return new Date(`${dateStr} ${timeStr}`);
   }
   return d;
@@ -246,6 +257,17 @@ export function getIntervalMs(timeframe: string): number {
  * This is crucial for data loaded from localStorage or imported via CSV.
  */
 export function normalizeJournalEntry(trade: any): JournalEntry {
+  if (!trade || typeof trade !== "object") {
+    // Return a minimal valid dummy if completely malformed
+    return {
+      id: Date.now(),
+      date: new Date().toISOString(),
+      symbol: "UNKNOWN",
+      tradeType: "long",
+      status: "Closed",
+      tags: [],
+    } as unknown as JournalEntry;
+  }
   const newTrade = { ...trade };
 
   // Numerical fields that must be Decimal

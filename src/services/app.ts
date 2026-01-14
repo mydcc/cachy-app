@@ -251,7 +251,7 @@ export const app = {
         atrValue: parseDecimal(currentTradeState.atrValue),
         atrMultiplier: parseDecimal(
           currentTradeState.atrMultiplier ||
-            parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
+          parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER)
         ),
         stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
         targets: currentTradeState.targets.map((t) => ({
@@ -296,18 +296,17 @@ export const app = {
         values.stopLossPrice =
           currentTradeState.tradeType === CONSTANTS.TRADE_TYPE_LONG
             ? values.entryPrice.minus(
-                values.atrValue.times(values.atrMultiplier)
-              )
+              values.atrValue.times(values.atrMultiplier)
+            )
             : values.entryPrice.plus(
-                values.atrValue.times(values.atrMultiplier)
-              );
+              values.atrValue.times(values.atrMultiplier)
+            );
 
         newResults.showAtrFormulaDisplay = true;
         newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
           4
-        )} ${operator} (${values.atrValue} × ${
-          values.atrMultiplier
-        }) = ${values.stopLossPrice.toFixed(4)}`;
+        )} ${operator} (${values.atrValue} × ${values.atrMultiplier
+          }) = ${values.stopLossPrice.toFixed(4)}`;
       } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
         return { status: CONSTANTS.STATUS_INCOMPLETE };
       }
@@ -979,8 +978,8 @@ export const app = {
       if (lines.length > MAX_IMPORT_LINES) {
         uiStore.showError(
           `Zu viele Zeilen (${lines.length - 1} Trades). ` +
-            `Maximum: 1000 Trades pro Import. ` +
-            `Bitte teilen Sie die CSV-Datei auf.`
+          `Maximum: 1000 Trades pro Import. ` +
+          `Bitte teilen Sie die CSV-Datei auf.`
         );
         return;
       }
@@ -1136,9 +1135,14 @@ export const app = {
               internalId = Math.abs(hash >>> 0);
             }
 
+            const { useUtcDateParsing } = get(settingsStore);
             const importedTrade: JournalEntry = {
               id: internalId,
-              date: parseDateString(entry.Datum, entry.Uhrzeit).toISOString(),
+              date: parseDateString(
+                entry.Datum,
+                entry.Uhrzeit,
+                useUtcDateParsing
+              ).toISOString(),
               symbol: entry.Symbol,
               tradeType: entry.Typ.toLowerCase(),
               status: entry.Status,
@@ -1168,9 +1172,9 @@ export const app = {
                 : "",
               tags: entry.Tags
                 ? entry.Tags.replace(/"/g, "")
-                    .split(";")
-                    .map((t) => t.trim())
-                    .filter(Boolean)
+                  .split(";")
+                  .map((t) => t.trim())
+                  .filter(Boolean)
                 : [],
               screenshot: entry.Screenshot || undefined,
               targets: targets,

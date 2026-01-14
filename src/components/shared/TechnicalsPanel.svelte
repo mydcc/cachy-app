@@ -326,6 +326,7 @@
               toggleTimeframePopup();
             }
           }}
+          aria-label="Change Timeframe"
         >
           {timeframe}
         </span>
@@ -416,11 +417,15 @@
               bind:value={customTimeframeInput}
               on:keydown={(e) =>
                 e.key === "Enter" && handleCustomTimeframeSubmit()}
+              aria-label="Custom timeframe input"
             />
             <button
               class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={handleCustomTimeframeSubmit}>OK</button
+              on:click={handleCustomTimeframeSubmit}
+              aria-label="Apply custom timeframe"
             >
+              OK
+            </button>
           </div>
         </div>
       {/if}

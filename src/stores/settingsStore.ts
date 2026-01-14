@@ -62,6 +62,7 @@ export interface Settings {
   // UI Settings
   showSpinButtons: boolean | "hover";
   disclaimerAccepted: boolean;
+  useUtcDateParsing: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -103,6 +104,7 @@ const defaultSettings: Settings = {
   // UI Defaults
   showSpinButtons: "hover",
   disclaimerAccepted: false,
+  useUtcDateParsing: true,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -215,6 +217,8 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.showSpinButtons ?? defaultSettings.showSpinButtons,
       disclaimerAccepted:
         settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
+      useUtcDateParsing:
+        settings.useUtcDateParsing ?? defaultSettings.useUtcDateParsing,
     };
 
     return cleanSettings;
