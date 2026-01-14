@@ -22,17 +22,7 @@
 </script>
 
 <div class="journal-filters">
-    <!-- Header with Trade Count -->
-    <div class="filter-header">
-        <h3>{$_("journal.title")}</h3>
-        <span class="trade-count">
-            {#if filteredCount < totalTrades}
-                {filteredCount} / {totalTrades} {$_("journal.trades")}
-            {:else}
-                {totalTrades} {$_("journal.trades")}
-            {/if}
-        </span>
-    </div>
+    <!-- Header removed for minimal design -->
 
     <!-- Filter Controls -->
     <div class="filter-controls">
@@ -75,6 +65,15 @@
 
         <!-- Actions: Pivot Toggle & Settings -->
         <div class="filter-actions">
+            <span class="trade-count mr-2">
+                {#if filteredCount < totalTrades}
+                    {filteredCount}/{totalTrades}
+                {:else}
+                    {totalTrades}
+                {/if}
+                {$_("journal.trades")}
+            </span>
+
             <label class="pivot-toggle">
                 <input type="checkbox" bind:checked={groupBySymbol} />
                 <span class="toggle-slider" />
@@ -98,24 +97,10 @@
     .journal-filters {
         background: var(--card-bg);
         border-radius: var(--border-radius);
-        padding: 1.25rem;
-        margin-bottom: 1rem;
+        padding: 0.75rem 1rem;
+        margin-bottom: 0.75rem;
         box-shadow: var(--shadow-sm);
         border: 1px solid var(--border-color);
-    }
-
-    .filter-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1.25rem;
-    }
-
-    .filter-header h3 {
-        margin: 0;
-        font-size: 1.25rem;
-        font-weight: 600;
-        color: var(--text-primary);
     }
 
     .trade-count {
@@ -126,14 +111,14 @@
 
     .filter-controls {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-        gap: 1rem;
+        grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+        gap: 0.75rem;
         align-items: center;
     }
 
     @media (min-width: 1024px) {
         .filter-controls {
-            grid-template-columns: 2fr 1fr 2fr auto;
+            grid-template-columns: 1.5fr 0.8fr 1.5fr auto;
         }
     }
 

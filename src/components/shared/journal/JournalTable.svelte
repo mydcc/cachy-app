@@ -47,6 +47,14 @@
         dispatch("statusChange", { id, status });
     }
 
+    function handleItemsPerPageChange() {
+        currentPage = 1;
+        if (!isInternal) {
+            dispatch("itemsPerPageChange", { itemsPerPage });
+            dispatch("pageChange", { page: 1 });
+        }
+    }
+
     function toggleGroup(symbol: string) {
         if (expandedGroups.has(symbol)) {
             expandedGroups.delete(symbol);
@@ -560,28 +568,47 @@
             </table>
         </div>
 
-        {#if !groupBySymbol && !isInternal && totalPages > 1}
+        {#if !groupBySymbol && !isInternal && trades.length > 0}
             <div class="pagination">
-                <button
-                    class="pagination-btn"
-                    disabled={currentPage === 1}
-                    on:click={() => handlePageChange(currentPage - 1)}
-                >
-                    ←
-                </button>
-                <span class="pagination-info">
-                    {$_("journal.pagination.page")}
-                    {currentPage}
-                    {$_("journal.pagination.of")}
-                    {totalPages}
-                </span>
-                <button
-                    class="pagination-btn"
-                    disabled={currentPage === totalPages}
-                    on:click={() => handlePageChange(currentPage + 1)}
-                >
-                    →
-                </button>
+                <div class="pagination-left">
+                    <span class="text-xs text-[var(--text-secondary)]"
+                        >{$_("journal.pagination.rows")}</span
+                    >
+                    <select
+                        bind:value={itemsPerPage}
+                        on:change={handleItemsPerPageChange}
+                        class="rows-select bg-transparent border border-[var(--border-color)] rounded px-1 text-xs"
+                    >
+                        <option value={10}>10</option>
+                        <option value={25}>25</option>
+                        <option value={50}>50</option>
+                        <option value={100}>100</option>
+                    </select>
+                </div>
+
+                <div class="pagination-controls">
+                    <button
+                        class="pagination-btn"
+                        disabled={currentPage === 1}
+                        on:click={() => handlePageChange(currentPage - 1)}
+                    >
+                        ←
+                    </button>
+                    <span class="pagination-info">
+                        {$_("journal.pagination.page")}
+                        {currentPage}
+                        {$_("journal.pagination.of")}
+                        {Math.max(1, totalPages)}
+                    </span>
+                    <button
+                        class="pagination-btn"
+                        disabled={currentPage === totalPages ||
+                            totalPages === 0}
+                        on:click={() => handlePageChange(currentPage + 1)}
+                    >
+                        →
+                    </button>
+                </div>
             </div>
         {/if}
     {/if}
@@ -747,5 +774,61 @@
 
     .hidden {
         display: none;
+    }
+
+    .pagination {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 1rem;
+        background: var(--bg-tertiary);
+        border-top: 1px solid var(--border-color);
+    }
+
+    .pagination-left {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .pagination-controls {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .pagination-btn {
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        color: var(--text-primary);
+        padding: 0.35rem 0.75rem;
+        border-radius: 4px;
+        cursor: pointer;
+        transition: all 0.2s;
+        font-weight: 600;
+    }
+
+    .pagination-btn:hover:not(:disabled) {
+        background: var(--bg-tertiary);
+        border-color: var(--accent-color);
+    }
+
+    .pagination-btn:disabled {
+        opacity: 0.3;
+        cursor: not-allowed;
+    }
+
+    .pagination-info {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+        min-width: 100px;
+        text-align: center;
+    }
+
+    .rows-select {
+        color: var(--text-primary);
+        outline: none;
+        cursor: pointer;
     }
 </style>

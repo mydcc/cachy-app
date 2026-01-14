@@ -395,17 +395,9 @@
   <!-- Dashboard Section -->
   {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
     <DashboardNav {activePreset} on:select={(e) => (activePreset = e.detail)} />
-
-    <!-- JournalCharts Component - All Chart Presets -->
-    <JournalCharts
-      {activePreset}
-      isPro={$settingsStore.isPro}
-      isDeepDiveUnlocked={$settingsStore.isDeepDiveUnlocked}
-      {themeColors}
-    />
   {/if}
 
-  <!-- Journal Filters Component -->
+  <!-- Journal Filters Component - MOVED TO TOP -->
   <JournalFilters
     bind:searchQuery={$tradeStore.journalSearchQuery}
     bind:filterStatus={$tradeStore.journalFilterStatus}
@@ -416,6 +408,16 @@
     filteredCount={processedTrades.length}
     on:toggleSettings={() => (showColumnSettings = !showColumnSettings)}
   />
+
+  {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
+    <!-- JournalCharts Component - All Chart Presets -->
+    <JournalCharts
+      {activePreset}
+      isPro={$settingsStore.isPro}
+      isDeepDiveUnlocked={$settingsStore.isDeepDiveUnlocked}
+      {themeColors}
+    />
+  {/if}
 
   <!-- Column Settings Popover -->
   {#if showColumnSettings}
@@ -462,7 +464,7 @@
       bind:sortField
       bind:sortDirection
       bind:currentPage
-      {itemsPerPage}
+      bind:itemsPerPage
       {columnVisibility}
       {groupBySymbol}
       on:sort={(e) => handleSort(e.detail.field)}
