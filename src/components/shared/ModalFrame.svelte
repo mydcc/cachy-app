@@ -89,9 +89,10 @@
   .header-extra {
     flex: 1;
     display: flex;
-    justify-content: center;
+    justify-content: flex-end;
     align-items: center;
     overflow: hidden;
+    margin-right: 0.5rem;
   }
   .modal-title {
     font-size: 1.25rem;

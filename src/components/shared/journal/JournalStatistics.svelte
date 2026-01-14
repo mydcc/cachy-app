@@ -244,15 +244,18 @@
         font-variant-numeric: tabular-nums;
     }
 
-    .stat-value.positive {
+    .stat-value.positive,
+    .mini-value.positive {
         color: var(--success-color);
     }
 
-    .stat-value.negative {
+    .stat-value.negative,
+    .mini-value.negative {
         color: var(--danger-color);
     }
 
-    .stat-value.neutral {
+    .stat-value.neutral,
+    .mini-value.neutral {
         color: var(--text-primary);
     }
 </style>
