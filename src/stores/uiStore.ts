@@ -43,8 +43,24 @@ const initialUiState: UiState = {
   loadingMessage: "",
 };
 
+// Synchron mit HTML-Script: Lade Theme VOR Store-Erstellung
+function getInitialTheme(): string {
+  if (!browser) return "dark";
+  try {
+    return localStorage.getItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY) || "dark";
+  } catch {
+    return "dark";
+  }
+}
+
+// Initialize with actual user theme to sync with HTML inline script
+const hydratedInitialState: UiState = {
+  ...initialUiState,
+  currentTheme: getInitialTheme(),
+};
+
 function createUiStore() {
-  const { subscribe, update, set } = writable<UiState>(initialUiState);
+  const { subscribe, update, set } = writable<UiState>(hydratedInitialState);
 
   return {
     subscribe,
