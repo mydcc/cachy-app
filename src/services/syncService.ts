@@ -32,7 +32,7 @@ export const syncService = {
         body: JSON.stringify({
           apiKey: settings.apiKeys.bitunix.key,
           apiSecret: settings.apiKeys.bitunix.secret,
-          limit: 100,
+          limit: 500,
         }),
       });
       const historyResult = await historyResponse.json();
@@ -60,7 +60,7 @@ export const syncService = {
         body: JSON.stringify({
           apiKey: settings.apiKeys.bitunix.key,
           apiSecret: settings.apiKeys.bitunix.secret,
-          limit: 100,
+          limit: 500,
         }),
       });
 
@@ -165,15 +165,17 @@ export const syncService = {
           if (closeTime <= 0) closeTime = Date.now();
 
           // Find SL
-          let stopLoss = new Decimal(0);
-          const candidates = symbolSlMap[p.symbol];
-          if (candidates && posTime > 0) {
-            const tolerance = 5000;
-            for (let j = candidates.length - 1; j >= 0; j--) {
-              if (Math.abs(candidates[j].ctime - posTime) < 60000 * 60 * 24 * 7) {
-                if (candidates[j].ctime <= posTime + tolerance) {
-                  stopLoss = candidates[j].slPrice;
-                  break;
+          let stopLoss = new Decimal(p.stopLossPrice || p.sl || 0);
+          if (stopLoss.isZero()) {
+            const candidates = symbolSlMap[p.symbol];
+            if (candidates && posTime > 0) {
+              const tolerance = 5000;
+              for (let j = candidates.length - 1; j >= 0; j--) {
+                if (Math.abs(candidates[j].ctime - posTime) < 60000 * 60 * 24 * 30) { // 30 day window
+                  if (candidates[j].ctime <= posTime + tolerance) {
+                    stopLoss = candidates[j].slPrice;
+                    break;
+                  }
                 }
               }
             }
@@ -200,13 +202,23 @@ export const syncService = {
                   if (k.low.lt(minLow)) minLow = k.low;
                 });
                 const isShort = (p.side || "").toLowerCase().includes("sell") || (p.side || "").toLowerCase().includes("short");
+
                 if (minLow.isFinite() && maxHigh.gt(0)) {
-                  if (isShort) { mae = maxHigh.minus(entryPrice); mfe = entryPrice.minus(minLow); }
-                  else { mae = entryPrice.minus(minLow); mfe = maxHigh.minus(entryPrice); }
+                  if (isShort) {
+                    mae = Decimal.max(0, maxHigh.minus(entryPrice));
+                    mfe = Decimal.max(0, entryPrice.minus(minLow));
+                  } else {
+                    mae = Decimal.max(0, entryPrice.minus(minLow));
+                    mfe = Decimal.max(0, maxHigh.minus(entryPrice));
+                  }
+
                   if (mfe.gt(0) && qty.gt(0)) {
                     efficiency = netPnl.div(mfe.times(qty));
-                  } else if (mfe.isZero() && netPnl.isZero()) {
-                    efficiency = new Decimal(0);
+                  } else if (qty.gt(0)) {
+                    // MFE is 0, but we still have a trade. 
+                    // If netPnl > 0 with MFE 0, it's weird but mathematically 100% efficient? 
+                    // Usually means entry was exactly at low (for long).
+                    efficiency = netPnl.gt(0) ? new Decimal(1) : new Decimal(0);
                   }
                 }
               }
