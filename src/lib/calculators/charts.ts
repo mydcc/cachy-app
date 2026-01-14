@@ -136,8 +136,8 @@ export function getQualityData(journal: JournalEntry[]) {
   const profitFactor = totalLoss.gt(0)
     ? totalWin.div(totalLoss)
     : totalWin.gt(0)
-    ? new Decimal(Infinity)
-    : new Decimal(0);
+      ? new Decimal(Infinity)
+      : new Decimal(0);
 
   const winRate = closedTrades.length > 0 ? countWin / closedTrades.length : 0;
   const lossRate =
@@ -361,7 +361,7 @@ export function getDurationData(journal: JournalEntry[]) {
             x: durationMinutes,
             y: pnl.toNumber(),
             r: 6,
-            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${pnl.toFixed(
+            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(pnl ?? new Decimal(0)).toFixed(
               2
             )}`,
           };
@@ -402,9 +402,9 @@ export function getAssetData(journal: JournalEntry[]) {
       x: winRate,
       y: s.pnl.toNumber(),
       r: Math.min(Math.max(s.count * 2, 5), 30), // Scale radius
-      l: `${sym}: ${s.count} Trades, ${winRate.toFixed(
+      l: `${sym}: ${s.count} Trades, ${(winRate ?? 0).toFixed(
         1
-      )}% Win, $${s.pnl.toFixed(2)}`, // Label for tooltip
+      )}% Win, $${(s.pnl ?? new Decimal(0)).toFixed(2)}`, // Label for tooltip
     };
   });
 
@@ -423,9 +423,9 @@ export function getRiskData(journal: JournalEntry[]) {
         x: t.riskAmount.toNumber(),
         y: pnl.toNumber(),
         r: 6,
-        l: `${t.symbol} (${t.status}): Risk $${t.riskAmount.toFixed(
+        l: `${t.symbol} (${t.status}): Risk $${(t.riskAmount ?? new Decimal(0)).toFixed(
           2
-        )} -> PnL $${pnl.toFixed(2)}`,
+        )} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
       };
     });
 

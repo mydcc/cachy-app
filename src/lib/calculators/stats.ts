@@ -63,8 +63,8 @@ export function calculateJournalStats(journalData: JournalEntry[]) {
   const profitFactor = totalLossPnl.gt(0)
     ? totalWinPnl.div(totalLossPnl)
     : totalWinPnl.gt(0)
-    ? new Decimal(Infinity)
-    : new Decimal(0);
+      ? new Decimal(Infinity)
+      : new Decimal(0);
   const avgTrade =
     totalTrades > 0 ? totalNetProfit.div(totalTrades) : new Decimal(0);
 
@@ -103,17 +103,17 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const profitFactor = totalLoss.gt(0)
     ? totalProfit.dividedBy(totalLoss)
     : totalProfit.gt(0)
-    ? new Decimal(Infinity)
-    : new Decimal(0);
+      ? new Decimal(Infinity)
+      : new Decimal(0);
 
   const avgRR =
     totalTrades > 0
       ? closedTrades
-          .reduce(
-            (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
-            new Decimal(0)
-          )
-          .dividedBy(totalTrades)
+        .reduce(
+          (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
+          new Decimal(0)
+        )
+        .dividedBy(totalTrades)
       : new Decimal(0);
   const avgWin =
     wonTrades.length > 0
@@ -130,9 +130,9 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const largestProfit =
     wonTrades.length > 0
       ? Decimal.max(
-          0,
-          ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0))
-        )
+        0,
+        ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0))
+      )
       : new Decimal(0);
   const largestLoss =
     lostTrades.length > 0
@@ -146,8 +146,8 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
       const rMultiple =
         trade.status === "Won"
           ? new Decimal(trade.totalNetProfit || 0).dividedBy(
-              new Decimal(trade.riskAmount)
-            )
+            new Decimal(trade.riskAmount)
+          )
           : new Decimal(-1);
       totalRMultiples = totalRMultiples.plus(rMultiple);
       tradesWithRisk++;
@@ -740,7 +740,7 @@ export function getDisciplineData(journal: JournalEntry[]) {
     const maxRisk = Math.max(...risks);
 
     if (Math.abs(maxRisk - minRisk) < 0.01) {
-      riskBuckets[`$${maxRisk.toFixed(2)}`] = risks.length;
+      riskBuckets[`$${(maxRisk ?? 0).toFixed(2)}`] = risks.length;
     } else {
       // Create 5 bins
       const binCount = 5;
@@ -756,7 +756,7 @@ export function getDisciplineData(journal: JournalEntry[]) {
         const high = minRisk + (idx + 1) * step;
 
         // Format: $10 - $20
-        const label = `$${low.toFixed(0)} - $${high.toFixed(0)}`;
+        const label = `$${(low ?? 0).toFixed(0)} - $${(high ?? 0).toFixed(0)}`;
         riskBuckets[label] = (riskBuckets[label] || 0) + 1;
       });
     }
