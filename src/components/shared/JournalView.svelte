@@ -509,15 +509,25 @@
     {#if $settingsStore.isPro}
       <button
         id="sync-bitunix-btn"
-        class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)]"
+        class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)] disabled:opacity-50 disabled:cursor-not-allowed"
         title={$_("journal.syncBitunix")}
         on:click={app.syncBitunixHistory}
+        disabled={$uiStore.isPriceFetching || $uiStore.isLoading}
       >
-        <!-- svelte-ignore svelte/no-at-html-tags -->
-        {@html icons.refresh}<span class="hidden sm:inline"
-          >{$_("journal.syncBitunix")}</span
-        ></button
-      >
+        {#if $uiStore.isPriceFetching}
+          <div
+            class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
+          />
+        {:else}
+          <!-- svelte-ignore svelte/no-at-html-tags -->
+          {@html icons.refresh}
+        {/if}
+        <span class="hidden sm:inline">
+          {$uiStore.isPriceFetching
+            ? $_("journal.messages.uploading")
+            : $_("journal.syncBitunix")}
+        </span>
+      </button>
     {/if}
     <button
       id="export-csv-btn"

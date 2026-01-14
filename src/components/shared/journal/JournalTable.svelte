@@ -361,9 +361,9 @@
                                 {/if}
                                 {#if columnVisibility.sl}
                                     <td class="text-danger"
-                                        >{item.stopLoss
+                                        >{item.stopLossPrice
                                             ? formatDynamicDecimal(
-                                                  item.stopLoss,
+                                                  item.stopLossPrice,
                                                   2
                                               )
                                             : "-"}</td
@@ -395,9 +395,9 @@
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
                                     >
-                                        {item.fundingFees
+                                        {item.fundingFee
                                             ? formatDynamicDecimal(
-                                                  item.fundingFees,
+                                                  item.fundingFee,
                                                   2
                                               )
                                             : "-"}
@@ -440,11 +440,23 @@
                                     </td>
                                 {/if}
                                 {#if columnVisibility.duration}
-                                    <td class="text-xs"
-                                        >{formatDuration(
-                                            item.durationMinutes
-                                        )}</td
-                                    >
+                                    <td class="text-xs">
+                                        {(() => {
+                                            const start = new Date(
+                                                item.entryDate || item.date
+                                            ).getTime();
+                                            const end = new Date(
+                                                item.date
+                                            ).getTime();
+                                            const diff =
+                                                isNaN(start) || isNaN(end)
+                                                    ? 0
+                                                    : Math.max(0, end - start);
+                                            return formatDuration(
+                                                Math.floor(diff / 60000)
+                                            );
+                                        })()}
+                                    </td>
                                 {/if}
                                 {#if columnVisibility.status}
                                     <td>
@@ -457,6 +469,7 @@
                                                     ? '-1'
                                                     : '0'
                                             )}"
+                                            disabled={item.isManual === false}
                                             on:change={(e) =>
                                                 handleStatusChange(
                                                     item.id,
@@ -466,6 +479,11 @@
                                             <option value="Open"
                                                 >{$_(
                                                     "journal.filterOpen"
+                                                )}</option
+                                            >
+                                            <option value="Won"
+                                                >{$_(
+                                                    "journal.filterWon"
                                                 )}</option
                                             >
                                             <option value="Lost"
