@@ -17,8 +17,9 @@
 
   import { CONSTANTS } from "../lib/constants";
 
-  let showJulesOverlay = false;
-  let julesOverlayMessage = "";
+  import { julesStore } from "../stores/julesStore";
+
+  // Removed local Jules state variables in favor of julesStore
 
   onMount(() => {
     // Initialize Zoom Plugin (Client-side only)
@@ -163,18 +164,72 @@
   <!-- LoadingSpinner Removed as not found -->
 
   <!-- Jules Report Overlay -->
-  {#if showJulesOverlay}
+  <!-- Jules Report Overlay -->
+  {#if $julesStore.isVisible || $julesStore.isLoading}
     <div
-      class="fixed inset-0 z-[9999] flex items-center justify-center pointer-events-none"
+      class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all animate-fade-in"
+      on:click={() => julesStore.hideReport()}
+      role="button"
+      tabindex="0"
+      on:keydown={(e) => e.key === "Escape" && julesStore.hideReport()}
     >
       <div
-        class="bg-black/80 text-white px-8 py-4 rounded-lg shadow-2xl backdrop-blur-sm transform transition-all animate-fade-in-out text-center border border-[var(--accent-color)]"
+        class="bg-[var(--bg-secondary)] text-[var(--text-primary)] p-6 rounded-lg shadow-2xl border border-[var(--accent-color)] max-w-2xl w-full mx-4 relative transform transition-all"
+        on:click|stopPropagation
+        role="document"
       >
-        <div class="text-xl font-bold text-[var(--accent-color)] mb-1">
-          🤖 Jules SDK
+        <button
+          class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          on:click={() => julesStore.hideReport()}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="h-6 w-6"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M6 18L18 6M6 6l12 12"
+            />
+          </svg>
+        </button>
+
+        <div class="flex items-center gap-3 mb-4">
+          <span class="text-2xl">🤖</span>
+          <h3 class="text-xl font-bold text-[var(--accent-color)]">
+            Jules Inspector
+          </h3>
         </div>
-        <div class="text-lg whitespace-pre-wrap max-w-lg">
-          {julesOverlayMessage}
+
+        {#if $julesStore.isLoading}
+          <div class="flex flex-col items-center justify-center py-8 gap-4">
+            <div
+              class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
+            />
+            <p class="text-sm text-[var(--text-secondary)] animate-pulse">
+              Analyzing system state...
+            </p>
+          </div>
+        {:else}
+          <div
+            class="prose prose-invert prose-sm max-w-none max-h-[60vh] overflow-y-auto custom-scrollbar p-2 bg-[var(--bg-tertiary)] rounded"
+          >
+            <pre
+              class="whitespace-pre-wrap font-mono text-xs">{$julesStore.message}</pre>
+          </div>
+        {/if}
+
+        <div class="mt-4 flex justify-end">
+          <button
+            class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity font-bold text-sm"
+            on:click={() => julesStore.hideReport()}
+          >
+            Close Report
+          </button>
         </div>
       </div>
     </div>

@@ -58,12 +58,14 @@ describe("HotkeyService", () => {
     settingsStore.set({
       hotkeyMode: "mode1", // Default to Direct Mode for testing
       apiProvider: "bitunix",
-      marketDataInterval: "1m",
+      marketDataInterval: 1, // Changed to number as expected
       autoUpdatePriceInput: true,
       autoFetchBalance: false,
       showSidebars: true,
       showTechnicals: true,
       showIndicatorParams: false,
+      useUtcDateParsing: false, // Added missing prop
+      debugMode: false, // Added missing prop
       hideUnfilledOrders: false,
       positionViewMode: "detailed",
       pnlViewMode: "value",

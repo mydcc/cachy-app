@@ -1,5 +1,6 @@
 import { get } from "svelte/store";
 import { settingsStore } from "../stores/settingsStore";
+import { julesStore } from "../stores/julesStore";
 import { tradeStore } from "../stores/tradeStore";
 import { uiStore } from "../stores/uiStore";
 import { accountStore } from "../stores/accountStore";
@@ -32,11 +33,11 @@ export const julesService = {
       ...settings,
       apiKeys: settings.apiKeys
         ? Object.fromEntries(
-            Object.entries(settings.apiKeys).map(([provider, keys]) => [
-              provider,
-              { ...(keys as any), apiSecret: "***REDACTED***" },
-            ])
-          )
+          Object.entries(settings.apiKeys).map(([provider, keys]) => [
+            provider,
+            { ...(keys as any), apiSecret: "***REDACTED***" },
+          ])
+        )
         : {},
     };
 
@@ -69,8 +70,8 @@ export const julesService = {
         activeModal: ui.showJournalModal
           ? "Journal"
           : ui.showSettingsModal
-          ? "Settings"
-          : "None",
+            ? "Settings"
+            : "None",
       },
       timestamp: new Date().toISOString(),
       userAgent:
@@ -82,6 +83,7 @@ export const julesService = {
    * Sends a report to the Jules API Backend.
    */
   async reportToJules(error: any = null, mode: "AUTO" | "MANUAL" = "MANUAL") {
+    julesStore.setLoading(true);
     try {
       const context = this.getSystemSnapshot();
 
@@ -93,10 +95,10 @@ export const julesService = {
           context,
           error: error
             ? {
-                message: error.message || error.toString(),
-                stack: error.stack,
-                name: error.name,
-              }
+              message: error.message || error.toString(),
+              stack: error.stack,
+              name: error.name,
+            }
             : null,
         }),
       });
@@ -107,9 +109,11 @@ export const julesService = {
 
       const result = await response.json();
 
+      julesStore.showReport(result.message);
       return result.message;
     } catch (err) {
       console.error("[JulesService] Failed to report:", err);
+      julesStore.setLoading(false);
       return null; // Silent fail
     }
   },
