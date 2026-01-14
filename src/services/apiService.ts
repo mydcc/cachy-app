@@ -166,7 +166,8 @@ export const apiService = {
 
   async fetchBitunixPrice(
     symbol: string,
-    priority: "high" | "normal" = "high"
+    priority: "high" | "normal" = "high",
+    timeout = 5000
   ): Promise<Decimal> {
     const key = `BITUNIX:PRICE:${symbol}`;
     return requestManager.schedule(
@@ -192,6 +193,7 @@ export const apiService = {
           const data = res.data[0];
           return new Decimal(data.lastPrice);
         } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||
@@ -204,7 +206,7 @@ export const apiService = {
       },
       priority,
       1, // retries
-      5000 // 5s timeout for price
+      timeout // dynamic timeout
     );
   },
 
@@ -214,7 +216,8 @@ export const apiService = {
     limit: number = 15,
     startTime?: number,
     endTime?: number,
-    priority: "high" | "normal" = "normal"
+    priority: "high" | "normal" = "normal",
+    timeout = 10000
   ): Promise<Kline[]> {
     const key = `BITUNIX:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
     return requestManager.schedule(
@@ -279,6 +282,7 @@ export const apiService = {
           );
         } catch (e) {
           console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||
@@ -289,13 +293,16 @@ export const apiService = {
           throw new Error("apiErrors.generic");
         }
       },
-      priority
+      priority,
+      1,
+      timeout
     );
   },
 
   async fetchBinancePrice(
     symbol: string,
-    priority: "high" | "normal" = "high"
+    priority: "high" | "normal" = "high",
+    timeout = 5000
   ): Promise<Decimal> {
     const key = `BINANCE:PRICE:${symbol}`;
     return requestManager.schedule(
@@ -318,6 +325,7 @@ export const apiService = {
           }
           return new Decimal(data.price);
         } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message === "apiErrors.symbolNotFound" ||
@@ -330,7 +338,7 @@ export const apiService = {
       },
       priority,
       1, // retries
-      5000 // 5s timeout for price
+      timeout // dynamic timeout
     );
   },
 
@@ -338,7 +346,8 @@ export const apiService = {
     symbol: string,
     interval: string,
     limit: number = 15,
-    priority: "high" | "normal" = "normal"
+    priority: "high" | "normal" = "normal",
+    timeout = 10000
   ): Promise<Kline[]> {
     const key = `BINANCE:${symbol}:${interval}:${limit}`;
     return requestManager.schedule(
@@ -372,6 +381,7 @@ export const apiService = {
             time: parseTimestamp(kline[0]),
           }));
         } catch (e) {
+          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message === "apiErrors.klineError" ||
@@ -382,14 +392,17 @@ export const apiService = {
           throw new Error("apiErrors.generic");
         }
       },
-      priority
+      priority,
+      1,
+      timeout
     );
   },
 
   async fetchTicker24h(
     symbol: string,
     provider: "bitunix" | "binance",
-    priority: "high" | "normal" = "normal"
+    priority: "high" | "normal" = "normal",
+    timeout = 10000
   ): Promise<Ticker24h> {
     const key = `TICKER24:${provider}:${symbol}`;
     return requestManager.schedule(
@@ -453,6 +466,7 @@ export const apiService = {
           }
         } catch (e) {
           console.error("fetchTicker24h error", e);
+          if (e instanceof Error && e.name === 'AbortError') throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
             (e.message.startsWith("apiErrors.") ||
@@ -463,7 +477,9 @@ export const apiService = {
           throw new Error("apiErrors.generic");
         }
       },
-      priority
+      priority,
+      1,
+      timeout
     );
   },
 };
