@@ -16,12 +16,12 @@
                 <div class="stat-label">{$_("journal.stats.totalPnL")}</div>
                 <div
                     class="stat-value"
-                    class:positive={performanceData.totalPnl >= 0}
-                    class:negative={performanceData.totalPnl < 0}
+                    class:positive={(performanceData?.totalPnl ?? 0) >= 0}
+                    class:negative={(performanceData?.totalPnl ?? 0) < 0}
                 >
-                    {performanceData.totalPnl >= 0
-                        ? "+"
-                        : ""}{performanceData.totalPnl.toFixed(2)} $
+                    {(performanceData?.totalPnl ?? 0) >= 0 ? "+" : ""}{(
+                        performanceData?.totalPnl ?? 0
+                    ).toFixed(2)} $
                 </div>
             </div>
 
@@ -30,10 +30,10 @@
                 <div class="stat-label">{$_("journal.stats.winRate")}</div>
                 <div
                     class="stat-value"
-                    class:positive={performanceData.winRate >= 50}
-                    class:neutral={performanceData.winRate < 50}
+                    class:positive={(performanceData?.winRate ?? 0) >= 50}
+                    class:neutral={(performanceData?.winRate ?? 0) < 50}
                 >
-                    {performanceData.winRate.toFixed(1)}%
+                    {(performanceData?.winRate ?? 0).toFixed(1)}%
                 </div>
             </div>
 
@@ -42,10 +42,10 @@
                 <div class="stat-label">{$_("journal.stats.profitFactor")}</div>
                 <div
                     class="stat-value"
-                    class:positive={performanceData.profitFactor >= 1.5}
-                    class:neutral={performanceData.profitFactor < 1.5}
+                    class:positive={(performanceData?.profitFactor ?? 0) >= 1.5}
+                    class:neutral={(performanceData?.profitFactor ?? 0) < 1.5}
                 >
-                    {performanceData.profitFactor.toFixed(2)}
+                    {(performanceData?.profitFactor ?? 0).toFixed(2)}
                 </div>
             </div>
 
@@ -53,7 +53,7 @@
             <div class="stat-card">
                 <div class="stat-label">{$_("journal.stats.totalTrades")}</div>
                 <div class="stat-value neutral">
-                    {performanceData.totalTrades}
+                    {performanceData?.totalTrades ?? 0}
                 </div>
             </div>
 
@@ -62,10 +62,10 @@
                 <div class="stat-label">{$_("journal.stats.avgRR")}</div>
                 <div
                     class="stat-value"
-                    class:positive={qualityData.avgR >= 1}
-                    class:neutral={qualityData.avgR < 1}
+                    class:positive={(qualityData?.avgR ?? 0) >= 1}
+                    class:neutral={(qualityData?.avgR ?? 0) < 1}
                 >
-                    {qualityData.avgR.toFixed(2)}R
+                    {(qualityData?.avgR ?? 0).toFixed(2)}R
                 </div>
             </div>
 
@@ -73,7 +73,7 @@
             <div class="stat-card">
                 <div class="stat-label">{$_("journal.stats.maxDrawdown")}</div>
                 <div class="stat-value negative">
-                    {performanceData.maxDrawdown.toFixed(2)} $
+                    {(performanceData?.maxDrawdown ?? 0).toFixed(2)} $
                 </div>
             </div>
         </div>

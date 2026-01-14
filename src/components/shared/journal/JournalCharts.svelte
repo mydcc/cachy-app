@@ -29,15 +29,15 @@
     // --- Reactive Data Derivation ---
 
     // Performance Data
-    $: perfData = $performanceMetrics;
+    $: perfData = $performanceMetrics || {};
     $: equityData = {
-        labels: perfData.equityCurve.map((d) =>
+        labels: (perfData.equityCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.equity"),
-                data: perfData.equityCurve.map((d) => d.y),
+                data: (perfData.equityCurve || []).map((d) => d.y),
                 borderColor: themeColors.success,
                 backgroundColor: hexToRgba(themeColors.success, 0.1),
                 fill: true,
@@ -46,13 +46,13 @@
         ],
     };
     $: drawdownData = {
-        labels: perfData.drawdownSeries.map((d) =>
+        labels: (perfData.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.drawdown"),
-                data: perfData.drawdownSeries.map((d) => d.y),
+                data: (perfData.drawdownSeries || []).map((d) => d.y),
                 borderColor: themeColors.danger,
                 backgroundColor: hexToRgba(themeColors.danger, 0.2),
                 fill: true,
@@ -61,12 +61,12 @@
         ],
     };
     $: monthlyData = {
-        labels: perfData.monthlyLabels,
+        labels: perfData.monthlyLabels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.monthlyPnl"),
-                data: perfData.monthlyData,
-                backgroundColor: perfData.monthlyData.map((d) =>
+                data: perfData.monthlyData || [],
+                backgroundColor: (perfData.monthlyData || []).map((d) =>
                     d >= 0 ? themeColors.success : themeColors.danger
                 ),
             },
@@ -74,7 +74,7 @@
     };
 
     // Quality Data
-    $: qualData = $qualityMetrics;
+    $: qualData = $qualityMetrics || {};
     $: winLossChartData = {
         labels: [
             $_("journal.deepDive.charts.labels.winLong"),
@@ -86,7 +86,7 @@
         ],
         datasets: [
             {
-                data: qualData.sixSegmentData,
+                data: qualData.sixSegmentData || [],
                 backgroundColor: [
                     hexToRgba(themeColors.success, 1),
                     hexToRgba(themeColors.success, 0.5),
@@ -101,23 +101,23 @@
         ],
     };
     $: rDistData = {
-        labels: Object.keys(qualData.rHistogram),
+        labels: Object.keys(qualData.rHistogram || {}),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
-                data: Object.values(qualData.rHistogram),
+                data: Object.values(qualData.rHistogram || {}),
                 backgroundColor: themeColors.accent,
             },
         ],
     };
     $: cumRData = {
-        labels: qualData.cumulativeRCurve.map((d) =>
+        labels: (qualData.cumulativeRCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.cumulativeR"),
-                data: qualData.cumulativeRCurve.map((d) => d.y),
+                data: (qualData.cumulativeRCurve || []).map((d) => d.y),
                 borderColor: themeColors.accent,
                 backgroundColor: hexToRgba(themeColors.accent, 0.1),
                 fill: true,
@@ -127,18 +127,27 @@
     };
 
     // Direction Data
-    $: dirData = calculator.getDirectionData($journalStore);
+    $: dirData = $journalStore
+        ? calculator.getDirectionData($journalStore)
+        : {
+              longPnl: 0,
+              shortPnl: 0,
+              topSymbols: { labels: [], data: [] },
+              bottomSymbols: { labels: [], data: [] },
+              longCurve: [],
+              shortCurve: [],
+          };
     $: longShortData = {
         labels: [$_("journal.labels.long"), $_("journal.labels.short")],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.netPnl"),
-                data: [dirData.longPnl, dirData.shortPnl],
+                data: [dirData.longPnl || 0, dirData.shortPnl || 0],
                 backgroundColor: [
-                    dirData.longPnl >= 0
+                    (dirData.longPnl || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
-                    dirData.shortPnl >= 0
+                    (dirData.shortPnl || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -146,27 +155,27 @@
         ],
     };
     $: topSymbolData = {
-        labels: dirData.topSymbols.labels,
+        labels: dirData.topSymbols?.labels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: dirData.topSymbols.data,
+                data: dirData.topSymbols?.data || [],
                 backgroundColor: themeColors.success,
             },
         ],
     };
     $: bottomSymbolData = {
-        labels: dirData.bottomSymbols.labels,
+        labels: dirData.bottomSymbols?.labels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: dirData.bottomSymbols.data,
+                data: dirData.bottomSymbols?.data || [],
                 backgroundColor: themeColors.danger,
             },
         ],
     };
     $: directionEvolutionData = {
-        labels: dirData.longCurve.map((d) =>
+        labels: (dirData.longCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
         datasets: [
@@ -176,7 +185,7 @@
                     " (" +
                     $_("journal.labels.long") +
                     ")",
-                data: dirData.longCurve.map((d) => d.y),
+                data: (dirData.longCurve || []).map((d) => d.y),
                 borderColor: themeColors.success,
                 backgroundColor: hexToRgba(themeColors.success, 0.1),
                 fill: true,
@@ -188,7 +197,7 @@
                     " (" +
                     $_("journal.labels.short") +
                     ")",
-                data: dirData.shortCurve.map((d) => d.y),
+                data: (dirData.shortCurve || []).map((d) => d.y),
                 borderColor: themeColors.danger,
                 backgroundColor: hexToRgba(themeColors.danger, 0.1),
                 fill: true,
@@ -198,41 +207,41 @@
     };
 
     // Discipline Data
-    $: discData = $disciplineMetrics;
+    $: discData = $disciplineMetrics || {};
     $: hourlyData = {
         labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: discData.hourlyPnl,
-                backgroundColor: discData.hourlyPnl.map((d) =>
+                data: discData.hourlyPnl || [],
+                backgroundColor: (discData.hourlyPnl || []).map((d) =>
                     d >= 0 ? themeColors.success : themeColors.danger
                 ),
             },
         ],
     };
     $: riskData = {
-        labels: Object.keys(discData.riskBuckets),
+        labels: Object.keys(discData.riskBuckets || {}),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
-                data: Object.values(discData.riskBuckets),
+                data: Object.values(discData.riskBuckets || {}),
                 backgroundColor: themeColors.warning,
             },
         ],
     };
 
     // Cost Data
-    $: costData = $costMetrics;
+    $: costData = $costMetrics || {};
     $: grossNetData = {
         labels: [$_("journal.labels.gross"), $_("journal.labels.net")],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: [costData.gross, costData.net],
+                data: [costData.gross || 0, costData.net || 0],
                 backgroundColor: [
                     themeColors.accent,
-                    costData.net >= 0
+                    (costData.net || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -240,13 +249,13 @@
         ],
     };
     $: feeCurveData = {
-        labels: costData.feeCurve.map((d) =>
+        labels: (costData.feeCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.titles.cumulativeFees"),
-                data: costData.feeCurve.map((d) => d.y),
+                data: (costData.feeCurve || []).map((d) => d.y),
                 borderColor: themeColors.warning,
                 fill: true,
                 backgroundColor: hexToRgba(themeColors.warning, 0.1),
@@ -261,8 +270,8 @@
         datasets: [
             {
                 data: [
-                    costData.feeStructure.trading,
-                    costData.feeStructure.funding,
+                    costData.feeStructure?.trading || 0,
+                    costData.feeStructure?.funding || 0,
                 ],
                 backgroundColor: [
                     themeColors.textSecondary,

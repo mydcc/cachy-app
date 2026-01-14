@@ -45,14 +45,14 @@
     $: journal = $journalStore;
 
     // Forecast (Monte Carlo)
-    $: monteCarloData = calculator.getMonteCarloData(journal);
+    $: monteCarloData = journal ? calculator.getMonteCarloData(journal) : null;
     $: monteCarloChartData = monteCarloData
         ? {
-              labels: monteCarloData.labels,
+              labels: monteCarloData.labels || [],
               datasets: [
                   {
                       label: $_("journal.deepDive.charts.labels.simBest"),
-                      data: monteCarloData.upperPath,
+                      data: monteCarloData.upperPath || [],
                       borderColor: themeColors.success,
                       backgroundColor: "transparent",
                       borderDash: [5, 5],
@@ -61,7 +61,7 @@
                   },
                   {
                       label: $_("journal.deepDive.charts.labels.simMedian"),
-                      data: monteCarloData.medianPath,
+                      data: monteCarloData.medianPath || [],
                       borderColor: themeColors.accent,
                       backgroundColor: "transparent",
                       borderWidth: 2,
@@ -69,7 +69,7 @@
                   },
                   {
                       label: $_("journal.deepDive.charts.labels.simWorst"),
-                      data: monteCarloData.lowerPath,
+                      data: monteCarloData.lowerPath || [],
                       borderColor: themeColors.danger,
                       backgroundColor: "transparent",
                       borderDash: [5, 5],
@@ -77,7 +77,7 @@
                       pointRadius: 0,
                   },
                   // Add a few random paths for "flavor"
-                  ...monteCarloData.randomPaths.map((path, i) => ({
+                  ...(monteCarloData.randomPaths || []).map((path, i) => ({
                       label: `Sim #${i + 1}`,
                       data: path,
                       borderColor: hexToRgba(themeColors.textSecondary, 0.2),
@@ -90,16 +90,16 @@
         : null;
 
     // Trends (Rolling Stats)
-    $: rollingData = calculator.getRollingData(journal);
+    $: rollingData = journal ? calculator.getRollingData(journal) : null;
     $: rollingWinRateData = rollingData
         ? {
-              labels: rollingData.labels,
+              labels: rollingData.labels || [],
               datasets: [
                   {
                       label: $_(
                           "journal.deepDive.charts.labels.rollingWinRate"
                       ),
-                      data: rollingData.winRates,
+                      data: rollingData.winRates || [],
                       borderColor: themeColors.success,
                       backgroundColor: hexToRgba(themeColors.success, 0.1),
                       fill: true,
@@ -111,11 +111,11 @@
 
     $: rollingPFData = rollingData
         ? {
-              labels: rollingData.labels,
+              labels: rollingData.labels || [],
               datasets: [
                   {
                       label: $_("journal.deepDive.charts.labels.rollingPF"),
-                      data: rollingData.profitFactors,
+                      data: rollingData.profitFactors || [],
                       borderColor: themeColors.warning,
                       backgroundColor: hexToRgba(themeColors.warning, 0.1),
                       fill: true,
@@ -127,11 +127,11 @@
 
     $: rollingSQNData = rollingData
         ? {
-              labels: rollingData.labels,
+              labels: rollingData.labels || [],
               datasets: [
                   {
                       label: $_("journal.deepDive.charts.labels.rollingSQN"),
-                      data: rollingData.sqnValues,
+                      data: rollingData.sqnValues || [],
                       borderColor: themeColors.accent,
                       backgroundColor: hexToRgba(themeColors.accent, 0.1),
                       fill: true,
@@ -142,7 +142,18 @@
         : null;
 
     // Leakage (Attribution)
-    $: leakageData = calculator.getLeakageData(journal);
+    $: leakageData = journal
+        ? calculator.getLeakageData(journal)
+        : {
+              waterfallData: {
+                  grossProfit: 0,
+                  fees: 0,
+                  grossLoss: 0,
+                  netResult: 0,
+              },
+              worstTags: [],
+              worstHours: [],
+          };
 
     // Waterfall Chart Data
     $: leakageWaterfallChartData = {
@@ -156,16 +167,16 @@
             {
                 label: $_("journal.deepDive.charts.labels.pnlBreakdown"),
                 data: [
-                    leakageData.waterfallData.grossProfit,
-                    leakageData.waterfallData.fees,
-                    leakageData.waterfallData.grossLoss,
-                    leakageData.waterfallData.netResult,
+                    leakageData.waterfallData?.grossProfit || 0,
+                    leakageData.waterfallData?.fees || 0,
+                    leakageData.waterfallData?.grossLoss || 0,
+                    leakageData.waterfallData?.netResult || 0,
                 ],
                 backgroundColor: [
                     themeColors.success,
                     themeColors.warning,
                     themeColors.danger,
-                    leakageData.waterfallData.netResult >= 0
+                    (leakageData.waterfallData?.netResult || 0) >= 0
                         ? themeColors.success
                         : themeColors.danger,
                 ],
@@ -174,7 +185,7 @@
     };
 
     $: leakageTagData = {
-        labels: leakageData.worstTags.map((t) =>
+        labels: (leakageData.worstTags || []).map((t) =>
             t.label === "No Tag"
                 ? $_("journal.deepDive.charts.labels.noTag")
                 : t.label
@@ -182,71 +193,71 @@
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: leakageData.worstTags.map((t) => t.pnl),
+                data: (leakageData.worstTags || []).map((t) => t.pnl),
                 backgroundColor: themeColors.danger,
             },
         ],
     };
     $: leakageTimingData = {
-        labels: leakageData.worstHours.map((h) => `${h.hour}h`),
+        labels: (leakageData.worstHours || []).map((h) => `${h.hour}h`),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.grossLoss"),
-                data: leakageData.worstHours.map((h) => h.loss), // Absolute positive values for display
+                data: (leakageData.worstHours || []).map((h) => h.loss), // Absolute positive values for display
                 backgroundColor: themeColors.danger,
             },
         ],
     };
 
     // Timing
-    $: timingData = $timingMetrics;
+    $: timingData = $timingMetrics || {};
     $: hourlyPnlData = {
         labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.grossProfit"),
-                data: timingData.hourlyGrossProfit,
+                data: timingData.hourlyGrossProfit || [],
                 backgroundColor: themeColors.success,
             },
             {
                 label: $_("journal.deepDive.charts.labels.grossLoss"),
-                data: timingData.hourlyGrossLoss,
+                data: timingData.hourlyGrossLoss || [],
                 backgroundColor: themeColors.danger,
             },
         ],
     };
 
     $: dayOfWeekPnlData = {
-        labels: timingData.dayLabels,
+        labels: timingData.dayLabels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.grossProfit"),
-                data: timingData.dayOfWeekGrossProfit,
+                data: timingData.dayOfWeekGrossProfit || [],
                 backgroundColor: themeColors.success,
             },
             {
                 label: $_("journal.deepDive.charts.labels.grossLoss"),
-                data: timingData.dayOfWeekGrossLoss,
+                data: timingData.dayOfWeekGrossLoss || [],
                 backgroundColor: themeColors.danger,
             },
         ],
     };
 
-    $: durationStats = $durationStatsMetrics;
+    $: durationStats = $durationStatsMetrics || {};
     $: durationChartData = {
-        labels: durationStats.labels,
+        labels: durationStats.labels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: durationStats.pnlData,
-                backgroundColor: durationStats.pnlData.map((d) =>
+                data: durationStats.pnlData || [],
+                backgroundColor: (durationStats.pnlData || []).map((d) =>
                     d >= 0 ? themeColors.success : themeColors.danger
                 ),
                 yAxisID: "y",
             },
             {
                 label: $_("journal.deepDive.charts.titles.winRate"),
-                data: durationStats.winRateData,
+                data: durationStats.winRateData || [],
                 type: "line",
                 borderColor: themeColors.accent,
                 backgroundColor: hexToRgba(themeColors.accent, 0.1),
@@ -255,30 +266,39 @@
         ],
     };
 
-    $: durationDataRaw = $durationDataMetrics;
+    $: durationDataRaw = $durationDataMetrics || {};
     $: durationScatterData = {
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
-                data: durationDataRaw.scatterData,
-                backgroundColor: durationDataRaw.scatterData.map((d) =>
+                data: durationDataRaw.scatterData || [],
+                backgroundColor: (durationDataRaw.scatterData || []).map((d) =>
                     d.y >= 0 ? themeColors.success : themeColors.danger
                 ),
             },
         ],
     };
 
-    $: confluenceData = $confluenceMetrics;
+    $: confluenceData = $confluenceMetrics || [];
 
     // Assets
-    $: dirData = calculator.getDirectionData(journal); // Re-used for Asset Top Symbol
-    $: assetData = $assetMetrics;
+    $: dirData = journal
+        ? calculator.getDirectionData(journal)
+        : {
+              longPnl: 0,
+              shortPnl: 0,
+              topSymbols: { labels: [], data: [] },
+              bottomSymbols: { labels: [], data: [] },
+              longCurve: [],
+              shortCurve: [],
+          };
+    $: assetData = $assetMetrics || {};
     $: assetBubbleData = {
         datasets: [
             {
                 label: $_("journal.deepDive.assets"),
-                data: assetData.bubbleData,
-                backgroundColor: assetData.bubbleData.map((d) =>
+                data: assetData.bubbleData || [],
+                backgroundColor: (assetData.bubbleData || []).map((d) =>
                     d.y >= 0
                         ? hexToRgba(themeColors.success, 0.6)
                         : hexToRgba(themeColors.danger, 0.6)
@@ -288,13 +308,13 @@
     };
 
     // Risk
-    $: riskScatterData = $riskMetrics;
+    $: riskScatterData = $riskMetrics || {};
     $: riskRewardScatter = {
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
-                data: riskScatterData.scatterData,
-                backgroundColor: riskScatterData.scatterData.map((d) =>
+                data: riskScatterData.scatterData || [],
+                backgroundColor: (riskScatterData.scatterData || []).map((d) =>
                     d.y >= 0 ? themeColors.success : themeColors.danger
                 ),
             },
@@ -302,7 +322,7 @@
     };
 
     // Quality - R Distribution
-    $: qualMetrics = $qualityMetrics;
+    $: qualMetrics = $qualityMetrics || {};
     $: rDistData = {
         labels: Object.keys(qualMetrics.rHistogram || {}),
         datasets: [
@@ -315,7 +335,7 @@
     };
 
     // Performance - Drawdown
-    $: perfMetrics = $performanceMetrics;
+    $: perfMetrics = $performanceMetrics || {};
     $: drawdownData = {
         labels: (perfMetrics.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString()
@@ -333,7 +353,7 @@
     };
 
     // Market (Leverage + Win Rate Long/Short)
-    $: marketData = $marketMetrics;
+    $: marketData = $marketMetrics || {};
     $: longShortWinData = {
         labels: [
             $_("journal.deepDive.charts.labels.longWinRate"),
@@ -341,41 +361,41 @@
         ],
         datasets: [
             {
-                data: marketData.longShortWinRate,
+                data: marketData.longShortWinRate || [],
                 backgroundColor: [themeColors.success, themeColors.danger],
                 borderWidth: 0,
             },
         ],
     };
     $: leverageDistData = {
-        labels: marketData.leverageLabels,
+        labels: marketData.leverageLabels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.count"),
-                data: marketData.leverageDist,
+                data: marketData.leverageDist || [],
                 backgroundColor: themeColors.accent,
             },
         ],
     };
 
     // Psychology
-    $: psychData = $psychologyMetrics;
+    $: psychData = $psychologyMetrics || {};
     $: winStreakData = {
-        labels: psychData.streakLabels,
+        labels: psychData.streakLabels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.frequency"),
-                data: psychData.winStreakData,
+                data: psychData.winStreakData || [],
                 backgroundColor: themeColors.success,
             },
         ],
     };
     $: lossStreakData = {
-        labels: psychData.streakLabels,
+        labels: psychData.streakLabels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.frequency"),
-                data: psychData.lossStreakData,
+                data: psychData.lossStreakData || [],
                 backgroundColor: themeColors.danger,
             },
         ],
@@ -385,22 +405,22 @@
     // Let's import performanceMetrics
 
     // Strategies (Tags)
-    $: tagData = $tagMetrics;
+    $: tagData = $tagMetrics || {};
     $: tagPnlData = {
-        labels: tagData.labels,
+        labels: tagData.labels || [],
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.pnl"),
-                data: tagData.pnlData,
-                backgroundColor: tagData.pnlData.map((d) =>
+                data: tagData.pnlData || [],
+                backgroundColor: (tagData.pnlData || []).map((d) =>
                     d >= 0 ? themeColors.success : themeColors.danger
                 ),
             },
         ],
     };
-    $: tagEvolutionData = $tagEvolutionMetrics;
+    $: tagEvolutionData = $tagEvolutionMetrics || { datasets: [] };
     $: tagEvolutionChartData = {
-        datasets: tagEvolutionData.datasets.map((ds, i) => ({
+        datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
             label: ds.label,
             data: ds.data,
             borderColor: [
@@ -417,12 +437,12 @@
     };
 
     // Calendar
-    $: calendarData = $calendarMetrics;
+    $: calendarData = $calendarMetrics || [];
 
     $: availableYears = (() => {
         const years = new Set<number>();
         years.add(new Date().getFullYear());
-        calendarData.forEach((d) => {
+        (calendarData || []).forEach((d) => {
             const y = new Date(d.date).getFullYear();
             if (!isNaN(y)) years.add(y);
         });
