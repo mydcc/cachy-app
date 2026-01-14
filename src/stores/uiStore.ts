@@ -81,8 +81,23 @@ function createUiStore() {
     update,
     set,
     setTheme: (themeName: string) => {
-      update((state) => ({ ...state, currentTheme: themeName }));
+      update((state) => {
+        // Skip if theme is already set to prevent unnecessary DOM manipulation
+        if (state.currentTheme === themeName) {
+          return state;
+        }
+        return { ...state, currentTheme: themeName };
+      });
       if (browser) {
+        // Only update DOM if theme actually changed
+        const currentThemeClass = Array.from(document.body.classList).find(c => c.startsWith("theme-"));
+        const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
+
+        // Skip DOM update if already correct
+        if (currentThemeClass === expectedClass || (!currentThemeClass && !expectedClass)) {
+          return;
+        }
+
         document.body.classList.forEach((className) => {
           if (className.startsWith("theme-")) {
             document.body.classList.remove(className);
