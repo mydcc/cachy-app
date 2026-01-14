@@ -1,6 +1,5 @@
-<!-- @migration-task Error while migrating Svelte code: Can't migrate code with afterUpdate. Please migrate by hand. -->
 <script lang="ts">
-  import { onMount, afterUpdate } from "svelte";
+  import { onMount } from "svelte";
   import { fly } from "svelte/transition";
   import { chatStore } from "../../stores/chatStore";
   import { aiStore } from "../../stores/aiStore";
@@ -9,15 +8,17 @@
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
 
-  let isOpen = false;
-  let inputEl: HTMLInputElement;
-  let messagesContainer: HTMLDivElement;
-  let messageText = "";
-  let isSending = false;
-  let errorMessage = "";
+  let isOpen = $state(false);
+  let inputEl: HTMLInputElement = $state();
+  let messagesContainer: HTMLDivElement = $state();
+  let messageText = $state("");
+  let isSending = $state(false);
+  let errorMessage = $state("");
 
   // Scroll to bottom on new messages
-  afterUpdate(() => {
+  $effect(() => {
+    // This effect runs when messagesContainer or its contents change
+    // Using a microtask to ensure the DOM has updated
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -53,7 +54,6 @@
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
-      // Allow shift+enter for new lines if textarea (future)
       e.preventDefault();
       handleSend();
     }
@@ -79,11 +79,14 @@
   }
 
   // Reactive layout variables
-  $: isFloating = $settingsStore.sidePanelLayout === "floating";
-  $: isStandard =
+  let isFloating = $derived($settingsStore.sidePanelLayout === "floating");
+  let isStandard = $derived(
     $settingsStore.sidePanelLayout === "standard" ||
-    !$settingsStore.sidePanelLayout;
-  $: isTransparent = $settingsStore.sidePanelLayout === "transparent";
+      !$settingsStore.sidePanelLayout,
+  );
+  let isTransparent = $derived(
+    $settingsStore.sidePanelLayout === "transparent",
+  );
 
   const transitionParams = { x: 300, duration: 300 };
 </script>

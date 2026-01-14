@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { createEventDispatcher } from "svelte";
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
@@ -25,15 +23,14 @@
   let inputValue = $state("");
   let inputElement: HTMLInputElement | null = $state(null);
   let showDropdown = $state(false);
-  let filteredOptions: string[] = $state([]);
 
-  run(() => {
-    filteredOptions = options.filter(
+  let filteredOptions: string[] = $derived(
+    options.filter(
       (opt) =>
         !selected.includes(opt) &&
         opt.toLowerCase().includes(inputValue.toLowerCase()),
-    );
-  });
+    ),
+  );
 
   function addTimeframe(val: string) {
     const normalized = normalizeTimeframeInput(val);
@@ -82,7 +79,7 @@
 
   function handleOptionClick(opt: string) {
     addTimeframe(opt);
-    inputElement.focus();
+    if (inputElement) inputElement.focus();
   }
 
   function handleInputFocus() {

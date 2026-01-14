@@ -1,6 +1,4 @@
 <script lang="ts">
-  import { run } from "svelte/legacy";
-
   import { tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
   import {
@@ -163,12 +161,10 @@
     }, 0);
   }
 
-  let lastTheme = $state("");
-  run(() => {
-    if ($uiStore.currentTheme !== lastTheme) {
-      lastTheme = $uiStore.currentTheme;
-      updateThemeColors();
-    }
+  $effect(() => {
+    // Synchronize theme colors when the theme changes
+    const _theme = $uiStore.currentTheme;
+    updateThemeColors();
   });
 
   // --- Table State ---
@@ -332,7 +328,8 @@
     currentPage = 1;
   }
 
-  run(() => {
+  $effect(() => {
+    // Reset pagination when filters or sort change
     resetPagination(
       journalSearchQuery,
       journalFilterStatus,
