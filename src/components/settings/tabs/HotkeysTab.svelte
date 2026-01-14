@@ -2,7 +2,11 @@
   import HotkeySettings from "../HotkeySettings.svelte";
   import type { HotkeyMode } from "../../../stores/settingsStore";
 
-  export let hotkeyMode: HotkeyMode;
+  interface Props {
+    hotkeyMode: HotkeyMode;
+  }
+
+  let { hotkeyMode = $bindable() }: Props = $props();
 </script>
 
 <div class="flex flex-col h-full" role="tabpanel" id="tab-hotkeys">
@@ -13,7 +17,7 @@
       <p class="mb-4">You are currently using a preset Hotkey Mode.</p>
       <button
         class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded font-bold text-sm"
-        on:click={() => (hotkeyMode = "custom")}
+        onclick={() => (hotkeyMode = "custom")}
       >
         Switch to Custom Mode to Edit
       </button>

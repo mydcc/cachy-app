@@ -10,7 +10,7 @@
     class:border-transparent={$locale !== "de"}
     class:opacity-50={$locale !== "de"}
     class:hover:opacity-100={$locale !== "de"}
-    on:click={() => setLocale("de")}
+    onclick={() => setLocale("de")}
     title={$_("languages.german")}
   >
     🇩🇪
@@ -22,7 +22,7 @@
     class:border-transparent={$locale !== "en"}
     class:opacity-50={$locale !== "en"}
     class:hover:opacity-100={$locale !== "en"}
-    on:click={() => setLocale("en")}
+    onclick={() => setLocale("en")}
     title={$_("languages.english")}
   >
     🇬🇧

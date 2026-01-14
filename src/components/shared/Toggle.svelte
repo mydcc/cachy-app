@@ -1,13 +1,20 @@
 <script lang="ts">
-  export let checked: boolean = false;
-  export let disabled: boolean = false;
-  export let id: string = "toggle-" + Math.random().toString(36).substr(2, 9);
+  import { createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
+  interface Props {
+    checked?: boolean;
+    disabled?: boolean;
+    id?: string;
+  }
+
+  let { checked = $bindable(false), disabled = false, id = "toggle-" + Math.random().toString(36).substr(2, 9) }: Props = $props();
 </script>
 
 <div class="toggle-wrapper" class:disabled>
-  <input type="checkbox" {id} bind:checked {disabled} on:change />
+  <input type="checkbox" {id} bind:checked {disabled} onchange={bubble('change')} />
   <label for={id}>
-    <span class="toggle-slider" />
+    <span class="toggle-slider"></span>
   </label>
 </div>
 

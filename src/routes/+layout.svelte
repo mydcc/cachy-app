@@ -1,4 +1,7 @@
 <script lang="ts">
+  import { run, createBubbler, stopPropagation } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import favicon from "../assets/favicon.svg";
   import { tradeStore } from "../stores/tradeStore";
   import { uiStore } from "../stores/uiStore";
@@ -17,6 +20,11 @@
   import { CONSTANTS } from "../lib/constants";
 
   import { julesStore } from "../stores/julesStore";
+  interface Props {
+    children?: import('svelte').Snippet;
+  }
+
+  let { children }: Props = $props();
 
   // Removed local Jules state variables in favor of julesStore
 
@@ -104,10 +112,6 @@
     };
   });
 
-  // Dynamic theme color for PWA/Android status bar
-  $: if (typeof document !== "undefined" && $uiStore.currentTheme) {
-    updateThemeColor();
-  }
 
   function updateThemeColor() {
     // Small timeout to allow the DOM/CSS variables to update after class change
@@ -121,6 +125,12 @@
       }
     }, 50);
   }
+  // Dynamic theme color for PWA/Android status bar
+  run(() => {
+    if (typeof document !== "undefined" && $uiStore.currentTheme) {
+      updateThemeColor();
+    }
+  });
 </script>
 
 <svelte:head>
@@ -148,7 +158,7 @@
 </svelte:head>
 
 <div class="app-container">
-  <slot />
+  {@render children?.()}
 
   <!-- Global Modals -->
   <JournalView />
@@ -160,24 +170,24 @@
   <!-- Jules Report Overlay -->
   <!-- Jules Report Overlay -->
   {#if $julesStore.isVisible || $julesStore.isLoading}
-    <!-- svelte-ignore a11y-click-events-have-key-events -->
-    <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+    <!-- svelte-ignore a11y_click_events_have_key_events -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all animate-fade-in"
-      on:click={() => julesStore.hideReport()}
+      onclick={() => julesStore.hideReport()}
       role="dialog"
       tabindex="-1"
     >
-      <!-- svelte-ignore a11y-click-events-have-key-events -->
-      <!-- svelte-ignore a11y-no-static-element-interactions -->
+      <!-- svelte-ignore a11y_click_events_have_key_events -->
+      <!-- svelte-ignore a11y_no_static_element_interactions -->
       <div
         class="bg-[var(--bg-secondary)] text-[var(--text-primary)] p-6 rounded-lg shadow-2xl border border-[var(--accent-color)] max-w-2xl w-full mx-4 relative transform transition-all"
-        on:click|stopPropagation
+        onclick={stopPropagation(bubble('click'))}
         role="document"
       >
         <button
           class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          on:click={() => julesStore.hideReport()}
+          onclick={() => julesStore.hideReport()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -206,7 +216,7 @@
           <div class="flex flex-col items-center justify-center py-8 gap-4">
             <div
               class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
-            />
+></div>
             <p class="text-sm text-[var(--text-secondary)] animate-pulse">
               Analyzing system state...
             </p>
@@ -223,7 +233,7 @@
         <div class="mt-4 flex justify-end">
           <button
             class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity font-bold text-sm"
-            on:click={() => julesStore.hideReport()}
+            onclick={() => julesStore.hideReport()}
           >
             Close Report
           </button>

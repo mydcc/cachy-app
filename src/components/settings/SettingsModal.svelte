@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import ModalFrame from "../shared/ModalFrame.svelte";
   import {
     settingsStore,
@@ -41,62 +43,62 @@
   import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
 
   // Local state for the form inputs
-  let apiProvider: "bitunix" | "binance";
-  let marketDataInterval: number = 10;
-  let autoUpdatePriceInput: boolean;
-  let autoFetchBalance: boolean;
-  let showSidebars: boolean;
-  let showTechnicals: boolean;
-  let showIndicatorParams: boolean;
-  let hideUnfilledOrders: boolean;
-  let feePreference: "maker" | "taker";
-  let hotkeyMode: HotkeyMode = "mode1";
-  let positionViewMode: PositionViewMode;
-  let showSpinButtons: boolean | "hover";
+  let apiProvider: "bitunix" | "binance" = $state();
+  let marketDataInterval: number = $state(10);
+  let autoUpdatePriceInput: boolean = $state();
+  let autoFetchBalance: boolean = $state();
+  let showSidebars: boolean = $state();
+  let showTechnicals: boolean = $state();
+  let showIndicatorParams: boolean = $state();
+  let hideUnfilledOrders: boolean = $state();
+  let feePreference: "maker" | "taker" = $state();
+  let hotkeyMode: HotkeyMode = $state("mode1");
+  let positionViewMode: PositionViewMode = $state();
+  let showSpinButtons: boolean | "hover" = $state();
 
   // Timeframe & RSI Sync
-  let favoriteTimeframes: string[] = [];
-  let syncRsiTimeframe: boolean;
+  let favoriteTimeframes: string[] = $state([]);
+  let syncRsiTimeframe: boolean = $state();
 
   // Indicator Settings
-  let historyLimit = $indicatorStore.historyLimit || 2000;
-  let precision = $indicatorStore.precision || 4;
-  let rsiSettings = { ...$indicatorStore.rsi };
-  let macdSettings = { ...$indicatorStore.macd };
-  let stochSettings = { ...$indicatorStore.stochastic };
-  let cciSettings = { ...$indicatorStore.cci };
-  let adxSettings = { ...$indicatorStore.adx };
-  let aoSettings = { ...$indicatorStore.ao };
-  let momentumSettings = { ...$indicatorStore.momentum };
-  let emaSettings = { ...$indicatorStore.ema };
-  let pivotSettings = { ...$indicatorStore.pivots };
+  let historyLimit = $state($indicatorStore.historyLimit || 2000);
+  let precision = $state($indicatorStore.precision || 4);
+  let rsiSettings = $state({ ...$indicatorStore.rsi });
+  let macdSettings = $state({ ...$indicatorStore.macd });
+  let stochSettings = $state({ ...$indicatorStore.stochastic });
+  let cciSettings = $state({ ...$indicatorStore.cci });
+  let adxSettings = $state({ ...$indicatorStore.adx });
+  let aoSettings = $state({ ...$indicatorStore.ao });
+  let momentumSettings = $state({ ...$indicatorStore.momentum });
+  let emaSettings = $state({ ...$indicatorStore.ema });
+  let pivotSettings = $state({ ...$indicatorStore.pivots });
 
   // Side Panel Settings
-  let enableSidePanel: boolean;
-  let sidePanelMode: "chat" | "notes" | "ai";
-  let sidePanelLayout: SidePanelLayout;
+  let enableSidePanel: boolean = $state();
+  let sidePanelMode: "chat" | "notes" | "ai" = $state();
+  let sidePanelLayout: SidePanelLayout = $state();
 
   // AI Settings
-  let aiProviderState: AiProvider;
-  let openaiApiKey: string;
-  let openaiModel: string;
-  let geminiApiKey: string;
-  let geminiModel: string;
-  let anthropicApiKey: string;
-  let anthropicModel: string;
+  let aiProviderState: AiProvider = $state();
+  let openaiApiKey: string = $state();
+  let openaiModel: string = $state();
+  let geminiApiKey: string = $state();
+  let geminiModel: string = $state();
+  let anthropicApiKey: string = $state();
+  let anthropicModel: string = $state();
 
   // Separate API keys per provider
-  let bitunixKeys: ApiKeys = { key: "", secret: "" };
-  let binanceKeys: ApiKeys = { key: "", secret: "" };
+  let bitunixKeys: ApiKeys = $state({ key: "", secret: "" });
+  let binanceKeys: ApiKeys = $state({ key: "", secret: "" });
 
   // ImgBB
-  let imgbbApiKey: string;
-  let imgbbExpiration: number;
+  let imgbbApiKey: string = $state();
+  let imgbbExpiration: number = $state();
 
   // UI state
-  let currentTheme: string;
-  let currentLanguage: string;
-  let isPro: boolean;
+  let currentTheme: string = $state();
+  let currentLanguage: string = $state();
+  let isPro: boolean = $state();
 
   // Track active tab
   let activeTab:
@@ -107,8 +109,8 @@
     | "system"
     | "sidebar"
     | "indicators"
-    | "hotkeys" = "general";
-  let isInitialized = false;
+    | "hotkeys" = $state("general");
+  let isInitialized = $state(false);
 
   const availableTimeframes = [
     "1m",
@@ -159,126 +161,134 @@
 
   // Subscribe to store to initialize local state
   // We use a guard to prevent overwriting user changes if the store updates while modal is open
-  $: if ($uiStore.showSettingsModal) {
-    if (!isInitialized) {
-      apiProvider = $settingsStore.apiProvider;
-      marketDataInterval = $settingsStore.marketDataInterval;
-      autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
-      autoFetchBalance = $settingsStore.autoFetchBalance;
-      showSidebars = $settingsStore.showSidebars;
-      showTechnicals = $settingsStore.showTechnicals;
-      showIndicatorParams = $settingsStore.showIndicatorParams;
-      hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
-      positionViewMode = $settingsStore.positionViewMode || "detailed";
-      feePreference = $settingsStore.feePreference;
-      hotkeyMode = $settingsStore.hotkeyMode;
-      enableSidePanel = $settingsStore.enableSidePanel;
-      sidePanelMode = $settingsStore.sidePanelMode;
-      sidePanelLayout = $settingsStore.sidePanelLayout || "standard";
-      isPro = $settingsStore.isPro;
-      showSpinButtons = $settingsStore.showSpinButtons || "hover";
+  run(() => {
+    if ($uiStore.showSettingsModal) {
+      if (!isInitialized) {
+        apiProvider = $settingsStore.apiProvider;
+        marketDataInterval = $settingsStore.marketDataInterval;
+        autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
+        autoFetchBalance = $settingsStore.autoFetchBalance;
+        showSidebars = $settingsStore.showSidebars;
+        showTechnicals = $settingsStore.showTechnicals;
+        showIndicatorParams = $settingsStore.showIndicatorParams;
+        hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
+        positionViewMode = $settingsStore.positionViewMode || "detailed";
+        feePreference = $settingsStore.feePreference;
+        hotkeyMode = $settingsStore.hotkeyMode;
+        enableSidePanel = $settingsStore.enableSidePanel;
+        sidePanelMode = $settingsStore.sidePanelMode;
+        sidePanelLayout = $settingsStore.sidePanelLayout || "standard";
+        isPro = $settingsStore.isPro;
+        showSpinButtons = $settingsStore.showSpinButtons || "hover";
 
-      aiProviderState = $settingsStore.aiProvider || "gemini";
-      openaiApiKey = $settingsStore.openaiApiKey || "";
-      openaiModel = $settingsStore.openaiModel || "gpt-4o";
-      geminiApiKey = $settingsStore.geminiApiKey || "";
-      geminiModel = $settingsStore.geminiModel || "gemini-2.0-flash";
-      anthropicApiKey = $settingsStore.anthropicApiKey || "";
-      anthropicModel =
-        $settingsStore.anthropicModel || "claude-3-5-sonnet-20240620";
+        aiProviderState = $settingsStore.aiProvider || "gemini";
+        openaiApiKey = $settingsStore.openaiApiKey || "";
+        openaiModel = $settingsStore.openaiModel || "gpt-4o";
+        geminiApiKey = $settingsStore.geminiApiKey || "";
+        geminiModel = $settingsStore.geminiModel || "gemini-2.0-flash";
+        anthropicApiKey = $settingsStore.anthropicApiKey || "";
+        anthropicModel =
+          $settingsStore.anthropicModel || "claude-3-5-sonnet-20240620";
 
-      favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
-      syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
+        favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
+        syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
 
-      activeTab = ($uiStore.settingsTab || "general") as any;
+        activeTab = ($uiStore.settingsTab || "general") as any;
 
-      historyLimit = $indicatorStore.historyLimit || 2000;
-      precision = $indicatorStore.precision || 4;
-      rsiSettings = { ...$indicatorStore.rsi };
-      macdSettings = { ...$indicatorStore.macd };
-      stochSettings = { ...$indicatorStore.stochastic };
-      cciSettings = { ...$indicatorStore.cci };
-      adxSettings = { ...$indicatorStore.adx };
-      aoSettings = { ...$indicatorStore.ao };
-      momentumSettings = { ...$indicatorStore.momentum };
-      emaSettings = { ...$indicatorStore.ema };
-      pivotSettings = { ...$indicatorStore.pivots };
+        historyLimit = $indicatorStore.historyLimit || 2000;
+        precision = $indicatorStore.precision || 4;
+        rsiSettings = { ...$indicatorStore.rsi };
+        macdSettings = { ...$indicatorStore.macd };
+        stochSettings = { ...$indicatorStore.stochastic };
+        cciSettings = { ...$indicatorStore.cci };
+        adxSettings = { ...$indicatorStore.adx };
+        aoSettings = { ...$indicatorStore.ao };
+        momentumSettings = { ...$indicatorStore.momentum };
+        emaSettings = { ...$indicatorStore.ema };
+        pivotSettings = { ...$indicatorStore.pivots };
 
-      // Deep copy keys to avoid binding issues
-      bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
-      binanceKeys = { ...$settingsStore.apiKeys.binance };
+        // Deep copy keys to avoid binding issues
+        bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
+        binanceKeys = { ...$settingsStore.apiKeys.binance };
 
-      imgbbApiKey = $settingsStore.imgbbApiKey;
-      imgbbExpiration = $settingsStore.imgbbExpiration;
+        imgbbApiKey = $settingsStore.imgbbApiKey;
+        imgbbExpiration = $settingsStore.imgbbExpiration;
 
-      currentTheme = $uiStore.currentTheme;
-      currentLanguage = $locale || "en";
+        currentTheme = $uiStore.currentTheme;
+        currentLanguage = $locale || "en";
 
-      isInitialized = true;
+        isInitialized = true;
+      }
+    } else {
+      isInitialized = false;
     }
-  } else {
-    isInitialized = false;
-  }
+  });
 
   // Reactive update for settings (Immediate Save)
-  $: if (isInitialized) {
-    settingsStore.update((s) => ({
-      ...s,
-      apiProvider,
-      marketDataInterval,
-      autoUpdatePriceInput,
-      autoFetchBalance,
-      showSidebars,
-      showTechnicals,
-      showIndicatorParams,
-      hideUnfilledOrders,
-      feePreference,
-      hotkeyMode,
-      enableSidePanel,
-      sidePanelMode,
-      sidePanelLayout,
-      favoriteTimeframes,
-      syncRsiTimeframe,
-      imgbbApiKey,
-      imgbbExpiration,
-      aiProvider: aiProviderState,
-      openaiApiKey,
-      openaiModel,
-      geminiApiKey,
-      geminiModel,
-      anthropicApiKey,
-      anthropicModel,
-      showSpinButtons,
-      apiKeys: {
-        bitunix: bitunixKeys,
-        binance: binanceKeys,
-      },
-    }));
+  run(() => {
+    if (isInitialized) {
+      settingsStore.update((s) => ({
+        ...s,
+        apiProvider,
+        marketDataInterval,
+        autoUpdatePriceInput,
+        autoFetchBalance,
+        showSidebars,
+        showTechnicals,
+        showIndicatorParams,
+        hideUnfilledOrders,
+        feePreference,
+        hotkeyMode,
+        enableSidePanel,
+        sidePanelMode,
+        sidePanelLayout,
+        favoriteTimeframes,
+        syncRsiTimeframe,
+        imgbbApiKey,
+        imgbbExpiration,
+        aiProvider: aiProviderState,
+        openaiApiKey,
+        openaiModel,
+        geminiApiKey,
+        geminiModel,
+        anthropicApiKey,
+        anthropicModel,
+        showSpinButtons,
+        apiKeys: {
+          bitunix: bitunixKeys,
+          binance: binanceKeys,
+        },
+      }));
 
-    indicatorStore.set({
-      historyLimit,
-      precision,
-      rsi: rsiSettings,
-      macd: macdSettings,
-      stochastic: stochSettings,
-      cci: cciSettings,
-      adx: adxSettings,
-      ao: aoSettings,
-      momentum: momentumSettings,
-      ema: emaSettings,
-      pivots: pivotSettings,
-    });
-  }
+      indicatorStore.set({
+        historyLimit,
+        precision,
+        rsi: rsiSettings,
+        macd: macdSettings,
+        stochastic: stochSettings,
+        cci: cciSettings,
+        adx: adxSettings,
+        ao: aoSettings,
+        momentum: momentumSettings,
+        ema: emaSettings,
+        pivots: pivotSettings,
+      });
+    }
+  });
 
   // Immediate Theme Update
-  $: if (isInitialized && currentTheme !== $uiStore.currentTheme) {
-    uiStore.setTheme(currentTheme);
-  }
+  run(() => {
+    if (isInitialized && currentTheme !== $uiStore.currentTheme) {
+      uiStore.setTheme(currentTheme);
+    }
+  });
 
   // Immediate Language Update
-  $: if (isInitialized && currentLanguage !== $locale) {
-    setLocale(currentLanguage);
-  }
+  run(() => {
+    if (isInitialized && currentLanguage !== $locale) {
+      setLocale(currentLanguage);
+    }
+  });
 
   function close() {
     uiStore.toggleSettingsModal(false);
@@ -344,8 +354,10 @@
   }
 
   // Reactive descriptions based on selected mode
-  let activeDescriptions: any[] = [];
-  $: activeDescriptions = getHotkeyDescriptions(hotkeyMode);
+  let activeDescriptions: any[] = $state([]);
+  run(() => {
+    activeDescriptions = getHotkeyDescriptions(hotkeyMode);
+  });
 </script>
 
 <ModalFrame
@@ -367,7 +379,7 @@
         'general'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "general")}
+        onclick={() => (activeTab = "general")}
         role="tab"
         aria-selected={activeTab === "general"}
       >
@@ -378,7 +390,7 @@
         'api'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "api")}
+        onclick={() => (activeTab = "api")}
         role="tab"
         aria-selected={activeTab === "api"}
       >
@@ -389,7 +401,7 @@
         'ai'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "ai")}
+        onclick={() => (activeTab = "ai")}
         role="tab"
         aria-selected={activeTab === "ai"}
       >
@@ -400,7 +412,7 @@
         'behavior'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "behavior")}
+        onclick={() => (activeTab = "behavior")}
         role="tab"
         aria-selected={activeTab === "behavior"}
       >
@@ -411,7 +423,7 @@
         'hotkeys'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "hotkeys")}
+        onclick={() => (activeTab = "hotkeys")}
         role="tab"
         aria-selected={activeTab === "hotkeys"}
       >
@@ -422,7 +434,7 @@
         'sidebar'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "sidebar")}
+        onclick={() => (activeTab = "sidebar")}
         role="tab"
         aria-selected={activeTab === "sidebar"}
       >
@@ -433,7 +445,7 @@
         'indicators'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "indicators")}
+        onclick={() => (activeTab = "indicators")}
         role="tab"
         aria-selected={activeTab === "indicators"}
       >
@@ -444,7 +456,7 @@
         'system'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        on:click={() => (activeTab = "system")}
+        onclick={() => (activeTab = "system")}
         role="tab"
         aria-selected={activeTab === "system"}
       >
@@ -539,7 +551,7 @@
   >
     <button
       class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity"
-      on:click={close}
+      onclick={close}
     >
       {$_("common.ok") || "OK"}
     </button>

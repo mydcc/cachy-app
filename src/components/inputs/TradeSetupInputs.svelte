@@ -13,30 +13,48 @@
 
   const dispatch = createEventDispatcher();
 
-  export let symbol: string;
-  export let entryPrice: number | null;
-  export let useAtrSl: boolean;
-  export let atrValue: number | null;
-  export let atrMultiplier: number | null;
-  export let stopLossPrice: number | null;
-  export let atrMode: "manual" | "auto";
-  export let atrTimeframe: string;
 
-  export let atrFormulaDisplay: string;
-  export let showAtrFormulaDisplay: boolean;
-  export let isPriceFetching: boolean;
-  export let symbolSuggestions: string[];
-  export let showSymbolSuggestions: boolean;
+  interface Props {
+    symbol: string;
+    entryPrice: number | null;
+    useAtrSl: boolean;
+    atrValue: number | null;
+    atrMultiplier: number | null;
+    stopLossPrice: number | null;
+    atrMode: "manual" | "auto";
+    atrTimeframe: string;
+    atrFormulaDisplay: string;
+    showAtrFormulaDisplay: boolean;
+    isPriceFetching: boolean;
+    symbolSuggestions: string[];
+    showSymbolSuggestions: boolean;
+  }
+
+  let {
+    symbol,
+    entryPrice,
+    useAtrSl = $bindable(),
+    atrValue,
+    atrMultiplier,
+    stopLossPrice,
+    atrMode,
+    atrTimeframe,
+    atrFormulaDisplay,
+    showAtrFormulaDisplay,
+    isPriceFetching,
+    symbolSuggestions,
+    showSymbolSuggestions
+  }: Props = $props();
 
   // Local state for input to prevent immediate store updates
-  let localSymbol = symbol;
+  let localSymbol = $state("");
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
-  // We use a flag to prevent cyclic updates if necessary, but simple reactivity might suffice
-  // providing we don't cause a loop.
-  $: if (symbol !== localSymbol) {
-    localSymbol = symbol;
-  }
+  $effect(() => {
+    if (symbol !== localSymbol) {
+      localSymbol = symbol;
+    }
+  });
 
   function toggleAtrSl() {
     trackCustomEvent("ATR", "Toggle", useAtrSl ? "On" : "Off");
@@ -142,17 +160,17 @@
   }
 
   // Determine dynamic step based on price magnitude
-  $: priceStep =
-    entryPrice && entryPrice > 1000
+  let priceStep =
+    $derived(entryPrice && entryPrice > 1000
       ? 0.5
       : entryPrice && entryPrice > 100
       ? 0.1
-      : 0.01;
+      : 0.01);
 
   // Copy to clipboard with smiley feedback
-  let showSmiley = false;
-  let smileyX = 0;
-  let smileyY = 0;
+  let showSmiley = $state(false);
+  let smileyX = $state(0);
+  let smileyY = $state(0);
 
   async function copyStopLossToClipboard(
     value: string,
@@ -176,7 +194,7 @@
   }
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 <div>
   <h2 class="section-header">{$_("dashboard.tradeSetupInputs.header")}</h2>
@@ -187,7 +205,7 @@
         name="symbol"
         type="text"
         bind:value={localSymbol}
-        on:input={() => {
+        oninput={() => {
           handleSymbolInput();
           onboardingService.trackFirstInput();
         }}
@@ -202,7 +220,7 @@
           : ''}"
         title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
         aria-label={$_("dashboard.tradeSetupInputs.fetchPriceAriaLabel")}
-        on:click={handleFetchPriceClick}
+        onclick={handleFetchPriceClick}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"
@@ -224,8 +242,8 @@
           {#each symbolSuggestions as s}
             <div
               class="suggestion-item p-2 cursor-pointer hover:bg-[var(--accent-color)] hover:text-white"
-              on:click={() => selectSuggestion(s)}
-              on:keydown={(e) => handleKeyDownSuggestion(e, s)}
+              onclick={() => selectSuggestion(s)}
+              onkeydown={(e) => handleKeyDownSuggestion(e, s)}
               role="button"
               tabindex="0"
             >
@@ -248,10 +266,12 @@
           showSpinButtons: false,
         }}
         value={format(entryPrice)}
-        on:input={handleEntryPriceInput}
+        oninput={(e) => {
+          handleEntryPriceInput(e);
+          onboardingService.trackFirstInput();
+        }}
         class="input-field w-full px-4 py-2 rounded-md"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
-        on:input={onboardingService.trackFirstInput}
       />
 
       <!-- Auto Update Price Toggle -->
@@ -263,9 +283,9 @@
         title={$settingsStore.autoUpdatePriceInput
           ? "Auto-Update On"
           : "Auto-Update Off"}
-        on:click={toggleAutoUpdatePrice}
+        onclick={toggleAutoUpdatePrice}
         aria-label="Toggle Auto Update Price"
-      />
+></button>
     </div>
   </div>
 
@@ -282,13 +302,13 @@
         <div class="atr-mode-switcher">
           <button
             class="btn-switcher {atrMode === 'manual' ? 'active' : ''}"
-            on:click={() => dispatch("setAtrMode", "manual")}
+            onclick={() => dispatch("setAtrMode", "manual")}
           >
             {$_("dashboard.tradeSetupInputs.atrModeManual")}
           </button>
           <button
             class="btn-switcher {atrMode === 'auto' ? 'active' : ''}"
-            on:click={() => dispatch("setAtrMode", "auto")}
+            onclick={() => dispatch("setAtrMode", "auto")}
           >
             {$_("dashboard.tradeSetupInputs.atrModeAuto")}
           </button>
@@ -303,14 +323,14 @@
           name="useAtrSl"
           type="checkbox"
           bind:checked={useAtrSl}
-          on:change={toggleAtrSl}
+          onchange={toggleAtrSl}
           class="sr-only peer"
           role="switch"
           aria-checked={useAtrSl}
         />
         <div
           class="atr-toggle-track relative w-11 h-6 peer-focus:outline-none rounded-full peer after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:border after:rounded-full after:h-5 after:w-5"
-        />
+></div>
       </label>
     </div>
     {#if !useAtrSl}
@@ -325,7 +345,7 @@
             min: 0,
           }}
           value={format(stopLossPrice)}
-          on:input={handleStopLossPriceInput}
+          oninput={handleStopLossPriceInput}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_(
             "dashboard.tradeSetupInputs.manualStopLossPlaceholder"
@@ -347,7 +367,7 @@
                 showSpinButtons: "hover",
               }}
               value={format(atrValue)}
-              on:input={handleAtrValueInput}
+              oninput={handleAtrValueInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
             />
@@ -364,7 +384,7 @@
                 showSpinButtons: "hover",
               }}
               value={format(atrMultiplier)}
-              on:input={handleAtrMultiplierInput}
+              oninput={handleAtrMultiplierInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_(
                 "dashboard.tradeSetupInputs.multiplierPlaceholder"
@@ -384,7 +404,7 @@
                 id="atr-timeframe"
                 name="atrTimeframe"
                 value={atrTimeframe}
-                on:change={handleAtrTimeframeChange}
+                onchange={handleAtrTimeframeChange}
                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
               >
                 {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
@@ -423,7 +443,7 @@
                   showSpinButtons: false,
                 }}
                 value={format(atrValue)}
-                on:input={handleAtrValueInput}
+                oninput={handleAtrValueInput}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
                 placeholder="ATR"
               />
@@ -432,7 +452,7 @@
                 class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching
                   ? 'animate-spin'
                   : ''}"
-                on:click={() => {
+                onclick={() => {
                   trackCustomEvent("ATR", "Fetch", symbol);
                   dispatch("fetchAtr");
                 }}
@@ -470,7 +490,7 @@
                   min: 0.1,
                 }}
                 value={format(atrMultiplier)}
-                on:input={handleAtrMultiplierInput}
+                oninput={handleAtrMultiplierInput}
                 class="input-field w-full px-4 py-2 rounded-md"
                 placeholder="1.2"
               />
@@ -492,8 +512,8 @@
             role="button"
             tabindex="0"
             style="color: var(--danger-color); cursor: pointer;"
-            on:click={(e) => copyStopLossToClipboard(result.trim(), e)}
-            on:keydown={(e) => {
+            onclick={(e) => copyStopLossToClipboard(result.trim(), e)}
+            onkeydown={(e) => {
               if (e.key === "Enter" || e.key === " ") {
                 e.preventDefault();
                 copyStopLossToClipboard(result.trim(), e);

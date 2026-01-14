@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { handlers } from 'svelte/legacy';
+
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
@@ -10,13 +12,23 @@
   import { uiStore } from "../../stores/uiStore";
   import { get } from "svelte/store";
 
-  export let accountSize: number | null;
-  export let riskPercentage: number | null;
-  export let riskAmount: number | null;
-  export let isRiskAmountLocked: boolean;
-  export let isPositionSizeLocked: boolean;
+  interface Props {
+    accountSize: number | null;
+    riskPercentage: number | null;
+    riskAmount: number | null;
+    isRiskAmountLocked: boolean;
+    isPositionSizeLocked: boolean;
+  }
 
-  let isFetchingBalance = false;
+  let {
+    accountSize,
+    riskPercentage,
+    riskAmount,
+    isRiskAmountLocked,
+    isPositionSizeLocked
+  }: Props = $props();
+
+  let isFetchingBalance = $state(false);
 
   const dispatch = createEventDispatcher();
 
@@ -136,16 +148,15 @@
             showSpinButtons: false,
           }}
           value={format(accountSize)}
-          on:input={handleAccountSizeInput}
+          oninput={handlers(handleAccountSizeInput, onboardingService.trackFirstInput)}
           class="input-field w-full px-4 py-2 rounded-md pr-10"
           placeholder={$_("dashboard.portfolioInputs.accountSizePlaceholder")}
-          on:input={onboardingService.trackFirstInput}
         />
         <button
           class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isFetchingBalance
             ? 'animate-spin'
             : ''}"
-          on:click={() => handleFetchBalance(false)}
+          onclick={() => handleFetchBalance(false)}
           title={$_("dashboard.portfolioInputs.fetchBalanceTitle") ||
             "Fetch Balance"}
           disabled={isFetchingBalance}
@@ -188,10 +199,9 @@
             showSpinButtons: false,
           }}
           value={format(riskPercentage)}
-          on:input={handleRiskPercentageInput}
+          oninput={handlers(handleRiskPercentageInput, onboardingService.trackFirstInput)}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_("dashboard.portfolioInputs.riskPerTradePlaceholder")}
-          on:input={onboardingService.trackFirstInput}
           disabled={isRiskAmountLocked || isPositionSizeLocked}
         />
       </div>
@@ -213,14 +223,14 @@
             showSpinButtons: false,
           }}
           value={format(riskAmount)}
-          on:input={handleRiskAmountInput}
+          oninput={handleRiskAmountInput}
           class="input-field w-full px-4 py-2 rounded-md pr-10"
           placeholder="e.g. 100"
           disabled={isPositionSizeLocked}
         />
         <button
           class="absolute top-1/2 right-2 -translate-y-1/2 btn-lock-icon"
-          on:click={handleLockClick}
+          onclick={handleLockClick}
           title={$_("dashboard.portfolioInputs.toggleRiskAmountLockTitle")}
           disabled={isPositionSizeLocked}
         >

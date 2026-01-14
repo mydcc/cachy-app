@@ -2,11 +2,21 @@
   import { _ } from "../../../locales/i18n";
   import type { ApiKeys } from "../../../stores/settingsStore";
 
-  export let apiProvider: "bitunix" | "binance";
-  export let bitunixKeys: ApiKeys;
-  export let binanceKeys: ApiKeys;
-  export let imgbbApiKey: string;
-  export let imgbbExpiration: number;
+  interface Props {
+    apiProvider: "bitunix" | "binance";
+    bitunixKeys: ApiKeys;
+    binanceKeys: ApiKeys;
+    imgbbApiKey: string;
+    imgbbExpiration: number;
+  }
+
+  let {
+    apiProvider = $bindable(),
+    bitunixKeys = $bindable(),
+    binanceKeys = $bindable(),
+    imgbbApiKey = $bindable(),
+    imgbbExpiration = $bindable()
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
@@ -26,7 +36,7 @@
         bind:value={imgbbApiKey}
         class="input-field p-1 px-2 rounded text-sm"
         placeholder="Paste ImgBB Key"
-        on:blur={() => (imgbbApiKey = imgbbApiKey.trim())}
+        onblur={() => (imgbbApiKey = imgbbApiKey.trim())}
       />
     </div>
     <div class="flex flex-col gap-1">
@@ -86,7 +96,7 @@
           bind:value={bitunixKeys.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
-          on:blur={() => (bitunixKeys.key = bitunixKeys.key.trim())}
+          onblur={() => (bitunixKeys.key = bitunixKeys.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -98,7 +108,7 @@
           bind:value={bitunixKeys.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
-          on:blur={() => (bitunixKeys.secret = bitunixKeys.secret.trim())}
+          onblur={() => (bitunixKeys.secret = bitunixKeys.secret.trim())}
         />
       </div>
     </div>
@@ -118,7 +128,7 @@
           bind:value={binanceKeys.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
-          on:blur={() => (binanceKeys.key = binanceKeys.key.trim())}
+          onblur={() => (binanceKeys.key = binanceKeys.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -130,7 +140,7 @@
           bind:value={binanceKeys.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
-          on:blur={() => (binanceKeys.secret = binanceKeys.secret.trim())}
+          onblur={() => (binanceKeys.secret = binanceKeys.secret.trim())}
         />
       </div>
     </div>

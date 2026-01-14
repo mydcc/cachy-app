@@ -1,15 +1,29 @@
 <script lang="ts">
-  import { Bar } from "svelte-chartjs";
+  import { onMount, onDestroy } from "svelte";
+  import { Chart } from "chart.js";
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
 
-  export let data: any;
-  export let title: string = "";
-  export let horizontal: boolean = false;
-  export let description: string = "";
-  export let options: any = undefined; // Allow overriding options
+  interface Props {
+    data: any;
+    title?: string;
+    horizontal?: boolean;
+    description?: string;
+    options?: any;
+  }
 
-  $: defaultOptions = {
+  let {
+    data,
+    title = "",
+    horizontal = false,
+    description = "",
+    options = undefined
+  }: Props = $props();
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
+
+  let defaultOptions = $derived({
     responsive: true,
     maintainAspectRatio: false,
     indexAxis: horizontal ? ("y" as const) : ("x" as const),
@@ -21,7 +35,31 @@
       x: { grid: { display: false } },
       y: { grid: { display: true } },
     },
-  };
+  });
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: "bar",
+        data,
+        options: options || defaultOptions,
+      });
+    }
+  });
+
+  $effect(() => {
+    if (chart) {
+      chart.data = data;
+      chart.options = options || defaultOptions;
+      chart.update();
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
@@ -30,5 +68,5 @@
       <Tooltip text={description} />
     </div>
   {/if}
-  <Bar {data} options={options || defaultOptions} />
+  <canvas bind:this={canvas}></canvas>
 </div>

@@ -3,13 +3,17 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
 
-  export let orders: any[] = [];
-  export let loading: boolean = false;
-  export let error: string = "";
+  interface Props {
+    orders?: any[];
+    loading?: boolean;
+    error?: string;
+  }
 
-  let hoveredOrder: any = null;
-  let tooltipX = 0;
-  let tooltipY = 0;
+  let { orders = [], loading = false, error = "" }: Props = $props();
+
+  let hoveredOrder: any = $state(null);
+  let tooltipX = $state(0);
+  let tooltipY = $state(0);
   let tooltipTimeout: any;
 
   function handleMouseEnter(event: MouseEvent, order: any) {
@@ -102,7 +106,7 @@
     <div class="flex justify-center p-4">
       <div
         class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-      />
+></div>
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -122,9 +126,9 @@
             <!-- Col 1: Identity & Time -->
             <div
               class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
-              on:mouseenter={(e) => handleMouseEnter(e, order)}
-              on:mousemove={handleMouseMove}
-              on:mouseleave={handleMouseLeave}
+              onmouseenter={(e) => handleMouseEnter(e, order)}
+              onmousemove={handleMouseMove}
+              onmouseleave={handleMouseLeave}
               role="tooltip"
             >
               <span
@@ -206,8 +210,8 @@
   <div
     class="fixed z-[9999] pointer-events-auto"
     style="top: {tooltipY}px; left: {tooltipX}px;"
-    on:mouseenter={handleTooltipEnter}
-    on:mouseleave={handleTooltipLeave}
+    onmouseenter={handleTooltipEnter}
+    onmouseleave={handleTooltipLeave}
     role="tooltip"
   >
     <OrderDetailsTooltip order={hoveredOrder} />

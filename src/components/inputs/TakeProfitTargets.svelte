@@ -9,12 +9,16 @@
 
   const dispatch = createEventDispatcher();
 
-  export let targets: Array<{
+  interface Props {
+    targets: Array<{
     price: number | null;
     percent: number | null;
     isLocked: boolean;
   }>;
-  export let calculatedTpDetails: IndividualTpResult[] = [];
+    calculatedTpDetails?: IndividualTpResult[];
+  }
+
+  let { targets, calculatedTpDetails = [] }: Props = $props();
 
   function addTakeProfitRow() {
     app.addTakeProfitRow();
@@ -37,7 +41,7 @@
         class="btn-icon-accent"
         title={$_("dashboard.takeProfitTargets.addTargetTitle")}
         tabindex="-1"
-        on:click={addTakeProfitRow}
+        onclick={addTakeProfitRow}
       >
         <svg
           xmlns="http://www.w3.org/2000/svg"

@@ -4,7 +4,7 @@
   import { fly } from "svelte/transition";
   import { onMount } from "svelte";
 
-  let visible = false;
+  let visible = $state(false);
 
   onMount(() => {
     const timer = setTimeout(() => {
@@ -58,7 +58,7 @@
     >
       <button
         class="px-6 py-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] text-sm font-bold rounded-lg transition-colors shadow-lg"
-        on:click={acceptDisclaimer}
+        onclick={acceptDisclaimer}
       >
         {$_("legal.accept")}
       </button>

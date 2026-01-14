@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { onMount } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { accountStore } from "../../stores/accountStore";
@@ -7,16 +9,20 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
 
-  export let isActive = false;
+  interface Props {
+    isActive?: boolean;
+  }
 
-  let view: "pending" | "history" = "pending";
-  let orders: any[] = [];
-  let loading = false;
-  let error = "";
+  let { isActive = false }: Props = $props();
+
+  let view: "pending" | "history" = $state("pending");
+  let orders: any[] = $state([]);
+  let loading = $state(false);
+  let error = $state("");
 
   // Modal State
-  let showEditModal = false;
-  let editingOrder: any = null;
+  let showEditModal = $state(false);
+  let editingOrder: any = $state(null);
 
   async function fetchOrders() {
     if (!isActive) return;
@@ -160,8 +166,12 @@
     fetchOrders();
   }
 
-  $: if (isActive) fetchOrders();
-  $: if (view) fetchOrders();
+  run(() => {
+    if (isActive) fetchOrders();
+  });
+  run(() => {
+    if (view) fetchOrders();
+  });
 
   function formatDate(ts: number) {
     if (!ts) return "-";
@@ -188,7 +198,7 @@
       class="flex-1 py-1.5 font-bold transition-colors"
       class:text-[var(--accent-color)]={view === "pending"}
       class:bg-[var(--bg-secondary)]={view === "pending"}
-      on:click={() => (view = "pending")}
+      onclick={() => (view = "pending")}
     >
       Pending
     </button>
@@ -196,7 +206,7 @@
       class="flex-1 py-1.5 font-bold transition-colors"
       class:text-[var(--accent-color)]={view === "history"}
       class:bg-[var(--bg-secondary)]={view === "history"}
-      on:click={() => (view = "history")}
+      onclick={() => (view = "history")}
     >
       History
     </button>
@@ -208,7 +218,7 @@
       <div class="flex justify-center p-4">
         <div
           class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-        />
+></div>
       </div>
     {:else if error}
       <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -264,7 +274,7 @@
                   <button
                     class="text-[var(--text-secondary)] hover:text-[var(--accent-color)]"
                     title="Edit"
-                    on:click={() => openEdit(order)}
+                    onclick={() => openEdit(order)}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -284,7 +294,7 @@
                   <button
                     class="text-[var(--text-secondary)] hover:text-[var(--danger-color)]"
                     title="Cancel"
-                    on:click={() => handleCancel(order)}
+                    onclick={() => handleCancel(order)}
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"

@@ -556,16 +556,15 @@ export function getLeakageData(journal: JournalEntry[]) {
   // timingStats.hourlyGrossLoss contains positive numbers representing magnitude of loss
   const worstHours = timingStats.hourlyGrossLoss
     .map((loss, hour) => ({ hour, loss }))
-    .sort((a, b) => b.loss - a.loss) // Descending (largest loss first)
-    .slice(0, 5)
-    .filter((h) => h.loss > 0);
+    .filter((h) => h.loss > 0) // FIRST: Filter only hours with losses
+    .sort((a, b) => b.loss - a.loss) // THEN: Sort descending
+    .slice(0, 5); // FINALLY: Take top 5
 
-  // Worst Days
   const worstDays = timingStats.dayLabels
     .map((day, i) => ({ day, loss: timingStats.dayOfWeekGrossLoss[i] }))
-    .sort((a, b) => b.loss - a.loss)
-    .slice(0, 3)
-    .filter((d) => d.loss > 0);
+    .filter((d) => d.loss > 0) // FIRST: Filter only days with losses
+    .sort((a, b) => b.loss - a.loss) // THEN: Sort descending
+    .slice(0, 3); // FINALLY: Take top 3
 
   return {
     profitRetention,

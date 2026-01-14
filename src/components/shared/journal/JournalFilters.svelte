@@ -5,16 +5,30 @@
 
     const dispatch = createEventDispatcher();
 
-    // Props - Filter State (two-way binding)
-    export let searchQuery: string = "";
-    export let filterStatus: string = "all";
-    export let filterDateStart: string = "";
-    export let filterDateEnd: string = "";
-    export let groupBySymbol: boolean = false;
+    
 
-    // Props - Additional Data
-    export let totalTrades: number = 0;
-    export let filteredCount: number = 0;
+    
+    interface Props {
+        // Props - Filter State (two-way binding)
+        searchQuery?: string;
+        filterStatus?: string;
+        filterDateStart?: string;
+        filterDateEnd?: string;
+        groupBySymbol?: boolean;
+        // Props - Additional Data
+        totalTrades?: number;
+        filteredCount?: number;
+    }
+
+    let {
+        searchQuery = $bindable(""),
+        filterStatus = $bindable("all"),
+        filterDateStart = $bindable(""),
+        filterDateEnd = $bindable(""),
+        groupBySymbol = $bindable(false),
+        totalTrades = 0,
+        filteredCount = 0
+    }: Props = $props();
 
     function toggleSettings() {
         dispatch("toggleSettings");
@@ -76,17 +90,17 @@
 
             <label class="pivot-toggle">
                 <input type="checkbox" bind:checked={groupBySymbol} />
-                <span class="toggle-slider" />
+                <span class="toggle-slider"></span>
                 <span class="toggle-text">{$_("journal.labels.pivotMode")}</span
                 >
             </label>
 
             <button
                 class="settings-btn"
-                on:click={toggleSettings}
+                onclick={toggleSettings}
                 title={$_("journal.labels.tableSettings")}
             >
-                <!-- svelte-ignore svelte/no-at-html-tags -->
+                <!-- svelte-ignore svelte/no_at_html_tags -->
                 {@html icons.settings}
             </button>
         </div>

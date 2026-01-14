@@ -1,15 +1,28 @@
 <script lang="ts">
-  import { Line } from "svelte-chartjs";
+  import { onMount, onDestroy } from "svelte";
+  import { Chart } from "chart.js";
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
   import type { ChartOptions } from "chart.js";
 
-  export let data: any;
-  export let title: string = "";
-  export let yLabel: string = "";
-  export let description: string = "";
+  interface Props {
+    data: any;
+    title?: string;
+    yLabel?: string;
+    description?: string;
+  }
 
-  const options: ChartOptions<"line"> = {
+  let {
+    data,
+    title = "",
+    yLabel = "",
+    description = ""
+  }: Props = $props();
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
+
+  let options = $derived<ChartOptions<"line">>({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -28,7 +41,31 @@
       mode: "index",
       intersect: false,
     },
-  };
+  });
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: "line",
+        data,
+        options,
+      });
+    }
+  });
+
+  $effect(() => {
+    if (chart) {
+      chart.data = data;
+      chart.options = options;
+      chart.update();
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
@@ -37,5 +74,5 @@
       <Tooltip text={description} />
     </div>
   {/if}
-  <Line {data} {options} />
+  <canvas bind:this={canvas}></canvas>
 </div>

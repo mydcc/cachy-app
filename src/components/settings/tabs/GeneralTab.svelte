@@ -1,11 +1,21 @@
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
 
-  export let currentLanguage: string;
-  export let currentTheme: string;
-  export let feePreference: "maker" | "taker";
-  export let isPro: boolean;
-  export let themes: Array<{ value: string; label: string }>;
+  interface Props {
+    currentLanguage: string;
+    currentTheme: string;
+    feePreference: "maker" | "taker";
+    isPro: boolean;
+    themes: Array<{ value: string; label: string }>;
+  }
+
+  let {
+    currentLanguage = $bindable(),
+    currentTheme = $bindable(),
+    feePreference = $bindable(),
+    isPro,
+    themes
+  }: Props = $props();
 </script>
 
 <div

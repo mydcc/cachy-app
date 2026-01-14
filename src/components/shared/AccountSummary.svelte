@@ -3,18 +3,34 @@
   import { _ } from "../../locales/i18n";
   import AccountTooltip from "./AccountTooltip.svelte";
 
-  export let available: number = 0;
-  export let margin: number = 0;
-  export let pnl: number = 0;
-  export let currency: string = "USDT";
 
-  // Extended props
-  export let frozen: number = 0;
-  export let transfer: number = 0;
-  export let bonus: number = 0;
-  export let positionMode: string = "";
-  export let crossUnrealizedPNL: number = 0;
-  export let isolationUnrealizedPNL: number = 0;
+  
+  interface Props {
+    available?: number;
+    margin?: number;
+    pnl?: number;
+    currency?: string;
+    // Extended props
+    frozen?: number;
+    transfer?: number;
+    bonus?: number;
+    positionMode?: string;
+    crossUnrealizedPNL?: number;
+    isolationUnrealizedPNL?: number;
+  }
+
+  let {
+    available = 0,
+    margin = 0,
+    pnl = 0,
+    currency = "USDT",
+    frozen = 0,
+    transfer = 0,
+    bonus = 0,
+    positionMode = "",
+    crossUnrealizedPNL = 0,
+    isolationUnrealizedPNL = 0
+  }: Props = $props();
 </script>
 
 <div

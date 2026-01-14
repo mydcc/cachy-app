@@ -6,21 +6,41 @@
   import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
   import type { IndicatorSettings } from "../../../stores/indicatorStore";
 
-  export let precision: number;
-  export let historyLimit: number;
-  export let favoriteTimeframes: string[];
-  export let availableTimeframes: string[];
-  export let syncRsiTimeframe: boolean;
-  export let isPro: boolean;
-  export let rsiSettings: IndicatorSettings["rsi"];
-  export let macdSettings: IndicatorSettings["macd"];
-  export let emaSettings: IndicatorSettings["ema"];
-  export let stochSettings: IndicatorSettings["stochastic"];
-  export let cciSettings: IndicatorSettings["cci"];
-  export let adxSettings: IndicatorSettings["adx"];
-  export let aoSettings: IndicatorSettings["ao"];
-  export let momentumSettings: IndicatorSettings["momentum"];
-  export let pivotSettings: IndicatorSettings["pivots"];
+  interface Props {
+    precision: number;
+    historyLimit: number;
+    favoriteTimeframes: string[];
+    availableTimeframes: string[];
+    syncRsiTimeframe: boolean;
+    isPro: boolean;
+    rsiSettings: IndicatorSettings["rsi"];
+    macdSettings: IndicatorSettings["macd"];
+    emaSettings: IndicatorSettings["ema"];
+    stochSettings: IndicatorSettings["stochastic"];
+    cciSettings: IndicatorSettings["cci"];
+    adxSettings: IndicatorSettings["adx"];
+    aoSettings: IndicatorSettings["ao"];
+    momentumSettings: IndicatorSettings["momentum"];
+    pivotSettings: IndicatorSettings["pivots"];
+  }
+
+  let {
+    precision = $bindable(),
+    historyLimit = $bindable(),
+    favoriteTimeframes = $bindable(),
+    availableTimeframes,
+    syncRsiTimeframe = $bindable(),
+    isPro,
+    rsiSettings = $bindable(),
+    macdSettings = $bindable(),
+    emaSettings = $bindable(),
+    stochSettings = $bindable(),
+    cciSettings = $bindable(),
+    adxSettings = $bindable(),
+    aoSettings = $bindable(),
+    momentumSettings = $bindable(),
+    pivotSettings = $bindable()
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4">
@@ -188,7 +208,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -317,7 +337,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -422,7 +442,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -527,7 +547,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -632,7 +652,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -741,7 +761,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -843,7 +863,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -905,7 +925,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -967,7 +987,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -1029,7 +1049,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
 
@@ -1086,7 +1106,7 @@
           {#if !isPro}
             <div
               class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
-            />
+></div>
           {/if}
         </div>
       </div>

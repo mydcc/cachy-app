@@ -2,16 +2,20 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
 
-  export let account: any;
+  interface Props {
+    account: any;
+  }
 
-  $: equity =
-    (account.available || 0) +
+  let { account }: Props = $props();
+
+  let equity =
+    $derived((account.available || 0) +
     (account.margin || 0) +
     (account.frozen || 0) +
-    (account.totalUnrealizedPnL || 0);
+    (account.totalUnrealizedPnL || 0));
 
   // Prevent division by zero
-  $: marginLevel = equity > 0 ? ((account.margin || 0) / equity) * 100 : 0;
+  let marginLevel = $derived(equity > 0 ? ((account.margin || 0) / equity) * 100 : 0);
 
   function getHealthColor(level: number) {
     if (level < 50) return "var(--success-color)";
@@ -19,8 +23,8 @@
     return "var(--danger-color)";
   }
 
-  $: healthColor = getHealthColor(marginLevel);
-  $: barWidth = Math.min(Math.max(marginLevel, 0), 100);
+  let healthColor = $derived(getHealthColor(marginLevel));
+  let barWidth = $derived(Math.min(Math.max(marginLevel, 0), 100));
 </script>
 
 <div
@@ -44,7 +48,7 @@
       <div
         class="h-full transition-all duration-300 rounded-full"
         style="width: {barWidth}%; background-color: {healthColor};"
-      />
+></div>
     </div>
     <div
       class="flex justify-between mt-1 text-[10px] text-[var(--text-secondary)]"

@@ -1,7 +1,24 @@
 <script lang="ts">
-  export let text = "";
-  let visible = false;
-  let tooltipEl: HTMLElement;
+  import { onMount, onDestroy } from "svelte";
+  import {
+    computePosition,
+    flip,
+    shift,
+    offset,
+    arrow,
+  } from "@floating-ui/dom";
+
+  interface Props {
+    text?: string;
+    children?: import("svelte").Snippet;
+  }
+
+  let { text = "", children }: Props = $props();
+  let visible = $state(false);
+  let tooltipEl: HTMLElement | undefined = $state();
+  let arrowEl: HTMLElement | undefined = $state();
+  let triggerEl: HTMLElement | undefined = $state();
+  let cleanup: (() => void) | null = null;
 
   function show() {
     visible = true;
@@ -10,20 +27,69 @@
   function hide() {
     visible = false;
   }
+
+  async function updatePosition() {
+    if (!triggerEl || !tooltipEl || !arrowEl) return;
+
+    const { x, y, placement, middlewareData } = await computePosition(
+      triggerEl,
+      tooltipEl,
+      {
+        placement: "top",
+        middleware: [
+          offset(10),
+          flip(),
+          shift({ padding: 8 }),
+          arrow({ element: arrowEl }),
+        ],
+      },
+    );
+
+    Object.assign(tooltipEl.style, {
+      left: `${x}px`,
+      top: `${y}px`,
+    });
+
+    // Position arrow
+    const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+    const staticSide = {
+      top: "bottom",
+      right: "left",
+      bottom: "top",
+      left: "right",
+    }[placement.split("-")[0]]!;
+
+    Object.assign(arrowEl.style, {
+      left: arrowX != null ? `${arrowX}px` : "",
+      top: arrowY != null ? `${arrowY}px` : "",
+      [staticSide]: "-4px",
+    });
+  }
+
+  $effect(() => {
+    if (visible && triggerEl && tooltipEl) {
+      updatePosition();
+    }
+  });
+
+  onDestroy(() => {
+    if (cleanup) cleanup();
+  });
 </script>
 
 <div
+  bind:this={triggerEl}
   class="tooltip-container"
   role="button"
   tabindex="0"
-  on:mouseenter={show}
-  on:mouseleave={hide}
-  on:focusin={show}
-  on:focusout={hide}
+  onmouseenter={show}
+  onmouseleave={hide}
+  onfocusin={show}
+  onfocusout={hide}
 >
-  <slot>
+  {#if children}{@render children()}{:else}
     <span class="tooltip-trigger">?</span>
-  </slot>
+  {/if}
   {#if visible && text}
     <div
       bind:this={tooltipEl}
@@ -32,6 +98,7 @@
       class="tooltip-content"
     >
       {text}
+      <div bind:this={arrowEl} class="tooltip-arrow"></div>
     </div>
   {/if}
 </div>
@@ -67,9 +134,8 @@
     padding: 0.5rem 0.75rem;
     position: absolute;
     z-index: 100;
-    bottom: 140%;
-    left: 50%;
-    transform: translateX(-50%);
+    left: 0;
+    top: 0;
     font-size: 0.8rem;
     font-weight: 500;
     box-shadow: var(--shadow-tooltip);
@@ -77,14 +143,14 @@
     pointer-events: none;
     text-transform: none;
   }
-  .tooltip-content::after {
-    content: "";
+  .tooltip-arrow {
     position: absolute;
-    top: 100%;
-    left: 50%;
-    margin-left: -5px;
-    border-width: 5px;
-    border-style: solid;
-    border-color: var(--bg-tertiary) transparent transparent transparent;
+    width: 8px;
+    height: 8px;
+    background-color: var(--bg-tertiary);
+    transform: rotate(45deg);
+    border: 2px solid var(--border-color);
+    border-top: none;
+    border-left: none;
   }
 </style>

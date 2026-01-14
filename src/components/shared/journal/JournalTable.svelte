@@ -1,4 +1,7 @@
 <script lang="ts">
+    import JournalTable from './JournalTable.svelte';
+    import { stopPropagation } from 'svelte/legacy';
+
     import { createEventDispatcher } from "svelte";
     import { _ } from "../../../locales/i18n";
     import { formatDynamicDecimal } from "../../../utils/utils";
@@ -7,25 +10,39 @@
 
     const dispatch = createEventDispatcher();
 
-    // Props
-    export let trades: any[] = [];
-    export let sortField: string = "date";
-    export let sortDirection: "asc" | "desc" = "desc";
-    export let currentPage: number = 1;
-    export let itemsPerPage: number = 10;
-    export let columnVisibility: Record<string, boolean> = {};
-    export let groupBySymbol: boolean = false;
-    export let isInternal: boolean = false;
+    
+    interface Props {
+        // Props
+        trades?: any[];
+        sortField?: string;
+        sortDirection?: "asc" | "desc";
+        currentPage?: number;
+        itemsPerPage?: number;
+        columnVisibility?: Record<string, boolean>;
+        groupBySymbol?: boolean;
+        isInternal?: boolean;
+    }
+
+    let {
+        trades = [],
+        sortField = "date",
+        sortDirection = "desc",
+        currentPage = $bindable(1),
+        itemsPerPage = $bindable(10),
+        columnVisibility = {},
+        groupBySymbol = false,
+        isInternal = false
+    }: Props = $props();
 
     // State for expanded groups
-    let expandedGroups = new Set<string>();
+    let expandedGroups = $state(new Set<string>());
 
     // Pagination
-    $: totalPages = Math.ceil(trades.length / itemsPerPage);
-    $: paginatedTrades = trades.slice(
+    let totalPages = $derived(Math.ceil(trades.length / itemsPerPage));
+    let paginatedTrades = $derived(trades.slice(
         (currentPage - 1) * itemsPerPage,
         currentPage * itemsPerPage
-    );
+    ));
 
     function handleSort(field: string) {
         if (!isInternal) {
@@ -82,7 +99,7 @@
         dispatch("updateTrade", { id: tradeId, tags: newTags });
     }
 
-    let tagInputValues: Record<number, string> = {};
+    let tagInputValues: Record<number, string> = $state({});
 
     function formatDuration(minutes: number) {
         if (minutes < 0) return "-";
@@ -132,11 +149,11 @@
                     <thead>
                         <tr>
                             {#if groupBySymbol}
-                                <th class="w-8" />
+                                <th class="w-8"></th>
                             {/if}
                             {#if columnVisibility.date}
                                 <th
-                                    on:click={() => handleSort("date")}
+                                    onclick={() => handleSort("date")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.date")}
@@ -151,7 +168,7 @@
                             {/if}
                             {#if columnVisibility.symbol}
                                 <th
-                                    on:click={() => handleSort("symbol")}
+                                    onclick={() => handleSort("symbol")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.symbol")}
@@ -166,7 +183,7 @@
                             {/if}
                             {#if columnVisibility.type}
                                 <th
-                                    on:click={() => handleSort("tradeType")}
+                                    onclick={() => handleSort("tradeType")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.type")}
@@ -181,7 +198,7 @@
                             {/if}
                             {#if columnVisibility.entry}
                                 <th
-                                    on:click={() => handleSort("entryPrice")}
+                                    onclick={() => handleSort("entryPrice")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.entry")}
@@ -196,7 +213,7 @@
                             {/if}
                             {#if columnVisibility.exit}
                                 <th
-                                    on:click={() => handleSort("exitPrice")}
+                                    onclick={() => handleSort("exitPrice")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.exit")}
@@ -211,7 +228,7 @@
                             {/if}
                             {#if columnVisibility.sl}
                                 <th
-                                    on:click={() => handleSort("stopLossPrice")}
+                                    onclick={() => handleSort("stopLossPrice")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.sl")}
@@ -226,7 +243,7 @@
                             {/if}
                             {#if columnVisibility.size}
                                 <th
-                                    on:click={() => handleSort("positionSize")}
+                                    onclick={() => handleSort("positionSize")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.size")}
@@ -241,7 +258,7 @@
                             {/if}
                             {#if columnVisibility.pnl}
                                 <th
-                                    on:click={() =>
+                                    onclick={() =>
                                         handleSort("totalNetProfit")}
                                     class="sortable"
                                 >
@@ -257,7 +274,7 @@
                             {/if}
                             {#if columnVisibility.funding}
                                 <th
-                                    on:click={() => handleSort("fundingFee")}
+                                    onclick={() => handleSort("fundingFee")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.funding")}
@@ -272,7 +289,7 @@
                             {/if}
                             {#if columnVisibility.rr}
                                 <th
-                                    on:click={() => handleSort("totalRR")}
+                                    onclick={() => handleSort("totalRR")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.rr")}
@@ -287,7 +304,7 @@
                             {/if}
                             {#if columnVisibility.mae}
                                 <th
-                                    on:click={() => handleSort("mae")}
+                                    onclick={() => handleSort("mae")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.mae")}
@@ -302,7 +319,7 @@
                             {/if}
                             {#if columnVisibility.mfe}
                                 <th
-                                    on:click={() => handleSort("mfe")}
+                                    onclick={() => handleSort("mfe")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.mfe")}
@@ -317,7 +334,7 @@
                             {/if}
                             {#if columnVisibility.efficiency}
                                 <th
-                                    on:click={() => handleSort("efficiency")}
+                                    onclick={() => handleSort("efficiency")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.efficiency")}
@@ -332,7 +349,7 @@
                             {/if}
                             {#if columnVisibility.duration}
                                 <th
-                                    on:click={() => handleSort("duration")}
+                                    onclick={() => handleSort("duration")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.duration")}
@@ -347,7 +364,7 @@
                             {/if}
                             {#if columnVisibility.status}
                                 <th
-                                    on:click={() => handleSort("status")}
+                                    onclick={() => handleSort("status")}
                                     class="sortable"
                                 >
                                     {$_("journal.table.status")}
@@ -373,7 +390,7 @@
                         {#if item.isGroup}
                             <tr
                                 class="group-row cursor-pointer"
-                                on:click={() => toggleGroup(item.symbol)}
+                                onclick={() => toggleGroup(item.symbol)}
                             >
                                 {#if groupBySymbol}
                                     <td class="text-center">
@@ -424,7 +441,7 @@
                                 {#if columnVisibility.status}<td>-</td>{/if}
                                 {#if columnVisibility.tags}<td>-</td>{/if}
                                 {#if columnVisibility.notes}<td>-</td>{/if}
-                                {#if columnVisibility.action}<td />{/if}
+                                {#if columnVisibility.action}<td></td>{/if}
                             </tr>
 
                             {#if expandedGroups.has(item.symbol)}
@@ -433,9 +450,9 @@
                                         <td
                                             class="border-l-4 border-[var(--accent-color)]"
                                             style="padding: 0;"
-                                        />
+></td>
                                         <td colspan="100" style="padding: 0;">
-                                            <svelte:self
+                                            <JournalTable
                                                 trades={[trade]}
                                                 {columnVisibility}
                                                 isInternal={true}
@@ -448,7 +465,7 @@
                             {/if}
                         {:else}
                             <tr class="trade-row">
-                                {#if groupBySymbol && !isInternal}<td />{/if}
+                                {#if groupBySymbol && !isInternal}<td></td>{/if}
                                 {#if columnVisibility.date}
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
@@ -614,7 +631,7 @@
                                                     : '0'
                                             )}"
                                             disabled={item.isManual === false}
-                                            on:change={(e) =>
+                                            onchange={(e) =>
                                                 handleStatusChange(
                                                     item.id,
                                                     e.currentTarget.value
@@ -665,7 +682,7 @@
                                                 </a>
                                                 <button
                                                     class="text-xs opacity-50 hover:opacity-100 text-danger"
-                                                    on:click={() =>
+                                                    onclick={() =>
                                                         dispatch(
                                                             "updateTrade",
                                                             {
@@ -683,7 +700,7 @@
                                             {/if}
                                             <button
                                                 class="text-xs opacity-50 hover:opacity-100"
-                                                on:click={() =>
+                                                onclick={() =>
                                                     triggerFileUpload(item.id)}
                                                 title={item.screenshot
                                                     ? $_(
@@ -701,7 +718,7 @@
                                             id="file-upload-{item.id}"
                                             class="hidden"
                                             accept="image/*"
-                                            on:change={(e) => {
+                                            onchange={(e) => {
                                                 const file =
                                                     e.currentTarget.files?.[0];
                                                 if (file) {
@@ -728,13 +745,13 @@
                                                         {tag}
                                                         <button
                                                             class="opacity-50 hover:opacity-100 font-bold leading-none"
-                                                            on:click|stopPropagation={() =>
+                                                            onclick={stopPropagation(() =>
                                                                 removeTag(
                                                                     item.id,
                                                                     tag,
                                                                     item.tags ||
                                                                         []
-                                                                )}>×</button
+                                                                ))}>×</button
                                                         >
                                                     </span>
                                                 {/each}
@@ -746,7 +763,7 @@
                                                 bind:value={tagInputValues[
                                                     item.id
                                                 ]}
-                                                on:keydown={(e) => {
+                                                onkeydown={(e) => {
                                                     if (e.key === "Enter") {
                                                         addTag(
                                                             item.id,
@@ -771,7 +788,7 @@
                                             value={item.notes || ""}
                                             class="notes-input bg-transparent border-0 text-xs w-full focus:bg-[var(--bg-secondary)] rounded px-1"
                                             placeholder="-"
-                                            on:change={(e) =>
+                                            onchange={(e) =>
                                                 dispatch("updateTrade", {
                                                     id: item.id,
                                                     notes: e.currentTarget
@@ -784,8 +801,8 @@
                                     <td>
                                         <button
                                             class="delete-btn"
-                                            on:click|stopPropagation={() =>
-                                                handleDeleteTrade(item.id)}
+                                            onclick={stopPropagation(() =>
+                                                handleDeleteTrade(item.id))}
                                         >
                                             🗑️
                                         </button>
@@ -806,7 +823,7 @@
                     >
                     <select
                         bind:value={itemsPerPage}
-                        on:change={handleItemsPerPageChange}
+                        onchange={handleItemsPerPageChange}
                         class="rows-select bg-transparent border border-[var(--border-color)] rounded px-1 text-xs"
                     >
                         <option value={10}>10</option>
@@ -820,7 +837,7 @@
                     <button
                         class="pagination-btn"
                         disabled={currentPage === 1}
-                        on:click={() => handlePageChange(currentPage - 1)}
+                        onclick={() => handlePageChange(currentPage - 1)}
                     >
                         ←
                     </button>
@@ -834,7 +851,7 @@
                         class="pagination-btn"
                         disabled={currentPage === totalPages ||
                             totalPages === 0}
-                        on:click={() => handlePageChange(currentPage + 1)}
+                        onclick={() => handlePageChange(currentPage + 1)}
                     >
                         →
                     </button>

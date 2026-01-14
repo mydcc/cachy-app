@@ -1,26 +1,39 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { createEventDispatcher } from "svelte";
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
   import { fade, scale } from "svelte/transition";
   import { quintOut } from "svelte/easing";
 
-  export let selected: string[] = [];
-  export let options: string[] = [];
-  export let placeholder = "Add timeframe...";
-  export let maxItems = 4;
+  interface Props {
+    selected?: string[];
+    options?: string[];
+    placeholder?: string;
+    maxItems?: number;
+  }
+
+  let {
+    selected = $bindable([]),
+    options = [],
+    placeholder = "Add timeframe...",
+    maxItems = 4
+  }: Props = $props();
 
   const dispatch = createEventDispatcher();
-  let inputValue = "";
-  let inputElement: HTMLInputElement;
-  let showDropdown = false;
-  let filteredOptions: string[] = [];
+  let inputValue = $state("");
+  let inputElement: HTMLInputElement = $state();
+  let showDropdown = $state(false);
+  let filteredOptions: string[] = $state([]);
 
-  $: filteredOptions = options.filter(
-    (opt) =>
-      !selected.includes(opt) &&
-      opt.toLowerCase().includes(inputValue.toLowerCase())
-  );
+  run(() => {
+    filteredOptions = options.filter(
+      (opt) =>
+        !selected.includes(opt) &&
+        opt.toLowerCase().includes(inputValue.toLowerCase())
+    );
+  });
 
   function addTimeframe(val: string) {
     const normalized = normalizeTimeframeInput(val);
@@ -98,7 +111,7 @@
         <button
           type="button"
           class="hover:text-[var(--text-primary)] focus:outline-none ml-1"
-          on:click={() => removeTimeframe(i)}
+          onclick={() => removeTimeframe(i)}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -125,9 +138,9 @@
         class="flex-1 bg-transparent border-none outline-none text-sm min-w-[60px] text-[var(--text-primary)] placeholder-[var(--text-tertiary)]"
         {placeholder}
         bind:value={inputValue}
-        on:keydown={handleKeydown}
-        on:focus={handleInputFocus}
-        on:blur={handleInputBlur}
+        onkeydown={handleKeydown}
+        onfocus={handleInputFocus}
+        onblur={handleInputBlur}
       />
     {/if}
   </div>
@@ -140,7 +153,7 @@
       {#each filteredOptions as opt}
         <button
           class="w-full text-left px-3 py-2 text-sm hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          on:click={() => handleOptionClick(opt)}
+          onclick={() => handleOptionClick(opt)}
         >
           {opt}
         </button>

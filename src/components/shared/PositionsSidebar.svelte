@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { onMount } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { tradeStore } from "../../stores/tradeStore";
@@ -12,17 +14,21 @@
   import OrderHistoryList from "./OrderHistoryList.svelte";
   import TpSlList from "./TpSlList.svelte";
 
-  export let isMobile = false;
+  interface Props {
+    isMobile?: boolean;
+  }
 
-  let isOpen = true;
+  let { isMobile = false }: Props = $props();
+
+  let isOpen = $state(true);
 
   // Data State
   // Using store subscription for positions to react to WebSocket updates
   // For orders/history, we still fetch, but accountStore also has openOrders
 
-  let openOrders: any[] = [];
-  let historyOrders: any[] = [];
-  let accountInfo: any = {
+  let openOrders: any[] = $state([]);
+  let historyOrders: any[] = $state([]);
+  let accountInfo: any = $state({
     available: 0,
     margin: 0,
     totalUnrealizedPnL: 0,
@@ -33,27 +39,27 @@
     positionMode: "",
     crossUnrealizedPNL: 0,
     isolationUnrealizedPNL: 0,
-  };
+  });
 
   // Loading State
-  let loadingPositions = false;
-  let loadingOrders = false;
-  let loadingHistory = false;
+  let loadingPositions = $state(false);
+  let loadingOrders = $state(false);
+  let loadingHistory = $state(false);
   let loadingAccount = false;
 
   // Error State
-  let errorPositions = "";
-  let errorOrders = "";
-  let errorHistory = "";
+  let errorPositions = $state("");
+  let errorOrders = $state("");
+  let errorHistory = $state("");
 
   // Tab State
   type Tab = "positions" | "orders" | "tpsl" | "history";
-  let activeTab: Tab = "positions";
+  let activeTab: Tab = $state("positions");
 
   // Context Menu State
-  let showContextMenu = false;
-  let contextMenuX = 0;
-  let contextMenuY = 0;
+  let showContextMenu = $state(false);
+  let contextMenuX = $state(0);
+  let contextMenuY = $state(0);
 
   async function fetchPositions() {
     const provider = $settingsStore.apiProvider || "bitunix";
@@ -188,23 +194,31 @@
   });
 
   // React to settings changes (e.g. keys added)
-  $: if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
-    // Debounce or just check if we can fetch
-    const p = $settingsStore.apiProvider;
-    const k = $settingsStore.apiKeys[p];
-    if (k?.key && k?.secret && activeTab === "positions") {
-      fetchPositions();
-      fetchAccount();
+  run(() => {
+    if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
+      // Debounce or just check if we can fetch
+      const p = $settingsStore.apiProvider;
+      const k = $settingsStore.apiKeys[p];
+      if (k?.key && k?.secret && activeTab === "positions") {
+        fetchPositions();
+        fetchAccount();
+      }
     }
-  }
+  });
 
-  $: if (activeTab === "orders") fetchOrders("pending");
-  $: if (activeTab === "history") fetchOrders("history");
-  $: if (activeTab === "positions") fetchPositions();
+  run(() => {
+    if (activeTab === "orders") fetchOrders("pending");
+  });
+  run(() => {
+    if (activeTab === "history") fetchOrders("history");
+  });
+  run(() => {
+    if (activeTab === "positions") fetchPositions();
+  });
 
   // Filter History
-  let filteredHistoryOrders: any[] = [];
-  $: {
+  let filteredHistoryOrders: any[] = $state([]);
+  run(() => {
     if ($settingsStore.hideUnfilledOrders) {
       filteredHistoryOrders = historyOrders.filter(
         (o) => Number(o.filled || o.dealAmount || 0) > 0
@@ -212,7 +226,7 @@
     } else {
       filteredHistoryOrders = historyOrders;
     }
-  }
+  });
 
   function toggle() {
     isOpen = !isOpen;
@@ -290,7 +304,7 @@
   }
 </script>
 
-<svelte:window on:click={closeContextMenu} />
+<svelte:window onclick={closeContextMenu} />
 
 <div
   class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 relative z-20 {isMobile
@@ -303,8 +317,8 @@
   <!-- Header / Toggle -->
   <div
     class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
-    on:click={toggle}
-    on:keydown={(e) => handleKeydown(e, toggle)}
+    onclick={toggle}
+    onkeydown={(e) => handleKeydown(e, toggle)}
     role="button"
     tabindex="0"
     aria-expanded={isOpen}
@@ -358,8 +372,8 @@
         class:border-[var(--accent-color)]={activeTab === "positions"}
         class:text-[var(--text-secondary)]={activeTab !== "positions"}
         class:border-transparent={activeTab !== "positions"}
-        on:click={() => (activeTab = "positions")}
-        on:contextmenu={handleContextMenu}
+        onclick={() => (activeTab = "positions")}
+        oncontextmenu={handleContextMenu}
       >
         {$_("dashboard.positions") || "Positions"} ({$accountStore.positions
           .length})
@@ -370,7 +384,7 @@
         class:border-[var(--accent-color)]={activeTab === "orders"}
         class:text-[var(--text-secondary)]={activeTab !== "orders"}
         class:border-transparent={activeTab !== "orders"}
-        on:click={() => (activeTab = "orders")}
+        onclick={() => (activeTab = "orders")}
       >
         {$_("dashboard.orders") || "Orders"} ({openOrders.length})
       </button>
@@ -380,7 +394,7 @@
         class:border-[var(--accent-color)]={activeTab === "tpsl"}
         class:text-[var(--text-secondary)]={activeTab !== "tpsl"}
         class:border-transparent={activeTab !== "tpsl"}
-        on:click={() => (activeTab = "tpsl")}
+        onclick={() => (activeTab = "tpsl")}
       >
         TP/SL
       </button>
@@ -390,7 +404,7 @@
         class:border-[var(--accent-color)]={activeTab === "history"}
         class:text-[var(--text-secondary)]={activeTab !== "history"}
         class:border-transparent={activeTab !== "history"}
-        on:click={() => (activeTab = "history")}
+        onclick={() => (activeTab = "history")}
       >
         {$_("dashboard.history") || "History"}
       </button>
@@ -437,14 +451,14 @@
     </div>
     <button
       class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
-      on:click={() => setViewMode("detailed")}
+      onclick={() => setViewMode("detailed")}
     >
       Detailed
       {#if $settingsStore.positionViewMode === "detailed"}✓{/if}
     </button>
     <button
       class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
-      on:click={() => setViewMode("focus")}
+      onclick={() => setViewMode("focus")}
     >
       Focus
       {#if $settingsStore.positionViewMode === "focus"}✓{/if}

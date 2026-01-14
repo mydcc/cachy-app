@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run, stopPropagation } from 'svelte/legacy';
+
   import { onMount, onDestroy } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
@@ -22,50 +24,36 @@
   import DepthBar from "./DepthBar.svelte"; // Import the new DepthBar
   import Tooltip from "./Tooltip.svelte";
 
-  export let customSymbol: string | undefined = undefined;
-  export let isFavoriteTile: boolean = false;
-  export let onToggleTechnicals: (() => void) | undefined = undefined;
-  export let isTechnicalsVisible: boolean = false;
+  interface Props {
+    customSymbol?: string | undefined;
+    isFavoriteTile?: boolean;
+    onToggleTechnicals?: (() => void) | undefined;
+    isTechnicalsVisible?: boolean;
+  }
 
-  // Use custom symbol if provided, otherwise fall back to store symbol (already normalized in tradeStore)
-  $: symbol = customSymbol || $tradeStore.symbol || "";
-  $: provider = $settingsStore.apiProvider;
-  $: displaySymbol = getDisplaySymbol(symbol);
+  let {
+    customSymbol = undefined,
+    isFavoriteTile = false,
+    onToggleTechnicals = undefined,
+    isTechnicalsVisible = false
+  }: Props = $props();
+
 
   // REST Data (24h Stats, Volume, Change)
-  let tickerData: Ticker24h | null = null;
-  let restLoading = false;
-  let restError: string | null = null;
-  let restIntervalId: any;
+  let tickerData: Ticker24h | null = $state(null);
+  let restLoading = $state(false);
+  let restError: string | null = $state(null);
+  let restIntervalId: any = $state();
 
-  // WS Data - Use strictly normalized entry from store
-  $: wsData = $marketStore[symbol] || null;
-  $: wsStatus = $wsStatusStore;
 
-  // Derived Real-time values (fallback to REST if WS missing)
-  $: currentPrice = wsData?.lastPrice || tickerData?.lastPrice;
-  $: fundingRate = wsData?.fundingRate;
-  $: nextFundingTime = wsData?.nextFundingTime;
 
-  // 24h Stats (Prefer WS 'ticker' channel data, fallback to REST)
-  $: highPrice = wsData?.highPrice || tickerData?.highPrice;
-  $: lowPrice = wsData?.lowPrice || tickerData?.lowPrice;
-  $: volume = wsData?.volume || tickerData?.volume;
-  $: priceChangePercent =
-    wsData?.priceChangePercent || tickerData?.priceChangePercent;
 
-  // Depth Data
-  $: depthData = wsData?.depth;
 
   // RSI Logic
-  let historyKlines: Kline[] = [];
-  let rsiValue: Decimal | null = null;
-  let signalValue: Decimal | null = null;
+  let historyKlines: Kline[] = $state([]);
+  let rsiValue: Decimal | null = $state(null);
+  let signalValue: Decimal | null = $state(null);
 
-  // Determine effective Timeframe
-  $: effectiveRsiTimeframe = $settingsStore.syncRsiTimeframe
-    ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
-    : $indicatorStore.rsi.defaultTimeframe || "1d";
 
   // Subscribe Channel Mapping
   function mapTimeframeToChannel(tf: string): string {
@@ -91,17 +79,7 @@
 
   // Fetch History on Mount/Symbol/Timeframe Change
   // Manage dynamic kline subscription via MarketWatcher
-  let currentWsKlineChannel: string | null = null;
-  $: if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
-    fetchHistoryKlines(effectiveRsiTimeframe);
-
-    const newChannel = `kline_${effectiveRsiTimeframe}`;
-    if (currentWsKlineChannel && currentWsKlineChannel !== newChannel) {
-      marketWatcher.unregister(symbol, currentWsKlineChannel);
-    }
-    marketWatcher.register(symbol, newChannel);
-    currentWsKlineChannel = newChannel;
-  }
+  let currentWsKlineChannel: string | null = $state(null);
 
   async function fetchHistoryKlines(tf: string) {
     try {
@@ -118,98 +96,12 @@
     }
   }
 
-  // Reactively Calculate RSI
-  $: if (historyKlines.length > 0) {
-    const sourceMode = $indicatorStore.rsi.source || "close";
-    const length = $indicatorStore.rsi.length || 14;
 
-    // Prepare Source Array
-    // Map Klines to Values
-    let values = historyKlines.map((k) => {
-      if (sourceMode === "open") return k.open;
-      if (sourceMode === "high") return k.high;
-      if (sourceMode === "low") return k.low;
-      if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
-      if (sourceMode === "hlc3") return k.high.plus(k.low).plus(k.close).div(3);
-      return k.close;
-    });
-
-    // Update latest candle from Market Store (WS klines are now in the store)
-    const liveKline = wsData?.klines
-      ? wsData.klines[effectiveRsiTimeframe]
-      : null;
-    if (liveKline) {
-      let currentVal = liveKline.close;
-      if (sourceMode === "open") currentVal = liveKline.open;
-      else if (sourceMode === "high") currentVal = liveKline.high;
-      else if (sourceMode === "low") currentVal = liveKline.low;
-      else if (sourceMode === "hl2")
-        currentVal = liveKline.high.plus(liveKline.low).div(2);
-      else if (sourceMode === "hlc3")
-        currentVal = liveKline.high
-          .plus(liveKline.low)
-          .plus(liveKline.close)
-          .div(3);
-
-      // Update last element
-      if (values.length > 0) values[values.length - 1] = currentVal;
-    } else if (currentPrice && sourceMode === "close") {
-      // Fallback for Close only
-      if (values.length > 0) values[values.length - 1] = currentPrice;
-    }
-
-    // Calculate RSI Series (optimized O(N) implementation)
-    // Use JSIndicators.rsi() which returns the entire series in one pass
-    // This is ~100x faster than the previous O(N²) loop approach
-    const rsiSeries: Decimal[] = [];
-
-    if (values.length > length) {
-      // Convert Decimal[] to number[] for JSIndicators
-      const valuesNum = values.map((v) => v.toNumber());
-
-      // Calculate entire RSI series in O(N) time
-      const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
-
-      // Convert back to Decimal[] and filter out invalid/zero values
-      // RSI array has zeros for indices where RSI cannot be calculated yet
-      for (let i = 0; i < rsiSeriesNum.length; i++) {
-        if (rsiSeriesNum[i] > 0) {
-          rsiSeries.push(new Decimal(rsiSeriesNum[i]));
-        }
-      }
-    }
-
-    if (rsiSeries.length > 0) {
-      rsiValue = rsiSeries[rsiSeries.length - 1];
-
-      // Calculate Signal Line
-      if ($indicatorStore.rsi.showSignal) {
-        const sigType = $indicatorStore.rsi.signalType || "sma";
-        const sigLen = $indicatorStore.rsi.signalLength || 14;
-
-        if (sigType === "ema") {
-          signalValue = indicators.calculateEMA(rsiSeries, sigLen);
-        } else {
-          signalValue = indicators.calculateSMA(rsiSeries, sigLen);
-        }
-      } else {
-        signalValue = null;
-      }
-    } else {
-      rsiValue = null;
-      signalValue = null;
-    }
-  }
-
-  $: isFavorite = symbol ? $favoritesStore.includes(symbol) : false;
 
   // Countdown Logic
-  let countdownText = "--:--:--";
+  let countdownText = $state("--:--:--");
   let countdownInterval: any;
 
-  $: if (nextFundingTime) {
-    startCountdown();
-  }
 
   function startCountdown() {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -232,32 +124,7 @@
     countdownInterval = setInterval(update, 1000);
   }
 
-  // Subscribe to WS when symbol changes
-  // Subscribe to WS when symbol changes via MarketWatcher
-  $: if (symbol && provider === "bitunix") {
-    marketWatcher.register(symbol, "price");
-    marketWatcher.register(symbol, "ticker");
-    marketWatcher.register(symbol, "depth_book5");
-  }
 
-  // REST Polling for Volume/24h Change (Background)
-  $: if (symbol && provider) {
-    // Only run REST polling if we are NOT using Bitunix (or if we want a fallback initially)
-    // Bitunix uses WS for this now.
-    if (provider !== "bitunix") {
-      setupRestInterval();
-      fetchRestData();
-    } else {
-      // For Bitunix, clear REST interval if it exists
-      if (restIntervalId) {
-        clearInterval(restIntervalId);
-        restIntervalId = undefined;
-      }
-      // Maybe fetch once initially to populate before WS connects?
-      // Optional, but might feel faster.
-      // fetchRestData();
-    }
-  }
 
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
@@ -338,16 +205,170 @@
       app.fetchAllAnalysisData(symbol.toUpperCase());
     }
   }
+  // Use custom symbol if provided, otherwise fall back to store symbol (already normalized in tradeStore)
+  let symbol = $derived(customSymbol || $tradeStore.symbol || "");
+  let provider = $derived($settingsStore.apiProvider);
+  let displaySymbol = $derived(getDisplaySymbol(symbol));
+  // WS Data - Use strictly normalized entry from store
+  let wsData = $derived($marketStore[symbol] || null);
+  let wsStatus = $derived($wsStatusStore);
+  // Derived Real-time values (fallback to REST if WS missing)
+  let currentPrice = $derived(wsData?.lastPrice || tickerData?.lastPrice);
+  let fundingRate = $derived(wsData?.fundingRate);
+  let nextFundingTime = $derived(wsData?.nextFundingTime);
+  // 24h Stats (Prefer WS 'ticker' channel data, fallback to REST)
+  let highPrice = $derived(wsData?.highPrice || tickerData?.highPrice);
+  let lowPrice = $derived(wsData?.lowPrice || tickerData?.lowPrice);
+  let volume = $derived(wsData?.volume || tickerData?.volume);
+  let priceChangePercent =
+    $derived(wsData?.priceChangePercent || tickerData?.priceChangePercent);
+  // Depth Data
+  let depthData = $derived(wsData?.depth);
+  // Determine effective Timeframe
+  let effectiveRsiTimeframe = $derived($settingsStore.syncRsiTimeframe
+    ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
+    : $indicatorStore.rsi.defaultTimeframe || "1d");
+  run(() => {
+    if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
+      fetchHistoryKlines(effectiveRsiTimeframe);
+
+      const newChannel = `kline_${effectiveRsiTimeframe}`;
+      if (currentWsKlineChannel && currentWsKlineChannel !== newChannel) {
+        marketWatcher.unregister(symbol, currentWsKlineChannel);
+      }
+      marketWatcher.register(symbol, newChannel);
+      currentWsKlineChannel = newChannel;
+    }
+  });
+  // Reactively Calculate RSI
+  run(() => {
+    if (historyKlines.length > 0) {
+      const sourceMode = $indicatorStore.rsi.source || "close";
+      const length = $indicatorStore.rsi.length || 14;
+
+      // Prepare Source Array
+      // Map Klines to Values
+      let values = historyKlines.map((k) => {
+        if (sourceMode === "open") return k.open;
+        if (sourceMode === "high") return k.high;
+        if (sourceMode === "low") return k.low;
+        if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
+        if (sourceMode === "hlc3") return k.high.plus(k.low).plus(k.close).div(3);
+        return k.close;
+      });
+
+      // Update latest candle from Market Store (WS klines are now in the store)
+      const liveKline = wsData?.klines
+        ? wsData.klines[effectiveRsiTimeframe]
+        : null;
+      if (liveKline) {
+        let currentVal = liveKline.close;
+        if (sourceMode === "open") currentVal = liveKline.open;
+        else if (sourceMode === "high") currentVal = liveKline.high;
+        else if (sourceMode === "low") currentVal = liveKline.low;
+        else if (sourceMode === "hl2")
+          currentVal = liveKline.high.plus(liveKline.low).div(2);
+        else if (sourceMode === "hlc3")
+          currentVal = liveKline.high
+            .plus(liveKline.low)
+            .plus(liveKline.close)
+            .div(3);
+
+        // Update last element
+        if (values.length > 0) values[values.length - 1] = currentVal;
+      } else if (currentPrice && sourceMode === "close") {
+        // Fallback for Close only
+        if (values.length > 0) values[values.length - 1] = currentPrice;
+      }
+
+      // Calculate RSI Series (optimized O(N) implementation)
+      // Use JSIndicators.rsi() which returns the entire series in one pass
+      // This is ~100x faster than the previous O(N²) loop approach
+      const rsiSeries: Decimal[] = [];
+
+      if (values.length > length) {
+        // Convert Decimal[] to number[] for JSIndicators
+        const valuesNum = values.map((v) => v.toNumber());
+
+        // Calculate entire RSI series in O(N) time
+        const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
+
+        // Convert back to Decimal[] and filter out invalid/zero values
+        // RSI array has zeros for indices where RSI cannot be calculated yet
+        for (let i = 0; i < rsiSeriesNum.length; i++) {
+          if (rsiSeriesNum[i] > 0) {
+            rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+          }
+        }
+      }
+
+      if (rsiSeries.length > 0) {
+        rsiValue = rsiSeries[rsiSeries.length - 1];
+
+        // Calculate Signal Line
+        if ($indicatorStore.rsi.showSignal) {
+          const sigType = $indicatorStore.rsi.signalType || "sma";
+          const sigLen = $indicatorStore.rsi.signalLength || 14;
+
+          if (sigType === "ema") {
+            signalValue = indicators.calculateEMA(rsiSeries, sigLen);
+          } else {
+            signalValue = indicators.calculateSMA(rsiSeries, sigLen);
+          }
+        } else {
+          signalValue = null;
+        }
+      } else {
+        rsiValue = null;
+        signalValue = null;
+      }
+    }
+  });
+  let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
+  run(() => {
+    if (nextFundingTime) {
+      startCountdown();
+    }
+  });
+  // Subscribe to WS when symbol changes
+  // Subscribe to WS when symbol changes via MarketWatcher
+  run(() => {
+    if (symbol && provider === "bitunix") {
+      marketWatcher.register(symbol, "price");
+      marketWatcher.register(symbol, "ticker");
+      marketWatcher.register(symbol, "depth_book5");
+    }
+  });
+  // REST Polling for Volume/24h Change (Background)
+  run(() => {
+    if (symbol && provider) {
+      // Only run REST polling if we are NOT using Bitunix (or if we want a fallback initially)
+      // Bitunix uses WS for this now.
+      if (provider !== "bitunix") {
+        setupRestInterval();
+        fetchRestData();
+      } else {
+        // For Bitunix, clear REST interval if it exists
+        if (restIntervalId) {
+          clearInterval(restIntervalId);
+          restIntervalId = undefined;
+        }
+        // Maybe fetch once initially to populate before WS connects?
+        // Optional, but might feel faster.
+        // fetchRestData();
+      }
+    }
+  });
 </script>
 
-<!-- svelte-ignore a11y-no-noninteractive-tabindex -->
-<!-- svelte-ignore a11y-no-static-element-interactions -->
+<!-- svelte-ignore a11y_no_noninteractive_tabindex -->
+<!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="market-overview-card bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] backdrop-blur-sm bg-opacity-95 transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:scale-[0.98]'
     : ''}"
-  on:click={loadToCalculator}
-  on:keydown={(e) => e.key === "Enter" && loadToCalculator()}
+  onclick={loadToCalculator}
+  onkeydown={(e) => e.key === "Enter" && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
   tabindex={isFavoriteTile ? 0 : -1}
 >
@@ -360,7 +381,7 @@
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
         title="Toggle Technicals"
-        on:click|stopPropagation={onToggleTechnicals}
+        onclick={stopPropagation(onToggleTechnicals)}
       >
         {@html icons.chart ||
           '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
@@ -370,7 +391,7 @@
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
       title="Refresh Stats"
-      on:click|stopPropagation={() => fetchRestData()}
+      onclick={stopPropagation(() => fetchRestData())}
       class:animate-spin={restLoading}
     >
       {@html icons.refresh ||
@@ -537,9 +558,9 @@
     <!-- Loading Skeleton -->
     <div class="flex justify-center py-4">
       <div class="animate-pulse flex flex-col w-full gap-2">
-        <div class="h-8 bg-[var(--bg-tertiary)] rounded w-3/4" />
-        <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2" />
-        <div class="h-12 bg-[var(--bg-tertiary)] rounded w-full mt-2" />
+        <div class="h-8 bg-[var(--bg-tertiary)] rounded w-3/4"></div>
+        <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2"></div>
+        <div class="h-12 bg-[var(--bg-tertiary)] rounded w-full mt-2"></div>
       </div>
     </div>
   {/if}
@@ -548,7 +569,7 @@
   <button
     class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
     class:text-[var(--accent-color)]={isFavorite}
-    on:click|stopPropagation={toggleFavorite}
+    onclick={stopPropagation(toggleFavorite)}
     title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}
   >
     {#if isFavorite}

@@ -1,12 +1,25 @@
 <script lang="ts">
-  import { Doughnut } from "svelte-chartjs";
+  import { onMount, onDestroy } from "svelte";
+  import { Chart } from "chart.js";
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
 
-  export let data: any;
-  export let title: string = "";
-  export let description: string = "";
-  export let options: any = {};
+  interface Props {
+    data: any;
+    title?: string;
+    description?: string;
+    options?: any;
+  }
+
+  let {
+    data,
+    title = "",
+    description = "",
+    options = {}
+  }: Props = $props();
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
 
   const defaultOptions = {
     responsive: true,
@@ -17,7 +30,7 @@
     },
   };
 
-  $: mergedOptions = {
+  let mergedOptions = $derived({
     ...defaultOptions,
     ...options,
     plugins: {
@@ -28,11 +41,36 @@
         ...(options.plugins?.legend || {}),
       },
       title: {
-        ...defaultOptions.plugins.title,
+        display: !!title,
+        text: title,
         ...(options.plugins?.title || {}),
       },
     },
-  };
+  });
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: "doughnut",
+        data,
+        options: mergedOptions,
+      });
+    }
+  });
+
+  $effect(() => {
+    if (chart) {
+      chart.data = data;
+      chart.options = mergedOptions;
+      chart.update();
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
@@ -41,5 +79,5 @@
       <Tooltip text={description} />
     </div>
   {/if}
-  <Doughnut {data} options={mergedOptions} />
+  <canvas bind:this={canvas}></canvas>
 </div>
