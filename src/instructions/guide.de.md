@@ -170,6 +170,14 @@ Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 
 - **Themes:** Wähle aus über 20 verschiedenen Designs (z.B. 'Midnight', 'Dracula', 'Nord').
 - **Hotkeys:** Passe Tastaturkürzel für Geschwindigkeit an (z.B. `S` für Short, `L` für Long).
+- **Debug-Modus:** Aktiviere detaillierte System-Logs in der Browser-Konsole für die Fehlerdiagnose.
+
+### Side Panel (Seitenleiste)
+
+Wähle unter **Einstellungen -> Sidebar** zwischen:
+
+- **Private Notizen:** Speichere Notizen nur lokal in deinem Browser.
+- **Globaler Chat:** Interagiere mit anderen Nutzern (erfordert API-Anbindung).
 
 ---
 

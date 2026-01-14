@@ -170,6 +170,14 @@ Since Cachy is local-only, your data is your responsibility.
 
 - **Themes:** Choose from over 20 distinct themes (e.g., 'Midnight', 'Dracula', 'Nord').
 - **Hotkeys:** Customize keyboard shortcuts for speed (e.g., `S` for Short, `L` for Long).
+- **Debug Mode:** Enable detailed system logs in the browser console for troubleshooting.
+
+### Side Panel
+
+Choose under **Settings -> Sidebar** between:
+
+- **Private Notes:** Store notes locally in your browser only.
+- **Global Chat:** Interact with other users (requires API connection).
 
 ---
 

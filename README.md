@@ -1,6 +1,6 @@
 # Cachy - Position Size & Risk Management
 
-![Version](https://img.shields.io/badge/version-0.96.0-blue?style=for-the-badge)
+![Version](https://img.shields.io/badge/version-0.94.2-blue?style=for-the-badge)
 [![SvelteKit](https://img.shields.io/badge/SvelteKit-f1413d?style=for-the-badge&logo=svelte&logoColor=white)](https://kit.svelte.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-007ACC?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
@@ -62,32 +62,37 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 ### Setup
 
-1.  **Clone Repository:**
+1. **Clone Repository:**
 
     ```bash
     git clone https://github.com/mydcc/cachy-app.git
     cd cachy-app
     ```
 
-2.  **Install Dependencies:**
+2. **Install Dependencies:**
 
     ```bash
     npm install
     ```
 
-3.  **Start Development Server:**
+3. **Start Development Server:**
+
     ```bash
     npm run dev
     ```
+
     The app is now running at `http://localhost:5173`.
 
 ### Tests
 
 - **Unit Tests (Vitest):**
+
   ```bash
   npm test
   ```
+
 - **Linting:**
+
   ```bash
   npm run lint
   ```
@@ -128,9 +133,9 @@ See `DEPLOYMENT.md` for detailed instructions.
 
 Contributions are welcome! Please follow these steps:
 
-1.  Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages (important for automated versioning).
-2.  Create a separate branch for each feature (`feat/my-feature`).
-3.  Ensure that `npm test` and `npm run lint` pass successfully.
+1. Use [Conventional Commits](https://www.conventionalcommits.org/) for your commit messages (important for automated versioning).
+2. Create a separate branch for each feature (`feat/my-feature`).
+3. Ensure that `npm test` and `npm run lint` pass successfully.
 
 ---
 
@@ -140,27 +145,28 @@ This project is published under the MIT License.
 
 ---
 
-# Changelog
+## Changelog
 
 ### Table of Contents
 
-1.  [Version 0.96](#v0.96)
-2.  [Version 0.94b2](#v0.94b2)
-3.  [Version 0.94b1](#v0.94b1)
-4.  [Version 0.94](#v0.94)
-5.  [Version 0.92b2](#v0.92b2)
-6.  [Version 0.92b1](#v0.92b1)
-7.  [Version 0.92b](#v0.92b)
+1. [Version 0.94.2](#v0.94.2)
+2. [Version 0.94b2](#v0.94b2)
+3. [Version 0.94b1](#v0.94b1)
+4. [Version 0.94](#v0.94)
+5. [Version 0.92b2](#v0.92b2)
+6. [Version 0.92b1](#v0.92b1)
+7. [Version 0.92b](#v0.92b)
 
 ---
 
-## <a name="v0.96"></a>Version 0.96 (January 2026)
+## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
 
-- **New:** Websocket integration for Bitunix (Real-time prices, depth, ticker).
-- **New:** Performance Tracking (Pro): Advanced charts and Deep Dive analytics in the Journal.
-- **New:** Market Overview & Sidebar: Improved layout with real-time data and Favorites.
-- **Improvements:** General stability updates and UI adjustments.
-- **Docs:** Completely revised and updated User Guide (Guide).
+- **Architecture:** **Global Subscription Management**: Centralized WebSocket management with the `MarketWatcher` service.
+- **System:** **Reference Counting**: Smart data request tracking to prevent connection drops.
+- **Robustness:** **Symbol Normalization**: Improved handling of symbol suffixes for stable API mapping.
+- **Feature:** **Jules API**: AI-powered error analysis and reporting system.
+- **Feature:** **Technicals Panel**: Advanced chart overlay with indicators (RSI, MACD, Stoch) using `talib-web`.
+- **New:** **Debug Mode**: Opt-in system logs for better diagnostics.
 
 ---
 
