@@ -1,10 +1,10 @@
 #!/bin/bash
 clear
-echo "--- Deployment gestartet: devcachyapp ---"
+echo "--- Deployment gestartet: prodcachyapp ---"
 
 # 1. Verzeichnis
-cd /www/wwwroot/dev.cachy.app || exit 1
-echo "[1/6] Verzeichnis: /www/wwwroot/dev.cachy.app"
+cd /www/wwwroot/cachy.app || exit 1
+echo "[1/6] Verzeichnis: /www/wwwroot/cachy.app"
 
 # 2. Git Update
 echo "[2/6] Git: Hole neueste Änderungen..."
@@ -26,13 +26,13 @@ fi
 
 # 5. Rechte
 echo "[5/6] System: Setze Dateirechte (www:www)..."
-chown -R www:www /www/wwwroot/dev.cachy.app
-chmod -R 755 /www/wwwroot/dev.cachy.app
+chown -R www:www /www/wwwroot/cachy.app
+chmod -R 755 /www/wwwroot/cachy.app
 
 # 6. Restart
 echo "[6/6] Restart: Triggere aaPanel-Startskript..."
-fuser -k 3002/tcp > /dev/null 2>&1
-sudo -u www bash /www/server/nodejs/vhost/scripts/devcachyapp.sh > /dev/null 2>&1
+fuser -k 3001/tcp > /dev/null 2>&1
+sudo -u www bash /www/server/nodejs/vhost/scripts/prodcachyapp.sh > /dev/null 2>&1
 
 echo ""
-echo "✅ Deployment beendet. Bitte Status im aaPanel prüfen."
+echo "✅ PRODUKTIONS-Deployment beendet. Bitte cachy.app prüfen."
