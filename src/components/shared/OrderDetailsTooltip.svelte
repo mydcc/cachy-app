@@ -3,9 +3,13 @@
 
   import { icons } from "../../lib/constants";
 
-  export let order: any;
+  interface Props {
+    order: any;
+  }
 
-  let isDetailsOpen = false;
+  let { order }: Props = $props();
+
+  let isDetailsOpen = $state(false);
 
   function toggleDetails() {
     isDetailsOpen = !isDetailsOpen;
@@ -124,8 +128,8 @@
     <!-- Accordion Toggle -->
     <div
       class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 cursor-pointer select-none flex items-center justify-between text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-      on:click={toggleDetails}
-      on:keydown={(e) => e.key === "Enter" && toggleDetails()}
+      onclick={toggleDetails}
+      onkeydown={(e) => e.key === "Enter" && toggleDetails()}
       role="button"
       tabindex="0"
     >

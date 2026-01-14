@@ -4,7 +4,7 @@
   import { trackClick } from "../../lib/actions";
   import ModalFrame from "./ModalFrame.svelte";
 
-  let modalState: ModalState = {
+  let modalState: ModalState = $state({
     title: "",
     message: "",
     type: "alert",
@@ -12,7 +12,7 @@
     isOpen: false,
     resolve: null,
     extraClasses: "",
-  };
+  });
 
   modalManager.subscribe((state) => {
     modalState = state;
@@ -45,7 +45,7 @@
       class="input-field w-full px-3 py-2 rounded-md my-4"
       placeholder={$_("dashboard.customModal.promptPlaceholder")}
       bind:value={modalState.defaultValue}
-      on:input={handleInput}
+      oninput={handleInput}
     />
   {/if}
 
@@ -53,7 +53,7 @@
     {#if modalState.type === "confirm"}
       <button
         class="font-bold py-2 px-4 rounded-lg bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]"
-        on:click={() => handleConfirm(true)}
+        onclick={() => handleConfirm(true)}
         use:trackClick={{
           category: "CustomModal",
           action: "Click",
@@ -62,7 +62,7 @@
       >
       <button
         class="font-bold py-2 px-4 rounded-lg bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)]"
-        on:click={() => handleConfirm(false)}
+        onclick={() => handleConfirm(false)}
         use:trackClick={{
           category: "CustomModal",
           action: "Click",
@@ -72,7 +72,7 @@
     {:else}
       <button
         class="btn-modal-ok font-bold py-2 px-4 rounded-lg"
-        on:click={() =>
+        onclick={() =>
           handleConfirm(
             modalState.type === "prompt" ? modalState.defaultValue || "" : true
           )}

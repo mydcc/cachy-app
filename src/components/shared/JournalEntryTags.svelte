@@ -1,22 +1,34 @@
 <script lang="ts">
+  import { stopPropagation, createBubbler } from 'svelte/legacy';
+
+  const bubble = createBubbler();
   import { _ } from "../../locales/i18n";
   import { clickOutside } from "../../lib/actions/clickOutside";
 
-  export let tags: string[] = [];
-  export let availableTags: string[] = [];
-  export let tradeId: number;
-  export let onTagsChange: (newTags: string[]) => void;
+  interface Props {
+    tags?: string[];
+    availableTags?: string[];
+    tradeId: number;
+    onTagsChange: (newTags: string[]) => void;
+  }
 
-  let tagInput = "";
-  let showSuggestions = false;
+  let {
+    tags = [],
+    availableTags = [],
+    tradeId,
+    onTagsChange
+  }: Props = $props();
+
+  let tagInput = $state("");
+  let showSuggestions = $state(false);
 
   // Ensure tags is always an array for local usage
-  $: safeTags = Array.isArray(tags) ? tags : [];
+  let safeTags = $derived(Array.isArray(tags) ? tags : []);
 
   // Filter available tags: exclude already added tags and match input
-  $: filteredTags = availableTags
+  let filteredTags = $derived(availableTags
     .filter((t) => !safeTags.includes(t))
-    .filter((t) => t.toLowerCase().includes(tagInput.toLowerCase()));
+    .filter((t) => t.toLowerCase().includes(tagInput.toLowerCase())));
 
   function addTag(tagToAdd: string = tagInput) {
     const cleaned = tagToAdd.trim();
@@ -58,7 +70,7 @@
       #{tag}
       <button
         class="hover:text-[var(--danger-color)] cursor-pointer leading-none"
-        on:click|stopPropagation={() => removeTag(tag)}>×</button
+        onclick={stopPropagation(() => removeTag(tag))}>×</button
       >
     </span>
   {/each}
@@ -69,9 +81,9 @@
     class="bg-transparent outline-none flex-grow min-w-[50px] text-xs journal-tag-input"
     placeholder={safeTags.length === 0 ? "+" : ""}
     bind:value={tagInput}
-    on:keydown={handleTagKeydown}
-    on:focus={() => (showSuggestions = true)}
-    on:click|stopPropagation
+    onkeydown={handleTagKeydown}
+    onfocus={() => (showSuggestions = true)}
+    onclick={stopPropagation(bubble('click'))}
   />
 
   {#if showSuggestions && filteredTags.length > 0 && tagInput.length > 0}
@@ -83,11 +95,11 @@
       }}
     >
       {#each filteredTags as suggestion}
-        <!-- svelte-ignore a11y-click-events-have-key-events -->
+        <!-- svelte-ignore a11y_click_events_have_key_events -->
         <button
           type="button"
           class="w-full text-left px-2 py-1.5 text-xs hover:bg-[var(--bg-tertiary)] cursor-pointer text-[var(--text-primary)] bg-transparent border-0"
-          on:click|stopPropagation={() => selectSuggestion(suggestion)}
+          onclick={stopPropagation(() => selectSuggestion(suggestion))}
         >
           #{suggestion}
         </button>

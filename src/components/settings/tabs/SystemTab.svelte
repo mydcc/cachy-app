@@ -1,10 +1,19 @@
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
 
-  export let isPro: boolean;
-  export let onBackup: () => void;
-  export let onRestore: (e: Event) => void;
-  export let onReset: () => void;
+  interface Props {
+    isPro: boolean;
+    onBackup: () => void;
+    onRestore: (e: Event) => void;
+    onReset: () => void;
+  }
+
+  let {
+    isPro,
+    onBackup,
+    onRestore,
+    onReset
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-system">
@@ -18,7 +27,7 @@
     </p>
     <button
       class="btn btn-secondary text-sm w-full"
-      on:click={() => fetch("/api/test-log", { method: "POST" })}
+      onclick={() => fetch("/api/test-log", { method: "POST" })}
     >
       Trigger Server Log
     </button>
@@ -34,7 +43,7 @@
     </p>
     <button
       class="btn btn-secondary text-sm w-full"
-      on:click={onBackup}
+      onclick={onBackup}
       disabled={!isPro}
     >
       {$_("app.backupButtonAriaLabel")}
@@ -58,14 +67,14 @@
         type="file"
         accept=".json"
         class="hidden"
-        on:change={onRestore}
+        onchange={onRestore}
       />
     </label>
   </div>
   <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
     <button
       class="text-xs text-[var(--danger-color)] hover:underline"
-      on:click={onReset}
+      onclick={onReset}
     >
       {$_("settings.reset")}
     </button>

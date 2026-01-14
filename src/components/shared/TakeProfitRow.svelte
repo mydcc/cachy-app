@@ -12,11 +12,21 @@
 
   const dispatch = createEventDispatcher();
 
-  export let index: number;
-  export let price: number | null;
-  export let percent: number | null;
-  export let isLocked: boolean;
-  export let tpDetail: IndividualTpResult | undefined = undefined;
+  interface Props {
+    index: number;
+    price: number | null;
+    percent: number | null;
+    isLocked: boolean;
+    tpDetail?: IndividualTpResult | undefined;
+  }
+
+  let {
+    index,
+    price,
+    percent,
+    isLocked,
+    tpDetail = undefined
+  }: Props = $props();
 
   function toggleLock() {
     const newLockState = !isLocked;
@@ -61,8 +71,8 @@
   }
 
   // Determine dynamic step
-  $: priceStep =
-    price && price > 1000 ? 0.5 : price && price > 100 ? 0.1 : 0.01;
+  let priceStep =
+    $derived(price && price > 1000 ? 0.5 : price && price > 100 ? 0.1 : 0.01);
 </script>
 
 <div
@@ -104,7 +114,7 @@
         class="lock-tp-btn btn-lock-icon p-1"
         title={$_("dashboard.takeProfitRow.lockButtonTitle")}
         tabindex="-1"
-        on:click={toggleLock}
+        onclick={toggleLock}
         use:trackClick={{
           category: "TakeProfitRow",
           action: "Click",
@@ -150,7 +160,7 @@
         use:numberInput={{ maxDecimalPlaces: 4 }}
         use:enhancedInput={{ step: priceStep, min: 0, rightOffset: "2px" }}
         value={format(price)}
-        on:input={handlePriceInput}
+        oninput={handlePriceInput}
         class="tp-price input-field w-full px-4 py-2 rounded-md"
         placeholder={$_("dashboard.takeProfitRow.pricePlaceholder")}
       />
@@ -176,7 +186,7 @@
           rightOffset: "2px",
         }}
         value={format(percent)}
-        on:input={handlePercentInput}
+        oninput={handlePercentInput}
         class="tp-percent input-field w-full px-4 py-2 rounded-md"
         class:locked-input={isLocked}
         disabled={isLocked}
@@ -188,7 +198,7 @@
       class="remove-tp-btn text-[var(--danger-color)] hover:opacity-80 p-1 flex-shrink-0"
       title={$_("dashboard.takeProfitRow.removeButtonTitle")}
       tabindex="-1"
-      on:click={removeRow}
+      onclick={removeRow}
       use:trackClick={{
         category: "TakeProfitRow",
         action: "Click",

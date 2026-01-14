@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
   import {
@@ -28,9 +30,9 @@
   import JournalDeepDive from "./journal/JournalDeepDive.svelte";
 
   // --- State for Dashboard ---
-  let activePreset = "performance";
-  let showUnlockOverlay = false;
-  let unlockOverlayMessage = "";
+  let activePreset = $state("performance");
+  let showUnlockOverlay = $state(false);
+  let unlockOverlayMessage = $state("");
 
   // --- Cheat Code Logic ---
   const CODE_UNLOCK = "VIPENTE2026";
@@ -140,13 +142,13 @@
   });
 
   // Theme Color Management
-  let themeColors = {
+  let themeColors = $state({
     success: "#10b981",
     danger: "#ef4444",
     warning: "#f59e0b",
     accent: "#3b82f6",
     textSecondary: "#64748b",
-  };
+  });
 
   function updateThemeColors() {
     if (!browser) return;
@@ -161,25 +163,27 @@
     }, 0);
   }
 
-  let lastTheme = "";
-  $: if ($uiStore.currentTheme !== lastTheme) {
-    lastTheme = $uiStore.currentTheme;
-    updateThemeColors();
-  }
+  let lastTheme = $state("");
+  run(() => {
+    if ($uiStore.currentTheme !== lastTheme) {
+      lastTheme = $uiStore.currentTheme;
+      updateThemeColors();
+    }
+  });
 
   // --- Table State ---
-  let currentPage = 1;
-  let itemsPerPage = 10;
+  let currentPage = $state(1);
+  let itemsPerPage = $state(10);
   let sortField: keyof import("../../stores/types").JournalEntry | "duration" =
-    "date";
-  let sortDirection: "asc" | "desc" = "desc";
-  let filterDateStart = "";
-  let filterDateEnd = "";
-  let groupBySymbol = false;
-  let showColumnSettings = false;
+    $state("date");
+  let sortDirection: "asc" | "desc" = $state("desc");
+  let filterDateStart = $state("");
+  let filterDateEnd = $state("");
+  let groupBySymbol = $state(false);
+  let showColumnSettings = $state(false);
 
   // Column Visibility State
-  let columnVisibility: Record<string, boolean> = {
+  let columnVisibility: Record<string, boolean> = $state({
     date: true,
     symbol: true,
     type: true,
@@ -199,7 +203,7 @@
     tags: true,
     notes: true,
     action: true,
-  };
+  });
 
   function sortTrades(trades: any[], field: string, direction: "asc" | "desc") {
     return [...trades].sort((a, b) => {
@@ -245,10 +249,10 @@
   }
 
   // Extract tradeStore values to local reactive variables
-  $: journalSearchQuery = $tradeStore.journalSearchQuery;
-  $: journalFilterStatus = $tradeStore.journalFilterStatus;
+  let journalSearchQuery = $derived($tradeStore.journalSearchQuery);
+  let journalFilterStatus = $derived($tradeStore.journalFilterStatus);
 
-  $: processedTrades = $journalStore.filter((trade) => {
+  let processedTrades = $derived($journalStore.filter((trade) => {
     const query = journalSearchQuery.toLowerCase();
     const matchesSearch =
       trade.symbol.toLowerCase().includes(query) ||
@@ -269,10 +273,10 @@
     }
 
     return matchesSearch && matchesStatus && matchesDate;
-  });
+  }));
 
   // Pivot Mode Logic
-  $: groupedTrades = groupBySymbol
+  let groupedTrades = $derived(groupBySymbol
     ? Object.entries(
         calculator.calculateSymbolPerformance(processedTrades)
       ).map(([symbol, data]) => ({
@@ -289,10 +293,10 @@
         status: "Group",
         trades: processedTrades.filter((t) => t.symbol === symbol),
       }))
-    : [];
+    : []);
 
-  $: displayTrades = groupBySymbol ? groupedTrades : processedTrades;
-  $: sortedTrades = sortTrades(displayTrades, sortField, sortDirection);
+  let displayTrades = $derived(groupBySymbol ? groupedTrades : processedTrades);
+  let sortedTrades = $derived(sortTrades(displayTrades, sortField, sortDirection));
 
   function handleSort(field: any) {
     if (sortField === field) {
@@ -322,16 +326,18 @@
     currentPage = 1;
   }
 
-  $: resetPagination(
-    journalSearchQuery,
-    journalFilterStatus,
-    filterDateStart,
-    filterDateEnd,
-    groupBySymbol,
-    sortField,
-    sortDirection,
-    itemsPerPage
-  );
+  run(() => {
+    resetPagination(
+      journalSearchQuery,
+      journalFilterStatus,
+      filterDateStart,
+      filterDateEnd,
+      groupBySymbol,
+      sortField,
+      sortDirection,
+      itemsPerPage
+    );
+  });
 
   function handleDateFilterChange(event: CustomEvent) {
     const dateStr = event.detail.date;
@@ -340,7 +346,7 @@
   }
 
   // Reactive Stats for Filtered Trades
-  $: filteredPerformance = calculator.calculatePerformanceStats(
+  let filteredPerformance = $derived(calculator.calculatePerformanceStats(
     processedTrades
   ) || {
     totalTrades: 0,
@@ -348,17 +354,17 @@
     profitFactor: new Decimal(0),
     maxDrawdown: new Decimal(0),
     avgRMultiple: new Decimal(0),
-  };
-  $: filteredJournal = calculator.calculateJournalStats(processedTrades);
+  });
+  let filteredJournal = $derived(calculator.calculateJournalStats(processedTrades));
 
   // Combine for JournalStatistics expected format
-  $: performanceData = {
+  let performanceData = $derived({
     ...filteredPerformance,
     totalPnl: filteredJournal.totalNetProfit?.toNumber() || 0,
-  };
-  $: qualityData = {
+  });
+  let qualityData = $derived({
     avgR: filteredPerformance.avgRMultiple?.toNumber() || 0,
-  };
+  });
 
   async function handleScreenshotUpload(
     event: CustomEvent<{ id: number; file: File }>
@@ -395,6 +401,7 @@
   on:close={() => uiStore.toggleJournalModal(false)}
   extraClasses="modal-size-journal"
 >
+  <!-- @migration-task: migrate this slot by hand, `header-extra` is an invalid identifier -->
   <div slot="header-extra">
     {#if $settingsStore.isPro}
       <JournalStatistics
@@ -441,7 +448,7 @@
         <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
         <button
           class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          on:click={() => (showColumnSettings = false)}
+          onclick={() => (showColumnSettings = false)}
           >{$_("common.ok")}</button
         >
       </div>
@@ -515,15 +522,15 @@
         id="sync-bitunix-btn"
         class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)] disabled:opacity-50 disabled:cursor-not-allowed"
         title={$_("journal.syncBitunix")}
-        on:click={app.syncBitunixHistory}
+        onclick={app.syncBitunixHistory}
         disabled={$uiStore.isPriceFetching || $uiStore.isLoading}
       >
         {#if $uiStore.isPriceFetching}
           <div
             class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
-          />
+></div>
         {:else}
-          <!-- svelte-ignore svelte/no-at-html-tags -->
+          <!-- svelte-ignore svelte/no_at_html_tags -->
           {@html icons.refresh}
         {/if}
         <span class="hidden sm:inline">
@@ -537,9 +544,9 @@
       id="export-csv-btn"
       class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-success-bg)] hover:bg-[var(--btn-success-hover-bg)] text-[var(--btn-success-text)]"
       title={$_("journal.exportCsvTitle")}
-      on:click={app.exportToCSV}
+      onclick={app.exportToCSV}
     >
-      <!-- svelte-ignore svelte/no-at-html-tags -->
+      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.export}<span class="hidden sm:inline"
         >{$_("journal.export")}</span
       ></button
@@ -550,15 +557,15 @@
       name="importCsv"
       accept=".csv"
       class="hidden"
-      on:change={handleImportCsv}
+      onchange={handleImportCsv}
     />
     <button
       id="import-csv-btn"
       class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)]"
       title={$_("journal.importCsvTitle")}
-      on:click={() => document.getElementById("import-csv-input")?.click()}
+      onclick={() => document.getElementById("import-csv-input")?.click()}
     >
-      <!-- svelte-ignore svelte/no-at-html-tags -->
+      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.import}<span class="hidden sm:inline"
         >{$_("journal.import")}</span
       ></button
@@ -567,11 +574,11 @@
       id="clear-journal-btn"
       class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]"
       title={$_("journal.clearJournalTitle")}
-      on:click={() => {
+      onclick={() => {
         if (browser) app.clearJournal();
       }}
     >
-      <!-- svelte-ignore svelte/no-at-html-tags -->
+      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.delete}<span class="hidden sm:inline"
         >{$_("journal.clearAll")}</span
       ></button
@@ -581,9 +588,9 @@
       class="font-bold p-2.5 rounded-lg bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)]"
       title={$_("journal.showJournalInstructionsTitle")}
       aria-label={$_("journal.showJournalInstructionsAriaLabel")}
-      on:click={() => app.uiManager.showReadme("journal")}
+      onclick={() => app.uiManager.showReadme("journal")}
     >
-      <!-- svelte-ignore svelte/no-at-html-tags -->
+      <!-- svelte-ignore svelte/no_at_html_tags -->
       {@html icons.book}</button
     >
   </div>

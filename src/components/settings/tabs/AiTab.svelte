@@ -1,13 +1,25 @@
 <script lang="ts">
   import type { AiProvider } from "../../../stores/settingsStore";
 
-  export let aiProvider: AiProvider;
-  export let openaiApiKey: string;
-  export let openaiModel: string;
-  export let geminiApiKey: string;
-  export let geminiModel: string;
-  export let anthropicApiKey: string;
-  export let anthropicModel: string;
+  interface Props {
+    aiProvider: AiProvider;
+    openaiApiKey: string;
+    openaiModel: string;
+    geminiApiKey: string;
+    geminiModel: string;
+    anthropicApiKey: string;
+    anthropicModel: string;
+  }
+
+  let {
+    aiProvider = $bindable(),
+    openaiApiKey = $bindable(),
+    openaiModel = $bindable(),
+    geminiApiKey = $bindable(),
+    geminiModel = $bindable(),
+    anthropicApiKey = $bindable(),
+    anthropicModel = $bindable()
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
@@ -41,7 +53,7 @@
           <span>OpenAI</span>
           {#if aiProvider === "openai"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-            />{/if}
+></span>{/if}
         </label>
         <input
           id="openai-key"
@@ -76,7 +88,7 @@
           <span>Google Gemini</span>
           {#if aiProvider === "gemini"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-            />{/if}
+></span>{/if}
         </label>
         <input
           id="gemini-key"
@@ -115,7 +127,7 @@
           <span>Anthropic</span>
           {#if aiProvider === "anthropic"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-            />{/if}
+></span>{/if}
         </label>
         <input
           id="anthropic-key"

@@ -2,14 +2,18 @@
   import { createEventDispatcher } from "svelte";
   import { icons } from "../../lib/constants";
 
-  export let activePreset: string;
-  export let presets: { id: string; label: string; icon?: string }[] = [
+  interface Props {
+    activePreset: string;
+    presets?: { id: string; label: string; icon?: string }[];
+  }
+
+  let { activePreset, presets = [
     { id: "performance", label: "Performance", icon: icons.chart },
     { id: "quality", label: "Qualität", icon: icons.check },
     { id: "direction", label: "Richtung", icon: icons.exchange },
     { id: "discipline", label: "Disziplin", icon: icons.lockClosed },
     { id: "costs", label: "Kosten", icon: icons.settings },
-  ];
+  ] }: Props = $props();
 
   const dispatch = createEventDispatcher();
 </script>
@@ -23,7 +27,7 @@
             {activePreset === preset.id
         ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-color)] font-bold'
         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}"
-      on:click={() => dispatch("select", preset.id)}
+      onclick={() => dispatch("select", preset.id)}
     >
       {#if preset.icon}
         {@html preset.icon}

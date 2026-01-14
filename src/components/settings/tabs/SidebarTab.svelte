@@ -2,14 +2,27 @@
   import { _ } from "../../../locales/i18n";
   import type { SidePanelLayout } from "../../../stores/settingsStore";
 
-  export let showSidebars: boolean;
-  export let showTechnicals: boolean;
-  export let showIndicatorParams: boolean;
-  export let hideUnfilledOrders: boolean;
-  export let positionViewMode: "detailed" | "focus";
-  export let enableSidePanel: boolean;
-  export let sidePanelMode: "chat" | "notes" | "ai";
-  export let sidePanelLayout: SidePanelLayout;
+  interface Props {
+    showSidebars: boolean;
+    showTechnicals: boolean;
+    showIndicatorParams: boolean;
+    hideUnfilledOrders: boolean;
+    positionViewMode: "detailed" | "focus";
+    enableSidePanel: boolean;
+    sidePanelMode: "chat" | "notes" | "ai";
+    sidePanelLayout: SidePanelLayout;
+  }
+
+  let {
+    showSidebars = $bindable(),
+    showTechnicals = $bindable(),
+    showIndicatorParams = $bindable(),
+    hideUnfilledOrders = $bindable(),
+    positionViewMode = $bindable(),
+    enableSidePanel = $bindable(),
+    sidePanelMode = $bindable(),
+    sidePanelLayout = $bindable()
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">

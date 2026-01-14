@@ -1,3 +1,4 @@
+<!-- @migration-task Error while migrating Svelte code: This migration would change the name of a slot (header-extra to header_extra) making the component unusable -->
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { fly } from "svelte/transition";

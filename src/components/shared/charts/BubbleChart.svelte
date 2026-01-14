@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { Bubble } from "svelte-chartjs";
+  import { onMount, onDestroy } from "svelte";
   import {
-    Chart as ChartJS,
+    Chart,
     Tooltip as ChartTooltip,
     Legend,
     PointElement,
@@ -9,15 +9,28 @@
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
 
-  ChartJS.register(LinearScale, PointElement, ChartTooltip, Legend);
+  Chart.register(LinearScale, PointElement, ChartTooltip, Legend);
 
-  export let data: any;
-  export let title: string = "";
-  export let xLabel: string = "";
-  export let yLabel: string = "";
-  export let description: string = "";
+  interface Props {
+    data: any;
+    title?: string;
+    xLabel?: string;
+    yLabel?: string;
+    description?: string;
+  }
 
-  const options = {
+  let {
+    data,
+    title = "",
+    xLabel = "",
+    yLabel = "",
+    description = ""
+  }: Props = $props();
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
+
+  let options = $derived({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
@@ -65,7 +78,31 @@
         },
       },
     },
-  };
+  });
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: "bubble",
+        data,
+        options,
+      });
+    }
+  });
+
+  $effect(() => {
+    if (chart) {
+      chart.data = data;
+      chart.options = options;
+      chart.update();
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
 </script>
 
 <div class="w-full h-full min-h-[200px] relative">
@@ -74,5 +111,5 @@
       <Tooltip text={description} />
     </div>
   {/if}
-  <Bubble {data} {options} />
+  <canvas bind:this={canvas}></canvas>
 </div>

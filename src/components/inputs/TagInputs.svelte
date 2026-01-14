@@ -2,9 +2,13 @@
   import { updateTradeStore } from "../../stores/tradeStore";
   import { _ } from "../../locales/i18n";
 
-  export let tags: string[] = [];
+  interface Props {
+    tags?: string[];
+  }
 
-  let tagInput = "";
+  let { tags = [] }: Props = $props();
+
+  let tagInput = $state("");
 
   function addTag() {
     const cleaned = tagInput.trim();
@@ -45,7 +49,7 @@
         #{tag}
         <button
           class="hover:text-[var(--danger-color)]"
-          on:click={() => removeTag(tag)}
+          onclick={() => removeTag(tag)}
           aria-label="Remove tag {tag}">×</button
         >
       </span>
@@ -59,8 +63,8 @@
         ? $_("dashboard.tradeSetupInputs.tagsPlaceholder")
         : ""}
       bind:value={tagInput}
-      on:keydown={handleTagKeydown}
-      on:blur={addTag}
+      onkeydown={handleTagKeydown}
+      onblur={addTag}
     />
   </div>
 </div>

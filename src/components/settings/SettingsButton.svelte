@@ -5,7 +5,7 @@
 
 <button
   class="btn-icon-accent"
-  on:click={() => uiStore.toggleSettingsModal(true)}
+  onclick={() => uiStore.toggleSettingsModal(true)}
   aria-label={$_("settings.title")}
   title={$_("settings.title")}
 >

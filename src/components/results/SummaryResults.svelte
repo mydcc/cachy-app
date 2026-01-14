@@ -7,15 +7,29 @@
 
   const dispatch = createEventDispatcher();
 
-  export let isPositionSizeLocked: boolean;
-  export let showCopyFeedback: boolean;
-  export let positionSize: string;
-  export let netLoss: string;
-  export let requiredMargin: string;
-  export let entryFee: string;
-  export let liquidationPrice: string;
-  export let breakEvenPrice: string;
-  export let isMarginExceeded: boolean = false;
+  interface Props {
+    isPositionSizeLocked: boolean;
+    showCopyFeedback: boolean;
+    positionSize: string;
+    netLoss: string;
+    requiredMargin: string;
+    entryFee: string;
+    liquidationPrice: string;
+    breakEvenPrice: string;
+    isMarginExceeded?: boolean;
+  }
+
+  let {
+    isPositionSizeLocked,
+    showCopyFeedback,
+    positionSize,
+    netLoss,
+    requiredMargin,
+    entryFee,
+    liquidationPrice,
+    breakEvenPrice,
+    isMarginExceeded = false
+  }: Props = $props();
 
   function handleCopy() {
     trackCustomEvent("Result", "Copy", "PositionSize");
@@ -43,7 +57,7 @@
         class="copy-btn ml-2"
         title={$_("dashboard.summaryResults.lockPositionSizeTitle")}
         aria-label={$_("dashboard.summaryResults.lockPositionSizeAriaLabel")}
-        on:click={handleToggleLock}
+        onclick={handleToggleLock}
       >
         {#if isPositionSizeLocked}
           {@html icons.lockClosed}
@@ -55,7 +69,7 @@
         id="copy-btn"
         class="copy-btn"
         aria-label={$_("dashboard.summaryResults.copyPositionSizeAriaLabel")}
-        on:click={handleCopy}
+        onclick={handleCopy}
       >
         {@html icons.copy}
       </button>

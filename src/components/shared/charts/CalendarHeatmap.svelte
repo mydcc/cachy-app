@@ -4,7 +4,8 @@
   import { _ } from "../../../locales/i18n";
   import { tooltip } from "../../../lib/actions/tooltip";
 
-  export let data: {
+  interface Props {
+    data?: {
     date: string;
     pnl: number;
     count: number;
@@ -12,8 +13,11 @@
     lossCount?: number;
     bestSymbol?: string;
     bestSymbolPnl?: number;
-  }[] = [];
-  export let year: number = new Date().getFullYear();
+  }[];
+    year?: number;
+  }
+
+  let { data = [], year = new Date().getFullYear() }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
@@ -43,10 +47,10 @@
   }
 
   // Map data to easy lookup
-  $: dataMap = data.reduce((acc, d) => {
+  let dataMap = $derived(data.reduce((acc, d) => {
     acc[d.date] = d;
     return acc;
-  }, {} as Record<string, { date: string; pnl: number; count: number; winCount?: number; lossCount?: number; bestSymbol?: string; bestSymbolPnl?: number }>);
+  }, {} as Record<string, { date: string; pnl: number; count: number; winCount?: number; lossCount?: number; bestSymbol?: string; bestSymbolPnl?: number }>));
 
   function getColor(dateStr: string) {
     const entry = dataMap[dateStr];
@@ -178,7 +182,7 @@
 
         <!-- Spacers for start of month -->
         {#each Array(getFirstDayOfMonth(mIndex, year)) as _}
-          <div />
+          <div></div>
         {/each}
 
         <!-- Days -->
@@ -186,7 +190,7 @@
           {@const dateStr = formatDate(year, mIndex, dIndex + 1)}
           {@const entry = dataMap[dateStr]}
           {@const tooltipContent = getTooltipHtml(entry, dateStr)}
-          <!-- svelte-ignore a11y-click-events-have-key-events -->
+          <!-- svelte-ignore a11y_click_events_have_key_events -->
           <div
             role="button"
             tabindex="0"
@@ -197,8 +201,8 @@
             use:tooltip={tooltipContent
               ? { content: tooltipContent, allowHtml: true, placement: "top" }
               : { content: dateStr, placement: "top" }}
-            on:click={() => entry && handleDayClick(dateStr)}
-          />
+            onclick={() => entry && handleDayClick(dateStr)}
+></div>
         {/each}
       </div>
     </div>

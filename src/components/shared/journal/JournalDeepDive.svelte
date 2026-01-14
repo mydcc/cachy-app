@@ -1,5 +1,5 @@
 <!-- Add Imports for Perf and Quality at top if missed -->
-<script context="module">
+<script module>
     // ...
 </script>
 
@@ -32,13 +32,17 @@
     import BubbleChart from "../charts/BubbleChart.svelte";
     import CalendarHeatmap from "../charts/CalendarHeatmap.svelte";
 
-    export let themeColors: any;
+    interface Props {
+        themeColors: any;
+    }
+
+    let { themeColors }: Props = $props();
 
     const dispatch = createEventDispatcher();
 
     // Local State
-    let activeDeepDivePreset = "forecast";
-    let selectedYear = new Date().getFullYear();
+    let activeDeepDivePreset = $state("forecast");
+    let selectedYear = $state(new Date().getFullYear());
 
     const dayMap: Record<string, string> = {
         Mon: "mon",
@@ -52,11 +56,11 @@
 
     // --- Data Logic derived from stores ---
 
-    $: journal = $journalStore;
+    let journal = $derived($journalStore);
 
     // Forecast (Monte Carlo)
-    $: monteCarloData = journal ? calculator.getMonteCarloData(journal) : null;
-    $: monteCarloChartData = monteCarloData
+    let monteCarloData = $derived(journal ? calculator.getMonteCarloData(journal) : null);
+    let monteCarloChartData = $derived(monteCarloData
         ? {
               labels: monteCarloData.labels || [],
               datasets: [
@@ -99,11 +103,11 @@
                   })),
               ],
           }
-        : null;
+        : null);
 
     // Trends (Rolling Stats)
-    $: rollingData = journal ? calculator.getRollingData(journal) : null;
-    $: rollingWinRateData = rollingData
+    let rollingData = $derived(journal ? calculator.getRollingData(journal) : null);
+    let rollingWinRateData = $derived(rollingData
         ? {
               labels: rollingData.labels || [],
               datasets: [
@@ -119,9 +123,9 @@
                   },
               ],
           }
-        : null;
+        : null);
 
-    $: rollingPFData = rollingData
+    let rollingPFData = $derived(rollingData
         ? {
               labels: rollingData.labels || [],
               datasets: [
@@ -135,9 +139,9 @@
                   },
               ],
           }
-        : null;
+        : null);
 
-    $: rollingSQNData = rollingData
+    let rollingSQNData = $derived(rollingData
         ? {
               labels: rollingData.labels || [],
               datasets: [
@@ -151,10 +155,10 @@
                   },
               ],
           }
-        : null;
+        : null);
 
     // Leakage (Attribution)
-    $: leakageData = journal
+    let leakageData = $derived(journal
         ? calculator.getLeakageData(journal)
         : {
               waterfallData: {
@@ -165,10 +169,10 @@
               },
               worstTags: [],
               worstHours: [],
-          };
+          });
 
     // Waterfall Chart Data
-    $: leakageWaterfallChartData = {
+    let leakageWaterfallChartData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.grossProfit"),
             $_("journal.deepDive.charts.labels.fees"),
@@ -194,9 +198,9 @@
                 ],
             },
         ],
-    };
+    });
 
-    $: leakageTagData = {
+    let leakageTagData = $derived({
         labels: (leakageData.worstTags || []).map((t) =>
             t.label === "No Tag"
                 ? $_("journal.deepDive.charts.labels.noTag")
@@ -209,8 +213,8 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
-    $: leakageTimingData = {
+    });
+    let leakageTimingData = $derived({
         labels: (leakageData.worstHours || []).map((h) => `${h.hour}h`),
         datasets: [
             {
@@ -219,11 +223,11 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
+    });
 
     // Timing
-    $: timingData = $timingMetrics || {};
-    $: hourlyPnlData = {
+    let timingData = $derived($timingMetrics || {});
+    let hourlyPnlData = $derived({
         labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
         datasets: [
             {
@@ -237,9 +241,9 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
+    });
 
-    $: dayOfWeekPnlData = {
+    let dayOfWeekPnlData = $derived({
         labels: timingData.dayLabels || [],
         datasets: [
             {
@@ -253,10 +257,10 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
+    });
 
-    $: durationStats = $durationStatsMetrics || {};
-    $: durationChartData = {
+    let durationStats = $derived($durationStatsMetrics || {});
+    let durationChartData = $derived({
         labels: durationStats.labels || [],
         datasets: [
             {
@@ -276,10 +280,10 @@
                 yAxisID: "y1",
             },
         ],
-    };
+    });
 
-    $: durationDataRaw = $durationDataMetrics || {};
-    $: durationScatterData = {
+    let durationDataRaw = $derived($durationDataMetrics || {});
+    let durationScatterData = $derived({
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
@@ -289,12 +293,12 @@
                 ),
             },
         ],
-    };
+    });
 
-    $: confluenceData = $confluenceMetrics || [];
+    let confluenceData = $derived($confluenceMetrics || []);
 
     // Assets
-    $: dirData = journal
+    let dirData = $derived(journal
         ? calculator.getDirectionData(journal)
         : {
               longPnl: 0,
@@ -303,9 +307,9 @@
               bottomSymbols: { labels: [], data: [] },
               longCurve: [],
               shortCurve: [],
-          };
-    $: assetData = $assetMetrics || {};
-    $: assetBubbleData = {
+          });
+    let assetData = $derived($assetMetrics || {});
+    let assetBubbleData = $derived({
         datasets: [
             {
                 label: $_("journal.deepDive.assets"),
@@ -317,11 +321,11 @@
                 ),
             },
         ],
-    };
+    });
 
     // Risk
-    $: riskScatterData = $riskMetrics || {};
-    $: riskRewardScatter = {
+    let riskScatterData = $derived($riskMetrics || {});
+    let riskRewardScatter = $derived({
         datasets: [
             {
                 label: $_("journal.deepDive.charts.labels.trades"),
@@ -331,11 +335,11 @@
                 ),
             },
         ],
-    };
+    });
 
     // Quality - R Distribution
-    $: qualMetrics = $qualityMetrics || {};
-    $: rDistData = {
+    let qualMetrics = $derived($qualityMetrics || {});
+    let rDistData = $derived({
         labels: Object.keys(qualMetrics.rHistogram || {}),
         datasets: [
             {
@@ -344,11 +348,11 @@
                 backgroundColor: themeColors.accent,
             },
         ],
-    };
+    });
 
     // Performance - Drawdown
-    $: perfMetrics = $performanceMetrics || {};
-    $: drawdownData = {
+    let perfMetrics = $derived($performanceMetrics || {});
+    let drawdownData = $derived({
         labels: (perfMetrics.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -362,11 +366,11 @@
                 tension: 0.1,
             },
         ],
-    };
+    });
 
     // Market (Leverage + Win Rate Long/Short)
-    $: marketData = $marketMetrics || {};
-    $: longShortWinData = {
+    let marketData = $derived($marketMetrics || {});
+    let longShortWinData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.longWinRate"),
             $_("journal.deepDive.charts.labels.shortWinRate"),
@@ -378,8 +382,8 @@
                 borderWidth: 0,
             },
         ],
-    };
-    $: leverageDistData = {
+    });
+    let leverageDistData = $derived({
         labels: marketData.leverageLabels || [],
         datasets: [
             {
@@ -388,11 +392,11 @@
                 backgroundColor: themeColors.accent,
             },
         ],
-    };
+    });
 
     // Psychology
-    $: psychData = $psychologyMetrics || {};
-    $: winStreakData = {
+    let psychData = $derived($psychologyMetrics || {});
+    let winStreakData = $derived({
         labels: psychData.streakLabels || [],
         datasets: [
             {
@@ -401,8 +405,8 @@
                 backgroundColor: themeColors.success,
             },
         ],
-    };
-    $: lossStreakData = {
+    });
+    let lossStreakData = $derived({
         labels: psychData.streakLabels || [],
         datasets: [
             {
@@ -411,14 +415,14 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
+    });
     // Need Drawdown Data for Psychology tab (Recovery)
     // Drawdown comes from performanceMetrics
     // Let's import performanceMetrics
 
     // Strategies (Tags)
-    $: tagData = $tagMetrics || {};
-    $: tagPnlData = {
+    let tagData = $derived($tagMetrics || {});
+    let tagPnlData = $derived({
         labels: tagData.labels || [],
         datasets: [
             {
@@ -429,9 +433,9 @@
                 ),
             },
         ],
-    };
-    $: tagEvolutionData = $tagEvolutionMetrics || { datasets: [] };
-    $: tagEvolutionChartData = {
+    });
+    let tagEvolutionData = $derived($tagEvolutionMetrics || { datasets: [] });
+    let tagEvolutionChartData = $derived({
         datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
             label: ds.label,
             data: ds.data,
@@ -446,12 +450,12 @@
             tension: 0.1,
             pointRadius: 0,
         })),
-    };
+    });
 
     // Calendar
-    $: calendarData = $calendarMetrics || [];
+    let calendarData = $derived($calendarMetrics || []);
 
-    $: availableYears = (() => {
+    let availableYears = $derived((() => {
         const years = new Set<number>();
         years.add(new Date().getFullYear());
         (calendarData || []).forEach((d) => {
@@ -459,7 +463,7 @@
             if (!isNaN(y)) years.add(y);
         });
         return Array.from(years).sort((a, b) => b - a);
-    })();
+    })());
 
     function handleCalendarClick(event: CustomEvent) {
         dispatch("filterDateChange", { date: event.detail.date });
@@ -720,7 +724,7 @@
                     class="grid grid-cols-[auto_repeat(24,1fr)] gap-1 text-[10px] overflow-x-auto pb-2"
                 >
                     <!-- Header Row (Hours) -->
-                    <div class="h-6" />
+                    <div class="h-6"></div>
                     {#each Array(24) as _, i}
                         <div class="text-center text-[var(--text-secondary)]">
                             {i}
@@ -1006,7 +1010,7 @@
                                            {selectedYear === year
                                     ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] font-bold'
                                     : 'bg-[var(--bg-tertiary)] text-[var(--text-secondary)] hover:bg-[var(--bg-primary)]'}"
-                                on:click={() => (selectedYear = year)}
+                                onclick={() => (selectedYear = year)}
                             >
                                 {year}
                             </button>

@@ -2,11 +2,21 @@
     import { _ } from "../../../locales/i18n";
     import type { Readable } from "svelte/store";
 
-    // Props - Metrics from derived stores
-    export let performanceData: any;
-    export let qualityData: any;
-    export let isPro: boolean = false;
-    export let minimal: boolean = false;
+    
+    interface Props {
+        // Props - Metrics from derived stores
+        performanceData: any;
+        qualityData: any;
+        isPro?: boolean;
+        minimal?: boolean;
+    }
+
+    let {
+        performanceData,
+        qualityData,
+        isPro = false,
+        minimal = false
+    }: Props = $props();
 </script>
 
 {#if isPro}

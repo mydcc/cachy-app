@@ -3,12 +3,23 @@
   import type { HotkeyMode } from "../../../stores/settingsStore";
   import { enhancedInput } from "../../../lib/actions/inputEnhancements";
 
-  export let showSpinButtons: boolean | "hover";
-  export let marketDataInterval: number = 10;
-  export let autoUpdatePriceInput: boolean = false;
-  export let autoFetchBalance: boolean = false;
-  export let hotkeyMode: HotkeyMode = "mode1";
-  export let activeDescriptions: Array<{ keys: string; action: string }> = [];
+  interface Props {
+    showSpinButtons: boolean | "hover";
+    marketDataInterval?: number;
+    autoUpdatePriceInput?: boolean;
+    autoFetchBalance?: boolean;
+    hotkeyMode?: HotkeyMode;
+    activeDescriptions?: Array<{ keys: string; action: string }>;
+  }
+
+  let {
+    showSpinButtons = $bindable(),
+    marketDataInterval = $bindable(10),
+    autoUpdatePriceInput = $bindable(false),
+    autoFetchBalance = $bindable(false),
+    hotkeyMode = $bindable("mode1"),
+    activeDescriptions = []
+  }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">

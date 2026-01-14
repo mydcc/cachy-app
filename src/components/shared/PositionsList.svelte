@@ -6,16 +6,20 @@
   import PositionTooltip from "./PositionTooltip.svelte";
   import Button from "./Button.svelte";
 
-  export let positions: any[] = [];
-  export let loading: boolean = false;
-  export let error: string = "";
+  interface Props {
+    positions?: any[];
+    loading?: boolean;
+    error?: string;
+  }
+
+  let { positions = [], loading = false, error = "" }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
   // Tooltip Logic
-  let hoveredPosition: any = null;
-  let tooltipX = 0;
-  let tooltipY = 0;
+  let hoveredPosition: any = $state(null);
+  let tooltipX = $state(0);
+  let tooltipY = $state(0);
 
   function handleMouseEnter(event: MouseEvent, pos: any) {
     hoveredPosition = pos;
@@ -86,11 +90,11 @@
   }
 
   // View Modes
-  $: viewMode = $settingsStore.positionViewMode || "detailed";
-  $: pnlMode = $settingsStore.pnlViewMode || "value";
+  let viewMode = $derived($settingsStore.positionViewMode || "detailed");
+  let pnlMode = $derived($settingsStore.pnlViewMode || "value");
 
   // Safe access to positions
-  $: safePositions = Array.isArray(positions) ? positions : [];
+  let safePositions = $derived(Array.isArray(positions) ? positions : []);
 </script>
 
 <div class="relative p-2 overflow-y-auto max-h-[500px] scrollbar-thin">
@@ -98,7 +102,7 @@
     <div class="flex justify-center p-4">
       <div
         class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-      />
+></div>
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -126,9 +130,9 @@
                   class="flex items-center gap-2 cursor-help"
                   role="group"
                   aria-label="Position Details"
-                  on:mouseenter={(e) => handleMouseEnter(e, pos)}
-                  on:mousemove={handleMouseMove}
-                  on:mouseleave={handleMouseLeave}
+                  onmouseenter={(e) => handleMouseEnter(e, pos)}
+                  onmousemove={handleMouseMove}
+                  onmouseleave={handleMouseLeave}
                 >
                   <span class="font-bold text-sm text-[var(--text-primary)]"
                     >{pos.symbol}</span
@@ -147,10 +151,10 @@
                 <!-- PnL Toggle -->
                 <div
                   class="cursor-pointer select-none relative"
-                  on:click={togglePnlMode}
+                  onclick={togglePnlMode}
                   role="button"
                   tabindex="0"
-                  on:keydown={(e) => e.key === "Enter" && togglePnlMode()}
+                  onkeydown={(e) => e.key === "Enter" && togglePnlMode()}
                 >
                   {#if pnlMode === "bar"}
                     <!-- Bar Representation -->
@@ -165,7 +169,7 @@
                         )}%; background-color: {pos.unrealizedPnl > 0
                           ? 'var(--success-color)'
                           : 'var(--danger-color)'}"
-                      />
+></div>
                       <span
                         class="text-[10px] font-bold z-10 relative"
                         class:text-[var(--success-color)]={pos.unrealizedPnl >
@@ -213,13 +217,13 @@
               <div class="flex gap-2 pt-1">
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-secondary)] rounded border border-[var(--border-color)] transition-colors"
-                  on:click={() => dispatch("tpSl", pos)}
+                  onclick={() => dispatch("tpSl", pos)}
                 >
                   TP/SL
                 </button>
                 <button
                   class="flex-1 py-1 text-[10px] bg-[var(--danger-color)] bg-opacity-10 hover:bg-opacity-20 text-[var(--danger-color)] rounded border border-[var(--danger-color)] border-opacity-30 transition-colors font-bold"
-                  on:click={() => handleClose(pos)}
+                  onclick={() => handleClose(pos)}
                 >
                   Close
                 </button>
@@ -231,10 +235,10 @@
               <!-- PnL (Dominant) -->
               <div
                 class="flex-1 cursor-pointer"
-                on:click={togglePnlMode}
+                onclick={togglePnlMode}
                 role="button"
                 tabindex="0"
-                on:keydown={(e) => e.key === "Enter" && togglePnlMode()}
+                onkeydown={(e) => e.key === "Enter" && togglePnlMode()}
               >
                 <span
                   class="font-bold text-lg leading-none"
@@ -250,9 +254,9 @@
                 class="flex flex-col items-center px-2 cursor-help"
                 role="group"
                 aria-label="Symbol Details"
-                on:mouseenter={(e) => handleMouseEnter(e, pos)}
-                on:mousemove={handleMouseMove}
-                on:mouseleave={handleMouseLeave}
+                onmouseenter={(e) => handleMouseEnter(e, pos)}
+                onmousemove={handleMouseMove}
+                onmouseleave={handleMouseLeave}
               >
                 <span class="font-bold text-xs">{pos.symbol}</span>
                 <span class="text-[9px] opacity-60"
@@ -263,7 +267,7 @@
               <!-- Close Button (X) -->
               <button
                 class="w-8 h-8 flex items-center justify-center bg-[var(--danger-color)] text-white rounded hover:bg-opacity-80 transition-colors shadow-sm"
-                on:click={() => handleClose(pos)}
+                onclick={() => handleClose(pos)}
                 title="Close Position"
               >
                 <svg

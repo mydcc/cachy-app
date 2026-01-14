@@ -3,14 +3,26 @@
   import { settingsStore } from "../../stores/settingsStore";
   import ModalFrame from "./ModalFrame.svelte";
 
-  export let order: any;
+  interface Props {
+    order: any;
+  }
+
+  let { order }: Props = $props();
 
   const dispatch = createEventDispatcher();
 
-  let triggerPrice = order?.triggerPrice || "";
-  let amount = order?.qty || order?.amount || "";
-  let loading = false;
-  let error = "";
+  let triggerPrice = $state("");
+  let amount = $state("");
+
+  // Initialize from props
+  $effect(() => {
+    if (order) {
+      triggerPrice = order.triggerPrice || "";
+      amount = order.qty || order.amount || "";
+    }
+  });
+  let loading = $state(false);
+  let error = $state("");
 
   async function handleSave() {
     const provider = $settingsStore.apiProvider || "bitunix";
@@ -106,14 +118,14 @@
     <div class="flex justify-end gap-2 mt-2">
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-        on:click={() => dispatch("close")}
+        onclick={() => dispatch("close")}
         disabled={loading}
       >
         Cancel
       </button>
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-white bg-[var(--accent-color)] hover:bg-opacity-90 disabled:opacity-50"
-        on:click={handleSave}
+        onclick={handleSave}
         disabled={loading}
       >
         {loading ? "Saving..." : "Save"}

@@ -8,9 +8,13 @@
   import { trackClick } from "../../lib/actions";
   import { Decimal } from "decimal.js";
 
-  export let tradeType: string;
-  export let leverage: number | null;
-  export let fees: number | null;
+  interface Props {
+    tradeType: string;
+    leverage: number | null;
+    fees: number | null;
+  }
+
+  let { tradeType, leverage, fees }: Props = $props();
 
   function setTradeType(type: string) {
     updateTradeStore((s) => ({ ...s, tradeType: type }));
@@ -38,8 +42,8 @@
   }
 
   // Leverage Sync Status
-  $: remoteLev = $tradeStore.remoteLeverage;
-  $: isLeverageSynced = remoteLev !== undefined && leverage === remoteLev;
+  let remoteLev = $derived($tradeStore.remoteLeverage);
+  let isLeverageSynced = $derived(remoteLev !== undefined && leverage === remoteLev);
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
@@ -59,14 +63,14 @@
   // If tradeType is LONG/SHORT, does it matter? Usually Maker/Taker depends on order type (Limit/Market).
   // Let's assume Limit = Maker, Market = Taker for simplicity, OR use the feeMode toggle.
   // The `feeMode` toggle determines what we *expect* to pay.
-  $: feeMode = $tradeStore.feeMode || "maker_taker";
-  $: entryType = feeMode.split("_")[0] as "maker" | "taker";
-  $: targetRemoteFee =
-    entryType === "maker"
+  let feeMode = $derived($tradeStore.feeMode || "maker_taker");
+  let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
+  let targetRemoteFee =
+    $derived(entryType === "maker"
       ? $tradeStore.remoteMakerFee
-      : $tradeStore.remoteTakerFee;
+      : $tradeStore.remoteTakerFee);
 
-  $: isFeeSynced = targetRemoteFee !== undefined && fees === targetRemoteFee;
+  let isFeeSynced = $derived(targetRemoteFee !== undefined && fees === targetRemoteFee);
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
@@ -94,7 +98,7 @@
         class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
-        on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
+        onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}
         use:trackClick={{
           category: "GeneralInputs",
           action: "SetTradeType",
@@ -109,7 +113,7 @@
         class:active={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_SHORT}
-        on:click={() => setTradeType(CONSTANTS.TRADE_TYPE_SHORT)}
+        onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_SHORT)}
         use:trackClick={{
           category: "GeneralInputs",
           action: "SetTradeType",
@@ -143,7 +147,7 @@
             rightOffset: "24px",
           }}
           value={format(leverage)}
-          on:input={handleLeverageInput}
+          oninput={handleLeverageInput}
           class="input-field w-full px-4 py-2 rounded-md transition-colors"
           class:border-green-500={isLeverageSynced}
           class:text-green-400={isLeverageSynced}
@@ -159,8 +163,8 @@
             title={isLeverageSynced
               ? "Synced with API"
               : `Manual Override (Click to sync to ${remoteLev}x)`}
-            on:click={syncLeverage}
-          />
+            onclick={syncLeverage}
+></button>
         {/if}
       </div>
 
@@ -182,7 +186,7 @@
             rightOffset: "24px",
           }}
           value={format(fees)}
-          on:input={handleFeesInput}
+          oninput={handleFeesInput}
           class="input-field w-full px-4 py-2 rounded-md transition-colors"
           class:border-green-500={isFeeSynced}
           class:text-green-400={isFeeSynced}
@@ -198,13 +202,13 @@
             title={isFeeSynced
               ? "Synced with API"
               : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
-            on:click={syncFee}
-          />
+            onclick={syncFee}
+></button>
         {/if}
       </div>
     </div>
     <!-- Spacer -->
-    <div class="mb-0" />
+    <div class="mb-0"></div>
   </div>
 </div>
 

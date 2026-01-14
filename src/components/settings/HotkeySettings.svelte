@@ -9,11 +9,11 @@
   import { onMount, onDestroy } from "svelte";
 
   let customHotkeys = { ...$settingsStore.customHotkeys };
-  let editingId: string | null = null;
-  let conflictWarning: string | null = null;
+  let editingId: string | null = $state(null);
+  let conflictWarning: string | null = $state(null);
 
   // Group actions by category
-  const groupedActions: Record<string, HotkeyAction[]> = {};
+  const groupedActions: Record<string, HotkeyAction[]> = $state({});
   HOTKEY_ACTIONS.forEach((action) => {
     if (!groupedActions[action.category]) {
       groupedActions[action.category] = [];
@@ -110,7 +110,7 @@
   }
 </script>
 
-<svelte:window on:keydown={globalKeyHandler} />
+<svelte:window onkeydown={globalKeyHandler} />
 
 <div class="flex flex-col gap-4 h-full">
   <div class="flex justify-between items-center mb-2">
@@ -123,7 +123,7 @@
     </p>
     <button
       class="text-xs text-[var(--danger-color)] hover:underline"
-      on:click={resetToDefaults}
+      onclick={resetToDefaults}
     >
       Reset All
     </button>
@@ -149,7 +149,7 @@
                                 {editingId === action.id
                   ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] animate-pulse'
                   : 'bg-[var(--bg-secondary)] border-[var(--border-color)] hover:border-[var(--text-secondary)]'}"
-                on:click={(e) => {
+                onclick={(e) => {
                   e.stopPropagation();
                   startEditing(action.id);
                 }}

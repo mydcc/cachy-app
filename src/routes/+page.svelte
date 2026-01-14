@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run, preventDefault } from 'svelte/legacy';
+
   import GeneralInputs from "../components/inputs/GeneralInputs.svelte";
   import PortfolioInputs from "../components/inputs/PortfolioInputs.svelte";
   import TagInputs from "../components/inputs/TagInputs.svelte";
@@ -42,11 +44,11 @@
   import SidePanel from "../components/shared/SidePanel.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
-  let fileInput: HTMLInputElement;
-  let changelogContent = "";
-  let guideContent = "";
-  let privacyContent = "";
-  let whitepaperContent = "";
+  let fileInput: HTMLInputElement = $state();
+  let changelogContent = $state("");
+  let guideContent = $state("");
+  let privacyContent = $state("");
+  let whitepaperContent = $state("");
 
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
@@ -54,43 +56,53 @@
   });
 
   // Load changelog content when modal is opened
-  $: if ($uiStore.showChangelogModal && changelogContent === "") {
-    loadInstruction("changelog").then((content) => {
-      changelogContent = content.html;
-    });
-  }
+  run(() => {
+    if ($uiStore.showChangelogModal && changelogContent === "") {
+      loadInstruction("changelog").then((content) => {
+        changelogContent = content.html;
+      });
+    }
+  });
 
   // Load guide content when modal is opened
-  $: if ($uiStore.showGuideModal && guideContent === "") {
-    loadInstruction("guide").then((content) => {
-      guideContent = content.html;
-    });
-  }
+  run(() => {
+    if ($uiStore.showGuideModal && guideContent === "") {
+      loadInstruction("guide").then((content) => {
+        guideContent = content.html;
+      });
+    }
+  });
 
   // Load privacy content when modal is opened
-  $: if ($uiStore.showPrivacyModal && privacyContent === "") {
-    loadInstruction("privacy").then((content) => {
-      privacyContent = content.html;
-    });
-  }
+  run(() => {
+    if ($uiStore.showPrivacyModal && privacyContent === "") {
+      loadInstruction("privacy").then((content) => {
+        privacyContent = content.html;
+      });
+    }
+  });
 
   // Load whitepaper content when modal is opened
-  $: if ($uiStore.showWhitepaperModal && whitepaperContent === "") {
-    loadInstruction("whitepaper").then((content) => {
-      whitepaperContent = content.html;
-    });
-  }
+  run(() => {
+    if ($uiStore.showWhitepaperModal && whitepaperContent === "") {
+      loadInstruction("whitepaper").then((content) => {
+        whitepaperContent = content.html;
+      });
+    }
+  });
 
   // Reset content when locale changes to force refetch
-  $: if ($locale) {
-    guideContent = "";
-    changelogContent = "";
-    privacyContent = "";
-    whitepaperContent = "";
-  }
+  run(() => {
+    if ($locale) {
+      guideContent = "";
+      changelogContent = "";
+      privacyContent = "";
+      whitepaperContent = "";
+    }
+  });
 
   // Reactive statement to trigger app.calculateAndDisplay() when relevant inputs change
-  $: {
+  run(() => {
     // Trigger calculation when any of these inputs change
     // eslint-disable-next-line @typescript-eslint/no-unused-expressions
     $tradeStore.accountSize,
@@ -125,7 +137,7 @@
     ) {
       app.calculateAndDisplay();
     }
-  }
+  });
 
   function handleTradeSetupError(e: CustomEvent<string>) {
     uiStore.showError(e.detail);
@@ -166,13 +178,13 @@
 
   // Diese reaktive Variable formatiert den Theme-Namen benutzerfreundlich.
   // z.B. 'solarized-light' wird zu 'Solarized Light'
-  $: themeTitle = $uiStore.currentTheme
+  let themeTitle = $derived($uiStore.currentTheme
     .split("-")
     .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
-    .join(" ");
+    .join(" "));
 
-  $: currentThemeIcon =
-    themeIcons[$uiStore.currentTheme as keyof typeof themeIcons];
+  let currentThemeIcon =
+    $derived(themeIcons[$uiStore.currentTheme as keyof typeof themeIcons]);
 
   function handlePresetLoad(event: Event) {
     const selectedPreset = (event.target as HTMLSelectElement).value;
@@ -242,7 +254,7 @@
     trackCustomEvent("Backup", "Click", "RestoreBackup");
   }
 
-  let isTechnicalsVisible = true;
+  let isTechnicalsVisible = $state(true);
 
   // Load Technicals visibility state from localStorage
   onMount(() => {
@@ -255,25 +267,27 @@
   });
 
   // Save to localStorage whenever it changes
-  $: if (typeof localStorage !== "undefined") {
-    localStorage.setItem(
-      "technicals_panel_visible",
-      JSON.stringify(isTechnicalsVisible)
-    );
-  }
+  run(() => {
+    if (typeof localStorage !== "undefined") {
+      localStorage.setItem(
+        "technicals_panel_visible",
+        JSON.stringify(isTechnicalsVisible)
+      );
+    }
+  });
 
   function toggleTechnicals() {
     isTechnicalsVisible = !isTechnicalsVisible;
   }
 </script>
 
-<svelte:window on:keydown={handleKeydown} />
+<svelte:window onkeydown={handleKeydown} />
 
 <input
   type="file"
   class="hidden"
   bind:this={fileInput}
-  on:change={handleFileSelected}
+  onchange={handleFileSelected}
   accept=".json,application/json"
 />
 
@@ -347,7 +361,7 @@
           id="view-journal-btn-mobile"
           class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg"
           title={$_("app.journalButtonTitle")}
-          on:click={() => uiStore.toggleJournalModal(true)}
+          onclick={() => uiStore.toggleJournalModal(true)}
           use:trackClick={{
             category: "Navigation",
             action: "Click",
@@ -362,7 +376,7 @@
           <select
             id="preset-loader"
             class="input-field px-3 py-2 rounded-md text-sm"
-            on:change={handlePresetLoad}
+            onchange={handlePresetLoad}
             bind:value={$presetStore.selectedPreset}
           >
             <option value="">{$_("dashboard.presetLoad")}</option>
@@ -375,7 +389,7 @@
             class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
             title={$_("dashboard.savePresetTitle")}
             aria-label={$_("dashboard.savePresetAriaLabel")}
-            on:click={app.savePreset}
+            onclick={app.savePreset}
             use:trackClick={{
               category: "Presets",
               action: "Click",
@@ -387,7 +401,7 @@
             class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed"
             title={$_("dashboard.deletePresetTitle")}
             disabled={!$presetStore.selectedPreset}
-            on:click={app.deletePreset}
+            onclick={app.deletePreset}
             use:trackClick={{
               category: "Presets",
               action: "Click",
@@ -398,7 +412,7 @@
             id="reset-btn"
             class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg flex items-center gap-2"
             title={$_("dashboard.resetButtonTitle")}
-            on:click={resetAllInputs}
+            onclick={resetAllInputs}
             use:trackClick={{
               category: "Actions",
               action: "Click",
@@ -409,8 +423,8 @@
             id="theme-switcher"
             class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2 px-2.5 rounded-lg"
             aria-label={$_("dashboard.themeSwitcherAriaLabel")}
-            on:click={() => handleThemeSwitch("forward")}
-            on:contextmenu|preventDefault={() => handleThemeSwitch("backward")}
+            onclick={() => handleThemeSwitch("forward")}
+            oncontextmenu={preventDefault(() => handleThemeSwitch("backward"))}
             title={themeTitle}
             use:trackClick={{
               category: "Settings",
@@ -423,7 +437,7 @@
           id="view-journal-btn-desktop"
           class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2"
           title={$_("app.journalButtonTitle")}
-          on:click={() => uiStore.toggleJournalModal(true)}
+          onclick={() => uiStore.toggleJournalModal(true)}
           use:trackClick={{
             category: "Navigation",
             action: "Click",
@@ -667,12 +681,12 @@
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
           bind:value={$tradeStore.tradeNotes}
-        />
+></textarea>
         <div class="flex items-center gap-4">
           <button
             id="save-journal-btn"
             class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
-            on:click={app.addTrade}
+            onclick={app.addTrade}
             disabled={$resultsStore.positionSize === "-"}
             use:trackClick={{
               category: "Journal",
@@ -685,7 +699,7 @@
             class="font-bold p-3 rounded-lg btn-secondary-action"
             title={$_("dashboard.showInstructionsTitle")}
             aria-label={$_("dashboard.showInstructionsAriaLabel")}
-            on:click={() => app.uiManager.showReadme("dashboard")}
+            onclick={() => app.uiManager.showReadme("dashboard")}
             use:trackClick={{
               category: "Navigation",
               action: "Click",
@@ -708,7 +722,7 @@
               class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
               title={$_("app.backupButtonTitle")}
               aria-label={$_("app.backupButtonAriaLabel")}
-              on:click={handleBackupClick}
+              onclick={handleBackupClick}
             >
               {@html icons.export}
             </button>
@@ -717,7 +731,7 @@
               class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
               title={$_("app.restoreButtonTitle")}
               aria-label={$_("app.restoreButtonAriaLabel")}
-              on:click={handleRestoreClick}
+              onclick={handleRestoreClick}
             >
               {@html icons.import}
             </button>
@@ -764,7 +778,7 @@
   <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
   <button
     class="text-link"
-    on:click={() => uiStore.toggleGuideModal(true)}
+    onclick={() => uiStore.toggleGuideModal(true)}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -773,7 +787,7 @@
   >
   <button
     class="text-link"
-    on:click={() => uiStore.toggleChangelogModal(true)}
+    onclick={() => uiStore.toggleChangelogModal(true)}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -782,7 +796,7 @@
   >
   <button
     class="text-link"
-    on:click={() => uiStore.togglePrivacyModal(true)}
+    onclick={() => uiStore.togglePrivacyModal(true)}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -791,7 +805,7 @@
   >
   <button
     class="text-link"
-    on:click={() => uiStore.toggleWhitepaperModal(true)}
+    onclick={() => uiStore.toggleWhitepaperModal(true)}
     use:trackClick={{
       category: "Navigation",
       action: "Click",
@@ -800,7 +814,7 @@
   >
   <button
     class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}"
-    on:click={() => ($settingsStore.isPro = !$settingsStore.isPro)}
+    onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
   >
     {$settingsStore.isPro ? $_("app.proActive") : $_("app.pro")}
   </button>

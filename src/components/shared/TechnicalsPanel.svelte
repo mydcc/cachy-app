@@ -1,4 +1,6 @@
 <script lang="ts">
+  import { run, stopPropagation } from 'svelte/legacy';
+
   import { onDestroy } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
@@ -20,58 +22,25 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { _ } from "../../locales/i18n";
 
-  export let isVisible: boolean = false;
-
-  let klinesHistory: Kline[] = [];
-  let data: TechnicalsData | null = null;
-  let loading = false;
-  let error: string | null = null;
-  let showTimeframePopup = false;
-  let customTimeframeInput = "";
-  let currentSubscription: string | null = null;
-  let hoverTimeout: number | null = null;
-  let isStale = false; // Added for Seamless Swap
-
-  // Use analysisTimeframe for Technicals
-  $: symbol = $tradeStore.symbol;
-  $: timeframe = $tradeStore.analysisTimeframe || "1h";
-  $: showPanel = $settingsStore.showTechnicals && isVisible;
-  $: indicatorSettings = $indicatorStore;
-
-  // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)
-  $: wsData = symbol ? $marketStore[symbol] : null;
-
-  $: currentKline = wsData?.klines ? wsData.klines[timeframe] : null;
-
-  // Trigger fetch/subscribe when relevant props change
-  $: if (showPanel && symbol && timeframe) {
-    const subKey = `${symbol}:${timeframe}`;
-    if (currentSubscription !== subKey) {
-      isStale = true;
-
-      const [oldSym, oldTf] = currentSubscription
-        ? currentSubscription.split(":")
-        : ["", ""];
-      if (oldSym) {
-        marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-        marketWatcher.unregister(oldSym, "price");
-      }
-
-      marketWatcher.register(symbol, `kline_${timeframe}`);
-      marketWatcher.register(symbol, "price");
-
-      fetchData().finally(() => {
-        isStale = false;
-      });
-      currentSubscription = subKey;
-    }
-  } else if (!showPanel && currentSubscription) {
-    const [oldSym, oldTf] = currentSubscription.split(":");
-    marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-    marketWatcher.unregister(oldSym, "price");
-    currentSubscription = null;
-    isStale = false;
+  interface Props {
+    isVisible?: boolean;
   }
+
+  let { isVisible = false }: Props = $props();
+
+  let klinesHistory: Kline[] = $state([]);
+  let data: TechnicalsData | null = $state(null);
+  let loading = $state(false);
+  let error: string | null = $state(null);
+  let showTimeframePopup = $state(false);
+  let customTimeframeInput = $state("");
+  let currentSubscription: string | null = $state(null);
+  let hoverTimeout: number | null = null;
+  let isStale = $state(false); // Added for Seamless Swap
+
+
+
+
 
   onDestroy(() => {
     if (currentSubscription) {
@@ -81,34 +50,7 @@
     }
   });
 
-  // Re-calculate when settings change (without re-fetching)
-  $: if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
-    updateTechnicals();
-  }
 
-  // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
-  $: if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
-    if ($settingsStore.debugMode) {
-      console.log(
-        `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
-        currentKline
-      );
-    }
-    handleRealTimeUpdate(currentKline);
-  } else if (
-    $settingsStore.debugMode &&
-    showPanel &&
-    !isStale &&
-    !currentKline
-  ) {
-    // Only log if we expect data but have none
-    console.log(
-      `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
-        symbol,
-        "bitunix"
-      )}:${timeframe}`
-    );
-  }
 
   // Core Logic for Updating Data and Pivots
   function handleRealTimeUpdate(newKline: any) {
@@ -289,9 +231,79 @@
       .then(() => alert("Debug data copied!"))
       .catch((err) => console.error("Failed to copy", err));
   }
+  // Use analysisTimeframe for Technicals
+  let symbol = $derived($tradeStore.symbol);
+  let timeframe = $derived($tradeStore.analysisTimeframe || "1h");
+  let showPanel = $derived($settingsStore.showTechnicals && isVisible);
+  let indicatorSettings = $derived($indicatorStore);
+  // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)
+  let wsData = $derived(symbol ? $marketStore[symbol] : null);
+  let currentKline = $derived(wsData?.klines ? wsData.klines[timeframe] : null);
+  // Trigger fetch/subscribe when relevant props change
+  run(() => {
+    if (showPanel && symbol && timeframe) {
+      const subKey = `${symbol}:${timeframe}`;
+      if (currentSubscription !== subKey) {
+        isStale = true;
+
+        const [oldSym, oldTf] = currentSubscription
+          ? currentSubscription.split(":")
+          : ["", ""];
+        if (oldSym) {
+          marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+          marketWatcher.unregister(oldSym, "price");
+        }
+
+        marketWatcher.register(symbol, `kline_${timeframe}`);
+        marketWatcher.register(symbol, "price");
+
+        fetchData().finally(() => {
+          isStale = false;
+        });
+        currentSubscription = subKey;
+      }
+    } else if (!showPanel && currentSubscription) {
+      const [oldSym, oldTf] = currentSubscription.split(":");
+      marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+      marketWatcher.unregister(oldSym, "price");
+      currentSubscription = null;
+      isStale = false;
+    }
+  });
+  // Re-calculate when settings change (without re-fetching)
+  run(() => {
+    if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
+      updateTechnicals();
+    }
+  });
+  // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
+  run(() => {
+    if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
+      if ($settingsStore.debugMode) {
+        console.log(
+          `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
+          currentKline
+        );
+      }
+      handleRealTimeUpdate(currentKline);
+    } else if (
+      $settingsStore.debugMode &&
+      showPanel &&
+      !isStale &&
+      !currentKline
+    ) {
+      // Only log if we expect data but have none
+      console.log(
+        `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
+          symbol,
+          "bitunix"
+        )}:${timeframe}`
+      );
+    }
+  });
 </script>
 
-<svelte:window on:click={handleClickOutside} />
+<svelte:window onclick={handleClickOutside} />
 
 {#if showPanel}
   <div
@@ -311,7 +323,7 @@
         <button
           type="button"
           class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] bg-transparent border-none p-0"
-          on:click={() => uiStore.openSettings("indicators")}
+          onclick={() => uiStore.openSettings("indicators")}
           title="Open Technicals Settings"
         >
           Technicals
@@ -320,10 +332,10 @@
           role="button"
           tabindex="0"
           class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] transition-colors cursor-pointer"
-          on:mouseenter={handleDropdownEnter}
-          on:mouseleave={handleDropdownLeave}
-          on:click|stopPropagation={toggleTimeframePopup}
-          on:keydown={(e) => {
+          onmouseenter={handleDropdownEnter}
+          onmouseleave={handleDropdownLeave}
+          onclick={stopPropagation(toggleTimeframePopup)}
+          onkeydown={(e) => {
             if (e.key === "Enter" || e.key === " ") {
               e.preventDefault();
               toggleTimeframePopup();
@@ -338,13 +350,13 @@
       {#if isStale || loading}
         <div class="absolute top-0 right-10">
           <div class="animate-pulse flex space-x-1">
-            <div class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full" />
+            <div class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full"></div>
             <div
               class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-200"
-            />
+></div>
             <div
               class="h-1.5 w-1.5 bg-[var(--accent-color)] rounded-full animation-delay-400"
-            />
+></div>
           </div>
         </div>
       {/if}
@@ -352,7 +364,7 @@
       <div class="relative group">
         <button
           class="text-[var(--text-tertiary)] hover:text-[var(--text-primary)] transition-colors p-1"
-          on:click={copyDebugData}
+          onclick={copyDebugData}
           title="Copy Technicals Debug Data"
           aria-label="Copy Technicals Debug Data"
         >
@@ -379,35 +391,35 @@
           role="menu"
           tabindex="-1"
           class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
-          on:mouseenter={handleDropdownEnter}
-          on:mouseleave={handleDropdownLeave}
+          onmouseenter={handleDropdownEnter}
+          onmouseleave={handleDropdownLeave}
         >
           <div class="grid grid-cols-3 gap-2">
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("1m")}>1m</button
+              onclick={() => setTimeframe("1m")}>1m</button
             >
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("5m")}>5m</button
+              onclick={() => setTimeframe("5m")}>5m</button
             >
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("15m")}>15m</button
+              onclick={() => setTimeframe("15m")}>15m</button
             >
           </div>
           <div class="grid grid-cols-3 gap-2">
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("1h")}>1h</button
+              onclick={() => setTimeframe("1h")}>1h</button
             >
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("4h")}>4h</button
+              onclick={() => setTimeframe("4h")}>4h</button
             >
             <button
               class="py-2 border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={() => setTimeframe("1d")}>1d</button
+              onclick={() => setTimeframe("1d")}>1d</button
             >
           </div>
           <div class="flex gap-1 mt-1">
@@ -418,13 +430,13 @@
               class="w-full text-sm p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-primary)]"
               placeholder="e.g. 24m"
               bind:value={customTimeframeInput}
-              on:keydown={(e) =>
+              onkeydown={(e) =>
                 e.key === "Enter" && handleCustomTimeframeSubmit()}
               aria-label="Custom timeframe input"
             />
             <button
               class="px-3 bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-sm font-medium text-[var(--text-primary)]"
-              on:click={handleCustomTimeframeSubmit}
+              onclick={handleCustomTimeframeSubmit}
               aria-label="Apply custom timeframe"
             >
               OK
@@ -450,7 +462,7 @@
       <div class="flex justify-center py-8">
         <div
           class="animate-spin rounded-full h-8 w-8 border-b-2 border-[var(--accent-color)]"
-        />
+></div>
       </div>
     {:else if error}
       <div class="text-[var(--danger-color)] text-center text-sm py-4">

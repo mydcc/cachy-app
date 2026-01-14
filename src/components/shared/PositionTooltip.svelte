@@ -2,7 +2,11 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
 
-  export let position: any;
+  interface Props {
+    position: any;
+  }
+
+  let { position }: Props = $props();
   // Expected structure:
   // symbol, side, leverage, size, entryPrice, unrealizedPnl, margin, marginMode, liquidationPrice, markPrice
 
@@ -61,7 +65,7 @@
       <span>{formatDynamicDecimal(position.markPrice)}</span>
     </div>
 
-    <div class="col-span-2 border-t border-[var(--border-color)] my-1" />
+    <div class="col-span-2 border-t border-[var(--border-color)] my-1"></div>
 
     <!-- PnL & Margin -->
     <div class="flex justify-between">

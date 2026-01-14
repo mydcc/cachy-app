@@ -1,7 +1,12 @@
 <script lang="ts">
-  export let text = "";
-  let visible = false;
-  let tooltipEl: HTMLElement;
+  interface Props {
+    text?: string;
+    children?: import('svelte').Snippet;
+  }
+
+  let { text = "", children }: Props = $props();
+  let visible = $state(false);
+  let tooltipEl: HTMLElement = $state();
 
   function show() {
     visible = true;
@@ -16,14 +21,14 @@
   class="tooltip-container"
   role="button"
   tabindex="0"
-  on:mouseenter={show}
-  on:mouseleave={hide}
-  on:focusin={show}
-  on:focusout={hide}
+  onmouseenter={show}
+  onmouseleave={hide}
+  onfocusin={show}
+  onfocusout={hide}
 >
-  <slot>
+  {#if children}{@render children()}{:else}
     <span class="tooltip-trigger">?</span>
-  </slot>
+  {/if}
   {#if visible && text}
     <div
       bind:this={tooltipEl}

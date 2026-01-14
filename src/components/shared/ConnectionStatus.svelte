@@ -2,16 +2,16 @@
   import { settingsStore } from "../../stores/settingsStore";
   import { wsStatusStore } from "../../stores/marketStore";
 
-  $: provider = $settingsStore.apiProvider;
-  $: wsStatus = $wsStatusStore;
+  let provider = $derived($settingsStore.apiProvider);
+  let wsStatus = $derived($wsStatusStore);
 
   // Map status to theme variables
-  $: statusColor =
-    wsStatus === "connected"
+  let statusColor =
+    $derived(wsStatus === "connected"
       ? "var(--success-color)"
       : wsStatus === "connecting" || wsStatus === "reconnecting"
       ? "var(--warning-color)"
-      : "var(--danger-color)";
+      : "var(--danger-color)");
 </script>
 
 {#if provider === "bitunix"}
@@ -20,6 +20,6 @@
       class="rounded-full transition-colors duration-300"
       style="width: 0.382rem; height: 0.382rem; background-color: {statusColor};"
       title="Real-time Connection: {wsStatus}"
-    />
+></div>
   </div>
 {/if}

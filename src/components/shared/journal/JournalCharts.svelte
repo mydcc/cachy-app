@@ -14,23 +14,33 @@
     } from "../../../stores/journalStore";
     import { calculator } from "../../../lib/calculator";
 
-    // Props - General
-    export let activePreset: string = "performance";
-    export let isPro: boolean = false;
-    export let isDeepDiveUnlocked: boolean = false;
-    export let themeColors: any = {
+    
+    interface Props {
+        // Props - General
+        activePreset?: string;
+        isPro?: boolean;
+        isDeepDiveUnlocked?: boolean;
+        themeColors?: any;
+    }
+
+    let {
+        activePreset = "performance",
+        isPro = false,
+        isDeepDiveUnlocked = false,
+        themeColors = {
         success: "#10b981",
         danger: "#ef4444",
         warning: "#f59e0b",
         accent: "#3b82f6",
         textSecondary: "#64748b",
-    };
+    }
+    }: Props = $props();
 
     // --- Reactive Data Derivation ---
 
     // Performance Data
-    $: perfData = $performanceMetrics || {};
-    $: equityData = {
+    let perfData = $derived($performanceMetrics || {});
+    let equityData = $derived({
         labels: (perfData.equityCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -44,8 +54,8 @@
                 tension: 0.1,
             },
         ],
-    };
-    $: drawdownData = {
+    });
+    let drawdownData = $derived({
         labels: (perfData.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -59,8 +69,8 @@
                 tension: 0.1,
             },
         ],
-    };
-    $: monthlyData = {
+    });
+    let monthlyData = $derived({
         labels: perfData.monthlyLabels || [],
         datasets: [
             {
@@ -71,11 +81,11 @@
                 ),
             },
         ],
-    };
+    });
 
     // Quality Data
-    $: qualData = $qualityMetrics || {};
-    $: winLossChartData = {
+    let qualData = $derived($qualityMetrics || {});
+    let winLossChartData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.winLong"),
             $_("journal.deepDive.charts.labels.winShort"),
@@ -99,8 +109,8 @@
                 hoverOffset: 4,
             },
         ],
-    };
-    $: rDistData = {
+    });
+    let rDistData = $derived({
         labels: Object.keys(qualData.rHistogram || {}),
         datasets: [
             {
@@ -109,8 +119,8 @@
                 backgroundColor: themeColors.accent,
             },
         ],
-    };
-    $: cumRData = {
+    });
+    let cumRData = $derived({
         labels: (qualData.cumulativeRCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -124,10 +134,10 @@
                 tension: 0.1,
             },
         ],
-    };
+    });
 
     // Direction Data
-    $: dirData = $journalStore
+    let dirData = $derived($journalStore
         ? calculator.getDirectionData($journalStore)
         : {
               longPnl: 0,
@@ -136,8 +146,8 @@
               bottomSymbols: { labels: [], data: [] },
               longCurve: [],
               shortCurve: [],
-          };
-    $: longShortData = {
+          });
+    let longShortData = $derived({
         labels: [$_("journal.labels.long"), $_("journal.labels.short")],
         datasets: [
             {
@@ -153,8 +163,8 @@
                 ],
             },
         ],
-    };
-    $: topSymbolData = {
+    });
+    let topSymbolData = $derived({
         labels: dirData.topSymbols?.labels || [],
         datasets: [
             {
@@ -163,8 +173,8 @@
                 backgroundColor: themeColors.success,
             },
         ],
-    };
-    $: bottomSymbolData = {
+    });
+    let bottomSymbolData = $derived({
         labels: dirData.bottomSymbols?.labels || [],
         datasets: [
             {
@@ -173,8 +183,8 @@
                 backgroundColor: themeColors.danger,
             },
         ],
-    };
-    $: directionEvolutionData = {
+    });
+    let directionEvolutionData = $derived({
         labels: (dirData.longCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -204,11 +214,11 @@
                 tension: 0.1,
             },
         ],
-    };
+    });
 
     // Discipline Data
-    $: discData = $disciplineMetrics || {};
-    $: hourlyData = {
+    let discData = $derived($disciplineMetrics || {});
+    let hourlyData = $derived({
         labels: Array.from({ length: 24 }, (_, i) => `${i}h`),
         datasets: [
             {
@@ -219,8 +229,8 @@
                 ),
             },
         ],
-    };
-    $: riskData = {
+    });
+    let riskData = $derived({
         labels: Object.keys(discData.riskBuckets || {}),
         datasets: [
             {
@@ -229,11 +239,11 @@
                 backgroundColor: themeColors.warning,
             },
         ],
-    };
+    });
 
     // Cost Data
-    $: costData = $costMetrics || {};
-    $: grossNetData = {
+    let costData = $derived($costMetrics || {});
+    let grossNetData = $derived({
         labels: [$_("journal.labels.gross"), $_("journal.labels.net")],
         datasets: [
             {
@@ -247,8 +257,8 @@
                 ],
             },
         ],
-    };
-    $: feeCurveData = {
+    });
+    let feeCurveData = $derived({
         labels: (costData.feeCurve || []).map((d) =>
             new Date(d.x).toLocaleDateString()
         ),
@@ -261,8 +271,8 @@
                 backgroundColor: hexToRgba(themeColors.warning, 0.1),
             },
         ],
-    };
-    $: feeStructureData = {
+    });
+    let feeStructureData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.trading"),
             $_("journal.deepDive.charts.labels.funding"),
@@ -280,7 +290,7 @@
                 borderWidth: 0,
             },
         ],
-    };
+    });
 </script>
 
 {#if isPro && isDeepDiveUnlocked}

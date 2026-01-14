@@ -1,29 +1,40 @@
 <script lang="ts">
+  import { run } from 'svelte/legacy';
+
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
   import { formatDynamicDecimal } from "../../utils/utils";
 
-  export let entryPrice: number | null;
-  export let stopLossPrice: number | null;
-  export let targets: Array<{
+  interface Props {
+    entryPrice: number | null;
+    stopLossPrice: number | null;
+    targets: Array<{
     price: number | null;
     percent: number | null;
     isLocked: boolean;
   }>;
-  export let calculatedTpDetails: IndividualTpResult[];
+    calculatedTpDetails: IndividualTpResult[];
+  }
 
-  let isValidData = false;
+  let {
+    entryPrice,
+    stopLossPrice,
+    targets,
+    calculatedTpDetails
+  }: Props = $props();
+
+  let isValidData = $state(false);
 
   // Computed style variables
-  let riskWidth = 0;
-  let rewardWidth = 0;
-  let riskLeft = 0;
-  let rewardLeft = 0;
-  let entryPos = 0;
-  let slPos = 0;
-  let tpPositions: Array<{ pos: number; label: string; subLabel: string }> = [];
+  let riskWidth = $state(0);
+  let rewardWidth = $state(0);
+  let riskLeft = $state(0);
+  let rewardLeft = $state(0);
+  let entryPos = $state(0);
+  let slPos = $state(0);
+  let tpPositions: Array<{ pos: number; label: string; subLabel: string }> = $state([]);
 
-  $: {
+  run(() => {
     isValidData = !!(
       entryPrice &&
       stopLossPrice &&
@@ -89,7 +100,7 @@
             p !== null
         );
     }
-  }
+  });
 </script>
 
 <section class="visual-bar-container md:col-span-2">
@@ -119,24 +130,24 @@
       <div
         class="bar-segment risk-bar"
         style="left: {riskLeft}%; width: {riskWidth}%;"
-      />
+></div>
 
       <!-- Reward Segment (Green) -->
       <div
         class="bar-segment reward-bar"
         style="left: {rewardLeft}%; width: {rewardWidth}%;"
-      />
+></div>
 
       <!-- Markers -->
       <!-- SL Marker -->
-      <div class="marker" style="left: {slPos}%;" />
+      <div class="marker" style="left: {slPos}%;"></div>
 
       <!-- Entry Marker -->
-      <div class="marker" style="left: {entryPos}%;" />
+      <div class="marker" style="left: {entryPos}%;"></div>
 
       <!-- TP Markers -->
       {#each tpPositions as tp}
-        <div class="marker" style="left: {tp.pos}%;" />
+        <div class="marker" style="left: {tp.pos}%;"></div>
       {/each}
     {:else}
       <div class="text-center text-xs text-[var(--text-secondary)] py-1">
