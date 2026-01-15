@@ -215,17 +215,20 @@
   let wsStatus = $derived($wsStatusStore);
   // Derived Real-time values (fallback to REST if WS missing)
   let currentPrice = $derived.by(() => {
-    const val = (wsData?.lastPrice ??
+    return (wsData?.lastPrice ??
       tickerData?.lastPrice ??
       null) as Decimal | null;
+  });
 
-    // Side effect to determine trend for animation
-    if (val && prevPrice && !val.equals(prevPrice)) {
-      priceTrend = val.gt(prevPrice) ? "up" : "down";
-      animationKey += 1;
-    }
-    prevPrice = val;
-    return val;
+  $effect(() => {
+    const val = currentPrice;
+    untrack(() => {
+      if (val && prevPrice && !val.equals(prevPrice)) {
+        priceTrend = val.gt(prevPrice) ? "up" : "down";
+        animationKey += 1;
+      }
+      prevPrice = val;
+    });
   });
   let fundingRate = $derived.by(
     () => (wsData?.fundingRate ?? null) as Decimal | null,

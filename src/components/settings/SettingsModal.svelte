@@ -371,10 +371,7 @@
   }
 
   // Reactive descriptions based on selected mode
-  let activeDescriptions: any[] = $state([]);
-  $effect(() => {
-    activeDescriptions = getHotkeyDescriptions(hotkeyMode);
-  });
+  let activeDescriptions = $derived(getHotkeyDescriptions(hotkeyMode));
 </script>
 
 <ModalFrame
