@@ -97,45 +97,57 @@
     whitepaperContent = "";
   });
 
-  // Reactive effect to trigger app.calculateAndDisplay() when relevant inputs change
-  $effect(() => {
-    // Access all triggers to establish dependencies
-    const _triggers = [
-      $tradeStore.accountSize,
-      $tradeStore.riskPercentage,
-      $tradeStore.entryPrice,
-      $tradeStore.stopLossPrice,
-      $tradeStore.leverage,
-      $tradeStore.fees,
-      $tradeStore.symbol,
-      $tradeStore.atrValue,
-      $tradeStore.atrMultiplier,
-      $tradeStore.useAtrSl,
-      $tradeStore.atrMode,
-      $tradeStore.atrTimeframe,
-      $tradeStore.tradeType,
-      $tradeStore.targets,
-      $tradeStore.isRiskAmountLocked,
-      $tradeStore.isPositionSizeLocked,
-      $tradeStore.lockedPositionSize,
-    ];
+  let lastCalcTime = 0;
+  const CALC_THROTTLE_MS = 250;
 
-    // Only trigger if all necessary inputs are defined (not null/undefined from initial load)
+  // Reactive effect to trigger app.calculateAndDisplay() when relevant inputs change
+  // DECOUPLED to prevent "flush" loops
+  $effect(() => {
+    // 1. Establish dependencies (Accessing values tracks them)
+    const _s = $tradeStore;
+
+    // Core inputs
+    _s.accountSize;
+    _s.riskPercentage;
+    _s.entryPrice;
+    _s.symbol;
+    _s.tradeType;
+    _s.targets;
+    _s.leverage;
+    _s.fees;
+    _s.useAtrSl;
+    _s.isRiskAmountLocked;
+    _s.isPositionSizeLocked;
+    _s.lockedPositionSize;
+
+    // Conditional triggers:
+    // If ATR is active, stopLossPrice is a RESULT, not a TRIGGER.
+    if (_s.useAtrSl) {
+      _s.atrValue;
+      _s.atrMultiplier;
+      _s.atrMode;
+      _s.atrTimeframe;
+    } else {
+      // If ATR is off, Stop Loss is a manual input TRIGGER.
+      _s.stopLossPrice;
+    }
+
+    // 2. Throttle check
+    const now = Date.now();
+    if (now - lastCalcTime < CALC_THROTTLE_MS) return;
+
+    // 3. Validation and Execution
     if (
-      $tradeStore.accountSize !== undefined &&
-      $tradeStore.riskPercentage !== undefined &&
-      $tradeStore.entryPrice !== undefined &&
-      $tradeStore.leverage !== undefined &&
-      $tradeStore.fees !== undefined &&
-      $tradeStore.symbol !== undefined &&
-      $tradeStore.atrValue !== undefined &&
-      $tradeStore.atrMultiplier !== undefined &&
-      $tradeStore.useAtrSl !== undefined &&
-      $tradeStore.tradeType !== undefined &&
-      $tradeStore.targets !== undefined
+      _s.accountSize !== undefined &&
+      _s.riskPercentage !== undefined &&
+      _s.entryPrice !== undefined &&
+      _s.symbol !== undefined &&
+      _s.tradeType !== undefined &&
+      _s.targets !== undefined
     ) {
       untrack(() => {
         app.calculateAndDisplay();
+        lastCalcTime = Date.now();
       });
     }
   });

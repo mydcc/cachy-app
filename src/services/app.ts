@@ -150,12 +150,6 @@ export const app = {
           const newPrice = marketData.lastPrice.toNumber();
           if (state.entryPrice !== newPrice) {
             updateTradeStore((s) => ({ ...s, entryPrice: newPrice }));
-
-            const now = Date.now();
-            if (now - lastCalculationTime > CALCULATION_THROTTLE_MS) {
-              app.calculateAndDisplay();
-              lastCalculationTime = now;
-            }
           }
         }
       }

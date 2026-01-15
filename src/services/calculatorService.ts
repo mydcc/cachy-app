@@ -124,7 +124,8 @@ export class CalculatorService {
             const riskAmount = parseDecimal(currentTradeState.riskAmount);
             if (riskAmount.gt(0) && values.accountSize.gt(0)) {
                 const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
-                if (Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber()) > 0.000001) {
+                const delta = Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber());
+                if (delta > 0.000001) {
                     this.updateTradeStore((state) => ({
                         ...state,
                         riskPercentage: newRiskPercentage.toNumber(),
@@ -156,10 +157,10 @@ export class CalculatorService {
                 ? new Decimal(0)
                 : riskAmount.div(values.accountSize).times(100);
 
-            if (
-                Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber()) > 0.000001 ||
-                Math.abs((currentTradeState.riskAmount || 0) - riskAmount.toNumber()) > 0.000001
-            ) {
+            const riskPercentageDelta = Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber());
+            const riskAmountDelta = Math.abs((currentTradeState.riskAmount || 0) - riskAmount.toNumber());
+
+            if (riskPercentageDelta > 0.000001 || riskAmountDelta > 0.000001) {
                 this.updateTradeStore((state) => ({
                     ...state,
                     riskPercentage: newRiskPercentage.toNumber(),
@@ -181,7 +182,8 @@ export class CalculatorService {
             );
             if (baseMetrics) {
                 const finalMetrics = baseMetrics;
-                if (Math.abs((currentTradeState.riskAmount || 0) - finalMetrics.riskAmount.toNumber()) > 0.000001) {
+                const riskAmountDelta = Math.abs((currentTradeState.riskAmount || 0) - finalMetrics.riskAmount.toNumber());
+                if (riskAmountDelta > 0.000001) {
                     this.updateTradeStore((state) => ({
                         ...state,
                         riskAmount: finalMetrics.riskAmount.toNumber(),
@@ -297,11 +299,10 @@ export class CalculatorService {
         onboardingService.trackFirstCalculation();
 
         const newStopLoss = values.stopLossPrice.toNumber();
-        const needsUpdate =
-            Math.abs((currentTradeState.stopLossPrice || 0) - newStopLoss) > 0.000001 ||
-            !currentTradeState.currentTradeData;
+        const stopLossChange = Math.abs((currentTradeState.stopLossPrice || 0) - newStopLoss);
+        const hasNoData = !currentTradeState.currentTradeData;
 
-        if (needsUpdate) {
+        if (stopLossChange > 0.000001 || hasNoData) {
             this.updateTradeStore((state) => ({
                 ...state,
                 currentTradeData: {

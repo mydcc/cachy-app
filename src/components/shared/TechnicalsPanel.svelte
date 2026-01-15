@@ -299,28 +299,33 @@
   });
   // Handle Real-Time Updates - Guard with !isStale to prevent mixed data
   $effect(() => {
-    if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
-      if ($settingsStore.debugMode) {
+    // Explicit trigger: currentKline update
+    const _trigger = currentKline;
+
+    untrack(() => {
+      if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
+        if ($settingsStore.debugMode) {
+          console.log(
+            `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
+            currentKline,
+          );
+        }
+        handleRealTimeUpdate(currentKline);
+      } else if (
+        $settingsStore.debugMode &&
+        showPanel &&
+        !isStale &&
+        !currentKline
+      ) {
+        // Only log if we expect data but have none
         console.log(
-          `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
-          currentKline,
+          `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
+            symbol,
+            "bitunix",
+          )}:${timeframe}`,
         );
       }
-      handleRealTimeUpdate(currentKline);
-    } else if (
-      $settingsStore.debugMode &&
-      showPanel &&
-      !isStale &&
-      !currentKline
-    ) {
-      // Only log if we expect data but have none
-      console.log(
-        `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
-          symbol,
-          "bitunix",
-        )}:${timeframe}`,
-      );
-    }
+    });
   });
 </script>
 

@@ -261,11 +261,10 @@
       });
     }
   });
-  // Reactively Calculate RSI
   $effect(() => {
     if (historyKlines.length > 0) {
-      // Dependencies for trigger: indicatorStore settings
-      const _trigger = $indicatorStore.rsi;
+      // Trigger on settings changes OR price updates
+      const _triggers = [$indicatorStore.rsi, currentPrice];
 
       untrack(() => {
         const now = Date.now();
@@ -350,7 +349,9 @@
   let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
   $effect(() => {
     if (nextFundingTime) {
-      startCountdown();
+      untrack(() => {
+        startCountdown();
+      });
     }
   });
   // Subscribe to WS when symbol changes
