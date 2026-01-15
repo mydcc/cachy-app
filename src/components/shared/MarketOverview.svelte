@@ -92,7 +92,7 @@
         50,
       );
       const klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
-      historyKlines = klines;
+      historyKlines = klines ?? [];
     } catch (e) {
       console.error("Failed to fetch kline history for RSI", e);
     }
@@ -223,7 +223,14 @@
   $effect(() => {
     const val = currentPrice;
     untrack(() => {
-      if (val && prevPrice && !val.equals(prevPrice)) {
+      // Ensure 'val' is a Decimal or similar object with '.equals'
+      if (
+        val &&
+        prevPrice &&
+        typeof val === "object" &&
+        "equals" in val &&
+        !val.equals(prevPrice)
+      ) {
         priceTrend = val.gt(prevPrice) ? "up" : "down";
         animationKey += 1;
       }
@@ -315,9 +322,11 @@
                 .plus(liveKline.close)
                 .div(3);
 
-            if (values.length > 0) values[values.length - 1] = currentVal;
+            if (values && values.length > 0)
+              values[values.length - 1] = currentVal;
           } else if (currentPrice && sourceMode === "close") {
-            if (values.length > 0) values[values.length - 1] = currentPrice;
+            if (values && values.length > 0)
+              values[values.length - 1] = currentPrice as Decimal;
           }
 
           const rsiSeries: Decimal[] = [];

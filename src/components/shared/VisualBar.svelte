@@ -22,6 +22,9 @@
   let { entryPrice, stopLossPrice, targets, calculatedTpDetails }: Props =
     $props();
 
+  const safeTargets = $derived(targets ?? []);
+  const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
+
   const tradeType = $derived($tradeStore.tradeType);
   const symbol = $derived($tradeStore.symbol);
 
@@ -53,7 +56,7 @@
     const allPrices = [
       entryPrice,
       stopLossPrice,
-      ...targets.map((t) => t.price).filter((p): p is number => p !== null),
+      ...safeTargets.map((t) => t.price).filter((p): p is number => p !== null),
     ];
 
     if (livePrice) allPrices.push(livePrice.toNumber());
@@ -79,18 +82,21 @@
   };
 
   const tpData = $derived(
-    targets
+    safeTargets
       .map((t, i) => {
         if (!t.price) return null;
-        const detail = calculatedTpDetails.find((d) => d.index === i);
+        const detail = safeCalculatedTpDetails.find((d) => d.index === i);
         return {
           idx: i + 1,
           price: t.price,
           x: getX(t.price),
-          rr: detail ? detail.riskRewardRatio.toFixed(2) : "",
+          rr: detail?.riskRewardRatio ? detail.riskRewardRatio.toFixed(2) : "",
         };
       })
-      .filter((t) => t !== null),
+      .filter(
+        (t): t is { idx: number; price: number; x: number; rr: string } =>
+          t !== null,
+      ),
   );
 
   const entryX = $derived(getX(entryPrice));
@@ -103,10 +109,10 @@
   const riskStart = $derived(isLong ? Math.min(slX, entryX) : entryX);
   const riskWidth = $derived(Math.abs(slX - entryX));
   const rewardStart = $derived(
-    isLong ? entryX : Math.min(tpData[tpData.length - 1]?.x || entryX, entryX),
+    isLong ? entryX : Math.min(tpData[tpData.length - 1]?.x ?? entryX, entryX),
   );
   const rewardWidth = $derived(
-    Math.abs((tpData[tpData.length - 1]?.x || entryX) - entryX),
+    Math.abs((tpData[tpData.length - 1]?.x ?? entryX) - entryX),
   );
 </script>
 

@@ -41,7 +41,7 @@
     atrFormulaDisplay,
     showAtrFormulaDisplay,
     isPriceFetching,
-    symbolSuggestions,
+    symbolSuggestions = [],
     showSymbolSuggestions,
   }: Props = $props();
 
@@ -101,7 +101,12 @@
   }
 
   function handleKeyDownSymbol(event: KeyboardEvent) {
-    if (!showSymbolSuggestions || symbolSuggestions.length === 0) return;
+    if (
+      !showSymbolSuggestions ||
+      !symbolSuggestions ||
+      symbolSuggestions.length === 0
+    )
+      return;
 
     if (event.key === "ArrowDown") {
       event.preventDefault();
@@ -451,7 +456,7 @@
                 onchange={handleAtrTimeframeChange}
                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
               >
-                {#each $settingsStore.favoriteTimeframes.length > 0 ? $settingsStore.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
+                {#each ($settingsStore.favoriteTimeframes?.length ?? 0) > 0 ? $settingsStore.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
                   <option value={tf}>{tf}</option>
                 {/each}
               </select>
