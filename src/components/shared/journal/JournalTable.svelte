@@ -939,10 +939,6 @@
         background-color: transparent;
     }
 
-    .is-recursive .journal-table th {
-        display: none;
-    }
-
     .pagination-footer {
         display: flex;
         justify-content: space-between;
