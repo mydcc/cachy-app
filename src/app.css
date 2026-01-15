@@ -2154,6 +2154,25 @@ input:-webkit-autofill:active {
   transition: background-color 5000s ease-in-out 0s;
 }
 
+/* Improved App Feel & PWA optimizations */
+html,
+body {
+  overscroll-behavior: none;
+  /* Prevents pull-to-refresh and rubber-banding */
+  -webkit-tap-highlight-color: transparent;
+  /* Clean mobile taps */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+h1,
+h2,
+.header-title,
+.icons,
+svg {
+  user-select: none;
+  /* Prevents accidental selection of UI elements */
+}
+
 /* Loading Shimmer */
 .shimmer {
   background: linear-gradient(90deg,
