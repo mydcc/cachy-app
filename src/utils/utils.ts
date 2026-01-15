@@ -341,3 +341,16 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
 
   return newTrade as JournalEntry;
 }
+
+/**
+ * Escapes HTML characters to prevent XSS attacks when rendering user content in HTML contexts.
+ */
+export function escapeHtml(unsafe: string | null | undefined): string {
+  if (unsafe === null || unsafe === undefined) return "";
+  return String(unsafe)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
