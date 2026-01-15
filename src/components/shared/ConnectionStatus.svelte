@@ -14,7 +14,7 @@
 </script>
 
 <div
-  class="absolute top-4 right-4 flex gap-1 items-center z-50 pointer-events-none"
+  class="absolute top-2 right-2 flex gap-1 items-center z-50 pointer-events-none"
 >
   <div
     class="rounded-full transition-colors duration-300"
