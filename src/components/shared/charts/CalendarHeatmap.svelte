@@ -1,6 +1,7 @@
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
   import { getComputedColor } from "../../../utils/colors";
+  import { escapeHtml } from "../../../utils/utils";
   import { _ } from "../../../locales/i18n";
   import { tooltip } from "../../../lib/actions/tooltip";
 
@@ -123,7 +124,7 @@
     if (entry.bestSymbol) {
       html += `
                 <div class="text-[var(--text-primary)] text-xs mt-1 border-t border-[var(--border-color)] pt-1">
-                    Top: <span class="font-semibold">${entry.bestSymbol}</span>
+                    Top: <span class="font-semibold">${escapeHtml(entry.bestSymbol)}</span>
             `;
       if (entry.bestSymbolPnl !== undefined && entry.bestSymbolPnl !== null) {
         const symPnlColor =

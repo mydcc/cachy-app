@@ -37,7 +37,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing ${type} on ${exchange}:`, e);
+    // Sanitize error log to prevent leaking API keys/headers (which might be in the error object properties)
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error(`Error processing ${type} on ${exchange}:`, errorMsg);
     return json(
       { error: e.message || `Failed to process ${type}` },
       { status: 500 }
@@ -164,14 +166,15 @@ async function fetchBitunixPendingOrders(
   }
 
   // Map to normalized format
-  const list = res.data || []; // Note: doc says res.data is list, not res.data.orderList for pending? Need check. Code had orderList.
-  // If previous code had orderList, stick with it, but verify if `data` IS the list.
-  // Usually Bitunix returns { data: [...] } or { data: { rows: [...] } }
-  // Let's assume the previous implementation was correct about structure or check response.
-  // Wait, the previous code had `res.data?.orderList`. I will preserve that safe access.
-  const listData = Array.isArray(res.data)
-    ? res.data
-    : res.data?.orderList || [];
+  // Robustly handle data structure (could be direct array or inside orderList)
+  let listData: any[] = [];
+  if (res.data) {
+    if (Array.isArray(res.data)) {
+      listData = res.data;
+    } else if (res.data.orderList && Array.isArray(res.data.orderList)) {
+      listData = res.data.orderList;
+    }
+  }
 
   return listData.map((o: any) => ({
     id: o.orderId,
@@ -252,7 +255,15 @@ async function fetchBitunixHistoryOrders(
     );
   }
 
-  const list = Array.isArray(res.data) ? res.data : res.data?.orderList || [];
+  let list: any[] = [];
+  if (res.data) {
+    if (Array.isArray(res.data)) {
+      list = res.data;
+    } else if (res.data.orderList && Array.isArray(res.data.orderList)) {
+      list = res.data.orderList;
+    }
+  }
+
   return list.map((o: any) => ({
     ...o,
     id: o.orderId,
