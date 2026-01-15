@@ -49,15 +49,15 @@
         })
         .filter((t) => t !== null)}
 
-      <!-- Header Row -->
-      <div class="header-row">
-        <div class="left-section">
+      <!-- Header: 18px fixed -->
+      <div class="header-section">
+        <div class="header-left">
           <span class="sl-badge">SL</span>
           <span class="title">{$_("dashboard.visualBar.header")}</span>
         </div>
-        <div class="tp-labels">
+        <div class="tp-container">
           {#each tpData as tp}
-            <div class="tp-item" style="left: {tp.x}%">
+            <div class="tp-label" style="left: {tp.x}%">
               <div class="tp-name">TP{tp.idx}</div>
               <div class="tp-rr">{tp.rr}R</div>
             </div>
@@ -65,8 +65,8 @@
         </div>
       </div>
 
-      <!-- Bar -->
-      <div class="bar-container">
+      <!-- Bar: 10px fixed -->
+      <div class="bar-section">
         <div class="bar-track">
           <div class="bar-fill risk" style="width: {entryX}%"></div>
           <div
@@ -82,8 +82,8 @@
         {/each}
       </div>
 
-      <!-- Entry Label Below -->
-      <div class="footer-row">
+      <!-- Footer: 12px fixed -->
+      <div class="footer-section">
         <div class="entry-label" style="left: {entryX}%">
           {$_("dashboard.visualBar.entry")}
         </div>
@@ -99,36 +99,34 @@
     border-radius: 8px;
     padding: 8px 12px;
     margin: 1rem 0;
-    height: 40px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
+    height: 40px; /* Total height */
   }
 
-  .header-row {
+  /* Header Section: 18px */
+  .header-section {
+    height: 18px;
+    position: relative;
     display: flex;
-    justify-content: space-between;
     align-items: flex-start;
-    height: 16px;
-    position: relative;
   }
 
-  .left-section {
+  .header-left {
     display: flex;
     align-items: center;
     gap: 8px;
     z-index: 10;
+    position: relative;
   }
 
   .sl-badge {
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(30, 41, 59, 0.9);
     color: #94a3b8;
     font-size: 11px;
     font-weight: 900;
     padding: 2px 6px;
     border-radius: 4px;
     border: 1px solid rgba(255, 255, 255, 0.1);
+    line-height: 1;
   }
 
   .title {
@@ -137,9 +135,10 @@
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
+    line-height: 1;
   }
 
-  .tp-labels {
+  .tp-container {
     position: absolute;
     left: 0;
     right: 0;
@@ -148,7 +147,7 @@
     pointer-events: none;
   }
 
-  .tp-item {
+  .tp-label {
     position: absolute;
     transform: translateX(-50%);
     display: flex;
@@ -158,30 +157,31 @@
   }
 
   .tp-name {
-    font-size: 11px;
+    font-size: 12px;
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1;
   }
 
   .tp-rr {
-    font-size: 9px;
+    font-size: 10px;
     font-weight: 700;
     color: var(--text-secondary);
     line-height: 1;
   }
 
-  .bar-container {
-    height: 6px;
+  /* Bar Section: 10px */
+  .bar-section {
+    height: 10px;
     position: relative;
-    margin: 2px 0;
+    margin: 0;
   }
 
   .bar-track {
     width: 100%;
-    height: 100%;
+    height: 10px; /* Fixed 10px */
     background: rgba(255, 255, 255, 0.05);
-    border-radius: 3px;
+    border-radius: 4px;
     position: relative;
     overflow: hidden;
   }
@@ -203,16 +203,18 @@
 
   .marker {
     position: absolute;
-    top: -3px;
-    width: 3px;
-    height: 12px;
+    top: -4px; /* Extend above bar */
+    width: 4px; /* Thicker */
+    height: 18px; /* Taller */
     background: white;
     transform: translateX(-50%);
-    border-radius: 1px;
-    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
+    border-radius: 2px;
+    box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
+    z-index: 5;
   }
 
-  .footer-row {
+  /* Footer Section: 12px */
+  .footer-section {
     height: 12px;
     position: relative;
   }
@@ -223,10 +225,11 @@
     font-size: 10px;
     font-weight: 700;
     color: #94a3b8;
-    background: rgba(30, 41, 59, 0.8);
+    background: rgba(30, 41, 59, 0.9);
     padding: 1px 6px;
     border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     white-space: nowrap;
+    line-height: 1;
   }
 </style>
