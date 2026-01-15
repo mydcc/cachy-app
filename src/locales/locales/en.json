@@ -283,16 +283,16 @@
     },
     "deepDive": {
       "title": "Deep Dive",
-      "forecast": "Forecast",
-      "trends": "Trends",
-      "leakage": "Leakage",
-      "timing": "Timing",
-      "assets": "Assets",
+      "performance": "Performance",
+      "execution": "Execution",
       "risk": "Risk",
       "market": "Market",
-      "psychology": "Psychology",
+      "leakage": "Leakage",
+      "time": "Time",
       "strategies": "Strategies",
-      "calendar": "Calendar",
+      "behavior": "Behavior",
+      "forecast": "Forecast",
+      "systemQuality": "System Quality",
       "charts": {
         "heatmap": "PnL Heatmap",
         "titles": {
@@ -318,7 +318,11 @@
           "strategyEvolution": "Strategy Evolution",
           "tagPerformance": "Tag Performance (PnL)",
           "heatmap": "Daily PnL Heatmap",
-          "recovery": "Drawdown Recovery"
+          "recovery": "Drawdown Recovery",
+          "mfeVsMae": "Execution Efficiency (MFE vs MAE)",
+          "sixSegment": "6-Segment Distribution",
+          "riskRadar": "Risk Radar",
+          "atrMatrix": "Volatility Matrix (ATR)"
         },
         "hourlyPnl": "PnL by Time of Day",
         "dayOfWeekPnl": "PnL by Day of Week",
@@ -352,7 +356,18 @@
           "rollingWinRate": "Your win rate over the last 20 trades. Shows if you are running 'hot' or 'cold'.",
           "rollingPF": "Your Profit Factor over the last 20 trades. Values above 1.0 are profitable.",
           "rollingSQN": "System Quality Number (SQN) over 20 trades. > 2.0 is good, > 5.0 is excellent.",
-          "directionEvolution": "Cumulative Profit separated by Long and Short."
+          "directionEvolution": "Cumulative Profit separated by Long and Short.",
+          "mfeVsMae": "Visualizes exit timing. X-Axis: MAE (Max Pain), Y-Axis: MFE (Max Gain). Top-Left is ideal (Sniper Entry).",
+          "sixSegment": "Detailed breakdown of wins/losses/breakevens separated by Long and Short.",
+          "riskRadar": "Holistic view of your risk profile across 5 dimensions.",
+          "rMultipleDist": "Distribution of trade results in multiples of risk (R).",
+          "riskRewardScatter": "Relationship between risked amount and realized PnL.",
+          "atrMatrix": "Performance grouped by volatility (ATR) environment.",
+          "leverageDist": "Distribution of leverage used.",
+          "assetBubble": "Bubble size = Trade count. Top right = High Winrate & Profit.",
+          "winStreak": "Frequency of consecutive wins.",
+          "lossStreak": "Frequency of consecutive losses.",
+          "tagEvolution": "Performance of strategies over time."
         },
         "labels": {
           "forecast": "Forecast",

@@ -21,11 +21,11 @@
 </script>
 
 <div
-  class="flex flex-wrap gap-2 mb-4 border-b border-[var(--border-color)] pb-2"
+  class="flex flex-wrap gap-2 mb-4 border-b border-[var(--border-color)] pb-2 overflow-x-auto"
 >
   {#each presets as preset}
     <button
-      class="flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors
+      class="flex items-center gap-2 px-4 py-2 rounded-t-lg transition-colors whitespace-nowrap
             {activePreset === preset.id
         ? 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-b-2 border-[var(--accent-color)] font-bold'
         : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-secondary)]'}"

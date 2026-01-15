@@ -104,3 +104,20 @@ export const marketMetrics = derived(journalStore, ($journal) => {
 export const psychologyMetrics = derived(journalStore, ($journal) => {
   return calculator.getPsychologyData($journal || []);
 });
+
+// New Stores for 6-Pillars Model
+export const executionMetrics = derived(journalStore, ($journal) => {
+  return calculator.getExecutionEfficiencyData($journal || []);
+});
+
+export const riskRadarMetrics = derived(journalStore, ($journal) => {
+  return calculator.getVisualRiskRadarData($journal || []);
+});
+
+export const marketContextMetrics = derived(journalStore, ($journal) => {
+  return calculator.getVolatilityMatrixData($journal || []);
+});
+
+export const systemQualityMetrics = derived(journalStore, ($journal) => {
+  return calculator.getSystemQualityData($journal || []);
+});

@@ -675,3 +675,180 @@ export function getMonteCarloData(
     randomPaths,
   };
 }
+
+export function getExecutionEfficiencyData(journal: JournalEntry[]) {
+  const closedTrades = journal.filter(
+    (t) => t.status === "Won" || t.status === "Lost"
+  );
+
+  const scatterPoints = closedTrades
+    .map((t) => {
+      // We need MFE and MAE
+      if (!t.mfe || !t.mae) return null;
+
+      const mfe = t.mfe.toNumber();
+      const mae = t.mae.toNumber();
+      const pnl = getTradePnL(t).toNumber();
+      const risk = t.riskAmount?.toNumber() || 0;
+
+      // Calculate efficiency: Realized / MFE (if MFE > 0)
+      const efficiency = mfe > 0 ? (pnl / mfe) * 100 : 0;
+
+      // R-Multiples for Axes (if risk is present)
+      // If no risk, fallback to absolute or percentage?
+      // User preferred R-Multiples.
+      const useR = risk > 0;
+      const x = useR ? mae / risk : mae;
+      const y = useR ? mfe / risk : mfe;
+      const pnlR = useR ? pnl / risk : pnl;
+
+      return {
+        x, // MAE
+        y, // MFE
+        r: 6,
+        pnl: pnlR,
+        l: `${t.symbol}: MAE ${x.toFixed(2)}R, MFE ${y.toFixed(2)}R, PnL ${pnlR.toFixed(2)}R (Eff: ${efficiency.toFixed(0)}%)`,
+        rawPnl: pnl // Used for coloring
+      };
+    })
+    .filter((p) => p !== null);
+
+  return { scatterPoints };
+}
+
+export function getVisualRiskRadarData(journal: JournalEntry[]) {
+  const stats = calculateJournalStats(journal);
+  // Need metrics normalized to 0-100 (or close) for Radar chart
+  // Dimensions: Win Rate, Profit Factor, R-Ratio, Drawdown Score, Expectancy Score
+
+  const winRate = stats.winRate.toNumber(); // 0-100
+
+  // Profit Factor: Benchmark 3.0 = 100%
+  const pf = stats.profitFactor.isFinite() ? stats.profitFactor.toNumber() : 10;
+  const pfScore = Math.min(pf, 5) / 5 * 100; // Cap at 5 for score
+
+  // Drawdown: Need Max Drawdown from performance stats
+  const perf = calculatePerformanceStats(journal);
+  // Recovery Factor is also good.
+  // Let's use Recovery Factor or Drawdown.
+  // Drawdown (MaxDD): Lower is better.
+  // If MaxDD is 0 -> Score 100. If MaxDD is 50% account -> Score 0?
+  // But MaxDD is in currency usually. We need % relative to account size.
+  // Without account history, it's hard.
+  // Let's use Recovery Factor (Net Profit / MaxDD).
+  // Benchmark 5.0 = 100%
+  const rf = perf?.recoveryFactor.toNumber() || 0;
+  const rfScore = Math.min(rf, 10) / 10 * 100;
+
+  // R-Multiple (Avg Win / Avg Loss) is implicitly Profit Factor if WinRate is 50%.
+  // Let's use Risk-Reward Ratio (Avg Win / Avg Loss).
+  const avgWin = perf?.avgWin.toNumber() || 0;
+  const avgLoss = perf?.avgLossOnly.toNumber() || 1; // Avoid div 0
+  const rr = avgLoss > 0 ? avgWin / avgLoss : 0;
+  // Benchmark 1:3 -> Score 100?
+  const rrScore = Math.min(rr, 4) / 4 * 100;
+
+  // Expectancy (in R).
+  const expectancy = perf?.expectancy.toNumber() || 0; // This is actually expectancy per trade in $ usually, need in R.
+  const avgR = perf?.avgRMultiple.toNumber() || 0;
+  // Benchmark 0.5R per trade = 100?
+  const expScore = Math.min(Math.max(avgR, 0), 1) * 100;
+
+  return {
+    labels: ["Win Rate", "Profit Factor", "Risk/Reward", "Recovery", "Expectancy"],
+    data: [winRate, pfScore, rrScore, rfScore, expScore],
+    raw: {
+      winRate: winRate,
+      pf: pf,
+      rr: rr,
+      rf: rf,
+      exp: avgR
+    }
+  };
+}
+
+export function getVolatilityMatrixData(journal: JournalEntry[]) {
+  // Bin by ATR
+  const closedTrades = journal.filter(
+    (t) => (t.status === "Won" || t.status === "Lost") && t.atrValue
+  );
+
+  if (closedTrades.length === 0) return null;
+
+  const atrs = closedTrades.map(t => t.atrValue!.toNumber());
+  const sumAtr = atrs.reduce((a, b) => a + b, 0);
+  const avgAtr = sumAtr / atrs.length;
+
+  const buckets = {
+    low: { count: 0, pnl: new Decimal(0), win: 0 },
+    normal: { count: 0, pnl: new Decimal(0), win: 0 },
+    high: { count: 0, pnl: new Decimal(0), win: 0 },
+  };
+
+  closedTrades.forEach(t => {
+    const val = t.atrValue!.toNumber();
+    const pnl = getTradePnL(t);
+    let bucketKey: 'low' | 'normal' | 'high' = 'normal';
+
+    if (val < avgAtr * 0.8) bucketKey = 'low';
+    else if (val > avgAtr * 1.2) bucketKey = 'high';
+
+    buckets[bucketKey].count++;
+    buckets[bucketKey].pnl = buckets[bucketKey].pnl.plus(pnl);
+    if (t.status === "Won") buckets[bucketKey].win++;
+  });
+
+  const mapData = (k: 'low' | 'normal' | 'high') => ({
+    count: buckets[k].count,
+    pnl: buckets[k].pnl.toNumber(),
+    winRate: buckets[k].count > 0 ? (buckets[k].win / buckets[k].count * 100) : 0
+  });
+
+  return {
+    low: mapData('low'),
+    normal: mapData('normal'),
+    high: mapData('high'),
+    avgAtr
+  };
+}
+
+export function getSystemQualityData(journal: JournalEntry[]) {
+  const rolling = getRollingData(journal, journal.length); // Get stats for whole history
+  // SQN is in sqnValues (array).
+  // But let's recalculate simply.
+  const closedTrades = journal.filter(t => t.status === "Won" || t.status === "Lost");
+  const count = closedTrades.length;
+
+  if (count < 30) return null; // SQN needs sample size
+
+  const rMultiples: number[] = [];
+  closedTrades.forEach(t => {
+      if (t.riskAmount && t.riskAmount.gt(0)) {
+        rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
+      }
+  });
+
+  if (rMultiples.length === 0) return null;
+
+  const avgR = rMultiples.reduce((a, b) => a + b, 0) / rMultiples.length;
+  const variance = rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) / rMultiples.length;
+  const stdDev = Math.sqrt(variance);
+
+  const sqn = stdDev > 0 ? (avgR / stdDev) * Math.sqrt(count) : 0;
+
+  // Classification
+  let classification = "Poor";
+  if (sqn >= 1.6) classification = "Average";
+  if (sqn >= 2.0) classification = "Good";
+  if (sqn >= 2.5) classification = "Excellent";
+  if (sqn >= 3.0) classification = "Holy Grail";
+  if (sqn >= 5.0) classification = "Legendary";
+
+  return {
+    sqn,
+    classification,
+    avgR,
+    stdDev,
+    count
+  };
+}

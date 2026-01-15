@@ -45,4 +45,8 @@ export const {
   getConfluenceData,
   getMonteCarloData,
   getDisciplineData,
+  getExecutionEfficiencyData,
+  getVisualRiskRadarData,
+  getVolatilityMatrixData,
+  getSystemQualityData,
 } = Charts;

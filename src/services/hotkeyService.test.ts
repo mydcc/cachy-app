@@ -152,6 +152,7 @@ describe("HotkeyService", () => {
       isLoading: false,
       loadingMessage: "",
       syncProgress: null,
+      isAtrFetching: false, // Added missing property
     });
 
     // hotkeyService doesn't have an init(), it's likely initialized in App or Layout
