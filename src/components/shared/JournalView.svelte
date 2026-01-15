@@ -446,31 +446,36 @@
     ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
   />
 
-  <!-- Column Settings Popover -->
+  <!-- Column Settings Popup -->
   {#if showColumnSettings}
-    <div
-      class="column-settings-popover bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-xl p-4 mb-4 animate-in fade-in slide-in-from-top-2"
-    >
-      <div class="flex justify-between items-center mb-3">
-        <h4 class="text-sm font-bold">{$_("journal.labels.tableSettings")}</h4>
-        <button
-          class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          onclick={() => (showColumnSettings = false)}>{$_("common.ok")}</button
-        >
-      </div>
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        {#each Object.keys(columnVisibility) as col}
-          <label
-            class="flex items-center gap-2 cursor-pointer hover:bg-[var(--bg-secondary)] p-1 rounded transition-colors"
+    <div class="relative">
+      <div
+        class="absolute top-0 right-0 z-50 column-settings-popup bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-2xl p-4 animate-in fade-in slide-in-from-top-2"
+      >
+        <div class="flex justify-between items-center mb-3">
+          <h4 class="text-sm font-bold">
+            {$_("journal.labels.tableSettings")}
+          </h4>
+          <button
+            class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+            onclick={() => (showColumnSettings = false)}
+            >{$_("common.ok")}</button
           >
-            <input
-              type="checkbox"
-              bind:checked={columnVisibility[col]}
-              class="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
-            />
-            <span class="text-xs truncate">{$_(`journal.table.${col}`)}</span>
-          </label>
-        {/each}
+        </div>
+        <div class="grid grid-cols-2 gap-2">
+          {#each Object.keys(columnVisibility) as col}
+            <label
+              class="flex items-center gap-2 cursor-pointer hover:bg-[var(--bg-secondary)] p-2 rounded transition-colors"
+            >
+              <input
+                type="checkbox"
+                bind:checked={columnVisibility[col]}
+                class="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
+              />
+              <span class="text-xs truncate">{$_(`journal.table.${col}`)}</span>
+            </label>
+          {/each}
+        </div>
       </div>
     </div>
   {/if}

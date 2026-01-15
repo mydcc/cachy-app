@@ -443,29 +443,26 @@
                                         ).toFixed(1)}% Win
                                     </td>
                                 {/if}
-                                {#if columnVisibility.action}<td></td>{/if}
                             </tr>
 
                             {#if expandedGroups.has(item.symbol)}
-                                {#each item.trades as trade}
-                                    <tr class="sub-row">
-                                        <td
-                                            class="border-l-4 border-[var(--accent-color)]"
-                                            style="padding: 0;"
-                                        ></td>
-                                        <td colspan="100" style="padding: 0;">
-                                            <JournalTable
-                                                trades={[trade]}
-                                                {columnVisibility}
-                                                isInternal={true}
-                                                {onStatusChange}
-                                                {onDeleteTrade}
-                                                {onUpdateTrade}
-                                                {onUploadScreenshot}
-                                            />
-                                        </td>
-                                    </tr>
-                                {/each}
+                                <tr class="sub-row">
+                                    <td
+                                        class="border-l-4 border-[var(--accent-color)]"
+                                        style="padding: 0;"
+                                    ></td>
+                                    <td colspan="100" style="padding: 0;">
+                                        <JournalTable
+                                            trades={item.trades}
+                                            {columnVisibility}
+                                            isInternal={true}
+                                            {onStatusChange}
+                                            {onDeleteTrade}
+                                            {onUpdateTrade}
+                                            {onUploadScreenshot}
+                                        />
+                                    </td>
+                                </tr>
                             {/if}
                         {:else}
                             <tr class="trade-row">
