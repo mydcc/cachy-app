@@ -120,8 +120,8 @@ export interface AppState {
 
 export interface CurrentTradeData
   extends TradeValues,
-    BaseMetrics,
-    TotalMetrics {
+  BaseMetrics,
+  TotalMetrics {
   tradeType: string;
   status: string;
   calculatedTpDetails: IndividualTpResult[];
@@ -142,6 +142,7 @@ export interface JournalEntry {
   entryPrice: Decimal;
   exitPrice?: Decimal;
   stopLossPrice: Decimal;
+  atrValue?: Decimal;
   mae?: Decimal;
   mfe?: Decimal;
   efficiency?: Decimal;

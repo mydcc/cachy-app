@@ -7,12 +7,21 @@
     RadialLinearScale,
     PointElement,
     LineElement,
-    Filler
+    Filler,
+    RadarController,
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
 
   // Register necessary components for Radar
-  Chart.register(RadialLinearScale, PointElement, LineElement, Filler, ChartTooltip, Legend);
+  Chart.register(
+    RadarController,
+    RadialLinearScale,
+    PointElement,
+    LineElement,
+    Filler,
+    ChartTooltip,
+    Legend,
+  );
 
   interface Props {
     data: any;
@@ -21,12 +30,7 @@
     labels?: string[];
   }
 
-  let {
-    data,
-    title = "",
-    description = "",
-    labels = []
-  }: Props = $props();
+  let { data, title = "", description = "", labels = [] }: Props = $props();
 
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
@@ -45,52 +49,54 @@
       },
       tooltip: {
         callbacks: {
-            label: function(context: any) {
-                // If raw values are attached, show them?
-                // Currently data is normalized 0-100.
-                return `${context.label}: ${context.raw.toFixed(1)}/100`;
-            }
-        }
-      }
+          label: function (context: any) {
+            // If raw values are attached, show them?
+            // Currently data is normalized 0-100.
+            return `${context.label}: ${context.raw.toFixed(1)}/100`;
+          },
+        },
+      },
     },
     scales: {
       r: {
         angleLines: {
-          color: "rgba(148, 163, 184, 0.1)"
+          color: "rgba(148, 163, 184, 0.1)",
         },
         grid: {
-          color: "rgba(148, 163, 184, 0.1)"
+          color: "rgba(148, 163, 184, 0.1)",
         },
         pointLabels: {
           color: "#94a3b8",
           font: {
-            size: 11
-          }
+            size: 11,
+          },
         },
         ticks: {
           display: false, // Hide 0-100 ticks to keep it clean
-          backdropColor: "transparent"
+          backdropColor: "transparent",
         },
         min: 0,
-        max: 100
-      }
-    }
+        max: 100,
+      },
+    },
   });
 
   // Construct chart data format
   let chartData = $derived({
     labels: labels.length > 0 ? labels : data?.labels || [],
-    datasets: [{
-      label: title,
-      data: data?.data || [],
-      fill: true,
-      backgroundColor: 'rgba(54, 162, 235, 0.2)', // Default blue
-      borderColor: 'rgb(54, 162, 235)',
-      pointBackgroundColor: 'rgb(54, 162, 235)',
-      pointBorderColor: '#fff',
-      pointHoverBackgroundColor: '#fff',
-      pointHoverBorderColor: 'rgb(54, 162, 235)'
-    }]
+    datasets: [
+      {
+        label: title,
+        data: data?.data || [],
+        fill: true,
+        backgroundColor: "rgba(54, 162, 235, 0.2)", // Default blue
+        borderColor: "rgb(54, 162, 235)",
+        pointBackgroundColor: "rgb(54, 162, 235)",
+        pointBorderColor: "#fff",
+        pointHoverBackgroundColor: "#fff",
+        pointHoverBorderColor: "rgb(54, 162, 235)",
+      },
+    ],
   });
 
   onMount(() => {
@@ -118,7 +124,9 @@
   });
 </script>
 
-<div class="w-full h-full min-h-[250px] relative flex flex-col items-center justify-center">
+<div
+  class="w-full h-full min-h-[250px] relative flex flex-col items-center justify-center"
+>
   {#if description}
     <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
       <Tooltip text={description} />

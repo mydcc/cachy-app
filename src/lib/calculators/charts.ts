@@ -813,7 +813,6 @@ export function getVolatilityMatrixData(journal: JournalEntry[]) {
 }
 
 export function getSystemQualityData(journal: JournalEntry[]) {
-  const rolling = getRollingData(journal, journal.length); // Get stats for whole history
   // SQN is in sqnValues (array).
   // But let's recalculate simply.
   const closedTrades = journal.filter(t => t.status === "Won" || t.status === "Lost");
@@ -823,9 +822,9 @@ export function getSystemQualityData(journal: JournalEntry[]) {
 
   const rMultiples: number[] = [];
   closedTrades.forEach(t => {
-      if (t.riskAmount && t.riskAmount.gt(0)) {
-        rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
-      }
+    if (t.riskAmount && t.riskAmount.gt(0)) {
+      rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
+    }
   });
 
   if (rMultiples.length === 0) return null;
