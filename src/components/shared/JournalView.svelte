@@ -161,10 +161,15 @@
     }, 0);
   }
 
+  let lastTheme = $state("");
+
   $effect(() => {
-    // Synchronize theme colors when the theme changes
-    const _theme = $uiStore.currentTheme;
-    updateThemeColors();
+    // Synchronize theme colors ONLY when the theme name changes
+    const currentTheme = $uiStore.currentTheme;
+    if (currentTheme !== lastTheme) {
+      lastTheme = currentTheme;
+      updateThemeColors();
+    }
   });
 
   // --- Table State ---
