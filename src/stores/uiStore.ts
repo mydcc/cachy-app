@@ -131,10 +131,22 @@ function createUiStore() {
           'gruvbox-dark': '#282828',
           'monokai': '#1e1f1c',
           'tokyo-night': '#1a1b26',
-          'everforest-dark': '#2d353b'
+          'everforest-dark': '#2d353b',
+          'github-dark': '#0d1117',
+          'github-light': '#ffffff',
+          'ayu-dark': '#0f1419',
+          'ayu-light': '#f8f9fa',
+          'ayu-mirage': '#1f2430',
+          'midnight': '#0d1117',
+          'cobalt2': '#193549'
         };
         const bgColor = bgColors[themeName] || bgColors['dark'];
         html.style.backgroundColor = bgColor;
+
+        // Ensure background-image is cleared when manually setting background color
+        // to prevent gradients from sticking around if theme changes from gradient to solid
+        html.style.backgroundImage = 'none';
+
         try {
           localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
           const expires = new Date(
