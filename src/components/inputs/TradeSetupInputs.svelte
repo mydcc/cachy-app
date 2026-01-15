@@ -53,7 +53,9 @@
   let priceDeviation = $derived.by(() => {
     if (!entryPrice || !app.currentMarketPrice) return 0;
     const market = app.currentMarketPrice.toNumber();
-    return Math.abs((entryPrice - market) / market) * 100;
+    if (market <= 0) return 0;
+    const dev = Math.abs((entryPrice - market) / market) * 100;
+    return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
   });
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
@@ -317,11 +319,11 @@
           : ''}"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
       />
-      {#if priceDeviation > 10}
+      {#if priceDeviation > 1}
         <div
           class="absolute -top-6 left-0 text-[10px] text-orange-500 font-bold animate-pulse"
         >
-          ⚠️ Abweichung: {priceDeviation.toFixed(1)}%
+          ⚠️ Abweichung zum Markt: {priceDeviation.toFixed(1)}%
         </div>
       {/if}
 

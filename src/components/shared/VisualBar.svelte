@@ -2,7 +2,6 @@
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
   import { tradeStore } from "../../stores/tradeStore";
-  import { resultsStore } from "../../stores/resultsStore";
   import { Decimal } from "decimal.js";
 
   interface Props {
@@ -25,45 +24,36 @@
 
   // SVG Dimension Settings
   const WIDTH = 1000;
-  const HEIGHT = 40;
-  const BAR_Y = 20;
+  const HEIGHT = 50;
+  const BAR_Y = 25;
   const BAR_H = 12;
-  const PADDING_X = 0; // Use container padding for the bar
 
-  // Determine the full range of the visualization: from SL to the furthest TP
-  const furthestTpPrice = $derived.by(() => {
-    if (safeTargets.length === 0) return entryPrice;
-    const prices = safeTargets
-      .map((t) => t.price)
-      .filter((p): p is number => p !== null);
-    if (prices.length === 0) return entryPrice;
-    // For Long: max TP. For Short: min TP.
-    return tradeType === "long" ? Math.max(...prices) : Math.min(...prices);
+  // Compute the full visible range of the bar
+  const priceRange = $derived.by(() => {
+    if (entryPrice === null || stopLossPrice === null) return null;
+    const prices = [entryPrice, stopLossPrice];
+    safeTargets.forEach((t) => {
+      if (t.price) prices.push(t.price);
+    });
+    const min = Math.min(...prices);
+    const max = Math.max(...prices);
+    return max > min ? { min, max } : null;
   });
 
-  const isReady = $derived(
-    entryPrice !== null &&
-      stopLossPrice !== null &&
-      furthestTpPrice !== null &&
-      Math.abs(furthestTpPrice - stopLossPrice) > 0,
-  );
+  const isReady = $derived(priceRange !== null);
 
-  const totalRange = $derived(
-    isReady ? Math.abs(furthestTpPrice! - stopLossPrice!) : 1,
-  );
-
-  // Helper to get X position in percentage (0 to 100)
-  const getXPercent = (price: number | null | undefined | Decimal) => {
-    if (
-      !isReady ||
-      price === null ||
-      price === undefined ||
-      stopLossPrice === null
-    )
+  // Unified Scaling: SL is ALWAYS 0, furthest TP/Price is ALWAYS WIDTH
+  const getX = (price: number | null | undefined | Decimal) => {
+    if (!isReady || price === null || price === undefined || !priceRange)
       return 0;
     const p = price instanceof Decimal ? price.toNumber() : price;
-    const dist = Math.abs(p - stopLossPrice);
-    return (dist / totalRange) * 100;
+
+    const totalDist = priceRange.max - priceRange.min;
+    const pos = (p - priceRange.min) / totalDist;
+
+    // Flip the scale for Short so SL (which is max price) is at X=0
+    const x = tradeType === "long" ? pos * WIDTH : (1 - pos) * WIDTH;
+    return Math.max(0, Math.min(WIDTH, x)); // Clamp to bounds
   };
 
   const tpData = $derived(
@@ -74,7 +64,7 @@
         return {
           idx: i + 1,
           price: t.price,
-          x: getXPercent(t.price),
+          x: getX(t.price),
           rr: detail?.riskRewardRatio
             ? detail.riskRewardRatio.toFixed(2)
             : "0.00",
@@ -86,22 +76,32 @@
       ),
   );
 
-  const entryX = $derived(getXPercent(entryPrice));
+  const entryX = $derived(getX(entryPrice));
+  const slX = $derived(getX(stopLossPrice)); // Will reliably be 0 or 1000 depending on flip
+
+  // Since we flip the scale, Red is always between SL (which becomes 0) and Entry
+  const riskX = $derived(Math.min(slX, entryX));
+  const riskW = $derived(Math.max(2, Math.abs(entryX - slX)));
+
+  // Profit Segment is everything else
+  const profitX = $derived(entryX);
+  const profitW = $derived(Math.max(2, WIDTH - entryX));
 </script>
 
-<div class="visual-bar-wrapper mt-6">
+<div class="visual-bar-wrapper mt-8">
   <div class="visual-bar-container glass-panel">
     <!-- Header Row -->
     <div class="header-row">
       <div class="left-group">
         <div class="sl-badge">SL</div>
-        <h3 class="title">{$_("dashboard.visualBar.header")}</h3>
+        <h3 class="title">
+          {$_("dashboard.visualBar.header") || "VISUELLE ANALYSE"}
+        </h3>
       </div>
 
-      <!-- TP Labels absolute positioned above the bar -->
       <div class="tp-labels-container">
         {#each tpData as tp}
-          <div class="tp-label-item" style="left: {tp.x}%">
+          <div class="tp-label-item" style="left: {(tp.x / WIDTH) * 100}%">
             <span class="tp-name">TP{tp.idx}</span>
             <span class="tp-rr">{tp.rr}R</span>
           </div>
@@ -109,7 +109,7 @@
       </div>
     </div>
 
-    <!-- The Progress Bar (SVG) -->
+    <!-- The Progress Bar -->
     <div class="bar-view relative">
       <svg
         viewBox="0 0 {WIDTH} {HEIGHT}"
@@ -117,7 +117,7 @@
         class="w-full h-full overflow-visible"
       >
         {#if isReady}
-          <!-- Background / Empty Bar -->
+          <!-- Background -->
           <rect
             x="0"
             y={BAR_Y - BAR_H / 2}
@@ -127,54 +127,49 @@
             rx="4"
           />
 
-          <!-- Risk Segment (Red: SL to Entry) -->
+          <!-- Risk Segment (Red) -->
           <rect
-            x="0"
+            x={riskX}
             y={BAR_Y - BAR_H / 2}
-            width={(entryX / 100) * WIDTH}
+            width={riskW}
             height={BAR_H}
             fill="var(--danger-color)"
-            rx="4"
+            rx="2"
           />
 
-          <!-- Profit Segment (Green: Entry to end) -->
+          <!-- Profit Segment (Green) -->
           <rect
-            x={(entryX / 100) * WIDTH}
+            x={profitX}
             y={BAR_Y - BAR_H / 2}
-            width={WIDTH - (entryX / 100) * WIDTH}
+            width={profitW}
             height={BAR_H}
             fill="var(--success-color)"
-            rx="4"
+            rx="2"
           />
 
-          <!-- Vertical Separators (White Lines) -->
-          <!-- SL Marker -->
+          <!-- Markers -->
           <line
-            x1="0"
-            x2="0"
-            y1={BAR_Y - 10}
-            y2={BAR_Y + 10}
+            x1={slX}
+            x2={slX}
+            y1={BAR_Y - 14}
+            y2={BAR_Y + 14}
             stroke="white"
             stroke-width="2"
           />
-
-          <!-- Entry Marker -->
           <line
-            x1={(entryX / 100) * WIDTH}
-            x2={(entryX / 100) * WIDTH}
-            y1={BAR_Y - 10}
-            y2={BAR_Y + 10}
+            x1={entryX}
+            x2={entryX}
+            y1={BAR_Y - 14}
+            y2={BAR_Y + 14}
             stroke="white"
             stroke-width="2"
           />
-
-          <!-- TP Markers -->
           {#each tpData as tp}
             <line
-              x1={(tp.x / 100) * WIDTH}
-              x2={(tp.x / 100) * WIDTH}
-              y1={BAR_Y - 10}
-              y2={BAR_Y + 10}
+              x1={tp.x}
+              x2={tp.x}
+              y1={BAR_Y - 14}
+              y2={BAR_Y + 14}
               stroke="white"
               stroke-width="2"
             />
@@ -184,10 +179,12 @@
     </div>
   </div>
 
-  <!-- Bottom Badge (Einstieg) -->
-  <div class="footer-row relative h-6 mt-1">
+  <!-- Footer Row -->
+  <div class="footer-row">
     {#if isReady}
-      <div class="entry-badge" style="left: {entryX}%">Einstieg</div>
+      <div class="entry-badge" style="left: {(entryX / WIDTH) * 100}%">
+        Einstieg
+      </div>
     {/if}
   </div>
 </div>
@@ -195,12 +192,13 @@
 <style>
   .visual-bar-wrapper {
     width: 100%;
+    margin-bottom: 2rem;
   }
 
   .visual-bar-container {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    padding: 1.25rem 1.25rem 0.75rem 1.25rem;
+    padding: 1.5rem 1.25rem 1rem 1.25rem;
     border-radius: 0.75rem;
     box-shadow: var(--shadow-sm);
     position: relative;
@@ -210,8 +208,8 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 1.5rem;
-    height: 32px;
+    margin-bottom: 1.75rem;
+    height: 36px;
     position: relative;
   }
 
@@ -219,28 +217,26 @@
     display: flex;
     align-items: center;
     gap: 0.75rem;
-    flex-shrink: 0;
     z-index: 10;
   }
 
   .sl-badge {
     background: #2c3440;
     color: #94a3b8;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 800;
-    padding: 2px 5px;
+    padding: 2px 6px;
     border-radius: 4px;
     letter-spacing: 0.5px;
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   .title {
     color: var(--text-secondary);
-    font-size: 12px;
+    font-size: 14px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
-    white-space: nowrap;
   }
 
   .tp-labels-container {
@@ -259,19 +255,18 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 50px;
+    min-width: 60px;
     text-align: center;
   }
 
   .tp-name {
-    font-size: 11px;
+    font-size: 13px;
     font-weight: 800;
     color: var(--text-primary);
-    line-height: 1;
   }
 
   .tp-rr {
-    font-size: 9px;
+    font-size: 11px;
     font-weight: 600;
     color: var(--text-secondary);
     margin-top: 1px;
@@ -279,28 +274,29 @@
 
   .bar-view {
     width: 100%;
-    height: 16px;
+    height: 20px;
   }
 
   .footer-row {
     width: 100%;
     position: relative;
     padding: 0 1.25rem;
-    box-sizing: border-box;
+    height: 24px;
+    margin-top: 0.5rem;
   }
 
   .entry-badge {
     position: absolute;
-    top: 4px;
+    top: 0;
     transform: translateX(-50%);
     background: #2c3440;
     color: #94a3b8;
-    font-size: 10px;
+    font-size: 11px;
     font-weight: 700;
-    padding: 2px 8px;
+    padding: 3px 10px;
     border-radius: 4px;
     white-space: nowrap;
-    border: 1px solid var(--border-color);
+    border: 1px solid rgba(255, 255, 255, 0.1);
   }
 
   svg {

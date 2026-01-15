@@ -143,15 +143,18 @@ export const app = {
       const state = get(tradeStore);
       const settings = get(settingsStore);
 
-      if (state.symbol && settings.autoUpdatePriceInput) {
+      if (state.symbol) {
         const normSymbol = normalizeSymbol(state.symbol, "bitunix");
         const marketData = data[normSymbol];
 
         if (marketData && marketData.lastPrice) {
           app.currentMarketPrice = marketData.lastPrice;
-          const newPrice = marketData.lastPrice.toNumber();
-          if (state.entryPrice !== newPrice) {
-            updateTradeStore((s) => ({ ...s, entryPrice: newPrice }));
+
+          if (settings.autoUpdatePriceInput) {
+            const newPrice = marketData.lastPrice.toNumber();
+            if (state.entryPrice !== newPrice) {
+              updateTradeStore((s) => ({ ...s, entryPrice: newPrice }));
+            }
           }
         }
       }
@@ -873,6 +876,9 @@ export const app = {
       } else {
         price = await apiService.fetchBitunixPrice(symbol);
       }
+
+      app.currentMarketPrice = price;
+
       updateTradeStore((state) => ({
         ...state,
         entryPrice: price.toDP(4).toNumber(),
