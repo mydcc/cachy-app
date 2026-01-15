@@ -585,10 +585,6 @@ export const technicalsService = {
       const fastSMA = getSMA(hl2, fastPeriod);
       const slowSMA = getSMA(hl2, slowPeriod);
 
-      console.log(
-        `[Technicals] AO Internal: fastSMA=${fastSMA}, slowSMA=${slowSMA}, diff=${fastSMA - slowSMA
-        }`
-      );
 
       return new Decimal(fastSMA - slowSMA);
     } catch (error) {

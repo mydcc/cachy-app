@@ -261,83 +261,85 @@
   // Reactively Calculate RSI
   $effect(() => {
     if (historyKlines.length > 0) {
-      const sourceMode = $indicatorStore.rsi.source || "close";
-      const length = $indicatorStore.rsi.length || 14;
+      untrack(() => {
+        const sourceMode = $indicatorStore.rsi.source || "close";
+        const length = $indicatorStore.rsi.length || 14;
 
-      // Prepare Source Array
-      // Map Klines to Values
-      let values = historyKlines.map((k) => {
-        if (sourceMode === "open") return k.open;
-        if (sourceMode === "high") return k.high;
-        if (sourceMode === "low") return k.low;
-        if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
-        if (sourceMode === "hlc3")
-          return k.high.plus(k.low).plus(k.close).div(3);
-        return k.close;
-      });
+        // Prepare Source Array
+        // Map Klines to Values
+        let values = historyKlines.map((k) => {
+          if (sourceMode === "open") return k.open;
+          if (sourceMode === "high") return k.high;
+          if (sourceMode === "low") return k.low;
+          if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
+          if (sourceMode === "hlc3")
+            return k.high.plus(k.low).plus(k.close).div(3);
+          return k.close;
+        });
 
-      // Update latest candle from Market Store (WS klines are now in the store)
-      const liveKline = wsData?.klines
-        ? wsData.klines[effectiveRsiTimeframe]
-        : null;
-      if (liveKline) {
-        let currentVal = liveKline.close;
-        if (sourceMode === "open") currentVal = liveKline.open;
-        else if (sourceMode === "high") currentVal = liveKline.high;
-        else if (sourceMode === "low") currentVal = liveKline.low;
-        else if (sourceMode === "hl2")
-          currentVal = liveKline.high.plus(liveKline.low).div(2);
-        else if (sourceMode === "hlc3")
-          currentVal = liveKline.high
-            .plus(liveKline.low)
-            .plus(liveKline.close)
-            .div(3);
+        // Update latest candle from Market Store (WS klines are now in the store)
+        const liveKline = wsData?.klines
+          ? wsData.klines[effectiveRsiTimeframe]
+          : null;
+        if (liveKline) {
+          let currentVal = liveKline.close;
+          if (sourceMode === "open") currentVal = liveKline.open;
+          else if (sourceMode === "high") currentVal = liveKline.high;
+          else if (sourceMode === "low") currentVal = liveKline.low;
+          else if (sourceMode === "hl2")
+            currentVal = liveKline.high.plus(liveKline.low).div(2);
+          else if (sourceMode === "hlc3")
+            currentVal = liveKline.high
+              .plus(liveKline.low)
+              .plus(liveKline.close)
+              .div(3);
 
-        // Update last element
-        if (values.length > 0) values[values.length - 1] = currentVal;
-      } else if (currentPrice && sourceMode === "close") {
-        // Fallback for Close only
-        if (values.length > 0) values[values.length - 1] = currentPrice;
-      }
+          // Update last element
+          if (values.length > 0) values[values.length - 1] = currentVal;
+        } else if (currentPrice && sourceMode === "close") {
+          // Fallback for Close only
+          if (values.length > 0) values[values.length - 1] = currentPrice;
+        }
 
-      // Calculate RSI Series (optimized O(N) implementation)
-      const rsiSeries: Decimal[] = [];
+        // Calculate RSI Series (optimized O(N) implementation)
+        const rsiSeries: Decimal[] = [];
 
-      if (values.length > length) {
-        // Convert Decimal[] to number[] for JSIndicators
-        const valuesNum = values.map((v) => v.toNumber());
+        if (values.length > length) {
+          // Convert Decimal[] to number[] for JSIndicators
+          const valuesNum = values.map((v) => v.toNumber());
 
-        // Calculate entire RSI series in O(N) time
-        const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
+          // Calculate entire RSI series in O(N) time
+          const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
 
-        // Convert back to Decimal[] and filter out invalid/zero values
-        for (let i = 0; i < rsiSeriesNum.length; i++) {
-          if (rsiSeriesNum[i] > 0) {
-            rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+          // Convert back to Decimal[] and filter out invalid/zero values
+          for (let i = 0; i < rsiSeriesNum.length; i++) {
+            if (rsiSeriesNum[i] > 0) {
+              rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+            }
           }
         }
-      }
 
-      if (rsiSeries.length > 0) {
-        rsiValue = rsiSeries[rsiSeries.length - 1];
+        if (rsiSeries.length > 0) {
+          rsiValue = rsiSeries[rsiSeries.length - 1];
 
-        // Calculate Signal Line
-        if ($indicatorStore.rsi.showSignal) {
-          const sigType = $indicatorStore.rsi.signalType || "sma";
-          const sigLen = $indicatorStore.rsi.signalLength || 14;
+          // Calculate Signal Line
+          if ($indicatorStore.rsi.showSignal) {
+            const sigType = $indicatorStore.rsi.signalType || "sma";
+            const sigLen = $indicatorStore.rsi.signalLength || 14;
 
-          if (sigType === "ema") {
-            signalValue = indicators.calculateEMA(rsiSeries, sigLen);
+            if (sigType === "ema") {
+              signalValue = indicators.calculateEMA(rsiSeries, sigLen);
+            } else {
+              signalValue = indicators.calculateSMA(rsiSeries, sigLen);
+            }
           } else {
-            signalValue = indicators.calculateSMA(rsiSeries, sigLen);
+            signalValue = null;
           }
         } else {
+          rsiValue = null;
           signalValue = null;
         }
-      } else {
-        rsiValue = null;
-        signalValue = null;
-      }
+      });
     }
   });
   let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
