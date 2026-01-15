@@ -30,7 +30,7 @@ interface UiState {
 }
 
 const initialUiState: UiState = {
-  currentTheme: "dark", // Always default to 'dark' to prevent hydration mismatch
+  currentTheme: "dark", // Default state
   showJournalModal: false,
   showChangelogModal: false,
   showGuideModal: false,
@@ -83,22 +83,58 @@ function createUiStore() {
       });
       if (browser) {
         // Only update DOM if theme actually changed
-        const currentThemeClass = Array.from(document.body.classList).find(c => c.startsWith("theme-"));
-        const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
+        const html = document.documentElement;
+        const currentThemeClass = Array.from(html.classList).find((c) =>
+          c.startsWith("theme-")
+        );
+        const expectedClass =
+          themeName !== "dark" ? `theme-${themeName}` : null;
 
         // Skip DOM update if already correct
-        if (currentThemeClass === expectedClass || (!currentThemeClass && !expectedClass)) {
+        if (
+          currentThemeClass === expectedClass ||
+          (!currentThemeClass && !expectedClass)
+        ) {
           return;
         }
 
+        // Clean up body classes just in case (migration)
         document.body.classList.forEach((className) => {
           if (className.startsWith("theme-")) {
             document.body.classList.remove(className);
           }
         });
+
+        // Update HTML classes
+        html.classList.forEach((className) => {
+          if (className.startsWith("theme-")) {
+            html.classList.remove(className);
+          }
+        });
+
         if (themeName !== "dark") {
-          document.body.classList.add(`theme-${themeName}`);
+          html.classList.add(`theme-${themeName}`);
         }
+
+        // Update background color for immediate feedback (matches app.html logic)
+        const bgColors: Record<string, string> = {
+          'dark': '#0f172a',
+          'light': '#f1f5f9',
+          'VIP': '#121212',
+          'matrix': '#000000',
+          'meteorite': '#0c082f',
+          'steel': '#08103f',
+          'dracula': '#282a36',
+          'solarized-light': '#fdf6e3',
+          'solarized-dark': '#002b36',
+          'nord': '#2e3440',
+          'gruvbox-dark': '#282828',
+          'monokai': '#1e1f1c',
+          'tokyo-night': '#1a1b26',
+          'everforest-dark': '#2d353b'
+        };
+        const bgColor = bgColors[themeName] || bgColors['dark'];
+        html.style.backgroundColor = bgColor;
         try {
           localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
           const expires = new Date(

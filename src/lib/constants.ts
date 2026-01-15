@@ -5,7 +5,7 @@ export const CONSTANTS = {
   LOCAL_STORAGE_TRADE_KEY: "cachy_trade_store",
   LOCAL_STORAGE_JOURNAL_KEY: "tradeJournal",
   LOCAL_STORAGE_PRESETS_KEY: "cryptoCalculatorPresets",
-  LOCAL_STORAGE_THEME_KEY: "theme",
+  LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   STATUS_INVALID: "INVALID",
   STATUS_INCOMPLETE: "INCOMPLETE",
   STATUS_VALID: "VALID",

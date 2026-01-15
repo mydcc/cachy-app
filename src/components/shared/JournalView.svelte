@@ -555,7 +555,6 @@
               class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
             ></div>
           {:else}
-            <!-- svelte-ignore svelte/no-at-html-tags -->
             {@html icons.refresh}
           {/if}
           <span class="hidden sm:inline">
