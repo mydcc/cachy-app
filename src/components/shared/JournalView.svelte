@@ -448,21 +448,30 @@
 
   <!-- Column Settings Popup -->
   {#if showColumnSettings}
+    <!-- Backdrop -->
+    <div
+      class="fixed inset-0 bg-black/50 z-40"
+      role="button"
+      tabindex="0"
+      onclick={() => (showColumnSettings = false)}
+      onkeydown={(e) => e.key === "Escape" && (showColumnSettings = false)}
+    ></div>
+    <!-- Popup -->
     <div class="relative">
       <div
-        class="absolute top-0 right-0 z-50 column-settings-popup bg-[var(--card-bg)] border border-[var(--border-color)] rounded-lg shadow-2xl p-4 animate-in fade-in slide-in-from-top-2"
+        class="absolute top-0 right-0 z-50 column-settings-popup bg-[var(--card-bg)] border-2 border-[var(--border-color)] rounded-lg shadow-2xl p-5 min-w-[400px] backdrop-blur-sm animate-in fade-in slide-in-from-top-2"
+        style="background-color: var(--card-bg); opacity: 1;"
       >
-        <div class="flex justify-between items-center mb-3">
+        <div class="flex justify-between items-center mb-4">
           <h4 class="text-sm font-bold">
             {$_("journal.labels.tableSettings")}
           </h4>
           <button
-            class="text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-            onclick={() => (showColumnSettings = false)}
-            >{$_("common.ok")}</button
+            class="text-xs px-3 py-1 rounded bg-[var(--accent-color)] text-white hover:opacity-80 transition-opacity"
+            onclick={() => (showColumnSettings = false)}>OK</button
           >
         </div>
-        <div class="grid grid-cols-2 gap-2">
+        <div class="grid grid-cols-2 gap-3">
           {#each Object.keys(columnVisibility) as col}
             <label
               class="flex items-center gap-2 cursor-pointer hover:bg-[var(--bg-secondary)] p-2 rounded transition-colors"

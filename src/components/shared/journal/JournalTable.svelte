@@ -825,19 +825,19 @@
 
         {#if totalPages > 1 && !isInternal}
             <div class="pagination-footer">
-                <div class="flex items-center gap-4">
+                <div class="flex items-center gap-3">
                     <button
-                        class="p-2 rounded bg-[var(--bg-secondary)] disabled:opacity-50"
+                        class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         disabled={currentPage === 1}
                         onclick={() => handlePageChange(currentPage - 1)}
                     >
                         ◀
                     </button>
-                    <span class="text-xs">
+                    <span class="text-sm font-medium min-w-[60px] text-center">
                         {currentPage} / {totalPages}
                     </span>
                     <button
-                        class="p-2 rounded bg-[var(--bg-secondary)] disabled:opacity-50"
+                        class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         disabled={currentPage === totalPages}
                         onclick={() => handlePageChange(currentPage + 1)}
                     >
@@ -845,13 +845,13 @@
                     </button>
                 </div>
                 <div class="flex items-center gap-2">
-                    <span class="text-xs"
+                    <span class="text-sm"
                         >{$_("journal.table.itemsPerPage")}:</span
                     >
                     <select
                         bind:value={itemsPerPage}
                         onchange={handleItemsPerPageChange}
-                        class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded text-xs px-1 py-0.5"
+                        class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-2 py-1 text-sm hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
                     >
                         <option value={5}>5</option>
                         <option value={10}>10</option>
@@ -868,11 +868,11 @@
 <style>
     .journal-table-container {
         width: 100%;
-        overflow-x: auto;
     }
 
     .table-wrapper {
         min-width: 800px;
+        overflow-x: auto;
     }
 
     .journal-table {
