@@ -417,19 +417,11 @@
                                         >
                                     </td>
                                 {/if}
-                                {#if columnVisibility.date}<td class="col-date"
-                                        >-</td
-                                    >{/if}
                                 {#if columnVisibility.symbol}
                                     <td class="font-bold col-symbol"
                                         >{item.symbol} ({item.totalTrades})</td
                                     >
                                 {/if}
-                                {#if columnVisibility.type}<td>-</td>{/if}
-                                {#if columnVisibility.entry}<td>-</td>{/if}
-                                {#if columnVisibility.exit}<td>-</td>{/if}
-                                {#if columnVisibility.sl}<td>-</td>{/if}
-                                {#if columnVisibility.size}<td>-</td>{/if}
                                 {#if columnVisibility.pnl}
                                     <td
                                         class="font-bold {getProfitClass(
@@ -442,7 +434,6 @@
                                         )}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.funding}<td>-</td>{/if}
                                 {#if columnVisibility.rr}
                                     <td>
                                         {(
@@ -452,13 +443,6 @@
                                         ).toFixed(1)}% Win
                                     </td>
                                 {/if}
-                                {#if columnVisibility.mae}<td>-</td>{/if}
-                                {#if columnVisibility.mfe}<td>-</td>{/if}
-                                {#if columnVisibility.efficiency}<td>-</td>{/if}
-                                {#if columnVisibility.duration}<td>-</td>{/if}
-                                {#if columnVisibility.status}<td>-</td>{/if}
-                                {#if columnVisibility.tags}<td>-</td>{/if}
-                                {#if columnVisibility.notes}<td>-</td>{/if}
                                 {#if columnVisibility.action}<td></td>{/if}
                             </tr>
 
