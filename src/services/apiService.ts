@@ -175,6 +175,16 @@ export const apiService = {
     return normalizeSymbol(symbol, provider);
   },
 
+  async safeJson(response: Response) {
+    const contentType = response.headers.get("content-type");
+    if (!contentType || !contentType.includes("application/json")) {
+      const text = await response.text();
+      console.error("Expected JSON but received:", text.slice(0, 100));
+      throw new Error("apiErrors.invalidResponseFormat");
+    }
+    return response.json();
+  },
+
   async fetchBitunixPrice(
     symbol: string,
     priority: "high" | "normal" = "high",
@@ -194,7 +204,7 @@ export const apiService = {
             signal,
           });
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
-          const res = await response.json();
+          const res = await apiService.safeJson(response);
           if (res.code !== undefined && res.code !== 0) {
             throw new Error(getBitunixErrorKey(res.code));
           }
@@ -273,7 +283,7 @@ export const apiService = {
             }
             throw new Error("apiErrors.klineError");
           }
-          const res = await response.json();
+          const res = await apiService.safeJson(response);
 
           // Backend returns the mapped array directly
           if (!Array.isArray(res)) {

@@ -10,24 +10,28 @@
   let { bids = [], asks = [] }: Props = $props();
 
   // Calculate total volume for the top 5 levels
-  let bidVol = $derived(bids.reduce(
-    (acc, [_, qty]) => acc.plus(new Decimal(qty)),
-    new Decimal(0)
-  ));
-  let askVol = $derived(asks.reduce(
-    (acc, [_, qty]) => acc.plus(new Decimal(qty)),
-    new Decimal(0)
-  ));
+  let bidVol = $derived(
+    (bids ?? []).reduce(
+      (acc, [_, qty]) => acc.plus(new Decimal(qty || 0)),
+      new Decimal(0),
+    ),
+  );
+  let askVol = $derived(
+    (asks ?? []).reduce(
+      (acc, [_, qty]) => acc.plus(new Decimal(qty || 0)),
+      new Decimal(0),
+    ),
+  );
 
   let totalVol = $derived(bidVol.plus(askVol));
 
   // Percentages
-  let bidPercent = $derived(totalVol.gt(0)
-    ? bidVol.div(totalVol).times(100).toNumber()
-    : 50);
-  let askPercent = $derived(totalVol.gt(0)
-    ? askVol.div(totalVol).times(100).toNumber()
-    : 50);
+  let bidPercent = $derived(
+    totalVol.gt(0) ? bidVol.div(totalVol).times(100).toNumber() : 50,
+  );
+  let askPercent = $derived(
+    totalVol.gt(0) ? askVol.div(totalVol).times(100).toNumber() : 50,
+  );
 </script>
 
 <div class="flex flex-col gap-1 w-full mt-2">
@@ -38,11 +42,11 @@
     <div
       class="bg-[var(--success-color)] transition-all duration-300"
       style="width: {bidPercent}%"
-></div>
+    ></div>
     <div
       class="bg-[var(--danger-color)] transition-all duration-300"
       style="width: {askPercent}%"
-></div>
+    ></div>
   </div>
 
   <!-- Text Labels -->
