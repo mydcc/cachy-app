@@ -130,7 +130,7 @@
   <h2 class="section-header !mt-6">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
-  <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+  <div class="grid grid-cols-1 sm:grid-cols-[1fr_1.2fr_1fr] gap-4">
     <div>
       <label for="account-size" class="input-label text-xs"
         >{$_("dashboard.portfolioInputs.accountSizeLabel")}</label
@@ -171,7 +171,7 @@
       </div>
     </div>
     <div>
-      <label for="risk-percentage" class="input-label text-xs"
+      <label for="risk-percentage" class="input-label text-xs whitespace-nowrap"
         >{$_("dashboard.portfolioInputs.riskPerTradeLabel")}</label
       >
       <div class="relative">

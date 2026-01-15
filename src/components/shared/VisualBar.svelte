@@ -22,22 +22,18 @@
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
   const tradeType = $derived($tradeStore.tradeType);
 
-  // Constants for sizing
+  // Pixel-perfekte Vorgaben
   const WIDTH = 1000;
+  const BAR_H = 8; // Exakt 8px laut Vorgabe
   const HEIGHT = 40;
   const BAR_Y = 20;
-  const BAR_H = 10;
 
-  // Determine the relevant price range for the visualization
-  // We want the bar to start at SL and end at the furthest target.
   const furthestPrice = $derived.by(() => {
     if (entryPrice === null || stopLossPrice === null) return null;
     const prices = [entryPrice];
     safeTargets.forEach((t) => {
       if (t.price) prices.push(t.price);
     });
-
-    // For Long: max price. For Short: min price.
     return tradeType === "long" ? Math.max(...prices) : Math.min(...prices);
   });
 
@@ -48,15 +44,10 @@
       entryPrice !== stopLossPrice,
   );
 
-  // Calculate the total price difference covered by the bar (SL to Furthest TP)
   const totalDiff = $derived(
     isReady ? Math.abs(furthestPrice! - stopLossPrice!) : 1,
   );
 
-  /**
-   * Translates a price to an X coordinate (0 to WIDTH)
-   * where SL is always at 0 (on the left) and the furthest point is at WIDTH (on the right).
-   */
   const getX = (price: number | null | undefined | Decimal) => {
     if (
       !isReady ||
@@ -66,11 +57,8 @@
     )
       return 0;
     const p = price instanceof Decimal ? price.toNumber() : price;
-
-    // Distance from SL
     const dist = Math.abs(p - stopLossPrice);
     const x = (dist / totalDiff) * WIDTH;
-
     return Math.max(0, Math.min(WIDTH, x));
   };
 
@@ -95,19 +83,17 @@
   );
 
   const entryX = $derived(getX(entryPrice));
-  const slX = 0; // By definition in our scaling logic
 </script>
 
-<div class="visual-bar-outer mt-6">
-  <div class="visual-bar-card glass-panel">
-    <!-- Header: Label and TP Markers -->
-    <div class="view-header">
+<div class="visual-bar-wrapper">
+  <div class="visual-bar-card">
+    <div class="header-content">
       <div class="title-section">
-        <span class="sl-badge">SL</span>
-        <span class="view-title">{$_("dashboard.visualBar.header")}</span>
+        <span class="sl-tag">SL</span>
+        <span class="main-title">{$_("dashboard.visualBar.header")}</span>
       </div>
 
-      <!-- TP Labels absolute over the whole width of the bar part -->
+      <!-- TP Labels: Spread relative to their position -->
       <div class="tp-markers-row">
         {#each tpData as tp}
           <div class="tp-marker" style="left: {(tp.x / WIDTH) * 100}%">
@@ -118,58 +104,58 @@
       </div>
     </div>
 
-    <!-- The Bar itself -->
-    <div class="bar-container relative">
+    <!-- The 8px Bar -->
+    <div class="svg-container">
       <svg
         viewBox="0 0 {WIDTH} {HEIGHT}"
         preserveAspectRatio="none"
-        class="bar-svg"
+        class="svg-bar"
       >
         {#if isReady}
-          <!-- Base Track -->
+          <!-- Track -->
           <rect
             x="0"
             y={BAR_Y - BAR_H / 2}
             width={WIDTH}
             height={BAR_H}
-            rx={BAR_H / 2}
-            fill="var(--bg-tertiary)"
+            rx="2"
+            fill="rgba(255,255,255,0.05)"
           />
 
-          <!-- Red Segment (Risk: SL to Entry) -->
+          <!-- Risk Zone (Red) -->
           <rect
             x="0"
             y={BAR_Y - BAR_H / 2}
             width={entryX}
             height={BAR_H}
-            rx={BAR_H / 2}
+            rx="2"
             fill="var(--danger-color)"
           />
 
-          <!-- Green Segment (Profit: Entry to end) -->
+          <!-- Profit Zone (Green) -->
           <rect
             x={entryX}
             y={BAR_Y - BAR_H / 2}
-            width={Math.max(0, WIDTH - entryX)}
+            width={WIDTH - entryX}
             height={BAR_H}
-            rx={BAR_H / 2}
+            rx="2"
             fill="var(--success-color)"
           />
 
-          <!-- White Vertical Markers -->
+          <!-- Vertical Lines (White) -->
           <line
             x1="0"
             x2="0"
-            y1={BAR_Y - 12}
-            y2={BAR_Y + 12}
+            y1={BAR_Y - 8}
+            y2={BAR_Y + 8}
             stroke="white"
             stroke-width="2"
           />
           <line
             x1={entryX}
             x2={entryX}
-            y1={BAR_Y - 12}
-            y2={BAR_Y + 12}
+            y1={BAR_Y - 8}
+            y2={BAR_Y + 8}
             stroke="white"
             stroke-width="2"
           />
@@ -177,8 +163,8 @@
             <line
               x1={tp.x}
               x2={tp.x}
-              y1={BAR_Y - 12}
-              y2={BAR_Y + 12}
+              y1={BAR_Y - 8}
+              y2={BAR_Y + 8}
               stroke="white"
               stroke-width="2"
             />
@@ -187,8 +173,8 @@
       </svg>
     </div>
 
-    <!-- Entry Label below the bar -->
-    <div class="footer-labels">
+    <!-- Entry Footer -->
+    <div class="badge-footer">
       {#if isReady}
         <div class="entry-pointer" style="left: {(entryX / WIDTH) * 100}%">
           Einstieg
@@ -199,51 +185,55 @@
 </div>
 
 <style>
-  .visual-bar-outer {
+  .visual-bar-wrapper {
     width: 100%;
-    margin-bottom: 3rem;
+    margin-top: 1.5rem;
+    margin-bottom: 2rem;
   }
 
   .visual-bar-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    padding: 1.25rem 1.5rem;
-    border-radius: 0.75rem;
+    padding: 0.75rem 1rem; /* Schlanker Rahmen */
+    border-radius: 0.5rem;
     box-shadow: var(--shadow-sm);
     position: relative;
+    overflow: hidden;
   }
 
-  .view-header {
+  .header-content {
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 2rem;
+    margin-bottom: 1.25rem;
     position: relative;
-    height: 32px;
+    height: 28px;
   }
 
   .title-section {
     display: flex;
     align-items: center;
-    gap: 0.75rem;
+    gap: 0.5rem;
     flex-shrink: 0;
-    margin-bottom: 2px;
+    margin-bottom: 1px;
+    background: var(--bg-secondary);
+    padding-right: 1rem;
+    z-index: 5;
   }
 
-  .sl-badge {
+  .sl-tag {
     background: #1e293b;
     color: #94a3b8;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
-    padding: 2px 6px;
-    border-radius: 4px;
+    padding: 1px 4px;
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.05);
-    letter-spacing: 0.5px;
   }
 
-  .view-title {
+  .main-title {
     color: var(--text-secondary);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.05em;
     text-transform: uppercase;
@@ -266,41 +256,42 @@
     display: flex;
     flex-direction: column;
     align-items: center;
-    min-width: 50px;
+    min-width: 40px;
   }
 
   .tp-id {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     color: var(--text-primary);
     line-height: 1;
   }
 
   .tp-rr-value {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 600;
     color: var(--text-secondary);
     margin-top: 1px;
   }
 
-  .bar-container {
+  .svg-container {
     width: 100%;
-    height: 20px;
-    margin-bottom: 4px;
+    height: 16px;
+    display: flex;
+    align-items: center;
   }
 
-  .bar-svg {
+  .svg-bar {
     width: 100%;
     height: 100%;
-    overflow: visible;
     display: block;
+    overflow: visible;
   }
 
-  .footer-labels {
+  .badge-footer {
     position: relative;
     width: 100%;
-    height: 20px;
-    margin-top: 8px;
+    height: 14px;
+    margin-top: 6px;
   }
 
   .entry-pointer {
@@ -309,10 +300,10 @@
     transform: translateX(-50%);
     background: #1e293b;
     color: #94a3b8;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
-    padding: 2px 8px;
-    border-radius: 4px;
+    padding: 1px 6px;
+    border-radius: 3px;
     border: 1px solid rgba(255, 255, 255, 0.05);
     white-space: nowrap;
   }

@@ -649,12 +649,14 @@
           </div>
         {/each}
       </div>
-      <VisualBar
-        entryPrice={$tradeStore.entryPrice}
-        stopLossPrice={$tradeStore.stopLossPrice}
-        targets={$tradeStore.targets}
-        calculatedTpDetails={$resultsStore.calculatedTpDetails}
-      />
+      <div class="md:col-span-2">
+        <VisualBar
+          entryPrice={$tradeStore.entryPrice}
+          stopLossPrice={$tradeStore.stopLossPrice}
+          targets={$tradeStore.targets}
+          calculatedTpDetails={$resultsStore.calculatedTpDetails}
+        />
+      </div>
       <footer class="md:col-span-2">
         <textarea
           id="tradeNotes"
