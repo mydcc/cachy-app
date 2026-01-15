@@ -1,6 +1,9 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHmac, createHash, randomBytes } from "crypto";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const body = await request.json();
@@ -8,6 +11,14 @@ export const POST: RequestHandler = async ({ request }) => {
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  }
+
+  // Security: Validate API Key length
+  if (exchange === "bitunix") {
+    const validationError = validateBitunixKeys(apiKey, apiSecret);
+    if (validationError) {
+      return json({ error: validationError }, { status: 400 });
+    }
   }
 
   try {
@@ -76,19 +87,12 @@ async function placeBitunixOrder(
     (key) => payload[key] === undefined && delete payload[key]
   );
 
-  // Signing
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
-  // Sort keys for signature (body is usually empty for GET, but this is POST)
-  // Bitunix POST signature: digestInput = nonce + timestamp + apiKey + queryParams + bodyStr
-  // For POST, queryParams is empty usually.
-  // bodyStr is JSON string of payload
-  const bodyStr = JSON.stringify(payload);
-  const digestInput = nonce + timestamp + apiKey + bodyStr;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    {},
+    payload
+  );
 
   const url = `${baseUrl}${path}`;
 
@@ -106,7 +110,8 @@ async function placeBitunixOrder(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();
@@ -126,19 +131,12 @@ async function fetchBitunixPendingOrders(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
 
-  const params: Record<string, string> = {};
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
+  const { nonce, timestamp, signature } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    {},
+    ""
+  );
 
   const url = `${baseUrl}${path}`;
 
@@ -155,7 +153,8 @@ async function fetchBitunixPendingOrders(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();
@@ -216,20 +215,13 @@ async function fetchBitunixHistoryOrders(
     limit: "20",
   };
 
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    ""
+  );
 
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  const queryString = new URLSearchParams(params).toString();
   const url = `${baseUrl}${path}?${queryString}`;
 
   const response = await fetch(url, {
@@ -245,7 +237,8 @@ async function fetchBitunixHistoryOrders(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();
