@@ -162,13 +162,13 @@
     {:else}
         <div class="table-wrapper">
             <table class="journal-table">
-                {#if !isInternal}
+                {#if !isInternal || (isInternal && trades.length > 0)}
                     <thead>
                         <tr>
                             {#if groupBySymbol}
                                 <th class="w-8"></th>
                             {/if}
-                            {#if columnVisibility.date}
+                            {#if columnVisibility.date && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("date")}
                                     class="sortable col-date"
@@ -198,7 +198,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.type}
+                            {#if columnVisibility.type && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("tradeType")}
                                     class="sortable"
@@ -213,7 +213,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.entry}
+                            {#if columnVisibility.entry && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("entryPrice")}
                                     class="sortable"
@@ -228,7 +228,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.exit}
+                            {#if columnVisibility.exit && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("exitPrice")}
                                     class="sortable"
@@ -243,7 +243,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.sl}
+                            {#if columnVisibility.sl && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("stopLossPrice")}
                                     class="sortable"
@@ -258,7 +258,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.size}
+                            {#if columnVisibility.size && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("positionSize")}
                                     class="sortable"
@@ -288,7 +288,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.funding}
+                            {#if columnVisibility.funding && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("fundingFee")}
                                     class="sortable"
@@ -318,7 +318,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.mae}
+                            {#if columnVisibility.mae && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("mae")}
                                     class="sortable"
@@ -333,7 +333,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.mfe}
+                            {#if columnVisibility.mfe && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("mfe")}
                                     class="sortable"
@@ -348,7 +348,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.efficiency}
+                            {#if columnVisibility.efficiency && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("efficiency")}
                                     class="sortable"
@@ -363,7 +363,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.duration}
+                            {#if columnVisibility.duration && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("duration")}
                                     class="sortable"
@@ -378,7 +378,7 @@
                                     >
                                 </th>
                             {/if}
-                            {#if columnVisibility.status}
+                            {#if columnVisibility.status && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("status")}
                                     class="sortable"
@@ -386,13 +386,13 @@
                                     {$_("journal.table.status")}
                                 </th>
                             {/if}
-                            {#if columnVisibility.screenshot}
+                            {#if columnVisibility.screenshot && !groupBySymbol}
                                 <th>{$_("journal.table.screenshot")}</th>
                             {/if}
-                            {#if columnVisibility.tags}
+                            {#if columnVisibility.tags && !groupBySymbol}
                                 <th>{$_("journal.table.tags")}</th>
                             {/if}
-                            {#if columnVisibility.notes}<th
+                            {#if columnVisibility.notes && !groupBySymbol}<th
                                     >{$_("journal.table.notes")}</th
                                 >{/if}
                             {#if columnVisibility.action}<th
