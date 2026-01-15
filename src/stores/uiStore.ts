@@ -21,6 +21,12 @@ interface UiState {
   // Loading State
   isLoading: boolean;
   loadingMessage: string;
+  // Sync Progress State
+  syncProgress: {
+    total: number;
+    current: number;
+    step: string; // e.g. "Fetching History", "Processing 10/50"
+  } | null;
 }
 
 const initialUiState: UiState = {
@@ -41,6 +47,7 @@ const initialUiState: UiState = {
   showSymbolSuggestions: false,
   isLoading: false,
   loadingMessage: "",
+  syncProgress: null,
 };
 
 // Synchron mit HTML-Script: Lade Theme VOR Store-Erstellung
@@ -150,6 +157,9 @@ function createUiStore() {
       })),
     hideLoading: () =>
       update((state) => ({ ...state, isLoading: false, loadingMessage: "" })),
+    setSyncProgress: (progress: UiState["syncProgress"]) =>
+      update((state) => ({ ...state, syncProgress: progress })),
+
   };
 }
 

@@ -23,6 +23,8 @@ export const syncService = {
     if (get(uiStore).isPriceFetching) return;
 
     uiStore.update((s) => ({ ...s, isPriceFetching: true }));
+    uiStore.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
+
 
     try {
       // 1. Fetch History Positions
@@ -146,6 +148,11 @@ export const syncService = {
         return !existingHistoryIds.has(uniqueId);
       });
 
+      const totalItems = filteredHistory.length;
+      let processedItems = 0;
+      uiStore.setSyncProgress({ total: totalItems, current: 0, step: "Processing History" });
+
+
       // Batch size for parallel kline requests
       const BATCH_SIZE = 3;
       for (let i = 0; i < filteredHistory.length; i += BATCH_SIZE) {
@@ -265,7 +272,11 @@ export const syncService = {
         if (i + BATCH_SIZE < filteredHistory.length) {
           await new Promise(r => setTimeout(r, 600));
         }
+
+        processedItems += batch.length;
+        uiStore.setSyncProgress({ total: totalItems, current: processedItems, step: "Processing History" });
       }
+
 
       // Safe Swap
       const previousJournal = get(journalStore);
@@ -286,7 +297,9 @@ export const syncService = {
       uiStore.showError("Sync failed: " + e.message);
     } finally {
       uiStore.update((s) => ({ ...s, isPriceFetching: false }));
+      uiStore.setSyncProgress(null);
     }
+
   },
 
   saveJournal: (d: JournalEntry[]) => {

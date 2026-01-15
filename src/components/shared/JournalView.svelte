@@ -523,26 +523,48 @@
     class="flex flex-wrap items-center gap-4 mt-8 pt-4 border-t border-[var(--border-color)]"
   >
     {#if $settingsStore.isPro}
-      <button
-        id="sync-bitunix-btn"
-        class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)] disabled:opacity-50 disabled:cursor-not-allowed"
-        title={$_("journal.syncBitunix")}
-        onclick={app.syncBitunixHistory}
-        disabled={$uiStore.isPriceFetching || $uiStore.isLoading}
-      >
-        {#if $uiStore.isPriceFetching}
+      {#if $uiStore.syncProgress}
+        <div
+          class="flex items-center gap-3 px-4 py-2 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)] shadow-sm"
+          title="Synchronizing History..."
+        >
+          <span class="font-mono text-xs text-[var(--text-primary)] font-bold">
+            {$uiStore.syncProgress.current} / {$uiStore.syncProgress.total}
+          </span>
           <div
-            class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
-          ></div>
-        {:else}
-          {@html icons.refresh}
-        {/if}
-        <span class="hidden sm:inline">
-          {$uiStore.isPriceFetching
-            ? $_("journal.messages.syncing")
-            : $_("journal.syncBitunix")}
-        </span>
-      </button>
+            class="w-24 sm:w-32 h-2.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden"
+          >
+            <div
+              class="h-full bg-[var(--accent-color)] transition-all duration-500 ease-out"
+              style="width: {($uiStore.syncProgress.current /
+                Math.max($uiStore.syncProgress.total, 1)) *
+                100}%"
+            ></div>
+          </div>
+        </div>
+      {:else}
+        <button
+          id="sync-bitunix-btn"
+          class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-primary-bg)] hover:bg-[var(--btn-primary-hover-bg)] text-[var(--btn-primary-text)] disabled:opacity-50 disabled:cursor-not-allowed"
+          title={$_("journal.syncBitunix")}
+          onclick={app.syncBitunixHistory}
+          disabled={$uiStore.isPriceFetching || $uiStore.isLoading}
+        >
+          {#if $uiStore.isPriceFetching}
+            <div
+              class="animate-spin h-4 w-4 border-2 border-current border-t-transparent rounded-full"
+            ></div>
+          {:else}
+            <!-- svelte-ignore svelte/no-at-html-tags -->
+            {@html icons.refresh}
+          {/if}
+          <span class="hidden sm:inline">
+            {$uiStore.isPriceFetching
+              ? $_("journal.messages.syncing")
+              : $_("journal.syncBitunix")}
+          </span>
+        </button>
+      {/if}
     {/if}
     <button
       id="export-csv-btn"
@@ -572,6 +594,7 @@
         >{$_("journal.import")}</span
       ></button
     >
+
     <button
       id="clear-journal-btn"
       class="font-bold py-2 px-4 rounded-lg flex items-center gap-2 bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]"
