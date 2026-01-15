@@ -22,10 +22,8 @@
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
   const tradeType = $derived($tradeStore.tradeType);
 
-  // Pixel-perfekte Vorgaben für 40px Gesamthöhe
-  // Wir verzichten auf SVG Viewport Skalierung für die Höhe um echte 6px zu halten.
   const WIDTH = 1000;
-  const BAR_H = 6; // Echte 6px
+  const BAR_H = 6;
 </script>
 
 <div class="visual-bar-container">
@@ -56,15 +54,17 @@
         .filter((t) => t !== null)}
 
       <div class="visual-bar-content">
-        <!-- Labels Top -->
+        <!-- Labels Above Bar -->
         <div class="labels-top">
-          <div class="sl-label">SL</div>
           {#each tpData as tp}
             <div class="tp-label" style="left: {tp.x}%">
               <span class="tp-name">TP{tp.idx}</span>
               <span class="tp-rr">{tp.rr}R</span>
             </div>
           {/each}
+          <div class="entry-label-top" style="left: {entryX}%">
+            {$_("dashboard.visualBar.entry")}
+          </div>
         </div>
 
         <!-- The Bar -->
@@ -90,11 +90,9 @@
           </div>
         </div>
 
-        <!-- Labels Bottom -->
+        <!-- Labels Below Bar -->
         <div class="labels-bottom">
-          <div class="entry-label" style="left: {entryX}%">
-            {$_("dashboard.visualBar.entryLabel")}
-          </div>
+          <div class="sl-label">SL</div>
         </div>
       </div>
     {/if}
@@ -104,7 +102,7 @@
 <style>
   .visual-bar-container {
     width: 100%;
-    height: 40px; /* Fixe Gesamthöhe */
+    height: 40px;
     margin: 1rem 0;
     position: relative;
     user-select: none;
@@ -123,18 +121,9 @@
     width: 100%;
   }
 
-  .sl-label {
-    position: absolute;
-    left: 0;
-    font-size: 13px; /* Größer */
-    font-weight: 900;
-    color: var(--text-secondary);
-    transform: translateY(-3px);
-  }
-
   .tp-label {
     position: absolute;
-    transform: translateX(-50%);
+    transform: translateX(-50%) translateY(-2px);
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -142,19 +131,28 @@
   }
 
   .tp-name {
-    font-size: 12px; /* Größer */
+    font-size: 12px;
     font-weight: 800;
     color: var(--text-primary);
   }
 
   .tp-rr {
-    font-size: 10px; /* Größer */
+    font-size: 10px;
     font-weight: 700;
     color: var(--text-secondary);
   }
 
+  .entry-label-top {
+    position: absolute;
+    transform: translateX(-50%) translateY(-2px);
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-secondary);
+    white-space: nowrap;
+  }
+
   .bar-row {
-    height: 14px; /* Mehr Platz für dicke Marker */
+    height: 14px;
     display: flex;
     align-items: center;
     position: relative;
@@ -186,9 +184,9 @@
 
   .marker {
     position: absolute;
-    top: -4px; /* Höhere Marker */
+    top: -4px;
     height: 14px;
-    width: 3.5px; /* Noch dicker */
+    width: 3.5px;
     background: white;
     transform: translateX(-50%);
     border-radius: 1.5px;
@@ -202,19 +200,17 @@
   }
 
   .labels-bottom {
-    height: 14px;
+    height: 12px;
     position: relative;
     width: 100%;
   }
 
-  .entry-label {
+  .sl-label {
     position: absolute;
-    transform: translateX(-50%);
-    font-size: 12px; /* Größer */
-    font-weight: 800;
+    left: 0;
+    font-size: 13px;
+    font-weight: 900;
     color: var(--text-secondary);
-    white-space: nowrap;
-    transform-origin: center;
-    margin-top: -1px;
+    transform: translateY(2px);
   }
 </style>
