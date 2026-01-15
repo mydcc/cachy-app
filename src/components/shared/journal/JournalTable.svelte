@@ -171,7 +171,7 @@
                             {#if columnVisibility.date}
                                 <th
                                     onclick={() => handleSort("date")}
-                                    class="sortable"
+                                    class="sortable col-date"
                                 >
                                     {$_("journal.table.date")}
                                     <span class="sort-icon"
@@ -186,7 +186,7 @@
                             {#if columnVisibility.symbol}
                                 <th
                                     onclick={() => handleSort("symbol")}
-                                    class="sortable"
+                                    class="sortable col-symbol"
                                 >
                                     {$_("journal.table.symbol")}
                                     <span class="sort-icon"
@@ -417,9 +417,11 @@
                                         >
                                     </td>
                                 {/if}
-                                {#if columnVisibility.date}<td>-</td>{/if}
+                                {#if columnVisibility.date}<td class="col-date"
+                                        >-</td
+                                    >{/if}
                                 {#if columnVisibility.symbol}
-                                    <td class="font-bold"
+                                    <td class="font-bold col-symbol"
                                         >{item.symbol} ({item.totalTrades})</td
                                     >
                                 {/if}
@@ -486,7 +488,7 @@
                                 {#if groupBySymbol && !isInternal}<td></td>{/if}
                                 {#if columnVisibility.date}
                                     <td
-                                        class="text-xs text-[var(--text-secondary)]"
+                                        class="text-xs text-[var(--text-secondary)] col-date"
                                     >
                                         {new Date(item.date).toLocaleString(
                                             undefined,
@@ -501,7 +503,9 @@
                                     </td>
                                 {/if}
                                 {#if columnVisibility.symbol}
-                                    <td class="font-medium">{item.symbol}</td>
+                                    <td class="font-medium col-symbol"
+                                        >{item.symbol}</td
+                                    >
                                 {/if}
                                 {#if columnVisibility.type}
                                     <td
@@ -907,6 +911,19 @@
         letter-spacing: 0.05em;
     }
 
+    /* Fixed column widths for alignment */
+    .col-date {
+        min-width: 110px;
+        max-width: 110px;
+        width: 110px;
+    }
+
+    .col-symbol {
+        min-width: 140px;
+        max-width: 140px;
+        width: 140px;
+    }
+
     .journal-table th.sortable {
         cursor: pointer;
         user-select: none;
@@ -944,6 +961,11 @@
         background-color: transparent;
     }
 
+    /* Compact padding for nested trade rows */
+    .is-recursive td {
+        padding: 0.25rem 0.5rem;
+    }
+
     .pagination-footer {
         display: flex;
         justify-content: space-between;
@@ -954,6 +976,14 @@
     .status-select {
         cursor: pointer;
         outline: none;
+    }
+
+    /* Remove dropdown arrow for disabled status selects */
+    .status-select:disabled {
+        appearance: none;
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        cursor: default;
     }
 
     .text-success {

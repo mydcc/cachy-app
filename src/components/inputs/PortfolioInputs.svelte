@@ -130,7 +130,7 @@
   <h2 class="section-header !mt-6">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
-  <div class="flex flex-wrap items-end gap-6">
+  <div class="flex flex-nowrap items-end gap-6">
     <div class="flex-1 min-w-[140px] max-w-[200px]">
       <label
         for="account-size"
