@@ -49,7 +49,7 @@
         })
         .filter((t) => t !== null)}
 
-      <!-- Header: 18px fixed -->
+      <!-- Header: 24px -->
       <div class="header-section">
         <div class="header-left">
           <span class="sl-badge">SL</span>
@@ -65,7 +65,10 @@
         </div>
       </div>
 
-      <!-- Bar: 10px fixed -->
+      <!-- Spacer: 8px -->
+      <div class="spacer-top"></div>
+
+      <!-- Bar: 16px -->
       <div class="bar-section">
         <div class="bar-track">
           <div class="bar-fill risk" style="width: {entryX}%"></div>
@@ -82,7 +85,10 @@
         {/each}
       </div>
 
-      <!-- Footer: 12px fixed -->
+      <!-- Spacer: 8px -->
+      <div class="spacer-bottom"></div>
+
+      <!-- Footer: 16px -->
       <div class="footer-section">
         <div class="entry-label" style="left: {entryX}%">
           {$_("dashboard.visualBar.entry")}
@@ -97,14 +103,14 @@
     background: rgba(30, 41, 59, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 8px;
-    padding: 8px 12px;
-    margin: 1rem 0;
-    height: 40px; /* Total height */
+    padding: 0.75rem 1rem; /* Standard card padding */
+    margin: 1.5rem 0; /* Standard vertical margin */
+    height: 80px; /* Increased from 40px */
   }
 
-  /* Header Section: 18px */
+  /* Header Section: 24px */
   .header-section {
-    height: 18px;
+    height: 24px;
     position: relative;
     display: flex;
     align-items: flex-start;
@@ -170,16 +176,23 @@
     line-height: 1;
   }
 
-  /* Bar Section: 10px */
+  /* Spacers for breathing room */
+  .spacer-top,
+  .spacer-bottom {
+    height: 8px;
+  }
+
+  /* Bar Section: 16px */
   .bar-section {
-    height: 10px;
+    height: 16px;
     position: relative;
-    margin: 0;
+    display: flex;
+    align-items: center;
   }
 
   .bar-track {
     width: 100%;
-    height: 10px; /* Fixed 10px */
+    height: 10px; /* Actual bar height */
     background: rgba(255, 255, 255, 0.05);
     border-radius: 4px;
     position: relative;
@@ -203,20 +216,22 @@
 
   .marker {
     position: absolute;
-    top: -4px; /* Extend above bar */
-    width: 4px; /* Thicker */
-    height: 18px; /* Taller */
+    top: 50%;
+    transform: translate(-50%, -50%);
+    width: 4px;
+    height: 20px; /* Taller for visibility */
     background: white;
-    transform: translateX(-50%);
     border-radius: 2px;
     box-shadow: 0 0 6px rgba(0, 0, 0, 0.6);
     z-index: 5;
   }
 
-  /* Footer Section: 12px */
+  /* Footer Section: 16px */
   .footer-section {
-    height: 12px;
+    height: 16px;
     position: relative;
+    display: flex;
+    align-items: center;
   }
 
   .entry-label {

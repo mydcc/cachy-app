@@ -165,6 +165,7 @@
     },
     "visualBar": {
       "header": "Visuelle Analyse",
+      "entry": "Einstieg",
       "ariaLabel": "Trade-Visualisierungsleiste",
       "netProfitLabel": "Netto-Gewinn:",
       "rrLabel": "R/R:"

@@ -165,6 +165,7 @@
     },
     "visualBar": {
       "header": "Visual Analysis",
+      "entry": "Entry",
       "ariaLabel": "Trade Visualization Bar",
       "netProfitLabel": "Net Profit:",
       "rrLabel": "R/R:"
