@@ -42,10 +42,12 @@
     return new Decimal(be.replace(/[^\d.]/g, ""));
   });
 
-  // SVG Scaling logic
-  const PADDING = 60; // Internal SVG padding for labels
+  // SVG Scaling logic (Slimified)
+  const PADDING = 60;
   const WIDTH = 1000;
-  const HEIGHT = 140;
+  const HEIGHT = 100; // Reduced height
+  const BAR_H = 8; // Exactly 8px
+  const BAR_Y = 50; // Centered
 
   let minPrice = $state(0);
   let maxPrice = $state(0);
@@ -120,14 +122,14 @@
   class="visual-bar-container md:col-span-2 glass-panel rounded-xl border border-[var(--border-color)] overflow-hidden"
 >
   <div
-    class="visual-header flex items-center justify-between px-4 py-2 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/50"
+    class="visual-header flex items-center justify-between px-4 py-1.5 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/50"
   >
     <div class="flex items-center gap-2">
       <div class="sl-tag">SL</div>
       <span class="header-title">{$_("dashboard.visualBar.header")}</span>
     </div>
     {#if livePrice}
-      <div class="flex items-center gap-2 text-xs font-mono">
+      <div class="flex items-center gap-2 text-sm font-mono">
         <span class="text-[var(--text-secondary)]">LIVE:</span>
         <span class="text-[var(--accent-color)] font-bold"
           >{formatDynamicDecimal(livePrice, 2)}</span
@@ -136,9 +138,13 @@
     {/if}
   </div>
 
-  <div class="relative w-full aspect-[1000/140] p-0">
+  <div class="relative w-full aspect-[1000/100] p-0">
     {#if isReady}
-      <svg viewBox="0 0 {WIDTH} {HEIGHT}" class="w-full h-full">
+      <svg
+        viewBox="0 0 {WIDTH} {HEIGHT}"
+        class="w-full h-full"
+        preserveAspectRatio="xMidYMid meet"
+      >
         <defs>
           <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
             <feGaussianBlur stdDeviation="3" result="blur" />
@@ -149,32 +155,32 @@
         <!-- Main Horizontal Track -->
         <rect
           x="0"
-          y="65"
+          y={BAR_Y}
           width={WIDTH}
-          height="10"
+          height={BAR_H}
           fill="var(--bg-tertiary)"
-          rx="5"
+          rx="4"
         />
 
         <!-- Risk Bar (Red) -->
         <rect
           x={riskStart}
-          y="65"
+          y={BAR_Y}
           width={riskWidth}
-          height="10"
+          height={BAR_H}
           fill="var(--danger-color)"
-          opacity="0.8"
+          opacity="0.85"
           class="transition-all duration-300"
         />
 
         <!-- Reward Bar (Green) -->
         <rect
           x={rewardStart}
-          y="65"
+          y={BAR_Y}
           width={rewardWidth}
-          height="10"
+          height={BAR_H}
           fill="var(--success-color)"
-          opacity="0.8"
+          opacity="0.85"
           class="transition-all duration-300"
         />
 
@@ -182,9 +188,9 @@
         {#if beX > 0}
           <line
             x1={beX}
-            y1="50"
+            y1={BAR_Y - 15}
             x2={beX}
-            y2="90"
+            y2={BAR_Y + 25}
             stroke="var(--warning-color)"
             stroke-width="2"
             stroke-dasharray="4,4"
@@ -192,11 +198,11 @@
           />
           <text
             x={beX}
-            y="45"
+            y={BAR_Y - 22}
             text-anchor="middle"
             fill="var(--warning-color)"
-            font-size="12"
-            font-weight="bold">BE</text
+            font-size="14"
+            font-weight="900">BE</text
           >
         {/if}
 
@@ -207,26 +213,17 @@
         >
           <line
             x1="0"
-            y1="55"
+            y1={BAR_Y - 10}
             x2="0"
-            y2="85"
+            y2={BAR_Y + 18}
             stroke="var(--text-primary)"
             stroke-width="4"
           />
-          <rect
-            x="-35"
-            y="95"
-            width="70"
-            height="20"
-            rx="4"
-            fill="var(--bg-tertiary)"
-            stroke="var(--border-color)"
-          />
           <text
-            y="109"
+            y={BAR_Y + 38}
             text-anchor="middle"
             fill="var(--text-primary)"
-            font-size="11"
+            font-size="14"
             font-weight="bold">Einstieg</text
           >
         </g>
@@ -235,18 +232,18 @@
         <g class="transition-all duration-300" transform="translate({slX}, 0)">
           <line
             x1="0"
-            y1="55"
+            y1={BAR_Y - 10}
             x2="0"
-            y2="85"
+            y2={BAR_Y + 18}
             stroke="var(--danger-color)"
             stroke-width="3"
           />
           <text
-            y="45"
+            y={BAR_Y - 22}
             text-anchor="middle"
             fill="var(--danger-color)"
-            font-size="14"
-            font-weight="bold">SL</text
+            font-size="16"
+            font-weight="900">SL</text
           >
         </g>
 
@@ -258,29 +255,30 @@
           >
             <line
               x1="0"
-              y1="55"
+              y1={BAR_Y - 10}
               x2="0"
-              y2="85"
+              y2={BAR_Y + 18}
               stroke="var(--success-color)"
               stroke-width="3"
             />
             <text
-              y="45"
+              y={BAR_Y - 22}
               text-anchor="middle"
               fill="var(--text-primary)"
-              font-size="14"
-              font-weight="bold">TP{tp.idx}</text
+              font-size="16"
+              font-weight="900">TP{tp.idx}</text
             >
             <text
-              y="25"
+              y={BAR_Y - 42}
               text-anchor="middle"
               fill="var(--text-secondary)"
-              font-size="11">{tp.rr}R</text
+              font-size="13"
+              font-weight="bold">{tp.rr}R</text
             >
           </g>
         {/each}
 
-        <!-- Live Price Marker -->
+        <!-- Live Price Marker (Pulse) -->
         {#if liveX > 0}
           <g
             class="transition-all duration-500"
@@ -288,14 +286,17 @@
           >
             <circle
               cx="0"
-              cy="70"
+              cy={BAR_Y + 4}
               r="7"
               fill="var(--accent-color)"
               stroke="white"
               stroke-width="2"
               filter="url(#glow)"
             />
-            <path d="M-6 78 L6 78 L0 88 Z" fill="var(--accent-color)" />
+            <path
+              d="M-6 {BAR_Y + 12} L6 {BAR_Y + 12} L0 {BAR_Y + 22} Z"
+              fill="var(--accent-color)"
+            />
           </g>
         {/if}
       </svg>
@@ -311,23 +312,23 @@
 
 <style>
   .visual-bar-container {
-    margin-top: 1.5rem;
-    margin-bottom: 1rem;
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
     position: relative;
     transition: all var(--transition-smooth);
     background-color: transparent !important;
   }
 
   .visual-header {
-    height: 44px;
+    height: 38px;
   }
 
   .sl-tag {
     background-color: var(--bg-tertiary);
     color: var(--text-secondary);
-    font-size: 0.75rem;
+    font-size: 0.8rem;
     font-weight: bold;
-    padding: 3px 8px;
+    padding: 2px 6px;
     border-radius: 4px;
     text-transform: uppercase;
     border: 1px solid var(--border-color);
@@ -335,14 +336,14 @@
 
   .header-title {
     color: var(--text-secondary);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: bold;
     text-transform: uppercase;
     letter-spacing: 0.05em;
   }
 
   svg {
-    filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.2));
+    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
   }
 
   svg g,
