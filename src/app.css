@@ -1482,7 +1482,9 @@ body {
   font-family: "Inter", sans-serif;
   background: var(--bg-primary);
   color: var(--text-primary);
-  transition: background 0.3s, color 0.3s;
+  transition:
+    background 0.3s,
+    color 0.3s;
   position: relative;
 }
 
@@ -1725,7 +1727,10 @@ input[type="checkbox"]:checked + .atr-toggle-track {
 .atr-toggle-track::after {
   background-color: var(--toggle-circle-bg);
   border-color: var(--border-color);
-  transition: transform 0.3s, background-color 0.3s, border-color 0.3s;
+  transition:
+    transform 0.3s,
+    background-color 0.3s,
+    border-color 0.3s;
 }
 
 input[type="checkbox"]:checked + .atr-toggle-track::after {
@@ -1908,7 +1913,10 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
 
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s,
+    transform 0.2s;
 
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
@@ -1947,7 +1955,9 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   z-index: 50;
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  transition:
+    opacity 0.3s ease-in-out,
+    visibility 0.3s ease-in-out;
 }
 
 .modal-overlay.visible {
@@ -1964,7 +1974,9 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   overflow-y: auto;
   transform: scale(0.95);
   opacity: 0;
-  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    opacity 0.2s ease-in-out;
 }
 
 .modal-overlay.visible .modal-content {

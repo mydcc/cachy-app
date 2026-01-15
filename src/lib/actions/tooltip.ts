@@ -41,7 +41,7 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
   function setContent() {
     if (!tooltipElement) return;
     const contentContainer = tooltipElement.querySelector(
-      ".tooltip-content-inner"
+      ".tooltip-content-inner",
     );
     if (contentContainer) {
       if (config.allowHtml) {

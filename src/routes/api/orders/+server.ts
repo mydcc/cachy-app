@@ -10,6 +10,15 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
   }
 
+  if (
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json({ error: "Invalid credentials format" }, { status: 400 });
+  }
+
   try {
     let result = null;
     if (exchange === "bitunix") {
@@ -42,7 +51,7 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error processing ${type} on ${exchange}:`, errorMsg);
     return json(
       { error: e.message || `Failed to process ${type}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -50,7 +59,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
-  orderData: any
+  orderData: any,
 ): Promise<any> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
@@ -73,7 +82,7 @@ async function placeBitunixOrder(
 
   // Clean null/undefined
   Object.keys(payload).forEach(
-    (key) => payload[key] === undefined && delete payload[key]
+    (key) => payload[key] === undefined && delete payload[key],
   );
 
   // Signing
@@ -112,7 +121,7 @@ async function placeBitunixOrder(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
@@ -121,7 +130,7 @@ async function placeBitunixOrder(
 
 async function fetchBitunixPendingOrders(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
@@ -161,7 +170,7 @@ async function fetchBitunixPendingOrders(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
@@ -206,7 +215,7 @@ async function fetchBitunixPendingOrders(
 
 async function fetchBitunixHistoryOrders(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
@@ -251,7 +260,7 @@ async function fetchBitunixHistoryOrders(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 

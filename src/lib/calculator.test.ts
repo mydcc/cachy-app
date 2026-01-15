@@ -26,7 +26,7 @@ describe("Calculator - Core Functions", () => {
 
       const res = calculator.calculateBaseMetrics(
         values as any,
-        CONSTANTS.TRADE_TYPE_LONG
+        CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res).not.toBeNull();
       expect(res!.positionSize.toNumber()).toBe(1);
@@ -52,7 +52,7 @@ describe("Calculator - Core Functions", () => {
 
       const res = calculator.calculateBaseMetrics(
         values as any,
-        CONSTANTS.TRADE_TYPE_SHORT
+        CONSTANTS.TRADE_TYPE_SHORT,
       );
       expect(res).not.toBeNull();
       expect(res!.positionSize.toNumber()).toBe(1);
@@ -76,7 +76,7 @@ describe("Calculator - Core Functions", () => {
       };
       const res = calculator.calculateBaseMetrics(
         values as any,
-        CONSTANTS.TRADE_TYPE_LONG
+        CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res).toBeNull();
     });
@@ -114,7 +114,7 @@ describe("Calculator - Core Functions", () => {
         new Decimal(50),
         baseMetrics,
         values as any,
-        0
+        0,
       );
 
       // Part Size = 0.5
@@ -158,7 +158,7 @@ describe("Calculator - Core Functions", () => {
         targets as any,
         baseMetrics,
         values as any,
-        CONSTANTS.TRADE_TYPE_LONG
+        CONSTANTS.TRADE_TYPE_LONG,
       );
       expect(res.totalNetProfit.toNumber()).toBe(10);
     });

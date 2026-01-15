@@ -60,13 +60,13 @@ describe("backupService", () => {
       const result = restoreFromBackup(backupContent);
       expect(result.success).toBe(true);
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(
-        '{"theme":"dark"}'
+        '{"theme":"dark"}',
       );
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY)).toBe(
-        '{"myPreset":{}}'
+        '{"myPreset":{}}',
       );
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)).toBe(
-        '[{"id":1}]'
+        '[{"id":1}]',
       );
     });
 
@@ -130,13 +130,13 @@ describe("backupService", () => {
       const result = restoreFromBackup(backupContent);
       expect(result.success).toBe(true);
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(
-        '{"theme":"light"}'
+        '{"theme":"light"}',
       );
       expect(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY)
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
       ).toBeNull();
       expect(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY)
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
       ).toBeNull();
     });
   });

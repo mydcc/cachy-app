@@ -44,7 +44,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     console.log(
-      `Gemini Proxy: Sending request to ${url} with model ${selectedModel}`
+      `Gemini Proxy: Sending request to ${url} with model ${selectedModel}`,
     );
     const response = await fetch(url, {
       method: "POST",

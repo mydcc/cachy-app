@@ -9,6 +9,15 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Missing credentials" }, { status: 400 });
   }
 
+  if (
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json({ error: "Invalid credentials format" }, { status: 400 });
+  }
+
   try {
     let allOrders: any[] = [];
     const startTime = Date.now();
@@ -32,19 +41,19 @@ export const POST: RequestHandler = async ({ request }) => {
         apiKey,
         apiSecret,
         "/api/v1/futures/trade/get_history_orders",
-        checkTimeout
+        checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/tpsl/get_history_orders",
-        checkTimeout
+        checkTimeout,
       ),
       fetchAllPages(
         apiKey,
         apiSecret,
         "/api/v1/futures/plan/get_history_plan_orders",
-        checkTimeout
+        checkTimeout,
       ),
     ]);
 
@@ -54,7 +63,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.error(
         "Error fetching regular orders:",
-        (regularResult.reason as Error).message || "Unknown error"
+        (regularResult.reason as Error).message || "Unknown error",
       );
     }
 
@@ -63,7 +72,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.warn(
         "Error fetching TP/SL orders:",
-        (tpslResult.reason as Error).message
+        (tpslResult.reason as Error).message,
       );
     }
 
@@ -72,7 +81,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.warn(
         "Error fetching plan orders:",
-        (planResult.reason as Error).message
+        (planResult.reason as Error).message,
       );
     }
 
@@ -81,11 +90,11 @@ export const POST: RequestHandler = async ({ request }) => {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
     console.error(
       `Error fetching orders from Bitunix:`,
-      e.message || "Unknown error"
+      e.message || "Unknown error",
     );
     return json(
       { error: e.message || "Failed to fetch orders" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -94,7 +103,7 @@ async function fetchAllPages(
   apiKey: string,
   apiSecret: string,
   path: string,
-  checkTimeout: () => boolean
+  checkTimeout: () => boolean,
 ): Promise<any[]> {
   const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
   let accumulated: any[] = [];
@@ -109,7 +118,7 @@ async function fetchAllPages(
       apiSecret,
       path,
       100,
-      currentEndTime
+      currentEndTime,
     );
 
     if (!batch || batch.length === 0) {
@@ -153,7 +162,7 @@ async function fetchBitunixData(
   apiSecret: string,
   path: string,
   limit: number = 100,
-  endTime?: number
+  endTime?: number,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
 
@@ -215,7 +224,7 @@ async function fetchBitunixData(
     // Truncate text to avoid massive logs or leaking too much info
     const safeText = text.length > 200 ? text.substring(0, 200) + "..." : text;
     throw new Error(
-      `Bitunix API error [${path}]: ${response.status} ${safeText}`
+      `Bitunix API error [${path}]: ${response.status} ${safeText}`,
     );
   }
 
@@ -223,7 +232,7 @@ async function fetchBitunixData(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      data.msg || `Bitunix API error code [${path}]: ${data.code}`
+      data.msg || `Bitunix API error code [${path}]: ${data.code}`,
     );
   }
 

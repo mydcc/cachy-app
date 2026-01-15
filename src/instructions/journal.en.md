@@ -44,13 +44,11 @@ This guide explains **every single feature** and **every chart** in detail – f
 Successful trading is based on a repeatable process. The **Calculator** and the **Journal** work hand in hand:
 
 1. **Plan (Calculator):** You define your risk BEFORE the trade. Where is the entry? Where is the Stop-Loss? What % of your capital are you risking?
-
    - _The Calculator ensures you never enter a trade blindly._
 
 2. **Execute (Broker):** You place the trade based on the calculated values.
 
 3. **Document (Journal):** Once the trade is closed (automatically via API or manually), it lands in the journal.
-
    - _This is where the real work begins: Analysis._
 
 4. **Optimize:** You use the analytics and charts to identify patterns. Do you often lose on Fridays? Are your Longs more profitable than Shorts? Which strategy works?
@@ -68,7 +66,6 @@ Successful trading is based on a repeatable process. The **Calculator** and the 
 The Journal consists of two main areas:
 
 1. **Dashboard Area (top):** Here you choose between different analytical views:
-
    - **Performance Dashboard:** The 5 main tabs (Performance, Quality, Direction, Discipline, Costs)
    - **Deep Dive:** 10 specialized analysis tabs for Pro users
 
@@ -257,13 +254,11 @@ Central metrics of your trading performance in a compact overview.
 **Metrics:**
 
 1. **Win Rate**
-
    - Percentage of winning trades
    - Green if ≥ 50%, Red if < 50%
    - Formula: `(Winning Trades / Total Trades) × 100`
 
 2. **Profit Factor** (PF)
-
    - Ratio of gross profit to gross loss
    - Green if ≥ 1.5, Yellow if ≥ 1.0, Red if < 1.0
    - **> 1.0** = Profitable
@@ -272,13 +267,11 @@ Central metrics of your trading performance in a compact overview.
    - Formula: `Gross Profit / |Gross Loss|`
 
 3. **Expectancy**
-
    - Average profit per trade in $
    - Positive = long-term profitable
    - Formula: `(Win Rate × Avg Win) - (Loss Rate × Avg Loss)`
 
 4. **Avg W/L** (Average Win/Loss)
-
    - Shows average winning trade vs. losing trade
    - Green shows Avg Win, Red shows Avg Loss
    - Should be at least 1:1

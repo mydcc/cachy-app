@@ -14,7 +14,7 @@ register("en", () => Promise.resolve(en));
 register("de", () => Promise.resolve(de));
 
 function getSafeLocale(
-  getter: () => string | undefined | null
+  getter: () => string | undefined | null,
 ): string | undefined | null {
   try {
     return getter();

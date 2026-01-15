@@ -312,17 +312,14 @@ Der Calculator plant deinen Trade – das **Journal dokumentiert und analysiert*
 ### Der perfekte Workflow:
 
 1. **Calculator:** Trade planen
-
    - Position Size berechnen
    - Stop-Loss und TPs festlegen
    - R/R prüfen
 
 2. **Broker:** Trade ausführen
-
    - Order platzieren basierend auf Calculator-Werten
 
 3. **Journal:** Trade dokumentieren
-
    - Automatischer Import (Bitunix API)
    - Oder manuelles Hinzufügen
    - Tags hinzufügen (Strategie, Setup, etc.)

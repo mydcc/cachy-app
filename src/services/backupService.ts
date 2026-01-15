@@ -46,7 +46,7 @@ export function createBackup() {
       presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
       journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
       tradeState: getDataFromLocalStorage(
-        CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store"
+        CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
       ),
       theme: getDataFromLocalStorage("theme"),
     },
@@ -116,25 +116,25 @@ export function restoreFromBackup(jsonContent: string): {
     if (backup.data.settings) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
-        backup.data.settings
+        backup.data.settings,
       );
     }
     if (backup.data.presets) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-        backup.data.presets
+        backup.data.presets,
       );
     }
     if (backup.data.journal) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        backup.data.journal
+        backup.data.journal,
       );
     }
     if (backup.data.tradeState) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
-        backup.data.tradeState
+        backup.data.tradeState,
       );
     }
     if (backup.data.theme) {

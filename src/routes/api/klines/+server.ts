@@ -29,7 +29,7 @@ export const GET: RequestHandler = async ({ url }) => {
     console.error(`Error fetching klines from ${provider}:`, e);
     return json(
       { error: e.message || "Failed to fetch klines" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -39,7 +39,7 @@ async function fetchBitunixKlines(
   interval: string,
   limit: number,
   start?: number,
-  end?: number
+  end?: number,
 ) {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/market/kline";
@@ -108,7 +108,7 @@ async function fetchBinanceKlines(
   interval: string,
   limit: number,
   start?: number,
-  end?: number
+  end?: number,
 ) {
   const baseUrl = "https://fapi.binance.com";
   const path = "/fapi/v1/klines";

@@ -39,42 +39,7 @@ import { onboardingService } from "./onboardingService";
 import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
 import { normalizeSymbol } from "../utils/symbolUtils";
-
-interface CSVTradeEntry {
-  ID: string;
-  Datum: string;
-  Uhrzeit: string;
-  Symbol: string;
-  Typ: string;
-  Status: string;
-  "Konto Guthaben": string;
-  "Risiko %": string;
-  Hebel: string;
-  "Gebuehren %": string;
-  Einstieg: string;
-  Exit: string;
-  "Stop Loss": string;
-  MAE: string;
-  MFE: string;
-  Efficiency: string;
-  "Gewichtetes R/R": string;
-  "Gesamt Netto-Gewinn": string;
-  "Risiko pro Trade (Waehrung)": string;
-  "Gesamte Gebuehren": string;
-  "Max. potenzieller Gewinn": string;
-  Notizen: string;
-  "TP1 Preis"?: string;
-  "TP1 %"?: string;
-  "TP2 Preis"?: string;
-  "TP2 %"?: string;
-  "TP3 Preis"?: string;
-  "TP3 %"?: string;
-  "TP4 Preis"?: string;
-  "TP4 %"?: string;
-  "TP5 Preis"?: string;
-  "TP5 %"?: string;
-  [key: string]: string | undefined;
-}
+import { csvService } from "./csvService";
 
 let priceUpdateIntervalId: any = null;
 let marketStoreUnsubscribe: (() => void) | null = null;
@@ -88,7 +53,7 @@ const calculatorService = new CalculatorService(
   tradeStore,
   uiStore,
   initialResultsState,
-  updateTradeStore
+  updateTradeStore,
 );
 
 export const app = {
@@ -118,7 +83,9 @@ export const app = {
     let symbolDebounceTimer: any = null;
 
     tradeStoreUnsubscribe = tradeStore.subscribe((state) => {
-      const newSymbol = state.symbol ? normalizeSymbol(state.symbol, "bitunix") : "";
+      const newSymbol = state.symbol
+        ? normalizeSymbol(state.symbol, "bitunix")
+        : "";
 
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
 
@@ -179,7 +146,11 @@ export const app = {
       const currentSymbol = get(tradeStore).symbol;
       const uiState = get(uiStore);
 
-      if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
+      if (
+        currentSymbol &&
+        currentSymbol.length >= 3 &&
+        !uiState.isPriceFetching
+      ) {
         if (settings.autoUpdatePriceInput) {
           if (settings.apiProvider === "binance") {
             app.handleFetchPrice(true);
@@ -307,7 +278,7 @@ export const app = {
       await modalManager.show(
         "Journal leeren",
         "Möchten Sie wirklich das gesamte Journal unwiderruflich löschen?",
-        "confirm"
+        "confirm",
       )
     ) {
       app.saveJournal([]);
@@ -336,26 +307,26 @@ export const app = {
     const presetName = await modalManager.show(
       "Preset speichern",
       "Geben Sie einen Namen für Ihr Preset ein:",
-      "prompt"
+      "prompt",
     );
     if (typeof presetName === "string" && presetName) {
       try {
         const presets = JSON.parse(
-          localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+          localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
         );
         if (
           presets[presetName] &&
           !(await modalManager.show(
             "Überschreiben?",
             `Preset "${presetName}" existiert bereits. Möchten Sie es überschreiben?`,
-            "confirm"
+            "confirm",
           ))
         )
           return;
         presets[presetName] = app.getInputsAsObject();
         localStorage.setItem(
           CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-          JSON.stringify(presets)
+          JSON.stringify(presets),
         );
         uiStore.showFeedback("save");
         app.populatePresetLoader();
@@ -365,7 +336,7 @@ export const app = {
         }));
       } catch {
         uiStore.showError(
-          "Preset konnte nicht gespeichert werden. Der lokale Speicher ist möglicherweise voll oder blockiert."
+          "Preset konnte nicht gespeichert werden. Der lokale Speicher ist möglicherweise voll oder blockiert.",
         );
       }
     }
@@ -378,18 +349,18 @@ export const app = {
       !(await modalManager.show(
         "Preset löschen",
         `Preset "${presetName}" wirklich löschen?`,
-        "confirm"
+        "confirm",
       ))
     )
       return;
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       delete presets[presetName];
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-        JSON.stringify(presets)
+        JSON.stringify(presets),
       );
       app.populatePresetLoader();
       updatePresetStore((state) => ({ ...state, selectedPreset: "" }));
@@ -403,7 +374,7 @@ export const app = {
     trackCustomEvent("Preset", "Load", presetName);
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       const preset = presets[presetName];
       if (preset) {
@@ -444,7 +415,7 @@ export const app = {
     if (!browser) return;
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       const presetNames = Object.keys(presets);
       updatePresetStore((state) => ({
@@ -464,99 +435,13 @@ export const app = {
       return;
     }
     trackCustomEvent("Journal", "Export", "CSV", journalData.length);
-    const headers = [
-      "ID",
-      "Datum",
-      "Uhrzeit",
-      "Symbol",
-      "Typ",
-      "Status",
-      "Konto Guthaben",
-      "Risiko %",
-      "Hebel",
-      "Gebuehren %",
-      "Einstieg",
-      "Exit",
-      "MAE",
-      "MFE",
-      "Efficiency",
-      "Stop Loss",
-      "Gewichtetes R/R",
-      "Gesamt Netto-Gewinn",
-      "Risiko pro Trade (Waehrung)",
-      "Gesamte Gebuehren",
-      "Max. potenzieller Gewinn",
-      "Notizen",
-      "Tags",
-      "Screenshot",
-      // New headers
-      "Trade ID",
-      "Order ID",
-      "Funding Fee",
-      "Trading Fee",
-      "Realized PnL",
-      "Is Manual",
-      "Entry Date",
-      ...Array.from({ length: 5 }, (_, i) => [
-        `TP${i + 1} Preis`,
-        `TP${i + 1} %`,
-      ]).flat(),
-    ];
-    const rows = journalData.map((trade) => {
-      const date = new Date(trade.date);
-      const notes = trade.notes
-        ? `"${trade.notes.replace(/"/g, '""').replace(/\n/g, " ")}"`
-        : "";
-      const tags =
-        trade.tags && trade.tags.length > 0 ? `"${trade.tags.join(";")}"` : "";
-      const screenshot = trade.screenshot || "";
-      const tpData = Array.from({ length: 5 }, (_, i) => [
-        (trade.targets[i]?.price || new Decimal(0)).toFixed(4),
-        (trade.targets[i]?.percent || new Decimal(0)).toFixed(2),
-      ]).flat();
-      return [
-        trade.id,
-        date.toLocaleDateString("de-DE"),
-        date.toLocaleTimeString("de-DE"),
-        trade.symbol,
-        trade.tradeType,
-        trade.status,
-        (trade.accountSize || new Decimal(0)).toFixed(2),
-        (trade.riskPercentage || new Decimal(0)).toFixed(2),
-        (trade.leverage || new Decimal(0)).toFixed(2),
-        (trade.fees || new Decimal(0)).toFixed(2),
-        (trade.entryPrice || new Decimal(0)).toFixed(4),
-        trade.exitPrice ? trade.exitPrice.toFixed(4) : "",
-        trade.mae ? trade.mae.toFixed(4) : "",
-        trade.mfe ? trade.mfe.toFixed(4) : "",
-        trade.efficiency ? trade.efficiency.toFixed(2) : "",
-        (trade.stopLossPrice || new Decimal(0)).toFixed(4),
-        (trade.totalRR || new Decimal(0)).toFixed(2),
-        (trade.totalNetProfit || new Decimal(0)).toFixed(2),
-        (trade.riskAmount || new Decimal(0)).toFixed(2),
-        (trade.totalFees || new Decimal(0)).toFixed(2),
-        (trade.maxPotentialProfit || new Decimal(0)).toFixed(2),
-        notes,
-        tags,
-        screenshot,
-        // New values
-        trade.tradeId || "",
-        trade.orderId || "",
-        (trade.fundingFee || new Decimal(0)).toFixed(4),
-        (trade.tradingFee || new Decimal(0)).toFixed(4),
-        (trade.realizedPnl || new Decimal(0)).toFixed(4),
-        trade.isManual !== false ? "true" : "false",
-        trade.entryDate || "",
-        ...tpData,
-      ].join(",");
-    });
+
+    const csvBody = csvService.generateCSVContent(journalData);
     const csvContent =
-      "data:text/csv;charset=utf-8," +
-      headers.join(",") +
-      "\n" +
-      rows.join("\n");
+      "data:text/csv;charset=utf-8," + encodeURIComponent(csvBody);
+
     const link = document.createElement("a");
-    link.href = encodeURI(csvContent);
+    link.href = csvContent;
     link.download = "TradeJournal.csv";
     document.body.appendChild(link);
     link.click();
@@ -573,8 +458,8 @@ export const app = {
     if (file.size > MAX_FILE_SIZE) {
       uiStore.showError(
         `Die CSV-Datei ist zu groß (${(file.size / 1024 / 1024).toFixed(
-          1
-        )}MB). ` + `Maximum: 5MB. Bitte teilen Sie die Datei auf.`
+          1,
+        )}MB). ` + `Maximum: 5MB. Bitte teilen Sie die Datei auf.`,
       );
       return;
     }
@@ -582,264 +467,37 @@ export const app = {
     const reader = new FileReader();
     reader.onload = async (e) => {
       const text = e.target?.result as string;
-      const lines = text.split("\n").filter((line) => line.trim() !== "");
+      const lineCount = (text.match(/\n/g) || []).length;
 
-      // P0 Fix: Maximum 1000 trades per import to prevent browser freeze
-      const MAX_IMPORT_LINES = 1001; // 1 header + 1000 trades
-      if (lines.length > MAX_IMPORT_LINES) {
+      const MAX_IMPORT_LINES = 1001;
+      if (lineCount > MAX_IMPORT_LINES) {
         uiStore.showError(
-          `Zu viele Zeilen (${lines.length - 1} Trades). ` +
+          `Zu viele Zeilen (${lineCount} Trades). ` +
             `Maximum: 1000 Trades pro Import. ` +
-            `Bitte teilen Sie die CSV-Datei auf.`
+            `Bitte teilen Sie die CSV-Datei auf.`,
         );
         return;
       }
 
-      if (lines.length < 2) {
-        uiStore.showError("CSV ist leer oder hat nur eine Kopfzeile.");
+      const { entries, error } = csvService.parseCSVContent(text);
+
+      if (error) {
+        uiStore.showError(error);
         return;
       }
-
-      // Helper to robustly split CSV lines respecting quotes
-      const splitCSV = (str: string) => {
-        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
-        return str.split(regex);
-      };
-
-      // Helper to clean CSV values (remove quotes, unescape double quotes)
-      const cleanCSVValue = (val: string) => {
-        val = val.trim();
-        if (val.startsWith('"') && val.endsWith('"')) {
-          val = val.slice(1, -1);
-          return val.replace(/""/g, '"');
-        }
-        return val;
-      };
-
-      const headers = splitCSV(lines[0]).map((h) =>
-        cleanCSVValue(h.replace(/^\uFEFF/, ""))
-      );
-      // Map possible headers to internal keys
-      const headerMap: { [key: string]: string } = {
-        ID: "ID",
-        Datum: "Datum",
-        Date: "Datum",
-        Uhrzeit: "Uhrzeit",
-        Time: "Uhrzeit",
-        Symbol: "Symbol",
-        Typ: "Typ",
-        Type: "Typ",
-        Status: "Status",
-        "Konto Guthaben": "Konto Guthaben",
-        "Account Balance": "Konto Guthaben",
-        "Risiko %": "Risiko %",
-        "Risk %": "Risiko %",
-        Hebel: "Hebel",
-        Leverage: "Hebel",
-        "Gebuehren %": "Gebuehren %",
-        "Fees %": "Gebuehren %",
-        Einstieg: "Einstieg",
-        "Entry Price": "Einstieg",
-        Entry: "Einstieg",
-        Exit: "Exit",
-        "Exit Price": "Exit",
-        MAE: "MAE",
-        MFE: "MFE",
-        Efficiency: "Efficiency",
-        "Stop Loss": "Stop Loss",
-        "Gewichtetes R/R": "Gewichtetes R/R",
-        "Weighted R/R": "Gewichtetes R/R",
-        "Gesamt Netto-Gewinn": "Gesamt Netto-Gewinn",
-        "Total Net Profit": "Gesamt Netto-Gewinn",
-        "Risiko pro Trade (Waehrung)": "Risiko pro Trade (Waehrung)",
-        "Risk Amount": "Risiko pro Trade (Waehrung)",
-        "Gesamte Gebuehren": "Gesamte Gebuehren",
-        "Total Fees": "Gesamte Gebuehren",
-        "Max. potenzieller Gewinn": "Max. potenzieller Gewinn",
-        "Max Potential Profit": "Max. potenzieller Gewinn",
-        Notizen: "Notizen",
-        Notes: "Notizen",
-        Tags: "Tags",
-        Screenshot: "Screenshot",
-        Bild: "Screenshot",
-        Image: "Screenshot",
-        "Funding Fee": "Funding Fee",
-        "Trading Fee": "Trading Fee",
-        "Realized PnL": "Realized PnL",
-        "Is Manual": "Is Manual",
-        "Trade ID": "Trade ID",
-        "Order ID": "Order ID",
-        "Entry Date": "Einstiegsdatum",
-        Einstiegsdatum: "Einstiegsdatum",
-      };
-
-      // Identify which language/set of headers is present
-      const requiredKeys = [
-        "ID",
-        "Datum",
-        "Uhrzeit",
-        "Symbol",
-        "Typ",
-        "Status",
-        "Einstieg",
-        "Stop Loss",
-      ];
-
-      // Check if we have mapped all required keys
-      const presentMappedKeys = new Set(
-        headers.map((h) => headerMap[h]).filter(Boolean)
-      );
-      const missingKeys = requiredKeys.filter((k) => !presentMappedKeys.has(k));
-
-      if (missingKeys.length > 0) {
-        // If strictly missing required mapped keys
-        uiStore.showError(
-          `CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): ${missingKeys.join(
-            ", "
-          )}`
-        );
-        return;
-      }
-
-      const entries = lines
-        .slice(1)
-        .map((line) => {
-          const values = splitCSV(line);
-          // Map values to standardized German keys internally using the header map
-          const entry: Record<string, string> = {};
-          headers.forEach((header, index) => {
-            const mappedKey = headerMap[header];
-            const cleanVal = values[index] ? cleanCSVValue(values[index]) : "";
-
-            if (mappedKey) {
-              entry[mappedKey] = cleanVal;
-            } else if (
-              header.startsWith("TP") &&
-              (header.includes("Preis") ||
-                header.includes("Price") ||
-                header.includes("%"))
-            ) {
-              // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
-              // We normalize them to "TP{n} Preis" and "TP{n} %"
-              const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
-              if (match) {
-                const num = match[1];
-                const type = match[2] === "%" ? "%" : "Preis";
-                entry[`TP${num} ${type}`] = cleanVal;
-              }
-            }
-          });
-
-          try {
-            const targets = [];
-            for (let j = 1; j <= 5; j++) {
-              const priceKey = `TP${j} Preis`;
-              const percentKey = `TP${j} %`;
-              if (entry[priceKey] && entry[percentKey]) {
-                targets.push({
-                  price: parseDecimal(entry[priceKey] as string),
-                  percent: parseDecimal(entry[percentKey] as string),
-                  isLocked: false,
-                });
-              }
-            }
-
-            // P0 Fix: Handle large IDs (precision loss) by generating new internal ID
-            let internalId = parseFloat(entry.ID);
-            const originalIdAsString = entry.ID;
-
-            // Check if ID is potentially unsafe (too large for JS Number exact precision)
-            if (
-              originalIdAsString &&
-              (originalIdAsString.length >= 16 ||
-                !Number.isSafeInteger(internalId))
-            ) {
-              // Use deterministic hash for idempotency (djb2 variant)
-              let hash = 5381;
-              for (let i = 0; i < originalIdAsString.length; i++) {
-                hash = (hash * 33) ^ originalIdAsString.charCodeAt(i);
-              }
-              internalId = Math.abs(hash >>> 0);
-            }
-
-            const { useUtcDateParsing } = get(settingsStore);
-            const importedTrade: JournalEntry = {
-              id: internalId,
-              date: parseDateString(
-                entry.Datum,
-                entry.Uhrzeit,
-                useUtcDateParsing
-              ).toISOString(),
-              symbol: entry.Symbol,
-              tradeType: entry.Typ.toLowerCase(),
-              status: entry.Status,
-              accountSize: parseDecimal(entry["Konto Guthaben"] || "0"),
-              riskPercentage: parseDecimal(entry["Risiko %"] || "0"),
-              leverage: parseDecimal(entry.Hebel || "1"),
-              fees: parseDecimal(entry["Gebuehren %"] || "0.1"),
-              entryPrice: parseDecimal(entry.Einstieg),
-              exitPrice: entry.Exit ? parseDecimal(entry.Exit) : undefined,
-              mae: entry.MAE ? parseDecimal(entry.MAE) : undefined,
-              mfe: entry.MFE ? parseDecimal(entry.MFE) : undefined,
-              efficiency: entry.Efficiency
-                ? parseDecimal(entry.Efficiency)
-                : undefined,
-              stopLossPrice: parseDecimal(entry["Stop Loss"]),
-              totalRR: parseDecimal(entry["Gewichtetes R/R"] || "0"),
-              totalNetProfit: parseDecimal(entry["Gesamt Netto-Gewinn"] || "0"),
-              riskAmount: parseDecimal(
-                entry["Risiko pro Trade (Waehrung)"] || "0"
-              ),
-              totalFees: parseDecimal(entry["Gesamte Gebuehren"] || "0"),
-              maxPotentialProfit: parseDecimal(
-                entry["Max. potenzieller Gewinn"] || "0"
-              ),
-              notes: entry.Notizen || "",
-              tags: entry.Tags
-                ? entry.Tags.split(";")
-                    .map((t) => t.trim())
-                    .filter(Boolean)
-                : [],
-              screenshot: entry.Screenshot || undefined,
-              targets: targets,
-              // New fields
-              tradeId:
-                entry["Trade ID"] ||
-                (originalIdAsString.length >= 16
-                  ? originalIdAsString
-                  : undefined),
-              orderId: entry["Order ID"] || undefined,
-              fundingFee: parseDecimal(entry["Funding Fee"] || "0"),
-              tradingFee: parseDecimal(entry["Trading Fee"] || "0"),
-              realizedPnl: parseDecimal(entry["Realized PnL"] || "0"),
-              isManual: entry["Is Manual"]
-                ? entry["Is Manual"] === "true"
-                : true,
-              entryDate: entry["Einstiegsdatum"]
-                ? new Date(entry["Einstiegsdatum"]).toISOString()
-                : undefined,
-              calculatedTpDetails: [],
-            };
-            return normalizeJournalEntry(importedTrade);
-          } catch (err: unknown) {
-            console.warn("Fehler beim Verarbeiten einer Zeile:", entry, err);
-            return null;
-          }
-        })
-        .filter((entry): entry is JournalEntry => entry !== null);
 
       if (entries.length > 0) {
         const currentJournal = get(journalStore);
         const combined = [...currentJournal, ...entries];
         const unique = Array.from(
-          new Map(combined.map((trade) => [trade.id, trade])).values()
+          new Map(combined.map((trade) => [trade.id, trade])).values(),
         );
 
         if (
           await modalManager.show(
             "Import bestätigen",
             `Sie sind dabei, ${entries.length} Trades zu importieren. Bestehende Trades mit derselben ID werden überschrieben. Fortfahren?`,
-            "confirm"
+            "confirm",
           )
         ) {
           journalStore.set(unique);
@@ -936,7 +594,7 @@ export const app = {
           symbol,
           currentTradeState.atrTimeframe,
           15, // Default limit for ATR
-          "high"
+          "high",
         );
       } else {
         klines = await apiService.fetchBitunixKlines(
@@ -945,14 +603,14 @@ export const app = {
           15, // Default limit for ATR
           undefined,
           undefined,
-          "high"
+          "high",
         );
       }
 
       const atr = calculator.calculateATR(klines);
       if (atr.lte(0)) {
         throw new Error(
-          "ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen."
+          "ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen.",
         );
       }
       updateTradeStore((state) => ({
@@ -993,7 +651,7 @@ export const app = {
     let filtered: string[] = [];
     if (upperQuery) {
       filtered = CONSTANTS.SUGGESTED_SYMBOLS.filter((s) =>
-        s.startsWith(upperQuery)
+        s.startsWith(upperQuery),
       );
     }
     uiStore.update((s) => ({
@@ -1016,7 +674,7 @@ export const app = {
         parseDecimal(currentResultsState.positionSize).lte(0))
     ) {
       uiStore.showError(
-        "Positionsgröße kann nicht gesperrt werden, solange sie ungültig ist."
+        "Positionsgröße kann nicht gesperrt werden, solange sie ungültig ist.",
       );
       return;
     }
@@ -1042,7 +700,7 @@ export const app = {
 
     if (shouldBeLocked && parseDecimal(currentTradeState.riskAmount).lte(0)) {
       uiStore.showError(
-        "Risikobetrag kann nicht gesperrt werden, solange er ungültig ist."
+        "Risikobetrag kann nicht gesperrt werden, solange er ungültig ist.",
       );
       return;
     }
@@ -1060,7 +718,7 @@ export const app = {
   addTakeProfitRow: (
     price: number | null = null,
     percent: number | null = null,
-    isLocked = false
+    isLocked = false,
   ) => {
     updateTradeStore((state) => ({
       ...state,
@@ -1091,7 +749,7 @@ export const app = {
           symbol,
           currentTf,
           99,
-          "high"
+          "high",
         );
       } else {
         // Bitunix Signature: symbol, interval, limit, start, end, priority
@@ -1101,7 +759,7 @@ export const app = {
           99,
           undefined,
           undefined,
-          "high"
+          "high",
         );
       }
 
@@ -1144,13 +802,13 @@ export const app = {
     const decTargets: DecimalTarget[] = targets.map(
       (
         t: { price: number | null; percent: number | null; isLocked: boolean },
-        i: number
+        i: number,
       ) => ({
         price: parseDecimal(t.price),
         percent: parseDecimal(t.percent),
         isLocked: t.isLocked,
         originalIndex: i,
-      })
+      }),
     );
 
     const totalSum = decTargets.reduce((sum, t) => sum.plus(t.percent), ZERO);
@@ -1159,7 +817,7 @@ export const app = {
     if (diff.isZero()) return;
 
     const otherUnlocked = decTargets.filter(
-      (t) => !t.isLocked && t.originalIndex !== changedIndex
+      (t) => !t.isLocked && t.originalIndex !== changedIndex,
     );
 
     if (otherUnlocked.length === 0) {
@@ -1199,11 +857,11 @@ export const app = {
         (t, i) =>
           !t.isLocked &&
           i !== changedIndex &&
-          t.percent.plus(roundingDiff).gte(0)
+          t.percent.plus(roundingDiff).gte(0),
       );
       if (!targetToAdjust) {
         targetToAdjust = finalTargets.find(
-          (t) => !t.isLocked && t.percent.plus(roundingDiff).gte(0)
+          (t) => !t.isLocked && t.percent.plus(roundingDiff).gte(0),
         );
       }
       if (targetToAdjust) {

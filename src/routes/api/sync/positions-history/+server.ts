@@ -9,18 +9,27 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Missing credentials" }, { status: 400 });
   }
 
+  if (
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json({ error: "Invalid credentials format" }, { status: 400 });
+  }
+
   try {
     const positions = await fetchBitunixHistoryPositions(
       apiKey,
       apiSecret,
-      limit
+      limit,
     );
     return json({ data: positions });
   } catch (e: any) {
     console.error(`Error fetching history positions from Bitunix:`, e);
     return json(
       { error: e.message || "Failed to fetch history positions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -28,7 +37,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixHistoryPositions(
   apiKey: string,
   apiSecret: string,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_history_positions";
@@ -82,7 +91,7 @@ async function fetchBitunixHistoryPositions(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`
+      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
     );
   }
 

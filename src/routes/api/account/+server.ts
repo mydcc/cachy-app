@@ -9,6 +9,15 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
   }
 
+  if (
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json({ error: "Invalid credentials format" }, { status: 400 });
+  }
+
   try {
     let account = null;
     if (exchange === "bitunix") {
@@ -23,14 +32,14 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error fetching account from ${exchange}:`, e);
     return json(
       { error: e.message || "Failed to fetch account" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
 
 async function fetchBitunixAccount(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
@@ -75,7 +84,7 @@ async function fetchBitunixAccount(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 

@@ -249,7 +249,7 @@ settingsStore.subscribe((value) => {
     try {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
-        JSON.stringify(value)
+        JSON.stringify(value),
       );
     } catch (e) {
       console.warn("Could not save settings to localStorage.", e);

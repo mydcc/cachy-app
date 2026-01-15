@@ -118,7 +118,7 @@ class BitunixWebSocketService {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
           console.warn(
-            "Bitunix Public WS Connection Timeout. Closing to trigger retry."
+            "Bitunix Public WS Connection Timeout. Closing to trigger retry.",
           );
           // P0 Fix: Explicit cleanup to prevent timer leaks
           if (this.wsPublic === ws) {
@@ -218,7 +218,7 @@ class BitunixWebSocketService {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
           console.warn(
-            "Bitunix Private WS Connection Timeout. Closing to trigger retry."
+            "Bitunix Private WS Connection Timeout. Closing to trigger retry.",
           );
           // P0 Fix: Explicit cleanup to prevent timer leaks
           if (this.wsPrivate === ws) {
@@ -458,7 +458,7 @@ class BitunixWebSocketService {
         const array = new Uint8Array(16);
         window.crypto.getRandomValues(array);
         nonce = Array.from(array, (byte) =>
-          byte.toString(16).padStart(2, "0")
+          byte.toString(16).padStart(2, "0"),
         ).join("");
       } else {
         // Fallback for non-browser environments or very old browsers (unlikely given Svelte 4)
@@ -470,10 +470,10 @@ class BitunixWebSocketService {
       const timestamp = Math.floor(Date.now() / 1000);
 
       const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(
-        CryptoJS.enc.Hex
+        CryptoJS.enc.Hex,
       );
       const sign = CryptoJS.SHA256(first + apiSecret).toString(
-        CryptoJS.enc.Hex
+        CryptoJS.enc.Hex,
       );
 
       const payload = {
@@ -498,7 +498,7 @@ class BitunixWebSocketService {
   private validatePriceData(data: any): boolean {
     if (!data) return false;
     // Price fields should be numeric strings or numbers > 0
-    const fields = ['mp', 'ip', 'fr', 'nft'];
+    const fields = ["mp", "ip", "fr", "nft"];
     for (const field of fields) {
       if (data[field] !== undefined && data[field] !== null) {
         const val = parseFloat(data[field]);
@@ -511,7 +511,7 @@ class BitunixWebSocketService {
   private validateTickerData(data: any): boolean {
     if (!data) return false;
     // At least lastPrice and open should be valid
-    const critical = ['la', 'o'];
+    const critical = ["la", "o"];
     for (const field of critical) {
       if (!data[field]) return false;
       const val = parseFloat(data[field]);
@@ -562,7 +562,10 @@ class BitunixWebSocketService {
             nextFundingTime: data.nft,
           });
         } else if (symbol && data) {
-          console.warn('[BitunixWS] Invalid price data received:', { symbol, data });
+          console.warn("[BitunixWS] Invalid price data received:", {
+            symbol,
+            data,
+          });
         }
       } else if (message.ch === "ticker") {
         const rawSymbol = message.symbol;
@@ -579,7 +582,10 @@ class BitunixWebSocketService {
             open: data.o,
           });
         } else if (symbol && data) {
-          console.warn('[BitunixWS] Invalid ticker data received:', { symbol, data });
+          console.warn("[BitunixWS] Invalid ticker data received:", {
+            symbol,
+            data,
+          });
         }
       } else if (message.ch === "depth_book5") {
         const rawSymbol = message.symbol;
@@ -670,7 +676,7 @@ class BitunixWebSocketService {
         `Error handling ${type} message:`,
         err,
         "Message:",
-        message
+        message,
       );
     }
   }

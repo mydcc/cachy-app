@@ -9,6 +9,15 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Missing credentials" }, { status: 400 });
   }
 
+  if (
+    typeof apiKey !== "string" ||
+    apiKey.length < 5 ||
+    typeof apiSecret !== "string" ||
+    apiSecret.length < 5
+  ) {
+    return json({ error: "Invalid credentials format" }, { status: 400 });
+  }
+
   try {
     const positions = await fetchBitunixPendingPositions(apiKey, apiSecret);
     return json({ data: positions });
@@ -16,14 +25,14 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error fetching pending positions from Bitunix:`, e);
     return json(
       { error: e.message || "Failed to fetch pending positions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
 
 async function fetchBitunixPendingPositions(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
@@ -78,7 +87,7 @@ async function fetchBitunixPendingPositions(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`
+      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
     );
   }
 

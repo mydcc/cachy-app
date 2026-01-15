@@ -31,14 +31,14 @@ export function calculateATR(klines: Kline[], period: number = 14): Decimal {
 
   const sumOfTrueRanges = trueRanges.reduce(
     (sum, val) => sum.plus(val),
-    new Decimal(0)
+    new Decimal(0),
   );
   return sumOfTrueRanges.div(trueRanges.length);
 }
 
 export function calculateJournalStats(journalData: JournalEntry[]) {
   const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   let wonTrades = 0;
@@ -80,12 +80,12 @@ export function calculateJournalStats(journalData: JournalEntry[]) {
 
 export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
   if (closedTrades.length === 0) return null;
 
   const sortedClosedTrades = [...closedTrades].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
   const wonTrades = closedTrades.filter((t) => t.status === "Won");
   const lostTrades = closedTrades.filter((t) => t.status === "Lost");
@@ -94,11 +94,11 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
 
   const totalProfit = wonTrades.reduce(
     (sum, t) => sum.plus(new Decimal(t.totalNetProfit || 0)),
-    new Decimal(0)
+    new Decimal(0),
   );
   const totalLoss = lostTrades.reduce(
     (sum, t) => sum.plus(new Decimal(t.riskAmount || 0)),
-    new Decimal(0)
+    new Decimal(0),
   );
   const profitFactor = totalLoss.gt(0)
     ? totalProfit.dividedBy(totalLoss)
@@ -109,11 +109,11 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const avgRR =
     totalTrades > 0
       ? closedTrades
-        .reduce(
-          (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
-          new Decimal(0)
-        )
-        .dividedBy(totalTrades)
+          .reduce(
+            (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
+            new Decimal(0),
+          )
+          .dividedBy(totalTrades)
       : new Decimal(0);
   const avgWin =
     wonTrades.length > 0
@@ -130,9 +130,9 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const largestProfit =
     wonTrades.length > 0
       ? Decimal.max(
-        0,
-        ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0))
-      )
+          0,
+          ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
+        )
       : new Decimal(0);
   const largestLoss =
     lostTrades.length > 0
@@ -146,8 +146,8 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
       const rMultiple =
         trade.status === "Won"
           ? new Decimal(trade.totalNetProfit || 0).dividedBy(
-            new Decimal(trade.riskAmount)
-          )
+              new Decimal(trade.riskAmount),
+            )
           : new Decimal(-1);
       totalRMultiples = totalRMultiples.plus(rMultiple);
       tradesWithRisk++;
@@ -251,7 +251,7 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
 
 export function calculateSymbolPerformance(journalData: JournalEntry[]) {
   const closedTrades = journalData.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
   const symbolPerformance: {
     [key: string]: {
@@ -312,7 +312,7 @@ export function getTagData(trades: JournalEntry[]) {
   const labels = Object.keys(tagStats);
   const pnlData = labels.map((l) => tagStats[l].pnl.toNumber());
   const winRateData = labels.map(
-    (l) => (tagStats[l].win / tagStats[l].count) * 100
+    (l) => (tagStats[l].win / tagStats[l].count) * 100,
   );
 
   return {
@@ -408,7 +408,7 @@ export function getCalendarData(trades: JournalEntry[]) {
 
 export function getRollingData(
   journal: JournalEntry[],
-  windowSize: number = 20
+  windowSize: number = 20,
 ) {
   const sortedTrades = journal
     .filter((t) => t.status === "Won" || t.status === "Lost")
@@ -490,7 +490,7 @@ export function getRollingData(
 
 export function getLeakageData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   let totalGrossProfit = new Decimal(0);
@@ -579,7 +579,7 @@ export function getLeakageData(journal: JournalEntry[]) {
 
 export function getDurationStats(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   // Buckets: <15m, 15m-1h, 1h-4h, 4h-24h, >24h
@@ -641,7 +641,7 @@ export function getDurationStats(journal: JournalEntry[]) {
   const labels = buckets.map((b) => b.label);
   const pnlData = buckets.map((b) => b.pnl.toNumber());
   const winRateData = buckets.map((b) =>
-    b.count > 0 ? (b.win / b.count) * 100 : 0
+    b.count > 0 ? (b.win / b.count) * 100 : 0,
   );
 
   return { labels, pnlData, winRateData };

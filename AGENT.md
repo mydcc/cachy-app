@@ -68,7 +68,6 @@ Das Löschen von Code ist eine kritische Operation und unterliegt strengen Regel
 Um die Zuverlässigkeit von automatisierten UI-Tests mit Playwright zu gewährleisten und die aufgetretenen Probleme zu vermeiden, sind folgende Konventionen zu beachten:
 
 1.  **Playwright `webServer` Konfiguration verwenden:** Für jede Aufgabe, die eine UI-Verifizierung erfordert, **muss** Playwright so konfiguriert werden, dass es den Entwicklungsserver automatisch verwaltet.
-
     - **Aktion:** Erstellen oder bearbeiten Sie die Konfigurationsdatei `playwright.config.ts` im Stammverzeichnis.
     - **Inhalt:** Fügen Sie eine `webServer`-Konfiguration hinzu. Diese startet den `npm run dev`-Befehl, wartet, bis die URL erreichbar ist, und beendet den Server nach den Tests automatisch.
     - **Beispiel-Konfiguration:**
@@ -97,7 +96,6 @@ Um die Zuverlässigkeit von automatisierten UI-Tests mit Playwright zu gewährle
 Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu automatisieren. Dies hat direkte Auswirkungen auf die Art und Weise, wie Commits erstellt werden müssen.
 
 - **Automatisierter Prozess:** Bei jedem Push auf den `main`-Branch analysiert ein GitHub-Actions-Workflow die Commit-Nachrichten. Basierend auf diesen Nachrichten wird automatisch:
-
   - Die nächste Versionsnummer bestimmt (nach Semantic Versioning).
   - Die `package.json` und `package-lock.json` aktualisiert.
   - Ein `CHANGELOG.md` erstellt oder aktualisiert.
@@ -106,7 +104,6 @@ Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu
 - **Verbindliche Commit-Konvention:** Damit dieser Automatismus funktioniert, **müssen alle Commits ausnahmslos** dem [Conventional Commits](https://www.conventionalcommits.org/)-Standard folgen. Der Agent ist dafür verantwortlich, diese Konvention bei jeder Code-Änderung anzuwenden.
 
 - **Commit-Typen und ihre Auswirkungen:**
-
   - `feat`: Für neue Funktionalitäten. Führt zu einem **Minor**-Release (z.B. 1.2.3 -> 1.3.0).
   - `fix`: Für Fehlerbehebungen. Führt zu einem **Patch**-Release (z.B. 1.2.3 -> 1.2.4).
   - **Breaking Change:** Für Änderungen, die die Abwärtskompatibilität brechen. Dies wird durch einen `BREAKING CHANGE:`-Footer im Commit-Text signalisiert und führt zu einem **Major**-Release (z.B. 1.2.3 -> 2.0.0).

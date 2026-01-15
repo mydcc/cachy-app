@@ -21,7 +21,7 @@ function loadJournalFromLocalStorage(): JournalEntry[] {
 }
 
 export const journalStore = writable<JournalEntry[]>(
-  loadJournalFromLocalStorage()
+  loadJournalFromLocalStorage(),
 );
 
 journalStore.subscribe((value) => {
@@ -29,7 +29,7 @@ journalStore.subscribe((value) => {
     try {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        JSON.stringify(value)
+        JSON.stringify(value),
       );
     } catch (e) {
       console.warn("Could not save journal to localStorage.", e);

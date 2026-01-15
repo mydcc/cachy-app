@@ -31,7 +31,7 @@ export function getTradePnL(t: JournalEntry): Decimal {
 
 export function calculateBaseMetrics(
   values: TradeValues,
-  tradeType: string
+  tradeType: string,
 ): BaseMetrics | null {
   const riskAmount = values.accountSize.times(values.riskPercentage.div(100));
   const riskPerUnit = values.entryPrice.minus(values.stopLossPrice).abs();
@@ -61,10 +61,10 @@ export function calculateBaseMetrics(
   const liquidationPrice = values.leverage.gt(0)
     ? tradeType === CONSTANTS.TRADE_TYPE_LONG
       ? values.entryPrice.times(
-          new Decimal(1).minus(new Decimal(1).div(values.leverage))
+          new Decimal(1).minus(new Decimal(1).div(values.leverage)),
         )
       : values.entryPrice.times(
-          new Decimal(1).plus(new Decimal(1).div(values.leverage))
+          new Decimal(1).plus(new Decimal(1).div(values.leverage)),
         )
     : new Decimal(0);
 
@@ -84,7 +84,7 @@ export function calculateIndividualTp(
   currentTpPercent: Decimal,
   baseMetrics: BaseMetrics,
   values: TradeValues,
-  index: number
+  index: number,
 ): IndividualTpResult {
   const { positionSize, requiredMargin, riskAmount } = baseMetrics;
   const gainPerUnit = tpPrice.minus(values.entryPrice).abs();
@@ -124,7 +124,7 @@ export function calculateTotalMetrics(
   targets: Array<{ price: Decimal; percent: Decimal }>,
   baseMetrics: BaseMetrics,
   values: TradeValues,
-  tradeType: string
+  tradeType: string,
 ): TotalMetrics {
   const { positionSize, entryFee, riskAmount } = baseMetrics;
   let totalNetProfit = new Decimal(0);
@@ -138,7 +138,7 @@ export function calculateTotalMetrics(
         tp.percent,
         baseMetrics,
         values,
-        index
+        index,
       );
       totalNetProfit = totalNetProfit.plus(netProfit);
       const entryFeePart = positionSize
@@ -151,7 +151,7 @@ export function calculateTotalMetrics(
         .times(values.fees.div(100));
       totalFees = totalFees.plus(entryFeePart).plus(exitFeePart);
       weightedRRSum = weightedRRSum.plus(
-        riskRewardRatio.times(tp.percent.div(100))
+        riskRewardRatio.times(tp.percent.div(100)),
       );
     }
   });

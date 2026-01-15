@@ -312,17 +312,14 @@ The Calculator plans your trade – the **Journal documents and analyzes** it.
 ### The Perfect Workflow:
 
 1. **Calculator:** Plan trade
-
    - Calculate position size
    - Set stop-loss and TPs
    - Check R/R
 
 2. **Broker:** Execute trade
-
    - Place order based on Calculator values
 
 3. **Journal:** Document trade
-
    - Automatic import (Bitunix API)
    - Or manual addition
    - Add tags (strategy, setup, etc.)

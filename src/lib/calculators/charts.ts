@@ -43,11 +43,11 @@ export function getPerformanceData(journal: JournalEntry[]) {
   closedTrades.forEach((t) => {
     const date = new Date(t.date);
     const monthKey = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}`;
     const pnl = getTradePnL(t);
     monthlyStats[monthKey] = (monthlyStats[monthKey] || new Decimal(0)).plus(
-      pnl
+      pnl,
     );
   });
   const monthlyLabels = Object.keys(monthlyStats).sort();
@@ -215,7 +215,7 @@ export function getQualityData(journal: JournalEntry[]) {
 
 export function getDirectionData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   // 1. Long vs Short
@@ -235,7 +235,7 @@ export function getDirectionData(journal: JournalEntry[]) {
   });
 
   const sortedSymbols = Object.entries(symbolMap).sort((a, b) =>
-    b[1].minus(a[1]).toNumber()
+    b[1].minus(a[1]).toNumber(),
   );
   const topSymbols = sortedSymbols.slice(0, 5);
   const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
@@ -248,7 +248,7 @@ export function getDirectionData(journal: JournalEntry[]) {
 
   // Sort trades by date for evolution
   const sortedByDate = [...closedTrades].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   sortedByDate.forEach((t) => {
@@ -280,7 +280,7 @@ export function getDirectionData(journal: JournalEntry[]) {
 
 export function getCostData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   // 1. Gross vs Net PnL (Total)
@@ -361,9 +361,9 @@ export function getDurationData(journal: JournalEntry[]) {
             x: durationMinutes,
             y: pnl.toNumber(),
             r: 6,
-            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(pnl ?? new Decimal(0)).toFixed(
-              2
-            )}`,
+            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(
+              pnl ?? new Decimal(0)
+            ).toFixed(2)}`,
           };
         }
       }
@@ -403,7 +403,7 @@ export function getAssetData(journal: JournalEntry[]) {
       y: s.pnl.toNumber(),
       r: Math.min(Math.max(s.count * 2, 5), 30), // Scale radius
       l: `${sym}: ${s.count} Trades, ${(winRate ?? 0).toFixed(
-        1
+        1,
       )}% Win, $${(s.pnl ?? new Decimal(0)).toFixed(2)}`, // Label for tooltip
     };
   });
@@ -423,9 +423,9 @@ export function getRiskData(journal: JournalEntry[]) {
         x: t.riskAmount.toNumber(),
         y: pnl.toNumber(),
         r: 6,
-        l: `${t.symbol} (${t.status}): Risk $${(t.riskAmount ?? new Decimal(0)).toFixed(
-          2
-        )} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
+        l: `${t.symbol} (${t.status}): Risk $${(
+          t.riskAmount ?? new Decimal(0)
+        ).toFixed(2)} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
       };
     });
 
@@ -510,23 +510,23 @@ export function getPsychologyData(journal: JournalEntry[]) {
   const lossStreakCounts: { [key: number]: number } = {};
 
   winStreaks.forEach(
-    (s) => (winStreakCounts[s] = (winStreakCounts[s] || 0) + 1)
+    (s) => (winStreakCounts[s] = (winStreakCounts[s] || 0) + 1),
   );
   lossStreaks.forEach(
-    (s) => (lossStreakCounts[s] = (lossStreakCounts[s] || 0) + 1)
+    (s) => (lossStreakCounts[s] = (lossStreakCounts[s] || 0) + 1),
   );
 
   // Prepare labels (1 to max streak)
   const maxStreak = Math.max(...winStreaks, ...lossStreaks, 0);
   const streakLabels = Array.from({ length: maxStreak }, (_, i) =>
-    (i + 1).toString()
+    (i + 1).toString(),
   );
 
   const winStreakData = streakLabels.map(
-    (l) => winStreakCounts[parseInt(l)] || 0
+    (l) => winStreakCounts[parseInt(l)] || 0,
   );
   const lossStreakData = streakLabels.map(
-    (l) => lossStreakCounts[parseInt(l)] || 0
+    (l) => lossStreakCounts[parseInt(l)] || 0,
   );
 
   return {
@@ -568,7 +568,7 @@ export function getTagEvolution(journal: JournalEntry[]) {
 
 export function getConfluenceData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -618,10 +618,10 @@ export function getConfluenceData(journal: JournalEntry[]) {
 export function getMonteCarloData(
   journal: JournalEntry[],
   simulations: number = 100,
-  horizon: number = 100
+  horizon: number = 100,
 ) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
   const pnlDistribution = closedTrades.map((t) => getTradePnL(t).toNumber());
 

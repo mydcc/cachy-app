@@ -83,11 +83,17 @@ function createUiStore() {
       });
       if (browser) {
         // Only update DOM if theme actually changed
-        const currentThemeClass = Array.from(document.body.classList).find(c => c.startsWith("theme-"));
-        const expectedClass = themeName !== "dark" ? `theme-${themeName}` : null;
+        const currentThemeClass = Array.from(document.body.classList).find(
+          (c) => c.startsWith("theme-"),
+        );
+        const expectedClass =
+          themeName !== "dark" ? `theme-${themeName}` : null;
 
         // Skip DOM update if already correct
-        if (currentThemeClass === expectedClass || (!currentThemeClass && !expectedClass)) {
+        if (
+          currentThemeClass === expectedClass ||
+          (!currentThemeClass && !expectedClass)
+        ) {
           return;
         }
 
@@ -102,7 +108,7 @@ function createUiStore() {
         try {
           localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
           const expires = new Date(
-            Date.now() + 365 * 24 * 60 * 60 * 1000
+            Date.now() + 365 * 24 * 60 * 60 * 1000,
           ).toUTCString(); // 1 year
           document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
         } catch (e) {
@@ -133,7 +139,7 @@ function createUiStore() {
       update((state) => ({ ...state, [key]: true }));
       setTimeout(
         () => update((state) => ({ ...state, [key]: false })),
-        duration
+        duration,
       );
     },
     showError: (message: string) =>
@@ -159,7 +165,6 @@ function createUiStore() {
       update((state) => ({ ...state, isLoading: false, loadingMessage: "" })),
     setSyncProgress: (progress: UiState["syncProgress"]) =>
       update((state) => ({ ...state, syncProgress: progress })),
-
   };
 }
 

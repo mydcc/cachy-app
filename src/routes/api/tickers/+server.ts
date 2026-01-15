@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   if (!symbols) {
     return json(
       { message: 'Query parameter "symbols" is required.' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -43,7 +43,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
         return await response.json();
       },
-      1000
+      1000,
     ); // 1 second TTL
 
     return json(data);
@@ -58,7 +58,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
       error instanceof Error ? error.message : "An unknown error occurred.";
     return json(
       { message: `Internal server error: ${message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };

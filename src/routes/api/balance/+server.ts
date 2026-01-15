@@ -25,14 +25,14 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error fetching balance from ${exchange}:`, e);
     return json(
       { error: e.message || "Failed to fetch balance" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
 
 async function fetchBitunixBalance(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<number> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
@@ -88,7 +88,7 @@ async function fetchBitunixBalance(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`
+      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
     );
   }
 
@@ -103,7 +103,7 @@ async function fetchBitunixBalance(
   if (Array.isArray(accountInfo)) {
     const usdt = accountInfo.find(
       (a: any) =>
-        a.marginCoin === "USDT" || a.currency === "USDT" || a.asset === "USDT"
+        a.marginCoin === "USDT" || a.currency === "USDT" || a.asset === "USDT",
     );
     if (usdt) {
       // Calculate total wallet balance = available + margin + frozen
@@ -135,14 +135,14 @@ async function fetchBitunixBalance(
 
   console.warn(
     "Could not find balance in Bitunix response:",
-    JSON.stringify(accountInfo)
+    JSON.stringify(accountInfo),
   );
   return 0;
 }
 
 async function fetchBinanceBalance(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<number> {
   const baseUrl = "https://fapi.binance.com";
   const path = "/fapi/v2/balance";

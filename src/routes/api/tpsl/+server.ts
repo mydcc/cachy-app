@@ -13,14 +13,14 @@ export const POST: RequestHandler = async ({ request }) => {
     if (!exchange || !apiKey || !apiSecret) {
       return json(
         { error: "Missing credentials or exchange" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     if (exchange !== "bitunix") {
       return json(
         { error: "Only Bitunix is supported for TP/SL currently" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -31,7 +31,7 @@ export const POST: RequestHandler = async ({ request }) => {
           apiKey,
           apiSecret,
           "/api/v1/futures/tp_sl/get_pending_tp_sl_order",
-          params
+          params,
         );
         break;
       case "history":
@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
           apiKey,
           apiSecret,
           "/api/v1/futures/tp_sl/get_history_tp_sl_order",
-          params
+          params,
         );
         break;
       case "cancel":
@@ -47,7 +47,7 @@ export const POST: RequestHandler = async ({ request }) => {
           apiKey,
           apiSecret,
           "/api/v1/futures/tp_sl/cancel_tp_sl_order",
-          params
+          params,
         );
         break;
       case "modify":
@@ -55,7 +55,7 @@ export const POST: RequestHandler = async ({ request }) => {
           apiKey,
           apiSecret,
           "/api/v1/futures/tp_sl/modify_tp_sl_order",
-          params
+          params,
         );
         break;
       default:
@@ -86,7 +86,7 @@ export const POST: RequestHandler = async ({ request }) => {
         error: message,
         stack: process.env.NODE_ENV === "development" ? e.stack : undefined,
       },
-      { status }
+      { status },
     );
   }
 };
@@ -96,7 +96,7 @@ async function fetchBitunixTpSl(
   apiKey: string,
   apiSecret: string,
   path: string,
-  params: any = {}
+  params: any = {},
 ) {
   const nonce = randomBytes(16).toString("hex");
   const timestamp = Date.now().toString();
@@ -147,7 +147,7 @@ async function fetchBitunixTpSl(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
@@ -159,7 +159,7 @@ async function executeBitunixAction(
   apiKey: string,
   apiSecret: string,
   path: string,
-  payload: any
+  payload: any,
 ) {
   const nonce = randomBytes(16).toString("hex");
   const timestamp = Date.now().toString();
@@ -206,7 +206,7 @@ async function executeBitunixAction(
   const res = await response.json();
   if (res.code !== 0 && res.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 

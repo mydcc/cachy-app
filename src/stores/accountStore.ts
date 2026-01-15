@@ -63,7 +63,7 @@ function createAccountStore() {
       update((store) => {
         const currentPositions = [...store.positions];
         const index = currentPositions.findIndex(
-          (p) => String(p.positionId) === String(data.positionId)
+          (p) => String(p.positionId) === String(data.positionId),
         );
 
         // Robust check for close event or zero quantity
@@ -85,13 +85,13 @@ function createAccountStore() {
           let side = data.side
             ? data.side.toLowerCase()
             : existing
-            ? existing.side
-            : null;
+              ? existing.side
+              : null;
 
           if (!side) {
             console.warn(
               "Bitunix WS: Ignored position update due to missing side",
-              data
+              data,
             );
             return store;
           }
@@ -102,7 +102,7 @@ function createAccountStore() {
             side: side,
             size: new Decimal(data.qty || 0),
             entryPrice: new Decimal(
-              data.averagePrice || data.avgOpenPrice || 0
+              data.averagePrice || data.avgOpenPrice || 0,
             ),
             leverage: new Decimal(data.leverage || 0),
             unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
@@ -144,7 +144,7 @@ function createAccountStore() {
       update((store) => {
         const currentOrders = [...store.openOrders];
         const index = currentOrders.findIndex(
-          (o) => String(o.orderId) === String(data.orderId)
+          (o) => String(o.orderId) === String(data.orderId),
         );
 
         const isClosed = [

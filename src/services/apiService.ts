@@ -30,7 +30,7 @@ type BinanceKline = [
   number, // Number of trades
   string, // Taker buy base asset volume
   string, // Taker buy quote asset volume
-  string // Ignore
+  string, // Ignore
 ];
 
 // --- Request Manager for Global Concurrency & Deduplication ---
@@ -61,7 +61,7 @@ class RequestManager {
     task: (signal: AbortSignal) => Promise<T>,
     priority: "high" | "normal" = "normal",
     retries = 1,
-    timeout?: number
+    timeout?: number,
   ): Promise<T> {
     const now = Date.now();
 
@@ -87,7 +87,7 @@ class RequestManager {
             const controller = new AbortController();
             const timeoutId = setTimeout(
               () => controller.abort(),
-              timeout || this.DEFAULT_TIMEOUT
+              timeout || this.DEFAULT_TIMEOUT,
             );
 
             try {
@@ -98,9 +98,10 @@ class RequestManager {
               }
               if (attempt < retries) {
                 console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
+                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
+                    retries + 1
                   })`,
-                  e
+                  e,
                 );
                 // Wait a bit before retry (increased for rate limit recovery)
                 await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
@@ -178,7 +179,7 @@ export const apiService = {
   async fetchBitunixPrice(
     symbol: string,
     priority: "high" | "normal" = "high",
-    timeout = 5000
+    timeout = 5000,
   ): Promise<Decimal> {
     const key = `BITUNIX:PRICE:${symbol}`;
     return requestManager.schedule(
@@ -225,7 +226,7 @@ export const apiService = {
       },
       priority,
       1, // retries
-      timeout // dynamic timeout
+      timeout, // dynamic timeout
     );
   },
 
@@ -236,7 +237,7 @@ export const apiService = {
     startTime?: number,
     endTime?: number,
     priority: "high" | "normal" = "normal",
-    timeout = 10000
+    timeout = 10000,
   ): Promise<Kline[]> {
     const key = `BITUNIX:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
     return requestManager.schedule(
@@ -262,7 +263,7 @@ export const apiService = {
               const errData = await response.json();
               if (errData.error) {
                 console.error(
-                  `fetchBitunixKlines failed with ${response.status}: ${errData.error}`
+                  `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
                 );
                 // If it's a rate limit or specific error, we might want to preserve it
                 // But for now, let's at least log it and maybe throw a more descriptive error if possible
@@ -301,7 +302,7 @@ export const apiService = {
                   const close = new Decimal(kline.close || 0);
                   const volume = new Decimal(kline.vol || 0);
                   const time = parseTimestamp(
-                    kline.timestamp || kline.time || kline.ts
+                    kline.timestamp || kline.time || kline.ts,
                   );
 
                   // Validate basic financial consistency
@@ -320,7 +321,7 @@ export const apiService = {
                   console.warn("Skipping invalid kline:", kline, e);
                   return null;
                 }
-              }
+              },
             )
             .filter((k): k is Kline => k !== null);
         } catch (e) {
@@ -338,14 +339,14 @@ export const apiService = {
       },
       priority,
       1,
-      timeout
+      timeout,
     );
   },
 
   async fetchBinancePrice(
     symbol: string,
     priority: "high" | "normal" = "high",
-    timeout = 5000
+    timeout = 5000,
   ): Promise<Decimal> {
     const key = `BINANCE:PRICE:${symbol}`;
     return requestManager.schedule(
@@ -385,7 +386,7 @@ export const apiService = {
       },
       priority,
       1, // retries
-      timeout // dynamic timeout
+      timeout, // dynamic timeout
     );
   },
 
@@ -394,7 +395,7 @@ export const apiService = {
     interval: string,
     limit: number = 15,
     priority: "high" | "normal" = "normal",
-    timeout = 10000
+    timeout = 10000,
   ): Promise<Kline[]> {
     const key = `BINANCE:${symbol}:${interval}:${limit}`;
     return requestManager.schedule(
@@ -460,7 +461,7 @@ export const apiService = {
       },
       priority,
       1,
-      timeout
+      timeout,
     );
   },
 
@@ -468,7 +469,7 @@ export const apiService = {
     symbol: string,
     provider: "bitunix" | "binance",
     priority: "high" | "normal" = "normal",
-    timeout = 10000
+    timeout = 10000,
   ): Promise<Ticker24h> {
     const key = `TICKER24:${provider}:${symbol}`;
     return requestManager.schedule(
@@ -568,7 +569,7 @@ export const apiService = {
       },
       priority,
       1,
-      timeout
+      timeout,
     );
   },
 };

@@ -25,14 +25,14 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error fetching positions from ${exchange}:`, e);
     return json(
       { error: e.message || "Failed to fetch positions" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
 
 async function fetchBitunixPositions(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/position/get_pending_positions";
@@ -88,7 +88,7 @@ async function fetchBitunixPositions(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`
+      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
     );
   }
 
@@ -116,19 +116,19 @@ async function fetchBitunixPositions(
         size: parseFloat(p.qty || p.positionAmount || p.holdVolume || "0"),
         // entryPrice: "avgOpenPrice" as per docs.
         entryPrice: parseFloat(
-          p.avgOpenPrice || p.openAvgPrice || p.avgPrice || "0"
+          p.avgOpenPrice || p.openAvgPrice || p.avgPrice || "0",
         ),
 
         // Fixed Duplicate Keys Issue:
         liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || "0"),
         markPrice: parseFloat(p.markPrice || p.mark_price || "0"),
         margin: parseFloat(
-          p.margin || p.positionMargin || p.maintMargin || "0"
+          p.margin || p.positionMargin || p.maintMargin || "0",
         ),
 
         // unrealizedPnL: "unrealizedPNL" as per docs.
         unrealizedPnL: parseFloat(
-          p.unrealizedPNL || p.unrealizedPnL || p.openLoss || "0"
+          p.unrealizedPNL || p.unrealizedPnL || p.openLoss || "0",
         ),
         leverage: parseFloat(p.leverage || "0"),
         // marginType: "ISOLATION" | "CROSS" as per docs.
@@ -146,7 +146,7 @@ async function fetchBitunixPositions(
 
 async function fetchBinancePositions(
   apiKey: string,
-  apiSecret: string
+  apiSecret: string,
 ): Promise<any[]> {
   const baseUrl = "https://fapi.binance.com";
   const path = "/fapi/v2/positionRisk";

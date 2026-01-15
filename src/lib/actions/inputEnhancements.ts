@@ -10,7 +10,7 @@ export function enhancedInput(
     noDecimals?: boolean;
     showSpinButtons?: boolean | "hover";
     rightOffset?: string;
-  } = {}
+  } = {},
 ) {
   const step = options.step || 1;
 
@@ -90,7 +90,7 @@ export function enhancedInput(
   }
 
   const handleWheel = (e: WheelEvent) => {
-    // We remove preventDefault() to allow passive scrolling, 
+    // We remove preventDefault() to allow passive scrolling,
     // and rely on focus state to decide if we want to change value.
     if (e.deltaY < 0) updateValue(step);
     else updateValue(-step);

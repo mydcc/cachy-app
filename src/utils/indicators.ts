@@ -9,7 +9,7 @@ export const indicators = {
    */
   calculateRSI(
     prices: (number | string | Decimal)[],
-    period: number = 14
+    period: number = 14,
   ): Decimal | null {
     if (prices.length < period + 1) {
       return null;
@@ -67,7 +67,7 @@ export const indicators = {
 
     const rs = avgGain.div(avgLoss);
     const rsi = new Decimal(100).minus(
-      new Decimal(100).div(new Decimal(1).plus(rs))
+      new Decimal(100).div(new Decimal(1).plus(rs)),
     );
 
     return rsi;
@@ -75,7 +75,7 @@ export const indicators = {
 
   calculateSMA(
     data: (number | string | Decimal)[],
-    period: number
+    period: number,
   ): Decimal | null {
     if (data.length < period) return null;
 
@@ -83,7 +83,7 @@ export const indicators = {
     const sum = relevant.reduce(
       (acc: Decimal, val: number | string | Decimal) =>
         acc.plus(new Decimal(val)),
-      new Decimal(0)
+      new Decimal(0),
     );
 
     return sum.div(period);
@@ -91,7 +91,7 @@ export const indicators = {
 
   calculateEMA(
     data: (number | string | Decimal)[],
-    period: number
+    period: number,
   ): Decimal | null {
     if (data.length < period) return null;
 

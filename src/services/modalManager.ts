@@ -28,7 +28,7 @@ export const modalManager = {
     message: string,
     type: "alert" | "confirm" | "prompt",
     defaultValue: string = "",
-    extraClasses: string = ""
+    extraClasses: string = "",
   ): Promise<boolean | string> {
     return new Promise((resolve) => {
       if (!browser) {

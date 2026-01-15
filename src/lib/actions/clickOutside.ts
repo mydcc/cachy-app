@@ -1,6 +1,6 @@
 export function clickOutside(
   node: HTMLElement,
-  { enabled, callback }: { enabled: boolean; callback: () => void }
+  { enabled, callback }: { enabled: boolean; callback: () => void },
 ) {
   function handleClick(event: MouseEvent) {
     if (
