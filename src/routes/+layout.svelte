@@ -114,12 +114,12 @@
     setTimeout(() => {
       const metaThemeColor = document.querySelector('meta[name="theme-color"]');
       if (metaThemeColor) {
-        // We need to read the background color of the body, which carries the theme variable
-        const style = getComputedStyle(document.body);
+        // Since the background was moved to the html tag, we read from document.documentElement
+        const style = getComputedStyle(document.documentElement);
         const bgColor = style.backgroundColor;
         metaThemeColor.setAttribute("content", bgColor);
       }
-    }, 50);
+    }, 100); // 100ms for safety
   }
   // Dynamic theme color for PWA/Android status bar
   $effect(() => {
