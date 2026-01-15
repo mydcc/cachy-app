@@ -2157,8 +2157,8 @@ input:-webkit-autofill:active {
 /* Improved App Feel & PWA optimizations */
 html,
 body {
-  overscroll-behavior: none;
-  /* Prevents pull-to-refresh and rubber-banding */
+  overscroll-behavior: auto;
+  /* Allows pull-to-refresh and rubber-banding */
   -webkit-tap-highlight-color: transparent;
   /* Clean mobile taps */
   padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);

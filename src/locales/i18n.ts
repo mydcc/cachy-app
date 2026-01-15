@@ -32,14 +32,7 @@ let initialLocaleValue: string;
 if (storedLocale && (storedLocale === "en" || storedLocale === "de")) {
   initialLocaleValue = storedLocale;
 } else {
-  const browserLocale = getSafeLocale(getLocaleFromNavigator);
-  if (browserLocale && browserLocale.startsWith("de")) {
-    initialLocaleValue = "de";
-  } else if (browserLocale && browserLocale.startsWith("en")) {
-    initialLocaleValue = "en";
-  } else {
-    initialLocaleValue = "en"; // Fallback to English
-  }
+  initialLocaleValue = "en"; // Primary language is now English
 }
 
 init({

@@ -326,7 +326,6 @@
     class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0"
   >
     <ConnectionStatus />
-
     <div
       class="flex flex-col md:flex-row md:justify-between md:items-center mb-6 gap-4"
     >

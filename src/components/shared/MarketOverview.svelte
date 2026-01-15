@@ -79,10 +79,12 @@
       const trend = Number(s) > Number(lastPriceStr) ? "up" : "down";
       const newIndexes = new Set<number>();
 
-      // Identify which digits changed
+      // Identify which digits changed and flash all digits to the right as well
+      let foundChange = false;
       for (let i = 0; i < s.length; i++) {
-        if (s[i] !== lastPriceStr[i]) {
+        if (foundChange || s[i] !== lastPriceStr[i]) {
           newIndexes.add(i);
+          foundChange = true;
         }
       }
 

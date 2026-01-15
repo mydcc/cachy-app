@@ -2,12 +2,18 @@
   "name": "Cachy - Position Size & Risk Calculator",
   "short_name": "Cachy",
   "description": "Comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations.",
+  "lang": "en-US",
+  "dir": "ltr",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#0f172a",
   "theme_color": "#0f172a",
   "orientation": "portrait",
-  "categories": ["finance", "productivity", "utilities"],
+  "categories": [
+    "finance",
+    "productivity",
+    "utilities"
+  ],
   "icons": [
     {
       "src": "/icon-192.png",

@@ -254,3 +254,11 @@
 {#if !$settingsStore.disclaimerAccepted}
   <DisclaimerModal />
 {/if}
+
+<style>
+  @media (max-width: 768px) {
+    :global(.app-container) {
+      padding: 0 !important;
+    }
+  }
+</style>
