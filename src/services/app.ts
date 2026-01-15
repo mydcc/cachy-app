@@ -5,6 +5,7 @@ import {
   parseDateString,
   parseTimestamp,
   normalizeJournalEntry,
+  generateStableId,
 } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { apiService } from "./apiService";
@@ -358,7 +359,7 @@ export const app = {
         )
           return;
         presets[presetName] = app.getInputsAsObject();
-        localStorage.setItem(
+        storageUtils.safeSetItem(
           CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
           JSON.stringify(presets)
         );
@@ -392,7 +393,7 @@ export const app = {
         localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
       );
       delete presets[presetName];
-      localStorage.setItem(
+      storageUtils.safeSetItem(
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
         JSON.stringify(presets)
       );
@@ -749,21 +750,22 @@ export const app = {
             }
 
             // P0 Fix: Handle large IDs (precision loss) by generating new internal ID
-            let internalId = parseFloat(entry.ID);
+            // Using a deterministic hash ensures that re-importing the same CSV
+            // won't create duplicates even if the original ID is non-numeric or too large.
             const originalIdAsString = entry.ID;
+            let internalId: number;
 
-            // Check if ID is potentially unsafe
+            // Check if ID is simple numeric and safe
+            const asNum = parseFloat(originalIdAsString);
             if (
-              originalIdAsString &&
-              (originalIdAsString.length >= 16 ||
-                !Number.isSafeInteger(internalId))
+              !isNaN(asNum) &&
+              Number.isSafeInteger(asNum) &&
+              originalIdAsString.length < 16
             ) {
-              // Use deterministic hash for idempotency (djb2 variant)
-              let hash = 5381;
-              for (let i = 0; i < originalIdAsString.length; i++) {
-                hash = (hash * 33) ^ originalIdAsString.charCodeAt(i);
-              }
-              internalId = Math.abs(hash >>> 0);
+              internalId = asNum;
+            } else {
+              // Use deterministic hash for strings (UUIDs) or unsafe integers
+              internalId = generateStableId(originalIdAsString || String(Date.now() + Math.random()));
             }
 
             const { useUtcDateParsing } = get(settingsStore);

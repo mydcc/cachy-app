@@ -1,5 +1,5 @@
 import { get } from "svelte/store";
-import { parseTimestamp } from "../utils/utils";
+import { parseTimestamp, generateStableId } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { journalStore } from "../stores/journalStore";
 import { uiStore } from "../stores/uiStore";
@@ -9,6 +9,7 @@ import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
+import { storageUtils } from "../utils/storageUtils";
 
 export const syncService = {
   syncBitunixPositions: async () => {
@@ -110,7 +111,7 @@ export const syncService = {
         if (candidates && candidates.length > 0) stopLoss = candidates[candidates.length - 1].slPrice;
 
         newEntries.push({
-          id: Date.now() + Math.random(),
+          id: generateStableId(uniqueId),
           tradeId: uniqueId,
           date: new Date(dateTs).toISOString(),
           entryDate: new Date(dateTs).toISOString(),
@@ -240,7 +241,7 @@ export const syncService = {
 
           addedCount++;
           return {
-            id: Date.now() + Math.random(),
+            id: generateStableId(uniqueId),
             tradeId: uniqueId,
             date: new Date(closeTime).toISOString(),
             entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined,
@@ -305,13 +306,13 @@ export const syncService = {
   saveJournal: (d: JournalEntry[]) => {
     if (!browser) return;
     try {
-      localStorage.setItem(
+      storageUtils.safeSetItem(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
         JSON.stringify(d)
       );
-    } catch {
+    } catch (e: any) {
       uiStore.showError(
-        "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert."
+        "Fehler beim Speichern des Journals: " + (e.message || "Speicher voll")
       );
     }
   },

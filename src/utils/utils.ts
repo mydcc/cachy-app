@@ -354,3 +354,17 @@ export function escapeHtml(unsafe: string | null | undefined): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+/**
+ * Generates a stable, numeric ID (hash) from a string.
+ * Uses the djb2 algorithm variant.
+ * Used for converting external string IDs (like UUIDs) into safe numeric IDs for the internal system.
+ */
+export function generateStableId(str: string): number {
+  if (!str) return 0;
+  let hash = 5381;
+  for (let i = 0; i < str.length; i++) {
+    hash = (hash * 33) ^ str.charCodeAt(i);
+  }
+  return Math.abs(hash >>> 0); // Ensure unsigned 32-bit integer
+}

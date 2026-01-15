@@ -78,7 +78,10 @@ async function placeBitunixOrder(
   };
 
   if (payload.type === "LIMIT") {
-    if (!orderData.price) throw new Error("Price required for limit order");
+    const p = parseFloat(orderData.price);
+    if (!orderData.price || isNaN(p) || p <= 0) {
+      throw new Error("Valid price (>0) required for limit order");
+    }
     payload.price = String(orderData.price);
   }
 
