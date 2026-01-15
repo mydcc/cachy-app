@@ -240,7 +240,9 @@
       "short": "Short",
       "gross": "Gross",
       "net": "Net",
-      "screenshotAlt": "Trade Screenshot"
+      "screenshotAlt": "Trade Screenshot",
+      "mostProfitableStrategy": "Best Strategy",
+      "topAsset": "Top Asset"
     },
     "placeholder": {
       "notes": "Add notes..."
@@ -291,6 +293,7 @@
       "strategies": "Strategies",
       "calendar": "Calendar",
       "charts": {
+        "heatmap": "PnL Heatmap",
         "titles": {
           "equityCurve": "Equity Curve",
           "drawdown": "Drawdown",

@@ -240,7 +240,9 @@
       "short": "Short",
       "gross": "Brutto",
       "net": "Netto",
-      "screenshotAlt": "Trade Screenshot"
+      "screenshotAlt": "Trade Screenshot",
+      "mostProfitableStrategy": "Beste Strategie",
+      "topAsset": "Top Asset"
     },
     "placeholder": {
       "notes": "Notizen hinzufügen..."
@@ -291,6 +293,7 @@
       "strategies": "Strategien",
       "calendar": "Kalender",
       "charts": {
+        "heatmap": "PnL Heatmap",
         "titles": {
           "equityCurve": "Equity Curve",
           "drawdown": "Drawdown",
