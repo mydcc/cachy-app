@@ -366,7 +366,7 @@
                             {#if columnVisibility.duration && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("duration")}
-                                    class="sortable"
+                                    class="sortable col-duration"
                                 >
                                     {$_("journal.table.duration")}
                                     <span class="sort-icon"
@@ -395,7 +395,7 @@
                             {#if columnVisibility.notes && !groupBySymbol}<th
                                     >{$_("journal.table.notes")}</th
                                 >{/if}
-                            {#if columnVisibility.action}<th
+                            {#if columnVisibility.action && !groupBySymbol}<th
                                     >{$_("journal.table.action")}</th
                                 >{/if}
                         </tr>
@@ -604,7 +604,7 @@
                                     </td>
                                 {/if}
                                 {#if columnVisibility.duration}
-                                    <td class="text-xs">
+                                    <td class="text-xs col-duration">
                                         {(() => {
                                             const start = new Date(
                                                 item.entryDate || item.date,
@@ -903,6 +903,10 @@
         min-width: 140px;
         max-width: 140px;
         width: 140px;
+    }
+
+    .col-duration {
+        white-space: nowrap;
     }
 
     .journal-table th.sortable {
