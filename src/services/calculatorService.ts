@@ -124,10 +124,12 @@ export class CalculatorService {
             const riskAmount = parseDecimal(currentTradeState.riskAmount);
             if (riskAmount.gt(0) && values.accountSize.gt(0)) {
                 const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
-                this.updateTradeStore((state) => ({
-                    ...state,
-                    riskPercentage: newRiskPercentage.toNumber(),
-                }));
+                if (Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber()) > 0.000001) {
+                    this.updateTradeStore((state) => ({
+                        ...state,
+                        riskPercentage: newRiskPercentage.toNumber(),
+                    }));
+                }
                 values.riskPercentage = newRiskPercentage;
             }
             baseMetrics = this.calculator.calculateBaseMetrics(
@@ -154,11 +156,16 @@ export class CalculatorService {
                 ? new Decimal(0)
                 : riskAmount.div(values.accountSize).times(100);
 
-            this.updateTradeStore((state) => ({
-                ...state,
-                riskPercentage: newRiskPercentage.toNumber(),
-                riskAmount: riskAmount.toNumber(),
-            }));
+            if (
+                Math.abs((currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber()) > 0.000001 ||
+                Math.abs((currentTradeState.riskAmount || 0) - riskAmount.toNumber()) > 0.000001
+            ) {
+                this.updateTradeStore((state) => ({
+                    ...state,
+                    riskPercentage: newRiskPercentage.toNumber(),
+                    riskAmount: riskAmount.toNumber(),
+                }));
+            }
             values.riskPercentage = newRiskPercentage;
 
             baseMetrics = this.calculator.calculateBaseMetrics(
@@ -174,10 +181,12 @@ export class CalculatorService {
             );
             if (baseMetrics) {
                 const finalMetrics = baseMetrics;
-                this.updateTradeStore((state) => ({
-                    ...state,
-                    riskAmount: finalMetrics.riskAmount.toNumber(),
-                }));
+                if (Math.abs((currentTradeState.riskAmount || 0) - finalMetrics.riskAmount.toNumber()) > 0.000001) {
+                    this.updateTradeStore((state) => ({
+                        ...state,
+                        riskAmount: finalMetrics.riskAmount.toNumber(),
+                    }));
+                }
             }
         }
 
@@ -287,18 +296,25 @@ export class CalculatorService {
         );
         onboardingService.trackFirstCalculation();
 
-        this.updateTradeStore((state) => ({
-            ...state,
-            currentTradeData: {
-                ...values,
-                ...baseMetrics!,
-                ...totalMetrics,
-                tradeType: currentTradeState.tradeType,
-                status: "Open",
-                calculatedTpDetails,
-            },
-            stopLossPrice: values.stopLossPrice.toNumber(),
-        }));
+        const newStopLoss = values.stopLossPrice.toNumber();
+        const needsUpdate =
+            Math.abs((currentTradeState.stopLossPrice || 0) - newStopLoss) > 0.000001 ||
+            !currentTradeState.currentTradeData;
+
+        if (needsUpdate) {
+            this.updateTradeStore((state) => ({
+                ...state,
+                currentTradeData: {
+                    ...values,
+                    ...baseMetrics!,
+                    ...totalMetrics,
+                    tradeType: currentTradeState.tradeType,
+                    status: "Open",
+                    calculatedTpDetails,
+                },
+                stopLossPrice: newStopLoss,
+            }));
+        }
     }
 
     private handleCalculationError(error: unknown): void {

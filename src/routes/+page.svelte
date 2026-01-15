@@ -115,6 +115,9 @@
       $tradeStore.atrTimeframe,
       $tradeStore.tradeType,
       $tradeStore.targets,
+      $tradeStore.isRiskAmountLocked,
+      $tradeStore.isPositionSizeLocked,
+      $tradeStore.lockedPositionSize,
     ];
 
     // Only trigger if all necessary inputs are defined (not null/undefined from initial load)
