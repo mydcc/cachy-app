@@ -1,0 +1,128 @@
+<script lang="ts">
+  import { onMount, onDestroy } from "svelte";
+  import {
+    Chart,
+    Tooltip as ChartTooltip,
+    Legend,
+    RadialLinearScale,
+    PointElement,
+    LineElement,
+    Filler
+  } from "chart.js";
+  import Tooltip from "../Tooltip.svelte";
+
+  // Register necessary components for Radar
+  Chart.register(RadialLinearScale, PointElement, LineElement, Filler, ChartTooltip, Legend);
+
+  interface Props {
+    data: any;
+    title?: string;
+    description?: string;
+    labels?: string[];
+  }
+
+  let {
+    data,
+    title = "",
+    description = "",
+    labels = []
+  }: Props = $props();
+
+  let canvas: HTMLCanvasElement;
+  let chart: Chart | null = null;
+
+  let options = $derived({
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: {
+        display: false,
+      },
+      title: {
+        display: !!title,
+        text: title,
+        color: "#94a3b8",
+      },
+      tooltip: {
+        callbacks: {
+            label: function(context: any) {
+                // If raw values are attached, show them?
+                // Currently data is normalized 0-100.
+                return `${context.label}: ${context.raw.toFixed(1)}/100`;
+            }
+        }
+      }
+    },
+    scales: {
+      r: {
+        angleLines: {
+          color: "rgba(148, 163, 184, 0.1)"
+        },
+        grid: {
+          color: "rgba(148, 163, 184, 0.1)"
+        },
+        pointLabels: {
+          color: "#94a3b8",
+          font: {
+            size: 11
+          }
+        },
+        ticks: {
+          display: false, // Hide 0-100 ticks to keep it clean
+          backdropColor: "transparent"
+        },
+        min: 0,
+        max: 100
+      }
+    }
+  });
+
+  // Construct chart data format
+  let chartData = $derived({
+    labels: labels.length > 0 ? labels : data?.labels || [],
+    datasets: [{
+      label: title,
+      data: data?.data || [],
+      fill: true,
+      backgroundColor: 'rgba(54, 162, 235, 0.2)', // Default blue
+      borderColor: 'rgb(54, 162, 235)',
+      pointBackgroundColor: 'rgb(54, 162, 235)',
+      pointBorderColor: '#fff',
+      pointHoverBackgroundColor: '#fff',
+      pointHoverBorderColor: 'rgb(54, 162, 235)'
+    }]
+  });
+
+  onMount(() => {
+    if (canvas) {
+      chart = new Chart(canvas, {
+        type: "radar",
+        data: chartData,
+        options,
+      });
+    }
+  });
+
+  $effect(() => {
+    if (chart) {
+      chart.data = chartData;
+      chart.options = options;
+      chart.update();
+    }
+  });
+
+  onDestroy(() => {
+    if (chart) {
+      chart.destroy();
+    }
+  });
+</script>
+
+<div class="w-full h-full min-h-[250px] relative flex flex-col items-center justify-center">
+  {#if description}
+    <div class="absolute bottom-[-10px] left-[-10px] z-10 p-2">
+      <Tooltip text={description} />
+    </div>
+  {/if}
+  <canvas bind:this={canvas}></canvas>
+</div>
