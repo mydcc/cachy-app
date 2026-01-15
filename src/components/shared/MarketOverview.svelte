@@ -411,7 +411,7 @@
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
   class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
-    ? 'cursor-pointer hover:border-[var(--accent-color)] active:scale-[0.98]'
+    ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
   onclick={loadToCalculator}
   onkeydown={(e) => e.key === "Enter" && loadToCalculator()}

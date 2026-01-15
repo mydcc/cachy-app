@@ -2123,16 +2123,16 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 /* Hover & Focus Enhancements */
 button,
 .clickable {
-  transition: transform var(--transition-fast), opacity var(--transition-fast), background var(--transition-fast);
+  transition: opacity var(--transition-fast), background var(--transition-fast);
 }
 
 button:hover:not(:disabled),
 .clickable:hover {
-  transform: scale(1.02);
+  /* Scale removed as per user request */
 }
 
 button:active:not(:disabled) {
-  transform: scale(0.98);
+  /* Scale removed as per user request */
 }
 
 input:focus,
@@ -2167,24 +2167,20 @@ textarea:focus {
 @keyframes flash-green {
   0% {
     color: var(--success-color);
-    transform: scale(1.1);
   }
 
   100% {
     color: inherit;
-    transform: scale(1);
   }
 }
 
 @keyframes flash-red {
   0% {
     color: var(--danger-color);
-    transform: scale(1.1);
   }
 
   100% {
     color: inherit;
-    transform: scale(1);
   }
 }
 
