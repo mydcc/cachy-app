@@ -1,7 +1,7 @@
 <script lang="ts">
   import { stopPropagation } from "svelte/legacy";
 
-  import { onDestroy } from "svelte";
+  import { onDestroy, untrack } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
   import { indicatorStore } from "../../stores/indicatorStore";
@@ -37,6 +37,9 @@
   let currentSubscription: string | null = $state(null);
   let hoverTimeout: number | null = null;
   let isStale = $state(false); // Added for Seamless Swap
+  let lastCalculationTime = 0;
+  const CALCULATION_THROTTLE_MS = 1000;
+  let calculationTimeout: any = null;
 
   onDestroy(() => {
     if (currentSubscription) {
@@ -97,7 +100,10 @@
     }
     // If alignedTime < lastTime, it's an old update (out of order), ignore it to protect history.
 
-    updateTechnicals();
+    // --- REDUNDANCY REMOVAL ---
+    // We no longer call updateTechnicals() directly here.
+    // The $effect that depends on klinesHistory will handle it,
+    // and that effect will be throttled.
   }
 
   async function updateTechnicals() {
@@ -140,7 +146,8 @@
       // This prevents race conditions where you switch fast and an old request finishes last
       if (`${symbol}:${timeframe}` === currentSubscription) {
         klinesHistory = klines;
-        await updateTechnicals();
+        // Immediate calculation on first fetch
+        untrack(() => updateTechnicals());
       }
     } catch (e) {
       console.error("Technicals fetch error:", e);
@@ -266,9 +273,28 @@
     }
   });
   // Re-calculate when settings change (without re-fetching)
+  // THOROUGHLY THROTTLED to prevent UI freeze
   $effect(() => {
-    if (showPanel && klinesHistory.length > 0 && indicatorSettings) {
-      updateTechnicals();
+    if (showPanel && klinesHistory.length > 0) {
+      // Accessing indicatorSettings here makes this effect run on settings changes
+      const _settings = indicatorSettings;
+
+      untrack(() => {
+        const now = Date.now();
+        const timeSinceLast = now - lastCalculationTime;
+
+        if (timeSinceLast >= CALCULATION_THROTTLE_MS) {
+          updateTechnicals();
+          lastCalculationTime = now;
+        } else {
+          // Schedule a calculation for later if none is pending
+          if (calculationTimeout) clearTimeout(calculationTimeout);
+          calculationTimeout = setTimeout(() => {
+            updateTechnicals();
+            lastCalculationTime = Date.now();
+          }, CALCULATION_THROTTLE_MS - timeSinceLast);
+        }
+      });
     }
   });
   // Handle Real-Time Updates - Guard with !isStale to prevent mixed data

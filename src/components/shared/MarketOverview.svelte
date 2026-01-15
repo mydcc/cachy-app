@@ -50,6 +50,9 @@
   let historyKlines: Kline[] = $state([]);
   let rsiValue: Decimal | null = $state(null);
   let signalValue: Decimal | null = $state(null);
+  let lastRsiCalcTime = 0;
+  const RSI_THROTTLE_MS = 1000;
+  let rsiTimeout: any = null;
 
   // Subscribe Channel Mapping
   function mapTimeframeToChannel(tf: string): string {
@@ -261,83 +264,85 @@
   // Reactively Calculate RSI
   $effect(() => {
     if (historyKlines.length > 0) {
+      // Dependencies for trigger: indicatorStore settings
+      const _trigger = $indicatorStore.rsi;
+
       untrack(() => {
-        const sourceMode = $indicatorStore.rsi.source || "close";
-        const length = $indicatorStore.rsi.length || 14;
+        const now = Date.now();
+        const timeSinceLast = now - lastRsiCalcTime;
 
-        // Prepare Source Array
-        // Map Klines to Values
-        let values = historyKlines.map((k) => {
-          if (sourceMode === "open") return k.open;
-          if (sourceMode === "high") return k.high;
-          if (sourceMode === "low") return k.low;
-          if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
-          if (sourceMode === "hlc3")
-            return k.high.plus(k.low).plus(k.close).div(3);
-          return k.close;
-        });
+        const performCalc = () => {
+          const sourceMode = $indicatorStore.rsi.source || "close";
+          const length = $indicatorStore.rsi.length || 14;
 
-        // Update latest candle from Market Store (WS klines are now in the store)
-        const liveKline = wsData?.klines
-          ? wsData.klines[effectiveRsiTimeframe]
-          : null;
-        if (liveKline) {
-          let currentVal = liveKline.close;
-          if (sourceMode === "open") currentVal = liveKline.open;
-          else if (sourceMode === "high") currentVal = liveKline.high;
-          else if (sourceMode === "low") currentVal = liveKline.low;
-          else if (sourceMode === "hl2")
-            currentVal = liveKline.high.plus(liveKline.low).div(2);
-          else if (sourceMode === "hlc3")
-            currentVal = liveKline.high
-              .plus(liveKline.low)
-              .plus(liveKline.close)
-              .div(3);
+          // Prepare Source Array
+          let values = historyKlines.map((k) => {
+            if (sourceMode === "open") return k.open;
+            if (sourceMode === "high") return k.high;
+            if (sourceMode === "low") return k.low;
+            if (sourceMode === "hl2") return k.high.plus(k.low).div(2);
+            if (sourceMode === "hlc3")
+              return k.high.plus(k.low).plus(k.close).div(3);
+            return k.close;
+          });
 
-          // Update last element
-          if (values.length > 0) values[values.length - 1] = currentVal;
-        } else if (currentPrice && sourceMode === "close") {
-          // Fallback for Close only
-          if (values.length > 0) values[values.length - 1] = currentPrice;
-        }
+          const liveKline = wsData?.klines
+            ? wsData.klines[effectiveRsiTimeframe]
+            : null;
+          if (liveKline) {
+            let currentVal = liveKline.close;
+            if (sourceMode === "open") currentVal = liveKline.open;
+            else if (sourceMode === "high") currentVal = liveKline.high;
+            else if (sourceMode === "low") currentVal = liveKline.low;
+            else if (sourceMode === "hl2")
+              currentVal = liveKline.high.plus(liveKline.low).div(2);
+            else if (sourceMode === "hlc3")
+              currentVal = liveKline.high
+                .plus(liveKline.low)
+                .plus(liveKline.close)
+                .div(3);
 
-        // Calculate RSI Series (optimized O(N) implementation)
-        const rsiSeries: Decimal[] = [];
+            if (values.length > 0) values[values.length - 1] = currentVal;
+          } else if (currentPrice && sourceMode === "close") {
+            if (values.length > 0) values[values.length - 1] = currentPrice;
+          }
 
-        if (values.length > length) {
-          // Convert Decimal[] to number[] for JSIndicators
-          const valuesNum = values.map((v) => v.toNumber());
-
-          // Calculate entire RSI series in O(N) time
-          const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
-
-          // Convert back to Decimal[] and filter out invalid/zero values
-          for (let i = 0; i < rsiSeriesNum.length; i++) {
-            if (rsiSeriesNum[i] > 0) {
-              rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+          const rsiSeries: Decimal[] = [];
+          if (values.length > length) {
+            const valuesNum = values.map((v) => v.toNumber());
+            const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
+            for (let i = 0; i < rsiSeriesNum.length; i++) {
+              if (rsiSeriesNum[i] > 0) {
+                rsiSeries.push(new Decimal(rsiSeriesNum[i]));
+              }
             }
           }
-        }
 
-        if (rsiSeries.length > 0) {
-          rsiValue = rsiSeries[rsiSeries.length - 1];
-
-          // Calculate Signal Line
-          if ($indicatorStore.rsi.showSignal) {
-            const sigType = $indicatorStore.rsi.signalType || "sma";
-            const sigLen = $indicatorStore.rsi.signalLength || 14;
-
-            if (sigType === "ema") {
-              signalValue = indicators.calculateEMA(rsiSeries, sigLen);
+          if (rsiSeries.length > 0) {
+            rsiValue = rsiSeries[rsiSeries.length - 1];
+            if ($indicatorStore.rsi.showSignal) {
+              const sigType = $indicatorStore.rsi.signalType || "sma";
+              const sigLen = $indicatorStore.rsi.signalLength || 14;
+              if (sigType === "ema") {
+                signalValue = indicators.calculateEMA(rsiSeries, sigLen);
+              } else {
+                signalValue = indicators.calculateSMA(rsiSeries, sigLen);
+              }
             } else {
-              signalValue = indicators.calculateSMA(rsiSeries, sigLen);
+              signalValue = null;
             }
           } else {
+            rsiValue = null;
             signalValue = null;
           }
+          lastRsiCalcTime = Date.now();
+        };
+
+        if (timeSinceLast >= RSI_THROTTLE_MS) {
+          performCalc();
         } else {
-          rsiValue = null;
-          signalValue = null;
+          if (rsiTimeout) clearTimeout(rsiTimeout);
+          rsiTimeout = setTimeout(performCalc, RSI_THROTTLE_MS - timeSinceLast);
         }
       });
     }
