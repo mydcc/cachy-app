@@ -311,57 +311,19 @@
 
 <SidePanel />
 
-<!-- Wrapper for desktop positioning -->
-<div class="relative w-full max-w-4xl mx-auto">
+<!-- Global Layout Wrapper -->
+<div
+  class="flex flex-col xl:flex-row items-start justify-center gap-6 px-4 py-8 min-h-screen w-full box-border"
+>
   {#if $settingsStore.showSidebars}
-    <!-- Left Sidebar: Positions Table -->
-    <div
-      class="hidden xl:flex absolute -left-[22rem] top-8 flex-col gap-3 z-50"
-    >
+    <!-- Left Sidebar: Positions Table (Sticky) -->
+    <div class="hidden xl:flex flex-col gap-3 w-80 shrink-0 sticky top-8 z-40">
       <PositionsSidebar />
-    </div>
-
-    <!-- Right Sidebar: Stacked tiles -->
-    <div
-      class="hidden xl:flex absolute -right-60 top-8 w-52 flex-col gap-3 transition-all duration-300"
-    >
-      <!-- Main current symbol -->
-      <MarketOverview
-        onToggleTechnicals={toggleTechnicals}
-        {isTechnicalsVisible}
-      />
-
-      <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
-      {#if $settingsStore.showTechnicals}
-        <div
-          class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
-          class:scale-0={!isTechnicalsVisible}
-          class:scale-100={isTechnicalsVisible}
-          class:opacity-0={!isTechnicalsVisible}
-          class:opacity-100={isTechnicalsVisible}
-        >
-          <TechnicalsPanel isVisible={isTechnicalsVisible} />
-        </div>
-      {/if}
-
-      <!-- Favorites list -->
-      {#if $favoritesStore.length > 0}
-        <div
-          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
-        >
-          {$_("dashboard.favorites") || "Favorites"}
-        </div>
-      {/if}
-      {#each $favoritesStore as fav (fav)}
-        {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
-          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
-        {/if}
-      {/each}
     </div>
   {/if}
 
   <main
-    class="my-8 w-full calculator-wrapper rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative"
+    class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-6 sm:p-8 fade-in relative shrink-0"
   >
     <ConnectionStatus />
 
@@ -788,6 +750,46 @@
       </div>
     {/if}
   </main>
+
+  {#if $settingsStore.showSidebars}
+    <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
+    <div
+      class="hidden xl:flex flex-col gap-3 w-56 shrink-0 sticky top-8 transition-all duration-300 z-40"
+    >
+      <!-- Main current symbol -->
+      <MarketOverview
+        onToggleTechnicals={toggleTechnicals}
+        {isTechnicalsVisible}
+      />
+
+      <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
+      {#if $settingsStore.showTechnicals}
+        <div
+          class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
+          class:scale-0={!isTechnicalsVisible}
+          class:scale-100={isTechnicalsVisible}
+          class:opacity-0={!isTechnicalsVisible}
+          class:opacity-100={isTechnicalsVisible}
+        >
+          <TechnicalsPanel isVisible={isTechnicalsVisible} />
+        </div>
+      {/if}
+
+      <!-- Favorites list -->
+      {#if $favoritesStore.length > 0}
+        <div
+          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
+        >
+          {$_("dashboard.favorites") || "Favorites"}
+        </div>
+      {/if}
+      {#each $favoritesStore as fav (fav)}
+        {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
+          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+        {/if}
+      {/each}
+    </div>
+  {/if}
 </div>
 
 <footer

@@ -127,6 +127,17 @@
       updateThemeColor();
     }
   });
+
+  // Toggle glass-enabled class based on settings
+  $effect(() => {
+    if (typeof document !== "undefined") {
+      if ($settingsStore.enableGlassmorphism) {
+        document.documentElement.classList.add("glass-enabled");
+      } else {
+        document.documentElement.classList.remove("glass-enabled");
+      }
+    }
+  });
 </script>
 
 <svelte:head>

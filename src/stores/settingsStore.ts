@@ -67,6 +67,7 @@ export interface Settings {
   syncFavorites: boolean;
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
+  enableGlassmorphism: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -113,6 +114,7 @@ const defaultSettings: Settings = {
   syncFavorites: true,
   confirmTradeDeletion: true,
   confirmBulkDeletion: true,
+  enableGlassmorphism: true,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -233,6 +235,8 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.confirmTradeDeletion ?? defaultSettings.confirmTradeDeletion,
       confirmBulkDeletion:
         settings.confirmBulkDeletion ?? defaultSettings.confirmBulkDeletion,
+      enableGlassmorphism:
+        settings.enableGlassmorphism ?? defaultSettings.enableGlassmorphism,
     };
 
     return cleanSettings;

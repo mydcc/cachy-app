@@ -60,6 +60,7 @@
   let confirmTradeDeletion: boolean = $state(true);
   let confirmBulkDeletion: boolean = $state(true);
   let debugMode: boolean = $state(false);
+  let enableGlassmorphism: boolean = $state(true);
 
   // Timeframe & RSI Sync
   let favoriteTimeframes: string[] = $state([]);
@@ -188,6 +189,7 @@
         confirmTradeDeletion = $settingsStore.confirmTradeDeletion; // Added
         confirmBulkDeletion = $settingsStore.confirmBulkDeletion; // Added
         debugMode = $settingsStore.debugMode; // Added
+        enableGlassmorphism = $settingsStore.enableGlassmorphism ?? true;
 
         aiProviderState = $settingsStore.aiProvider || "openai"; // Changed from "gemini"
         openaiApiKey = $settingsStore.openaiApiKey || "";
@@ -266,6 +268,7 @@
         confirmTradeDeletion, // Added
         confirmBulkDeletion, // Added
         debugMode, // Added
+        enableGlassmorphism,
         apiKeys: {
           bitunix: bitunixKeys,
           binance: binanceKeys,
@@ -521,6 +524,7 @@
           bind:autoUpdatePriceInput
           bind:autoFetchBalance
           bind:hotkeyMode
+          bind:enableGlassmorphism
           {activeDescriptions}
         />
       {:else if activeTab === "hotkeys"}

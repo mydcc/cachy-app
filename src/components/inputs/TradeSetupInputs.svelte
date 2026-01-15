@@ -47,6 +47,12 @@
 
   // Local state for input to prevent immediate store updates
   let localSymbol = $state("");
+  let selectedSuggestionIndex = $state(-1);
+  let priceDeviation = $derived.by(() => {
+    if (!entryPrice || !app.currentMarketPrice) return 0;
+    const market = app.currentMarketPrice.toNumber();
+    return Math.abs((entryPrice - market) / market) * 100;
+  });
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
   $effect(() => {
@@ -76,6 +82,7 @@
     }
 
     app.updateSymbolSuggestions(localSymbol);
+    selectedSuggestionIndex = -1;
 
     // Automatically fetch price and ATR when user stops typing a valid symbol
     if (localSymbol && localSymbol.length >= 3) {
@@ -91,6 +98,28 @@
     localSymbol = s;
     updateTradeStore((s) => ({ ...s, symbol: localSymbol }));
     app.fetchAllAnalysisData(localSymbol, true);
+  }
+
+  function handleKeyDownSymbol(event: KeyboardEvent) {
+    if (!showSymbolSuggestions || symbolSuggestions.length === 0) return;
+
+    if (event.key === "ArrowDown") {
+      event.preventDefault();
+      selectedSuggestionIndex =
+        (selectedSuggestionIndex + 1) % symbolSuggestions.length;
+    } else if (event.key === "ArrowUp") {
+      event.preventDefault();
+      selectedSuggestionIndex =
+        (selectedSuggestionIndex - 1 + symbolSuggestions.length) %
+        symbolSuggestions.length;
+    } else if (event.key === "Enter") {
+      if (selectedSuggestionIndex >= 0) {
+        event.preventDefault();
+        selectSuggestion(symbolSuggestions[selectedSuggestionIndex]);
+      }
+    } else if (event.key === "Escape") {
+      app.updateSymbolSuggestions("");
+    }
   }
 
   function handleKeyDownSuggestion(event: KeyboardEvent, s: string) {
@@ -209,6 +238,7 @@
           handleSymbolInput();
           onboardingService.trackFirstInput();
         }}
+        onkeydown={handleKeyDownSymbol}
         class="input-field w-full px-4 py-2 rounded-md pr-10"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
@@ -239,11 +269,15 @@
         <div
           class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]"
         >
-          {#each symbolSuggestions as s}
+          {#each symbolSuggestions as s, i}
             <div
-              class="suggestion-item p-2 cursor-pointer hover:bg-[var(--accent-color)] hover:text-white"
+              class="suggestion-item p-2 cursor-pointer transition-colors {i ===
+              selectedSuggestionIndex
+                ? 'bg-[var(--accent-color)] text-white'
+                : 'hover:bg-[var(--bg-tertiary)]'}"
               onclick={() => selectSuggestion(s)}
               onkeydown={(e) => handleKeyDownSuggestion(e, s)}
+              onmouseenter={() => (selectedSuggestionIndex = i)}
               role="button"
               tabindex="0"
             >
@@ -270,9 +304,19 @@
           handleEntryPriceInput(e);
           onboardingService.trackFirstInput();
         }}
-        class="input-field w-full px-4 py-2 rounded-md"
+        class="input-field w-full px-4 py-2 rounded-md transition-all {priceDeviation >
+        10
+          ? 'border-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.3)]'
+          : ''}"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
       />
+      {#if priceDeviation > 10}
+        <div
+          class="absolute -top-6 left-0 text-[10px] text-orange-500 font-bold animate-pulse"
+        >
+          ⚠️ Abweichung: {priceDeviation.toFixed(1)}%
+        </div>
+      {/if}
 
       <!-- Auto Update Price Toggle -->
       <button

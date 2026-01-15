@@ -45,6 +45,9 @@
   let restLoading = $state(false);
   let restError: string | null = $state(null);
   let restIntervalId: any = $state();
+  let priceTrend: "up" | "down" | null = $state(null);
+  let prevPrice: Decimal | null = $state(null);
+  let animationKey = $state(0);
 
   // RSI Logic
   let historyKlines: Kline[] = $state([]);
@@ -212,9 +215,17 @@
   let wsStatus = $derived($wsStatusStore);
   // Derived Real-time values (fallback to REST if WS missing)
   let currentPrice = $derived.by(() => {
-    return (wsData?.lastPrice ??
+    const val = (wsData?.lastPrice ??
       tickerData?.lastPrice ??
       null) as Decimal | null;
+
+    // Side effect to determine trend for animation
+    if (val && prevPrice && !val.equals(prevPrice)) {
+      priceTrend = val.gt(prevPrice) ? "up" : "down";
+      animationKey += 1;
+    }
+    prevPrice = val;
+    return val;
   });
   let fundingRate = $derived.by(
     () => (wsData?.fundingRate ?? null) as Decimal | null,
@@ -387,7 +398,7 @@
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
 <!-- svelte-ignore a11y_no_static_element_interactions -->
 <div
-  class="market-overview-card bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] backdrop-blur-sm bg-opacity-95 transition-all relative {isFavoriteTile
+  class="market-overview-card glass-panel rounded-xl shadow-lg border border-[var(--border-color)] p-4 flex flex-col gap-2 min-w-[200px] transition-all relative {isFavoriteTile
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:scale-[0.98]'
     : ''}"
   onclick={loadToCalculator}
@@ -450,7 +461,9 @@
       <div class="flex justify-between items-baseline">
         <span
           class="text-2xl font-bold text-[var(--text-primary)] transition-colors duration-200"
-          class:text-green-400={false}
+          class:price-up={priceTrend === "up"}
+          class:price-down={priceTrend === "down"}
+          key={animationKey}
         >
           {formatValue(currentPrice, 4)}
         </span>
@@ -586,10 +599,10 @@
   {:else}
     <!-- Loading Skeleton -->
     <div class="flex justify-center py-4">
-      <div class="animate-pulse flex flex-col w-full gap-2">
-        <div class="h-8 bg-[var(--bg-tertiary)] rounded w-3/4"></div>
-        <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2"></div>
-        <div class="h-12 bg-[var(--bg-tertiary)] rounded w-full mt-2"></div>
+      <div class="flex flex-col w-full gap-2">
+        <div class="h-8 shimmer rounded w-3/4"></div>
+        <div class="h-4 shimmer rounded w-1/2"></div>
+        <div class="h-12 shimmer rounded w-full mt-2"></div>
       </div>
     </div>
   {/if}

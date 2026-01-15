@@ -175,6 +175,7 @@
     border-top-left-radius: 0.5rem;
     border-top-right-radius: 0.5rem;
     padding: 0.5rem 1rem; /* Adjust padding */
+    transition: background var(--transition-smooth);
     position: relative;
     height: 48px; /* Fixed height for consistent layout */
     display: flex;
@@ -216,6 +217,7 @@
     top: 50%;
     transform: translate(-50%, -50%);
     text-align: center;
+    transition: left var(--transition-smooth);
     /* Ensure distinct text color */
   }
 
@@ -266,6 +268,9 @@
     height: 10px; /* Explicit constraint */
     top: 50%;
     transform: translateY(-50%);
+    transition:
+      left var(--transition-smooth),
+      width var(--transition-smooth);
     /* border-radius: 2px; Optional */
   }
 
@@ -286,6 +291,7 @@
     top: 50%;
     transform: translate(-50%, -50%);
     z-index: 10;
+    transition: left var(--transition-smooth);
   }
 
   .visual-footer {
@@ -300,6 +306,7 @@
     position: absolute;
     transform: translateX(-50%);
     background-color: var(--bg-tertiary); /* Tag background */
+    transition: left var(--transition-smooth);
     color: var(--text-primary);
     font-size: 0.7rem;
     padding: 2px 6px;

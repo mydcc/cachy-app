@@ -89,6 +89,10 @@
   --toggle-circle-bg: var(--blue-100);
   --toggle-circle-bg-on: var(--blue-100);
   --overlay-color: var(--black-overlay);
+  /* --- Motion --- */
+  --transition-fast: 0.15s ease-out;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
 /* =================================================================
@@ -170,11 +174,9 @@
   --overlay-derived: rgba(12, 8, 47, 0.7);
 
   /* --- Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-purple-light),
-    var(--gradient-purple-dark)
-  );
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-purple-light),
+      var(--gradient-purple-dark));
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--gradient-purple-light);
   --text-primary: var(--purple-light);
@@ -230,11 +232,9 @@
   --overlay-derived: rgba(8, 16, 63, 0.7);
 
   /* --- Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-blue-light),
-    var(--gradient-blue-dark)
-  );
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-blue-light),
+      var(--gradient-blue-dark));
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
   --text-primary: var(--blue-pro-light);
@@ -1242,11 +1242,9 @@
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
   --btn-success-bg: var(--midnight-success);
-  --btn-success-hover-bg: color-mix(
-    in srgb,
-    var(--midnight-success) 80%,
-    black
-  );
+  --btn-success-hover-bg: color-mix(in srgb,
+      var(--midnight-success) 80%,
+      black);
   --btn-success-text: var(--midnight-text-primary);
   --toggle-bg-off: var(--midnight-bg-overlay);
   --toggle-bg-on: var(--midnight-gold);
@@ -1481,14 +1479,15 @@
 html {
   background-color: var(--bg-primary);
   /* Inherit background-image if set in theme (e.g. gradients) */
-  background-image: var(--bg-primary); 
+  background-image: var(--bg-primary);
   background-attachment: fixed;
   min-height: 100%;
 }
 
 body {
   font-family: "Inter", sans-serif;
-  background: transparent; /* Background is on html */
+  background: transparent;
+  /* Background is on html */
   color: var(--text-primary);
   transition: color 0.3s;
   position: relative;
@@ -1729,7 +1728,7 @@ input[type="number"] {
   transition: background-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track {
+input[type="checkbox"]:checked+.atr-toggle-track {
   background-color: var(--toggle-bg-on);
 }
 
@@ -1739,7 +1738,7 @@ input[type="checkbox"]:checked + .atr-toggle-track {
   transition: transform 0.3s, background-color 0.3s, border-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track::after {
+input[type="checkbox"]:checked+.atr-toggle-track::after {
   transform: translateX(calc(100% + 2px));
   border-color: var(--toggle-circle-bg-on) !important;
   background-color: var(--toggle-circle-bg-on) !important;
@@ -2099,17 +2098,104 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   }
 
   30% {
-    background-color: color-mix(
-      in srgb,
-      var(--accent-color) 50%,
-      var(--bg-tertiary)
-    );
+    background-color: color-mix(in srgb,
+        var(--accent-color) 50%,
+        var(--bg-tertiary));
   }
 
   100% {
     background-color: var(--bg-tertiary);
   }
 }
+
+/* Glassmorphism Utility */
+.glass-panel {
+  background: var(--bg-secondary);
+  transition: backdrop-filter var(--transition-smooth), background var(--transition-smooth);
+}
+
+.glass-enabled .glass-panel {
+  background: color-mix(in srgb, var(--bg-secondary) 70%, transparent);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+/* Hover & Focus Enhancements */
+button,
+.clickable {
+  transition: transform var(--transition-fast), opacity var(--transition-fast), background var(--transition-fast);
+}
+
+button:hover:not(:disabled),
+.clickable:hover {
+  transform: scale(1.02);
+}
+
+button:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 30%, transparent);
+  transition: box-shadow var(--transition-fast);
+}
+
+/* Loading Shimmer */
+.shimmer {
+  background: linear-gradient(90deg,
+      var(--bg-tertiary) 25%,
+      color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
+      var(--bg-tertiary) 75%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Price Flash Animations */
+@keyframes flash-green {
+  0% {
+    color: var(--success-color);
+    transform: scale(1.1);
+  }
+
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+@keyframes flash-red {
+  0% {
+    color: var(--danger-color);
+    transform: scale(1.1);
+  }
+
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+.price-up {
+  animation: flash-green 0.8s ease-out;
+}
+
+.price-down {
+  animation: flash-red 0.8s ease-out;
+}
+
 
 .text-link {
   color: var(--accent-color);
@@ -2187,8 +2273,10 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
 .app-container {
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center horizontally */
-  justify-content: center; /* Center vertically if space allows */
+  align-items: center;
+  /* Center horizontally */
+  justify-content: center;
+  /* Center vertically if space allows */
   min-height: 100vh;
   padding: 1rem;
   width: 100%;

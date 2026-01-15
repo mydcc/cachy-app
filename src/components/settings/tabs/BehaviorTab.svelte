@@ -9,6 +9,7 @@
     autoUpdatePriceInput?: boolean;
     autoFetchBalance?: boolean;
     hotkeyMode?: HotkeyMode;
+    enableGlassmorphism?: boolean;
     activeDescriptions?: Array<{ keys: string; action: string }>;
   }
 
@@ -18,7 +19,8 @@
     autoUpdatePriceInput = $bindable(false),
     autoFetchBalance = $bindable(false),
     hotkeyMode = $bindable("mode1"),
-    activeDescriptions = []
+    enableGlassmorphism = $bindable(true),
+    activeDescriptions = [],
   }: Props = $props();
 </script>
 
@@ -198,6 +200,23 @@
       name="autoFetchBalance"
       type="checkbox"
       bind:checked={autoFetchBalance}
+      class="accent-[var(--accent-color)] h-4 w-4 rounded"
+    />
+  </label>
+  <label
+    class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
+  >
+    <div class="flex flex-col">
+      <span class="text-sm font-medium">Glassmorphism</span>
+      <span class="text-xs text-[var(--text-secondary)]"
+        >Enable modern translucent glass effects</span
+      >
+    </div>
+    <input
+      id="enable-glassmorphism"
+      name="enableGlassmorphism"
+      type="checkbox"
+      bind:checked={enableGlassmorphism}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
