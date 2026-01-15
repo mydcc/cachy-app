@@ -2143,6 +2143,17 @@ textarea:focus {
   transition: box-shadow var(--transition-fast);
 }
 
+/* Fix for browser autofill (white background issue) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+  transition: background-color 5000s ease-in-out 0s;
+}
+
 /* Loading Shimmer */
 .shimmer {
   background: linear-gradient(90deg,
