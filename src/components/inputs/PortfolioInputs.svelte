@@ -130,12 +130,14 @@
   <h2 class="section-header !mt-6">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
-  <div class="grid grid-cols-1 sm:grid-cols-[1fr_1.2fr_1fr] gap-4">
-    <div>
-      <label for="account-size" class="input-label text-xs"
+  <div class="flex flex-wrap items-end gap-6">
+    <div class="flex-1 min-w-[140px] max-w-[200px]">
+      <label
+        for="account-size"
+        class="input-label text-xs whitespace-nowrap overflow-visible"
         >{$_("dashboard.portfolioInputs.accountSizeLabel")}</label
       >
-      <div class="relative">
+      <div class="relative mt-1">
         <input
           id="account-size"
           name="accountSize"
@@ -170,11 +172,14 @@
         </button>
       </div>
     </div>
-    <div>
-      <label for="risk-percentage" class="input-label text-xs whitespace-nowrap"
+
+    <div class="flex-1 min-w-[140px] max-w-[200px]">
+      <label
+        for="risk-percentage"
+        class="input-label text-xs whitespace-nowrap overflow-visible"
         >{$_("dashboard.portfolioInputs.riskPerTradeLabel")}</label
       >
-      <div class="relative">
+      <div class="relative mt-1">
         <input
           id="risk-percentage"
           name="riskPercentage"
@@ -203,11 +208,14 @@
         />
       </div>
     </div>
-    <div>
-      <label for="risk-amount" class="input-label text-xs"
+
+    <div class="flex-1 min-w-[140px] max-w-[200px]">
+      <label
+        for="risk-amount"
+        class="input-label text-xs whitespace-nowrap overflow-visible"
         >{$_("dashboard.portfolioInputs.riskAmountLabel")}</label
       >
-      <div class="relative">
+      <div class="relative mt-1">
         <input
           id="risk-amount"
           name="riskAmount"

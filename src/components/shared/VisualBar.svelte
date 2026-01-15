@@ -194,7 +194,7 @@
   .visual-bar-card {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    padding: 0.75rem 1rem; /* Schlanker Rahmen */
+    padding: 0.5rem 0.75rem;
     border-radius: 0.5rem;
     box-shadow: var(--shadow-sm);
     position: relative;
@@ -205,9 +205,9 @@
     display: flex;
     justify-content: space-between;
     align-items: flex-end;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
     position: relative;
-    height: 28px;
+    height: 24px;
   }
 
   .title-section {
