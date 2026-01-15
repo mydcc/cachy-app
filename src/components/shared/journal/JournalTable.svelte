@@ -47,11 +47,15 @@
     let expandedGroups = $state(new Set<string>());
 
     // Pagination
-    let totalPages = $derived(Math.ceil(trades.length / itemsPerPage));
+    let totalPages = $derived(Math.ceil(trades.length / Number(itemsPerPage)));
+    let safeCurrentPage = $derived(
+        Math.min(Math.max(1, currentPage), Math.max(1, totalPages)),
+    );
+
     let paginatedTrades = $derived(
         trades.slice(
-            (currentPage - 1) * itemsPerPage,
-            currentPage * itemsPerPage,
+            (safeCurrentPage - 1) * Number(itemsPerPage),
+            safeCurrentPage * Number(itemsPerPage),
         ),
     );
 
@@ -62,6 +66,7 @@
     }
 
     function handlePageChange(page: number) {
+        currentPage = page;
         if (!isInternal) {
             onPageChange?.(page);
         }
