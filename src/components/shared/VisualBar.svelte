@@ -1,10 +1,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
-  import { formatDynamicDecimal } from "../../utils/utils";
-  import { marketStore } from "../../stores/marketStore";
   import { tradeStore } from "../../stores/tradeStore";
-  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { resultsStore } from "../../stores/resultsStore";
   import { Decimal } from "decimal.js";
 
@@ -24,65 +21,64 @@
 
   const safeTargets = $derived(targets ?? []);
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
-
   const tradeType = $derived($tradeStore.tradeType);
-  const symbol = $derived($tradeStore.symbol);
 
-  // Live price tracking
-  const livePrice = $derived.by(() => {
-    if (!symbol) return null;
-    const norm = normalizeSymbol(symbol, "bitunix");
-    return $marketStore[norm]?.lastPrice || null;
-  });
-
-  // Break-even price
-  const breakEvenPrice = $derived.by(() => {
-    const be = $resultsStore.breakEvenPrice;
-    if (be === "-" || !be) return null;
-    // Handle cases where be might already be formatted or partial
-    const cleanBe = String(be).replace(/[^\d.]/g, "");
-    return cleanBe ? new Decimal(cleanBe) : null;
-  });
-
-  // SVG Scaling logic
-  const PADDING = 60;
+  // SVG Scaling settings
   const WIDTH = 1000;
-  const HEIGHT = 100;
-  const BAR_H = 8;
-  const BAR_Y = 50;
+  const HEIGHT = 80; // Total height including labels
+  const BAR_Y = 45; // Y position of the horizontal bar
+  const BAR_H = 12; // Height of the bar
+  const PADDING_X = 40;
 
-  let minPrice = $state(0);
-  let maxPrice = $state(0);
-  let range = $state(0);
+  let minPriceVal = $state(0);
+  let maxPriceVal = $state(0);
+  let totalRange = $state(1);
   let isReady = $state(false);
 
+  // For a consistent "Risk to Reward" view:
+  // We want SL at the left, and the furthest TP at the right.
+  const furthestTpPrice = $derived.by(() => {
+    if (safeTargets.length === 0) return entryPrice;
+    const prices = safeTargets
+      .map((t) => t.price)
+      .filter((p): p is number => p !== null);
+    if (prices.length === 0) return entryPrice;
+    return tradeType === "long" ? Math.max(...prices) : Math.min(...prices);
+  });
+
   $effect(() => {
-    const allPrices = [
-      entryPrice,
-      stopLossPrice,
-      ...safeTargets.map((t) => t.price).filter((p): p is number => p !== null),
-    ];
+    if (entryPrice === null || stopLossPrice === null) {
+      isReady = false;
+      return;
+    }
+    // We strictly map from SL to furthest TP
+    const start = stopLossPrice;
+    const end = furthestTpPrice ?? entryPrice;
 
-    if (livePrice) allPrices.push(livePrice.toNumber());
-    if (breakEvenPrice) allPrices.push(breakEvenPrice.toNumber());
-
-    const filtered = allPrices.filter((p): p is number => p !== null && p > 0);
-    if (filtered.length < 2) {
+    if (start === end) {
       isReady = false;
       return;
     }
 
-    minPrice = Math.min(...filtered);
-    maxPrice = Math.max(...filtered);
-    range = maxPrice - minPrice;
-    isReady = range > 0;
+    totalRange = Math.abs(end - start);
+    isReady = true;
   });
 
   const getX = (price: number | null | undefined | Decimal) => {
-    if (!isReady || price === null || price === undefined) return 0;
+    if (
+      !isReady ||
+      price === null ||
+      price === undefined ||
+      stopLossPrice === null
+    )
+      return 0;
     const p = price instanceof Decimal ? price.toNumber() : price;
-    const pos = (p - minPrice) / range;
-    return PADDING + pos * (WIDTH - 2 * PADDING);
+
+    // Distance from SL
+    const dist = Math.abs(p - stopLossPrice);
+    const pos = dist / totalRange;
+
+    return PADDING_X + pos * (WIDTH - 2 * PADDING_X);
   };
 
   const tpData = $derived(
@@ -94,7 +90,9 @@
           idx: i + 1,
           price: t.price,
           x: getX(t.price),
-          rr: detail?.riskRewardRatio ? detail.riskRewardRatio.toFixed(2) : "",
+          rr: detail?.riskRewardRatio
+            ? detail.riskRewardRatio.toFixed(2)
+            : "0.00",
         };
       })
       .filter(
@@ -105,180 +103,212 @@
 
   const entryX = $derived(getX(entryPrice));
   const slX = $derived(getX(stopLossPrice));
-  const beX = $derived(getX(breakEvenPrice));
-  const liveX = $derived(getX(livePrice));
 
-  // Visual Helper: Entry Color logic
-  const liveColor = $derived.by(() => {
-    if (!livePrice || !entryPrice) return "var(--accent-color)";
-    const diff =
-      tradeType === "long"
-        ? livePrice.toNumber() - entryPrice
-        : entryPrice - livePrice.toNumber();
-    return diff >= 0 ? "var(--success-color)" : "var(--danger-color)";
-  });
+  // Determine which side is red/green based on long/short
+  const slLeft = $derived(tradeType === "long" ? slX : slX); // Just for clarity
+  // In a long: SL < Entry < TP. In a short: SL > Entry > TP.
+  // The scaling (min/max) handles the direction, but the "red zone" is always between SL and Entry.
 </script>
 
-<div class="visual-analysis-container space-y-2 mt-4">
-  <div class="flex justify-between items-center mb-1">
-    <div class="flex items-center gap-2">
-      <span
-        class="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded border border-[var(--border-color)]"
-        >SL</span
-      >
-      <h3
-        class="text-[var(--text-secondary)] text-xs font-bold tracking-widest uppercase"
-      >
-        {$_("dashboard.visualAnalysis.header") || "VISUELLE ANALYSE"}
-      </h3>
+<div class="visual-bar-container glass-panel">
+  <!-- Header with SL Badge and TPs -->
+  <div class="header-row">
+    <div class="left-group">
+      <div class="sl-badge">SL</div>
+      <h3 class="title">{$_("dashboard.visualBar.header")}</h3>
     </div>
-    {#if livePrice}
-      <div class="text-[11px] font-bold tracking-wider">
-        <span class="text-[var(--text-secondary)] uppercase">LIVE:</span>
-        <span style="color: {liveColor};">{livePrice.toFixed(4)}</span>
-      </div>
-    {/if}
+
+    <div class="tp-labels">
+      {#each tpData as tp}
+        <div class="tp-label-item" style="left: {tp.x / 10}%">
+          <span class="tp-name">TP{tp.idx}</span>
+          <span class="tp-rr">{tp.rr}R</span>
+        </div>
+      {/each}
+    </div>
   </div>
 
-  <div class="relative w-full h-16">
+  <!-- SVG Bar -->
+  <div class="svg-wrapper">
     <svg
       viewBox="0 0 {WIDTH} {HEIGHT}"
-      preserveAspectRatio="xMidYMid meet"
-      class="w-full h-full overflow-visible"
+      preserveAspectRatio="none"
+      class="w-full h-full"
     >
-      <!-- Horizontal Bar Background -->
-      <rect
-        x={PADDING}
-        y={BAR_Y - BAR_H / 2}
-        width={WIDTH - 2 * PADDING}
-        height={BAR_H}
-        rx={BAR_H / 2}
-        fill="var(--bg-tertiary)"
-        opacity="0.5"
-      />
-
       {#if isReady}
-        <!-- P/L Progress Line -->
-        {#if livePrice && entryPrice}
-          {@const x1 = Math.min(entryX, liveX)}
-          {@const x2 = Math.max(entryX, liveX)}
-          <rect
-            x={x1}
-            y={BAR_Y - BAR_H / 2}
-            width={Math.max(2, x2 - x1)}
-            height={BAR_H}
-            rx={BAR_H / 2}
-            fill={livePrice.toNumber() > entryPrice
-              ? tradeType === "long"
-                ? "var(--success-color)"
-                : "var(--danger-color)"
-              : tradeType === "long"
-                ? "var(--danger-color)"
-                : "var(--success-color)"}
-          />
-        {/if}
+        <!-- Base Bar Background -->
+        <rect
+          x={PADDING_X}
+          y={BAR_Y - BAR_H / 2}
+          width={WIDTH - 2 * PADDING_X}
+          height={BAR_H}
+          fill="var(--bg-tertiary)"
+          rx="2"
+        />
 
-        <!-- Stop Loss Line -->
-        {#if slX > 0}
-          <line
-            x1={slX}
-            x2={slX}
-            y1={BAR_Y - 10}
-            y2={BAR_Y + 10}
-            stroke="var(--danger-color)"
-            stroke-width="2"
-          />
-          <text
-            x={slX}
-            y={BAR_Y - 20}
-            text-anchor="middle"
-            class="text-[10px] font-bold fill-[var(--danger-color)]">SL</text
-          >
-        {/if}
+        <!-- Red Segment (Risk: SL to Entry) -->
+        <rect
+          x={PADDING_X}
+          y={BAR_Y - BAR_H / 2}
+          width={entryX - PADDING_X}
+          height={BAR_H}
+          fill="var(--danger-color)"
+          opacity="1"
+          rx="2"
+        />
 
-        <!-- Break Even Line -->
-        {#if beX > 0}
-          <line
-            x1={beX}
-            x2={beX}
-            y1={BAR_Y - 15}
-            y2={BAR_Y + 15}
-            stroke="var(--text-secondary)"
-            stroke-width="2"
-            stroke-dasharray="2,2"
-          />
-          <text
-            x={beX}
-            y={BAR_Y + 30}
-            text-anchor="middle"
-            class="text-[10px] font-bold fill-[var(--text-secondary)]">BE</text
-          >
-        {/if}
+        <!-- Green Segment (Profit: Entry to Furthest TP) -->
+        <rect
+          x={entryX}
+          y={BAR_Y - BAR_H / 2}
+          width={Math.max(0, WIDTH - PADDING_X - entryX)}
+          height={BAR_H}
+          fill="var(--success-color)"
+          opacity="1"
+          rx="2"
+        />
 
-        <!-- Take Profit Labels & Lines -->
+        <!-- Vertical Markers (White Lines) -->
+        <!-- Stop Loss (at start) -->
+        <line
+          x1={PADDING_X}
+          x2={PADDING_X}
+          y1={BAR_Y - 14}
+          y2={BAR_Y + 14}
+          stroke="white"
+          stroke-width="2"
+        />
+
+        <!-- Entry -->
+        <line
+          x1={entryX}
+          x2={entryX}
+          y1={BAR_Y - 14}
+          y2={BAR_Y + 14}
+          stroke="white"
+          stroke-width="2"
+        />
+
+        <!-- Take Profits -->
         {#each tpData as tp}
           <line
             x1={tp.x}
             x2={tp.x}
-            y1={BAR_Y - 8}
-            y2={BAR_Y + 8}
-            stroke="var(--success-color)"
+            y1={BAR_Y - 14}
+            y2={BAR_Y + 14}
+            stroke="white"
             stroke-width="2"
           />
-          <text
-            x={tp.x}
-            y={BAR_Y - 15}
-            text-anchor="middle"
-            class="text-[10px] font-bold fill-[var(--text-primary)]"
-            >TP{tp.idx}</text
-          >
         {/each}
-
-        <!-- Entry Pin (Circle + Pointer) -->
-        {#if entryX > 0}
-          <g transform="translate({entryX}, {BAR_Y})">
-            <!-- Pin Pointer -->
-            <polygon points="0,0 -4,10 4,10" fill="var(--accent-color)" />
-            <!-- Pin Head -->
-            <circle
-              cx="0"
-              cy="0"
-              r="4"
-              fill="white"
-              stroke="var(--accent-color)"
-              stroke-width="2"
-            />
-            <!-- Label -->
-            <text
-              y="22"
-              text-anchor="middle"
-              class="text-[10px] font-bold fill-[var(--text-secondary)]"
-              >Einstieg</text
-            >
-          </g>
-        {/if}
-
-        <!-- Live Price Indicator (Moving Dot) -->
-        {#if liveX > 0}
-          <circle
-            cx={liveX}
-            cy={BAR_Y}
-            r="3"
-            fill="var(--text-primary)"
-            class="animate-pulse"
-          />
-        {/if}
       {/if}
     </svg>
+
+    <!-- "Einstieg" Badge positioned absolutely below entryX -->
+    {#if isReady && entryX > 0}
+      <div class="entry-badge" style="left: {entryX / 10}%">Einstieg</div>
+    {/if}
   </div>
 </div>
 
 <style>
-  .visual-analysis-container {
+  .visual-bar-container {
     background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-    padding: 1rem;
-    border-radius: 1rem;
+    padding: 1rem 1.25rem;
+    border-radius: 0.75rem;
     box-shadow: var(--shadow-sm);
+    margin-top: 1.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
+    position: relative;
+    height: 30px;
+  }
+
+  .left-group {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .sl-badge {
+    background: #334155;
+    color: var(--blue-100);
+    font-size: 11px;
+    font-weight: 800;
+    padding: 2px 6px;
+    border-radius: 4px;
+    letter-spacing: 0.5px;
+  }
+
+  .title {
+    color: var(--text-secondary);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .tp-labels {
+    position: absolute;
+    left: 0;
+    right: 0;
+    top: -5px;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .tp-label-item {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-width: 60px;
+  }
+
+  .tp-name {
+    font-size: 12px;
+    font-weight: 800;
+    color: var(--text-primary);
+  }
+
+  .tp-rr {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--text-secondary);
+    margin-top: -2px;
+  }
+
+  .svg-wrapper {
+    position: relative;
+    width: 100%;
+    height: 40px;
+  }
+
+  .entry-badge {
+    position: absolute;
+    bottom: -15px;
+    transform: translateX(-50%);
+    background: #334155;
+    color: var(--blue-100);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    white-space: nowrap;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  /* Ensure the SVG scales correctly */
+  svg {
+    display: block;
+    overflow: visible;
   }
 </style>
