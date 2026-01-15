@@ -24,86 +24,69 @@
   }: Props = $props();
 </script>
 
-<div class="flex flex-col gap-4" role="tabpanel" id="tab-behavior">
-  <!-- Spin Buttons Global Toggle -->
+<div class="flex flex-col gap-3" role="tabpanel" id="tab-behavior">
+  <!-- Spin Buttons Segmented Control -->
   <div
-    class="flex flex-col gap-2 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] mb-2"
+    class="settings-group p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
   >
-    <div class="flex flex-col">
-      <span class="text-sm font-bold text-[var(--accent-color)]"
-        >{$_("settings.showSpinButtons")}</span
-      >
-      <span class="text-xs text-[var(--text-secondary)] mb-2"
-        >Globale Sichtbarkeit der Scroll-Buttons in Eingabefeldern</span
-      >
+    <div class="flex justify-between items-center mb-3">
+      <div class="flex flex-col">
+        <span class="text-sm font-bold text-[var(--text-primary)]"
+          >{$_("settings.showSpinButtons")}</span
+        >
+        <span
+          class="text-[10px] text-[var(--text-secondary)] opacity-80 uppercase tracking-tight"
+          >Sichtbarkeit der Scroll-Buttons</span
+        >
+      </div>
     </div>
-    <div class="flex gap-2">
-      <label
-        class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
-        class:bg-[var(--bg-tertiary)]={showSpinButtons === true}
-        class:border-[var(--accent-color)]={showSpinButtons === true}
-      >
-        <input
-          type="radio"
-          bind:group={showSpinButtons}
-          value={true}
-          class="accent-[var(--accent-color)]"
-        />
-        <span class="text-xs font-medium"
-          >{$_("settings.spinButtonsAlways")}</span
+
+    <div
+      class="segmented-control flex p-1 bg-[var(--bg-primary)] rounded-lg border border-[var(--border-color)] relative h-9"
+    >
+      {#each [{ value: true, label: $_("settings.spinButtonsAlways") }, { value: "hover", label: $_("settings.spinButtonsHover") }, { value: false, label: $_("settings.spinButtonsHidden") }] as opt}
+        <button
+          class="flex-1 text-[11px] font-medium transition-all duration-200 rounded-md z-10
+                 {showSpinButtons === opt.value
+            ? 'text-[var(--btn-accent-text)]'
+            : 'text-[var(--text-secondary)]'}"
+          onclick={() => (showSpinButtons = opt.value as any)}
         >
-      </label>
-      <label
-        class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
-        class:bg-[var(--bg-tertiary)]={showSpinButtons === "hover"}
-        class:border-[var(--accent-color)]={showSpinButtons === "hover"}
-      >
-        <input
-          type="radio"
-          bind:group={showSpinButtons}
-          value="hover"
-          class="accent-[var(--accent-color)]"
-        />
-        <span class="text-xs font-medium"
-          >{$_("settings.spinButtonsHover")}</span
-        >
-      </label>
-      <label
-        class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] flex-1 border border-[var(--border-color)] transition-colors"
-        class:bg-[var(--bg-tertiary)]={showSpinButtons === false}
-        class:border-[var(--accent-color)]={showSpinButtons === false}
-      >
-        <input
-          type="radio"
-          bind:group={showSpinButtons}
-          value={false}
-          class="accent-[var(--accent-color)]"
-        />
-        <span class="text-xs font-medium"
-          >{$_("settings.spinButtonsHidden")}</span
-        >
-      </label>
+          {opt.label}
+        </button>
+      {/each}
+
+      <!-- Sliding indicator background -->
+      <div
+        class="bg-[var(--accent-color)] absolute top-1 bottom-1 rounded-md transition-all duration-300 ease-out"
+        style="
+          width: calc(33.33% - 2.66px); 
+          left: {showSpinButtons === true
+          ? '4px'
+          : showSpinButtons === 'hover'
+            ? '33.33%'
+            : '66.66%'};
+          transform: translateX({showSpinButtons === true ? '0' : '0'});
+        "
+      ></div>
     </div>
   </div>
 
+  <!-- Interval Setting (Compact) -->
   <div
-    class="flex flex-col gap-1 p-3 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)]"
+    class="settings-group p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
   >
-    <div class="flex justify-between items-center mb-1">
-      <label
-        for="market-data-interval"
-        class="text-sm font-bold text-[var(--accent-color)]"
-        >{$_("settings.intervalLabel")}</label
-      >
-      <span
-        class="text-xs font-mono px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
-      >
-        {marketDataInterval}s
-      </span>
-    </div>
+    <div class="flex justify-between items-center gap-4">
+      <div class="flex flex-col flex-1">
+        <span class="text-sm font-bold text-[var(--text-primary)]"
+          >{$_("settings.intervalLabel")}</span
+        >
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Wartezeit zwischen Updates</span
+        >
+      </div>
 
-    <div class="flex flex-col gap-2">
-      <div class="relative flex items-center">
+      <div class="relative w-24">
         <input
           id="market-data-interval"
           type="number"
@@ -111,155 +94,187 @@
           max="600"
           bind:value={marketDataInterval}
           use:enhancedInput={{ showSpinButtons: "hover" }}
-          class="input-field w-full p-2 pr-10 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-right font-mono"
+          class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg py-1 px-2 pr-6 text-right font-mono text-sm focus:border-[var(--accent-color)] outline-none"
         />
         <span
-          class="absolute right-3 text-xs text-[var(--text-secondary)] pointer-events-none"
+          class="absolute right-2 top-1/2 -translate-y-1/2 text-[10px] text-[var(--text-secondary)] font-mono"
           >s</span
         >
       </div>
+    </div>
 
-      {#if marketDataInterval < 5}
-        <div
-          class="flex items-center gap-2 p-2 rounded bg-orange-500/10 border border-orange-500/20 text-orange-500 text-[10px] leading-tight"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-4 h-4 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><path
-              d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
-            /><path d="M12 9v4" /><path d="M12 17h.01" /></svg
-          >
-          <span
-            ><strong>Aggressiv:</strong> Sehr niedrige Intervalle können die Systemlast
-            erhöhen und zu Rate-Limits führen.</span
-          >
-        </div>
-      {:else if marketDataInterval > 60}
-        <div
-          class="flex items-center gap-2 p-2 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] leading-tight"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            class="w-4 h-4 shrink-0"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            ><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path
-              d="M12 8h.01"
-            /></svg
-          >
-          <span
-            ><strong>Konservativ:</strong> Ideal für Swing-Trading und maximale Stabilität.</span
-          >
-        </div>
-      {/if}
-
-      <p class="text-[10px] text-[var(--text-secondary)] italic">
-        Einstellbereich: 1 Sekunde bis 10 Minuten (600s).
-      </p>
-    </div>
-  </div>
-  <label
-    class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
-  >
-    <div class="flex flex-col">
-      <span class="text-sm font-medium">{$_("settings.autoUpdatePrice")}</span>
-      <span class="text-xs text-[var(--text-secondary)]"
-        >Overwrite entry price on every update tick</span
-      >
-    </div>
-    <input
-      id="auto-update-price"
-      name="autoUpdatePrice"
-      type="checkbox"
-      bind:checked={autoUpdatePriceInput}
-      class="accent-[var(--accent-color)] h-4 w-4 rounded"
-    />
-  </label>
-  <label
-    class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
-  >
-    <div class="flex flex-col">
-      <span class="text-sm font-medium">{$_("settings.autoFetchBalance")}</span>
-      <span class="text-xs text-[var(--text-secondary)]"
-        >Fetch wallet balance on startup</span
-      >
-    </div>
-    <input
-      id="auto-fetch-balance"
-      name="autoFetchBalance"
-      type="checkbox"
-      bind:checked={autoFetchBalance}
-      class="accent-[var(--accent-color)] h-4 w-4 rounded"
-    />
-  </label>
-  <label
-    class="flex items-center justify-between p-2 rounded hover:bg-[var(--bg-tertiary)] cursor-pointer"
-  >
-    <div class="flex flex-col">
-      <span class="text-sm font-medium">Glassmorphism</span>
-      <span class="text-xs text-[var(--text-secondary)]"
-        >Enable modern translucent glass effects</span
-      >
-    </div>
-    <input
-      id="enable-glassmorphism"
-      name="enableGlassmorphism"
-      type="checkbox"
-      bind:checked={enableGlassmorphism}
-      class="accent-[var(--accent-color)] h-4 w-4 rounded"
-    />
-  </label>
-  <div class="flex flex-col gap-2 pt-2 border-t border-[var(--border-color)]">
-    <label for="hotkey-mode" class="text-sm font-medium">Hotkey Profile</label>
-    <select
-      id="hotkey-mode"
-      name="hotkeyMode"
-      bind:value={hotkeyMode}
-      class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
-    >
-      <option value="custom">Custom (Fully Configurable)</option>
-      <option value="mode2">Safety Mode (Alt + Key)</option>
-      <option value="mode1">Direct Mode (Fast)</option>
-      <option value="mode3">Hybrid Mode</option>
-    </select>
-    {#if hotkeyMode !== "custom"}
+    {#if marketDataInterval && marketDataInterval < 5}
       <div
-        class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1"
+        class="mt-2 text-[10px] text-orange-400 bg-orange-400/5 p-2 rounded-md border border-orange-400/10"
       >
-        <div class="font-bold mb-2 text-[var(--text-primary)]">
-          Active Hotkeys ({activeDescriptions.length}):
+        Aggressiv: Kann zu Rate-Limits führen.
+      </div>
+    {/if}
+  </div>
+
+  <!-- Toggles Section -->
+  <div
+    class="settings-group p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] flex flex-col gap-1"
+  >
+    <!-- Auto Price Update -->
+    <button
+      class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
+      onclick={() => (autoUpdatePriceInput = !autoUpdatePriceInput)}
+    >
+      <div class="flex flex-col">
+        <span class="text-sm font-medium">{$_("settings.autoUpdatePrice")}</span
+        >
+        <span class="text-[10px] text-[var(--text-secondary)] opacity-70"
+          >Overwrite price on tick</span
+        >
+      </div>
+      <div class="toggle-container {autoUpdatePriceInput ? 'active' : ''}">
+        <div class="toggle-thumb"></div>
+      </div>
+    </button>
+
+    <div class="h-px bg-[var(--border-color)] mx-2 opacity-30"></div>
+
+    <!-- Auto Balance Fetch -->
+    <button
+      class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
+      onclick={() => (autoFetchBalance = !autoFetchBalance)}
+    >
+      <div class="flex flex-col">
+        <span class="text-sm font-medium"
+          >{$_("settings.autoFetchBalance")}</span
+        >
+        <span class="text-[10px] text-[var(--text-secondary)] opacity-70"
+          >Fetch balance on startup</span
+        >
+      </div>
+      <div class="toggle-container {autoFetchBalance ? 'active' : ''}">
+        <div class="toggle-thumb"></div>
+      </div>
+    </button>
+
+    <div class="h-px bg-[var(--border-color)] mx-2 opacity-30"></div>
+
+    <!-- Glassmorphism -->
+    <button
+      class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
+      onclick={() => (enableGlassmorphism = !enableGlassmorphism)}
+    >
+      <div class="flex flex-col">
+        <span class="text-sm font-medium">Glassmorphism</span>
+        <span class="text-[10px] text-[var(--text-secondary)] opacity-70"
+          >Enable translucent effects</span
+        >
+      </div>
+      <div class="toggle-container {enableGlassmorphism ? 'active' : ''}">
+        <div class="toggle-thumb"></div>
+      </div>
+    </button>
+  </div>
+
+  <!-- Hotkey Profile (Bottom) -->
+  <div
+    class="settings-group p-3 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+  >
+    <div class="flex flex-col gap-2">
+      <label
+        for="hotkey-mode"
+        class="text-xs font-bold text-[var(--text-secondary)] uppercase tracking-wider"
+        >Hotkey Profile</label
+      >
+      <select
+        id="hotkey-mode"
+        name="hotkeyMode"
+        bind:value={hotkeyMode}
+        class="bg-[var(--bg-primary)] border border-[var(--border-color)] p-2 rounded-lg text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+      >
+        <option value="custom">Custom (Configurable)</option>
+        <option value="mode2">Safety Mode (Alt + Key)</option>
+        <option value="mode1">Direct Mode (Fast)</option>
+        <option value="mode3">Hybrid Mode</option>
+      </select>
+    </div>
+
+    {#if hotkeyMode !== "custom" && activeDescriptions.length > 0}
+      <div
+        class="mt-3 bg-[var(--bg-primary)]/50 rounded-lg p-3 border border-[var(--border-color)]"
+      >
+        <div
+          class="text-[10px] font-bold text-[var(--accent-color)] uppercase mb-2"
+        >
+          Active Hotkeys ({activeDescriptions.length})
         </div>
         <div
-          class="grid grid-cols-2 gap-x-4 gap-y-1 max-h-[200px] overflow-y-auto custom-scrollbar pr-2"
+          class="grid grid-cols-2 gap-x-3 gap-y-1 max-h-[120px] overflow-y-auto custom-scrollbar pr-1"
         >
           {#each activeDescriptions as desc}
-            <div class="flex justify-between gap-4">
-              <span
-                class="font-mono text-[var(--accent-color)] whitespace-nowrap"
+            <div class="flex justify-between items-center text-[10px]">
+              <span class="font-mono text-[var(--accent-color)] opacity-90"
                 >{desc.keys}</span
               >
-              <span class="truncate">{desc.action}</span>
+              <span class="text-[var(--text-secondary)] truncate ml-2"
+                >{desc.action}</span
+              >
             </div>
           {/each}
         </div>
       </div>
-    {:else}
-      <div
-        class="bg-[var(--bg-tertiary)] p-3 rounded text-xs text-[var(--text-secondary)] mt-1"
-      >
-        <p>Configure your custom hotkeys in the "Hotkeys" tab.</p>
-      </div>
     {/if}
   </div>
 </div>
+
+<style>
+  .segmented-control {
+    position: relative;
+    user-select: none;
+  }
+
+  /* Compact Toggle Styles */
+  .toggle-container {
+    width: 32px;
+    height: 18px;
+    background-color: var(--bg-tertiary);
+    border-radius: 20px;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border: 1px solid var(--border-color);
+    flex-shrink: 0;
+  }
+
+  .toggle-container.active {
+    background-color: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .toggle-thumb {
+    width: 14px;
+    height: 14px;
+    background-color: white;
+    border-radius: 50%;
+    position: absolute;
+    top: 1px;
+    left: 1px;
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+  }
+
+  .active .toggle-thumb {
+    transform: translateX(14px);
+  }
+
+  .settings-group {
+    transition: transform 0.2s ease;
+  }
+
+  .settings-group:hover {
+    border-color: rgba(var(--accent-rgb), 0.3);
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 3px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+  }
+</style>
