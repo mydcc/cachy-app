@@ -2194,24 +2194,38 @@ svg {
 }
 
 /* Price Flash Animations */
-@keyframes flash-green {
+@keyframes flash-green-text {
   0% {
     color: var(--success-color);
+    transform: scale(1.1);
   }
 
   100% {
     color: inherit;
+    transform: scale(1);
   }
 }
 
-@keyframes flash-red {
+@keyframes flash-red-text {
   0% {
     color: var(--danger-color);
+    transform: scale(1.1);
   }
 
   100% {
     color: inherit;
+    transform: scale(1);
   }
+}
+
+.price-up-flash {
+  animation: flash-green-text 0.5s ease-out;
+  display: inline-block;
+}
+
+.price-down-flash {
+  animation: flash-red-text 0.5s ease-out;
+  display: inline-block;
 }
 
 .price-up {

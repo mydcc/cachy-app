@@ -313,7 +313,7 @@
 
 <!-- Global Layout Wrapper -->
 <div
-  class="flex flex-col xl:flex-row items-start justify-center gap-0 md:gap-6 px-0 py-0 md:px-4 md:py-8 min-h-screen w-full box-border"
+  class="flex flex-col xl:flex-row items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
 >
   {#if $settingsStore.showSidebars}
     <!-- Left Sidebar: Positions Table (Sticky) -->
@@ -323,7 +323,7 @@
   {/if}
 
   <main
-    class="w-full max-w-3xl calculator-wrapper glass-panel rounded-none md:rounded-2xl shadow-none md:shadow-2xl p-4 sm:p-8 fade-in relative shrink-0"
+    class="w-full max-w-3xl calculator-wrapper glass-panel rounded-2xl shadow-2xl p-4 sm:p-8 fade-in relative shrink-0"
   >
     <ConnectionStatus />
 
@@ -466,6 +466,7 @@
         atrFormulaDisplay={$resultsStore.atrFormulaText}
         showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
         isPriceFetching={$uiStore.isPriceFetching}
+        isAtrFetching={$uiStore.isAtrFetching}
         symbolSuggestions={$uiStore.symbolSuggestions}
         showSymbolSuggestions={$uiStore.showSymbolSuggestions}
       />

@@ -42,15 +42,59 @@
 
   // REST Data (24h Stats, Volume, Change)
   let tickerData: Ticker24h | null = $state(null);
-  let restLoading = $state(false);
   let restError: string | null = $state(null);
+  let restLoading = $state(false);
   let restIntervalId: any = $state();
   let priceTrend: "up" | "down" | null = $state(null);
-  let prevPrice: Decimal | null = $state(null);
+  let prevPriceStr: string = $state("");
   let animationKey = $state(0);
 
   // RSI Logic
   let historyKlines: Kline[] = $state([]);
+
+  // Helper to get changed parts of price
+  const priceParts = $derived.by(() => {
+    const norm = normalizeSymbol(
+      customSymbol || $tradeStore.symbol || "",
+      "bitunix",
+    );
+    const livePrice = $marketStore[norm]?.lastPrice;
+    const currentPriceStr: string = livePrice
+      ? livePrice.toString()
+      : tickerData?.lastPrice
+        ? tickerData.lastPrice.toString()
+        : "0.0000";
+    const parts = [];
+
+    for (let i = 0; i < currentPriceStr.length; i++) {
+      const char = currentPriceStr[i];
+      const oldChar = prevPriceStr[i];
+      parts.push({
+        char,
+        changed: char !== oldChar && prevPriceStr !== "",
+      });
+    }
+    return parts;
+  });
+
+  $effect(() => {
+    const norm = normalizeSymbol(
+      customSymbol || $tradeStore.symbol || "",
+      "bitunix",
+    );
+    const livePrice = $marketStore[norm]?.lastPrice;
+    const currentStr = livePrice
+      ? livePrice.toString()
+      : tickerData?.lastPrice
+        ? tickerData.lastPrice.toString()
+        : "";
+
+    if (currentStr && prevPriceStr && currentStr !== prevPriceStr) {
+      priceTrend = Number(currentStr) > Number(prevPriceStr) ? "up" : "down";
+      animationKey += 1;
+    }
+    if (currentStr) prevPriceStr = currentStr;
+  });
   let rsiValue: Decimal | null = $state(null);
   let signalValue: Decimal | null = $state(null);
   let lastRsiCalcTime = 0;
@@ -86,7 +130,6 @@
   async function fetchHistoryKlines(tf: string) {
     try {
       // Need enough history for RSI + Signal
-      // RSI 14 needs 15. Signal 14 needs 14 more RSIs. Total ~30-40.
       const limit = Math.max(
         $indicatorStore.rsi.length + $indicatorStore.rsi.signalLength + 10,
         50,
@@ -202,28 +245,28 @@
       app.fetchAllAnalysisData(symbol.toUpperCase());
     }
   }
-  // Use custom symbol if provided, otherwise fall back to store symbol (already normalized in tradeStore)
+  // Use custom symbol if provided, otherwise fall back to store symbol
   let symbol = $derived(customSymbol || $tradeStore.symbol || "");
   let provider = $derived($settingsStore.apiProvider);
   let displaySymbol = $derived(getDisplaySymbol(symbol));
-  // WS Data - Use strictly normalized entry from store
+  // WS Data
   let wsData = $derived.by(() => {
     if (!symbol) return null;
     const store = $marketStore as Record<string, MarketData>;
     return store[symbol] || null;
   });
   let wsStatus = $derived($wsStatusStore);
-  // Derived Real-time values (fallback to REST if WS missing)
+  // Derived Real-time values
   let currentPrice = $derived.by(() => {
     return (wsData?.lastPrice ??
       tickerData?.lastPrice ??
       null) as Decimal | null;
   });
 
+  let prevPrice: Decimal | null = $state(null);
   $effect(() => {
     const val = currentPrice;
     untrack(() => {
-      // Ensure 'val' is a Decimal or similar object with '.equals'
       if (
         val &&
         prevPrice &&
@@ -243,7 +286,7 @@
   let nextFundingTime = $derived.by(
     () => (wsData?.nextFundingTime ?? null) as number | null,
   );
-  // 24h Stats (Prefer WS 'ticker' channel data, fallback to REST)
+  // 24h Stats
   let highPrice = $derived.by(
     () =>
       (wsData?.highPrice ?? tickerData?.highPrice ?? null) as Decimal | null,
@@ -262,7 +305,7 @@
   );
   // Depth Data
   let depthData = $derived(wsData?.depth);
-  // Determine effective Timeframe
+  // RSI Timeframe
   let effectiveRsiTimeframe = $derived(
     $settingsStore.syncRsiTimeframe
       ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
@@ -284,7 +327,6 @@
   });
   $effect(() => {
     if (historyKlines.length > 0) {
-      // Trigger on settings changes OR price updates
       const _triggers = [$indicatorStore.rsi, currentPrice];
 
       untrack(() => {
@@ -295,7 +337,6 @@
           const sourceMode = $indicatorStore.rsi.source || "close";
           const length = $indicatorStore.rsi.length || 14;
 
-          // Prepare Source Array
           let values = historyKlines.map((k) => {
             if (sourceMode === "open") return k.open;
             if (sourceMode === "high") return k.high;
@@ -371,15 +412,8 @@
   });
   let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
   $effect(() => {
-    if (nextFundingTime) {
-      untrack(() => {
-        startCountdown();
-      });
-    }
+    if (nextFundingTime) untrack(startCountdown);
   });
-  // Subscribe to WS when symbol changes
-  // Subscribe to WS when symbol changes via MarketWatcher
-  // Subscribe to WS when symbol changes via MarketWatcher
   $effect(() => {
     if (symbol && provider === "bitunix") {
       marketWatcher.register(symbol, "price");
@@ -387,17 +421,12 @@
       marketWatcher.register(symbol, "depth_book5");
     }
   });
-  // REST Polling for Volume/24h Change (Background)
-  // REST Polling for Volume/24h Change (Background)
   $effect(() => {
     if (symbol && provider) {
-      // Only run REST polling if we are NOT using Bitunix (or if we want a fallback initially)
-      // Bitunix uses WS for this now.
       if (provider !== "bitunix") {
         setupRestInterval();
         fetchRestData();
       } else {
-        // For Bitunix, clear REST interval if it exists
         if (restIntervalId) {
           clearInterval(restIntervalId);
           restIntervalId = undefined;
@@ -418,9 +447,6 @@
   role={isFavoriteTile ? "button" : "region"}
   tabindex={isFavoriteTile ? 0 : -1}
 >
-  <!-- WS Indicator Removed -->
-
-  <!-- Absolute Buttons (Top Right) -->
   <div class="absolute top-2 right-2 flex gap-1 z-50">
     {#if $settingsStore.showTechnicals && !isFavoriteTile && onToggleTechnicals}
       <button
@@ -471,14 +497,20 @@
   {:else if currentPrice || tickerData}
     <div class="flex flex-col gap-1 mt-1">
       <div class="flex justify-between items-baseline">
-        <span
-          class="text-2xl font-bold text-[var(--text-primary)] transition-colors duration-200"
-          class:price-up={priceTrend === "up"}
-          class:price-down={priceTrend === "down"}
-          key={animationKey}
-        >
-          {formatValue(currentPrice, 4)}
-        </span>
+        <div class="text-2xl font-bold tracking-tight flex">
+          {#each priceParts as part}
+            <span
+              class={part.changed
+                ? priceTrend === "up"
+                  ? "price-up-flash"
+                  : "price-down-flash"
+                : "text-[var(--text-primary)]"}
+              style="display: inline-block; transition: color 0.3s;"
+            >
+              {part.char}
+            </span>
+          {/each}
+        </div>
         {#if priceChangePercent}
           <span
             class="text-sm font-medium"
@@ -494,12 +526,10 @@
         {/if}
       </div>
 
-      <!-- Depth Visualization -->
       {#if depthData}
         <DepthBar bids={depthData.bids} asks={depthData.asks} />
       {/if}
 
-      <!-- 24h Stats (WS or REST) -->
       {#if highPrice || tickerData}
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
           <div class="flex flex-col">
@@ -528,7 +558,6 @@
               >{formatValue(volume, 0)}</span
             >
           </div>
-          <!-- RSI Display -->
           <div class="flex flex-col mt-1 text-right relative group">
             <span class="text-[var(--text-secondary)]"
               >RSI ({effectiveRsiTimeframe})</span
@@ -542,7 +571,6 @@
             >
               {formatValue(rsiValue, 2)}
             </span>
-            <!-- Tooltip -->
             <div
               class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
             >
@@ -584,7 +612,6 @@
         </div>
       {/if}
 
-      <!-- WS Funding Rate Section -->
       {#if fundingRate}
         <div
           class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
@@ -609,7 +636,6 @@
       {/if}
     </div>
   {:else}
-    <!-- Loading Skeleton -->
     <div class="flex justify-center py-4">
       <div class="flex flex-col w-full gap-2">
         <div class="h-8 shimmer rounded w-3/4"></div>
@@ -619,7 +645,6 @@
     </div>
   {/if}
 
-  <!-- Star Icon for Favorites -->
   <button
     class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
     class:text-[var(--accent-color)]={isFavorite}
@@ -640,5 +665,23 @@
 <style>
   .market-overview-card {
     z-index: 40;
+  }
+  .shimmer {
+    animation: shimmer 2s infinite linear;
+    background: linear-gradient(
+      to right,
+      var(--bg-tertiary) 0%,
+      var(--bg-secondary) 50%,
+      var(--bg-tertiary) 100%
+    );
+    background-size: 200% 100%;
+  }
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 </style>

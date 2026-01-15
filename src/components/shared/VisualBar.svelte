@@ -39,15 +39,17 @@
   const breakEvenPrice = $derived.by(() => {
     const be = $resultsStore.breakEvenPrice;
     if (be === "-" || !be) return null;
-    return new Decimal(be.replace(/[^\d.]/g, ""));
+    // Handle cases where be might already be formatted or partial
+    const cleanBe = String(be).replace(/[^\d.]/g, "");
+    return cleanBe ? new Decimal(cleanBe) : null;
   });
 
-  // SVG Scaling logic (Slimified)
+  // SVG Scaling logic
   const PADDING = 60;
   const WIDTH = 1000;
-  const HEIGHT = 100; // Reduced height
-  const BAR_H = 8; // Exactly 8px
-  const BAR_Y = 50; // Centered
+  const HEIGHT = 100;
+  const BAR_H = 8;
+  const BAR_Y = 50;
 
   let minPrice = $state(0);
   let maxPrice = $state(0);
@@ -103,268 +105,180 @@
 
   const entryX = $derived(getX(entryPrice));
   const slX = $derived(getX(stopLossPrice));
-  const liveX = $derived(getX(livePrice));
   const beX = $derived(getX(breakEvenPrice));
+  const liveX = $derived(getX(livePrice));
 
-  // Determine profit/loss direction
-  const isLong = $derived(tradeType === "long");
-  const riskStart = $derived(isLong ? Math.min(slX, entryX) : entryX);
-  const riskWidth = $derived(Math.abs(slX - entryX));
-  const rewardStart = $derived(
-    isLong ? entryX : Math.min(tpData[tpData.length - 1]?.x ?? entryX, entryX),
-  );
-  const rewardWidth = $derived(
-    Math.abs((tpData[tpData.length - 1]?.x ?? entryX) - entryX),
-  );
+  // Visual Helper: Entry Color logic
+  const liveColor = $derived.by(() => {
+    if (!livePrice || !entryPrice) return "var(--accent-color)";
+    const diff =
+      tradeType === "long"
+        ? livePrice.toNumber() - entryPrice
+        : entryPrice - livePrice.toNumber();
+    return diff >= 0 ? "var(--success-color)" : "var(--danger-color)";
+  });
 </script>
 
-<section
-  class="visual-bar-container md:col-span-2 glass-panel rounded-xl border border-[var(--border-color)] overflow-hidden"
->
-  <div
-    class="visual-header flex items-center justify-between px-4 py-1.5 border-b border-[var(--border-color)] bg-[var(--bg-secondary)]/50"
-  >
+<div class="visual-analysis-container space-y-2 mt-4">
+  <div class="flex justify-between items-center mb-1">
     <div class="flex items-center gap-2">
-      <div class="sl-tag">SL</div>
-      <span class="header-title">{$_("dashboard.visualBar.header")}</span>
+      <span
+        class="bg-[var(--bg-tertiary)] text-[var(--text-secondary)] text-[10px] font-bold px-1.5 py-0.5 rounded border border-[var(--border-color)]"
+        >SL</span
+      >
+      <h3
+        class="text-[var(--text-secondary)] text-xs font-bold tracking-widest uppercase"
+      >
+        {$_("dashboard.visualAnalysis.header") || "VISUELLE ANALYSE"}
+      </h3>
     </div>
     {#if livePrice}
-      <div class="flex items-center gap-2 text-sm font-mono">
-        <span class="text-[var(--text-secondary)]">LIVE:</span>
-        <span class="text-[var(--accent-color)] font-bold"
-          >{formatDynamicDecimal(livePrice, 2)}</span
-        >
+      <div class="text-[11px] font-bold tracking-wider">
+        <span class="text-[var(--text-secondary)] uppercase">LIVE:</span>
+        <span style="color: {liveColor};">{livePrice.toFixed(4)}</span>
       </div>
     {/if}
   </div>
 
-  <div class="relative w-full aspect-[1000/100] p-0">
-    {#if isReady}
-      <svg
-        viewBox="0 0 {WIDTH} {HEIGHT}"
-        class="w-full h-full"
-        preserveAspectRatio="xMidYMid meet"
-      >
-        <defs>
-          <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-            <feGaussianBlur stdDeviation="3" result="blur" />
-            <feComposite in="SourceGraphic" in2="blur" operator="over" />
-          </filter>
-        </defs>
+  <div class="relative w-full h-16">
+    <svg
+      viewBox="0 0 {WIDTH} {HEIGHT}"
+      preserveAspectRatio="xMidYMid meet"
+      class="w-full h-full overflow-visible"
+    >
+      <!-- Horizontal Bar Background -->
+      <rect
+        x={PADDING}
+        y={BAR_Y - BAR_H / 2}
+        width={WIDTH - 2 * PADDING}
+        height={BAR_H}
+        rx={BAR_H / 2}
+        fill="var(--bg-tertiary)"
+        opacity="0.5"
+      />
 
-        <!-- Main Horizontal Track -->
-        <rect
-          x="0"
-          y={BAR_Y}
-          width={WIDTH}
-          height={BAR_H}
-          fill="var(--bg-tertiary)"
-          rx="4"
-        />
+      {#if isReady}
+        <!-- P/L Progress Line -->
+        {#if livePrice && entryPrice}
+          {@const x1 = Math.min(entryX, liveX)}
+          {@const x2 = Math.max(entryX, liveX)}
+          <rect
+            x={x1}
+            y={BAR_Y - BAR_H / 2}
+            width={Math.max(2, x2 - x1)}
+            height={BAR_H}
+            rx={BAR_H / 2}
+            fill={livePrice.toNumber() > entryPrice
+              ? tradeType === "long"
+                ? "var(--success-color)"
+                : "var(--danger-color)"
+              : tradeType === "long"
+                ? "var(--danger-color)"
+                : "var(--success-color)"}
+          />
+        {/if}
 
-        <!-- Risk Bar (Red) -->
-        <rect
-          x={riskStart}
-          y={BAR_Y}
-          width={riskWidth}
-          height={BAR_H}
-          fill="var(--danger-color)"
-          opacity="0.85"
-          class="transition-all duration-300"
-        />
+        <!-- Stop Loss Line -->
+        {#if slX > 0}
+          <line
+            x1={slX}
+            x2={slX}
+            y1={BAR_Y - 10}
+            y2={BAR_Y + 10}
+            stroke="var(--danger-color)"
+            stroke-width="2"
+          />
+          <text
+            x={slX}
+            y={BAR_Y - 20}
+            text-anchor="middle"
+            class="text-[10px] font-bold fill-[var(--danger-color)]">SL</text
+          >
+        {/if}
 
-        <!-- Reward Bar (Green) -->
-        <rect
-          x={rewardStart}
-          y={BAR_Y}
-          width={rewardWidth}
-          height={BAR_H}
-          fill="var(--success-color)"
-          opacity="0.85"
-          class="transition-all duration-300"
-        />
-
-        <!-- Break-Even Line -->
+        <!-- Break Even Line -->
         {#if beX > 0}
           <line
             x1={beX}
-            y1={BAR_Y - 15}
             x2={beX}
-            y2={BAR_Y + 25}
-            stroke="var(--warning-color)"
+            y1={BAR_Y - 15}
+            y2={BAR_Y + 15}
+            stroke="var(--text-secondary)"
             stroke-width="2"
-            stroke-dasharray="4,4"
-            class="transition-all duration-300"
+            stroke-dasharray="2,2"
           />
           <text
             x={beX}
-            y={BAR_Y - 22}
+            y={BAR_Y + 30}
             text-anchor="middle"
-            fill="var(--warning-color)"
-            font-size="14"
-            font-weight="900">BE</text
+            class="text-[10px] font-bold fill-[var(--text-secondary)]">BE</text
           >
         {/if}
 
-        <!-- Entry Marker -->
-        <g
-          class="transition-all duration-300"
-          transform="translate({entryX}, 0)"
-        >
-          <line
-            x1="0"
-            y1={BAR_Y - 10}
-            x2="0"
-            y2={BAR_Y + 18}
-            stroke="var(--text-primary)"
-            stroke-width="4"
-          />
-          <text
-            y={BAR_Y + 38}
-            text-anchor="middle"
-            fill="var(--text-primary)"
-            font-size="14"
-            font-weight="bold">Einstieg</text
-          >
-        </g>
-
-        <!-- SL Marker -->
-        <g class="transition-all duration-300" transform="translate({slX}, 0)">
-          <line
-            x1="0"
-            y1={BAR_Y - 10}
-            x2="0"
-            y2={BAR_Y + 18}
-            stroke="var(--danger-color)"
-            stroke-width="3"
-          />
-          <text
-            y={BAR_Y - 22}
-            text-anchor="middle"
-            fill="var(--danger-color)"
-            font-size="16"
-            font-weight="900">SL</text
-          >
-        </g>
-
-        <!-- TP Markers -->
+        <!-- Take Profit Labels & Lines -->
         {#each tpData as tp}
-          <g
-            class="transition-all duration-300"
-            transform="translate({tp.x}, 0)"
+          <line
+            x1={tp.x}
+            x2={tp.x}
+            y1={BAR_Y - 8}
+            y2={BAR_Y + 8}
+            stroke="var(--success-color)"
+            stroke-width="2"
+          />
+          <text
+            x={tp.x}
+            y={BAR_Y - 15}
+            text-anchor="middle"
+            class="text-[10px] font-bold fill-[var(--text-primary)]"
+            >TP{tp.idx}</text
           >
-            <line
-              x1="0"
-              y1={BAR_Y - 10}
-              x2="0"
-              y2={BAR_Y + 18}
-              stroke="var(--success-color)"
-              stroke-width="3"
-            />
-            <text
-              y={BAR_Y - 22}
-              text-anchor="middle"
-              fill="var(--text-primary)"
-              font-size="16"
-              font-weight="900">TP{tp.idx}</text
-            >
-            <text
-              y={BAR_Y - 42}
-              text-anchor="middle"
-              fill="var(--text-secondary)"
-              font-size="13"
-              font-weight="bold">{tp.rr}R</text
-            >
-          </g>
         {/each}
 
-        <!-- Live Price Marker (Pulse) -->
-        {#if liveX > 0}
-          <g
-            class="transition-all duration-500"
-            transform="translate({liveX}, 0)"
-          >
+        <!-- Entry Pin (Circle + Pointer) -->
+        {#if entryX > 0}
+          <g transform="translate({entryX}, {BAR_Y})">
+            <!-- Pin Pointer -->
+            <polygon points="0,0 -4,10 4,10" fill="var(--accent-color)" />
+            <!-- Pin Head -->
             <circle
               cx="0"
-              cy={BAR_Y + 4}
-              r="7"
-              fill="var(--accent-color)"
-              stroke="white"
+              cy="0"
+              r="4"
+              fill="white"
+              stroke="var(--accent-color)"
               stroke-width="2"
-              filter="url(#glow)"
             />
-            <path
-              d="M-6 {BAR_Y + 12} L6 {BAR_Y + 12} L0 {BAR_Y + 22} Z"
-              fill="var(--accent-color)"
-            />
+            <!-- Label -->
+            <text
+              y="22"
+              text-anchor="middle"
+              class="text-[10px] font-bold fill-[var(--text-secondary)]"
+              >Einstieg</text
+            >
           </g>
         {/if}
-      </svg>
-    {:else}
-      <div
-        class="flex items-center justify-center h-full text-[var(--text-secondary)] text-sm italic"
-      >
-        {$_("dashboard.promptForData")}
-      </div>
-    {/if}
+
+        <!-- Live Price Indicator (Moving Dot) -->
+        {#if liveX > 0}
+          <circle
+            cx={liveX}
+            cy={BAR_Y}
+            r="3"
+            fill="var(--text-primary)"
+            class="animate-pulse"
+          />
+        {/if}
+      {/if}
+    </svg>
   </div>
-</section>
+</div>
 
 <style>
-  .visual-bar-container {
-    margin-top: 1rem;
-    margin-bottom: 0.5rem;
-    position: relative;
-    transition: all var(--transition-smooth);
-    background-color: transparent !important;
-  }
-
-  .visual-header {
-    height: 38px;
-  }
-
-  .sl-tag {
-    background-color: var(--bg-tertiary);
-    color: var(--text-secondary);
-    font-size: 0.8rem;
-    font-weight: bold;
-    padding: 2px 6px;
-    border-radius: 4px;
-    text-transform: uppercase;
+  .visual-analysis-container {
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
-  }
-
-  .header-title {
-    color: var(--text-secondary);
-    font-size: 0.9rem;
-    font-weight: bold;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-  }
-
-  svg {
-    filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.2));
-  }
-
-  svg g,
-  svg rect,
-  svg line,
-  svg circle {
-    transition: all 0.5s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  text {
-    user-select: none;
-    pointer-events: none;
-    font-family:
-      ui-sans-serif,
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      "Helvetica Neue",
-      Arial,
-      sans-serif;
+    padding: 1rem;
+    border-radius: 1rem;
+    box-shadow: var(--shadow-sm);
   }
 </style>

@@ -14,6 +14,7 @@ interface UiState {
   errorMessage: string;
   showErrorMessage: boolean;
   isPriceFetching: boolean;
+  isAtrFetching: boolean;
   symbolSuggestions: string[];
   showSymbolSuggestions: boolean;
   showSettingsModal: boolean;
@@ -43,6 +44,7 @@ const initialUiState: UiState = {
   errorMessage: "",
   showErrorMessage: false,
   isPriceFetching: false,
+  isAtrFetching: false,
   symbolSuggestions: [],
   showSymbolSuggestions: false,
   isLoading: false,

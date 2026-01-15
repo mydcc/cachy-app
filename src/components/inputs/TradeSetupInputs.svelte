@@ -25,6 +25,7 @@
     atrFormulaDisplay: string;
     showAtrFormulaDisplay: boolean;
     isPriceFetching: boolean;
+    isAtrFetching: boolean;
     symbolSuggestions: string[];
     showSymbolSuggestions: boolean;
   }
@@ -41,6 +42,7 @@
     atrFormulaDisplay,
     showAtrFormulaDisplay,
     isPriceFetching,
+    isAtrFetching,
     symbolSuggestions = [],
     showSymbolSuggestions,
   }: Props = $props();
@@ -498,7 +500,7 @@
               />
               <button
                 type="button"
-                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching
+                class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isAtrFetching
                   ? 'animate-spin'
                   : ''}"
                 onclick={() => {

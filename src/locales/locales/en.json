@@ -266,7 +266,8 @@
       "screenshot": "Screenshot",
       "tags": "Tags",
       "notes": "Notes",
-      "action": "Action"
+      "action": "Action",
+      "itemsPerPage": "Items per page"
     },
     "messages": {
       "unlocked": "unlocked",

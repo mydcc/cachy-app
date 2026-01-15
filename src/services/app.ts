@@ -94,6 +94,7 @@ const calculatorService = new CalculatorService(
 export const app = {
   calculator: calculator,
   uiManager: uiManager,
+  currentMarketPrice: null as Decimal | null,
 
   init: () => {
     if (browser) {
@@ -147,6 +148,7 @@ export const app = {
         const marketData = data[normSymbol];
 
         if (marketData && marketData.lastPrice) {
+          app.currentMarketPrice = marketData.lastPrice;
           const newPrice = marketData.lastPrice.toNumber();
           if (state.entryPrice !== newPrice) {
             updateTradeStore((s) => ({ ...s, entryPrice: newPrice }));
@@ -589,8 +591,8 @@ export const app = {
       if (lines.length > MAX_IMPORT_LINES) {
         uiStore.showError(
           `Zu viele Zeilen (${lines.length - 1} Trades). ` +
-            `Maximum: 1000 Trades pro Import. ` +
-            `Bitte teilen Sie die CSV-Datei auf.`
+          `Maximum: 1000 Trades pro Import. ` +
+          `Bitte teilen Sie die CSV-Datei auf.`
         );
         return;
       }
@@ -719,8 +721,7 @@ export const app = {
                 header.includes("Price") ||
                 header.includes("%"))
             ) {
-              // Loose matching for TP columns which might be "TP1 Price", "TP1 Preis", "TP1 %"
-              // We normalize them to "TP{n} Preis" and "TP{n} %"
+              // Loose matching for TP columns
               const match = header.match(/TP(\d+)\s*(Preis|Price|%)/);
               if (match) {
                 const num = match[1];
@@ -748,7 +749,7 @@ export const app = {
             let internalId = parseFloat(entry.ID);
             const originalIdAsString = entry.ID;
 
-            // Check if ID is potentially unsafe (too large for JS Number exact precision)
+            // Check if ID is potentially unsafe
             if (
               originalIdAsString &&
               (originalIdAsString.length >= 16 ||
@@ -797,8 +798,8 @@ export const app = {
               notes: entry.Notizen || "",
               tags: entry.Tags
                 ? entry.Tags.split(";")
-                    .map((t) => t.trim())
-                    .filter(Boolean)
+                  .map((t) => t.trim())
+                  .filter(Boolean)
                 : [],
               screenshot: entry.Screenshot || undefined,
               targets: targets,
@@ -862,7 +863,6 @@ export const app = {
       return;
     }
 
-    // Don't show global spinner for auto-updates to avoid flashing
     if (!isAuto)
       uiStore.update((state) => ({ ...state, isPriceFetching: true }));
 
@@ -878,12 +878,10 @@ export const app = {
         entryPrice: price.toDP(4).toNumber(),
       }));
 
-      // Only show feedback on manual fetch
-      if (!isAuto) uiStore.showFeedback("save", 700); // Use 'save' (checkmark) instead of 'copy'
+      if (!isAuto) uiStore.showFeedback("save", 700);
 
       app.calculateAndDisplay();
     } catch (error) {
-      // Suppress errors for auto-updates to avoid spamming the user
       if (!isAuto) {
         const message = error instanceof Error ? error.message : String(error);
         uiStore.showError(message);
@@ -900,7 +898,6 @@ export const app = {
       atrMode: mode,
       atrValue: mode === "auto" ? null : state.atrValue,
     }));
-    // If switching to auto, fetch immediately
     if (mode === "auto") {
       app.fetchAtr();
     }
@@ -927,7 +924,7 @@ export const app = {
     }
 
     if (!isAuto)
-      uiStore.update((state) => ({ ...state, isPriceFetching: true }));
+      uiStore.update((state) => ({ ...state, isAtrFetching: true }));
 
     try {
       let klines;
@@ -935,14 +932,14 @@ export const app = {
         klines = await apiService.fetchBinanceKlines(
           symbol,
           currentTradeState.atrTimeframe,
-          15, // Default limit for ATR
+          15,
           "high"
         );
       } else {
         klines = await apiService.fetchBitunixKlines(
           symbol,
           currentTradeState.atrTimeframe,
-          15, // Default limit for ATR
+          15,
           undefined,
           undefined,
           "high"
@@ -969,7 +966,7 @@ export const app = {
       }
     } finally {
       if (!isAuto)
-        uiStore.update((state) => ({ ...state, isPriceFetching: false }));
+        uiStore.update((state) => ({ ...state, isAtrFetching: false }));
     }
   },
 
@@ -981,7 +978,6 @@ export const app = {
       symbolSuggestions: [],
     }));
 
-    // Immediate fetch upon selection
     app.handleFetchPrice();
     if (get(tradeStore).useAtrSl && get(tradeStore).atrMode === "auto") {
       app.fetchAtr();
@@ -1067,26 +1063,18 @@ export const app = {
       targets: [...state.targets, { price, percent, isLocked }],
     }));
   },
-  // New unified fetch function for Price + ATR + Analysis
   fetchAllAnalysisData: async (symbol: string, isAuto = false) => {
     if (!symbol || symbol.length < 3) return;
 
-    // 1. Fetch Price Immediately (Critical, Independent)
-    // We don't await this blocking other things, but we want UI to update on it.
-    // handleFetchPrice already updates the store.
     app.handleFetchPrice(isAuto);
 
     const state = get(tradeStore);
     const settings = get(settingsStore);
-
     const currentTf = state.atrTimeframe;
 
-    // 2. Fetch Current ATR (Critical) -> Update Immediately
-    // We run this with High Priority to jump the queue if Technicals are loading
     try {
       let klines;
       if (settings.apiProvider === "binance") {
-        // Binance Signature: symbol, interval, limit, priority
         klines = await apiService.fetchBinanceKlines(
           symbol,
           currentTf,
@@ -1094,7 +1082,6 @@ export const app = {
           "high"
         );
       } else {
-        // Bitunix Signature: symbol, interval, limit, start, end, priority
         klines = await apiService.fetchBitunixKlines(
           symbol,
           currentTf,
@@ -1111,11 +1098,11 @@ export const app = {
           ...s,
           atrValue: atr.toDP(4).toNumber(),
         }));
-        // Trigger Recalculate if we are in Auto-Mode
         if (state.useAtrSl && state.atrMode === "auto") {
           app.calculateAndDisplay();
         }
       }
+      if (!isAuto) uiStore.showFeedback("save", 700);
     } catch (e) {
       console.warn(`Failed to load Current ATR ${currentTf}`, e);
     }
