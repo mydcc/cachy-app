@@ -45,55 +45,58 @@
   let restError: string | null = $state(null);
   let restLoading = $state(false);
   let restIntervalId: any = $state();
-  let priceTrend: "up" | "down" | null = $state(null);
-  let prevPriceStr: string = $state("");
+
+  // Initial state
   let animationKey = $state(0);
+  let priceTrend: "up" | "down" | null = $state(null);
 
   // RSI Logic
   let historyKlines: Kline[] = $state([]);
+  // Price Flashing & Trend Logic
+  let flashingDigitIndexes: Set<number> = $state(new Set());
+  let lastPriceStr: string = $state("");
+  let flashTimeout: any = null;
 
   // Helper to get changed parts of price
   const priceParts = $derived.by(() => {
-    const norm = normalizeSymbol(
-      customSymbol || $tradeStore.symbol || "",
-      "bitunix",
-    );
-    const livePrice = $marketStore[norm]?.lastPrice;
-    const currentPriceStr: string = livePrice
-      ? livePrice.toString()
-      : tickerData?.lastPrice
-        ? tickerData.lastPrice.toString()
-        : "0.0000";
+    const s = currentPrice ? currentPrice.toString() : "0.0000";
     const parts = [];
-
-    for (let i = 0; i < currentPriceStr.length; i++) {
-      const char = currentPriceStr[i];
-      const oldChar = prevPriceStr[i];
+    for (let i = 0; i < s.length; i++) {
       parts.push({
-        char,
-        changed: char !== oldChar && prevPriceStr !== "",
+        char: s[i],
+        changed: flashingDigitIndexes.has(i),
       });
     }
     return parts;
   });
 
   $effect(() => {
-    const norm = normalizeSymbol(
-      customSymbol || $tradeStore.symbol || "",
-      "bitunix",
-    );
-    const livePrice = $marketStore[norm]?.lastPrice;
-    const currentStr = livePrice
-      ? livePrice.toString()
-      : tickerData?.lastPrice
-        ? tickerData.lastPrice.toString()
-        : "";
+    const cp = currentPrice;
+    if (!cp) return;
+    const s = cp.toString();
 
-    if (currentStr && prevPriceStr && currentStr !== prevPriceStr) {
-      priceTrend = Number(currentStr) > Number(prevPriceStr) ? "up" : "down";
+    if (lastPriceStr && s !== lastPriceStr) {
+      const trend = Number(s) > Number(lastPriceStr) ? "up" : "down";
+      const newIndexes = new Set<number>();
+
+      // Identify which digits changed
+      for (let i = 0; i < s.length; i++) {
+        if (s[i] !== lastPriceStr[i]) {
+          newIndexes.add(i);
+        }
+      }
+
+      priceTrend = trend;
+      flashingDigitIndexes = newIndexes;
       animationKey += 1;
+
+      if (flashTimeout) clearTimeout(flashTimeout);
+      flashTimeout = setTimeout(() => {
+        flashingDigitIndexes = new Set();
+      }, 600);
     }
-    if (currentStr) prevPriceStr = currentStr;
+
+    lastPriceStr = s;
   });
   let rsiValue: Decimal | null = $state(null);
   let signalValue: Decimal | null = $state(null);
@@ -263,23 +266,7 @@
       null) as Decimal | null;
   });
 
-  let prevPrice: Decimal | null = $state(null);
-  $effect(() => {
-    const val = currentPrice;
-    untrack(() => {
-      if (
-        val &&
-        prevPrice &&
-        typeof val === "object" &&
-        "equals" in val &&
-        !val.equals(prevPrice)
-      ) {
-        priceTrend = val.gt(prevPrice) ? "up" : "down";
-        animationKey += 1;
-      }
-      prevPrice = val;
-    });
-  });
+  // Funding Rate & Countdown
   let fundingRate = $derived.by(
     () => (wsData?.fundingRate ?? null) as Decimal | null,
   );
@@ -498,18 +485,20 @@
     <div class="flex flex-col gap-1 mt-1">
       <div class="flex justify-between items-baseline">
         <div class="text-2xl font-bold tracking-tight flex">
-          {#each priceParts as part}
-            <span
-              class={part.changed
-                ? priceTrend === "up"
-                  ? "price-up-flash"
-                  : "price-down-flash"
-                : "text-[var(--text-primary)]"}
-              style="display: inline-block; transition: color 0.3s;"
-            >
-              {part.char}
-            </span>
-          {/each}
+          {#key animationKey}
+            {#each priceParts as part}
+              <span
+                class={part.changed
+                  ? priceTrend === "up"
+                    ? "price-up-flash"
+                    : "price-down-flash"
+                  : "text-[var(--text-primary)]"}
+                style="display: inline-block;"
+              >
+                {part.char}
+              </span>
+            {/each}
+          {/key}
         </div>
         {#if priceChangePercent}
           <span
