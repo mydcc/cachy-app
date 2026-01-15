@@ -2,7 +2,6 @@
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
   import { tradeStore } from "../../stores/tradeStore";
-  import { Decimal } from "decimal.js";
 
   interface Props {
     entryPrice: number | null;
@@ -21,12 +20,9 @@
   const safeTargets = $derived(targets ?? []);
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
   const tradeType = $derived($tradeStore.tradeType);
-
-  const WIDTH = 1000;
-  const BAR_H = 6;
 </script>
 
-<div class="visual-bar-container">
+<div class="visual-bar-card">
   {#if entryPrice !== null && stopLossPrice !== null}
     {@const furthestPrice =
       tradeType === "long"
@@ -53,46 +49,43 @@
         })
         .filter((t) => t !== null)}
 
-      <div class="visual-bar-content">
-        <!-- Labels Above Bar -->
-        <div class="labels-top">
+      <!-- Header Row -->
+      <div class="header-row">
+        <div class="left-section">
+          <span class="sl-badge">SL</span>
+          <span class="title">{$_("dashboard.visualBar.header")}</span>
+        </div>
+        <div class="tp-labels">
           {#each tpData as tp}
-            <div class="tp-label" style="left: {tp.x}%">
-              <span class="tp-name">TP{tp.idx}</span>
-              <span class="tp-rr">{tp.rr}R</span>
+            <div class="tp-item" style="left: {tp.x}%">
+              <div class="tp-name">TP{tp.idx}</div>
+              <div class="tp-rr">{tp.rr}R</div>
             </div>
           {/each}
-          <div class="entry-label-top" style="left: {entryX}%">
-            {$_("dashboard.visualBar.entry")}
-          </div>
         </div>
+      </div>
 
-        <!-- The Bar -->
-        <div class="bar-row">
-          <div class="bar-track">
-            <!-- Risk Area -->
-            <div
-              class="bar-segment risk"
-              style="left: 0; width: {entryX}%"
-            ></div>
-            <!-- Profit Area -->
-            <div
-              class="bar-segment profit"
-              style="left: {entryX}%; width: {100 - entryX}%"
-            ></div>
-
-            <!-- Markers -->
-            <div class="marker sl" style="left: 0"></div>
-            <div class="marker entry" style="left: {entryX}%"></div>
-            {#each tpData as tp}
-              <div class="marker tp" style="left: {tp.x}%"></div>
-            {/each}
-          </div>
+      <!-- Bar -->
+      <div class="bar-container">
+        <div class="bar-track">
+          <div class="bar-fill risk" style="width: {entryX}%"></div>
+          <div
+            class="bar-fill profit"
+            style="left: {entryX}%; width: {100 - entryX}%"
+          ></div>
         </div>
+        <!-- Markers -->
+        <div class="marker" style="left: 0"></div>
+        <div class="marker" style="left: {entryX}%"></div>
+        {#each tpData as tp}
+          <div class="marker" style="left: {tp.x}%"></div>
+        {/each}
+      </div>
 
-        <!-- Labels Below Bar -->
-        <div class="labels-bottom">
-          <div class="sl-label">SL</div>
+      <!-- Entry Label Below -->
+      <div class="footer-row">
+        <div class="entry-label" style="left: {entryX}%">
+          {$_("dashboard.visualBar.entry")}
         </div>
       </div>
     {/if}
@@ -100,117 +93,140 @@
 </div>
 
 <style>
-  .visual-bar-container {
-    width: 100%;
-    height: 40px;
+  .visual-bar-card {
+    background: rgba(30, 41, 59, 0.4);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    padding: 8px 12px;
     margin: 1rem 0;
-    position: relative;
-    user-select: none;
-  }
-
-  .visual-bar-content {
+    height: 40px;
     display: flex;
     flex-direction: column;
-    justify-content: center;
-    height: 100%;
-  }
-
-  .labels-top {
-    height: 14px;
+    justify-content: space-between;
     position: relative;
-    width: 100%;
   }
 
-  .tp-label {
+  .header-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    height: 16px;
+    position: relative;
+  }
+
+  .left-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+  }
+
+  .sl-badge {
+    background: rgba(30, 41, 59, 0.8);
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 900;
+    padding: 2px 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .title {
+    color: #94a3b8;
+    font-size: 11px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+  }
+
+  .tp-labels {
     position: absolute;
-    transform: translateX(-50%) translateY(-2px);
+    left: 0;
+    right: 0;
+    top: 0;
+    height: 100%;
+    pointer-events: none;
+  }
+
+  .tp-item {
+    position: absolute;
+    transform: translateX(-50%);
     display: flex;
     flex-direction: column;
     align-items: center;
-    line-height: 1.1;
+    gap: 1px;
   }
 
   .tp-name {
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 800;
     color: var(--text-primary);
+    line-height: 1;
   }
 
   .tp-rr {
-    font-size: 10px;
+    font-size: 9px;
     font-weight: 700;
     color: var(--text-secondary);
+    line-height: 1;
   }
 
-  .entry-label-top {
-    position: absolute;
-    transform: translateX(-50%) translateY(-2px);
-    font-size: 12px;
-    font-weight: 800;
-    color: var(--text-secondary);
-    white-space: nowrap;
-  }
-
-  .bar-row {
-    height: 14px;
-    display: flex;
-    align-items: center;
+  .bar-container {
+    height: 6px;
     position: relative;
-    margin: 1px 0;
+    margin: 2px 0;
   }
 
   .bar-track {
     width: 100%;
-    height: 6px;
+    height: 100%;
     background: rgba(255, 255, 255, 0.05);
     border-radius: 3px;
     position: relative;
+    overflow: hidden;
   }
 
-  .bar-segment {
+  .bar-fill {
     position: absolute;
     top: 0;
     height: 100%;
-    border-radius: 3px;
   }
 
-  .bar-segment.risk {
+  .bar-fill.risk {
+    left: 0;
     background: var(--danger-color);
   }
 
-  .bar-segment.profit {
+  .bar-fill.profit {
     background: var(--success-color);
   }
 
   .marker {
     position: absolute;
-    top: -4px;
-    height: 14px;
-    width: 3.5px;
+    top: -3px;
+    width: 3px;
+    height: 12px;
     background: white;
     transform: translateX(-50%);
-    border-radius: 1.5px;
-    box-shadow: 0 0 5px rgba(0, 0, 0, 0.6);
-    z-index: 2;
+    border-radius: 1px;
+    box-shadow: 0 0 4px rgba(0, 0, 0, 0.5);
   }
 
-  .marker.sl {
-    background: #cbd5e1;
-    left: 0 !important;
-  }
-
-  .labels-bottom {
+  .footer-row {
     height: 12px;
     position: relative;
-    width: 100%;
   }
 
-  .sl-label {
+  .entry-label {
     position: absolute;
-    left: 0;
-    font-size: 13px;
-    font-weight: 900;
-    color: var(--text-secondary);
-    transform: translateY(2px);
+    transform: translateX(-50%);
+    font-size: 10px;
+    font-weight: 700;
+    color: #94a3b8;
+    background: rgba(30, 41, 59, 0.8);
+    padding: 1px 6px;
+    border-radius: 3px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    white-space: nowrap;
   }
 </style>
