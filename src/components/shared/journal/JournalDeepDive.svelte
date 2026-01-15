@@ -348,7 +348,10 @@
     let tagEvolutionChartData = $derived({
         datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
             label: ds.label,
-            data: ds.data,
+            data: (ds.data || []).map((d: any) => ({
+                x: new Date(d.x).toLocaleDateString(),
+                y: d.y,
+            })),
             borderColor: [
                 themeColors.success,
                 themeColors.accent,
