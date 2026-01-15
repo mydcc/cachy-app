@@ -130,8 +130,8 @@
   <h2 class="section-header !mt-6">
     {$_("dashboard.portfolioInputs.header")}
   </h2>
-  <div class="flex flex-nowrap items-end gap-3">
-    <div class="flex-1 min-w-[120px] max-w-[160px]">
+  <div class="flex flex-wrap items-end gap-4 justify-start">
+    <div class="flex-1 min-w-[140px] max-w-[220px]">
       <label
         for="account-size"
         class="input-label text-xs whitespace-nowrap overflow-visible"
@@ -173,7 +173,7 @@
       </div>
     </div>
 
-    <div class="flex-1 min-w-[120px] max-w-[160px]">
+    <div class="flex-1 min-w-[140px] max-w-[220px]">
       <label
         for="risk-percentage"
         class="input-label text-xs whitespace-nowrap overflow-visible"
@@ -209,7 +209,7 @@
       </div>
     </div>
 
-    <div class="flex-1 min-w-[120px] max-w-[160px]">
+    <div class="flex-1 min-w-[140px] max-w-[220px]">
       <label
         for="risk-amount"
         class="input-label text-xs whitespace-nowrap overflow-visible"
