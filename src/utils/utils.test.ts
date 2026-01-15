@@ -109,3 +109,22 @@ describe("parseDateString", () => {
     expect(date.getTime()).toBe(localDate.getTime());
   });
 });
+
+import { escapeHtml } from "./utils";
+
+describe("escapeHtml", () => {
+  it("should escape special characters", () => {
+    const input = '<script>alert("xss")&</script>';
+    const expected = "&lt;script&gt;alert(&quot;xss&quot;)&amp;&lt;/script&gt;";
+    expect(escapeHtml(input)).toBe(expected);
+  });
+
+  it("should handle null/undefined", () => {
+    expect(escapeHtml(null)).toBe("");
+    expect(escapeHtml(undefined)).toBe("");
+  });
+
+  it("should handle normal strings", () => {
+    expect(escapeHtml("Hello World")).toBe("Hello World");
+  });
+});

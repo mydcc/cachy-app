@@ -589,8 +589,8 @@ export const app = {
       if (lines.length > MAX_IMPORT_LINES) {
         uiStore.showError(
           `Zu viele Zeilen (${lines.length - 1} Trades). ` +
-          `Maximum: 1000 Trades pro Import. ` +
-          `Bitte teilen Sie die CSV-Datei auf.`
+            `Maximum: 1000 Trades pro Import. ` +
+            `Bitte teilen Sie die CSV-Datei auf.`
         );
         return;
       }
@@ -600,9 +600,25 @@ export const app = {
         return;
       }
 
-      const headers = lines[0]
-        .split(",")
-        .map((h) => h.trim().replace(/^\uFEFF/, ""));
+      // Helper to robustly split CSV lines respecting quotes
+      const splitCSV = (str: string) => {
+        const regex = /,(?=(?:(?:[^"]*"){2})*[^"]*$)/;
+        return str.split(regex);
+      };
+
+      // Helper to clean CSV values (remove quotes, unescape double quotes)
+      const cleanCSVValue = (val: string) => {
+        val = val.trim();
+        if (val.startsWith('"') && val.endsWith('"')) {
+          val = val.slice(1, -1);
+          return val.replace(/""/g, '"');
+        }
+        return val;
+      };
+
+      const headers = splitCSV(lines[0]).map((h) =>
+        cleanCSVValue(h.replace(/^\uFEFF/, ""))
+      );
       // Map possible headers to internal keys
       const headerMap: { [key: string]: string } = {
         ID: "ID",
@@ -688,13 +704,15 @@ export const app = {
       const entries = lines
         .slice(1)
         .map((line) => {
-          const values = line.split(",");
+          const values = splitCSV(line);
           // Map values to standardized German keys internally using the header map
           const entry: Record<string, string> = {};
           headers.forEach((header, index) => {
             const mappedKey = headerMap[header];
+            const cleanVal = values[index] ? cleanCSVValue(values[index]) : "";
+
             if (mappedKey) {
-              entry[mappedKey] = values[index] ? values[index].trim() : "";
+              entry[mappedKey] = cleanVal;
             } else if (
               header.startsWith("TP") &&
               (header.includes("Preis") ||
@@ -707,9 +725,7 @@ export const app = {
               if (match) {
                 const num = match[1];
                 const type = match[2] === "%" ? "%" : "Preis";
-                entry[`TP${num} ${type}`] = values[index]
-                  ? values[index].trim()
-                  : "";
+                entry[`TP${num} ${type}`] = cleanVal;
               }
             }
           });
@@ -778,14 +794,11 @@ export const app = {
               maxPotentialProfit: parseDecimal(
                 entry["Max. potenzieller Gewinn"] || "0"
               ),
-              notes: entry.Notizen
-                ? entry.Notizen.replace(/""/g, '"').slice(1, -1)
-                : "",
+              notes: entry.Notizen || "",
               tags: entry.Tags
-                ? entry.Tags.replace(/"/g, "")
-                  .split(";")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
+                ? entry.Tags.split(";")
+                    .map((t) => t.trim())
+                    .filter(Boolean)
                 : [],
               screenshot: entry.Screenshot || undefined,
               targets: targets,
