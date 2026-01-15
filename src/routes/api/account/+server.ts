@@ -1,12 +1,23 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHmac, createHash, randomBytes } from "crypto";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { exchange, apiKey, apiSecret } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
+  }
+
+  // Security: Validate API Key length
+  if (exchange === "bitunix") {
+    const validationError = validateBitunixKeys(apiKey, apiSecret);
+    if (validationError) {
+      return json({ error: validationError }, { status: 400 });
+    }
   }
 
   try {
@@ -20,7 +31,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(account);
   } catch (e: any) {
-    console.error(`Error fetching account from ${exchange}:`, e);
+    // Security: Sanitize error log
+    const errorMsg = e instanceof Error ? e.message : String(e);
+    console.error(`Error fetching account from ${exchange}:`, errorMsg);
     return json(
       { error: e.message || "Failed to fetch account" },
       { status: 500 }
@@ -40,20 +53,13 @@ async function fetchBitunixAccount(
     marginCoin: "USDT",
   };
 
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    null
+  );
 
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  const queryString = new URLSearchParams(params).toString();
   const url = `${baseUrl}${path}?${queryString}`;
 
   const response = await fetch(url, {
@@ -69,7 +75,9 @@ async function fetchBitunixAccount(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    // Truncate error text to prevent massive log dumps or leakage
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();

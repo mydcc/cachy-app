@@ -1,6 +1,6 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
+import { generateBitunixSignature } from "../../../../utils/server/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret, limit } = await request.json();
@@ -96,7 +96,7 @@ async function fetchAllPages(
   path: string,
   checkTimeout: () => boolean
 ): Promise<any[]> {
-  const maxPages = 50; // Reduced from 100 to prevent long waits, 50 * 100 = 5000 orders should be enough for recent history
+  const maxPages = 50; // Reduced from 100 to prevent long waits
   let accumulated: any[] = [];
   let currentEndTime: number | undefined = undefined;
 
@@ -121,28 +121,21 @@ async function fetchAllPages(
     // Pagination logic: use the creation time of the last item
     const lastItem = batch[batch.length - 1];
 
-    // Safety check if lastItem is null or undefined
     if (!lastItem) break;
 
-    // Standardize time field: ctime, createTime, updateTime
     const timeField =
       lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
-    // Ensure we have a valid time field before parsing
     if (timeField !== undefined && timeField !== null) {
-      // Use simple numeric parsing as Bitunix timestamps are standard
-      // We avoid parseInt(..., 10) on strings that might be floating point (rare for timestamps but possible in some systems)
       const parsedTime = Number(timeField);
 
       if (!isNaN(parsedTime) && parsedTime > 0) {
-        // Decrement by 1 unit (ms or s) to get the next page
-        // We assume the API is inclusive of endTime (<=)
         currentEndTime = parsedTime - 1;
       } else {
-        break; // Invalid timestamp, stop paging
+        break;
       }
     } else {
-      break; // No time field, stop paging
+      break;
     }
   }
   return accumulated;
@@ -165,31 +158,16 @@ async function fetchBitunixData(
     params.endTime = endTime.toString();
   }
 
-  // 1. Generate Nonce and Timestamp
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    params,
+    null
+  );
 
-  // 2. Sort and Concatenate Query Params
-  const queryParamsStr = Object.keys(params)
-    .sort()
-    .map((key) => key + params[key])
-    .join("");
+  const url = `${baseUrl}${path}?${queryString}`;
 
-  // 3. Construct Digest Input
-  const body = "";
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + body;
-
-  // 4. Calculate Digest (SHA256)
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-
-  // 5. Calculate Signature (SHA256 of digest + secret)
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  // 6. Build Query String for URL
-  const queryString = new URLSearchParams(params).toString();
-
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+  const response = await fetch(url, {
     method: "GET",
     headers: {
       "api-key": apiKey,
@@ -231,7 +209,6 @@ async function fetchBitunixData(
   const resultData = data.data;
   if (Array.isArray(resultData)) return resultData;
   if (resultData && typeof resultData === "object") {
-    // Try common keys
     if (Array.isArray(resultData.orderList)) return resultData.orderList;
     if (Array.isArray(resultData.planOrderList))
       return resultData.planOrderList;
