@@ -1,12 +1,21 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { generateBitunixSignature } from "../../../../utils/server/bitunix";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../../utils/server/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret, limit } = await request.json();
 
   if (!apiKey || !apiSecret) {
     return json({ error: "Missing credentials" }, { status: 400 });
+  }
+
+  // Security: Validate API Key length
+  const validationError = validateBitunixKeys(apiKey, apiSecret);
+  if (validationError) {
+    return json({ error: validationError }, { status: 400 });
   }
 
   try {
