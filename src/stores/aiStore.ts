@@ -91,14 +91,15 @@ ${JSON.stringify(context, null, 2)}
 
 ROLE:
 - You are a knowledgeable crypto trading expert.
-- Analyze the provided market data and user trades extensively.
-- Always check Risk/Reward (R:R) ratios when discussing setups.
+- Analyze the provided market data, portfolio stats, and user trades extensively.
+- Always check Risk/Reward (R:R) ratios.
 - Be concise but insightful. Use bullet points for clarity.
+- Reply in the same language as the user (DETECT LANGUAGE) unless asked otherwise.
 - If the user asks for a trade setup, ALWAYS propose specific Entry, SL, and TP levels based on the context.
 
 CAPABILITY (ACTION EXECUTION):
 You can DIRECTLY set values in the user's trading interface. 
-Use this when the user asks to "set values", "prepare trade", or agrees to a setup.
+Use this when the user asks to "set values", "prepare trade", "set ATR SL", or agrees to a setup.
 To do this, output a JSON block at the very end of your response:
 
 \`\`\`json
@@ -106,12 +107,14 @@ To do this, output a JSON block at the very end of your response:
   { "action": "setSymbol", "value": "BTCUSDT" },
   { "action": "setEntryPrice", "value": 50000 },
   { "action": "setStopLoss", "value": 49000 },
+  { "action": "setAtrMultiplier", "value": 2.5 }, 
   { "action": "setTakeProfit", "index": 0, "value": 52000 },
   { "action": "setRisk", "value": 1.0 },
   { "action": "setLeverage", "value": 10 }
 ]
 \`\`\`
-Only output the JSON if you intend to execute changes.`;
+Only output the JSON if you intend to execute changes.
+Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk, setLeverage, setAtrMultiplier, setUseAtrSl (true/false).`;
 
         const apiMessages = [
           { role: "system", content: systemPrompt },
@@ -172,7 +175,7 @@ Only output the JSON if you intend to execute changes.`;
               },
               body: JSON.stringify({
                 messages: apiMessages,
-                model: model, // Pass the model from settings
+                model: model,
               }),
             });
 
@@ -183,7 +186,6 @@ Only output the JSON if you intend to execute changes.`;
               attempt++;
               const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
               console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
-              // Inform user (optional, via store error temporarily?)
               if (attempt === 1) {
                 update(s => ({ ...s, error: `Rate limited. Retrying...` }));
               }
@@ -232,7 +234,6 @@ Only output the JSON if you intend to execute changes.`;
                 if (provider === "openai") {
                   delta = data.choices?.[0]?.delta?.content || "";
                 } else if (provider === "gemini") {
-                  // Gemini SSE format usually: data: {"candidates": [{"content": {"parts": [{"text": "..."}]}}]}
                   delta = data.candidates?.[0]?.content?.parts?.[0]?.text || "";
                 } else if (provider === "anthropic") {
                   if (data.type === "content_block_delta") {
@@ -242,7 +243,6 @@ Only output the JSON if you intend to execute changes.`;
 
                 if (delta) {
                   fullContent += delta;
-                  // Update Store incrementally
                   update((s) => {
                     const msgs = [...s.messages];
                     const last = msgs[msgs.length - 1];
@@ -253,7 +253,7 @@ Only output the JSON if you intend to execute changes.`;
                   });
                 }
               } catch (e) {
-                // Ignore parse errors for partial chunks
+                // Ignore parse errors
               }
             }
           }
@@ -265,7 +265,22 @@ Only output the JSON if you intend to execute changes.`;
           const actions = parseActions(safeContent) || [];
 
           if (Array.isArray(actions) && actions.length > 0) {
-            // Check settings for confirmation: Default to false (opt-in security) if undefined
+
+            // 1. Hide JSON from Chat UI (Cleaner UX)
+            const regexArray = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
+            const regexSingle = /```json\s*(\{.*?\})\s*```/s;
+            let cleanedContent = safeContent.replace(regexArray, "").replace(regexSingle, "").trim();
+
+            update(s => {
+              const msgs = [...s.messages];
+              const last = msgs[msgs.length - 1];
+              if (last.id === aiMsgId) {
+                last.content = cleanedContent;
+              }
+              return { ...s, messages: msgs };
+            });
+
+            // 2. Execute Actions
             const confirmActions = settings.aiConfirmActions ?? false;
             let blockedCount = 0;
 
@@ -294,7 +309,7 @@ Only output the JSON if you intend to execute changes.`;
 
         update((s) => {
           const newState = { ...s, isStreaming: false };
-          save(newState); // Save full conversation at end
+          save(newState);
           return newState;
         });
       } catch (e: any) {
@@ -313,16 +328,30 @@ Only output the JSON if you intend to execute changes.`;
 function gatherContext() {
   const trade = get(tradeStore) || {};
   const market = get(marketStore) || {};
-  const account = get(accountStore) || { positions: [] };
+  const account = get(accountStore) || { positions: [], assets: [] }; // Improved default
   const journal = get(journalStore) || [];
+  const settings = get(settingsStore);
+
+  // Calculate Portfolio Stats
+  const totalTrades = journal.length;
+  const wins = journal.filter(t => (t.totalNetProfit?.toNumber() || 0) > 0).length;
+  const winrate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
+  const totalPnl = journal.reduce((sum, t) => sum + (t.totalNetProfit?.toNumber() || 0), 0).toFixed(2);
+
+  // Get Account Size from USDT Assets
+  const usdtAsset = account.assets?.find(a => a.currency === "USDT");
+  const accountSize = usdtAsset ? usdtAsset.total.toString() : "Unknown";
+
+  // Limit History
+  const limit = settings.aiTradeHistoryLimit || 50;
 
   // Extract relevant bits
   const symbol = trade.symbol;
   const marketData = symbol && market[symbol] ? market[symbol] : null;
 
-  // Get last 5 trades from Journal
+  // Get last N trades from Journal
   const recentTrades = Array.isArray(journal)
-    ? journal.slice(0, 5).map((t) => ({
+    ? journal.slice(0, limit).map((t) => ({
       symbol: t.symbol,
       entry: t.entryDate,
       exit: t.exitDate,
@@ -332,6 +361,12 @@ function gatherContext() {
     : [];
 
   return {
+    portfolioStats: {
+      totalTrades,
+      winrate,
+      totalPnl,
+      accountSize
+    },
     activeSymbol: symbol,
     currentPrice: marketData?.lastPrice?.toString() || "Unknown",
     priceChange24h:
@@ -358,6 +393,8 @@ function gatherContext() {
       sl: trade.stopLossPrice,
       tp: trade.targets,
       risk: trade.riskPercentage + "%",
+      atrMultiplier: trade.atrMultiplier,
+      useAtrSl: trade.useAtrSl
     },
   };
 }
@@ -425,6 +462,20 @@ function executeAction(action: any, confirmNeeded: boolean): boolean {
       case "setSymbol":
         if (action.value) {
           tradeStore.update(s => ({ ...s, symbol: action.value }));
+        }
+        break;
+
+      // --- New ATR Actions ---
+      case "setAtrMultiplier":
+      case "setStopLossATR":
+        const mult = action.value || action.atrMultiplier;
+        if (mult) {
+          tradeStore.update(s => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+        }
+        break;
+      case "setUseAtrSl":
+        if (typeof action.value === 'boolean') {
+          tradeStore.update(s => ({ ...s, useAtrSl: action.value }));
         }
         break;
     }

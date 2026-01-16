@@ -62,6 +62,27 @@
         class="toggle-checkbox"
       />
     </div>
+
+    <!-- Trade Context Limit -->
+    <div
+      class="flex items-center justify-between py-2 border-t border-[var(--border-color)]"
+    >
+      <div class="flex flex-col">
+        <span class="text-xs font-bold">Trade History Context</span>
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Number of past trades sent to AI (Context)</span
+        >
+      </div>
+      <input
+        type="number"
+        min="5"
+        max="500"
+        step="5"
+        bind:value={$settingsStore.aiTradeHistoryLimit}
+        class="input-field p-1 px-2 rounded text-xs w-16 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+      />
+    </div>
+
     <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
       <div class="flex flex-col gap-2">
         <label

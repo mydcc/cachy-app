@@ -43,7 +43,7 @@ export interface Settings {
   imgbbApiKey: string;
   imgbbExpiration: number; // 0 = never, otherwise seconds
   isDeepDiveUnlocked?: boolean; // Persist cheat code state
-  imgurClientId?: string; // Kept optional for migration/legacy cleanup if needed, but not used.
+  imgurClientId?: string;
 
   // Side Panel Settings
   enableSidePanel: boolean;
@@ -58,6 +58,8 @@ export interface Settings {
   geminiModel: string;
   anthropicApiKey: string;
   anthropicModel: string;
+  aiConfirmActions: boolean;
+  aiTradeHistoryLimit: number; // NEW: Context limit
 
   // UI Settings
   showSpinButtons: boolean | "hover";
@@ -69,7 +71,6 @@ export interface Settings {
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
   enableGlassmorphism: boolean;
-  aiConfirmActions: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -104,10 +105,11 @@ const defaultSettings: Settings = {
   openaiApiKey: "",
   openaiModel: "gpt-4o",
   geminiApiKey: "",
-  geminiModel: "gemini-1.5-flash", // Default to stable 1.5 flash for Free Tier
+  geminiModel: "gemini-1.5-flash",
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
-  aiConfirmActions: false, // Default to false for better UX (opt-in security)
+  aiConfirmActions: false,
+  aiTradeHistoryLimit: 50, // Default limit
 
   // UI Defaults
   showSpinButtons: "hover",
@@ -128,7 +130,6 @@ function loadSettingsFromLocalStorage(): Settings {
     if (!d) return defaultSettings;
     const parsed = JSON.parse(d);
 
-    // Ensure we merge with defaults to handle new keys in existing storage
     const settings = {
       ...defaultSettings,
       ...parsed,
@@ -138,15 +139,12 @@ function loadSettingsFromLocalStorage(): Settings {
       },
     };
 
-    // Migration logic:
-
-    // 1. If 'manual' was stored in interval (very old legacy)
+    // Migration logic as before...
     if (parsed.marketDataInterval === "manual") {
       settings.autoUpdatePriceInput = false;
       settings.marketDataInterval = "1m";
     }
 
-    // 2. Migration from 'priceUpdateMode' ('manual' | 'auto') to 'autoUpdatePriceInput'
     if (parsed.priceUpdateMode) {
       if (parsed.priceUpdateMode === "auto") {
         settings.autoUpdatePriceInput = true;
@@ -155,43 +153,24 @@ function loadSettingsFromLocalStorage(): Settings {
       }
     }
 
-    // 3. Ensure ImgBB defaults if missing (even if other settings existed)
     if (!settings.imgbbApiKey) {
       settings.imgbbApiKey = defaultSettings.imgbbApiKey;
     }
-    if (settings.imgbbExpiration === undefined) {
-      settings.imgbbExpiration = defaultSettings.imgbbExpiration;
-    }
 
-    // 4. Ensure AI Settings defaults
+    // AI Migrations
     if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
-    if (!settings.openaiApiKey)
-      settings.openaiApiKey = defaultSettings.openaiApiKey;
-    if (!settings.openaiModel)
-      settings.openaiModel = defaultSettings.openaiModel;
 
-    if (!settings.geminiApiKey)
-      settings.geminiApiKey = defaultSettings.geminiApiKey;
-    if (!settings.geminiModel)
-      settings.geminiModel = defaultSettings.geminiModel;
-
-    // Auto-migrate "flash" legacy alias to specific model if needed
     if (settings.geminiModel === "flash") {
       settings.geminiModel = "gemini-1.5-flash";
     }
     if (settings.geminiModel === "pro") {
-      settings.geminiModel = "gemini-2.0-flash-exp"; // Map old "pro" choice to 2.0 Flash Exp which is powerful
+      settings.geminiModel = "gemini-2.0-flash-exp";
     }
 
-    // Fallback if empty
-    if (!settings.geminiModel) {
-      settings.geminiModel = defaultSettings.geminiModel;
+    // Ensure History Config exists
+    if (typeof settings.aiTradeHistoryLimit !== 'number') {
+      settings.aiTradeHistoryLimit = defaultSettings.aiTradeHistoryLimit;
     }
-
-    if (!settings.anthropicApiKey)
-      settings.anthropicApiKey = defaultSettings.anthropicApiKey;
-    if (!settings.anthropicModel)
-      settings.anthropicModel = defaultSettings.anthropicModel;
 
     // Clean up keys not in interface
     const cleanSettings: Settings = {
@@ -234,6 +213,8 @@ function loadSettingsFromLocalStorage(): Settings {
       anthropicModel: settings.anthropicModel,
       aiConfirmActions:
         settings.aiConfirmActions ?? defaultSettings.aiConfirmActions,
+      aiTradeHistoryLimit: settings.aiTradeHistoryLimit ?? defaultSettings.aiTradeHistoryLimit,
+
       showSpinButtons:
         settings.showSpinButtons ?? defaultSettings.showSpinButtons,
       disclaimerAccepted:
