@@ -287,43 +287,47 @@ Only output the JSON if you intend to execute changes.`;
 }
 
 function gatherContext() {
-  const trade = get(tradeStore);
-  const market = get(marketStore);
-  const account = get(accountStore);
-  const journal: JournalEntry[] = get(journalStore);
+  const trade = get(tradeStore) || {};
+  const market = get(marketStore) || {};
+  const account = get(accountStore) || { positions: [] };
+  const journal = get(journalStore) || [];
 
   // Extract relevant bits
   const symbol = trade.symbol;
-  const marketData = symbol ? market[symbol] : null;
+  const marketData = symbol && market[symbol] ? market[symbol] : null;
 
   // Get last 5 trades from Journal
-  const recentTrades = journal.slice(0, 5).map((t) => ({
-    symbol: t.symbol,
-    entry: t.entryDate,
-    exit: t.exitDate,
-    pnl: t.totalNetProfit?.toNumber() || 0,
-    won: (t.totalNetProfit?.toNumber() || 0) > 0,
-  }));
+  const recentTrades = Array.isArray(journal)
+    ? journal.slice(0, 5).map((t) => ({
+      symbol: t.symbol,
+      entry: t.entryDate,
+      exit: t.exitDate,
+      pnl: t.totalNetProfit?.toNumber() || 0,
+      won: (t.totalNetProfit?.toNumber() || 0) > 0,
+    }))
+    : [];
 
   return {
     activeSymbol: symbol,
     currentPrice: marketData?.lastPrice?.toString() || "Unknown",
     priceChange24h:
       marketData?.priceChangePercent?.toString() + "%" || "Unknown",
-    openPositions: account.positions.map((p) => ({
-      symbol: p.symbol,
-      side: p.side,
-      size: p.size.toString(),
-      entry: p.entryPrice.toString(),
-      pnl: p.unrealizedPnl.toString(),
-      roi:
-        !p.entryPrice.isZero() && !p.size.isZero()
-          ? p.unrealizedPnl
-            .div(p.entryPrice.times(p.size).div(p.leverage))
-            .times(100)
-            .toFixed(2) + "%"
-          : "N/A",
-    })),
+    openPositions: Array.isArray(account.positions)
+      ? account.positions.map((p) => ({
+        symbol: p.symbol,
+        side: p.side,
+        size: p.size.toString(),
+        entry: p.entryPrice.toString(),
+        pnl: p.unrealizedPnl.toString(),
+        roi:
+          !p.entryPrice.isZero() && !p.size.isZero()
+            ? p.unrealizedPnl
+              .div(p.entryPrice.times(p.size).div(p.leverage))
+              .times(100)
+              .toFixed(2) + "%"
+            : "N/A",
+      }))
+      : [],
     recentHistory: recentTrades,
     tradeSetup: {
       entry: trade.entryPrice,
