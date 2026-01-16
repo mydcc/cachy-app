@@ -284,13 +284,10 @@ export const apiService = {
             // Try to parse error details
             try {
               const errData = await response.json();
-              if (errData.error) {
+              if (errData.error && !errData.error.includes("Symbol not found")) {
                 console.error(
                   `fetchBitunixKlines failed with ${response.status}: ${errData.error}`
                 );
-                // If it's a rate limit or specific error, we might want to preserve it
-                // But for now, let's at least log it and maybe throw a more descriptive error if possible
-                // keeping the key for i18n but logged the real cause
               }
             } catch {
               /* ignore parsing error */
@@ -348,7 +345,9 @@ export const apiService = {
             )
             .filter((k): k is Kline => k !== null);
         } catch (e: any) {
-          console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+          if (e.message !== "apiErrors.symbolNotFound") {
+            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+          }
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
           throw new Error("apiErrors.generic");

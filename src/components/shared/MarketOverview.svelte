@@ -142,8 +142,11 @@
       );
       const klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
       historyKlines = klines ?? [];
-    } catch (e) {
-      console.error("Failed to fetch kline history for RSI", e);
+    } catch (e: any) {
+      if (e.message !== "apiErrors.symbolNotFound") {
+        console.error("Failed to fetch kline history for RSI", e);
+      }
+    } finally {
     }
   }
 
@@ -186,8 +189,10 @@
       const data = await apiService.fetchTicker24h(symbol, provider);
       tickerData = data;
       restError = null;
-    } catch (e) {
-      console.error("Failed to fetch REST market data", e);
+    } catch (e: any) {
+      if (e.message !== "apiErrors.symbolNotFound") {
+        console.error("Failed to fetch REST market data", e);
+      }
       restError = "N/A";
     } finally {
       restLoading = false;

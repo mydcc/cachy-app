@@ -792,8 +792,10 @@ export const app = {
         }
       }
       if (!isAuto) uiStore.showFeedback("save", 700);
-    } catch (e) {
-      console.warn(`Failed to load Current ATR ${currentTf}`, e);
+    } catch (e: any) {
+      if (e.message !== "apiErrors.symbolNotFound") {
+        console.warn(`Failed to load Current ATR ${currentTf}`, e);
+      }
     }
   },
 

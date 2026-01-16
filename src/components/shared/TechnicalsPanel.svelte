@@ -149,9 +149,11 @@
         // Immediate calculation on first fetch
         untrack(() => updateTechnicals());
       }
-    } catch (e) {
-      console.error("Technicals fetch error:", e);
-      error = "Failed to load";
+    } catch (e: any) {
+      if (e.message !== "apiErrors.symbolNotFound") {
+        console.error("Technicals fetch error:", e);
+      }
+      error = e.message;
     } finally {
       loading = false;
     }
