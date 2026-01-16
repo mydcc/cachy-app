@@ -27,9 +27,10 @@ export const GET: RequestHandler = async ({ url }) => {
     return json(klines);
   } catch (e: any) {
     console.error(`Error fetching klines from ${provider}:`, e);
+    const status = e.status || 500;
     return json(
       { error: e.message || "Failed to fetch klines" },
-      { status: 500 }
+      { status }
     );
   }
 };
@@ -85,6 +86,12 @@ async function fetchBitunixKlines(
 
   const data = await response.json();
   if (data.code !== 0 && data.code !== "0") {
+    // Treat Bitunix "System error" (Code 2) as 404 Not Found for symbols
+    if (data.code === 2 || data.code === "2") {
+      const error = new Error("Symbol not found");
+      (error as any).status = 404;
+      throw error;
+    }
     throw new Error(`Bitunix API error: ${data.msg}`);
   }
 

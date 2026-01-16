@@ -41,7 +41,12 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           throw { status: response.status, message: errorText };
         }
 
-        return await response.json();
+        const data = await response.json();
+        if (provider !== "binance" && (data.code === 2 || data.code === "2")) {
+          // eslint-disable-next-line no-throw-literal
+          throw { status: 404, message: "Symbol not found" };
+        }
+        return data;
       },
       1000
     ); // 1 second TTL

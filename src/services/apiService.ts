@@ -97,6 +97,15 @@ class RequestManager {
                 console.warn(`[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
+                // DON'T retry on 404 (Not Found) - it's a permanent failure for that symbol
+                if (e instanceof Error && e.message.includes("404")) {
+                  throw e;
+                }
+                // Also check for custom status objects if applicable
+                if ((e as any).status === 404) {
+                  throw e;
+                }
+
                 console.warn(
                   `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
                   })`,
@@ -204,6 +213,7 @@ export const apiService = {
           const response = await fetch(`/api/tickers?${params.toString()}`, {
             signal,
           });
+          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const res = await apiService.safeJson(response);
           if (res.code !== undefined && res.code !== 0) {
@@ -267,6 +277,7 @@ export const apiService = {
           const response = await fetch(`/api/klines?${params.toString()}`, {
             signal,
           });
+          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
           if (!response.ok) {
             // Try to parse error details
             try {
@@ -496,6 +507,7 @@ export const apiService = {
             signal,
           });
 
+          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const data = await response.json();
 
