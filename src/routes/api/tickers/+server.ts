@@ -37,6 +37,15 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
         if (!response.ok) {
           const errorText = await response.text();
+          try {
+            const data = JSON.parse(errorText);
+            if (data.code === 2 || data.code === "2") {
+              // eslint-disable-next-line no-throw-literal
+              throw { status: 404, message: "Symbol not found" };
+            }
+          } catch (e: any) {
+            if (e.status === 404) throw e;
+          }
           // eslint-disable-next-line no-throw-literal
           throw { status: response.status, message: errorText };
         }

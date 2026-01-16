@@ -213,14 +213,22 @@ export const apiService = {
           const response = await fetch(`/api/tickers?${params.toString()}`, {
             signal,
           });
-          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
+          if (response.status === 404) {
+            const error = new Error("apiErrors.symbolNotFound");
+            (error as any).status = 404;
+            throw error;
+          }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const res = await apiService.safeJson(response);
           if (res.code !== undefined && res.code !== 0) {
-            throw new Error(getBitunixErrorKey(res.code));
+            const error = new Error(getBitunixErrorKey(res.code));
+            if (res.code === 2 || res.code === "2") (error as any).status = 404;
+            throw error;
           }
           if (!res.data || res.data.length === 0) {
-            throw new Error("apiErrors.invalidResponse");
+            const error = new Error("apiErrors.invalidResponse");
+            (error as any).status = 404; // Empty data for a ticker often means symbol not found
+            throw error;
           }
           const data = res.data[0];
           const lastPrice = Number(data.lastPrice);
@@ -277,7 +285,11 @@ export const apiService = {
           const response = await fetch(`/api/klines?${params.toString()}`, {
             signal,
           });
-          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
+          if (response.status === 404) {
+            const error = new Error("apiErrors.symbolNotFound");
+            (error as any).status = 404;
+            throw error;
+          }
           if (!response.ok) {
             // Try to parse error details
             try {
@@ -507,7 +519,11 @@ export const apiService = {
             signal,
           });
 
-          if (response.status === 404) throw new Error("apiErrors.symbolNotFound");
+          if (response.status === 404) {
+            const error = new Error("apiErrors.symbolNotFound");
+            (error as any).status = 404;
+            throw error;
+          }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const data = await response.json();
 
