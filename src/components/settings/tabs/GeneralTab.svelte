@@ -5,6 +5,7 @@
     currentLanguage: string;
     currentTheme: string;
     feePreference: "maker" | "taker";
+    forceEnglishTechnicalTerms: boolean;
     isPro: boolean;
     themes: Array<{ value: string; label: string }>;
   }
@@ -13,6 +14,7 @@
     currentLanguage = $bindable(),
     currentTheme = $bindable(),
     feePreference = $bindable(),
+    forceEnglishTechnicalTerms = $bindable(),
     isPro,
     themes
   }: Props = $props();
@@ -62,6 +64,20 @@
       </select>
     </div>
   </div>
+
+  {#if currentLanguage === 'de'}
+    <label class="flex items-center gap-2 cursor-pointer mt-1">
+      <input
+        type="checkbox"
+        bind:checked={forceEnglishTechnicalTerms}
+        class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
+      />
+      <span class="text-sm text-[var(--text-primary)]"
+        >Fachbegriffe auf Englisch (Entry, TP, etc.)</span
+      >
+    </label>
+  {/if}
+
   <div class="flex flex-col gap-1 mt-2">
     <span class="text-sm font-medium">{$_("settings.feePreference")}</span>
     <div class="flex gap-2">

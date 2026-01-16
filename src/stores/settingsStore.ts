@@ -63,6 +63,7 @@ export interface Settings {
   showSpinButtons: boolean | "hover";
   disclaimerAccepted: boolean;
   useUtcDateParsing: boolean;
+  forceEnglishTechnicalTerms: boolean;
   debugMode: boolean;
   syncFavorites: boolean;
   confirmTradeDeletion: boolean;
@@ -110,6 +111,7 @@ const defaultSettings: Settings = {
   showSpinButtons: "hover",
   disclaimerAccepted: false,
   useUtcDateParsing: true,
+  forceEnglishTechnicalTerms: false,
   debugMode: false,
   syncFavorites: true,
   confirmTradeDeletion: true,
@@ -229,6 +231,9 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.disclaimerAccepted ?? defaultSettings.disclaimerAccepted,
       useUtcDateParsing:
         settings.useUtcDateParsing ?? defaultSettings.useUtcDateParsing,
+      forceEnglishTechnicalTerms:
+        settings.forceEnglishTechnicalTerms ??
+        defaultSettings.forceEnglishTechnicalTerms,
       debugMode: settings.debugMode ?? defaultSettings.debugMode,
       syncFavorites: settings.syncFavorites ?? defaultSettings.syncFavorites,
       confirmTradeDeletion:
