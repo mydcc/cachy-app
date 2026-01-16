@@ -282,7 +282,20 @@ export const syncService = {
         });
 
         const batchResults = await Promise.all(batchPromises);
-        newEntries.push(...batchResults.filter(Boolean));
+        const validResults = batchResults.filter(Boolean);
+
+        // Add trades to journal immediately (streaming/incremental update)
+        if (validResults.length > 0) {
+          const currentJournalState = get(journalStore);
+          const keptJournal = currentJournalState.filter((j) => !(j.isManual === false && j.status === "Open"));
+          const updatedJournal = [...keptJournal, ...validResults];
+          updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+          journalStore.set(updatedJournal);
+          syncService.saveJournal(updatedJournal);
+        }
+
+        newEntries.push(...validResults);
 
         // Anti-Rate-Limit delay between batches
         if (i + BATCH_SIZE < filteredHistory.length) {
@@ -293,15 +306,8 @@ export const syncService = {
       }
 
 
-      // Safe Swap
-      const previousJournal = get(journalStore);
-      const keptJournal = previousJournal.filter((j) => !(j.isManual === false && j.status === "Open"));
-      const updatedJournal = [...keptJournal, ...newEntries];
-      updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-
-      if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
-        journalStore.set(updatedJournal);
-        syncService.saveJournal(updatedJournal);
+      // Final feedback - trades already added incrementally
+      if (addedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
         if (isPartialSync) uiStore.showError("Sync unvollständig (Timeout).");
         else uiStore.showFeedback("save", 2000);
