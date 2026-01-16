@@ -39,10 +39,30 @@ export const POST: RequestHandler = async ({ request }) => {
         );
       }
 
+      if (!body.symbol) {
+        return json({ error: "Symbol is required." }, { status: 400 });
+      }
+
       // Check price for Limit orders (place-order only usually)
       if (type === "place-order") {
         const orderType = (body.type || "").toUpperCase();
-        if (orderType === "LIMIT") {
+        const allowedTypes = [
+          "LIMIT",
+          "MARKET",
+          "STOP_LIMIT",
+          "STOP_MARKET",
+          "TAKE_PROFIT_LIMIT",
+          "TAKE_PROFIT_MARKET",
+        ];
+
+        if (!allowedTypes.includes(orderType)) {
+          return json(
+            { error: `Invalid order type: ${orderType}` },
+            { status: 400 }
+          );
+        }
+
+        if (orderType === "LIMIT" || orderType === "STOP_LIMIT") {
           const price = parseFloat(body.price);
           if (isNaN(price) || price <= 0) {
             return json(
