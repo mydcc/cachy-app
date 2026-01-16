@@ -29,11 +29,25 @@ export const POST: RequestHandler = async ({ request }) => {
     let selectedModel = model || "gemini-1.5-flash"; // Default fallback
 
     // Legacy cleanup: Map old "flash"/"pro" aliases if they still arrive
-    if (selectedModel === "flash") selectedModel = "gemini-1.5-flash";
+    if (selectedModel === "flash") selectedModel = "gemini-1.5-flash-001";
+    if (selectedModel === "gemini-1.5-flash") selectedModel = "gemini-1.5-flash-001"; // Map to specific version to avoid 'not found'
     if (selectedModel === "pro") selectedModel = "gemini-2.0-flash-exp";
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
+
+    // Special handling for Gemma models which don't support systemInstruction
+    if (selectedModel.includes("gemma") && systemInstruction) {
+      const sysText = systemInstruction.parts[0].text;
+      // Prepend to first user message context
+      if (contents.length > 0 && contents[0].role === "user") {
+        contents[0].parts[0].text = `[System Instruction]\n${sysText}\n\n[User Request]\n${contents[0].parts[0].text}`;
+      } else {
+        contents.unshift({ role: "user", parts: [{ text: `[System Instruction]\n${sysText}` }] });
+      }
+      // Disable system instruction field for payload
+      systemInstruction = undefined;
+    }
 
     const payload: any = { contents };
     if (systemInstruction) {
