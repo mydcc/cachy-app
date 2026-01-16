@@ -104,6 +104,7 @@
   // UI state
   let currentTheme: string = $state("dark");
   let currentLanguage: string = $state("en");
+  let forceEnglishTechnicalTerms: boolean = $state(false);
 
   // Track active tab
   let activeTab:
@@ -226,6 +227,7 @@
 
         currentTheme = $uiStore.currentTheme;
         currentLanguage = $locale || "en";
+        forceEnglishTechnicalTerms = $settingsStore.forceEnglishTechnicalTerms;
 
         isInitialized = true;
       }
@@ -267,6 +269,7 @@
         syncFavorites, // Added
         confirmTradeDeletion, // Added
         confirmBulkDeletion, // Added
+        forceEnglishTechnicalTerms,
         debugMode, // Added
         enableGlassmorphism,
         apiKeys: {
@@ -532,6 +535,7 @@
           bind:currentLanguage
           bind:currentTheme
           bind:feePreference
+          bind:forceEnglishTechnicalTerms
           {isPro}
           {themes}
         />
