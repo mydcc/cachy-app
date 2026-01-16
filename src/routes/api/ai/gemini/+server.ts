@@ -24,29 +24,13 @@ export const POST: RequestHandler = async ({ request }) => {
       }
     }
 
-    // Map user-friendly model names to technical Gemini 3 model names
-    function getGeminiModelName(userChoice: string): string {
-      // User-friendly values: "flash" or "pro"
-      if (userChoice === "pro") {
-        return "gemini-3-pro-preview";
-      }
-      // Default to flash (fastest, free-tier friendly)
-      return "gemini-3-flash-preview";
-    }
+    // Use the model provided by the client directly.
+    // This allows selecting any available Gemini model in settings.
+    let selectedModel = model || "gemini-1.5-flash"; // Default fallback
 
-    let selectedModel = getGeminiModelName(model || "flash");
-
-    // Legacy fallback: If old technical names are still used, migrate them
-    const oldModelNames = [
-      "gemini-2.0-flash-exp",
-      "gemini-2.0-flash",
-      "gemini-2.5-flash",
-      "gemini-1.5-flash",
-      "gemini-1.5-pro",
-    ];
-    if (oldModelNames.includes(model || "")) {
-      selectedModel = "gemini-3-flash-preview";
-    }
+    // Legacy cleanup: Map old "flash"/"pro" aliases if they still arrive
+    if (selectedModel === "flash") selectedModel = "gemini-1.5-flash";
+    if (selectedModel === "pro") selectedModel = "gemini-2.0-flash-exp";
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;

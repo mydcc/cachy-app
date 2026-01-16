@@ -118,32 +118,27 @@
         />
         <div class="flex flex-col gap-1.5">
           <span class="text-[10px] text-[var(--text-secondary)]">Modell:</span>
-          <div class="flex gap-3">
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                name="geminiModel"
-                value="flash"
-                bind:group={geminiModel}
-                class="cursor-pointer"
-              />
-              <span class="text-xs">⚡ Flash (schnell, kostenlos)</span>
-            </label>
-            <label class="flex items-center gap-1.5 cursor-pointer">
-              <input
-                type="radio"
-                name="geminiModel"
-                value="pro"
-                bind:group={geminiModel}
-                class="cursor-pointer"
-              />
-              <span class="text-xs">🚀 Pro (leistungsstark)</span>
-            </label>
-          </div>
+          <select
+            bind:value={geminiModel}
+            class="input-field p-1.5 px-2 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full"
+          >
+            <option value="gemini-1.5-flash"
+              >Gemini 1.5 Flash (Klassiker)</option
+            >
+            <option value="gemini-3-flash"
+              >Gemini 3 Flash (Neu, limitiert: 20/Tag)</option
+            >
+            <option value="gemini-2.5-flash"
+              >Gemini 2.5 Flash (Neu, limitiert: 20/Tag)</option
+            >
+            <option value="gemma-3-27b-it"
+              >Gemma 3 27b (Empfehlung: 14.400 Req/Tag! 🚀)</option
+            >
+          </select>
         </div>
         <p class="text-[10px] text-[var(--text-secondary)] italic">
-          Flash ist für die meisten Anfragen ausreichend. Pro bietet mehr
-          Leistung bei komplexen Aufgaben.
+          Tipp: 'Gemma 3' bietet extrem hohe Rate-Limits im kostenlosen Tarif
+          (14.4k/Tag). Nutze dies für intensive Nutzung.
         </p>
       </div>
       <div
