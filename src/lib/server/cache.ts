@@ -18,7 +18,7 @@ export class MemoryCache {
   async getOrFetch<T>(
     key: string,
     fetchFn: () => Promise<T>,
-    ttlMs: number
+    ttlMs: number,
   ): Promise<T> {
     const now = Date.now();
 

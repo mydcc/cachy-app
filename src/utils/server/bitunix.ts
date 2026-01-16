@@ -14,7 +14,7 @@ export interface BitunixSignatureResult {
  */
 export function validateBitunixKeys(
   apiKey: unknown,
-  apiSecret: unknown
+  apiSecret: unknown,
 ): string | null {
   if (typeof apiKey !== "string" || apiKey.length < 5) {
     return "Invalid API Key (must be string > 5 chars)";
@@ -40,7 +40,7 @@ export function generateBitunixSignature(
   apiKey: string,
   apiSecret: string,
   params: Record<string, string> = {},
-  body: any = null
+  body: any = null,
 ): BitunixSignatureResult {
   const nonce = randomBytes(16).toString("hex");
   const timestamp = Date.now().toString();
@@ -53,7 +53,7 @@ export function generateBitunixSignature(
   // Standard query string for the URL (key1=val1&key2=val2)
   // We sort this too to match the signature input order for consistency, though not strictly required by HTTP.
   const queryString = new URLSearchParams(
-    Object.entries(params).sort(([keyA], [keyB]) => keyA.localeCompare(keyB))
+    Object.entries(params).sort(([keyA], [keyB]) => keyA.localeCompare(keyB)),
   ).toString();
 
   // Handle Body

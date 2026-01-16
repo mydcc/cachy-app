@@ -3,7 +3,7 @@ import type { JournalEntry } from "../stores/types";
 
 export function debounce<T extends (...args: unknown[]) => void>(
   func: T,
-  delay: number
+  delay: number,
 ) {
   let timeout: ReturnType<typeof setTimeout>;
   return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
@@ -15,7 +15,7 @@ export function debounce<T extends (...args: unknown[]) => void>(
 }
 
 export function parseDecimal(
-  value: string | number | null | undefined
+  value: string | number | null | undefined,
 ): Decimal {
   if (value === null || value === undefined) {
     return new Decimal(0);
@@ -44,7 +44,7 @@ export function parseDecimal(
 
 export function formatDynamicDecimal(
   value: Decimal | string | number | null | undefined,
-  maxPlaces = 4
+  maxPlaces = 4,
 ): string {
   if (value === null || value === undefined) return "-";
 
@@ -73,7 +73,7 @@ export function formatDynamicDecimal(
 export function parseDateString(
   dateStr: string,
   timeStr: string,
-  useUtc: boolean = true
+  useUtc: boolean = true,
 ): Date {
   if (!dateStr) return new Date();
 
@@ -114,7 +114,7 @@ export function parseDateString(
  * This covers dates up to year 2286 for seconds, and avoids confusion with milliseconds (starting 1970).
  */
 export function parseTimestamp(
-  input: string | number | null | undefined | Date
+  input: string | number | null | undefined | Date,
 ): number {
   if (input === null || input === undefined) return 0;
 
@@ -329,7 +329,7 @@ export function normalizeJournalEntry(trade: any): JournalEntry {
         partialVolume: parseDecimal(tp.partialVolume),
         exitFee: parseDecimal(tp.exitFee),
         percentSold: parseDecimal(tp.percentSold),
-      })
+      }),
     );
   } else {
     newTrade.calculatedTpDetails = [];

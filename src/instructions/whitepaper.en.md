@@ -86,17 +86,17 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 Cachy abandons the complex Redux/Context boilerplate in favor of Svelte's reactive Stores (`writable`, `derived`). The state is divided into domain-specific modules in `src/stores/`:
 
 1. **`accountStore.ts`**: The "Single Source of Truth" for the user's wallet.
-    - _Tracks_: Open Positions, Active Orders, Wallet Balances.
-    - _Update Mechanism_: Receives atomic updates from WebSockets (`updatePositionFromWs`).
+   - _Tracks_: Open Positions, Active Orders, Wallet Balances.
+   - _Update Mechanism_: Receives atomic updates from WebSockets (`updatePositionFromWs`).
 2. **`marketStore.ts`**: High-frequency market data.
-    - _Tracks_: Prices, Funding Rates, Order Book Depth.
-    - _Optimization_: Uses a dictionary map `Record<string, MarketData>` for O(1) access complexity when updating prices.
+   - _Tracks_: Prices, Funding Rates, Order Book Depth.
+   - _Optimization_: Uses a dictionary map `Record<string, MarketData>` for O(1) access complexity when updating prices.
 3. **`tradeStore.ts`**: The "Drafting Board".
-    - _Tracks_: User inputs for a _potential_ trade (Entry, SL, TP) before execution.
-    - _Persistence_: Automatically syncs to `localStorage` so users don't lose work on refresh.
+   - _Tracks_: User inputs for a _potential_ trade (Entry, SL, TP) before execution.
+   - _Persistence_: Automatically syncs to `localStorage` so users don't lose work on refresh.
 4. **`journalStore.ts`**: The Historical Record.
-    - _Tracks_: Array of `JournalEntry` objects (closed trades).
-    - _Analytics_: Serves as the raw dataset for the `calculator.ts` analytics engine.
+   - _Tracks_: Array of `JournalEntry` objects (closed trades).
+   - _Analytics_: Serves as the raw dataset for the `calculator.ts` analytics engine.
 
 ### AI-Assisted Telemetry (Jules Service)
 
@@ -162,15 +162,15 @@ Cachy works backwards: _I want to risk $100 -> How much BTC should I buy?_
 **Calculation Steps**:
 
 1. **Determine Distance**:
-    $$ \Delta = | 50,000 - 49,000 | = 1,000 $$
+   $$ \Delta = | 50,000 - 49,000 | = 1,000 $$
 2. **Calculate Quantity (Size)**:
-    $$ Qty = \frac{Risk}{\Delta} = \frac{100}{1,000} = 0.1 \text{ BTC} $$
+   $$ Qty = \frac{Risk}{\Delta} = \frac{100}{1,000} = 0.1 \text{ BTC} $$
 3. **Validation**:
-    If price hits $49,000, loss is $0.1 \times 1,000 = \$100$. **The math holds.**
+   If price hits $49,000, loss is $0.1 \times 1,000 = \$100$. **The math holds.**
 4. **Leverage Check**:
-    Value of position is $0.1 \times 50,000 = \$5,000$.
-    If user has 10x leverage, Margin Required = $500.
-    _The system validates that $500 < Available Balance._
+   Value of position is $0.1 \times 50,000 = \$5,000$.
+   If user has 10x leverage, Margin Required = $500.
+   _The system validates that $500 < Available Balance._
 
 ### Deep Dive Analytics: Trader Psychology
 
@@ -380,10 +380,10 @@ _Component: `TradeSetupInputs.svelte`_
 1. **User Input**: User types "BTC".
 2. **Unified Analysis Fetch**: The component calls `app.fetchAllAnalysisData()`, which triggers a coordinated data harvest.
 3. **Parallel Execution**:
-    - **WebSocket**: Connects to `ticker` channel for real-time price.
-    - **REST API (Price)**: Fetches the latest price snapshot.
-    - **REST API (ATR)**: Fetches 1440 minutes of Kline history for the _primary_ timeframe.
-    - **Multi-ATR Scan**: Simultaneously fetches klines for _secondary_ timeframes (1h, 4h) in the background.
+   - **WebSocket**: Connects to `ticker` channel for real-time price.
+   - **REST API (Price)**: Fetches the latest price snapshot.
+   - **REST API (ATR)**: Fetches 1440 minutes of Kline history for the _primary_ timeframe.
+   - **Multi-ATR Scan**: Simultaneously fetches klines for _secondary_ timeframes (1h, 4h) in the background.
 4. **Auto-Fill**: The system uses the primary ATR to suggest a "safe" Stop Loss price (e.g., $Entry - 1.5 \times ATR$).
 
 ### Phase 2: Execution (The Proxy Layer)
@@ -403,8 +403,8 @@ _Component: `PositionsSidebar.svelte`_
 1. **Socket Event**: Bitunix sends a `ORDER_UPDATE` via WebSocket.
 2. **Store Update**: `accountStore` receives the event. It sees status `FILLED`.
 3. **Atomic State Change**:
-    - The "Pending Order" is removed from `openOrders`.
-    - A new "Position" is created in `positions`.
+   - The "Pending Order" is removed from `openOrders`.
+   - A new "Position" is created in `positions`.
 4. **UI Render**: The Sidebar instantly animates the new position into view.
 
 ### Phase 4: Closing & Journaling (The Sync Layer)
@@ -414,10 +414,10 @@ _Component: `app.ts` (Sync Logic)_
 1. **Closure**: User clicks "Close" or SL is hit.
 2. **History Fetch**: The app polls `get_history_positions` (for closed trades) and `get_pending_positions` (for status updates).
 3. **The "Safe Swap"**:
-    - The system detects a Position ID in History that matches an active ID in `accountStore`.
-    - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
-    - It moves the object from `accountStore` (Active) to `journalStore` (History).
-    - It persists the new Journal Entry to `localStorage`.
+   - The system detects a Position ID in History that matches an active ID in `accountStore`.
+   - It "Hydrates" the trade with final data (Realized PnL, Fees, Funding).
+   - It moves the object from `accountStore` (Active) to `journalStore` (History).
+   - It persists the new Journal Entry to `localStorage`.
 
 ---
 
@@ -440,12 +440,12 @@ Connectivity is handled via the `src/services/apiService.ts` abstraction layer. 
 To balance **Responsiveness** vs. **Rate Limits**, Cachy uses a hybrid approach:
 
 1. **Initial Load (REST)**:
-    - Fetches full Order History (Pagination supported).
-    - Fetches 1440 minutes of Kline history (for RSI/ATR calculation).
+   - Fetches full Order History (Pagination supported).
+   - Fetches 1440 minutes of Kline history (for RSI/ATR calculation).
 2. **Real-Time (WebSocket)**:
-    - **Public Channels**: `ticker`, `depth`, `trade`. Used for charting and price updates.
-    - **Private Channels**: `order`, `position`, `wallet`. Used to update the User Dashboard.
-    - _Heartbeat Logic_: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 20 seconds, ensuring 99.9% uptime.
+   - **Public Channels**: `ticker`, `depth`, `trade`. Used for charting and price updates.
+   - **Private Channels**: `order`, `position`, `wallet`. Used to update the User Dashboard.
+   - _Heartbeat Logic_: A "Watchdog" timer in `BitunixWebSocketService` kills and restarts the connection if no "Pong" is received within 20 seconds, ensuring 99.9% uptime.
 
 ### The "Safe Swap" Synchronization Protocol
 
@@ -456,10 +456,10 @@ A critical challenge in syncing local state with remote API state is handling up
 1. **Fetch New Data**: The app retrieves the full list of open positions from the API.
 2. **Diffing**: It compares the new list against the `accountStore`.
 3. **Atomic Swap**:
-    - If a position exists in Store but NOT in API -> It was closed. Move to Journal.
-    - If a position exists in API but NOT in Store -> It was opened remotely. Add to Store.
-    - If in BOTH -> Update PnL/Margin metrics.
-    - _Crucial_: This happens in a `try/catch` block. If the API fetch fails, the local state is **preserved** (not wiped), preventing the "Zero Balance" scare common in other apps.
+   - If a position exists in Store but NOT in API -> It was closed. Move to Journal.
+   - If a position exists in API but NOT in Store -> It was opened remotely. Add to Store.
+   - If in BOTH -> Update PnL/Margin metrics.
+   - _Crucial_: This happens in a `try/catch` block. If the API fetch fails, the local state is **preserved** (not wiped), preventing the "Zero Balance" scare common in other apps.
 
 ---
 

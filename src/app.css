@@ -174,9 +174,11 @@
   --overlay-derived: rgba(12, 8, 47, 0.7);
 
   /* --- Mapping --- */
-  --bg-primary: radial-gradient(farthest-side at top,
-      var(--gradient-purple-light),
-      var(--gradient-purple-dark));
+  --bg-primary: radial-gradient(
+    farthest-side at top,
+    var(--gradient-purple-light),
+    var(--gradient-purple-dark)
+  );
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--gradient-purple-light);
   --text-primary: var(--purple-light);
@@ -232,9 +234,11 @@
   --overlay-derived: rgba(8, 16, 63, 0.7);
 
   /* --- Mapping --- */
-  --bg-primary: radial-gradient(farthest-side at top,
-      var(--gradient-blue-light),
-      var(--gradient-blue-dark));
+  --bg-primary: radial-gradient(
+    farthest-side at top,
+    var(--gradient-blue-light),
+    var(--gradient-blue-dark)
+  );
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
   --text-primary: var(--blue-pro-light);
@@ -1242,9 +1246,11 @@
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
   --btn-success-bg: var(--midnight-success);
-  --btn-success-hover-bg: color-mix(in srgb,
-      var(--midnight-success) 80%,
-      black);
+  --btn-success-hover-bg: color-mix(
+    in srgb,
+    var(--midnight-success) 80%,
+    black
+  );
   --btn-success-text: var(--midnight-text-primary);
   --toggle-bg-off: var(--midnight-bg-overlay);
   --toggle-bg-on: var(--midnight-gold);
@@ -1728,17 +1734,20 @@ input[type="number"] {
   transition: background-color 0.3s;
 }
 
-input[type="checkbox"]:checked+.atr-toggle-track {
+input[type="checkbox"]:checked + .atr-toggle-track {
   background-color: var(--toggle-bg-on);
 }
 
 .atr-toggle-track::after {
   background-color: var(--toggle-circle-bg);
   border-color: var(--border-color);
-  transition: transform 0.3s, background-color 0.3s, border-color 0.3s;
+  transition:
+    transform 0.3s,
+    background-color 0.3s,
+    border-color 0.3s;
 }
 
-input[type="checkbox"]:checked+.atr-toggle-track::after {
+input[type="checkbox"]:checked + .atr-toggle-track::after {
   transform: translateX(calc(100% + 2px));
   border-color: var(--toggle-circle-bg-on) !important;
   background-color: var(--toggle-circle-bg-on) !important;
@@ -1918,7 +1927,10 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.2s, visibility 0.2s, transform 0.2s;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s,
+    transform 0.2s;
 
   background-color: var(--bg-tertiary);
   color: var(--text-primary);
@@ -1957,7 +1969,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   z-index: 50;
   visibility: hidden;
   opacity: 0;
-  transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  transition:
+    opacity 0.3s ease-in-out,
+    visibility 0.3s ease-in-out;
 }
 
 .modal-overlay.visible {
@@ -1974,7 +1988,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   overflow-y: auto;
   transform: scale(0.95);
   opacity: 0;
-  transition: transform 0.2s ease-in-out, opacity 0.2s ease-in-out;
+  transition:
+    transform 0.2s ease-in-out,
+    opacity 0.2s ease-in-out;
 }
 
 .modal-overlay.visible .modal-content {
@@ -2098,9 +2114,11 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   }
 
   30% {
-    background-color: color-mix(in srgb,
-        var(--accent-color) 50%,
-        var(--bg-tertiary));
+    background-color: color-mix(
+      in srgb,
+      var(--accent-color) 50%,
+      var(--bg-tertiary)
+    );
   }
 
   100% {
@@ -2111,7 +2129,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 /* Glassmorphism Utility */
 .glass-panel {
   background: var(--bg-secondary);
-  transition: backdrop-filter var(--transition-smooth), background var(--transition-smooth);
+  transition:
+    backdrop-filter var(--transition-smooth),
+    background var(--transition-smooth);
 }
 
 .glass-enabled .glass-panel {
@@ -2123,7 +2143,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 /* Hover & Focus Enhancements */
 button,
 .clickable {
-  transition: opacity var(--transition-fast), background var(--transition-fast);
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast);
 }
 
 button:hover:not(:disabled),
@@ -2161,7 +2183,8 @@ body {
   /* Allows pull-to-refresh and rubber-banding */
   -webkit-tap-highlight-color: transparent;
   /* Clean mobile taps */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 h1,
@@ -2175,10 +2198,12 @@ svg {
 
 /* Loading Shimmer */
 .shimmer {
-  background: linear-gradient(90deg,
-      var(--bg-tertiary) 25%,
-      color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
-      var(--bg-tertiary) 75%);
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
+    var(--bg-tertiary) 75%
+  );
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -2235,7 +2260,6 @@ svg {
 .price-down {
   animation: flash-red 0.8s ease-out;
 }
-
 
 .text-link {
   color: var(--accent-color);

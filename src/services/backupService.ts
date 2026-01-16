@@ -23,7 +23,7 @@ interface BackupFile {
   encryptedData?: string; // Base64 ciphertext if encrypted
   isEncrypted?: boolean;
   salt?: string; // Base64
-  iv?: string;   // Base64
+  iv?: string; // Base64
 }
 
 /**
@@ -47,7 +47,7 @@ export async function createBackup(password?: string) {
     presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
     journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
     tradeState: getDataFromLocalStorage(
-      CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store"
+      CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
     ),
     theme: getDataFromLocalStorage("theme"),
   };
@@ -93,7 +93,7 @@ export async function createBackup(password?: string) {
  */
 export async function restoreFromBackup(
   jsonContent: string,
-  password?: string
+  password?: string,
 ): Promise<{
   success: boolean;
   message: string;
@@ -146,7 +146,7 @@ export async function restoreFromBackup(
           backup.encryptedData,
           password,
           backup.salt,
-          backup.iv
+          backup.iv,
         );
         data = JSON.parse(decryptedJson);
       } catch (e) {
@@ -179,7 +179,7 @@ export async function restoreFromBackup(
     if (data.tradeState) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
-        data.tradeState
+        data.tradeState,
       );
     }
     if (data.theme) {

@@ -17,14 +17,17 @@ export interface MarketData {
   volume?: Decimal | null;
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
-  klines: Record<string, {
-    open: Decimal;
-    high: Decimal;
-    low: Decimal;
-    close: Decimal;
-    volume: Decimal;
-    time: number;
-  }>;
+  klines: Record<
+    string,
+    {
+      open: Decimal;
+      high: Decimal;
+      low: Decimal;
+      close: Decimal;
+      volume: Decimal;
+      time: number;
+    }
+  >;
 }
 
 export type WSStatus =
@@ -52,7 +55,7 @@ function touchSymbol(symbol: string) {
   const existing = cacheMetadata.get(symbol);
   cacheMetadata.set(symbol, {
     lastAccessed: now,
-    createdAt: existing?.createdAt || now
+    createdAt: existing?.createdAt || now,
   });
 }
 
@@ -79,7 +82,9 @@ function evictLRU(currentStore: Record<string, MarketData>): string | null {
 }
 
 // Helper: Cleanup stale symbols
-function cleanupStaleSymbols(currentStore: Record<string, MarketData>): string[] {
+function cleanupStaleSymbols(
+  currentStore: Record<string, MarketData>,
+): string[] {
   const now = Date.now();
   const stale: string[] = [];
 
@@ -89,12 +94,14 @@ function cleanupStaleSymbols(currentStore: Record<string, MarketData>): string[]
     }
   });
 
-  stale.forEach(symbol => cacheMetadata.delete(symbol));
+  stale.forEach((symbol) => cacheMetadata.delete(symbol));
   return stale;
 }
 
 // Helper: Enforce cache size limit
-function enforceCacheLimit(currentStore: Record<string, MarketData>): Record<string, MarketData> {
+function enforceCacheLimit(
+  currentStore: Record<string, MarketData>,
+): Record<string, MarketData> {
   let store = { ...currentStore };
 
   while (Object.keys(store).length > MAX_CACHE_SIZE) {
@@ -118,7 +125,7 @@ function createMarketStore() {
         indexPrice: string;
         fundingRate: string;
         nextFundingTime: string;
-      }
+      },
     ) => {
       touchSymbol(symbol); // Update LRU
       update((store) => {
@@ -165,7 +172,7 @@ function createMarketStore() {
         quoteVol: string;
         change: string;
         open: string;
-      }
+      },
     ) => {
       touchSymbol(symbol); // Update LRU
       update((store) => {
@@ -229,7 +236,14 @@ function createMarketStore() {
     updateKline: (
       symbol: string,
       timeframe: string,
-      data: { o: string; h: string; l: string; c: string; b: string; t: number }
+      data: {
+        o: string;
+        h: string;
+        l: string;
+        c: string;
+        b: string;
+        t: number;
+      },
     ) => {
       touchSymbol(symbol); // Update LRU
       update((store) => {
@@ -271,7 +285,7 @@ function createMarketStore() {
       update((store) => {
         const stale = cleanupStaleSymbols(store);
         const cleaned = { ...store };
-        stale.forEach(symbol => delete cleaned[symbol]);
+        stale.forEach((symbol) => delete cleaned[symbol]);
         return cleaned;
       });
     },

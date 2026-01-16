@@ -8,7 +8,7 @@ import { browser } from "$app/environment";
  */
 export function getComputedColor(
   variableName: string,
-  element?: HTMLElement
+  element?: HTMLElement,
 ): string {
   if (!browser) return "#000000";
 

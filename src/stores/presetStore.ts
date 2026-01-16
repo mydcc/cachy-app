@@ -13,7 +13,7 @@ const initialPresetState: PresetState = {
 export const presetStore = writable<PresetState>(initialPresetState);
 
 export const updatePresetStore = (
-  updater: (state: PresetState) => PresetState
+  updater: (state: PresetState) => PresetState,
 ) => {
   presetStore.update(updater);
 };

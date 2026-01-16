@@ -7,7 +7,7 @@ import { get } from "svelte/store";
 marked.use(
   markedKatex({
     throwOnError: false,
-  })
+  }),
 );
 
 interface InstructionContent {
@@ -22,7 +22,7 @@ export async function loadInstruction(
     | "changelog"
     | "guide"
     | "privacy"
-    | "whitepaper"
+    | "whitepaper",
 ): Promise<InstructionContent> {
   const currentLocale = get(locale);
   const filePath = `/instructions/${name}.${currentLocale}.md`;
@@ -52,7 +52,7 @@ export async function loadInstruction(
   } catch (error) {
     console.error(
       `Failed to load or parse markdown for ${name} in ${currentLocale}:`,
-      error
+      error,
     );
     return { html: `<p>Error loading instructions.</p>`, title: "Error" };
   }

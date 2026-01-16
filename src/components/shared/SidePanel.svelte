@@ -7,6 +7,7 @@
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
+  import DOMPurify from "dompurify";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | undefined = $state();
@@ -69,8 +70,13 @@
 
   function renderMarkdown(text: string) {
     try {
-      return marked(text);
+      const raw = marked.parse(text) as string;
+      if (typeof window !== "undefined") {
+        return DOMPurify.sanitize(raw);
+      }
+      return raw;
     } catch (e) {
+      console.error("Markdown rendering error:", e);
       return text;
     }
   }

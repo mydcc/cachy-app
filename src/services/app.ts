@@ -89,7 +89,7 @@ const calculatorService = new CalculatorService(
   tradeStore,
   uiStore,
   initialResultsState,
-  updateTradeStore
+  updateTradeStore,
 );
 
 export const app = {
@@ -120,7 +120,9 @@ export const app = {
     let symbolDebounceTimer: any = null;
 
     tradeStoreUnsubscribe = tradeStore.subscribe((state) => {
-      const newSymbol = state.symbol ? normalizeSymbol(state.symbol, "bitunix") : "";
+      const newSymbol = state.symbol
+        ? normalizeSymbol(state.symbol, "bitunix")
+        : "";
 
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
 
@@ -185,7 +187,11 @@ export const app = {
       const currentSymbol = get(tradeStore).symbol;
       const uiState = get(uiStore);
 
-      if (currentSymbol && currentSymbol.length >= 3 && !uiState.isPriceFetching) {
+      if (
+        currentSymbol &&
+        currentSymbol.length >= 3 &&
+        !uiState.isPriceFetching
+      ) {
         if (settings.autoUpdatePriceInput) {
           if (settings.apiProvider === "binance") {
             app.handleFetchPrice(true);
@@ -278,14 +284,19 @@ export const app = {
     journalStore.set(journalData);
 
     // Track meaningful user action: adding a trade to journal
-    const activeTargets = currentAppState.currentTradeData.targets?.filter(
-      (t: any) => t.price && parseDecimal(t.price).gt(0) && t.percent && parseDecimal(t.percent).gt(0)
-    ).length || 0;
+    const activeTargets =
+      currentAppState.currentTradeData.targets?.filter(
+        (t: any) =>
+          t.price &&
+          parseDecimal(t.price).gt(0) &&
+          t.percent &&
+          parseDecimal(t.percent).gt(0),
+      ).length || 0;
     trackCustomEvent(
       "Journal",
       "AddTrade",
       currentAppState.tradeType,
-      activeTargets
+      activeTargets,
     );
 
     onboardingService.trackFirstJournalSave();
@@ -326,7 +337,7 @@ export const app = {
       await modalManager.show(
         "Journal leeren",
         "Möchten Sie wirklich das gesamte Journal unwiderruflich löschen?",
-        "confirm"
+        "confirm",
       )
     ) {
       app.saveJournal([]);
@@ -355,26 +366,26 @@ export const app = {
     const presetName = await modalManager.show(
       "Preset speichern",
       "Geben Sie einen Namen für Ihr Preset ein:",
-      "prompt"
+      "prompt",
     );
     if (typeof presetName === "string" && presetName) {
       try {
         const presets = JSON.parse(
-          localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+          localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
         );
         if (
           presets[presetName] &&
           !(await modalManager.show(
             "Überschreiben?",
             `Preset "${presetName}" existiert bereits. Möchten Sie es überschreiben?`,
-            "confirm"
+            "confirm",
           ))
         )
           return;
         presets[presetName] = app.getInputsAsObject();
         localStorage.setItem(
           CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-          JSON.stringify(presets)
+          JSON.stringify(presets),
         );
         trackCustomEvent("Presets", "Save", presetName);
         uiStore.showFeedback("save");
@@ -385,7 +396,7 @@ export const app = {
         }));
       } catch {
         uiStore.showError(
-          "Preset konnte nicht gespeichert werden. Der lokale Speicher ist möglicherweise voll oder blockiert."
+          "Preset konnte nicht gespeichert werden. Der lokale Speicher ist möglicherweise voll oder blockiert.",
         );
       }
     }
@@ -398,18 +409,18 @@ export const app = {
       !(await modalManager.show(
         "Preset löschen",
         `Preset "${presetName}" wirklich löschen?`,
-        "confirm"
+        "confirm",
       ))
     )
       return;
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       delete presets[presetName];
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-        JSON.stringify(presets)
+        JSON.stringify(presets),
       );
       trackCustomEvent("Presets", "Delete", presetName);
       app.populatePresetLoader();
@@ -424,7 +435,7 @@ export const app = {
     trackCustomEvent("Preset", "Load", presetName);
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       const preset = presets[presetName];
       if (preset) {
@@ -465,7 +476,7 @@ export const app = {
     if (!browser) return;
     try {
       const presets = JSON.parse(
-        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}"
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
       );
       const presetNames = Object.keys(presets);
       updatePresetStore((state) => ({
@@ -512,8 +523,8 @@ export const app = {
     if (file.size > MAX_FILE_SIZE) {
       uiStore.showError(
         `Die CSV-Datei ist zu groß (${(file.size / 1024 / 1024).toFixed(
-          1
-        )}MB). ` + `Maximum: 5MB. Bitte teilen Sie die Datei auf.`
+          1,
+        )}MB). ` + `Maximum: 5MB. Bitte teilen Sie die Datei auf.`,
       );
       return;
     }
@@ -529,14 +540,14 @@ export const app = {
           const currentJournal = get(journalStore);
           const combined = [...currentJournal, ...entries];
           const unique = Array.from(
-            new Map(combined.map((trade) => [trade.id, trade])).values()
+            new Map(combined.map((trade) => [trade.id, trade])).values(),
           );
 
           if (
             await modalManager.show(
               "Import bestätigen",
               `Sie sind dabei, ${entries.length} Trades zu importieren. Bestehende Trades mit derselben ID werden überschrieben. Fortfahren?`,
-              "confirm"
+              "confirm",
             )
           ) {
             journalStore.set(unique);
@@ -544,7 +555,9 @@ export const app = {
             uiStore.showFeedback("save", 2000);
           }
         } else {
-          uiStore.showError("Keine gültigen Einträge in der CSV-Datei gefunden.");
+          uiStore.showError(
+            "Keine gültigen Einträge in der CSV-Datei gefunden.",
+          );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
@@ -630,8 +643,7 @@ export const app = {
       return;
     }
 
-    if (!isAuto)
-      uiStore.update((state) => ({ ...state, isAtrFetching: true }));
+    if (!isAuto) uiStore.update((state) => ({ ...state, isAtrFetching: true }));
 
     try {
       let klines;
@@ -640,7 +652,7 @@ export const app = {
           symbol,
           currentTradeState.atrTimeframe,
           15,
-          "high"
+          "high",
         );
       } else {
         klines = await apiService.fetchBitunixKlines(
@@ -649,14 +661,14 @@ export const app = {
           15,
           undefined,
           undefined,
-          "high"
+          "high",
         );
       }
 
       const atr = calculator.calculateATR(klines);
       if (atr.lte(0)) {
         throw new Error(
-          "ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen."
+          "ATR konnte nicht berechnet werden. Prüfen Sie das Symbol oder den Zeitrahmen.",
         );
       }
       updateTradeStore((state) => ({
@@ -669,7 +681,7 @@ export const app = {
         trackCustomEvent(
           "API",
           "FetchATR",
-          `${symbol}/${currentTradeState.atrTimeframe}`
+          `${symbol}/${currentTradeState.atrTimeframe}`,
         );
         uiStore.showFeedback("save", 700);
       }
@@ -703,7 +715,7 @@ export const app = {
     let filtered: string[] = [];
     if (upperQuery) {
       filtered = CONSTANTS.SUGGESTED_SYMBOLS.filter((s) =>
-        s.startsWith(upperQuery)
+        s.startsWith(upperQuery),
       );
     }
     uiStore.update((s) => ({
@@ -726,7 +738,7 @@ export const app = {
         parseDecimal(currentResultsState.positionSize).lte(0))
     ) {
       uiStore.showError(
-        "Positionsgröße kann nicht gesperrt werden, solange sie ungültig ist."
+        "Positionsgröße kann nicht gesperrt werden, solange sie ungültig ist.",
       );
       return;
     }
@@ -752,7 +764,7 @@ export const app = {
 
     if (shouldBeLocked && parseDecimal(currentTradeState.riskAmount).lte(0)) {
       uiStore.showError(
-        "Risikobetrag kann nicht gesperrt werden, solange er ungültig ist."
+        "Risikobetrag kann nicht gesperrt werden, solange er ungültig ist.",
       );
       return;
     }
@@ -770,7 +782,7 @@ export const app = {
   addTakeProfitRow: (
     price: number | null = null,
     percent: number | null = null,
-    isLocked = false
+    isLocked = false,
   ) => {
     updateTradeStore((state) => ({
       ...state,
@@ -793,7 +805,7 @@ export const app = {
           symbol,
           currentTf,
           99,
-          "high"
+          "high",
         );
       } else {
         klines = await apiService.fetchBitunixKlines(
@@ -802,7 +814,7 @@ export const app = {
           99,
           undefined,
           undefined,
-          "high"
+          "high",
         );
       }
 
@@ -847,13 +859,13 @@ export const app = {
     const decTargets: DecimalTarget[] = targets.map(
       (
         t: { price: number | null; percent: number | null; isLocked: boolean },
-        i: number
+        i: number,
       ) => ({
         price: parseDecimal(t.price),
         percent: parseDecimal(t.percent),
         isLocked: t.isLocked,
         originalIndex: i,
-      })
+      }),
     );
 
     const totalSum = decTargets.reduce((sum, t) => sum.plus(t.percent), ZERO);
@@ -862,7 +874,7 @@ export const app = {
     if (diff.isZero()) return;
 
     const otherUnlocked = decTargets.filter(
-      (t) => !t.isLocked && t.originalIndex !== changedIndex
+      (t) => !t.isLocked && t.originalIndex !== changedIndex,
     );
 
     if (otherUnlocked.length === 0) {
@@ -902,11 +914,11 @@ export const app = {
         (t, i) =>
           !t.isLocked &&
           i !== changedIndex &&
-          t.percent.plus(roundingDiff).gte(0)
+          t.percent.plus(roundingDiff).gte(0),
       );
       if (!targetToAdjust) {
         targetToAdjust = finalTargets.find(
-          (t) => !t.isLocked && t.percent.plus(roundingDiff).gte(0)
+          (t) => !t.isLocked && t.percent.plus(roundingDiff).gte(0),
         );
       }
       if (targetToAdjust) {

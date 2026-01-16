@@ -87,7 +87,7 @@ function createUiStore() {
         // Only update DOM if theme actually changed
         const html = document.documentElement;
         const currentThemeClass = Array.from(html.classList).find((c) =>
-          c.startsWith("theme-")
+          c.startsWith("theme-"),
         );
         const expectedClass =
           themeName !== "dark" ? `theme-${themeName}` : null;
@@ -120,50 +120,54 @@ function createUiStore() {
 
         // Update background color for immediate feedback (matches app.html logic)
         const bgColors: Record<string, string> = {
-          'dark': '#0f172a',
-          'light': '#f1f5f9',
-          'VIP': '#121212',
-          'matrix': '#000000',
-          'meteorite': '#0c082f',
-          'steel': '#08103f',
-          'dracula': '#282a36',
-          'solarized-light': '#fdf6e3',
-          'solarized-dark': '#002b36',
-          'nord': '#2e3440',
-          'gruvbox-dark': '#282828',
-          'monokai': '#1e1f1c',
-          'tokyo-night': '#1a1b26',
-          'everforest-dark': '#2d353b',
-          'github-dark': '#0d1117',
-          'github-light': '#ffffff',
-          'ayu-dark': '#0f1419',
-          'ayu-light': '#f8f9fa',
-          'ayu-mirage': '#1f2430',
-          'midnight': '#0d1117',
-          'cobalt2': '#193549'
+          dark: "#0f172a",
+          light: "#f1f5f9",
+          VIP: "#121212",
+          matrix: "#000000",
+          meteorite: "#0c082f",
+          steel: "#08103f",
+          dracula: "#282a36",
+          "solarized-light": "#fdf6e3",
+          "solarized-dark": "#002b36",
+          nord: "#2e3440",
+          "gruvbox-dark": "#282828",
+          monokai: "#1e1f1c",
+          "tokyo-night": "#1a1b26",
+          "everforest-dark": "#2d353b",
+          "github-dark": "#0d1117",
+          "github-light": "#ffffff",
+          "ayu-dark": "#0f1419",
+          "ayu-light": "#f8f9fa",
+          "ayu-mirage": "#1f2430",
+          midnight: "#0d1117",
+          cobalt2: "#193549",
         };
-        const bgColor = bgColors[themeName] || bgColors['dark'];
+        const bgColor = bgColors[themeName] || bgColors["dark"];
         html.style.backgroundColor = bgColor;
 
         // Ensure background-image is cleared when manually setting background color
         // to prevent gradients from sticking around if theme changes from gradient to solid
-        html.style.backgroundImage = 'none';
+        html.style.backgroundImage = "none";
 
         try {
           localStorage.setItem(CONSTANTS.LOCAL_STORAGE_THEME_KEY, themeName);
           const expires = new Date(
-            Date.now() + 365 * 24 * 60 * 60 * 1000
+            Date.now() + 365 * 24 * 60 * 60 * 1000,
           ).toUTCString(); // 1 year
           document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
 
           // Track theme change (import trackCustomEvent at top of file)
-          if (typeof window !== 'undefined' && (window as any)._mtm) {
-            const trackCustomEvent = (category: string, action: string, name?: string) => {
+          if (typeof window !== "undefined" && (window as any)._mtm) {
+            const trackCustomEvent = (
+              category: string,
+              action: string,
+              name?: string,
+            ) => {
               (window as any)._mtm.push({
                 event: "customEvent",
                 "custom-event-category": category,
                 "custom-event-action": action,
-                "custom-event-name": name || ""
+                "custom-event-name": name || "",
               });
             };
             trackCustomEvent("Settings", "ChangeTheme", themeName);
@@ -196,7 +200,7 @@ function createUiStore() {
       update((state) => ({ ...state, [key]: true }));
       setTimeout(
         () => update((state) => ({ ...state, [key]: false })),
-        duration
+        duration,
       );
     },
     showError: (message: string) =>
@@ -222,7 +226,6 @@ function createUiStore() {
       update((state) => ({ ...state, isLoading: false, loadingMessage: "" })),
     setSyncProgress: (progress: UiState["syncProgress"]) =>
       update((state) => ({ ...state, syncProgress: progress })),
-
   };
 }
 

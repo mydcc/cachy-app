@@ -64,24 +64,24 @@ Cachy is a comprehensive web application for crypto traders designed to precisel
 
 1. **Clone Repository:**
 
-    ```bash
-    git clone https://github.com/mydcc/cachy-app.git
-    cd cachy-app
-    ```
+   ```bash
+   git clone https://github.com/mydcc/cachy-app.git
+   cd cachy-app
+   ```
 
 2. **Install Dependencies:**
 
-    ```bash
-    npm install
-    ```
+   ```bash
+   npm install
+   ```
 
 3. **Start Development Server:**
 
-    ```bash
-    npm run dev
-    ```
+   ```bash
+   npm run dev
+   ```
 
-    The app is now running at `http://localhost:5173`.
+   The app is now running at `http://localhost:5173`.
 
 ### Tests
 

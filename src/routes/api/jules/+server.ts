@@ -14,7 +14,7 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error("JULES_API key is missing on server.");
     return json(
       { error: "System configuration error: API key missing" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 
@@ -67,7 +67,7 @@ Keep it short and professional.
     console.error("Jules API Error:", e);
     return json(
       { error: "Failed to contact Jules: " + e.message },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };

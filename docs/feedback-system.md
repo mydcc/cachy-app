@@ -31,7 +31,7 @@ if (journalStore.length >= 5) {
 ### 4. Reddit Feedback
 
 - r/algotrading
-- r/Daytrading  
+- r/Daytrading
 - r/CryptoTrading
 
 ### 5. Simple Feedback Form

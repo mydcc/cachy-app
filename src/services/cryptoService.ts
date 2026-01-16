@@ -11,38 +11,38 @@ import CryptoJS from "crypto-js";
  * Crypto-JS handles salt and IV internally if we pass a password string.
  */
 export async function encrypt(
-    text: string,
-    password: string
+  text: string,
+  password: string,
 ): Promise<{ ciphertext: string; salt: string; iv: string }> {
-    // CryptoJS.AES.encrypt returns a CipherParams object
-    const encrypted = CryptoJS.AES.encrypt(text, password);
+  // CryptoJS.AES.encrypt returns a CipherParams object
+  const encrypted = CryptoJS.AES.encrypt(text, password);
 
-    return {
-        ciphertext: encrypted.toString(),
-        salt: encrypted.salt ? encrypted.salt.toString() : "",
-        iv: encrypted.iv ? encrypted.iv.toString() : "",
-    };
+  return {
+    ciphertext: encrypted.toString(),
+    salt: encrypted.salt ? encrypted.salt.toString() : "",
+    iv: encrypted.iv ? encrypted.iv.toString() : "",
+  };
 }
 
 /**
  * Decrypts a ciphertext using a password.
  */
 export async function decrypt(
-    ciphertext: string,
-    password: string,
-    _saltB64?: string, // Kept for interface compatibility with previous version
-    _ivB64?: string   // Kept for interface compatibility with previous version
+  ciphertext: string,
+  password: string,
+  _saltB64?: string, // Kept for interface compatibility with previous version
+  _ivB64?: string, // Kept for interface compatibility with previous version
 ): Promise<string> {
-    try {
-        const bytes = CryptoJS.AES.decrypt(ciphertext, password);
-        const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+  try {
+    const bytes = CryptoJS.AES.decrypt(ciphertext, password);
+    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
 
-        if (!decryptedText) {
-            throw new Error("Decryption failed. Probably wrong password.");
-        }
-
-        return decryptedText;
-    } catch (e) {
-        throw new Error("Decryption failed. Probably wrong password.");
+    if (!decryptedText) {
+      throw new Error("Decryption failed. Probably wrong password.");
     }
+
+    return decryptedText;
+  } catch (e) {
+    throw new Error("Decryption failed. Probably wrong password.");
+  }
 }

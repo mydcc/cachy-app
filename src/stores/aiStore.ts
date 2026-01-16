@@ -98,7 +98,7 @@ ROLE:
 - Reply in the same language as the user (DETECT LANGUAGE) unless asked otherwise.
 - If the user asks for a trade setup, ALWAYS propose specific Entry, SL, and TP levels based on the context.
 
-${settings.customSystemPrompt ? `\nUSER CUSTOM INSTRUCTIONS:\n${settings.customSystemPrompt}` : ''}
+${settings.customSystemPrompt ? `\nUSER CUSTOM INSTRUCTIONS:\n${settings.customSystemPrompt}` : ""}
 
 
 CAPABILITY (ACTION EXECUTION):
@@ -189,9 +189,11 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
               // Rate Limited - Exponential Backoff
               attempt++;
               const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-              console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
+              console.warn(
+                `Rate limited (429). Retrying in ${delay / 1000}s...`,
+              );
               if (attempt === 1) {
-                update(s => ({ ...s, error: `Rate limited. Retrying...` }));
+                update((s) => ({ ...s, error: `Rate limited. Retrying...` }));
               }
               await new Promise((r) => setTimeout(r, delay));
               continue;
@@ -199,8 +201,9 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
             // Other error - throw to catch block
             const err = await res.json();
-            throw new Error(err.error || `Request failed with status ${res.status}`);
-
+            throw new Error(
+              err.error || `Request failed with status ${res.status}`,
+            );
           } catch (e: any) {
             if (attempt === MAX_RETRIES - 1) throw e; // Final failure
             attempt++;
@@ -265,17 +268,20 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         // --- Action Handling ---
         try {
-          const safeContent = typeof fullContent === 'string' ? fullContent : "";
+          const safeContent =
+            typeof fullContent === "string" ? fullContent : "";
           const actions = parseActions(safeContent) || [];
 
           if (Array.isArray(actions) && actions.length > 0) {
-
             // 1. Hide JSON from Chat UI (Cleaner UX)
             const regexArray = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
             const regexSingle = /```json\s*(\{.*?\})\s*```/s;
-            let cleanedContent = safeContent.replace(regexArray, "").replace(regexSingle, "").trim();
+            let cleanedContent = safeContent
+              .replace(regexArray, "")
+              .replace(regexSingle, "")
+              .trim();
 
-            update(s => {
+            update((s) => {
               const msgs = [...s.messages];
               const last = msgs[msgs.length - 1];
               if (last.id === aiMsgId) {
@@ -288,22 +294,25 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             const confirmActions = settings.aiConfirmActions ?? false;
             let blockedCount = 0;
 
-            actions.forEach(action => {
+            actions.forEach((action) => {
               if (!action) return;
               try {
                 const success = executeAction(action, confirmActions);
                 if (!success) blockedCount++;
-              } catch (err) { console.error("Single action failed", err); }
+              } catch (err) {
+                console.error("Single action failed", err);
+              }
             });
 
             if (blockedCount > 0) {
               const sysMsg: AiMessage = {
                 id: crypto.randomUUID(),
                 role: "system",
-                content: "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen.",
-                timestamp: Date.now()
+                content:
+                  "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen.",
+                timestamp: Date.now(),
               };
-              update(s => ({ ...s, messages: [...s.messages, sysMsg] }));
+              update((s) => ({ ...s, messages: [...s.messages, sysMsg] }));
             }
           }
         } catch (actionErr) {
@@ -338,12 +347,17 @@ function gatherContext() {
 
   // Calculate Portfolio Stats
   const totalTrades = journal.length;
-  const wins = journal.filter(t => (t.totalNetProfit?.toNumber() || 0) > 0).length;
-  const winrate = totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
-  const totalPnl = journal.reduce((sum, t) => sum + (t.totalNetProfit?.toNumber() || 0), 0).toFixed(2);
+  const wins = journal.filter(
+    (t) => (t.totalNetProfit?.toNumber() || 0) > 0,
+  ).length;
+  const winrate =
+    totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
+  const totalPnl = journal
+    .reduce((sum, t) => sum + (t.totalNetProfit?.toNumber() || 0), 0)
+    .toFixed(2);
 
   // Get Account Size from USDT Assets
-  const usdtAsset = account.assets?.find(a => a.currency === "USDT");
+  const usdtAsset = account.assets?.find((a) => a.currency === "USDT");
   const accountSize = usdtAsset ? usdtAsset.total.toString() : "Unknown";
 
   // Limit History
@@ -356,12 +370,12 @@ function gatherContext() {
   // Get last N trades from Journal
   const recentTrades = Array.isArray(journal)
     ? journal.slice(0, limit).map((t) => ({
-      symbol: t.symbol,
-      entry: t.entryDate,
-      exit: t.exitDate,
-      pnl: t.totalNetProfit?.toNumber() || 0,
-      won: (t.totalNetProfit?.toNumber() || 0) > 0,
-    }))
+        symbol: t.symbol,
+        entry: t.entryDate,
+        exit: t.exitDate,
+        pnl: t.totalNetProfit?.toNumber() || 0,
+        won: (t.totalNetProfit?.toNumber() || 0) > 0,
+      }))
     : [];
 
   return {
@@ -369,7 +383,7 @@ function gatherContext() {
       totalTrades,
       winrate,
       totalPnl,
-      accountSize
+      accountSize,
     },
     activeSymbol: symbol,
     currentPrice: marketData?.lastPrice?.toString() || "Unknown",
@@ -377,19 +391,19 @@ function gatherContext() {
       marketData?.priceChangePercent?.toString() + "%" || "Unknown",
     openPositions: Array.isArray(account.positions)
       ? account.positions.map((p) => ({
-        symbol: p.symbol,
-        side: p.side,
-        size: p.size.toString(),
-        entry: p.entryPrice.toString(),
-        pnl: p.unrealizedPnl.toString(),
-        roi:
-          !p.entryPrice.isZero() && !p.size.isZero()
-            ? p.unrealizedPnl
-              .div(p.entryPrice.times(p.size).div(p.leverage))
-              .times(100)
-              .toFixed(2) + "%"
-            : "N/A",
-      }))
+          symbol: p.symbol,
+          side: p.side,
+          size: p.size.toString(),
+          entry: p.entryPrice.toString(),
+          pnl: p.unrealizedPnl.toString(),
+          roi:
+            !p.entryPrice.isZero() && !p.size.isZero()
+              ? p.unrealizedPnl
+                  .div(p.entryPrice.times(p.size).div(p.leverage))
+                  .times(100)
+                  .toFixed(2) + "%"
+              : "N/A",
+        }))
       : [],
     recentHistory: recentTrades,
     tradeSetup: {
@@ -398,7 +412,7 @@ function gatherContext() {
       tp: trade.targets,
       risk: trade.riskPercentage + "%",
       atrMultiplier: trade.atrMultiplier,
-      useAtrSl: trade.useAtrSl
+      useAtrSl: trade.useAtrSl,
     },
   };
 }
@@ -412,7 +426,9 @@ function parseActions(text: string): any[] {
     try {
       const parsed = JSON.parse(match[1]);
       if (Array.isArray(parsed)) return parsed;
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   const singleRegex = /```json\s*(\{.*?\})\s*```/s;
@@ -421,7 +437,9 @@ function parseActions(text: string): any[] {
     try {
       const parsed = JSON.parse(singleMatch[1]);
       return [parsed];
-    } catch (e) { /* ignore */ }
+    } catch (e) {
+      /* ignore */
+    }
   }
 
   return actions;
@@ -434,22 +452,29 @@ function executeAction(action: any, confirmNeeded: boolean): boolean {
     switch (action.action) {
       case "setEntryPrice":
         if (action.value) {
-          tradeStore.update((s) => ({ ...s, entryPrice: parseFloat(action.value) }));
+          tradeStore.update((s) => ({
+            ...s,
+            entryPrice: parseFloat(action.value),
+          }));
         }
         break;
       case "setStopLoss":
         if (action.value) {
-          tradeStore.update((s) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+          tradeStore.update((s) => ({
+            ...s,
+            stopLossPrice: parseFloat(action.value),
+          }));
         }
         break;
       case "setTakeProfit":
-        if (typeof action.index === 'number') {
+        if (typeof action.index === "number") {
           tradeStore.update((s) => {
             const newTargets = [...s.targets];
             if (newTargets[action.index]) {
               let updatedTarget = { ...newTargets[action.index] };
               if (action.value) updatedTarget.price = parseFloat(action.value);
-              if (action.percent) updatedTarget.percent = parseFloat(action.percent); // Support percent update
+              if (action.percent)
+                updatedTarget.percent = parseFloat(action.percent); // Support percent update
               newTargets[action.index] = updatedTarget;
             }
             return { ...s, targets: newTargets };
@@ -458,17 +483,23 @@ function executeAction(action: any, confirmNeeded: boolean): boolean {
         break;
       case "setLeverage":
         if (action.value) {
-          tradeStore.update((s) => ({ ...s, leverage: parseFloat(action.value) }));
+          tradeStore.update((s) => ({
+            ...s,
+            leverage: parseFloat(action.value),
+          }));
         }
         break;
       case "setRisk":
         if (action.value) {
-          tradeStore.update((s) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+          tradeStore.update((s) => ({
+            ...s,
+            riskPercentage: parseFloat(action.value),
+          }));
         }
         break;
       case "setSymbol":
         if (action.value) {
-          tradeStore.update(s => ({ ...s, symbol: action.value }));
+          tradeStore.update((s) => ({ ...s, symbol: action.value }));
         }
         break;
 
@@ -477,12 +508,16 @@ function executeAction(action: any, confirmNeeded: boolean): boolean {
       case "setStopLossATR":
         const mult = action.value || action.atrMultiplier;
         if (mult) {
-          tradeStore.update(s => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+          tradeStore.update((s) => ({
+            ...s,
+            atrMultiplier: parseFloat(mult),
+            useAtrSl: true,
+          }));
         }
         break;
       case "setUseAtrSl":
-        if (typeof action.value === 'boolean') {
-          tradeStore.update(s => ({ ...s, useAtrSl: action.value }));
+        if (typeof action.value === "boolean") {
+          tradeStore.update((s) => ({ ...s, useAtrSl: action.value }));
         }
         break;
     }

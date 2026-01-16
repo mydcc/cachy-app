@@ -4,9 +4,22 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import type {
+  BitunixResponse,
+  BitunixOrder,
+  BitunixOrderListWrapper,
+  NormalizedOrder,
+  BitunixOrderPayload,
+} from "../../../types/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const body = await request.json();
+  let body: any;
+  try {
+    body = await request.json();
+  } catch (e) {
+    return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
   const { exchange, apiKey, apiSecret, type } = body;
 
   if (!exchange || !apiKey || !apiSecret) {
@@ -27,7 +40,7 @@ export const POST: RequestHandler = async ({ request }) => {
       if (isNaN(qty) || qty <= 0) {
         return json(
           { error: "Invalid quantity. Must be a positive number." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -35,7 +48,7 @@ export const POST: RequestHandler = async ({ request }) => {
       if (side !== "BUY" && side !== "SELL") {
         return json(
           { error: "Invalid side. Must be BUY or SELL." },
-          { status: 400 }
+          { status: 400 },
         );
       }
 
@@ -58,7 +71,7 @@ export const POST: RequestHandler = async ({ request }) => {
         if (!allowedTypes.includes(orderType)) {
           return json(
             { error: `Invalid order type: ${orderType}` },
-            { status: 400 }
+            { status: 400 },
           );
         }
 
@@ -67,7 +80,7 @@ export const POST: RequestHandler = async ({ request }) => {
           if (isNaN(price) || price <= 0) {
             return json(
               { error: "Invalid price for LIMIT order." },
-              { status: 400 }
+              { status: 400 },
             );
           }
         }
@@ -76,17 +89,18 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   try {
-    let result = null;
+    let result: any = null;
     if (exchange === "bitunix") {
       if (type === "pending") {
-        result = { orders: await fetchBitunixPendingOrders(apiKey, apiSecret) };
+        const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
+        result = { orders };
       } else if (type === "history") {
-        result = { orders: await fetchBitunixHistoryOrders(apiKey, apiSecret) };
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret);
+        result = { orders };
       } else if (type === "place-order") {
         result = await placeBitunixOrder(apiKey, apiSecret, body);
       } else if (type === "close-position") {
         // To close a position, we place a MARKET order in the opposite direction
-        // body should contain: symbol, side (buy/sell), amount (qty)
         const closeOrder = {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
@@ -107,7 +121,7 @@ export const POST: RequestHandler = async ({ request }) => {
     console.error(`Error processing ${type} on ${exchange}:`, errorMsg);
     return json(
       { error: e.message || `Failed to process ${type}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -115,15 +129,13 @@ export const POST: RequestHandler = async ({ request }) => {
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
-  orderData: any
+  orderData: BitunixOrderPayload,
 ): Promise<any> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
   // Construct Payload
-  // Required: symbol, side, type, qty
-  // Optional: price, reduceOnly, leverage, marginMode...
-  const payload: any = {
+  const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
@@ -152,14 +164,14 @@ async function placeBitunixOrder(
 
   // Clean null/undefined
   Object.keys(payload).forEach(
-    (key) => payload[key] === undefined && delete payload[key]
+    (key) => payload[key] === undefined && delete payload[key],
   );
 
   const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
     apiKey,
     apiSecret,
     {},
-    payload
+    payload,
   );
 
   const url = `${baseUrl}${path}`;
@@ -182,10 +194,10 @@ async function placeBitunixOrder(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
-  if (res.code !== 0 && res.code !== "0") {
+  const res: BitunixResponse<any> = await response.json();
+  if (String(res.code) !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
@@ -194,8 +206,8 @@ async function placeBitunixOrder(
 
 async function fetchBitunixPendingOrders(
   apiKey: string,
-  apiSecret: string
-): Promise<any[]> {
+  apiSecret: string,
+): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
 
@@ -203,7 +215,7 @@ async function fetchBitunixPendingOrders(
     apiKey,
     apiSecret,
     {},
-    ""
+    "",
   );
 
   const url = `${baseUrl}${path}`;
@@ -225,25 +237,33 @@ async function fetchBitunixPendingOrders(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
-  if (res.code !== 0 && res.code !== "0") {
+  // Use 'unknown' first to safely cast
+  const res = (await response.json()) as BitunixResponse<
+    BitunixOrder[] | BitunixOrderListWrapper
+  >;
+
+  if (String(res.code) !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
   // Map to normalized format
   // Robustly handle data structure (could be direct array or inside orderList)
-  let listData: any[] = [];
+  let listData: BitunixOrder[] = [];
+
   if (res.data) {
     if (Array.isArray(res.data)) {
       listData = res.data;
-    } else if (res.data.orderList && Array.isArray(res.data.orderList)) {
-      listData = res.data.orderList;
+    } else if (
+      "orderList" in res.data &&
+      Array.isArray((res.data as BitunixOrderListWrapper).orderList)
+    ) {
+      listData = (res.data as BitunixOrderListWrapper).orderList;
     }
   }
 
-  return listData.map((o: any) => ({
+  return listData.map((o) => ({
     id: o.orderId,
     orderId: o.orderId,
     clientId: o.clientId,
@@ -253,8 +273,8 @@ async function fetchBitunixPendingOrders(
     price: parseFloat(o.price || "0"),
     amount: parseFloat(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
-    status: o.status,
-    time: o.ctime,
+    status: o.status || "UNKNOWN",
+    time: o.ctime || 0,
     mtime: o.mtime,
     leverage: o.leverage,
     marginMode: o.marginMode,
@@ -273,8 +293,8 @@ async function fetchBitunixPendingOrders(
 
 async function fetchBitunixHistoryOrders(
   apiKey: string,
-  apiSecret: string
-): Promise<any[]> {
+  apiSecret: string,
+): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
 
@@ -287,7 +307,7 @@ async function fetchBitunixHistoryOrders(
     apiKey,
     apiSecret,
     params,
-    ""
+    "",
   );
 
   const url = `${baseUrl}${path}?${queryString}`;
@@ -309,25 +329,33 @@ async function fetchBitunixHistoryOrders(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res = await response.json();
-  if (res.code !== 0 && res.code !== "0") {
+  const res = (await response.json()) as BitunixResponse<
+    BitunixOrder[] | BitunixOrderListWrapper
+  >;
+
+  if (String(res.code) !== "0") {
     throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`
+      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
     );
   }
 
-  let list: any[] = [];
+  let listData: BitunixOrder[] = [];
+
   if (res.data) {
     if (Array.isArray(res.data)) {
-      list = res.data;
-    } else if (res.data.orderList && Array.isArray(res.data.orderList)) {
-      list = res.data.orderList;
+      listData = res.data;
+    } else if (
+      "orderList" in res.data &&
+      Array.isArray((res.data as BitunixOrderListWrapper).orderList)
+    ) {
+      listData = (res.data as BitunixOrderListWrapper).orderList;
     }
   }
 
-  return list.map((o: any) => ({
-    ...o,
+  return listData.map((o) => ({
     id: o.orderId,
+    orderId: o.orderId,
+    clientId: o.clientId,
     symbol: o.symbol,
     type: o.type,
     side: o.side,
@@ -335,10 +363,10 @@ async function fetchBitunixHistoryOrders(
     amount: parseFloat(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
     avgPrice: parseFloat(o.avgPrice || o.averagePrice || "0"),
-    realizedPnL: parseFloat(o.realizedPNL || "0"),
+    realizedPNL: parseFloat(o.realizedPNL || "0"),
     fee: parseFloat(o.fee || "0"),
-    role: o.role, // Assuming 'MAKER' or 'TAKER' or similar string
-    status: o.status,
-    time: o.ctime,
+    role: o.role,
+    status: o.status || "UNKNOWN",
+    time: o.ctime || 0,
   }));
 }

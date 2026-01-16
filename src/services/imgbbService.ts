@@ -9,7 +9,7 @@ export const imgbbService = {
 
     if (!apiKey) {
       throw new Error(
-        "Please configure your ImgBB API Key in Settings > API first."
+        "Please configure your ImgBB API Key in Settings > API first.",
       );
     }
 
@@ -35,7 +35,7 @@ export const imgbbService = {
         console.error("ImgBB API Error:", errorData);
         throw new Error(
           errorData?.error?.message ||
-            `Upload failed with status ${response.status}`
+            `Upload failed with status ${response.status}`,
         );
       }
 

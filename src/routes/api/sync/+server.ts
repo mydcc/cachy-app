@@ -22,14 +22,14 @@ export const POST: RequestHandler = async ({ request }) => {
       apiSecret,
       startTime,
       endTime,
-      parsedLimit
+      parsedLimit,
     );
     return json({ data: history });
   } catch (e: any) {
     console.error(`Error fetching history from Bitunix:`, e);
     return json(
       { error: e.message || "Failed to fetch history" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };
@@ -39,7 +39,7 @@ async function fetchBitunixHistory(
   apiSecret: string,
   startTime?: number,
   endTime?: number,
-  limit: number = 50
+  limit: number = 50,
 ): Promise<Record<string, any>[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_trades";
@@ -96,7 +96,7 @@ async function fetchBitunixHistory(
 
   if (data.code !== 0 && data.code !== "0") {
     throw new Error(
-      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`
+      `Bitunix API error code: ${data.code} - ${data.msg || "Unknown error"}`,
     );
   }
 

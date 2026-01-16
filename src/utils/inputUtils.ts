@@ -11,7 +11,7 @@ export type NumberInputOptions = {
 
 export function numberInput(
   node: HTMLInputElement,
-  options: NumberInputOptions
+  options: NumberInputOptions,
 ) {
   let {
     decimalPlaces,
@@ -180,7 +180,7 @@ export function numberInput(
   function performStep(
     rawValue: string,
     operation: "add" | "sub",
-    cursorPosition: number
+    cursorPosition: number,
   ) {
     let value = new Decimal(rawValue);
 
@@ -271,7 +271,7 @@ export function numberInput(
 
   function updateNodeValue(
     finalValueString: string,
-    newCursorPosition: number
+    newCursorPosition: number,
   ) {
     node.value = finalValueString;
     node.dispatchEvent(new Event("input", { bubbles: true }));
