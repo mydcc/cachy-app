@@ -43,8 +43,49 @@
         onUploadScreenshot,
     }: Props = $props();
 
+    // Local sort state for internal tables (pivot view)
+    let internalSortField = $state("date");
+    let internalSortDirection = $state<"asc" | "desc">("desc");
+
+    // Use internal sort state if this is a nested table
+    let activeSortField = $derived(isInternal ? internalSortField : sortField);
+    let activeSortDirection = $derived(
+        isInternal ? internalSortDirection : sortDirection,
+    );
+
     // State for expanded groups
     let expandedGroups = $state(new Set<string>());
+
+    // Sorted trades for internal tables
+    let sortedTrades = $derived.by(() => {
+        if (!isInternal) return trades;
+
+        const sorted = [...trades].sort((a, b) => {
+            let aVal = a[internalSortField];
+            let bVal = b[internalSortField];
+
+            // Handle Decimal objects
+            if (aVal?.toNumber) aVal = aVal.toNumber();
+            if (bVal?.toNumber) bVal = bVal.toNumber();
+
+            // Handle null/undefined
+            if (aVal == null && bVal == null) return 0;
+            if (aVal == null) return 1;
+            if (bVal == null) return -1;
+
+            // Compare
+            let comparison = 0;
+            if (typeof aVal === "string" && typeof bVal === "string") {
+                comparison = aVal.localeCompare(bVal);
+            } else {
+                comparison = aVal < bVal ? -1 : aVal > bVal ? 1 : 0;
+            }
+
+            return internalSortDirection === "asc" ? comparison : -comparison;
+        });
+
+        return sorted;
+    });
 
     // Pagination
     let totalPages = $derived(Math.ceil(trades.length / Number(itemsPerPage)));
@@ -53,14 +94,25 @@
     );
 
     let paginatedTrades = $derived(
-        trades.slice(
-            (safeCurrentPage - 1) * Number(itemsPerPage),
-            safeCurrentPage * Number(itemsPerPage),
-        ),
+        isInternal
+            ? sortedTrades
+            : trades.slice(
+                  (safeCurrentPage - 1) * Number(itemsPerPage),
+                  safeCurrentPage * Number(itemsPerPage),
+              ),
     );
 
     function handleSort(field: string) {
-        if (!isInternal) {
+        if (isInternal) {
+            // Local sorting for internal tables
+            if (internalSortField === field) {
+                internalSortDirection =
+                    internalSortDirection === "asc" ? "desc" : "asc";
+            } else {
+                internalSortField = field;
+                internalSortDirection = "desc";
+            }
+        } else {
             onSort?.(field);
         }
     }
@@ -175,8 +227,8 @@
                                 >
                                     {$_("journal.table.date")}
                                     <span class="sort-icon"
-                                        >{sortField === "date"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "date"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -190,8 +242,8 @@
                                 >
                                     {$_("journal.table.symbol")}
                                     <span class="sort-icon"
-                                        >{sortField === "symbol"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "symbol"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -205,8 +257,8 @@
                                 >
                                     {$_("journal.table.type")}
                                     <span class="sort-icon"
-                                        >{sortField === "tradeType"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "tradeType"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -220,8 +272,8 @@
                                 >
                                     {$_("journal.table.entry")}
                                     <span class="sort-icon"
-                                        >{sortField === "entryPrice"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "entryPrice"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -235,8 +287,8 @@
                                 >
                                     {$_("journal.table.exit")}
                                     <span class="sort-icon"
-                                        >{sortField === "exitPrice"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "exitPrice"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -250,8 +302,8 @@
                                 >
                                     {$_("journal.table.sl")}
                                     <span class="sort-icon"
-                                        >{sortField === "stopLossPrice"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "stopLossPrice"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -265,8 +317,8 @@
                                 >
                                     {$_("journal.table.size")}
                                     <span class="sort-icon"
-                                        >{sortField === "positionSize"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "positionSize"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -280,8 +332,8 @@
                                 >
                                     {$_("journal.table.pnl")}
                                     <span class="sort-icon"
-                                        >{sortField === "totalNetProfit"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "totalNetProfit"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -295,8 +347,8 @@
                                 >
                                     {$_("journal.table.funding")}
                                     <span class="sort-icon"
-                                        >{sortField === "fundingFee"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "fundingFee"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -310,8 +362,8 @@
                                 >
                                     {$_("journal.table.rr")}
                                     <span class="sort-icon"
-                                        >{sortField === "totalRR"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "totalRR"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -325,8 +377,8 @@
                                 >
                                     {$_("journal.table.mae")}
                                     <span class="sort-icon"
-                                        >{sortField === "mae"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "mae"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -340,8 +392,8 @@
                                 >
                                     {$_("journal.table.mfe")}
                                     <span class="sort-icon"
-                                        >{sortField === "mfe"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "mfe"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -355,8 +407,8 @@
                                 >
                                     {$_("journal.table.efficiency")}
                                     <span class="sort-icon"
-                                        >{sortField === "efficiency"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "efficiency"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -370,8 +422,8 @@
                                 >
                                     {$_("journal.table.duration")}
                                     <span class="sort-icon"
-                                        >{sortField === "duration"
-                                            ? sortDirection === "asc"
+                                        >{activeSortField === "duration"
+                                            ? activeSortDirection === "asc"
                                                 ? "↑"
                                                 : "↓"
                                             : ""}</span
@@ -402,7 +454,7 @@
                     </thead>
                 {/if}
                 <tbody class:is-recursive={isInternal}>
-                    {#each isInternal ? trades : paginatedTrades as item}
+                    {#each isInternal ? sortedTrades : paginatedTrades as item}
                         {#if item.isGroup}
                             <tr
                                 class="group-row cursor-pointer"
@@ -897,6 +949,7 @@
         min-width: 110px;
         max-width: 110px;
         width: 110px;
+        white-space: nowrap;
     }
 
     .col-symbol {
