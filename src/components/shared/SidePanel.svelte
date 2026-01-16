@@ -186,11 +186,9 @@
     class="fixed z-[60] pointer-events-none transition-all duration-300 flex"
     class:bottom-4={isFloating}
     class:left-4={isFloating}
-    class:flex-col-reverse={isFloating || isConsole}
-    class:items-start={isFloating || isConsole}
-    class:bottom-0={isConsole}
-    class:left-0={isConsole || isSidebar}
-    class:w-full={isConsole}
+    class:flex-col-reverse={isFloating}
+    class:items-start={isFloating}
+    class:left-0={isSidebar}
     class:top-0={isSidebar}
     class:h-full={isSidebar}
     class:flex-row={isSidebar}
