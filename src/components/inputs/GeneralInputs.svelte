@@ -6,6 +6,7 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { trackClick } from "../../lib/actions";
+  import { trackCustomEvent } from "../../services/trackingService";
   import { Decimal } from "decimal.js";
 
   interface Props {
@@ -22,6 +23,7 @@
 
   function setTradeType(type: string) {
     updateTradeStore((s) => ({ ...s, tradeType: type }));
+    trackCustomEvent("Trade", "ChangeType", type);
   }
 
   const format = (val: number | null) =>

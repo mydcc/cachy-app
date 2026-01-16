@@ -155,6 +155,19 @@ function createUiStore() {
             Date.now() + 365 * 24 * 60 * 60 * 1000
           ).toUTCString(); // 1 year
           document.cookie = `${CONSTANTS.LOCAL_STORAGE_THEME_KEY}=${themeName}; expires=${expires}; path=/; SameSite=Lax`;
+
+          // Track theme change (import trackCustomEvent at top of file)
+          if (typeof window !== 'undefined' && (window as any)._mtm) {
+            const trackCustomEvent = (category: string, action: string, name?: string) => {
+              (window as any)._mtm.push({
+                event: "customEvent",
+                "custom-event-category": category,
+                "custom-event-action": action,
+                "custom-event-name": name || ""
+              });
+            };
+            trackCustomEvent("Settings", "ChangeTheme", themeName);
+          }
         } catch (e) {
           console.warn("Could not save theme.", e);
         }

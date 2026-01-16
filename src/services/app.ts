@@ -314,6 +314,7 @@ export const app = {
     const d = app.getJournal().filter((t) => t.id != id);
     app.saveJournal(d);
     journalStore.set(d);
+    trackCustomEvent("Journal", "DeleteTrade");
   },
   async clearJournal() {
     const journal = app.getJournal();

@@ -287,13 +287,16 @@ export const syncService = {
       if (addedCount > 0 || updatedJournal.length !== previousJournal.length) {
         journalStore.set(updatedJournal);
         syncService.saveJournal(updatedJournal);
+        trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
         if (isPartialSync) uiStore.showError("Sync unvollständig (Timeout).");
         else uiStore.showFeedback("save", 2000);
       } else {
+        trackCustomEvent("Sync", "BitunixHistory", "NoNewData");
         uiStore.showError(isPartialSync ? "Sync unvollständig. Keine neuen Positionen." : "Keine neuen Positionen gefunden.");
       }
     } catch (e: any) {
       console.error("Sync error:", e);
+      trackCustomEvent("Sync", "BitunixHistory", "Error");
       uiStore.showError("Sync failed: " + e.message);
     } finally {
       uiStore.update((s) => ({ ...s, isPriceFetching: false }));
