@@ -164,17 +164,17 @@
           class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
         >
           <input
-            id="sp-layout-transparent"
+            id="sp-layout-console"
             name="sidePanelLayout"
             type="radio"
             bind:group={sidePanelLayout}
-            value="transparent"
+            value="console"
             class="accent-[var(--accent-color)]"
           />
           <div class="flex flex-col">
-            <span class="text-sm">{$_("settings.layoutTransparent")}</span>
+            <span class="text-sm">Console / Terminal</span>
             <span class="text-xs text-[var(--text-secondary)]"
-              >{$_("settings.layoutTransparentDesc")}</span
+              >Full-width panel anchored at the bottom</span
             >
           </div>
         </label>
@@ -217,9 +217,9 @@
             class="sr-only"
           />
           <div
-            class="w-full h-8 bg-[#111] rounded flex items-center justify-center border border-gray-700"
+            class="w-full h-8 bg-[var(--bg-secondary)] rounded flex items-center justify-center border border-[var(--border-color)]"
           >
-            <div class="w-1/2 h-1 bg-gray-500 rounded-full"></div>
+            <div class="w-1/2 h-1 bg-[var(--text-tertiary)] rounded-full"></div>
           </div>
           <span class="text-xs font-medium">Minimal</span>
         </label>
@@ -236,13 +236,13 @@
             class="sr-only"
           />
           <div
-            class="w-full h-8 bg-gray-800 rounded flex items-center justify-center relative overflow-hidden"
+            class="w-full h-8 bg-[var(--bg-secondary)] rounded flex items-center justify-center relative overflow-hidden border border-[var(--border-color)]"
           >
             <div
-              class="absolute right-1 top-2 w-4 h-3 bg-blue-500 rounded-l-lg rounded-tr-sm"
+              class="absolute right-1 top-2 w-4 h-3 bg-[var(--accent-color)] opacity-80 rounded-l-lg rounded-tr-sm"
             ></div>
             <div
-              class="absolute left-1 bottom-2 w-4 h-3 bg-gray-600 rounded-r-lg rounded-tl-sm"
+              class="absolute left-1 bottom-2 w-4 h-3 bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded-r-lg rounded-tl-sm"
             ></div>
           </div>
           <span class="text-xs font-medium">Bubbles</span>

@@ -76,7 +76,11 @@
   }
 
   // Reactive layout variables
-  let isFloating = $derived($settingsStore.sidePanelLayout === "floating");
+  let layout = $derived($settingsStore.sidePanelLayout || "floating");
+  let isFloating = $derived(layout === "floating");
+  let isConsole = $derived(layout === "console");
+  let isSidebar = $derived(!isFloating && !isConsole); // Standard
+
   let styleMode = $derived($settingsStore.chatStyle || "minimal"); // minimal, bubble, terminal
 
   let isTerminal = $derived(styleMode === "terminal");
@@ -86,18 +90,20 @@
 
 {#if $settingsStore.enableSidePanel}
   <div
-    class="fixed z-[60] pointer-events-none transition-all duration-300"
+    class="fixed z-[60] pointer-events-none transition-all duration-300 flex"
     class:bottom-4={isFloating}
     class:left-4={isFloating}
-    class:flex={true}
-    class:flex-col-reverse={isFloating}
-    class:items-start={isFloating}
-    class:top-0={!isFloating}
-    class:left-0={!isFloating}
-    class:h-full={!isFloating}
-    class:flex-row={!isFloating}
+    class:flex-col-reverse={isFloating || isConsole}
+    class:items-start={isFloating || isConsole}
+    class:bottom-0={isConsole}
+    class:left-0={isConsole || isSidebar}
+    class:w-full={isConsole}
+    class:top-0={isSidebar}
+    class:h-full={isSidebar}
+    class:flex-row={isSidebar}
   >
     <!-- TRIGGER BUTTON / STRIP -->
+    <!-- Console and Floating use same FAB style trigger, Sidebar uses Strip -->
     <div
       class="pointer-events-auto"
       onclick={toggle}
@@ -105,51 +111,12 @@
       tabindex="0"
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && toggle()}
     >
-      {#if isFloating}
-        <!-- Floating Widget Button -->
-        {#if !isOpen}
-          <div
-            in:scale={{ duration: 200 }}
-            class="w-12 h-12 rounded-full border shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
-            class:bg-black={isTerminal}
-            class:border-green-500={isTerminal}
-            class:text-green-500={isTerminal}
-            class:bg-[var(--bg-tertiary)]={!isTerminal}
-            class:text-[var(--text-primary)]={!isTerminal}
-            class:border-[var(--border-color)]={!isTerminal}
-            class:hover:bg-[var(--bg-secondary)]={!isTerminal}
-          >
-            {#if $settingsStore.sidePanelMode === "ai"}
-              <!-- AI Icon -->
-              <svg
-                width="20"
-                height="20"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                ><path
-                  d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
-                /><path
-                  d="M12 16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"
-                /><path
-                  d="M2 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"
-                /><path
-                  d="M16 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"
-                /><circle cx="12" cy="12" r="3" /></svg
-              >
-            {:else}
-              {@html icons.messageSquare}
-            {/if}
-          </div>
-        {/if}
-      {:else}
+      {#if isSidebar}
         <!-- Configurable Sidebar Strip -->
         <div
           class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors outline-none focus:bg-[var(--bg-secondary)] shadow-lg"
           title={getPanelTitle($settingsStore.sidePanelMode)}
         >
-          <!-- Strip Icons ... -->
           <div class="mb-4 text-[var(--text-primary)]">
             {#if $settingsStore.sidePanelMode === "ai"}
               <svg
@@ -179,6 +146,45 @@
             {$settingsStore.sidePanelMode}
           </div>
         </div>
+      {:else}
+        <!-- Floating / Console Widget Button -->
+        <!-- Hide button if Console is Open? Maybe yes for cleaner look, or keep as toggle -->
+        {#if !isOpen}
+          <div
+            in:scale={{ duration: 200 }}
+            class="w-12 h-12 rounded-full border shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
+            class:m-4={isConsole}
+            class:bg-black={isTerminal}
+            class:border-green-500={isTerminal}
+            class:text-green-500={isTerminal}
+            class:bg-[var(--bg-tertiary)]={!isTerminal}
+            class:text-[var(--text-primary)]={!isTerminal}
+            class:border-[var(--border-color)]={!isTerminal}
+            class:hover:bg-[var(--bg-secondary)]={!isTerminal}
+          >
+            {#if $settingsStore.sidePanelMode === "ai"}
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                ><path
+                  d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
+                /><path
+                  d="M12 16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"
+                /><path
+                  d="M2 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"
+                /><path
+                  d="M16 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"
+                /><circle cx="12" cy="12" r="3" /></svg
+              >
+            {:else}
+              {@html icons.messageSquare}
+            {/if}
+          </div>
+        {/if}
       {/if}
     </div>
 
@@ -187,36 +193,39 @@
       <div
         class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition"
         transition:fly={{
-          y: isFloating ? 20 : 0,
-          x: isFloating ? 0 : -30,
-          duration: 200,
+          y: isFloating ? 20 : isConsole ? 300 : 0,
+          x: isSidebar ? -30 : 0,
+          duration: 250,
         }}
-        class:w-80={!isFloating}
-        class:h-full={!isFloating}
         class:w-[90vw]={isFloating}
         class:sm:w-[450px]={isFloating}
         class:h-[550px]={isFloating}
         class:max-h-[80vh]={isFloating}
         class:mb-4={isFloating}
         class:rounded-lg={isFloating}
+        class:w-full={isConsole}
+        class:h-[350px]={isConsole}
+        class:rounded-t-md={isConsole}
+        class:border-x-0={isConsole}
+        class:border-b-0={isConsole}
+        class:w-80={isSidebar}
+        class:h-full={isSidebar}
         class:bg-black={isTerminal}
         class:border-green-800={isTerminal}
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
-        class:backdrop-blur-xl={!isTerminal &&
-          $settingsStore.sidePanelLayout === "transparent"}
       >
         <!-- Header -->
         <div
-          class="h-12 border-b flex items-center justify-between px-4"
+          class="h-10 border-b flex items-center justify-between px-4 shrink-0"
           class:bg-black={isTerminal}
           class:border-green-900={isTerminal}
           class:bg-[var(--bg-secondary)]={!isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
           <h3
-            class="font-bold text-sm tracking-widest uppercase"
+            class="font-bold text-xs tracking-widest uppercase"
             class:text-green-500={isTerminal}
             class:text-[var(--text-primary)]={!isTerminal}
           >
@@ -258,7 +267,7 @@
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
+                class="h-4 w-4"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -276,7 +285,7 @@
         <!-- Messages Area -->
         <div
           bind:this={messagesContainer}
-          class="flex-1 overflow-y-auto p-5 flex flex-col gap-4 scroll-smooth"
+          class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 scroll-smooth"
           class:bg-black={isTerminal}
           class:bg-[var(--bg-primary)]={!isTerminal}
         >
@@ -288,7 +297,7 @@
                   ? 'items-end'
                   : 'items-start'}"
               >
-                <!-- Label for Terminal / Minimal Mode (hidden in Bubble mode usually, but useful for clarity) -->
+                <!-- Label for Terminal / Minimal Mode -->
                 {#if !isBubble}
                   <div
                     class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
@@ -311,8 +320,8 @@
                     : ''}
                     {isBubble
                     ? msg.role === 'user'
-                      ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-[1.2rem] rounded-tr-none px-5 py-3 shadow-md max-w-[85%]'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-[1.2rem] rounded-tl-none px-5 py-3 border border-[var(--border-color)] shadow-sm max-w-[85%]'
+                      ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-[1.2rem] rounded-tr-none px-4 py-2 shadow-md max-w-[85%]'
+                      : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-[1.2rem] rounded-tl-none px-4 py-2 border border-[var(--border-color)] shadow-sm max-w-[85%]'
                     : ''}
                     "
                 >
@@ -330,7 +339,7 @@
 
                 {#if isBubble}
                   <span
-                    class="text-[10px] text-[var(--text-tertiary)] mt-1.5 px-1 opacity-70"
+                    class="text-[9px] text-[var(--text-tertiary)] mt-1 px-1 opacity-70"
                   >
                     {new Date(msg.timestamp).toLocaleTimeString([], {
                       hour: "2-digit",
@@ -365,21 +374,6 @@
                     SYSTEM READY. AWAITING INPUT.
                   </p>
                 {:else}
-                  <div
-                    class="w-12 h-12 rounded-xl bg-[var(--bg-secondary)] flex items-center justify-center mb-3"
-                  >
-                    <svg
-                      width="24"
-                      height="24"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="1.5"
-                      ><circle cx="12" cy="12" r="10" /><path
-                        d="M12 16v-4"
-                      /><path d="M12 8h.01" /></svg
-                    >
-                  </div>
                   <p class="text-xs font-medium text-[var(--text-secondary)]">
                     Ready to assist.
                   </p>
@@ -389,22 +383,23 @@
           {:else}
             <!-- Standard Chat (Not AI) -->
             {#each $chatStore.messages as msg (msg.id)}
-              <!-- Similar logic for standard chat if needed -->
-              <div class="mb-2">{msg.text}</div>
+              <div class="mb-2 text-[var(--text-primary)]">{msg.text}</div>
             {/each}
           {/if}
         </div>
 
         <!-- Input Area -->
         <div
-          class="p-3 border-t"
+          class="p-2 border-t shrink-0"
           class:bg-black={isTerminal}
           class:border-green-900={isTerminal}
           class:bg-[var(--bg-secondary)]={!isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
           {#if errorMessage || $aiStore.error}
-            <div class="text-xs text-[var(--danger-color)] mb-2 animate-pulse">
+            <div
+              class="text-xs text-[var(--danger-color)] mb-2 animate-pulse px-2"
+            >
               {$_(errorMessage) || errorMessage || $aiStore.error}
             </div>
           {/if}
@@ -412,7 +407,7 @@
             <input
               bind:this={inputEl}
               type="text"
-              class="w-full border rounded px-4 py-3 text-sm focus:outline-none transition-all"
+              class="w-full border rounded px-4 py-2 text-sm focus:outline-none transition-all"
               class:bg-black={isTerminal}
               class:text-green-500={isTerminal}
               class:border-green-800={isTerminal}
@@ -440,6 +435,8 @@
                 class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-2"
                 onclick={handleSend}
                 disabled={!messageText.trim()}
+                aria-label="Send message"
+                title="Send message"
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
@@ -482,7 +479,7 @@
   /* Markdown Styles - Theme Aware */
   .markdown-content :global(p) {
     margin-bottom: 0.75rem;
-    line-height: 1.6;
+    line-height: 1.5;
   }
   .markdown-content :global(p:last-child) {
     margin-bottom: 0;

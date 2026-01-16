@@ -99,7 +99,7 @@ const defaultSettings: Settings = {
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
   sidePanelMode: "ai",
-  sidePanelLayout: "floating", // standard, floating, transparent
+  sidePanelLayout: "floating", // standard, floating, console
   chatStyle: "minimal", // minimal, bubble, terminal
 
   // AI Defaults
