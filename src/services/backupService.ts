@@ -1,7 +1,8 @@
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { encrypt, decrypt } from "./cryptoService";
 
-const BACKUP_VERSION = 1;
+const BACKUP_VERSION = 2; // Incrementing version for encryption support
 const APP_NAME = "R-Calculator";
 
 // The structure for the data payload in the backup
@@ -18,7 +19,11 @@ interface BackupFile {
   backupVersion: number;
   timestamp: string;
   appName: string;
-  data: BackupData;
+  data?: BackupData;
+  encryptedData?: string; // Base64 ciphertext if encrypted
+  isEncrypted?: boolean;
+  salt?: string; // Base64
+  iv?: string;   // Base64
 }
 
 /**
@@ -34,23 +39,36 @@ function getDataFromLocalStorage(key: string): string | null {
 /**
  * Creates a JSON backup file of the user's data and triggers a download.
  */
-export function createBackup() {
+export async function createBackup(password?: string) {
   if (!browser) return;
+
+  const rawData: BackupData = {
+    settings: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
+    presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
+    journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
+    tradeState: getDataFromLocalStorage(
+      CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store"
+    ),
+    theme: getDataFromLocalStorage("theme"),
+  };
 
   const backupFile: BackupFile = {
     backupVersion: BACKUP_VERSION,
     timestamp: new Date().toISOString(),
     appName: APP_NAME,
-    data: {
-      settings: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
-      presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
-      journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
-      tradeState: getDataFromLocalStorage(
-        CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store"
-      ),
-      theme: getDataFromLocalStorage("theme"),
-    },
   };
+
+  if (password) {
+    const dataString = JSON.stringify(rawData);
+    const { ciphertext, salt, iv } = await encrypt(dataString, password);
+    backupFile.encryptedData = ciphertext;
+    backupFile.salt = salt;
+    backupFile.iv = iv;
+    backupFile.isEncrypted = true;
+  } else {
+    backupFile.data = rawData;
+    backupFile.isEncrypted = false;
+  }
 
   const jsonString = JSON.stringify(backupFile, null, 2);
   const blob = new Blob([jsonString], { type: "application/json" });
@@ -70,18 +88,17 @@ export function createBackup() {
  * Restores user data from a JSON backup file content.
  * This function writes the data to localStorage and then triggers a page reload.
  * @param jsonContent The string content of the uploaded JSON file.
+ * @param password Optional password for encrypted backups.
  * @returns An object indicating success or failure with a message.
  */
-export function restoreFromBackup(jsonContent: string): {
+export async function restoreFromBackup(
+  jsonContent: string,
+  password?: string
+): Promise<{
   success: boolean;
   message: string;
-} {
-  // Allow running in test environment if localStorage is available, even if browser check fails
-  // or mock browser check if possible.
-  // In our test, we mocked $app/environment to set browser = true, so this check should pass.
-  // However, vitest might be reloading the module or the mock isn't applying to the internal import correctly
-  // if it was imported before the mock.
-
+  needsPassword?: boolean;
+}> {
   if (!browser && typeof localStorage === "undefined") {
     return {
       success: false,
@@ -105,7 +122,44 @@ export function restoreFromBackup(jsonContent: string): {
         message: `Unsupported backup version. This app supports up to version ${BACKUP_VERSION}.`,
       };
     }
-    if (!backup.data) {
+
+    let data: BackupData | undefined;
+
+    if (backup.isEncrypted) {
+      if (!password) {
+        return {
+          success: false,
+          message: "app.backupPasswordRequired",
+          needsPassword: true,
+        };
+      }
+
+      if (!backup.encryptedData || !backup.salt || !backup.iv) {
+        return {
+          success: false,
+          message: "Invalid encrypted backup file format.",
+        };
+      }
+
+      try {
+        const decryptedJson = await decrypt(
+          backup.encryptedData,
+          password,
+          backup.salt,
+          backup.iv
+        );
+        data = JSON.parse(decryptedJson);
+      } catch (e) {
+        return {
+          success: false,
+          message: "app.backupWrongPassword",
+        };
+      }
+    } else {
+      data = backup.data;
+    }
+
+    if (!data) {
       return {
         success: false,
         message: "Invalid backup file format: Missing data.",
@@ -113,35 +167,25 @@ export function restoreFromBackup(jsonContent: string): {
     }
 
     // --- Restore to localStorage ---
-    if (backup.data.settings) {
-      localStorage.setItem(
-        CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
-        backup.data.settings
-      );
+    if (data.settings) {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, data.settings);
     }
-    if (backup.data.presets) {
-      localStorage.setItem(
-        CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-        backup.data.presets
-      );
+    if (data.presets) {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, data.presets);
     }
-    if (backup.data.journal) {
-      localStorage.setItem(
-        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        backup.data.journal
-      );
+    if (data.journal) {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, data.journal);
     }
-    if (backup.data.tradeState) {
+    if (data.tradeState) {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
-        backup.data.tradeState
+        data.tradeState
       );
     }
-    if (backup.data.theme) {
-      localStorage.setItem("theme", backup.data.theme);
+    if (data.theme) {
+      localStorage.setItem("theme", data.theme);
     }
 
-    // The app will re-initialize with the new data on reload.
     return {
       success: true,
       message: "Restore successful! The application will now reload.",

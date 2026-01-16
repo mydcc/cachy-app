@@ -312,8 +312,28 @@
   }
 
   // System Tab Functions
-  function handleBackup() {
-    createBackup();
+  async function handleBackup() {
+    const useEncryption = confirm(
+      $_("app.backupEncryptQuestion") ||
+        "Do you want to encrypt this backup with a password?",
+    );
+    let password = "";
+
+    if (useEncryption) {
+      password =
+        prompt(
+          $_("app.backupPasswordPrompt") || "Enter a password for encryption:",
+        ) || "";
+      if (!password) {
+        alert(
+          $_("app.backupPasswordRequired") ||
+            "Password is required for encryption.",
+        );
+        return;
+      }
+    }
+
+    await createBackup(password);
     trackCustomEvent("System", "Backup", "Created");
   }
 
@@ -327,12 +347,31 @@
     reader.onload = async (event) => {
       const content = event.target?.result as string;
       if (confirm($_("app.restoreConfirmMessage"))) {
-        const result = restoreFromBackup(content);
+        let result = await restoreFromBackup(content);
+
+        // Handle encrypted backup that needs a password
+        if (result.needsPassword) {
+          const password = prompt(
+            $_("app.backupPasswordEntryPrompt") ||
+              "This backup is encrypted. Please enter the password:",
+          );
+          if (password) {
+            result = await restoreFromBackup(content, password);
+          } else {
+            input.value = "";
+            return;
+          }
+        }
+
         if (result.success) {
           alert(result.message);
           window.location.reload();
         } else {
-          alert(result.message);
+          // Translate common error keys if they are returned as keys
+          const message = result.message.startsWith("app.")
+            ? $_(result.message)
+            : result.message;
+          alert(message);
         }
       }
       // Reset input

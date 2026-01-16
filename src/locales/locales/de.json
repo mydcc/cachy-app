@@ -19,7 +19,12 @@
     "privacyLegal": "Datenschutz & Rechtliches",
     "whitepaper": "Whitepaper",
     "pro": "Pro",
-    "proActive": "Pro Aktiv"
+    "proActive": "Pro Aktiv",
+    "backupEncryptQuestion": "Möchtest du dieses Backup mit einem Passwort verschlüsseln?",
+    "backupPasswordPrompt": "Gib ein Passwort für die Verschlüsselung ein:",
+    "backupPasswordRequired": "Ein Passwort ist für die Verschlüsselung erforderlich.",
+    "backupPasswordEntryPrompt": "Dieses Backup ist verschlüsselt. Bitte gib das Passwort ein:",
+    "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen."
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",

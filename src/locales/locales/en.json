@@ -19,7 +19,12 @@
     "privacyLegal": "Privacy & Legal",
     "whitepaper": "Whitepaper",
     "pro": "Pro",
-    "proActive": "Pro Active"
+    "proActive": "Pro Active",
+    "backupEncryptQuestion": "Do you want to encrypt this backup with a password?",
+    "backupPasswordPrompt": "Enter a password for encryption:",
+    "backupPasswordRequired": "A password is required for encryption.",
+    "backupPasswordEntryPrompt": "This backup is encrypted. Please enter the password:",
+    "backupWrongPassword": "Wrong password. Restore failed."
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
