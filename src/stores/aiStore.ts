@@ -260,27 +260,35 @@ Only output the JSON if you intend to execute changes.`;
         }
 
         // --- Action Handling ---
-        const actions = parseActions(fullContent);
-        if (actions.length > 0) {
-          // Check settings for confirmation
-          const confirmActions = settings.aiConfirmActions ?? true;
-          let blockedCount = 0;
+        try {
+          const safeContent = typeof fullContent === 'string' ? fullContent : "";
+          const actions = parseActions(safeContent) || [];
 
-          actions.forEach(action => {
-            const success = executeAction(action, confirmActions);
-            if (!success) blockedCount++;
-          });
+          if (Array.isArray(actions) && actions.length > 0) {
+            // Check settings for confirmation: Default to false (opt-in security) if undefined
+            const confirmActions = settings.aiConfirmActions ?? false;
+            let blockedCount = 0;
 
-          if (blockedCount > 0) {
-            const sysMsg: AiMessage = {
-              id: crypto.randomUUID(),
-              role: "system",
-              content: "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen, um automatische Änderungen zuzulassen.",
-              timestamp: Date.now()
-            };
-            // Add warning after the assistant message
-            update(s => ({ ...s, messages: [...s.messages, sysMsg] }));
+            actions.forEach(action => {
+              if (!action) return;
+              try {
+                const success = executeAction(action, confirmActions);
+                if (!success) blockedCount++;
+              } catch (err) { console.error("Single action failed", err); }
+            });
+
+            if (blockedCount > 0) {
+              const sysMsg: AiMessage = {
+                id: crypto.randomUUID(),
+                role: "system",
+                content: "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen.",
+                timestamp: Date.now()
+              };
+              update(s => ({ ...s, messages: [...s.messages, sysMsg] }));
+            }
           }
+        } catch (actionErr) {
+          console.error("Action parsing error:", actionErr);
         }
         // -----------------------
 
