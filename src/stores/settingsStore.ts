@@ -69,6 +69,7 @@ export interface Settings {
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
   enableGlassmorphism: boolean;
+  aiConfirmActions: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -106,6 +107,7 @@ const defaultSettings: Settings = {
   geminiModel: "flash", // "flash" or "pro" - user-friendly selection
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
+  aiConfirmActions: true, // Default to true (safety first)
 
   // UI Defaults
   showSpinButtons: "hover",
@@ -233,6 +235,8 @@ function loadSettingsFromLocalStorage(): Settings {
       geminiModel: settings.geminiModel,
       anthropicApiKey: settings.anthropicApiKey,
       anthropicModel: settings.anthropicModel,
+      aiConfirmActions:
+        settings.aiConfirmActions ?? defaultSettings.aiConfirmActions,
       showSpinButtons:
         settings.showSpinButtons ?? defaultSettings.showSpinButtons,
       disclaimerAccepted:

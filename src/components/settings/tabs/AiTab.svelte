@@ -1,5 +1,8 @@
 <script lang="ts">
-  import type { AiProvider } from "../../../stores/settingsStore";
+  import {
+    settingsStore,
+    type AiProvider,
+  } from "../../../stores/settingsStore";
 
   interface Props {
     aiProvider: AiProvider;
@@ -43,6 +46,21 @@
         <option value="gemini">Google Gemini</option>
         <option value="anthropic">Anthropic (Claude)</option>
       </select>
+    </div>
+
+    <!-- AI Actions Toggle -->
+    <div class="flex items-center justify-between py-2">
+      <div class="flex flex-col">
+        <span class="text-xs font-bold">Ask before Actions</span>
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >If unchecked, AI can directly modify trade values.</span
+        >
+      </div>
+      <input
+        type="checkbox"
+        bind:checked={$settingsStore.aiConfirmActions}
+        class="toggle-checkbox"
+      />
     </div>
     <div class="flex flex-col gap-4 pt-4 border-t border-[var(--border-color)]">
       <div class="flex flex-col gap-2">
@@ -99,8 +117,7 @@
           placeholder="API Key (AIza...)"
         />
         <div class="flex flex-col gap-1.5">
-          <label class="text-[10px] text-[var(--text-secondary)]">Modell:</label
-          >
+          <span class="text-[10px] text-[var(--text-secondary)]">Modell:</span>
           <div class="flex gap-3">
             <label class="flex items-center gap-1.5 cursor-pointer">
               <input

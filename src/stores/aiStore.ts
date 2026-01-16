@@ -84,14 +84,34 @@ function createAiStore() {
         const context = gatherContext();
 
         // 3. Prepare Messages (History + System + User)
-        const systemPrompt = `You are a helpful trading assistant in the Cachy app.
+        const systemPrompt = `You are a professional trading assistant in the Cachy app.
 
 CURRENT MARKET CONTEXT:
 ${JSON.stringify(context, null, 2)}
 
-User's goal is trading crypto futures. Be concise, technical, and helpful.
-If analyzing a trade, check the PnL and risk.
-Format responses with Markdown.`;
+ROLE:
+- You are a knowledgeable crypto trading expert.
+- Analyze the provided market data and user trades extensively.
+- Always check Risk/Reward (R:R) ratios when discussing setups.
+- Be concise but insightful. Use bullet points for clarity.
+- If the user asks for a trade setup, ALWAYS propose specific Entry, SL, and TP levels based on the context.
+
+CAPABILITY (ACTION EXECUTION):
+You can DIRECTLY set values in the user's trading interface. 
+Use this when the user asks to "set values", "prepare trade", or agrees to a setup.
+To do this, output a JSON block at the very end of your response:
+
+\`\`\`json
+[
+  { "action": "setSymbol", "value": "BTCUSDT" },
+  { "action": "setEntryPrice", "value": 50000 },
+  { "action": "setStopLoss", "value": 49000 },
+  { "action": "setTakeProfit", "index": 0, "value": 52000 },
+  { "action": "setRisk", "value": 1.0 },
+  { "action": "setLeverage", "value": 10 }
+]
+\`\`\`
+Only output the JSON if you intend to execute changes.`;
 
         const apiMessages = [
           { role: "system", content: systemPrompt },
@@ -137,22 +157,54 @@ Format responses with Markdown.`;
           return { ...s, messages: newMsgs, isStreaming: true };
         });
 
-        // 5. Call API with Stream Handling
-        const res = await fetch(endpoint, {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "x-api-key": apiKey,
-          },
-          body: JSON.stringify({
-            messages: apiMessages,
-            model: model, // Pass the model from settings
-          }),
-        });
+        // 5. Call API with Retry & Stream Handling
+        let res: Response | null = null;
+        let attempt = 0;
+        const MAX_RETRIES = 3;
 
-        if (!res.ok) {
-          const err = await res.json();
-          throw new Error(err.error || "Failed to fetch AI response");
+        while (attempt < MAX_RETRIES) {
+          try {
+            res = await fetch(endpoint, {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                "x-api-key": apiKey,
+              },
+              body: JSON.stringify({
+                messages: apiMessages,
+                model: model, // Pass the model from settings
+              }),
+            });
+
+            if (res.ok) break; // Success!
+
+            if (res.status === 429) {
+              // Rate Limited - Exponential Backoff
+              attempt++;
+              const delay = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+              console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
+              // Inform user (optional, via store error temporarily?)
+              if (attempt === 1) {
+                update(s => ({ ...s, error: `Rate limited. Retrying...` }));
+              }
+              await new Promise((r) => setTimeout(r, delay));
+              continue;
+            }
+
+            // Other error - throw to catch block
+            const err = await res.json();
+            throw new Error(err.error || `Request failed with status ${res.status}`);
+
+          } catch (e: any) {
+            if (attempt === MAX_RETRIES - 1) throw e; // Final failure
+            attempt++;
+            console.warn(`API Error: ${e.message}. Retrying...`);
+            await new Promise((r) => setTimeout(r, 1000));
+          }
+        }
+
+        if (!res || !res.ok) {
+          throw new Error("Failed to connect to AI provider after retries.");
         }
 
         if (!res.body) throw new Error("No response body");
@@ -207,6 +259,15 @@ Format responses with Markdown.`;
           }
         }
 
+        // --- Action Handling ---
+        const actions = parseActions(fullContent);
+        if (actions.length > 0) {
+          // Check settings for confirmation
+          const confirmActions = settings.aiConfirmActions ?? true; // Default to true if missing
+          actions.forEach(action => executeAction(action, confirmActions));
+        }
+        // -----------------------
+
         update((s) => {
           const newState = { ...s, isStreaming: false };
           save(newState); // Save full conversation at end
@@ -236,7 +297,6 @@ function gatherContext() {
   const marketData = symbol ? market[symbol] : null;
 
   // Get last 5 trades from Journal
-  // The journal store is an array of JournalEntry
   const recentTrades = journal.slice(0, 5).map((t) => ({
     symbol: t.symbol,
     entry: t.entryDate,
@@ -259,9 +319,9 @@ function gatherContext() {
       roi:
         !p.entryPrice.isZero() && !p.size.isZero()
           ? p.unrealizedPnl
-              .div(p.entryPrice.times(p.size).div(p.leverage))
-              .times(100)
-              .toFixed(2) + "%"
+            .div(p.entryPrice.times(p.size).div(p.leverage))
+            .times(100)
+            .toFixed(2) + "%"
           : "N/A",
     })),
     recentHistory: recentTrades,
@@ -272,6 +332,77 @@ function gatherContext() {
       risk: trade.riskPercentage + "%",
     },
   };
+}
+
+function parseActions(text: string): any[] {
+  const actions: any[] = [];
+  const regex = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
+  const match = text.match(regex);
+
+  if (match && match[1]) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (Array.isArray(parsed)) return parsed;
+    } catch (e) { /* ignore */ }
+  }
+
+  const singleRegex = /```json\s*(\{.*?\})\s*```/s;
+  const singleMatch = text.match(singleRegex);
+  if (singleMatch && singleMatch[1]) {
+    try {
+      const parsed = JSON.parse(singleMatch[1]);
+      return [parsed];
+    } catch (e) { /* ignore */ }
+  }
+
+  return actions;
+}
+
+function executeAction(action: any, confirmNeeded: boolean) {
+  if (confirmNeeded) return;
+
+  try {
+    switch (action.action) {
+      case "setEntryPrice":
+        if (action.value) {
+          tradeStore.update((s) => ({ ...s, entryPrice: parseFloat(action.value) }));
+        }
+        break;
+      case "setStopLoss":
+        if (action.value) {
+          tradeStore.update((s) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+        }
+        break;
+      case "setTakeProfit":
+        if (action.value && typeof action.index === 'number') {
+          tradeStore.update((s) => {
+            const newTargets = [...s.targets];
+            if (newTargets[action.index]) {
+              newTargets[action.index] = { ...newTargets[action.index], price: parseFloat(action.value) };
+            }
+            return { ...s, targets: newTargets };
+          });
+        }
+        break;
+      case "setLeverage":
+        if (action.value) {
+          tradeStore.update((s) => ({ ...s, leverage: parseFloat(action.value) }));
+        }
+        break;
+      case "setRisk":
+        if (action.value) {
+          tradeStore.update((s) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+        }
+        break;
+      case "setSymbol":
+        if (action.value) {
+          tradeStore.update(s => ({ ...s, symbol: action.value }));
+        }
+        break;
+    }
+  } catch (e) {
+    console.error("AI Action Execution Failed", e);
+  }
 }
 
 export const aiStore = createAiStore();
