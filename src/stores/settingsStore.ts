@@ -49,6 +49,7 @@ export interface Settings {
   enableSidePanel: boolean;
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
+  chatStyle: "minimal" | "bubble" | "terminal";
 
   // AI Chat Settings
   aiProvider: AiProvider;
@@ -97,8 +98,9 @@ const defaultSettings: Settings = {
   imgbbExpiration: 0,
   isDeepDiveUnlocked: false,
   enableSidePanel: false,
-  sidePanelMode: "notes",
-  sidePanelLayout: "standard",
+  sidePanelMode: "ai",
+  sidePanelLayout: "floating", // standard, floating, transparent
+  chatStyle: "minimal", // minimal, bubble, terminal
 
   // AI Defaults
   aiProvider: "gemini",

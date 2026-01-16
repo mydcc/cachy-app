@@ -11,6 +11,7 @@
     enableSidePanel: boolean;
     sidePanelMode: "chat" | "notes" | "ai";
     sidePanelLayout: SidePanelLayout;
+    chatStyle: "minimal" | "bubble" | "terminal";
   }
 
   let {
@@ -21,7 +22,8 @@
     positionViewMode = $bindable(),
     enableSidePanel = $bindable(),
     sidePanelMode = $bindable(),
-    sidePanelLayout = $bindable()
+    sidePanelLayout = $bindable(),
+    chatStyle = $bindable(),
   }: Props = $props();
 </script>
 
@@ -193,6 +195,76 @@
               >{$_("settings.layoutFloatingDesc")}</span
             >
           </div>
+        </label>
+      </div>
+    </div>
+
+    <!-- Chat Style Selector -->
+    <div
+      class="flex flex-col gap-1 mt-2 pt-2 border-t border-[var(--border-color)]"
+    >
+      <span class="text-sm font-medium">Chat Design Theme</span>
+      <div class="grid grid-cols-3 gap-2">
+        <label
+          class="flex flex-col items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-center transition-all bg-[var(--bg-primary)]"
+          class:ring-2={chatStyle === "minimal"}
+          class:ring-[var(--accent-color)]={chatStyle === "minimal"}
+        >
+          <input
+            type="radio"
+            bind:group={chatStyle}
+            value="minimal"
+            class="sr-only"
+          />
+          <div
+            class="w-full h-8 bg-[#111] rounded flex items-center justify-center border border-gray-700"
+          >
+            <div class="w-1/2 h-1 bg-gray-500 rounded-full"></div>
+          </div>
+          <span class="text-xs font-medium">Minimal</span>
+        </label>
+
+        <label
+          class="flex flex-col items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-center transition-all bg-[var(--bg-primary)]"
+          class:ring-2={chatStyle === "bubble"}
+          class:ring-[var(--accent-color)]={chatStyle === "bubble"}
+        >
+          <input
+            type="radio"
+            bind:group={chatStyle}
+            value="bubble"
+            class="sr-only"
+          />
+          <div
+            class="w-full h-8 bg-gray-800 rounded flex items-center justify-center relative overflow-hidden"
+          >
+            <div
+              class="absolute right-1 top-2 w-4 h-3 bg-blue-500 rounded-l-lg rounded-tr-sm"
+            ></div>
+            <div
+              class="absolute left-1 bottom-2 w-4 h-3 bg-gray-600 rounded-r-lg rounded-tl-sm"
+            ></div>
+          </div>
+          <span class="text-xs font-medium">Bubbles</span>
+        </label>
+
+        <label
+          class="flex flex-col items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-center transition-all bg-[var(--bg-primary)]"
+          class:ring-2={chatStyle === "terminal"}
+          class:ring-[var(--accent-color)]={chatStyle === "terminal"}
+        >
+          <input
+            type="radio"
+            bind:group={chatStyle}
+            value="terminal"
+            class="sr-only"
+          />
+          <div
+            class="w-full h-8 bg-black rounded flex items-center justify-center border border-green-900 font-mono text-[8px] text-green-500"
+          >
+            >_
+          </div>
+          <span class="text-xs font-medium">Terminal</span>
         </label>
       </div>
     </div>
