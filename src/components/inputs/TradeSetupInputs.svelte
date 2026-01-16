@@ -61,7 +61,7 @@
   // Sync local state when prop changes (e.g. from Preset or internal selection)
   $effect(() => {
     if (symbol !== localSymbol) {
-      localSymbol = symbol;
+      localSymbol = symbol || "";
     }
   });
 
@@ -237,7 +237,7 @@
 <div>
   <h2 class="section-header">{$_("dashboard.tradeSetupInputs.header")}</h2>
   <div class="flex gap-4 mb-4">
-    <div class="relative flex-grow symbol-input-container">
+    <div class="relative flex-grow symbol-input-container isolate">
       <input
         id="symbol-input"
         name="symbol"
@@ -248,13 +248,14 @@
           onboardingService.trackFirstInput();
         }}
         onkeydown={handleKeyDownSymbol}
-        class="input-field w-full px-4 py-2 rounded-md pr-10"
+        class="input-field w-full px-4 py-2 rounded-md pr-10 relative z-10"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
+        inputmode="text"
       />
       <button
         type="button"
-        class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 {isPriceFetching
+        class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 z-20 {isPriceFetching
           ? 'animate-spin'
           : ''}"
         title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
