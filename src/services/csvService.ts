@@ -55,6 +55,11 @@ export const csvService = {
 
     const rows = journalData.map((trade) => {
       const date = new Date(trade.date);
+      // Use ISO format (UTC) for robustness instead of locale-specific "de-DE"
+      // YYYY-MM-DD and HH:mm:ss
+      const isoString = date.toISOString();
+      const dateStr = isoString.split("T")[0];
+      const timeStr = isoString.split("T")[1].split(".")[0];
 
       const escape = (val: string | undefined | null) => this.escapeCSVValue(val);
 
@@ -72,8 +77,8 @@ export const csvService = {
 
       return [
         trade.id,
-        date.toLocaleDateString("de-DE"),
-        date.toLocaleTimeString("de-DE"),
+        dateStr,
+        timeStr,
         escape(trade.symbol),
         escape(trade.tradeType),
         escape(trade.status),

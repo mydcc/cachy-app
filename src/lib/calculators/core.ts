@@ -23,6 +23,7 @@ export function getTradePnL(t: JournalEntry): Decimal {
   if (t.status === "Won") return new Decimal(t.totalNetProfit || 0);
   // For Lost manual trades, we should not assume -1R loss automatically as it skews data.
   // User must enter the actual loss amount.
+  // NOTE: If the user inputs 0 (or forgets), it stays 0. This is intended to avoid false "auto-calculated" losses.
   if (t.status === "Lost") {
     return new Decimal(t.totalNetProfit || 0);
   }

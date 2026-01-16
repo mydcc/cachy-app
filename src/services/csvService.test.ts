@@ -45,6 +45,7 @@ describe("csvService", () => {
     const mockJournal: JournalEntry[] = [
       {
         id: 1,
+        date: "2023-01-01T10:00:00Z", // Required valid date for ISO conversion
         symbol: "=cmd|' /C calc'!A0", // Malicious payload
         notes: "+Sum(1+1)",
       } as unknown as JournalEntry,

@@ -14,7 +14,14 @@ export function normalizeSymbol(symbol: string, provider: "bitunix" | "binance" 
     let s = symbol.trim().toUpperCase().replace(".P", "").replace(":USDT", "").replace("-P", "");
 
     // If it's just "BTC", make it "BTCUSDT"
-    if (!s.includes("USDT") && s.length <= 5) {
+    // Heuristic: If length <= 5 and not containing USDT/USDC, append USDT.
+    // Explicitly avoid double suffix if symbol is like "USDC" -> "USDCUSDT" (valid pair)
+    // But prevent "BTCUSDC" -> "BTCUSDCUSDT" (invalid)
+    // Actually, "BTCUSDC" is length 7. "USDC" is 4. "SOL" is 3.
+    // If someone passes "BTC", length 3 -> "BTCUSDT".
+    // If someone passes "USDC", length 4 -> "USDCUSDT" (This is a valid pair on some exchanges, e.g. USDC/USDT)
+    // If someone passes "ETHBTC", length 6 -> Ignored by this check.
+    if (!s.includes("USDT") && !s.includes("USDC") && s.length <= 5) {
         s = s + "USDT";
     }
 
