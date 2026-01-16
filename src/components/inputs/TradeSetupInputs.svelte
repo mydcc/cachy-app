@@ -248,14 +248,14 @@
           onboardingService.trackFirstInput();
         }}
         onkeydown={handleKeyDownSymbol}
-        class="input-field w-full px-4 py-2 rounded-md pr-10 relative z-10"
+        class="input-field w-full px-4 py-2 rounded-md pr-10 relative z-30 touch-manipulation"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
         inputmode="text"
       />
       <button
         type="button"
-        class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 z-20 {isPriceFetching
+        class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 z-40 {isPriceFetching
           ? 'animate-spin'
           : ''}"
         title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
