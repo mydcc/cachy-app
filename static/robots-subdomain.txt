@@ -1,0 +1,5 @@
+# Disallow all crawling on dev/metaverse subdomains
+User-agent: *
+Disallow: /
+
+# No sitemap for subdomains

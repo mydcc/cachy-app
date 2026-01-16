@@ -4,6 +4,17 @@
 <head>
   <meta charset="utf-8" />
 
+  <!-- Prevent indexing of subdomains (dev, metaverse) -->
+  <script>
+    if (window.location.hostname.includes('dev.cachy.app') ||
+      window.location.hostname.includes('metaverse.cachy.app')) {
+      const meta = document.createElement('meta');
+      meta.name = 'robots';
+      meta.content = 'noindex, nofollow';
+      document.head.appendChild(meta);
+    }
+  </script>
+
   <!-- Favicons for different platforms and browsers -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
