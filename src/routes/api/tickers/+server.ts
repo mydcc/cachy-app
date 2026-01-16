@@ -39,7 +39,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           const errorText = await response.text();
           try {
             const data = JSON.parse(errorText);
-            if (data.code === 2 || data.code === "2") {
+            if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
               // eslint-disable-next-line no-throw-literal
               throw { status: 404, message: "Symbol not found" };
             }
@@ -51,7 +51,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
         }
 
         const data = await response.json();
-        if (provider !== "binance" && (data.code === 2 || data.code === "2")) {
+        if (provider !== "binance" && data && (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error")))) {
           // eslint-disable-next-line no-throw-literal
           throw { status: 404, message: "Symbol not found" };
         }

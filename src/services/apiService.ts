@@ -97,12 +97,12 @@ class RequestManager {
                 console.warn(`[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
-                // DON'T retry on 404 (Not Found) - it's a permanent failure for that symbol
-                if (e instanceof Error && e.message.includes("404")) {
-                  throw e;
-                }
-                // Also check for custom status objects if applicable
-                if ((e as any).status === 404) {
+                const errorMsg = e instanceof Error ? e.message.toLowerCase() : "";
+                const is404 = errorMsg.includes("404") || (e as any).status === 404;
+                const isSystemError = errorMsg.includes("system error");
+
+                // DON'T retry on 404 (Not Found) or "System error" (invalid symbol for Bitunix)
+                if (is404 || isSystemError) {
                   throw e;
                 }
 
@@ -236,19 +236,9 @@ export const apiService = {
             throw new Error("apiErrors.invalidResponse");
           }
           return new Decimal(lastPrice);
-        } catch (e) {
-          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
-          if (e instanceof Error) {
-            const msg = e.message;
-            if (
-              msg.startsWith("apiErrors.") ||
-              msg.startsWith("bitunixErrors.")
-            ) {
-              throw e;
-            }
-            // Preserve original message if it seems like a specific key
-            if (msg.includes(".")) throw e;
-          }
+        } catch (e: any) {
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          if (e.status || (e.message && e.message.includes("."))) throw e;
           throw new Error("apiErrors.generic");
         }
       },
@@ -357,16 +347,10 @@ export const apiService = {
               }
             )
             .filter((k): k is Kline => k !== null);
-        } catch (e) {
+        } catch (e: any) {
           console.error(`fetchBitunixKlines error for ${symbol}:`, e);
-          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
-          if (
-            e instanceof Error &&
-            (e.message.startsWith("apiErrors.") ||
-              e.message.startsWith("bitunixErrors."))
-          ) {
-            throw e;
-          }
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          if (e.status || (e.message && e.message.includes("."))) throw e;
           throw new Error("apiErrors.generic");
         }
       },

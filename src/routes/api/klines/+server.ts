@@ -82,7 +82,7 @@ async function fetchBitunixKlines(
     const text = await response.text();
     try {
       const data = JSON.parse(text);
-      if (data.code === 2 || data.code === "2") {
+      if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
         const error = new Error("Symbol not found");
         (error as any).status = 404;
         throw error;
@@ -91,13 +91,15 @@ async function fetchBitunixKlines(
       if (e.status === 404) throw e;
     }
     console.error(`Bitunix API error ${response.status}: ${text}`);
-    throw new Error(`Bitunix API error: ${response.status}`);
+    const error = new Error(`Bitunix API error: ${response.status}`);
+    (error as any).status = response.status;
+    throw error;
   }
 
   const data = await response.json();
   if (data.code !== 0 && data.code !== "0") {
-    // Treat Bitunix "System error" (Code 2) as 404 Not Found for symbols
-    if (data.code === 2 || data.code === "2") {
+    // Treat Bitunix "System error" (Code 2) or message as 404 Not Found for symbols
+    if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
       const error = new Error("Symbol not found");
       (error as any).status = 404;
       throw error;
