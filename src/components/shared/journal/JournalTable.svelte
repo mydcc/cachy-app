@@ -903,6 +903,9 @@
         min-width: 140px;
         max-width: 140px;
         width: 140px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
     }
 
     .col-duration {
