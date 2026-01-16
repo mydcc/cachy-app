@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from "svelte";
-  import { fly } from "svelte/transition";
+  import { fly, scale, fade } from "svelte/transition";
   import { chatStore } from "../../stores/chatStore";
   import { aiStore } from "../../stores/aiStore";
   import { settingsStore } from "../../stores/settingsStore";
@@ -86,96 +86,135 @@
     $settingsStore.sidePanelLayout === "transparent",
   );
 
-  const transitionParams = { x: 300, duration: 300 };
+  const transitionParams = { y: 20, duration: 200 };
 </script>
 
 {#if $settingsStore.enableSidePanel}
   <div
-    class="fixed z-[60] flex transition-all duration-300 pointer-events-none"
-    class:left-0={!isFloating}
-    class:top-0={!isFloating}
-    class:h-full={!isFloating}
-    class:bottom-4={isFloating}
-    class:left-4={isFloating}
-    class:right-4={isFloating && window.innerWidth < 640}
-    class:items-end={isFloating}
+    class="fixed z-[60] pointer-events-none transition-all duration-300"
+    class:bottom-6={isFloating}
+    class:right-6={isFloating}
+    class:flex={true}
     class:flex-col-reverse={isFloating}
+    class:items-end={isFloating}
+    class:top-0={!isFloating}
+    class:left-0={!isFloating}
+    class:h-full={!isFloating}
+    class:flex-row={!isFloating}
   >
-    <!-- Toggle Strip (Visible when collapsed) -->
+    <!-- TRIGGER BUTTON / STRIP -->
     <div
+      class="pointer-events-auto"
+      onclick={toggle}
       role="button"
       tabindex="0"
-      class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)] shadow-lg"
-      onclick={toggle}
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && toggle()}
-      title={getPanelTitle($settingsStore.sidePanelMode)}
     >
-      <div class="mb-4 text-[var(--text-primary)]">
-        {#if $settingsStore.sidePanelMode === "chat"}
-          {@html icons.messageSquare ||
-            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
-        {:else if $settingsStore.sidePanelMode === "ai"}
-          <svg
-            width="20"
-            height="20"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="2"
+      {#if isFloating}
+        <!-- Floating Action Button (FAB) -->
+        {#if !isOpen}
+          <div
+            in:scale={{ duration: 200 }}
+            class="w-14 h-14 rounded-full bg-indigo-600 hover:bg-indigo-500 text-white shadow-xl flex items-center justify-center cursor-pointer transition-transform hover:scale-110 active:scale-95 border-2 border-white/10"
           >
-            <path
-              d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
-            />
-            <path
-              d="M12 16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"
-            />
-            <path
-              d="M2 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"
-            />
-            <path
-              d="M16 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"
-            />
-            <circle cx="12" cy="12" r="3" />
-          </svg>
-        {:else}
-          {@html icons.edit ||
-            '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
+            {#if $settingsStore.sidePanelMode === "ai"}
+              <svg
+                width="24"
+                height="24"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                ><path
+                  d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"
+                ></path></svg
+              >
+            {:else}
+              {@html icons.messageSquare}
+            {/if}
+            <!-- Notification Dot (fake) -->
+            <div
+              class="absolute top-0 right-0 w-3.5 h-3.5 bg-red-500 rounded-full border-2 border-[#111]"
+            ></div>
+          </div>
         {/if}
-      </div>
+      {:else}
+        <!-- Configurable Sidebar Strip -->
+        <div
+          class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors outline-none focus:bg-[var(--bg-secondary)] shadow-lg"
+          title={getPanelTitle($settingsStore.sidePanelMode)}
+        >
+          <div class="mb-4 text-[var(--text-primary)]">
+            {#if $settingsStore.sidePanelMode === "chat"}
+              {@html icons.messageSquare ||
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>'}
+            {:else if $settingsStore.sidePanelMode === "ai"}
+              <svg
+                width="20"
+                height="20"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+              >
+                <path
+                  d="M12 2a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2V4a2 2 0 0 1 2-2z"
+                />
+                <path
+                  d="M12 16a2 2 0 0 1 2 2v2a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-2a2 2 0 0 1 2-2z"
+                />
+                <path
+                  d="M2 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2H4a2 2 0 0 1-2-2z"
+                />
+                <path
+                  d="M16 12a2 2 0 0 1 2-2h2a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-2a2 2 0 0 1-2-2z"
+                />
+                <circle cx="12" cy="12" r="3" />
+              </svg>
+            {:else}
+              {@html icons.edit ||
+                '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>'}
+            {/if}
+          </div>
 
-      <div
-        class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180"
-      >
-        {#if $settingsStore.sidePanelMode === "chat"}
-          CHAT
-        {:else if $settingsStore.sidePanelMode === "ai"}
-          AI ASSISTANT
-        {:else}
-          NOTES
-        {/if}
-      </div>
+          <div
+            class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180"
+          >
+            {#if $settingsStore.sidePanelMode === "chat"}
+              CHAT
+            {:else if $settingsStore.sidePanelMode === "ai"}
+              AI ASSISTANT
+            {:else}
+              NOTES
+            {/if}
+          </div>
+        </div>
+      {/if}
     </div>
 
-    <!-- Expanded Content Panel -->
+    <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
-        transition:fly={transitionParams}
+        transition:fly={{
+          y: isFloating ? 20 : 0,
+          x: isFloating ? 0 : -30,
+          duration: 250,
+        }}
         class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden glass-panel"
         class:w-80={!isFloating}
         class:h-full={!isFloating}
-        class:w-[calc(100vw-32px)]={isFloating}
-        class:md:w-96={isFloating}
-        class:h-[65vh]={isFloating}
-        class:md:max-h-[75vh]={isFloating}
-        class:rounded-xl={isFloating}
+        class:w-[90vw]={isFloating}
+        class:sm:w-[400px]={isFloating}
+        class:h-[600px]={isFloating}
+        class:max-h-[80vh]={isFloating}
         class:mb-4={isFloating}
-        class:mr-4={isFloating}
+        class:rounded-2xl={isFloating}
         class:bg-[var(--bg-tertiary)]={isStandard}
         class:backdrop-blur-xl={isTransparent || isFloating}
         class:bg-zinc-900={isTransparent}
         class:bg-opacity-95={isTransparent}
         class:bg-[var(--bg-secondary)]={isFloating}
-        style={isTransparent ? "background-color: rgba(17, 17, 17, 0.9);" : ""}
+        style={isTransparent ? "background-color: rgba(17, 17, 17, 0.95);" : ""}
       >
         <!-- Header -->
         <div
@@ -476,13 +515,6 @@
               {/if}
             </button>
           </div>
-          <div
-            class="text-[9px] text-right text-[var(--text-tertiary)] mt-1.5 px-1 font-mono opacity-50"
-          >
-            {#if $settingsStore.sidePanelMode !== "ai"}
-              {messageText.length}/140
-            {/if}
-          </div>
         </div>
       </div>
     {/if}
@@ -495,12 +527,11 @@
     text-orientation: mixed;
   }
 
-  /* Glassmorphism helpers for non-supported browsers or fallback */
   .glass-panel {
-    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    box-shadow: 0 10px 40px -10px rgba(0, 0, 0, 0.5);
   }
 
-  /* Markdown Styles for Bubbles - Refined */
+  /* Markdown Styles */
   .markdown-content :global(p) {
     margin-bottom: 0.75rem;
     line-height: 1.6;
@@ -519,11 +550,6 @@
     font-size: 0.85em;
     color: inherit;
   }
-  /* Ensure User bubble code is readable */
-  .bg-gradient-to-br .markdown-content :global(code) {
-    background: rgba(255, 255, 255, 0.2);
-  }
-
   .markdown-content :global(pre) {
     background: rgba(0, 0, 0, 0.3);
     padding: 0.75rem;
@@ -532,22 +558,5 @@
     margin-bottom: 1rem;
     font-size: 0.85em;
     border: 1px solid rgba(255, 255, 255, 0.05);
-  }
-  .markdown-content :global(ul) {
-    list-style-type: none; /* Custom bullet */
-    padding-left: 0.5rem;
-    margin-bottom: 0.75rem;
-  }
-  .markdown-content :global(li) {
-    position: relative;
-    padding-left: 1rem;
-    margin-bottom: 0.25rem;
-  }
-  .markdown-content :global(li::before) {
-    content: "•";
-    position: absolute;
-    left: 0;
-    color: currentColor;
-    opacity: 0.7;
   }
 </style>
