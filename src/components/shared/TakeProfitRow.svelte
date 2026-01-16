@@ -74,12 +74,23 @@
   let priceStep = $derived(
     price && price > 1000 ? 0.5 : price && price > 100 ? 0.1 : 0.01,
   );
+  function formatProfit(val: any) {
+    const num = val?.toNumber ? val.toNumber() : Number(val);
+    if (!num) return "0";
+    if (Math.abs(num) < 0.1) return num.toFixed(4);
+    if (Math.abs(num) < 1000) return num.toFixed(2);
+    return num.toLocaleString(undefined, { maximumFractionDigits: 0 });
+  }
 </script>
 
 <div
   class="tp-row p-2 rounded-lg relative"
   style="background-color: var(--bg-tertiary);"
 >
+  <!-- ... existing code ... -->
+
+  <!-- (Inside HTML) -->
+
   <!-- Header: Label + Lock -->
   <div class="flex justify-between items-center mb-1">
     <label
@@ -206,9 +217,7 @@
     >
       <span class="truncate" title={$_("dashboard.takeProfitRow.winLabel")}>
         Win: <span class="text-[var(--success-color)] font-medium"
-          >+${tpDetail.netProfit.toLocaleString(undefined, {
-            maximumFractionDigits: 0,
-          })}</span
+          >+${formatProfit(tpDetail.netProfit)}</span
         >
       </span>
       <span

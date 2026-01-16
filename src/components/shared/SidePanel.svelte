@@ -86,6 +86,33 @@
   let isTerminal = $derived(styleMode === "terminal");
   let isBubble = $derived(styleMode === "bubble");
   let isMinimal = $derived(styleMode === "minimal");
+
+  let panelHeight = $state(350);
+  let isResizing = $state(false);
+
+  function startResize(e: MouseEvent) {
+    if (!isConsole) return;
+    isResizing = true;
+    window.addEventListener("mousemove", resize);
+    window.addEventListener("mouseup", stopResize);
+    document.body.style.userSelect = "none"; // Prevent text selection
+  }
+
+  function resize(e: MouseEvent) {
+    if (isResizing) {
+      const newHeight = window.innerHeight - e.clientY;
+      if (newHeight > 150 && newHeight < window.innerHeight - 100) {
+        panelHeight = newHeight;
+      }
+    }
+  }
+
+  function stopResize() {
+    isResizing = false;
+    window.removeEventListener("mousemove", resize);
+    window.removeEventListener("mouseup", stopResize);
+    document.body.style.userSelect = "";
+  }
 </script>
 
 {#if $settingsStore.enableSidePanel}
@@ -203,14 +230,18 @@
         class:max-h-[80vh]={isFloating}
         class:mb-4={isFloating}
         class:rounded-lg={isFloating}
+        class:max-w-5xl={isConsole}
         class:w-full={isConsole}
-        class:h-[350px]={isConsole}
+        class:mx-auto={isConsole}
+        class:left-0={isConsole}
+        class:right-0={isConsole}
+        style={isConsole ? `height: ${panelHeight}px` : ""}
         class:rounded-t-md={isConsole}
-        class:border-x-0={isConsole}
+        class:border-x={isConsole}
         class:border-b-0={isConsole}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
-        class:bg-black={isTerminal}
+        class:bg-[var(--bg-secondary)]={isTerminal}
         class:border-green-800={isTerminal}
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
@@ -218,12 +249,19 @@
       >
         <!-- Header -->
         <div
-          class="h-10 border-b flex items-center justify-between px-4 shrink-0"
-          class:bg-black={isTerminal}
+          class="h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
           class:border-green-900={isTerminal}
-          class:bg-[var(--bg-secondary)]={!isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
+          {#if isConsole}
+            <div
+              class="absolute top-0 left-0 w-full h-1 cursor-ns-resize hover:bg-[var(--accent-color)] transition-colors opacity-50 z-50 bg-transparent"
+              onmousedown={startResize}
+              role="separator"
+              aria-valuenow={panelHeight}
+              tabindex="0"
+            ></div>
+          {/if}
           <h3
             class="font-bold text-xs tracking-widest uppercase"
             class:text-green-500={isTerminal}
@@ -390,10 +428,8 @@
 
         <!-- Input Area -->
         <div
-          class="p-2 border-t shrink-0"
-          class:bg-black={isTerminal}
+          class="p-2 border-t shrink-0 transition-colors bg-[var(--bg-secondary)]"
           class:border-green-900={isTerminal}
-          class:bg-[var(--bg-secondary)]={!isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
           {#if errorMessage || $aiStore.error}
