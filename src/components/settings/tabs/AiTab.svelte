@@ -63,6 +63,21 @@
       />
     </div>
 
+    <!-- Custom System Prompt -->
+    <div class="flex flex-col gap-1 py-2 border-t border-[var(--border-color)]">
+      <span class="text-xs font-bold">Custom System Instructions (Prompt)</span>
+      <span class="text-[10px] text-[var(--text-secondary)]">
+        Append custom rules, persona, or constraints to the AI (e.g. "Be
+        cynical", "Focus on Scalping").
+      </span>
+      <textarea
+        bind:value={$settingsStore.customSystemPrompt}
+        rows="3"
+        class="input-field p-2 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full resize-none"
+        placeholder="e.g. You are a risk-averse mentor. Always scold me for high leverage."
+      ></textarea>
+    </div>
+
     <!-- Trade Context Limit -->
     <div
       class="flex items-center justify-between py-2 border-t border-[var(--border-color)]"

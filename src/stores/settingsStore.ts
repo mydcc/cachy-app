@@ -59,6 +59,9 @@ export interface Settings {
   chatStyle: "minimal" | "bubble" | "terminal";
   panelState: PanelState;
 
+  // Custom AI Instructions
+  customSystemPrompt: string; // User defined instructions
+
   // AI Chat Settings
   aiProvider: AiProvider;
   openaiApiKey: string;
@@ -115,6 +118,7 @@ const defaultSettings: Settings = {
     x: 20,
     y: 20,
   },
+  customSystemPrompt: "",
 
   // AI Defaults
   aiProvider: "gemini",
@@ -222,6 +226,7 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.sidePanelLayout ?? defaultSettings.sidePanelLayout,
       chatStyle: settings.chatStyle ?? defaultSettings.chatStyle,
       panelState: settings.panelState ?? defaultSettings.panelState,
+      customSystemPrompt: settings.customSystemPrompt ?? defaultSettings.customSystemPrompt,
       aiProvider: settings.aiProvider,
       openaiApiKey: settings.openaiApiKey,
       openaiModel: settings.openaiModel,

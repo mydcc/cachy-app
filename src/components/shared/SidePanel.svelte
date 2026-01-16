@@ -311,6 +311,8 @@
       >
         <!-- RESIZE HANDLES -->
         {#if !isSidebar}
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "nw")}
@@ -318,6 +320,8 @@
             tabindex="0"
             aria-label="Resize NW"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "ne")}
@@ -325,6 +329,8 @@
             tabindex="0"
             aria-label="Resize NE"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "sw")}
@@ -332,6 +338,8 @@
             tabindex="0"
             aria-label="Resize SW"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "se")}
@@ -339,6 +347,8 @@
             tabindex="0"
             aria-label="Resize SE"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute top-0 left-2 right-2 h-2 cursor-n-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "n")}
@@ -346,6 +356,8 @@
             tabindex="0"
             aria-label="Resize N"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute bottom-0 left-2 right-2 h-2 cursor-s-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "s")}
@@ -353,6 +365,8 @@
             tabindex="0"
             aria-label="Resize S"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute left-0 top-2 bottom-2 w-2 cursor-w-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "w")}
@@ -360,6 +374,8 @@
             tabindex="0"
             aria-label="Resize W"
           ></div>
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute right-0 top-2 bottom-2 w-2 cursor-e-resize z-50"
             onmousedown={(e) => handleMouseDown(e, "e")}
@@ -368,6 +384,8 @@
             aria-label="Resize E"
           ></div>
         {:else}
+          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
+          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
             class="absolute top-0 right-0 w-1 h-full cursor-ew-resize z-50 hover:bg-blue-500 hover:opacity-50 transition-colors"
             onmousedown={(e) => handleMouseDown(e, "e")}
