@@ -1,6 +1,9 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHash, randomBytes } from "crypto";
+import {
+  generateBitunixSignature,
+  validateBitunixKeys,
+} from "../../../utils/server/bitunix";
 
 const BASE_URL = "https://fapi.bitunix.com";
 
@@ -22,6 +25,12 @@ export const POST: RequestHandler = async ({ request }) => {
         { error: "Only Bitunix is supported for TP/SL currently" },
         { status: 400 }
       );
+    }
+
+    // Security: Validate API Key length
+    const validationError = validateBitunixKeys(apiKey, apiSecret);
+    if (validationError) {
+      return json({ error: validationError }, { status: 400 });
     }
 
     let result = null;
@@ -98,11 +107,8 @@ async function fetchBitunixTpSl(
   path: string,
   params: any = {}
 ) {
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
   // Sort params for signature
-  // Remove undefined/null
+  // Remove undefined/null/empty strings
   const cleanParams: Record<string, string> = {};
   Object.keys(params).forEach((k) => {
     if (params[k] !== undefined && params[k] !== null && params[k] !== "") {
@@ -110,20 +116,14 @@ async function fetchBitunixTpSl(
     }
   });
 
-  const queryParamsStr = Object.keys(cleanParams)
-    .sort()
-    .map((key) => key + cleanParams[key])
-    .join("");
-  const bodyStr = ""; // GET requests usually have empty body for signature in Bitunix if params are in query
+  const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    cleanParams,
+    "" // Body is empty for GET
+  );
 
-  // Signature: nonce + timestamp + apiKey + queryParams + body
-  const digestInput = nonce + timestamp + apiKey + queryParamsStr + bodyStr;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
-
-  const queryString = new URLSearchParams(cleanParams).toString();
-  // Only append ? if there are query params, otherwise some APIs (like Bitunix possibly) throw errors
+  // Only append ? if there are query params
   const url = queryString
     ? `${BASE_URL}${path}?${queryString}`
     : `${BASE_URL}${path}`;
@@ -141,7 +141,8 @@ async function fetchBitunixTpSl(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();
@@ -161,9 +162,6 @@ async function executeBitunixAction(
   path: string,
   payload: any
 ) {
-  const nonce = randomBytes(16).toString("hex");
-  const timestamp = Date.now().toString();
-
   // Clean payload
   const cleanPayload: any = {};
   Object.keys(payload).forEach((k) => {
@@ -175,14 +173,12 @@ async function executeBitunixAction(
     }
   });
 
-  const bodyStr = JSON.stringify(cleanPayload);
-
-  // Signature for POST: nonce + timestamp + apiKey + queryParams (empty usually) + bodyStr
-  // Note: We assume path does NOT contain query params.
-  const digestInput = nonce + timestamp + apiKey + bodyStr;
-  const digest = createHash("sha256").update(digestInput).digest("hex");
-  const signInput = digest + apiSecret;
-  const signature = createHash("sha256").update(signInput).digest("hex");
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(
+    apiKey,
+    apiSecret,
+    {}, // No query params for POST actions usually
+    cleanPayload
+  );
 
   const url = `${BASE_URL}${path}`;
 
@@ -200,7 +196,8 @@ async function executeBitunixAction(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text}`);
+    const safeText = text.slice(0, 200);
+    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
   const res = await response.json();

@@ -144,7 +144,11 @@ export const csvService = {
     val = val.trim();
     if (val.startsWith('"') && val.endsWith('"')) {
       val = val.slice(1, -1);
-      return val.replace(/""/g, '"');
+      val = val.replace(/""/g, '"');
+    }
+    // Remove potential CSV injection escape character
+    if (val.startsWith("'")) {
+      return val.substring(1);
     }
     return val;
   },
