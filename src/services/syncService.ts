@@ -157,7 +157,15 @@ export const syncService = {
       const BATCH_SIZE = 3;
       for (let i = 0; i < filteredHistory.length; i += BATCH_SIZE) {
         const batch = filteredHistory.slice(i, i + BATCH_SIZE);
-        const batchPromises = batch.map(async (p: any) => {
+        const batchPromises = batch.map(async (p: any, batchIndex: number) => {
+          // Update progress before processing each trade
+          const currentIndex = i + batchIndex;
+          uiStore.setSyncProgress({
+            total: totalItems,
+            current: currentIndex,
+            step: `Loading ${currentIndex + 1}/${totalItems}`
+          });
+
           // ... (rest of the map remains the same, but I need to include it for the tool)
           const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
           const realizedPnl = new Decimal(p.realizedPNL || p.realizedPnl || p.pnl || 0);
@@ -239,6 +247,14 @@ export const syncService = {
           }
 
           addedCount++;
+
+          // Update progress after processing
+          uiStore.setSyncProgress({
+            total: totalItems,
+            current: currentIndex + 1,
+            step: `Loaded ${currentIndex + 1}/${totalItems}`
+          });
+
           return {
             id: Date.now() + Math.random(),
             tradeId: uniqueId,
@@ -274,7 +290,6 @@ export const syncService = {
         }
 
         processedItems += batch.length;
-        uiStore.setSyncProgress({ total: totalItems, current: processedItems, step: "Processing History" });
       }
 
 
