@@ -108,7 +108,7 @@ To do this, output a JSON block at the very end of your response:
   { "action": "setEntryPrice", "value": 50000 },
   { "action": "setStopLoss", "value": 49000 },
   { "action": "setAtrMultiplier", "value": 2.5 }, 
-  { "action": "setTakeProfit", "index": 0, "value": 52000 },
+  { "action": "setTakeProfit", "index": 0, "value": 52000, "percent": 50 },
   { "action": "setRisk", "value": 1.0 },
   { "action": "setLeverage", "value": 10 }
 ]
@@ -439,11 +439,14 @@ function executeAction(action: any, confirmNeeded: boolean): boolean {
         }
         break;
       case "setTakeProfit":
-        if (action.value && typeof action.index === 'number') {
+        if (typeof action.index === 'number') {
           tradeStore.update((s) => {
             const newTargets = [...s.targets];
             if (newTargets[action.index]) {
-              newTargets[action.index] = { ...newTargets[action.index], price: parseFloat(action.value) };
+              let updatedTarget = { ...newTargets[action.index] };
+              if (action.value) updatedTarget.price = parseFloat(action.value);
+              if (action.percent) updatedTarget.percent = parseFloat(action.percent); // Support percent update
+              newTargets[action.index] = updatedTarget;
             }
             return { ...s, targets: newTargets };
           });

@@ -17,8 +17,6 @@
 
   // Scroll to bottom on new messages
   $effect(() => {
-    // This effect runs when messagesContainer or its contents change
-    // Using a microtask to ensure the DOM has updated
     if (messagesContainer) {
       messagesContainer.scrollTop = messagesContainer.scrollHeight;
     }
@@ -99,6 +97,7 @@
     class:h-full={!isFloating}
     class:bottom-4={isFloating}
     class:left-4={isFloating}
+    class:right-4={isFloating && window.innerWidth < 640}
     class:items-end={isFloating}
     class:flex-col-reverse={isFloating}
   >
@@ -106,7 +105,7 @@
     <div
       role="button"
       tabindex="0"
-      class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)]"
+      class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors pointer-events-auto outline-none focus:bg-[var(--bg-secondary)] shadow-lg"
       onclick={toggle}
       onkeydown={(e) => (e.key === "Enter" || e.key === " ") && toggle()}
       title={getPanelTitle($settingsStore.sidePanelMode)}
@@ -161,15 +160,18 @@
     {#if isOpen}
       <div
         transition:fly={transitionParams}
-        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden"
+        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden glass-panel"
         class:w-80={!isFloating}
         class:h-full={!isFloating}
-        class:w-96={isFloating}
-        class:max-h-[38vh]={isFloating}
+        class:w-[calc(100vw-32px)]={isFloating}
+        class:md:w-96={isFloating}
+        class:h-[60vh]={isFloating}
+        class:md:max-h-[70vh]={isFloating}
         class:rounded-lg={isFloating}
         class:mb-2={isFloating}
+        class:mr-4={isFloating}
         class:bg-[var(--bg-tertiary)]={isStandard}
-        class:backdrop-blur-md={isTransparent}
+        class:backdrop-blur-xl={isTransparent || isFloating}
         class:bg-black={isTransparent}
         class:bg-opacity-50={isTransparent}
         class:bg-[var(--bg-secondary)]={isFloating}
@@ -177,18 +179,65 @@
       >
         <!-- Header -->
         <div
-          class="h-12 border-b border-[var(--border-color)] flex items-center justify-between px-4"
+          class="h-14 border-b border-[var(--border-color)] flex items-center justify-between px-4"
           class:bg-[var(--bg-secondary)]={isStandard}
           class:bg-transparent={isTransparent}
         >
-          <h3 class="font-bold text-[var(--text-primary)]">
-            {getPanelTitle($settingsStore.sidePanelMode)}
-          </h3>
           <div class="flex items-center gap-2">
+            <div
+              class="w-8 h-8 rounded-full bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-sm"
+            >
+              {#if $settingsStore.sidePanelMode === "ai"}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  ><circle cx="12" cy="12" r="3" /><path d="M12 2v4" /><path
+                    d="M12 18v4"
+                  /><path d="M4.93 4.93l2.83 2.83" /><path
+                    d="M16.24 16.24l2.83 2.83"
+                  /><path d="M2 12h4" /><path d="M18 12h4" /><path
+                    d="M4.93 19.07l2.83-2.83"
+                  /><path d="M16.24 7.76l2.83-2.83" /></svg
+                >
+              {:else}
+                <svg
+                  width="16"
+                  height="16"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  ><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" /><circle
+                    cx="9"
+                    cy="7"
+                    r="4"
+                  /><path d="M23 21v-2a4 4 0 0 0-3-3.87" /><path
+                    d="M16 3.13a4 4 0 0 1 0 7.75"
+                  /></svg
+                >
+              {/if}
+            </div>
+            <div>
+              <h3
+                class="font-bold text-[var(--text-primary)] text-sm leading-tight"
+              >
+                {getPanelTitle($settingsStore.sidePanelMode)}
+              </h3>
+              <span
+                class="text-[10px] text-[var(--text-secondary)] block status-dot"
+                >Online</span
+              >
+            </div>
+          </div>
+
+          <div class="flex items-center gap-1">
             {#if $settingsStore.sidePanelMode === "ai"}
-              <!-- Clear History Button -->
               <button
-                class="text-[var(--text-secondary)] hover:text-[var(--danger-color)]"
+                class="p-2 text-[var(--text-secondary)] hover:text-[var(--danger-color)] hover:bg-[var(--bg-primary)] rounded-full transition-colors"
                 onclick={() =>
                   confirm("Clear chat history?") && aiStore.clearHistory()}
                 title="Clear History"
@@ -207,7 +256,7 @@
               </button>
             {/if}
             <button
-              class="text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+              class="p-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-primary)] rounded-full transition-colors"
               aria-label="Close"
               onclick={toggle}
             >
@@ -217,14 +266,13 @@
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
-              >
-                <path
+                ><path
                   stroke-linecap="round"
                   stroke-linejoin="round"
                   stroke-width="2"
                   d="M6 18L18 6M6 6l12 12"
-                />
-              </svg>
+                /></svg
+              >
             </button>
           </div>
         </div>
@@ -232,7 +280,7 @@
         <!-- Messages Area -->
         <div
           bind:this={messagesContainer}
-          class="flex-1 overflow-y-auto p-4 flex flex-col gap-3 bg-[var(--bg-primary)]"
+          class="flex-1 overflow-y-auto p-4 flex flex-col gap-4 bg-[var(--bg-primary)] scroll-smooth"
         >
           {#if $settingsStore.sidePanelMode === "ai"}
             <!-- AI Messages -->
@@ -244,21 +292,26 @@
                   : 'items-start'}"
               >
                 <div
-                  class="max-w-[85%] p-2 rounded break-words {msg.role ===
-                  'user'
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]'}"
+                  class="relative px-4 py-3 max-w-[85%] shadow-sm leading-relaxed
+                    {msg.role === 'user'
+                    ? 'bg-blue-600 text-white rounded-2xl rounded-tr-sm'
+                    : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-2xl rounded-tl-sm border border-[var(--border-color)] prose-invert'}"
                 >
                   {#if msg.role === "assistant"}
-                    <div class="markdown-content">
+                    <div class="markdown-content text-sm">
                       {@html renderMarkdown(msg.content)}
                     </div>
                   {:else}
                     {msg.content}
                   {/if}
                 </div>
-                <span class="text-[10px] text-[var(--text-tertiary)] mt-1">
-                  {new Date(msg.timestamp).toLocaleTimeString()}
+                <span class="text-[10px] text-[var(--text-tertiary)] mt-1 px-1">
+                  {msg.role === "user" ? "You" : "AI"} • {new Date(
+                    msg.timestamp,
+                  ).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
                 </span>
               </div>
             {/each}
@@ -266,53 +319,76 @@
             {#if $aiStore.isStreaming}
               <div class="flex flex-col items-start animate-pulse">
                 <div
-                  class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]"
+                  class="px-4 py-3 rounded-2xl rounded-tl-sm bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)]"
                 >
-                  <span class="text-xs italic">Thinking...</span>
+                  <div class="flex gap-1">
+                    <span
+                      class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce"
+                    ></span>
+                    <span
+                      class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-100"
+                    ></span>
+                    <span
+                      class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce delay-200"
+                    ></span>
+                  </div>
                 </div>
               </div>
             {/if}
 
             {#if $aiStore.messages.length === 0}
               <div
-                class="text-center text-[var(--text-secondary)] text-xs mt-10"
+                class="flex flex-col items-center justify-center h-full text-[var(--text-secondary)] opacity-60"
               >
-                <p class="mb-2 font-bold">Trading Assistant</p>
-                <p class="italic">
-                  I can analyze your trades, explain market data, or chat about
-                  strategy.
+                <div
+                  class="w-16 h-16 rounded-full bg-[var(--bg-secondary)] flex items-center justify-center mb-4"
+                >
+                  <svg
+                    width="32"
+                    height="32"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.5"
+                    ><circle cx="12" cy="12" r="10" /><path
+                      d="M12 16v-4"
+                    /><path d="M12 8h.01" /></svg
+                  >
+                </div>
+                <p class="font-medium text-sm">
+                  How can I help you trade today?
                 </p>
-                <p class="mt-4 text-[10px]">
-                  Using {$settingsStore.aiProvider || "Unknown Provider"}
-                </p>
+                <span class="text-xs mt-2"
+                  >Powered by {$settingsStore.aiProvider}</span
+                >
               </div>
             {/if}
           {:else}
             <!-- Standard Chat / Notes -->
             {#each $chatStore.messages as msg (msg.id)}
-              <div class="flex flex-col animate-fade-in text-sm">
-                <div class="flex items-baseline justify-between mb-0.5">
-                  <span
-                    class="text-[10px] text-[var(--text-tertiary)] font-mono"
-                  >
-                    {new Date(msg.timestamp).toLocaleTimeString()}
-                  </span>
-                </div>
+              <div class="flex flex-col animate-fade-in text-sm mb-2">
                 <div
-                  class="p-2 rounded bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] break-words"
+                  class="p-3 rounded-lg bg-[var(--bg-secondary)] text-[var(--text-primary)] border border-[var(--border-color)] break-words shadow-sm"
                 >
                   {msg.text}
                 </div>
+                <span
+                  class="text-[10px] text-[var(--text-tertiary)] text-right mt-1 px-1"
+                >
+                  {new Date(msg.timestamp).toLocaleTimeString([], {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                  })}
+                </span>
               </div>
             {/each}
-
             {#if $chatStore.messages.length === 0}
               <div
-                class="text-center text-[var(--text-secondary)] text-xs mt-10 italic"
+                class="flex items-center justify-center h-full text-[var(--text-secondary)] italic text-sm"
               >
                 {$settingsStore.sidePanelMode === "chat"
-                  ? "No messages yet."
-                  : "Write your first note..."}
+                  ? "No messages."
+                  : "Your notes are empty."}
               </div>
             {/if}
           {/if}
@@ -320,23 +396,23 @@
 
         <!-- Input Area -->
         <div
-          class="p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]"
+          class="p-3 border-t border-[var(--border-color)] bg-[var(--bg-secondary)]/50 backdrop-blur-md"
         >
           {#if errorMessage || $aiStore.error}
-            <div class="text-xs text-[var(--danger-color)] mb-2 animate-pulse">
+            <div
+              class="text-xs text-[var(--danger-color)] mb-2 animate-pulse bg-[var(--bg-primary)] p-2 rounded border border-red-500/20"
+            >
               {$_(errorMessage) || errorMessage || $aiStore.error}
             </div>
           {/if}
-          <div class="relative">
+          <div class="relative flex items-center gap-2">
             <input
-              id="side-panel-input"
-              name="sidePanelInput"
               bind:this={inputEl}
               type="text"
-              class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-3 py-2 text-sm text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-color)] pr-10"
+              class="flex-1 bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-full px-4 py-2.5 text-sm text-[var(--text-primary)] focus:outline-none focus:ring-2 focus:ring-indigo-500/50 focus:border-indigo-500 transition-all shadow-inner"
               placeholder={$settingsStore.sidePanelMode === "ai"
-                ? "Ask AI..."
-                : "Type a message..."}
+                ? "Ask AI about trades..."
+                : "Type away..."}
               maxlength={$settingsStore.sidePanelMode === "ai" ? 1000 : 140}
               bind:value={messageText}
               onkeydown={handleKeydown}
@@ -344,27 +420,46 @@
                 ($settingsStore.sidePanelMode === "ai" && $aiStore.isStreaming)}
             />
             <button
-              class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--accent-color)] hover:text-[var(--accent-hover)] disabled:opacity-50"
-              aria-label="Send message"
+              class="w-10 h-10 rounded-full bg-indigo-600 hover:bg-indigo-500 flex items-center justify-center text-white shadow-md disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-105 active:scale-95"
+              aria-label="Send"
               onclick={handleSend}
               disabled={!messageText.trim() ||
                 isSending ||
                 ($settingsStore.sidePanelMode === "ai" && $aiStore.isStreaming)}
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-5 w-5"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-              >
-                <line x1="22" y1="2" x2="11" y2="13" />
-                <polygon points="22 2 15 22 11 13 2 9 22 2" />
-              </svg>
+              {#if isSending}
+                <svg class="animate-spin h-5 w-5" viewBox="0 0 24 24"
+                  ><circle
+                    class="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    stroke-width="4"
+                  ></circle><path
+                    class="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path></svg
+                >
+              {:else}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-5 w-5 ml-0.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  ><line x1="22" y1="2" x2="11" y2="13" /><polygon
+                    points="22 2 15 22 11 13 2 9 22 2"
+                  /></svg
+                >
+              {/if}
             </button>
           </div>
-          <div class="text-[10px] text-right text-[var(--text-tertiary)] mt-1">
+          <div
+            class="text-[10px] text-right text-[var(--text-tertiary)] mt-1 px-2"
+          >
             {#if $settingsStore.sidePanelMode !== "ai"}
               {messageText.length}/140
             {/if}
@@ -380,17 +475,44 @@
     writing-mode: vertical-lr;
     text-orientation: mixed;
   }
+  .status-dot::before {
+    content: "";
+    display: inline-block;
+    width: 6px;
+    height: 6px;
+    background-color: #10b981;
+    border-radius: 50%;
+    margin-right: 4px;
+  }
+
+  /* Markdown Styles for Bubbles */
   .markdown-content :global(p) {
     margin-bottom: 0.5rem;
+    line-height: 1.5;
   }
   .markdown-content :global(p:last-child) {
     margin-bottom: 0;
   }
   .markdown-content :global(code) {
-    background: rgba(0, 0, 0, 0.2);
-    padding: 0.1rem 0.3rem;
-    border-radius: 0.2rem;
-    font-family: monospace;
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.1rem 0.4rem;
+    border-radius: 0.3rem;
+    font-family: ui-monospace, monospace;
     font-size: 0.9em;
+  }
+  .markdown-content :global(pre) {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 0.75rem;
+    border-radius: 0.5rem;
+    overflow-x: auto;
+    margin-bottom: 0.5rem;
+  }
+  .markdown-content :global(ul) {
+    list-style-type: disc;
+    padding-left: 1.25rem;
+    margin-bottom: 0.5rem;
+  }
+  .markdown-content :global(strong) {
+    font-weight: 600;
   }
 </style>
