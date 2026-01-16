@@ -286,16 +286,8 @@ export class CalculatorService {
         // --- Final Store Update ---
         this.resultsStore.set(newResults);
 
-        const activeTargets = values.targets.filter(
-            (t: any) => t.price.gt(0) && t.percent.gt(0)
-        ).length;
-
-        trackCustomEvent(
-            "Calculation",
-            "Success",
-            currentTradeState.tradeType,
-            activeTargets
-        );
+        // Note: Event tracking moved to explicit user actions (e.g., addTrade)
+        // to prevent hundreds of redundant events from reactive calculations
         onboardingService.trackFirstCalculation();
 
         const newStopLoss = values.stopLossPrice.toNumber();

@@ -276,6 +276,18 @@ export const app = {
     journalData.push(newTrade);
     app.saveJournal(journalData);
     journalStore.set(journalData);
+
+    // Track meaningful user action: adding a trade to journal
+    const activeTargets = currentAppState.currentTradeData.targets?.filter(
+      (t: any) => t.price && parseDecimal(t.price).gt(0) && t.percent && parseDecimal(t.percent).gt(0)
+    ).length || 0;
+    trackCustomEvent(
+      "Journal",
+      "AddTrade",
+      currentAppState.tradeType,
+      activeTargets
+    );
+
     onboardingService.trackFirstJournalSave();
     uiStore.showFeedback("save");
   },
@@ -363,6 +375,7 @@ export const app = {
           CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
           JSON.stringify(presets)
         );
+        trackCustomEvent("Presets", "Save", presetName);
         uiStore.showFeedback("save");
         app.populatePresetLoader();
         updatePresetStore((state) => ({
@@ -397,6 +410,7 @@ export const app = {
         CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
         JSON.stringify(presets)
       );
+      trackCustomEvent("Presets", "Delete", presetName);
       app.populatePresetLoader();
       updatePresetStore((state) => ({ ...state, selectedPreset: "" }));
     } catch {
@@ -567,7 +581,10 @@ export const app = {
         entryPrice: price.toDP(4).toNumber(),
       }));
 
-      if (!isAuto) uiStore.showFeedback("save", 700);
+      if (!isAuto) {
+        trackCustomEvent("API", "FetchPrice", symbol);
+        uiStore.showFeedback("save", 700);
+      }
 
       app.calculateAndDisplay();
     } catch (error) {
@@ -647,7 +664,14 @@ export const app = {
       }));
       app.calculateAndDisplay();
 
-      if (!isAuto) uiStore.showFeedback("save", 700);
+      if (!isAuto) {
+        trackCustomEvent(
+          "API",
+          "FetchATR",
+          `${symbol}/${currentTradeState.atrTimeframe}`
+        );
+        uiStore.showFeedback("save", 700);
+      }
     } catch (error) {
       if (!isAuto) {
         const message = error instanceof Error ? error.message : String(error);
