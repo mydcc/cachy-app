@@ -33,6 +33,12 @@
         modalManager._handleModalConfirm(false);
         searchQuery = "";
     }
+
+    function focusAction(node: HTMLInputElement) {
+        if (isOpen) {
+            setTimeout(() => node.focus(), 50);
+        }
+    }
 </script>
 
 <ModalFrame
@@ -51,7 +57,7 @@
                 placeholder="Suchen..."
                 class="input-field w-full px-4 py-2 rounded-md"
                 autocomplete="off"
-                autofocus
+                use:focusAction
             />
         </div>
 

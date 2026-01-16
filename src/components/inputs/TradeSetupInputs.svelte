@@ -265,7 +265,8 @@
         <button
           type="button"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          onclick={() => modalManager.show("symbolPicker", localSymbol)}
+          onclick={() =>
+            modalManager.show("Symbol auswählen", "", "symbolPicker")}
           title="Symbol auswählen"
         >
           <svg
