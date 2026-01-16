@@ -84,7 +84,7 @@
       annotation: showEfficiencyLines ? {
         annotations: {
           line1: {
-            type: 'line',
+            type: 'line' as const,
             scaleID: 'x',
             value: 0,
             endValue: 100, // Dynamic?
@@ -93,7 +93,7 @@
             label: {
               content: '1:1',
               display: true,
-              position: 'end'
+              position: 'end' as const
             },
             // This draws a vertical/horizontal line usually.
             // Diagonal lines are harder with simple annotation config unless using points.

@@ -131,9 +131,23 @@ async function placeBitunixOrder(
     reduceOnly: orderData.reduceOnly || false,
   };
 
-  if (payload.type === "LIMIT") {
+  const type = payload.type;
+  if (
+    type === "LIMIT" ||
+    type === "STOP_LIMIT" ||
+    type === "TAKE_PROFIT_LIMIT"
+  ) {
     if (!orderData.price) throw new Error("Price required for limit order");
     payload.price = String(orderData.price);
+  }
+
+  // Pass through triggerPrice for stop orders if present
+  if (orderData.triggerPrice) {
+    payload.triggerPrice = String(orderData.triggerPrice);
+  }
+  // Some APIs use stopPrice as alias
+  if (orderData.stopPrice && !payload.triggerPrice) {
+    payload.triggerPrice = String(orderData.stopPrice);
   }
 
   // Clean null/undefined

@@ -46,7 +46,7 @@ describe("backupService", () => {
   });
 
   describe("restoreFromBackup", () => {
-    it("should successfully restore a valid backup file", () => {
+    it("should successfully restore a valid backup file", async () => {
       const backupContent = JSON.stringify({
         backupVersion: 1,
         appName: "R-Calculator",
@@ -57,7 +57,7 @@ describe("backupService", () => {
         },
       });
 
-      const result = restoreFromBackup(backupContent);
+      const result = await restoreFromBackup(backupContent);
       expect(result.success).toBe(true);
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(
         '{"theme":"dark"}'
@@ -70,13 +70,13 @@ describe("backupService", () => {
       );
     });
 
-    it("should fail if the JSON is invalid", () => {
+    it("should fail if the JSON is invalid", async () => {
       // Mock console.error to suppress expected error output
       const consoleSpy = vi
         .spyOn(console, "error")
         .mockImplementation(() => {});
 
-      const result = restoreFromBackup("not a json");
+      const result = await restoreFromBackup("not a json");
       expect(result.success).toBe(false);
       expect(result.message).toContain("not a valid backup file");
       expect(Object.keys(localStorageMock.getStore()).length).toBe(0);
@@ -84,39 +84,39 @@ describe("backupService", () => {
       consoleSpy.mockRestore();
     });
 
-    it("should fail if the app name is incorrect", () => {
+    it("should fail if the app name is incorrect", async () => {
       const backupContent = JSON.stringify({
         backupVersion: 1,
         appName: "WrongApp",
         data: {},
       });
-      const result = restoreFromBackup(backupContent);
+      const result = await restoreFromBackup(backupContent);
       expect(result.success).toBe(false);
       expect(result.message).toContain("not for this application");
     });
 
-    it("should fail if the backup version is unsupported", () => {
+    it("should fail if the backup version is unsupported", async () => {
       const backupContent = JSON.stringify({
         backupVersion: 99,
         appName: "R-Calculator",
         data: {},
       });
-      const result = restoreFromBackup(backupContent);
+      const result = await restoreFromBackup(backupContent);
       expect(result.success).toBe(false);
       expect(result.message).toContain("Unsupported backup version");
     });
 
-    it("should fail if the data object is missing", () => {
+    it("should fail if the data object is missing", async () => {
       const backupContent = JSON.stringify({
         backupVersion: 1,
         appName: "R-Calculator",
       });
-      const result = restoreFromBackup(backupContent);
+      const result = await restoreFromBackup(backupContent);
       expect(result.success).toBe(false);
       expect(result.message).toContain("Missing data");
     });
 
-    it("should handle missing non-critical data gracefully", () => {
+    it("should handle missing non-critical data gracefully", async () => {
       const backupContent = JSON.stringify({
         backupVersion: 1,
         appName: "R-Calculator",
@@ -127,7 +127,7 @@ describe("backupService", () => {
         },
       });
 
-      const result = restoreFromBackup(backupContent);
+      const result = await restoreFromBackup(backupContent);
       expect(result.success).toBe(true);
       expect(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY)).toBe(
         '{"theme":"light"}'
