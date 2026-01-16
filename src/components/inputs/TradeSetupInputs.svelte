@@ -9,6 +9,7 @@
   import { onboardingService } from "../../services/onboardingService";
   import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
+  import { modalManager } from "../../services/modalManager";
   import { app } from "../../services/app";
 
   const dispatch = createEventDispatcher();
