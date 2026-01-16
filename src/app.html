@@ -3,13 +3,13 @@
 
 <head>
   <meta charset="utf-8" />
-  
+
   <!-- Favicons for different platforms and browsers -->
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
   <link rel="shortcut icon" href="/favicon.ico" />
-  
+
   <meta name="viewport" content="width=device-width, initial-scale=1" />
 
   <!-- Basic SEO -->
@@ -19,6 +19,11 @@
   <meta name="keywords"
     content="trading calculator, position size, risk management, take profit, crypto trading, forex trading, stock trading, trading tools, financial calculator, trade optimizer" />
   <link rel="canonical" href="https://www.cachy.app/" />
+
+  <!-- Multilingual Support (hreflang) -->
+  <link rel="alternate" hreflang="en" href="https://www.cachy.app/" />
+  <link rel="alternate" hreflang="de" href="https://www.cachy.app/" />
+  <link rel="alternate" hreflang="x-default" href="https://www.cachy.app/" />
   <!-- Replace with your actual domain -->
 
   <!-- Open Graph / Facebook -->
@@ -47,6 +52,43 @@
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+
+  <!-- Structured Data (Schema.org) for SEO -->
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "WebApplication",
+    "name": "Cachy",
+    "alternateName": "Cachy - Position Size & Risk Calculator",
+    "applicationCategory": "FinanceApplication",
+    "operatingSystem": "Web Browser",
+    "browserRequirements": "Requires JavaScript. Modern browsers recommended.",
+    "offers": {
+      "@type": "Offer",
+      "price": "0",
+      "priceCurrency": "USD"
+    },
+    "description": "Comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis.",
+    "url": "https://www.cachy.app",
+    "screenshot": "https://www.cachy.app/og-image.jpg",
+    "featureList": [
+      "Position Size Calculator",
+      "Risk Management Tools",
+      "Take-Profit Target Optimization",
+      "Real-time Trade Calculations",
+      "Visual Trade Analysis",
+      "Trade Journal & Statistics",
+      "Multi-Asset Support (Crypto, Forex, Stocks)",
+      "Advanced Technical Indicators"
+    ],
+    "creator": {
+      "@type": "Organization",
+      "name": "Cachy"
+    },
+    "inLanguage": ["en-US", "de-DE"],
+    "isAccessibleForFree": true
+  }
+  </script>
 
   %sveltekit.head%
 
