@@ -190,6 +190,7 @@ export const apiService = {
     priority: "high" | "normal" = "high",
     timeout = 5000
   ): Promise<Decimal> {
+    if (!symbol || symbol.length < 3) throw new Error("apiErrors.symbolNotFound");
     const key = `BITUNIX:PRICE:${symbol}`;
     return requestManager.schedule(
       key,

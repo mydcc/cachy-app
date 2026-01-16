@@ -133,6 +133,7 @@
   let currentWsKlineChannel: string | null = $state(null);
 
   async function fetchHistoryKlines(tf: string) {
+    if (!symbol || symbol.length < 3) return;
     try {
       // Need enough history for RSI + Signal
       const limit = Math.max(
@@ -301,7 +302,12 @@
       : $indicatorStore.rsi.defaultTimeframe || "1d",
   );
   $effect(() => {
-    if (symbol && provider === "bitunix" && effectiveRsiTimeframe) {
+    if (
+      symbol &&
+      symbol.length >= 3 &&
+      provider === "bitunix" &&
+      effectiveRsiTimeframe
+    ) {
       untrack(() => {
         fetchHistoryKlines(effectiveRsiTimeframe);
 

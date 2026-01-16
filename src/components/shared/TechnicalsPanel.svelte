@@ -130,7 +130,7 @@
   }
 
   async function fetchData(silent = false) {
-    if (!symbol) return;
+    if (!symbol || symbol.length < 3) return;
     if (!silent) loading = true;
     error = null;
 
