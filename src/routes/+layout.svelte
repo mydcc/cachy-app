@@ -50,11 +50,17 @@
 
     // Theme is already initialized in uiStore, no need to set it here
 
-    // --- CachyLog Integration ---
+    // --- CachyLog Integration (Development Only) ---
     // Connect to Server-Sent Events stream for real-time server logs
     let evtSource: EventSource | null = null;
 
-    if (typeof EventSource !== "undefined") {
+    // Only enable CachyLog in development mode
+    const isDevelopment =
+      import.meta.env.DEV ||
+      window.location.hostname.includes("localhost") ||
+      window.location.hostname.includes("dev.");
+
+    if (typeof EventSource !== "undefined" && isDevelopment) {
       try {
         evtSource = new EventSource("/api/stream-logs");
 
