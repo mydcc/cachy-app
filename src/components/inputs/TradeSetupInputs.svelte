@@ -49,7 +49,9 @@
 
   // Local state for input to prevent immediate store updates
   let localSymbol = $state("");
+  let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
+
   let priceDeviation = $derived.by(() => {
     if (!entryPrice || !app.currentMarketPrice) return 0;
     const market = app.currentMarketPrice.toNumber();
@@ -59,8 +61,9 @@
   });
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
+  // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues
   $effect(() => {
-    if (symbol !== localSymbol) {
+    if (!isSymbolFocused && symbol !== localSymbol) {
       localSymbol = symbol || "";
     }
   });
@@ -248,33 +251,55 @@
           onboardingService.trackFirstInput();
         }}
         onkeydown={handleKeyDownSymbol}
-        class="input-field w-full px-4 py-2 rounded-md pr-10 relative z-30 touch-manipulation"
+        onfocus={() => (isSymbolFocused = true)}
+        onblur={() => (isSymbolFocused = false)}
+        class="input-field w-full px-4 py-2 rounded-md pr-16 relative z-30 touch-manipulation"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
         inputmode="text"
       />
-      <button
-        type="button"
-        class="price-fetch-btn absolute top-1/2 right-2 -translate-y-1/2 z-40 {isPriceFetching
-          ? 'animate-spin'
-          : ''}"
-        title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
-        aria-label={$_("dashboard.tradeSetupInputs.fetchPriceAriaLabel")}
-        onclick={handleFetchPriceClick}
+      <div
+        class="absolute top-1/2 right-2 -translate-y-1/2 flex items-center gap-1 z-40"
       >
-        <svg
-          xmlns="http://www.w3.org/2000/svg"
-          width="16"
-          height="16"
-          fill="currentColor"
-          viewBox="0 0 16 16"
-          ><path
-            d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"
-          /><path
-            d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
-          /></svg
+        <button
+          type="button"
+          class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+          onclick={() => modalManager.show("symbolPicker", localSymbol)}
+          title="Symbol auswählen"
         >
-      </button>
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="18"
+            height="18"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              d="M2.5 12a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5zm0-4a.5.5 0 0 1 .5-.5h10a.5.5 0 0 1 0 1H3a.5.5 0 0 1-.5-.5z"
+            />
+          </svg>
+        </button>
+        <button
+          type="button"
+          class="price-fetch-btn p-1 {isPriceFetching ? 'animate-spin' : ''}"
+          title={$_("dashboard.tradeSetupInputs.fetchPriceTitle")}
+          aria-label={$_("dashboard.tradeSetupInputs.fetchPriceAriaLabel")}
+          onclick={handleFetchPriceClick}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="16"
+            height="16"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+            ><path
+              d="M8.5 5.5a.5.5 0 0 0-1 0v3.354l-1.46-1.47a.5.5 0 0 0-.708.708l2.146 2.147a.5.5 0 0 0 .708 0l2.146-2.147a.5.5 0 0 0-.708-.708L8.5 8.854V5.5z"
+            /><path
+              d="M8 16a8 8 0 1 0 0-16 8 8 0 0 0 0 16zm7-8a7 7 0 1 1-14 0 7 7 0 0 1 14 0z"
+            /></svg
+          >
+        </button>
+      </div>
       {#if showSymbolSuggestions}
         <div
           class="absolute top-full left-0 w-full rounded-md shadow-lg mt-1 overflow-hidden border border-[var(--border-color)] z-20 bg-[var(--bg-secondary)]"

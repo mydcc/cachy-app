@@ -7,6 +7,7 @@
   import JournalView from "../components/shared/JournalView.svelte";
   import SettingsModal from "../components/settings/SettingsModal.svelte";
   import CustomModal from "../components/shared/CustomModal.svelte";
+  import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
   import { onMount } from "svelte";
   import { initZoomPlugin } from "../lib/chartSetup";
 
@@ -171,6 +172,7 @@
   <JournalView />
   <SettingsModal />
   <CustomModal />
+  <SymbolPickerModal />
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 

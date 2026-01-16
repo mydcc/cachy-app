@@ -5,7 +5,7 @@ import { browser } from "$app/environment";
 export interface ModalState {
   title: string;
   message: string;
-  type: "alert" | "confirm" | "prompt";
+  type: "alert" | "confirm" | "prompt" | "symbolPicker";
   defaultValue?: string;
   isOpen: boolean;
   resolve: ((value: boolean | string) => void) | null;
@@ -26,7 +26,7 @@ export const modalManager = {
   show(
     title: string,
     message: string,
-    type: "alert" | "confirm" | "prompt",
+    type: "alert" | "confirm" | "prompt" | "symbolPicker",
     defaultValue: string = "",
     extraClasses: string = ""
   ): Promise<boolean | string> {
