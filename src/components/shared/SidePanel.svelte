@@ -87,31 +87,98 @@
   let isBubble = $derived(styleMode === "bubble");
   let isMinimal = $derived(styleMode === "minimal");
 
-  let panelHeight = $state(350);
-  let isResizing = $state(false);
+  // Panel State (Position & Size)
+  let panelState = $state($settingsStore.panelState);
+  let isDragging = $state(false);
+  let dragType:
+    | "move"
+    | "n"
+    | "s"
+    | "e"
+    | "w"
+    | "ne"
+    | "nw"
+    | "se"
+    | "sw"
+    | null = $state(null);
 
-  function startResize(e: MouseEvent) {
-    if (!isConsole) return;
-    isResizing = true;
-    window.addEventListener("mousemove", resize);
-    window.addEventListener("mouseup", stopResize);
-    document.body.style.userSelect = "none"; // Prevent text selection
+  // Drag Start State
+  let startX = 0;
+  let startY = 0;
+  let startLeft = 0;
+  let startTop = 0;
+  let startWidth = 0;
+  let startHeight = 0;
+
+  function handleMouseDown(e: MouseEvent, type: typeof dragType) {
+    if (isSidebar && type !== "w" && type !== "e") return; // Sidebar only supports width resize
+
+    isDragging = true;
+    dragType = type;
+    startX = e.clientX;
+    startY = e.clientY;
+
+    // Check if panelState needs init (though store has defaults)
+    if (!panelState) {
+      panelState = { width: 450, height: 550, x: 20, y: 20 };
+    }
+
+    startLeft = panelState.x;
+    startTop = panelState.y;
+    startWidth = panelState.width;
+    startHeight = panelState.height;
+
+    window.addEventListener("mousemove", handleMouseMove);
+    window.addEventListener("mouseup", handleMouseUp);
+    document.body.style.userSelect = "none";
   }
 
-  function resize(e: MouseEvent) {
-    if (isResizing) {
-      const newHeight = window.innerHeight - e.clientY;
-      if (newHeight > 150 && newHeight < window.innerHeight - 100) {
-        panelHeight = newHeight;
+  function handleMouseMove(e: MouseEvent) {
+    if (!isDragging || !dragType) return;
+
+    const dx = e.clientX - startX;
+    const dy = e.clientY - startY;
+
+    if (dragType === "move") {
+      panelState.x = startLeft + dx;
+      panelState.y = startTop + dy;
+    } else {
+      // Resizing
+      // Constraints
+      const minW = 300;
+      const minH = 200;
+
+      if (dragType.includes("e")) {
+        panelState.width = Math.max(minW, startWidth + dx);
+      }
+      if (dragType.includes("w")) {
+        const newW = Math.max(minW, startWidth - dx);
+        panelState.x = startLeft + (startWidth - newW);
+        panelState.width = newW;
+      }
+      if (dragType.includes("s")) {
+        panelState.height = Math.max(minH, startHeight + dy);
+      }
+      if (dragType.includes("n")) {
+        const newH = Math.max(minH, startHeight - dy);
+        panelState.y = startTop + (startHeight - newH);
+        panelState.height = newH;
       }
     }
   }
 
-  function stopResize() {
-    isResizing = false;
-    window.removeEventListener("mousemove", resize);
-    window.removeEventListener("mouseup", stopResize);
+  function handleMouseUp() {
+    isDragging = false;
+    dragType = null;
+    window.removeEventListener("mousemove", handleMouseMove);
+    window.removeEventListener("mouseup", handleMouseUp);
     document.body.style.userSelect = "";
+
+    // Save to store
+    settingsStore.update((s) => ({
+      ...s,
+      panelState: { ...panelState },
+    }));
   }
 </script>
 
@@ -218,24 +285,19 @@
     <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
-        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition"
+        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed"
         transition:fly={{
-          y: isFloating ? 20 : isConsole ? 300 : 0,
+          y: isFloating ? 20 : 0,
           x: isSidebar ? -30 : 0,
           duration: 250,
         }}
-        class:w-[90vw]={isFloating}
-        class:sm:w-[450px]={isFloating}
-        class:h-[550px]={isFloating}
-        class:max-h-[80vh]={isFloating}
+        style={isSidebar
+          ? `width: ${panelState?.width || 320}px;`
+          : panelState
+            ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
+            : ""}
         class:mb-4={isFloating}
         class:rounded-lg={isFloating}
-        class:max-w-5xl={isConsole}
-        class:w-full={isConsole}
-        class:mx-auto={isConsole}
-        class:left-0={isConsole}
-        class:right-0={isConsole}
-        style={isConsole ? `height: ${panelHeight}px` : ""}
         class:rounded-t-md={isConsole}
         class:border-x={isConsole}
         class:border-b-0={isConsole}
@@ -247,21 +309,82 @@
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
       >
-        <!-- Header -->
+        <!-- RESIZE HANDLES -->
+        {#if !isSidebar}
+          <div
+            class="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "nw")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize NW"
+          ></div>
+          <div
+            class="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "ne")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize NE"
+          ></div>
+          <div
+            class="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "sw")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize SW"
+          ></div>
+          <div
+            class="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "se")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize SE"
+          ></div>
+          <div
+            class="absolute top-0 left-2 right-2 h-2 cursor-n-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "n")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize N"
+          ></div>
+          <div
+            class="absolute bottom-0 left-2 right-2 h-2 cursor-s-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "s")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize S"
+          ></div>
+          <div
+            class="absolute left-0 top-2 bottom-2 w-2 cursor-w-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "w")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize W"
+          ></div>
+          <div
+            class="absolute right-0 top-2 bottom-2 w-2 cursor-e-resize z-50"
+            onmousedown={(e) => handleMouseDown(e, "e")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize E"
+          ></div>
+        {:else}
+          <div
+            class="absolute top-0 right-0 w-1 h-full cursor-ew-resize z-50 hover:bg-blue-500 hover:opacity-50 transition-colors"
+            onmousedown={(e) => handleMouseDown(e, "e")}
+            role="separator"
+            tabindex="0"
+            aria-label="Resize Width"
+          ></div>
+        {/if}
         <div
           class="h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
           class:border-green-900={isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
+          class:cursor-move={!isSidebar}
+          onmousedown={!isSidebar ? (e) => handleMouseDown(e, "move") : null}
+          role="toolbar"
+          tabindex="0"
         >
-          {#if isConsole}
-            <div
-              class="absolute top-0 left-0 w-full h-1 cursor-ns-resize hover:bg-[var(--accent-color)] transition-colors opacity-50 z-50 bg-transparent"
-              onmousedown={startResize}
-              role="separator"
-              aria-valuenow={panelHeight}
-              tabindex="0"
-            ></div>
-          {/if}
           <h3
             class="font-bold text-xs tracking-widest uppercase"
             class:text-green-500={isTerminal}

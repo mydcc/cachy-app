@@ -14,6 +14,13 @@ export interface ApiKeys {
   secret: string;
 }
 
+export interface PanelState {
+  width: number;
+  height: number;
+  x: number;
+  y: number;
+}
+
 export interface Settings {
   apiProvider: "bitunix" | "binance";
   marketDataInterval: MarketDataInterval;
@@ -50,6 +57,7 @@ export interface Settings {
   sidePanelMode: "chat" | "notes" | "ai";
   sidePanelLayout: SidePanelLayout;
   chatStyle: "minimal" | "bubble" | "terminal";
+  panelState: PanelState;
 
   // AI Chat Settings
   aiProvider: AiProvider;
@@ -101,6 +109,12 @@ const defaultSettings: Settings = {
   sidePanelMode: "ai",
   sidePanelLayout: "floating", // standard, floating, console
   chatStyle: "minimal", // minimal, bubble, terminal
+  panelState: {
+    width: 450,
+    height: 550,
+    x: 20,
+    y: 20,
+  },
 
   // AI Defaults
   aiProvider: "gemini",
@@ -206,6 +220,8 @@ function loadSettingsFromLocalStorage(): Settings {
       sidePanelMode: settings.sidePanelMode ?? defaultSettings.sidePanelMode,
       sidePanelLayout:
         settings.sidePanelLayout ?? defaultSettings.sidePanelLayout,
+      chatStyle: settings.chatStyle ?? defaultSettings.chatStyle,
+      panelState: settings.panelState ?? defaultSettings.panelState,
       aiProvider: settings.aiProvider,
       openaiApiKey: settings.openaiApiKey,
       openaiModel: settings.openaiModel,
