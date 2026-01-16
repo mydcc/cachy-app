@@ -324,7 +324,7 @@
         >
           {#if errorMessage || $aiStore.error}
             <div class="text-xs text-[var(--danger-color)] mb-2 animate-pulse">
-              {errorMessage || $aiStore.error}
+              {$_(errorMessage) || errorMessage || $aiStore.error}
             </div>
           {/if}
           <div class="relative">

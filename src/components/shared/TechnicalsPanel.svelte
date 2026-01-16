@@ -496,7 +496,7 @@
       </div>
     {:else if error}
       <div class="text-[var(--danger-color)] text-center text-sm py-4">
-        {error}
+        {$_(error) || error}
       </div>
     {:else if data}
       <!-- Oscillators & MAs (Standard) -->
