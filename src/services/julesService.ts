@@ -33,11 +33,11 @@ export const julesService = {
       ...settings,
       apiKeys: settings.apiKeys
         ? Object.fromEntries(
-          Object.entries(settings.apiKeys).map(([provider, keys]) => [
-            provider,
-            { ...(keys as any), apiSecret: "***REDACTED***" },
-          ])
-        )
+            Object.entries(settings.apiKeys).map(([provider, keys]) => [
+              provider,
+              { ...(keys as any), apiSecret: "***REDACTED***" },
+            ]),
+          )
         : {},
     };
 
@@ -95,10 +95,10 @@ export const julesService = {
           context,
           error: error
             ? {
-              message: error.message || error.toString(),
-              stack: error.stack,
-              name: error.name,
-            }
+                message: error.message || error.toString(),
+                stack: error.stack,
+                name: error.name,
+              }
             : null,
         }),
       });

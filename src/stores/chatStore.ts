@@ -54,7 +54,7 @@ function createChatStore() {
   // Helper to merge new messages avoiding duplicates
   const mergeMessages = (
     current: ChatMessage[],
-    incoming: ChatMessage[]
+    incoming: ChatMessage[],
   ): ChatMessage[] => {
     const existingIds = new Set(current.map((m) => m.id));
     const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
@@ -93,7 +93,7 @@ function createChatStore() {
                     update((s) => {
                       const newMessages = mergeMessages(
                         s.messages,
-                        data.messages
+                        data.messages,
                       );
                       const newState = { ...s, messages: newMessages };
                       saveToStorage(newState);

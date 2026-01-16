@@ -62,11 +62,11 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
     // Log Response mit Status und Dauer
     if (response.status >= 400) {
       logger.error(
-        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`
+        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
       );
     } else {
       logger.info(
-        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`
+        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
       );
     }
 
@@ -74,7 +74,7 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
   } catch (err: any) {
     const duration = Date.now() - start;
     logger.error(
-      `[ERR] ${method} ${path} failed (${duration}ms): ${err.message}`
+      `[ERR] ${method} ${path} failed (${duration}ms): ${err.message}`,
     );
     throw err;
   }

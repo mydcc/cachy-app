@@ -15,7 +15,6 @@ This guide walks you through installing **Cachy** on a server running **aaPanel*
 It is recommended to run two separate environments:
 
 1.  **Staging (`dev.cachy.app`):**
-
     - For testing new features.
     - Updated manually or automatically on every push to the `dev` branch.
     - Runs on a dedicated port (e.g., 3002).

@@ -43,11 +43,11 @@ export function getPerformanceData(journal: JournalEntry[]) {
   closedTrades.forEach((t) => {
     const date = new Date(t.date);
     const monthKey = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}`;
     const pnl = getTradePnL(t);
     monthlyStats[monthKey] = (monthlyStats[monthKey] || new Decimal(0)).plus(
-      pnl
+      pnl,
     );
   });
   const monthlyLabels = Object.keys(monthlyStats).sort();
@@ -215,7 +215,7 @@ export function getQualityData(journal: JournalEntry[]) {
 
 export function getDirectionData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   // 1. Long vs Short
@@ -235,7 +235,7 @@ export function getDirectionData(journal: JournalEntry[]) {
   });
 
   const sortedSymbols = Object.entries(symbolMap).sort((a, b) =>
-    b[1].minus(a[1]).toNumber()
+    b[1].minus(a[1]).toNumber(),
   );
   const topSymbols = sortedSymbols.slice(0, 5);
   const bottomSymbols = sortedSymbols.slice(-5).reverse(); // Worst first
@@ -248,7 +248,7 @@ export function getDirectionData(journal: JournalEntry[]) {
 
   // Sort trades by date for evolution
   const sortedByDate = [...closedTrades].sort(
-    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()
+    (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
   );
 
   sortedByDate.forEach((t) => {
@@ -280,7 +280,7 @@ export function getDirectionData(journal: JournalEntry[]) {
 
 export function getCostData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   // 1. Gross vs Net PnL (Total)
@@ -361,9 +361,9 @@ export function getDurationData(journal: JournalEntry[]) {
             x: durationMinutes,
             y: pnl.toNumber(),
             r: 6,
-            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(pnl ?? new Decimal(0)).toFixed(
-              2
-            )}`,
+            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(
+              pnl ?? new Decimal(0)
+            ).toFixed(2)}`,
           };
         }
       }
@@ -403,7 +403,7 @@ export function getAssetData(journal: JournalEntry[]) {
       y: s.pnl.toNumber(),
       r: Math.min(Math.max(s.count * 2, 5), 30), // Scale radius
       l: `${sym}: ${s.count} Trades, ${(winRate ?? 0).toFixed(
-        1
+        1,
       )}% Win, $${(s.pnl ?? new Decimal(0)).toFixed(2)}`, // Label for tooltip
     };
   });
@@ -423,9 +423,9 @@ export function getRiskData(journal: JournalEntry[]) {
         x: t.riskAmount.toNumber(),
         y: pnl.toNumber(),
         r: 6,
-        l: `${t.symbol} (${t.status}): Risk $${(t.riskAmount ?? new Decimal(0)).toFixed(
-          2
-        )} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
+        l: `${t.symbol} (${t.status}): Risk $${(
+          t.riskAmount ?? new Decimal(0)
+        ).toFixed(2)} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
       };
     });
 
@@ -510,23 +510,23 @@ export function getPsychologyData(journal: JournalEntry[]) {
   const lossStreakCounts: { [key: number]: number } = {};
 
   winStreaks.forEach(
-    (s) => (winStreakCounts[s] = (winStreakCounts[s] || 0) + 1)
+    (s) => (winStreakCounts[s] = (winStreakCounts[s] || 0) + 1),
   );
   lossStreaks.forEach(
-    (s) => (lossStreakCounts[s] = (lossStreakCounts[s] || 0) + 1)
+    (s) => (lossStreakCounts[s] = (lossStreakCounts[s] || 0) + 1),
   );
 
   // Prepare labels (1 to max streak)
   const maxStreak = Math.max(...winStreaks, ...lossStreaks, 0);
   const streakLabels = Array.from({ length: maxStreak }, (_, i) =>
-    (i + 1).toString()
+    (i + 1).toString(),
   );
 
   const winStreakData = streakLabels.map(
-    (l) => winStreakCounts[parseInt(l)] || 0
+    (l) => winStreakCounts[parseInt(l)] || 0,
   );
   const lossStreakData = streakLabels.map(
-    (l) => lossStreakCounts[parseInt(l)] || 0
+    (l) => lossStreakCounts[parseInt(l)] || 0,
   );
 
   return {
@@ -568,7 +568,7 @@ export function getTagEvolution(journal: JournalEntry[]) {
 
 export function getConfluenceData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   const days = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
@@ -618,10 +618,10 @@ export function getConfluenceData(journal: JournalEntry[]) {
 export function getMonteCarloData(
   journal: JournalEntry[],
   simulations: number = 100,
-  horizon: number = 100
+  horizon: number = 100,
 ) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
   const pnlDistribution = closedTrades.map((t) => getTradePnL(t).toNumber());
 
@@ -678,7 +678,7 @@ export function getMonteCarloData(
 
 export function getExecutionEfficiencyData(journal: JournalEntry[]) {
   const closedTrades = journal.filter(
-    (t) => t.status === "Won" || t.status === "Lost"
+    (t) => t.status === "Won" || t.status === "Lost",
   );
 
   const scatterPoints = closedTrades
@@ -708,7 +708,7 @@ export function getExecutionEfficiencyData(journal: JournalEntry[]) {
         r: 6,
         pnl: pnlR,
         l: `${t.symbol}: MAE ${x.toFixed(2)}R, MFE ${y.toFixed(2)}R, PnL ${pnlR.toFixed(2)}R (Eff: ${efficiency.toFixed(0)}%)`,
-        rawPnl: pnl // Used for coloring
+        rawPnl: pnl, // Used for coloring
       };
     })
     .filter((p) => p !== null);
@@ -725,7 +725,7 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
 
   // Profit Factor: Benchmark 3.0 = 100%
   const pf = stats.profitFactor.isFinite() ? stats.profitFactor.toNumber() : 10;
-  const pfScore = Math.min(pf, 5) / 5 * 100; // Cap at 5 for score
+  const pfScore = (Math.min(pf, 5) / 5) * 100; // Cap at 5 for score
 
   // Drawdown: Need Max Drawdown from performance stats
   const perf = calculatePerformanceStats(journal);
@@ -738,7 +738,7 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
   // Let's use Recovery Factor (Net Profit / MaxDD).
   // Benchmark 5.0 = 100%
   const rf = perf?.recoveryFactor.toNumber() || 0;
-  const rfScore = Math.min(rf, 10) / 10 * 100;
+  const rfScore = (Math.min(rf, 10) / 10) * 100;
 
   // R-Multiple (Avg Win / Avg Loss) is implicitly Profit Factor if WinRate is 50%.
   // Let's use Risk-Reward Ratio (Avg Win / Avg Loss).
@@ -746,7 +746,7 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
   const avgLoss = perf?.avgLossOnly.toNumber() || 1; // Avoid div 0
   const rr = avgLoss > 0 ? avgWin / avgLoss : 0;
   // Benchmark 1:3 -> Score 100?
-  const rrScore = Math.min(rr, 4) / 4 * 100;
+  const rrScore = (Math.min(rr, 4) / 4) * 100;
 
   // Expectancy (in R).
   const expectancy = perf?.expectancy.toNumber() || 0; // This is actually expectancy per trade in $ usually, need in R.
@@ -755,27 +755,33 @@ export function getVisualRiskRadarData(journal: JournalEntry[]) {
   const expScore = Math.min(Math.max(avgR, 0), 1) * 100;
 
   return {
-    labels: ["Win Rate", "Profit Factor", "Risk/Reward", "Recovery", "Expectancy"],
+    labels: [
+      "Win Rate",
+      "Profit Factor",
+      "Risk/Reward",
+      "Recovery",
+      "Expectancy",
+    ],
     data: [winRate, pfScore, rrScore, rfScore, expScore],
     raw: {
       winRate: winRate,
       pf: pf,
       rr: rr,
       rf: rf,
-      exp: avgR
-    }
+      exp: avgR,
+    },
   };
 }
 
 export function getVolatilityMatrixData(journal: JournalEntry[]) {
   // Bin by ATR
   const closedTrades = journal.filter(
-    (t) => (t.status === "Won" || t.status === "Lost") && t.atrValue
+    (t) => (t.status === "Won" || t.status === "Lost") && t.atrValue,
   );
 
   if (closedTrades.length === 0) return null;
 
-  const atrs = closedTrades.map(t => t.atrValue!.toNumber());
+  const atrs = closedTrades.map((t) => t.atrValue!.toNumber());
   const sumAtr = atrs.reduce((a, b) => a + b, 0);
   const avgAtr = sumAtr / atrs.length;
 
@@ -785,43 +791,46 @@ export function getVolatilityMatrixData(journal: JournalEntry[]) {
     high: { count: 0, pnl: new Decimal(0), win: 0 },
   };
 
-  closedTrades.forEach(t => {
+  closedTrades.forEach((t) => {
     const val = t.atrValue!.toNumber();
     const pnl = getTradePnL(t);
-    let bucketKey: 'low' | 'normal' | 'high' = 'normal';
+    let bucketKey: "low" | "normal" | "high" = "normal";
 
-    if (val < avgAtr * 0.8) bucketKey = 'low';
-    else if (val > avgAtr * 1.2) bucketKey = 'high';
+    if (val < avgAtr * 0.8) bucketKey = "low";
+    else if (val > avgAtr * 1.2) bucketKey = "high";
 
     buckets[bucketKey].count++;
     buckets[bucketKey].pnl = buckets[bucketKey].pnl.plus(pnl);
     if (t.status === "Won") buckets[bucketKey].win++;
   });
 
-  const mapData = (k: 'low' | 'normal' | 'high') => ({
+  const mapData = (k: "low" | "normal" | "high") => ({
     count: buckets[k].count,
     pnl: buckets[k].pnl.toNumber(),
-    winRate: buckets[k].count > 0 ? (buckets[k].win / buckets[k].count * 100) : 0
+    winRate:
+      buckets[k].count > 0 ? (buckets[k].win / buckets[k].count) * 100 : 0,
   });
 
   return {
-    low: mapData('low'),
-    normal: mapData('normal'),
-    high: mapData('high'),
-    avgAtr
+    low: mapData("low"),
+    normal: mapData("normal"),
+    high: mapData("high"),
+    avgAtr,
   };
 }
 
 export function getSystemQualityData(journal: JournalEntry[]) {
   // SQN is in sqnValues (array).
   // But let's recalculate simply.
-  const closedTrades = journal.filter(t => t.status === "Won" || t.status === "Lost");
+  const closedTrades = journal.filter(
+    (t) => t.status === "Won" || t.status === "Lost",
+  );
   const count = closedTrades.length;
 
   if (count < 30) return null; // SQN needs sample size
 
   const rMultiples: number[] = [];
-  closedTrades.forEach(t => {
+  closedTrades.forEach((t) => {
     if (t.riskAmount && t.riskAmount.gt(0)) {
       rMultiples.push(getTradePnL(t).div(t.riskAmount).toNumber());
     }
@@ -830,7 +839,9 @@ export function getSystemQualityData(journal: JournalEntry[]) {
   if (rMultiples.length === 0) return null;
 
   const avgR = rMultiples.reduce((a, b) => a + b, 0) / rMultiples.length;
-  const variance = rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) / rMultiples.length;
+  const variance =
+    rMultiples.reduce((sum, r) => sum + Math.pow(r - avgR, 2), 0) /
+    rMultiples.length;
   const stdDev = Math.sqrt(variance);
 
   const sqn = stdDev > 0 ? (avgR / stdDev) * Math.sqrt(count) : 0;
@@ -848,6 +859,6 @@ export function getSystemQualityData(journal: JournalEntry[]) {
     classification,
     avgR,
     stdDev,
-    count
+    count,
   };
 }

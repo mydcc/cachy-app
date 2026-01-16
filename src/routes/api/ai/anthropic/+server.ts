@@ -39,7 +39,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const err = await response.json();
       return json(
         { error: err.error?.message || "Anthropic API Error" },
-        { status: response.status }
+        { status: response.status },
       );
     }
 

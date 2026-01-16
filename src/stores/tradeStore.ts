@@ -93,7 +93,7 @@ function loadTradeStateFromLocalStorage(): typeof initialTradeState {
     // This fixes the issue where targets disappear on reload if they were cleared
     if (!loadedState.targets || loadedState.targets.length === 0) {
       loadedState.targets = JSON.parse(
-        JSON.stringify(initialTradeState.targets)
+        JSON.stringify(initialTradeState.targets),
       );
     }
 
@@ -119,7 +119,7 @@ tradeStore.subscribe((value) => {
 
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_TRADE_KEY,
-        JSON.stringify(stateToSave)
+        JSON.stringify(stateToSave),
       );
     } catch (e) {
       console.warn("Could not save trade state to localStorage", e);
@@ -129,7 +129,7 @@ tradeStore.subscribe((value) => {
 
 // Helper function to update parts of the store
 export const updateTradeStore = (
-  updater: (state: typeof initialTradeState) => typeof initialTradeState
+  updater: (state: typeof initialTradeState) => typeof initialTradeState,
 ) => {
   tradeStore.update(updater);
 };
@@ -153,23 +153,23 @@ export const resetAllInputs = () => {
 // Helper function to set symbol with automatic normalization (Single Source of Truth)
 export const setSymbol = (
   symbol: string,
-  provider: "bitunix" | "binance" = "bitunix"
+  provider: "bitunix" | "binance" = "bitunix",
 ): boolean => {
   if (!symbol) {
     // Empty symbol is allowed (clear)
-    updateTradeStore(state => ({ ...state, symbol: "" }));
+    updateTradeStore((state) => ({ ...state, symbol: "" }));
     return true;
   }
 
   const normalized = normalizeSymbol(symbol, provider);
   if (!normalized) {
-    console.warn('[tradeStore] Invalid symbol, normalization failed:', symbol);
+    console.warn("[tradeStore] Invalid symbol, normalization failed:", symbol);
     return false;
   }
 
-  updateTradeStore(state => ({
+  updateTradeStore((state) => ({
     ...state,
-    symbol: normalized
+    symbol: normalized,
   }));
 
   return true;

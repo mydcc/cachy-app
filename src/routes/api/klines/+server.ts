@@ -28,10 +28,7 @@ export const GET: RequestHandler = async ({ url }) => {
   } catch (e: any) {
     console.error(`Error fetching klines from ${provider}:`, e);
     const status = e.status || 500;
-    return json(
-      { error: e.message || "Failed to fetch klines" },
-      { status }
-    );
+    return json({ error: e.message || "Failed to fetch klines" }, { status });
   }
 };
 
@@ -40,7 +37,7 @@ async function fetchBitunixKlines(
   interval: string,
   limit: number,
   start?: number,
-  end?: number
+  end?: number,
 ) {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/market/kline";
@@ -82,7 +79,11 @@ async function fetchBitunixKlines(
     const text = await response.text();
     try {
       const data = JSON.parse(text);
-      if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
+      if (
+        data.code === 2 ||
+        data.code === "2" ||
+        (data.msg && data.msg.toLowerCase().includes("system error"))
+      ) {
         const error = new Error("Symbol not found");
         (error as any).status = 404;
         throw error;
@@ -99,7 +100,11 @@ async function fetchBitunixKlines(
   const data = await response.json();
   if (data.code !== 0 && data.code !== "0") {
     // Treat Bitunix "System error" (Code 2) or message as 404 Not Found for symbols
-    if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
+    if (
+      data.code === 2 ||
+      data.code === "2" ||
+      (data.msg && data.msg.toLowerCase().includes("system error"))
+    ) {
       const error = new Error("Symbol not found");
       (error as any).status = 404;
       throw error;
@@ -127,7 +132,7 @@ async function fetchBinanceKlines(
   interval: string,
   limit: number,
   start?: number,
-  end?: number
+  end?: number,
 ) {
   const baseUrl = "https://fapi.binance.com";
   const path = "/fapi/v1/klines";

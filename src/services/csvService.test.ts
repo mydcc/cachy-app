@@ -26,10 +26,18 @@ describe("csvService", () => {
         notes: 'Test "Notes"',
         tags: ["tag1", "tag2"],
         targets: [
-            { price: new Decimal(51000), percent: new Decimal(50), isLocked: false },
-            { price: new Decimal(52000), percent: new Decimal(50), isLocked: false }
+          {
+            price: new Decimal(51000),
+            percent: new Decimal(50),
+            isLocked: false,
+          },
+          {
+            price: new Decimal(52000),
+            percent: new Decimal(50),
+            isLocked: false,
+          },
         ],
-        calculatedTpDetails: []
+        calculatedTpDetails: [],
       } as unknown as JournalEntry,
     ];
 

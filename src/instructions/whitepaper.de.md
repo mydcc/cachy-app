@@ -86,17 +86,17 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes reaktiven Stores (\`writable\`, \`derived\`). Der Zustand ist in domänenspezifische Module in \`src/stores/\` unterteilt:
 
 1. **\`accountStore.ts\`**: Die "Single Source of Truth" für das Wallet des Benutzers.
-    - _Verfolgt_: Offene Positionen, Aktive Orders, Wallet-Guthaben.
-    - _Update-Mechanismus_: Empfängt atomare Updates von WebSockets (\`updatePositionFromWs\`).
+   - _Verfolgt_: Offene Positionen, Aktive Orders, Wallet-Guthaben.
+   - _Update-Mechanismus_: Empfängt atomare Updates von WebSockets (\`updatePositionFromWs\`).
 2. **\`marketStore.ts\`**: Hochfrequenz-Marktdaten.
-    - _Verfolgt_: Preise, Finanzierungsraten, Orderbuch-Tiefe.
-    - _Optimierung_: Verwendet eine Dictionary-Map \`Record<string, MarketData>\` für O(1) Zugriffskomplexität bei Preisaktualisierungen.
+   - _Verfolgt_: Preise, Finanzierungsraten, Orderbuch-Tiefe.
+   - _Optimierung_: Verwendet eine Dictionary-Map \`Record<string, MarketData>\` für O(1) Zugriffskomplexität bei Preisaktualisierungen.
 3. **\`tradeStore.ts\`**: Das "Reißbrett".
-    - _Verfolgt_: Benutzereingaben für einen _potenziellen_ Trade (Einstieg, SL, TP) vor der Ausführung.
-    - _Persistenz_: Synchronisiert automatisch mit \`localStorage\`, sodass Benutzer ihre Arbeit beim Neuladen nicht verlieren.
+   - _Verfolgt_: Benutzereingaben für einen _potenziellen_ Trade (Einstieg, SL, TP) vor der Ausführung.
+   - _Persistenz_: Synchronisiert automatisch mit \`localStorage\`, sodass Benutzer ihre Arbeit beim Neuladen nicht verlieren.
 4. **\`journalStore.ts\`**: Die Historische Aufzeichnung.
-    - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
-    - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
+   - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
+   - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
 
 ### KI-gestützte Telemetrie (Jules Service)
 
@@ -159,15 +159,15 @@ Cachy arbeitet rückwärts: _Ich möchte 100 \$ riskieren -> Wie viel BTC sollte
 **Berechnungsschritte**:
 
 1. **Abstand Bestimmen**:
-    $$ \Delta = | 50.000 - 49.000 | = 1.000 $$
+   $$ \Delta = | 50.000 - 49.000 | = 1.000 $$
 2. **Menge Berechnen (Größe)**:
-    $$ Qty = \frac{Risiko}{\Delta} = \frac{100}{1.000} = 0,1 \text{ BTC} $$
+   $$ Qty = \frac{Risiko}{\Delta} = \frac{100}{1.000} = 0,1 \text{ BTC} $$
 3. **Validierung**:
-    Wenn der Preis 49.000 \$ erreicht, beträgt der Verlust 0,1 x 1.000 = 100 \$. **Die Mathematik stimmt.**
+   Wenn der Preis 49.000 \$ erreicht, beträgt der Verlust 0,1 x 1.000 = 100 \$. **Die Mathematik stimmt.**
 4. **Hebel-Check**:
-    Wert der Position ist 0,1 x 50.000 = 5.000 \$.
-    Wenn der Benutzer 10x Hebel hat, Erforderliche Margin = 500 \$.
-    _Das System validiert, dass 500 \$ < Verfügbares Guthaben._
+   Wert der Position ist 0,1 x 50.000 = 5.000 \$.
+   Wenn der Benutzer 10x Hebel hat, Erforderliche Margin = 500 \$.
+   _Das System validiert, dass 500 \$ < Verfügbares Guthaben._
 
 ### Deep Dive Analytik: Trader-Psychologie
 
@@ -375,10 +375,10 @@ _Komponente: \`TradeSetupInputs.svelte\`_
 1. **Benutzereingabe**: Benutzer tippt "BTC".
 2. **Unified Analysis Fetch**: Die Komponente ruft \`app.fetchAllAnalysisData()\` auf, was eine koordinierte Datenernte auslöst.
 3. **Parallele Ausführung**:
-    - **WebSocket**: Verbindet sich mit dem \`ticker\`-Kanal für Echtzeitpreise.
-    - **REST API (Preis)**: Ruft den neuesten Preis-Snapshot ab.
-    - **REST API (ATR)**: Ruft 1440 Minuten Kerzenhistorie für den _primären_ Zeitrahmen ab.
-    - **Multi-ATR Scan**: Ruft gleichzeitig Kerzen für _sekundäre_ Zeitrahmen (1h, 4h) im Hintergrund ab.
+   - **WebSocket**: Verbindet sich mit dem \`ticker\`-Kanal für Echtzeitpreise.
+   - **REST API (Preis)**: Ruft den neuesten Preis-Snapshot ab.
+   - **REST API (ATR)**: Ruft 1440 Minuten Kerzenhistorie für den _primären_ Zeitrahmen ab.
+   - **Multi-ATR Scan**: Ruft gleichzeitig Kerzen für _sekundäre_ Zeitrahmen (1h, 4h) im Hintergrund ab.
 4. **Auto-Fill**: Das System verwendet den primären ATR, um einen "sicheren" Stop-Loss-Preis vorzuschlagen (z. B. $Einstieg - 1,5 \times ATR$).
 
 ### Phase 2: Ausführung (Die Proxy-Schicht)
@@ -398,8 +398,8 @@ _Komponente: \`PositionsSidebar.svelte\`_
 1. **Socket-Event**: Bitunix sendet ein \`ORDER_UPDATE\` über WebSocket.
 2. **Store-Update**: \`accountStore\` empfängt das Ereignis. Es sieht Status \`FILLED\`.
 3. **Atomare Zustandsänderung**:
-    - Die "Pending Order" wird aus \`openOrders\` entfernt.
-    - Eine neue "Position" wird in \`positions\` erstellt.
+   - Die "Pending Order" wird aus \`openOrders\` entfernt.
+   - Eine neue "Position" wird in \`positions\` erstellt.
 4. **UI-Render**: Die Seitenleiste animiert die neue Position sofort in den Sichtbereich.
 
 ### Phase 4: Schließen & Journalisieren (Die Sync-Schicht)
@@ -409,10 +409,10 @@ _Komponente: \`app.ts\` (Sync-Logik)_
 1. **Schließung**: Benutzer klickt auf "Schließen" oder SL wird getroffen.
 2. **Historien-Abruf**: Die App pollt \`get_history_positions\` (für geschlossene Trades) und \`get_pending_positions\` (für Status-Updates).
 3. **Der "Safe Swap"**:
-    - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
-    - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
-    - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalStore\` (Historie).
-    - Es speichert den neuen Journaleintrag im \`localStorage\`.
+   - Das System erkennt eine Positions-ID in der Historie, die mit einer aktiven ID im \`accountStore\` übereinstimmt.
+   - Es "hydratisiert" den Trade mit finalen Daten (Realisierte PnL, Gebühren, Finanzierung).
+   - Es verschiebt das Objekt vom \`accountStore\` (Aktiv) in den \`journalStore\` (Historie).
+   - Es speichert den neuen Journaleintrag im \`localStorage\`.
 
 ---
 
@@ -435,12 +435,12 @@ Die Konnektivität wird über die Abstraktionsschicht \`src/services/apiService.
 Um **Reaktionsfähigkeit** vs. **Ratenbegrenzungen** auszubalancieren, verwendet Cachy einen hybriden Ansatz:
 
 1. **Initiales Laden (REST)**:
-    - Ruft die vollständige Orderhistorie ab (Paginierung unterstützt).
-    - Ruft 1440 Minuten Kerzenhistorie ab (für RSI/ATR-Berechnung).
+   - Ruft die vollständige Orderhistorie ab (Paginierung unterstützt).
+   - Ruft 1440 Minuten Kerzenhistorie ab (für RSI/ATR-Berechnung).
 2. **Echtzeit (WebSocket)**:
-    - **Öffentliche Kanäle**: \`ticker\`, \`depth\`, \`trade\`. Verwendet für Charting und Preisaktualisierungen.
-    - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Verwendet zur Aktualisierung des Benutzer-Dashboards.
-    - _Heartbeat-Logik_: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
+   - **Öffentliche Kanäle**: \`ticker\`, \`depth\`, \`trade\`. Verwendet für Charting und Preisaktualisierungen.
+   - **Private Kanäle**: \`order\`, \`position\`, \`wallet\`. Verwendet zur Aktualisierung des Benutzer-Dashboards.
+   - _Heartbeat-Logik_: Ein "Watchdog"-Timer im \`BitunixWebSocketService\` beendet und startet die Verbindung neu, wenn innerhalb von 20 Sekunden kein "Pong" empfangen wird, was 99,9% Betriebszeit gewährleistet.
 
 ### Das "Safe Swap" Synchronisations-Protokoll
 
@@ -451,10 +451,10 @@ Eine kritische Herausforderung bei der Synchronisierung des lokalen Zustands mit
 1. **Neue Daten abrufen**: Die App ruft die vollständige Liste der offenen Positionen von der API ab.
 2. **Diffing**: Sie vergleicht die neue Liste mit dem \`accountStore\`.
 3. **Atomarer Tausch**:
-    - Wenn eine Position im Store existiert, aber NICHT in der API -> Sie wurde geschlossen. Verschiebe ins Journal.
-    - Wenn eine Position in der API existiert, aber NICHT im Store -> Sie wurde remote geöffnet. Füge zum Store hinzu.
-    - Wenn in BEIDEN -> Aktualisiere PnL/Margin-Metriken.
-    - _Entscheidend_: Dies geschieht in einem \`try/catch\`-Block. Wenn der API-Abruf fehlschlägt, bleibt der lokale Zustand **erhalten** (nicht gelöscht), was den bei anderen Apps üblichen "Null-Guthaben-Schreck" verhindert.
+   - Wenn eine Position im Store existiert, aber NICHT in der API -> Sie wurde geschlossen. Verschiebe ins Journal.
+   - Wenn eine Position in der API existiert, aber NICHT im Store -> Sie wurde remote geöffnet. Füge zum Store hinzu.
+   - Wenn in BEIDEN -> Aktualisiere PnL/Margin-Metriken.
+   - _Entscheidend_: Dies geschieht in einem \`try/catch\`-Block. Wenn der API-Abruf fehlschlägt, bleibt der lokale Zustand **erhalten** (nicht gelöscht), was den bei anderen Apps üblichen "Null-Guthaben-Schreck" verhindert.
 
 ---
 

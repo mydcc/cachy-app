@@ -10,7 +10,7 @@ function checkAndTrack(
   key: string,
   category: string,
   action: string,
-  name: string
+  name: string,
 ) {
   if (!browser) return;
 
@@ -30,7 +30,7 @@ export const onboardingService = {
       FIRST_INPUT_KEY,
       "Onboarding",
       "FirstInteraction",
-      "FirstInput"
+      "FirstInput",
     );
   },
   trackFirstCalculation: () => {
@@ -38,7 +38,7 @@ export const onboardingService = {
       FIRST_CALC_KEY,
       "Onboarding",
       "FirstInteraction",
-      "FirstCalculation"
+      "FirstCalculation",
     );
   },
   trackFirstJournalSave: () => {
@@ -46,7 +46,7 @@ export const onboardingService = {
       FIRST_SAVE_KEY,
       "Onboarding",
       "FirstInteraction",
-      "FirstJournalSave"
+      "FirstJournalSave",
     );
   },
 };

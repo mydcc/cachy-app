@@ -9,7 +9,7 @@ test("verify visual analysis chart renders correctly", async ({ page }) => {
         disclaimerAccepted: true,
         onboardingCompleted: true,
         theme: "dark", // Assuming 'dark' is a valid theme key
-      })
+      }),
     );
   });
 

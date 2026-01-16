@@ -232,7 +232,7 @@ describe("Build Process", () => {
 
     expect(
       exists,
-      `Production build output not found at ${buildOutputPath}. Make sure to run 'npm run build' before testing.`
+      `Production build output not found at ${buildOutputPath}. Make sure to run 'npm run build' before testing.`,
     ).toBe(true);
   });
 });
@@ -286,7 +286,7 @@ describe("app service - ATR and Locking Logic", () => {
       15,
       undefined,
       undefined,
-      "high"
+      "high",
     );
     expect(store.atrValue).not.toBe(null);
     expect(new Decimal(store.atrValue!).isFinite()).toBe(true);
@@ -460,18 +460,30 @@ describe("app service - ATR and Locking Logic", () => {
     journalStore.set([]); // Clear journal
 
     // Mock syncService instead of direct fetch inside syncBitunixHistory as it has complex store usage
-    const syncSpy = vi.spyOn(app, 'syncBitunixHistory').mockImplementation(async () => {
-      journalStore.set([
-        {
-          id: 1, tradeId: "1", date: "2023-01-01T00:00:00.000Z", symbol: "BTCUSDT",
-          tradeType: "short", status: "Won", entryPrice: new Decimal(20000)
-        } as any,
-        {
-          id: 2, tradeId: "2", date: "2023-01-01T00:00:00.000Z", symbol: "ETHUSDT",
-          tradeType: "long", status: "Won", entryPrice: new Decimal(1500)
-        } as any
-      ]);
-    });
+    const syncSpy = vi
+      .spyOn(app, "syncBitunixHistory")
+      .mockImplementation(async () => {
+        journalStore.set([
+          {
+            id: 1,
+            tradeId: "1",
+            date: "2023-01-01T00:00:00.000Z",
+            symbol: "BTCUSDT",
+            tradeType: "short",
+            status: "Won",
+            entryPrice: new Decimal(20000),
+          } as any,
+          {
+            id: 2,
+            tradeId: "2",
+            date: "2023-01-01T00:00:00.000Z",
+            symbol: "ETHUSDT",
+            tradeType: "long",
+            status: "Won",
+            entryPrice: new Decimal(1500),
+          } as any,
+        ]);
+      });
 
     await app.syncBitunixHistory();
 
@@ -479,10 +491,10 @@ describe("app service - ATR and Locking Logic", () => {
     expect(journal.length).toBe(2);
 
     expect(new Date(journal[0].date).toISOString()).toBe(
-      "2023-01-01T00:00:00.000Z"
+      "2023-01-01T00:00:00.000Z",
     );
     expect(new Date(journal[1].date).toISOString()).toBe(
-      "2023-01-01T00:00:00.000Z"
+      "2023-01-01T00:00:00.000Z",
     );
 
     syncSpy.mockRestore();

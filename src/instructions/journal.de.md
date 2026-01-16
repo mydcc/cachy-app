@@ -44,13 +44,11 @@ Diese Anleitung erklärt dir **jedes einzelne Feature** und **jedes Diagramm** i
 Erfolgreiches Trading basiert auf einem wiederholbaren Prozess. Der **Calculator** und das **Journal** arbeiten Hand in Hand:
 
 1. **Planen (Calculator):** Du definierst VOR dem Trade dein Risiko. Wo ist der Entry? Wo ist der Stop-Loss? Wie viel % deines Kapitals riskierst du?
-
    - _Der Calculator stellt sicher, dass du nie blind in einen Trade gehst._
 
 2. **Ausführen (Broker):** Du setzt den Trade basierend auf den berechneten Werten um.
 
 3. **Dokumentieren (Journal):** Sobald der Trade beendet ist (automatisch via API oder manuell), landet er im Journal.
-
    - _Hier beginnt die eigentliche Arbeit: Die Analyse._
 
 4. **Optimieren:** Du nutzt die Analysen und Charts, um Muster zu erkennen. Verlierst du oft am Freitag? Sind deine Longs profitabler als Shorts? Welche Strategie funktioniert?
@@ -68,7 +66,6 @@ Erfolgreiches Trading basiert auf einem wiederholbaren Prozess. Der **Calculator
 Das Journal besteht aus zwei Hauptbereichen:
 
 1. **Dashboard-Bereich (oben):** Hier wählst du zwischen verschiedenen Analyse-Ansichten:
-
    - **Performance Dashboard:** Die 5 Haupt-Tabs (Performance, Quality, Direction, Discipline, Costs)
    - **Deep Dive:** 10 spezialisierte Analyse-Tabs für Pro-User
 
@@ -257,13 +254,11 @@ Zentrale Kennzahlen deiner Trading-Performance in einer kompakten Übersicht.
 **Metriken:**
 
 1. **Win Rate** (Gewinnrate)
-
    - Prozentsatz gewonnener Trades
    - Grün wenn ≥ 50%, Rot wenn < 50%
    - Formel: `(Gewinn-Trades / Gesamt-Trades) × 100`
 
 2. **Profit Factor** (PF)
-
    - Verhältnis Bruttogewinn zu Bruttoverlust
    - Grün wenn ≥ 1.5, Gelb wenn ≥ 1.0, Rot wenn < 1.0
    - **> 1.0** = Profitabel
@@ -272,13 +267,11 @@ Zentrale Kennzahlen deiner Trading-Performance in einer kompakten Übersicht.
    - Formel: `Bruttogewinn / |Bruttoverlust|`
 
 3. **Expectancy** (Erwartungswert)
-
    - Durchschnittlicher Gewinn pro Trade in $
    - Positiv = langfristig profitabel
    - Formel: `(Win Rate × Avg Win) - (Loss Rate × Avg Loss)`
 
 4. **Avg W/L** (Durchschnittlicher Gewinn/Verlust)
-
    - Zeigt durchschnittlichen Gewinn-Trade vs. Verlust-Trade
    - Grün zeigt Avg Win, Rot zeigt Avg Loss
    - Sollte mindestens 1:1 sein

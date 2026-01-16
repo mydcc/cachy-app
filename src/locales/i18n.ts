@@ -49,14 +49,14 @@ const TECHNICAL_KEYS = [
 
 // Helper to get nested value from object using dot notation path
 function getNestedValue(obj: any, path: string): any {
-  return path.split('.').reduce((prev, curr) => {
+  return path.split(".").reduce((prev, curr) => {
     return prev ? prev[curr] : null;
   }, obj);
 }
 
 // Helper to set nested value in object using dot notation path
 function setNestedValue(obj: any, path: string, value: any) {
-  const keys = path.split('.');
+  const keys = path.split(".");
   let current = obj;
 
   for (let i = 0; i < keys.length; i++) {
@@ -69,7 +69,7 @@ function setNestedValue(obj: any, path: string, value: any) {
     }
 
     // If intermediate key doesn't exist or isn't an object, create it
-    if (!current[key] || typeof current[key] !== 'object') {
+    if (!current[key] || typeof current[key] !== "object") {
       current[key] = {};
     }
 
@@ -99,7 +99,7 @@ TECHNICAL_KEYS.forEach((key) => {
 register("de-tech", () => Promise.resolve(deTechDict));
 
 function getSafeLocale(
-  getter: () => string | undefined | null
+  getter: () => string | undefined | null,
 ): string | undefined | null {
   try {
     return getter();
@@ -157,7 +157,6 @@ locale.subscribe((value) => {
 settingsStore.subscribe(() => {
   updateEffectiveLocale();
 });
-
 
 export function setLocale(newLocale: string) {
   locale.set(newLocale);

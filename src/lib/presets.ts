@@ -32,7 +32,7 @@ export const savePreset = (name: string, data: AppState) => {
   try {
     localStorage.setItem(
       CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-      JSON.stringify(presets)
+      JSON.stringify(presets),
     );
     updatePresetStore((store) => ({
       ...store,
@@ -55,7 +55,7 @@ export const deletePreset = (name: string) => {
   try {
     localStorage.setItem(
       CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
-      JSON.stringify(presets)
+      JSON.stringify(presets),
     );
     updatePresetStore((store) => ({
       ...store,

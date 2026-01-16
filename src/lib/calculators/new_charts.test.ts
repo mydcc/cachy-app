@@ -66,7 +66,7 @@ describe("New Deep Dive Charts", () => {
     });
 
     it("should handle trades with zero risk amount gracefully (fallback to raw values)", () => {
-       const trades = [
+      const trades = [
         createTrade({
           mae: new Decimal(50),
           mfe: new Decimal(200),
@@ -89,9 +89,21 @@ describe("New Deep Dive Charts", () => {
   describe("getVolatilityMatrixData (ATR Matrix)", () => {
     it("should group trades by ATR volatility", () => {
       const trades = [
-        createTrade({ atrValue: new Decimal(10), totalNetProfit: new Decimal(100), status: "Won" }), // Low
-        createTrade({ atrValue: new Decimal(50), totalNetProfit: new Decimal(200), status: "Won" }), // Normal (Avg)
-        createTrade({ atrValue: new Decimal(100), totalNetProfit: new Decimal(-50), status: "Lost" }), // High
+        createTrade({
+          atrValue: new Decimal(10),
+          totalNetProfit: new Decimal(100),
+          status: "Won",
+        }), // Low
+        createTrade({
+          atrValue: new Decimal(50),
+          totalNetProfit: new Decimal(200),
+          status: "Won",
+        }), // Normal (Avg)
+        createTrade({
+          atrValue: new Decimal(100),
+          totalNetProfit: new Decimal(-50),
+          status: "Lost",
+        }), // High
       ];
       // Avg ATR = (10+50+100)/3 = 53.33
       // Low < 42.6 (0.8 * 53) -> 10 is Low
@@ -124,9 +136,17 @@ describe("New Deep Dive Charts", () => {
     it("should calculate normalized scores", () => {
       const trades = [
         // Win
-        createTrade({ status: "Won", totalNetProfit: new Decimal(200), riskAmount: new Decimal(100) }),
+        createTrade({
+          status: "Won",
+          totalNetProfit: new Decimal(200),
+          riskAmount: new Decimal(100),
+        }),
         // Loss - MUST HAVE NEGATIVE PNL for stats to count it as loss amount
-        createTrade({ status: "Lost", totalNetProfit: new Decimal(-100), riskAmount: new Decimal(100) }),
+        createTrade({
+          status: "Lost",
+          totalNetProfit: new Decimal(-100),
+          riskAmount: new Decimal(100),
+        }),
       ];
       // Win Rate: 50%
       // Profit Factor: 200 / 100 = 2.0

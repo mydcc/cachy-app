@@ -14,7 +14,7 @@ export function trackCustomEvent(
   category: string,
   action: string,
   name?: string,
-  value?: number
+  value?: number,
 ) {
   if (!window._mtm) {
     // Matomo Tag Manager is not available, do nothing.

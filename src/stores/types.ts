@@ -119,9 +119,7 @@ export interface AppState {
 }
 
 export interface CurrentTradeData
-  extends TradeValues,
-  BaseMetrics,
-  TotalMetrics {
+  extends TradeValues, BaseMetrics, TotalMetrics {
   tradeType: string;
   status: string;
   calculatedTpDetails: IndividualTpResult[];

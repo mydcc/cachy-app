@@ -36,7 +36,7 @@ ChartJS.register(
   DoughnutController,
   BubbleController,
   annotationPlugin,
-  ChartDataLabels
+  ChartDataLabels,
 );
 
 export async function initZoomPlugin() {
@@ -61,4 +61,10 @@ ChartJS.defaults.set("plugins.datalabels", {
 });
 
 // Configure passive event listeners to prevent scroll-blocking warnings
-ChartJS.defaults.events = ['mousemove', 'mouseout', 'click', 'touchstart', 'touchmove'];
+ChartJS.defaults.events = [
+  "mousemove",
+  "mouseout",
+  "click",
+  "touchstart",
+  "touchmove",
+];

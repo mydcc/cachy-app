@@ -68,7 +68,7 @@ class ServerLogger extends EventEmitter {
           // Check ob der Key sensibel ist (case-insensitive)
           const lowerKey = key.toLowerCase();
           const isSensitive = this.sensitiveKeys.some((s) =>
-            lowerKey.includes(s.toLowerCase())
+            lowerKey.includes(s.toLowerCase()),
           );
 
           if (isSensitive) {

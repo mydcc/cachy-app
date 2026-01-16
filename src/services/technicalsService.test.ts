@@ -91,7 +91,7 @@ describe("technicalsService", () => {
 
     const result = await technicalsService.calculateTechnicals(
       klines,
-      settings
+      settings,
     );
 
     // Verify CCI params

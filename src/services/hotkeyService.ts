@@ -82,7 +82,7 @@ function cycleTakeProfitFocus(reverse: boolean = false) {
   if (activeElement && activeElement.id.startsWith(IDs.TP_PRICE_PREFIX)) {
     currentIndex = parseInt(
       activeElement.id.replace(IDs.TP_PRICE_PREFIX, ""),
-      10
+      10,
     );
   }
 

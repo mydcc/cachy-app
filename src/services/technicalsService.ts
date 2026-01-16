@@ -67,7 +67,7 @@ export const JSIndicators = {
     high: number[],
     low: number[],
     close: number[],
-    kPeriod: number
+    kPeriod: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < kPeriod) return result;
@@ -134,7 +134,7 @@ export const JSIndicators = {
     high: number[],
     low: number[],
     close: number[],
-    period: number
+    period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < period * 2) return result;
@@ -152,7 +152,7 @@ export const JSIndicators = {
       tr[i] = Math.max(
         high[i] - low[i],
         Math.abs(high[i] - close[i - 1]),
-        Math.abs(low[i] - close[i - 1])
+        Math.abs(low[i] - close[i - 1]),
       );
     }
 
@@ -218,7 +218,7 @@ export const technicalsService = {
       close: number | string | Decimal;
       volume?: number | string | Decimal;
     }[],
-    settings?: IndicatorSettings
+    settings?: IndicatorSettings,
   ): Promise<TechnicalsData> {
     if (klinesInput.length === 0) return this.getEmptyData();
 
@@ -226,7 +226,7 @@ export const technicalsService = {
     const lastKline = klinesInput[klinesInput.length - 1];
     const lastPrice = lastKline.close?.toString() || "0";
     const cacheKey = `${klinesInput.length}-${lastKline.time}-${lastPrice}-${JSON.stringify(
-      settings
+      settings,
     )}`;
     const cached = calculationCache.get(cacheKey);
     if (cached) {
@@ -241,13 +241,13 @@ export const technicalsService = {
         await talibInit;
         if (!talibReady) {
           console.warn(
-            "talib-web initialization failed or timed out. Falling back to JS indicators."
+            "talib-web initialization failed or timed out. Falling back to JS indicators.",
           );
         }
       } catch (e) {
         console.warn(
           "Error awaiting talibInit. Falling back to JS indicators:",
-          e
+          e,
         );
       }
     }
@@ -258,7 +258,7 @@ export const technicalsService = {
 
     const toDec = (
       val: number | string | Decimal | undefined,
-      fallback: Decimal
+      fallback: Decimal,
     ): Decimal => {
       if (val instanceof Decimal) return val;
       if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
@@ -320,7 +320,7 @@ export const technicalsService = {
       // 1. RSI
       const rsiLen = settings?.rsi?.length || 14;
       const rsiSource = getSource(settings?.rsi?.source || "close").map((d) =>
-        d.toNumber()
+        d.toNumber(),
       );
       const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
       const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
@@ -332,7 +332,7 @@ export const technicalsService = {
         action: this.getRsiAction(
           rsiVal,
           settings?.rsi?.overbought || 70,
-          settings?.rsi?.oversold || 30
+          settings?.rsi?.oversold || 30,
         ),
       });
 
@@ -345,7 +345,7 @@ export const technicalsService = {
         Array.from(highsNum),
         Array.from(lowsNum),
         Array.from(closesNum),
-        stochK
+        stochK,
       );
       if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
       const dLine = JSIndicators.sma(kLine, stochD);
@@ -373,7 +373,7 @@ export const technicalsService = {
 
       // Default CCI source is Typical Price (HLC3)
       const cciSource = getSource(settings?.cci?.source || "hlc3").map((d) =>
-        d.toNumber()
+        d.toNumber(),
       );
 
       let cciResults = JSIndicators.cci(cciSource, cciLen);
@@ -405,7 +405,7 @@ export const technicalsService = {
         Array.from(highsNum),
         Array.from(lowsNum),
         Array.from(closesNum),
-        adxLen
+        adxLen,
       );
       const adxVal = new Decimal(adxResults[adxResults.length - 1]);
 
@@ -423,7 +423,7 @@ export const technicalsService = {
         highsNum,
         lowsNum,
         aoFast,
-        aoSlow
+        aoSlow,
       );
 
       let aoAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -440,7 +440,7 @@ export const technicalsService = {
       // 6. Momentum
       const momLen = settings?.momentum?.length || 10;
       const momSource = getSource(settings?.momentum?.source || "close").map(
-        (d) => d.toNumber()
+        (d) => d.toNumber(),
       );
       const momResults = JSIndicators.mom(momSource, momLen);
       const momVal = new Decimal(momResults[momResults.length - 1]);
@@ -461,20 +461,20 @@ export const technicalsService = {
       const macdSlow = settings?.macd?.slowLength || 26;
       const macdSig = settings?.macd?.signalLength || 9;
       const macdSource = getSource(settings?.macd?.source || "close").map((d) =>
-        d.toNumber()
+        d.toNumber(),
       );
 
       const macdResults = JSIndicators.macd(
         macdSource,
         macdFast,
         macdSlow,
-        macdSig
+        macdSig,
       );
       const macdVal = new Decimal(
-        macdResults.macd[macdResults.macd.length - 1]
+        macdResults.macd[macdResults.macd.length - 1],
       );
       const macdSignalVal = new Decimal(
-        macdResults.signal[macdResults.signal.length - 1]
+        macdResults.signal[macdResults.signal.length - 1],
       );
 
       let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -501,7 +501,7 @@ export const technicalsService = {
       const ema2 = settings?.ema?.ema2?.length || 50;
       const ema3 = settings?.ema?.ema3?.length || 200;
       const emaSource = getSource(settings?.ema?.source || "close").map((d) =>
-        d.toNumber()
+        d.toNumber(),
       );
 
       const emaPeriods = [ema1, ema2, ema3];
@@ -569,7 +569,7 @@ export const technicalsService = {
     high: number[] | Float64Array,
     low: number[] | Float64Array,
     fastPeriod: number,
-    slowPeriod: number
+    slowPeriod: number,
   ): Promise<Decimal> {
     try {
       const h = Array.from(high);
@@ -587,7 +587,6 @@ export const technicalsService = {
 
       const fastSMA = getSMA(hl2, fastPeriod);
       const slowSMA = getSMA(hl2, slowPeriod);
-
 
       return new Decimal(fastSMA - slowSMA);
     } catch (error) {
@@ -681,7 +680,7 @@ export const technicalsService = {
   getRsiAction(
     val: Decimal | null,
     overbought: number = 70,
-    oversold: number = 30
+    oversold: number = 30,
   ): "Buy" | "Sell" | "Neutral" {
     if (!val) return "Neutral";
     const v = val.toNumber();

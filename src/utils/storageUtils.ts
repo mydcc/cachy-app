@@ -43,8 +43,8 @@ export const storageUtils = {
         `LocalStorage ist zu ${quota.percentage.toFixed(1)}% voll (${(
           quota.used / 1024
         ).toFixed(0)}KB von ${((quota.used + quota.available) / 1024).toFixed(
-          0
-        )}KB)`
+          0,
+        )}KB)`,
       );
     }
 
@@ -56,7 +56,7 @@ export const storageUtils = {
             (quota.used + quota.available) /
             1024
           ).toFixed(0)}KB. ` +
-          `Bitte löschen Sie alte Trades oder exportieren Sie Ihr Journal.`
+          `Bitte löschen Sie alte Trades oder exportieren Sie Ihr Journal.`,
       );
     }
 
@@ -66,11 +66,11 @@ export const storageUtils = {
       // QuotaExceededError or other storage errors
       if (e instanceof Error && e.name === "QuotaExceededError") {
         throw new Error(
-          "LocalStorage ist voll. Bitte exportieren Sie Ihr Journal als CSV und löschen Sie alte Einträge."
+          "LocalStorage ist voll. Bitte exportieren Sie Ihr Journal als CSV und löschen Sie alte Einträge.",
         );
       }
       throw new Error(
-        "Fehler beim Speichern. Der lokale Speicher ist möglicherweise blockiert."
+        "Fehler beim Speichern. Der lokale Speicher ist möglicherweise blockiert.",
       );
     }
   },

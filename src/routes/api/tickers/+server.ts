@@ -10,7 +10,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   if (!symbols) {
     return json(
       { message: 'Query parameter "symbols" is required.' },
-      { status: 400 }
+      { status: 400 },
     );
   }
 
@@ -39,7 +39,11 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           const errorText = await response.text();
           try {
             const data = JSON.parse(errorText);
-            if (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error"))) {
+            if (
+              data.code === 2 ||
+              data.code === "2" ||
+              (data.msg && data.msg.toLowerCase().includes("system error"))
+            ) {
               // eslint-disable-next-line no-throw-literal
               throw { status: 404, message: "Symbol not found" };
             }
@@ -51,13 +55,19 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
         }
 
         const data = await response.json();
-        if (provider !== "binance" && data && (data.code === 2 || data.code === "2" || (data.msg && data.msg.toLowerCase().includes("system error")))) {
+        if (
+          provider !== "binance" &&
+          data &&
+          (data.code === 2 ||
+            data.code === "2" ||
+            (data.msg && data.msg.toLowerCase().includes("system error")))
+        ) {
           // eslint-disable-next-line no-throw-literal
           throw { status: 404, message: "Symbol not found" };
         }
         return data;
       },
-      1000
+      1000,
     ); // 1 second TTL
 
     return json(data);
@@ -72,7 +82,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
       error instanceof Error ? error.message : "An unknown error occurred.";
     return json(
       { message: `Internal server error: ${message}` },
-      { status: 500 }
+      { status: 500 },
     );
   }
 };

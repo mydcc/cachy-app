@@ -44,7 +44,7 @@ export const uiManager = {
       instruction.html,
       "alert",
       "",
-      "modal-size-instructions"
+      "modal-size-instructions",
     );
   },
 };
@@ -60,7 +60,7 @@ export function updateVisualBar(
     percent: number | null;
     isLocked: boolean;
   }>,
-  calculatedTpDetails: IndividualTpResult[]
+  calculatedTpDetails: IndividualTpResult[],
 ): VisualBarData {
   const visualBarContent: {
     type: string;

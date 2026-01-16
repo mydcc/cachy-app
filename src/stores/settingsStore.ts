@@ -188,7 +188,7 @@ function loadSettingsFromLocalStorage(): Settings {
     }
 
     // Ensure History Config exists
-    if (typeof settings.aiTradeHistoryLimit !== 'number') {
+    if (typeof settings.aiTradeHistoryLimit !== "number") {
       settings.aiTradeHistoryLimit = defaultSettings.aiTradeHistoryLimit;
     }
 
@@ -226,7 +226,8 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.sidePanelLayout ?? defaultSettings.sidePanelLayout,
       chatStyle: settings.chatStyle ?? defaultSettings.chatStyle,
       panelState: settings.panelState ?? defaultSettings.panelState,
-      customSystemPrompt: settings.customSystemPrompt ?? defaultSettings.customSystemPrompt,
+      customSystemPrompt:
+        settings.customSystemPrompt ?? defaultSettings.customSystemPrompt,
       aiProvider: settings.aiProvider,
       openaiApiKey: settings.openaiApiKey,
       openaiModel: settings.openaiModel,
@@ -236,7 +237,8 @@ function loadSettingsFromLocalStorage(): Settings {
       anthropicModel: settings.anthropicModel,
       aiConfirmActions:
         settings.aiConfirmActions ?? defaultSettings.aiConfirmActions,
-      aiTradeHistoryLimit: settings.aiTradeHistoryLimit ?? defaultSettings.aiTradeHistoryLimit,
+      aiTradeHistoryLimit:
+        settings.aiTradeHistoryLimit ?? defaultSettings.aiTradeHistoryLimit,
 
       showSpinButtons:
         settings.showSpinButtons ?? defaultSettings.showSpinButtons,
@@ -271,7 +273,7 @@ settingsStore.subscribe((value) => {
     try {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
-        JSON.stringify(value)
+        JSON.stringify(value),
       );
     } catch (e) {
       console.warn("Could not save settings to localStorage.", e);

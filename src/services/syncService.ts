@@ -25,7 +25,6 @@ export const syncService = {
     uiStore.update((s) => ({ ...s, isPriceFetching: true }));
     uiStore.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
 
-
     try {
       // 1. Fetch History Positions
       const historyResponse = await fetch("/api/sync/positions-history", {
@@ -79,23 +78,34 @@ export const syncService = {
       }
 
       // Lookup for SL
-      const symbolSlMap: Record<string, Array<{ ctime: number; slPrice: Decimal }>> = {};
+      const symbolSlMap: Record<
+        string,
+        Array<{ ctime: number; slPrice: Decimal }>
+      > = {};
       orders.forEach((o: any) => {
-        let sl = new Decimal(o.slPrice || o.stopLossPrice || o.triggerPrice || 0);
+        let sl = new Decimal(
+          o.slPrice || o.stopLossPrice || o.triggerPrice || 0,
+        );
         const t = parseTimestamp(o.createTime || o.ctime);
         if (sl.gt(0) && o.symbol) {
           if (!symbolSlMap[o.symbol]) symbolSlMap[o.symbol] = [];
           symbolSlMap[o.symbol].push({ ctime: t, slPrice: sl });
         }
       });
-      Object.values(symbolSlMap).forEach((list) => list.sort((a, b) => a.ctime - b.ctime));
+      Object.values(symbolSlMap).forEach((list) =>
+        list.sort((a, b) => a.ctime - b.ctime),
+      );
 
       const newEntries: JournalEntry[] = [];
       let addedCount = 0;
 
       // Process Pending (Simplified)
       for (const p of pendingPositions) {
-        const side = (p.side || "").toLowerCase().includes("sell") || (p.side || "").toLowerCase().includes("short") ? "short" : "long";
+        const side =
+          (p.side || "").toLowerCase().includes("sell") ||
+          (p.side || "").toLowerCase().includes("short")
+            ? "short"
+            : "long";
         const uniqueId = `OPEN-${p.positionId || p.symbol + "-" + side}`;
 
         const entryPrice = new Decimal(p.avgOpenPrice || p.entryPrice || 0);
@@ -107,7 +117,8 @@ export const syncService = {
 
         let stopLoss = new Decimal(0);
         const candidates = symbolSlMap[p.symbol];
-        if (candidates && candidates.length > 0) stopLoss = candidates[candidates.length - 1].slPrice;
+        if (candidates && candidates.length > 0)
+          stopLoss = candidates[candidates.length - 1].slPrice;
 
         newEntries.push({
           id: Date.now() + Math.random(),
@@ -134,14 +145,16 @@ export const syncService = {
           targets: [],
           calculatedTpDetails: [],
           tags: [],
-          fundingFee: funding
+          fundingFee: funding,
         });
         addedCount++;
       }
 
       // --- Process History (Optimized Parallel Batching) ---
       const currentJournal = get(journalStore);
-      const existingHistoryIds = new Set(currentJournal.map((j) => String(j.tradeId || j.id)));
+      const existingHistoryIds = new Set(
+        currentJournal.map((j) => String(j.tradeId || j.id)),
+      );
 
       const filteredHistory = historyPositions.filter((p: any) => {
         const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
@@ -150,8 +163,11 @@ export const syncService = {
 
       const totalItems = filteredHistory.length;
       let processedItems = 0;
-      uiStore.setSyncProgress({ total: totalItems, current: 0, step: "Processing History" });
-
+      uiStore.setSyncProgress({
+        total: totalItems,
+        current: 0,
+        step: "Processing History",
+      });
 
       // Batch size for parallel kline requests
       const BATCH_SIZE = 3;
@@ -163,12 +179,16 @@ export const syncService = {
           uiStore.setSyncProgress({
             total: totalItems,
             current: currentIndex,
-            step: `Loading ${currentIndex + 1}/${totalItems}`
+            step: `Loading ${currentIndex + 1}/${totalItems}`,
           });
 
           // ... (rest of the map remains the same, but I need to include it for the tool)
-          const uniqueId = String(p.positionId || `HIST-${p.symbol}-${p.ctime}`);
-          const realizedPnl = new Decimal(p.realizedPNL || p.realizedPnl || p.pnl || 0);
+          const uniqueId = String(
+            p.positionId || `HIST-${p.symbol}-${p.ctime}`,
+          );
+          const realizedPnl = new Decimal(
+            p.realizedPNL || p.realizedPnl || p.pnl || 0,
+          );
           const funding = new Decimal(p.funding || 0);
           const fee = new Decimal(p.fee || 0);
           const entryPrice = new Decimal(p.entryPrice || 0);
@@ -186,7 +206,11 @@ export const syncService = {
             if (candidates && posTime > 0) {
               const tolerance = 5000;
               for (let j = candidates.length - 1; j >= 0; j--) {
-                if (Math.abs(candidates[j].ctime - posTime) < 60000 * 60 * 24 * 60) { // 60 day window
+                if (
+                  Math.abs(candidates[j].ctime - posTime) <
+                  60000 * 60 * 24 * 60
+                ) {
+                  // 60 day window
                   if (candidates[j].ctime <= posTime + tolerance) {
                     stopLoss = candidates[j].slPrice;
                     break;
@@ -209,14 +233,25 @@ export const syncService = {
                 else interval = "1h";
               }
 
-              const klines = await apiService.fetchBitunixKlines(p.symbol, interval, 1000, posTime, closeTime, "normal", 30000);
+              const klines = await apiService.fetchBitunixKlines(
+                p.symbol,
+                interval,
+                1000,
+                posTime,
+                closeTime,
+                "normal",
+                30000,
+              );
               if (klines?.length > 0) {
-                let maxHigh = new Decimal(0), minLow = new Decimal(Infinity);
+                let maxHigh = new Decimal(0),
+                  minLow = new Decimal(Infinity);
                 klines.forEach((k) => {
                   if (k.high.gt(maxHigh)) maxHigh = k.high;
                   if (k.low.lt(minLow)) minLow = k.low;
                 });
-                const isShort = (p.side || "").toLowerCase().includes("sell") || (p.side || "").toLowerCase().includes("short");
+                const isShort =
+                  (p.side || "").toLowerCase().includes("sell") ||
+                  (p.side || "").toLowerCase().includes("short");
 
                 if (minLow.isFinite() && maxHigh.gt(0)) {
                   if (isShort) {
@@ -230,17 +265,20 @@ export const syncService = {
                   if (mfe.gt(0) && qty.gt(0)) {
                     efficiency = netPnl.div(mfe.times(qty));
                   } else if (qty.gt(0)) {
-                    // MFE is 0, but we still have a trade. 
-                    // If netPnl > 0 with MFE 0, it's weird but mathematically 100% efficient? 
+                    // MFE is 0, but we still have a trade.
+                    // If netPnl > 0 with MFE 0, it's weird but mathematically 100% efficient?
                     // Usually means entry was exactly at low (for long).
                     efficiency = netPnl.gt(0) ? new Decimal(1) : new Decimal(0);
                   }
                 }
               }
             }
-          } catch (err) { console.warn(`MAE/MFE failed for ${p.symbol}:`, err); }
+          } catch (err) {
+            console.warn(`MAE/MFE failed for ${p.symbol}:`, err);
+          }
 
-          let riskAmount = new Decimal(0), totalRR = new Decimal(0);
+          let riskAmount = new Decimal(0),
+            totalRR = new Decimal(0);
           if (stopLoss.gt(0) && entryPrice.gt(0) && qty.gt(0)) {
             riskAmount = entryPrice.minus(stopLoss).abs().times(qty);
             if (riskAmount.gt(0)) totalRR = netPnl.div(riskAmount);
@@ -252,22 +290,27 @@ export const syncService = {
           uiStore.setSyncProgress({
             total: totalItems,
             current: currentIndex + 1,
-            step: `Loaded ${currentIndex + 1}/${totalItems}`
+            step: `Loaded ${currentIndex + 1}/${totalItems}`,
           });
 
           return {
             id: Date.now() + Math.random(),
             tradeId: uniqueId,
             date: new Date(closeTime).toISOString(),
-            entryDate: posTime > 0 ? new Date(posTime).toISOString() : undefined,
+            entryDate:
+              posTime > 0 ? new Date(posTime).toISOString() : undefined,
             symbol: p.symbol,
-            tradeType: (p.side || "").toLowerCase().includes("sell") ? "short" : "long",
+            tradeType: (p.side || "").toLowerCase().includes("sell")
+              ? "short"
+              : "long",
             status: netPnl.gt(0) ? "Won" : "Lost",
             leverage: new Decimal(p.leverage || 0),
             entryPrice,
             exitPrice: closePrice,
             stopLossPrice: stopLoss,
-            mae, mfe, efficiency,
+            mae,
+            mfe,
+            efficiency,
             totalRR,
             totalNetProfit: netPnl,
             riskAmount,
@@ -275,9 +318,15 @@ export const syncService = {
             notes: `Synced Position. Funding: ${funding.toFixed(4)}`,
             isManual: false,
             positionSize: qty,
-            accountSize: new Decimal(0), riskPercentage: new Decimal(0), fees: new Decimal(0), maxPotentialProfit: new Decimal(0), targets: [], calculatedTpDetails: [], tags: [],
+            accountSize: new Decimal(0),
+            riskPercentage: new Decimal(0),
+            fees: new Decimal(0),
+            maxPotentialProfit: new Decimal(0),
+            targets: [],
+            calculatedTpDetails: [],
+            tags: [],
             fundingFee: funding,
-            exitDate: new Date(closeTime).toISOString()
+            exitDate: new Date(closeTime).toISOString(),
           };
         });
 
@@ -287,9 +336,13 @@ export const syncService = {
         // Add trades to journal immediately (streaming/incremental update)
         if (validResults.length > 0) {
           const currentJournalState = get(journalStore);
-          const keptJournal = currentJournalState.filter((j) => !(j.isManual === false && j.status === "Open"));
+          const keptJournal = currentJournalState.filter(
+            (j) => !(j.isManual === false && j.status === "Open"),
+          );
           const updatedJournal = [...keptJournal, ...validResults];
-          updatedJournal.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+          updatedJournal.sort(
+            (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+          );
 
           journalStore.set(updatedJournal);
           syncService.saveJournal(updatedJournal);
@@ -299,12 +352,11 @@ export const syncService = {
 
         // Anti-Rate-Limit delay between batches
         if (i + BATCH_SIZE < filteredHistory.length) {
-          await new Promise(r => setTimeout(r, 600));
+          await new Promise((r) => setTimeout(r, 600));
         }
 
         processedItems += batch.length;
       }
-
 
       // Final feedback - trades already added incrementally
       if (addedCount > 0) {
@@ -313,7 +365,11 @@ export const syncService = {
         else uiStore.showFeedback("save", 2000);
       } else {
         trackCustomEvent("Sync", "BitunixHistory", "NoNewData");
-        uiStore.showError(isPartialSync ? "Sync unvollständig. Keine neuen Positionen." : "Keine neuen Positionen gefunden.");
+        uiStore.showError(
+          isPartialSync
+            ? "Sync unvollständig. Keine neuen Positionen."
+            : "Keine neuen Positionen gefunden.",
+        );
       }
     } catch (e: any) {
       console.error("Sync error:", e);
@@ -323,7 +379,6 @@ export const syncService = {
       uiStore.update((s) => ({ ...s, isPriceFetching: false }));
       uiStore.setSyncProgress(null);
     }
-
   },
 
   saveJournal: (d: JournalEntry[]) => {
@@ -331,11 +386,11 @@ export const syncService = {
     try {
       localStorage.setItem(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        JSON.stringify(d)
+        JSON.stringify(d),
       );
     } catch {
       uiStore.showError(
-        "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert."
+        "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
       );
     }
   },

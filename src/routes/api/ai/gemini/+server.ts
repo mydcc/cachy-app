@@ -30,7 +30,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Legacy cleanup: Map old "flash"/"pro" aliases if they still arrive
     if (selectedModel === "flash") selectedModel = "gemini-1.5-flash-001";
-    if (selectedModel === "gemini-1.5-flash") selectedModel = "gemini-1.5-flash-001"; // Map to specific version to avoid 'not found'
+    if (selectedModel === "gemini-1.5-flash")
+      selectedModel = "gemini-1.5-flash-001"; // Map to specific version to avoid 'not found'
     if (selectedModel === "pro") selectedModel = "gemini-2.0-flash-exp";
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
@@ -43,7 +44,10 @@ export const POST: RequestHandler = async ({ request }) => {
       if (contents.length > 0 && contents[0].role === "user") {
         contents[0].parts[0].text = `[System Instruction]\n${sysText}\n\n[User Request]\n${contents[0].parts[0].text}`;
       } else {
-        contents.unshift({ role: "user", parts: [{ text: `[System Instruction]\n${sysText}` }] });
+        contents.unshift({
+          role: "user",
+          parts: [{ text: `[System Instruction]\n${sysText}` }],
+        });
       }
       // Disable system instruction field for payload
       systemInstruction = undefined;
@@ -54,9 +58,7 @@ export const POST: RequestHandler = async ({ request }) => {
       payload.systemInstruction = systemInstruction;
     }
 
-    console.log(
-      `Gemini Proxy: Sending request with model ${selectedModel}`
-    );
+    console.log(`Gemini Proxy: Sending request with model ${selectedModel}`);
     const response = await fetch(url, {
       method: "POST",
       headers: {
