@@ -18,7 +18,7 @@
     geminiApiKey = $bindable(),
     geminiModel = $bindable(),
     anthropicApiKey = $bindable(),
-    anthropicModel = $bindable()
+    anthropicModel = $bindable(),
   }: Props = $props();
 </script>
 
@@ -53,7 +53,7 @@
           <span>OpenAI</span>
           {#if aiProvider === "openai"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-></span>{/if}
+            ></span>{/if}
         </label>
         <input
           id="openai-key"
@@ -88,7 +88,7 @@
           <span>Google Gemini</span>
           {#if aiProvider === "gemini"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-></span>{/if}
+            ></span>{/if}
         </label>
         <input
           id="gemini-key"
@@ -98,23 +98,35 @@
           class="input-field p-1 px-2 rounded text-sm mb-1"
           placeholder="API Key (AIza...)"
         />
-        <div class="flex items-center gap-2">
-          <label
-            for="gemini-model"
-            class="text-[10px] text-[var(--text-secondary)] w-12">Model:</label
+        <div class="flex flex-col gap-1.5">
+          <label class="text-[10px] text-[var(--text-secondary)]">Modell:</label
           >
-          <input
-            id="gemini-model"
-            name="geminiModel"
-            type="text"
-            bind:value={geminiModel}
-            class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]"
-            placeholder="gemini-2.0-flash-exp"
-          />
+          <div class="flex gap-3">
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                name="geminiModel"
+                value="flash"
+                bind:group={geminiModel}
+                class="cursor-pointer"
+              />
+              <span class="text-xs">⚡ Flash (schnell, kostenlos)</span>
+            </label>
+            <label class="flex items-center gap-1.5 cursor-pointer">
+              <input
+                type="radio"
+                name="geminiModel"
+                value="pro"
+                bind:group={geminiModel}
+                class="cursor-pointer"
+              />
+              <span class="text-xs">🚀 Pro (leistungsstark)</span>
+            </label>
+          </div>
         </div>
         <p class="text-[10px] text-[var(--text-secondary)] italic">
-          Use <code>gemini-1.5-flash</code> for stability if the experimental version
-          fails.
+          Flash ist für die meisten Anfragen ausreichend. Pro bietet mehr
+          Leistung bei komplexen Aufgaben.
         </p>
       </div>
       <div
@@ -127,7 +139,7 @@
           <span>Anthropic</span>
           {#if aiProvider === "anthropic"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
-></span>{/if}
+            ></span>{/if}
         </label>
         <input
           id="anthropic-key"

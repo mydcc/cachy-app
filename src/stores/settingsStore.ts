@@ -103,7 +103,7 @@ const defaultSettings: Settings = {
   openaiApiKey: "",
   openaiModel: "gpt-4o",
   geminiApiKey: "",
-  geminiModel: "gemini-2.0-flash-exp", // Defaulting to 2.0 experimental
+  geminiModel: "flash", // "flash" or "pro" - user-friendly selection
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
 
@@ -173,12 +173,20 @@ function loadSettingsFromLocalStorage(): Settings {
     if (!settings.geminiModel)
       settings.geminiModel = defaultSettings.geminiModel;
 
-    // Auto-migrate from deprecated aliases to gemini-2.0-flash-exp
-    if (
-      settings.geminiModel === "gemini-2.0-flash" ||
-      settings.geminiModel === "gemini-2.5-flash"
-    ) {
-      settings.geminiModel = "gemini-2.0-flash-exp";
+    // Auto-migrate from old technical model names to user-friendly "flash"
+    const oldGeminiModels = [
+      "gemini-2.0-flash-exp",
+      "gemini-2.0-flash",
+      "gemini-2.5-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
+    ];
+    if (oldGeminiModels.includes(settings.geminiModel)) {
+      settings.geminiModel = "flash";
+    }
+    // Ensure valid values: only "flash" or "pro" allowed
+    if (settings.geminiModel !== "flash" && settings.geminiModel !== "pro") {
+      settings.geminiModel = "flash";
     }
 
     if (!settings.anthropicApiKey)

@@ -24,15 +24,28 @@ export const POST: RequestHandler = async ({ request }) => {
       }
     }
 
-    // Use 'gemini-2.0-flash-exp' as the experimental version (stable 2.0 alias can be flaky)
-    let selectedModel = model || "gemini-2.0-flash-exp";
+    // Map user-friendly model names to technical Gemini 3 model names
+    function getGeminiModelName(userChoice: string): string {
+      // User-friendly values: "flash" or "pro"
+      if (userChoice === "pro") {
+        return "gemini-3-pro-preview";
+      }
+      // Default to flash (fastest, free-tier friendly)
+      return "gemini-3-flash-preview";
+    }
 
-    // Fallback/Upgrade for deprecated/unstable aliases
-    if (
-      selectedModel === "gemini-2.0-flash" ||
-      selectedModel === "gemini-2.5-flash"
-    ) {
-      selectedModel = "gemini-2.0-flash-exp";
+    let selectedModel = getGeminiModelName(model || "flash");
+
+    // Legacy fallback: If old technical names are still used, migrate them
+    const oldModelNames = [
+      "gemini-2.0-flash-exp",
+      "gemini-2.0-flash",
+      "gemini-2.5-flash",
+      "gemini-1.5-flash",
+      "gemini-1.5-pro",
+    ];
+    if (oldModelNames.includes(model || "")) {
+      selectedModel = "gemini-3-flash-preview";
     }
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events

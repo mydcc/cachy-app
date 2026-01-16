@@ -89,7 +89,7 @@
   let openaiApiKey: string = $state("");
   let openaiModel: string = $state("gpt-4o");
   let geminiApiKey: string = $state("");
-  let geminiModel: string = $state("gemini-2.0-flash-exp");
+  let geminiModel: string = $state("flash"); // "flash" or "pro"
   let anthropicApiKey: string = $state("");
   let anthropicModel: string = $state("claude-3-5-sonnet-20240620");
 
@@ -196,7 +196,7 @@
         openaiApiKey = $settingsStore.openaiApiKey || "";
         openaiModel = $settingsStore.openaiModel || "gpt-4o";
         geminiApiKey = $settingsStore.geminiApiKey || "";
-        geminiModel = $settingsStore.geminiModel || "gemini-2.0-flash";
+        geminiModel = $settingsStore.geminiModel || "flash"; // "flash" or "pro"
         anthropicApiKey = $settingsStore.anthropicApiKey || "";
         anthropicModel =
           $settingsStore.anthropicModel || "claude-3-5-sonnet-20240620";
