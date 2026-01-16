@@ -28,7 +28,13 @@ const TECHNICAL_KEYS = [
   "dashboard.generalInputs.shortButton",
   "dashboard.tradeSetupInputs.entryPricePlaceholder",
   "dashboard.summaryResults.breakEvenPriceLabel",
+  "dashboard.summaryResults.entryFeeLabel",
+  "dashboard.summaryResults.estimatedLiquidationPriceLabel",
+  "dashboard.summaryResults.requiredMarginLabel",
+  "dashboard.summaryResults.maxNetLossLabel",
+  "dashboard.exitFeeLabel",
   "dashboard.visualBar.entry",
+  "dashboard.visualBar.netProfitLabel",
 
   // Journal
   "journal.table.entry",
