@@ -19,6 +19,40 @@ export const POST: RequestHandler = async ({ request }) => {
     if (validationError) {
       return json({ error: validationError }, { status: 400 });
     }
+
+    // Security: Validate Order Parameters
+    if (type === "place-order" || type === "close-position") {
+      const q = type === "close-position" ? body.amount : body.qty;
+      const qty = parseFloat(q);
+      if (isNaN(qty) || qty <= 0) {
+        return json(
+          { error: "Invalid quantity. Must be a positive number." },
+          { status: 400 }
+        );
+      }
+
+      const side = body.side?.toUpperCase();
+      if (side !== "BUY" && side !== "SELL") {
+        return json(
+          { error: "Invalid side. Must be BUY or SELL." },
+          { status: 400 }
+        );
+      }
+
+      // Check price for Limit orders (place-order only usually)
+      if (type === "place-order") {
+        const orderType = (body.type || "").toUpperCase();
+        if (orderType === "LIMIT") {
+          const price = parseFloat(body.price);
+          if (isNaN(price) || price <= 0) {
+            return json(
+              { error: "Invalid price for LIMIT order." },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    }
   }
 
   try {
