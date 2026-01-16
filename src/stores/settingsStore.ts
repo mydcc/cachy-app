@@ -107,7 +107,7 @@ const defaultSettings: Settings = {
   geminiModel: "gemini-1.5-flash", // Default to stable 1.5 flash for Free Tier
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
-  aiConfirmActions: true, // Default to true (safety first)
+  aiConfirmActions: false, // Default to false for better UX (opt-in security)
 
   // UI Defaults
   showSpinButtons: "hover",

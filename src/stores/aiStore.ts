@@ -263,8 +263,24 @@ Only output the JSON if you intend to execute changes.`;
         const actions = parseActions(fullContent);
         if (actions.length > 0) {
           // Check settings for confirmation
-          const confirmActions = settings.aiConfirmActions ?? true; // Default to true if missing
-          actions.forEach(action => executeAction(action, confirmActions));
+          const confirmActions = settings.aiConfirmActions ?? true;
+          let blockedCount = 0;
+
+          actions.forEach(action => {
+            const success = executeAction(action, confirmActions);
+            if (!success) blockedCount++;
+          });
+
+          if (blockedCount > 0) {
+            const sysMsg: AiMessage = {
+              id: crypto.randomUUID(),
+              role: "system",
+              content: "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen, um automatische Änderungen zuzulassen.",
+              timestamp: Date.now()
+            };
+            // Add warning after the assistant message
+            update(s => ({ ...s, messages: [...s.messages, sysMsg] }));
+          }
         }
         // -----------------------
 
@@ -362,8 +378,8 @@ function parseActions(text: string): any[] {
   return actions;
 }
 
-function executeAction(action: any, confirmNeeded: boolean) {
-  if (confirmNeeded) return;
+function executeAction(action: any, confirmNeeded: boolean): boolean {
+  if (confirmNeeded) return false;
 
   try {
     switch (action.action) {
@@ -404,8 +420,10 @@ function executeAction(action: any, confirmNeeded: boolean) {
         }
         break;
     }
+    return true;
   } catch (e) {
     console.error("AI Action Execution Failed", e);
+    return false;
   }
 }
 
