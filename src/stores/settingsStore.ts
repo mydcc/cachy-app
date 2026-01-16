@@ -6,7 +6,7 @@ export type MarketDataInterval = number; // Seconds
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
 export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
-export type SidePanelLayout = "standard" | "transparent" | "floating";
+export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic";
 
 export interface ApiKeys {

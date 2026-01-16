@@ -78,8 +78,7 @@
   // Reactive layout variables
   let layout = $derived($settingsStore.sidePanelLayout || "floating");
   let isFloating = $derived(layout === "floating");
-  let isConsole = $derived(layout === "console");
-  let isSidebar = $derived(!isFloating && !isConsole); // Standard
+  let isSidebar = $derived(!isFloating); // Standard
 
   let styleMode = $derived($settingsStore.chatStyle || "minimal"); // minimal, bubble, terminal
 
@@ -247,7 +246,6 @@
           <div
             in:scale={{ duration: 200 }}
             class="w-12 h-12 rounded-full border shadow-lg flex items-center justify-center cursor-pointer transition-transform hover:scale-105"
-            class:m-4={isConsole}
             class:bg-black={isTerminal}
             class:border-green-500={isTerminal}
             class:text-green-500={isTerminal}
@@ -298,9 +296,6 @@
             : ""}
         class:mb-4={isFloating}
         class:rounded-lg={isFloating}
-        class:rounded-t-md={isConsole}
-        class:border-x={isConsole}
-        class:border-b-0={isConsole}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
         class:bg-[var(--bg-secondary)]={isTerminal}
