@@ -160,24 +160,7 @@
             >
           </div>
         </label>
-        <label
-          class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
-        >
-          <input
-            id="sp-layout-console"
-            name="sidePanelLayout"
-            type="radio"
-            bind:group={sidePanelLayout}
-            value="console"
-            class="accent-[var(--accent-color)]"
-          />
-          <div class="flex flex-col">
-            <span class="text-sm">Console / Terminal</span>
-            <span class="text-xs text-[var(--text-secondary)]"
-              >Full-width panel anchored at the bottom</span
-            >
-          </div>
-        </label>
+
         <label
           class="flex items-center gap-2 cursor-pointer p-2 rounded hover:bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
         >
