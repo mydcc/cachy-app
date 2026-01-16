@@ -248,9 +248,26 @@
           $_("app.restoreConfirmMessage"),
           "confirm",
         )
-        .then((confirmed) => {
+        .then(async (confirmed) => {
           if (confirmed) {
-            const result = restoreFromBackup(content);
+            let result = await restoreFromBackup(content);
+
+            if (result.needsPassword) {
+              const password = await modalManager.show(
+                $_("app.passwordRequiredTitle") || "Password Required",
+                $_("app.enterBackupPassword") ||
+                  "Please enter the password for this backup:",
+                "prompt",
+              );
+
+              if (password && typeof password === "string") {
+                result = await restoreFromBackup(content, password);
+              } else {
+                input.value = "";
+                return;
+              }
+            }
+
             if (result.success) {
               uiStore.showFeedback("save"); // Re-use save feedback for now
               setTimeout(() => {

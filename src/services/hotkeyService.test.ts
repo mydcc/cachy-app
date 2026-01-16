@@ -95,6 +95,10 @@ describe("HotkeyService", () => {
       syncFavorites: true,
       confirmTradeDeletion: true,
       confirmBulkDeletion: true,
+      aiConfirmActions: true,
+      aiTradeHistoryLimit: 50,
+      forceEnglishTechnicalTerms: false,
+      enableGlassmorphism: true,
     });
 
     tradeStore.set({
