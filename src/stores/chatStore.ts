@@ -11,18 +11,33 @@ export interface ChatMessage {
   senderId?: string; // 'me' or 'other'
   sender?: "user" | "system"; // from API
   profitFactor?: number;
+  clientId?: string;
 }
 
 export interface ChatState {
   messages: ChatMessage[];
   lastSentTimestamp: number;
+  loading: boolean;
+  clientId: string;
 }
 
 // Global Chat doesn't use LocalStorage anymore, it syncs with Server
 const POLL_INTERVAL = 3000;
 
+const getClientId = (): string => {
+  if (!browser) return "server";
+  let id = localStorage.getItem("chat_client_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_client_id", id);
+  }
+  return id;
+};
+
 const initialState: ChatState = {
   messages: [],
+  loading: false,
+  clientId: getClientId(),
   lastSentTimestamp: 0,
 };
 
@@ -39,13 +54,7 @@ function createChatStore() {
     const minPF = settings.minChatProfitFactor || 0;
 
     const existingIds = new Set(current.map((m) => m.id));
-    const uniqueIncoming = incoming.filter((m) => {
-      // Filter by Profit Factor if defined
-      if (typeof m.profitFactor === "number" && m.profitFactor < minPF) {
-        return false;
-      }
-      return !existingIds.has(m.id);
-    });
+    const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
 
     let merged = [...current, ...uniqueIncoming];
     merged.sort((a, b) => a.timestamp - b.timestamp);
@@ -121,7 +130,11 @@ function createChatStore() {
         const res = await fetch("/api/chat-v2", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text, profitFactor: myPF }),
+          body: JSON.stringify({
+            text,
+            profitFactor: myPF,
+            clientId: get(chatStore).clientId,
+          }),
         });
 
         if (!res.ok) {

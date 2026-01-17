@@ -833,7 +833,12 @@
             >
               --- Connected to Global Chat ---
             </div>
-            {#each $chatStore.messages as msg (msg.id)}
+            {#each $chatStore.messages.filter((m) => {
+              if (m.sender === "system") return true;
+              if (m.clientId === $chatStore.clientId) return true;
+              if (m.profitFactor === undefined) return true;
+              return m.profitFactor >= ($settingsStore.minChatProfitFactor || 0);
+            }) as msg (msg.id)}
               <div
                 class="mb-3 text-[var(--text-primary)] pl-2 border-l-2 border-[var(--accent-color)] bg-[var(--bg-tertiary)]/30 rounded-r p-1"
               >
@@ -844,13 +849,14 @@
                     --- {msg.text} ---
                   </div>
                 {:else}
+                  {@const isMe = msg.clientId === $chatStore.clientId}
                   <div class="flex flex-col">
                     <span
                       class="text-[9px] font-bold opacity-40 uppercase mb-0.5 flex items-center gap-1"
-                      class:text-[var(--accent-color)]={msg.senderId === "me"}
+                      class:text-[var(--accent-color)]={isMe}
                     >
                       <span>
-                        {msg.senderId === "me" ? "You" : "User"}
+                        {isMe ? "You" : "User"}
                       </span>
                       {#if msg.profitFactor !== undefined}
                         <span
