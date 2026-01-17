@@ -38,7 +38,7 @@ export type WSStatus =
   | "reconnecting";
 
 // LRU Cache Configuration
-const MAX_CACHE_SIZE = 120;
+const MAX_CACHE_SIZE = 600;
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 interface CacheMetadata {

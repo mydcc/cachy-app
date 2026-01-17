@@ -186,9 +186,7 @@
             />
         </div>
 
-        <div
-            class="symbol-grid scrollbar-thin overflow-y-auto max-h-[60vh] pr-1"
-        >
+        <div class="symbol-grid scrollbar-thin overflow-y-auto h-[65vh] pr-1">
             {#if filteredSymbols.length === 0}
                 <div class="text-center py-8 text-[var(--text-secondary)]">
                     Keine Symbole gefunden.
