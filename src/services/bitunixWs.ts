@@ -175,6 +175,7 @@ class BitunixWebSocketService {
     ws.onclose = () => {
       if (this.isDestroyed) return;
       if (this.wsPublic === ws) {
+        wsStatusStore.set("reconnecting");
         this.cleanup("public");
         this.scheduleReconnect("public");
       }

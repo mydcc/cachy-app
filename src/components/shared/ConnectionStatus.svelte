@@ -28,7 +28,7 @@
   class="absolute top-2 right-2 md:top-4 md:right-4 flex gap-1 items-center z-50"
 >
   <div
-    class="rounded-full transition-colors duration-300 cursor-help"
+    class="rounded-full transition-colors duration-300"
     style="width: 0.382rem; height: 0.382rem; background-color: {statusColor};"
     title="WebSocket: {statusText}"
   ></div>
