@@ -84,6 +84,8 @@
   let sidePanelMode: "chat" | "notes" | "ai" = $state("notes");
   let sidePanelLayout: SidePanelLayout = $state("standard");
   let chatStyle: "minimal" | "bubble" | "terminal" = $state("minimal");
+  let maxPrivateNotes: number = $state(50);
+  let minChatProfitFactor: number = $state(0);
 
   // AI Settings
   let aiProviderState: AiProvider = $state("gemini");
@@ -106,6 +108,7 @@
   let currentTheme: string = $state("dark");
   let currentLanguage: string = $state("en");
   let forceEnglishTechnicalTerms: boolean = $state(false);
+  let aiConfirmClear: boolean = $state(true);
 
   // Track active tab
   let activeTab:
@@ -186,6 +189,8 @@
         sidePanelMode = $settingsStore.sidePanelMode;
         sidePanelLayout = $settingsStore.sidePanelLayout || "compact"; // Changed from "standard"
         chatStyle = $settingsStore.chatStyle || "minimal";
+        maxPrivateNotes = $settingsStore.maxPrivateNotes ?? 50;
+        minChatProfitFactor = $settingsStore.minChatProfitFactor ?? 0;
         isPro = $settingsStore.isPro;
         showSpinButtons = $settingsStore.showSpinButtons || "hover";
         syncFavorites = $settingsStore.syncFavorites; // Added
@@ -230,6 +235,7 @@
         currentTheme = $uiStore.currentTheme;
         currentLanguage = $locale || "en";
         forceEnglishTechnicalTerms = $settingsStore.forceEnglishTechnicalTerms;
+        aiConfirmClear = $settingsStore.aiConfirmClear ?? true;
 
         isInitialized = true;
       }
@@ -257,6 +263,8 @@
         sidePanelMode,
         sidePanelLayout,
         chatStyle,
+        maxPrivateNotes,
+        minChatProfitFactor,
         favoriteTimeframes,
         syncRsiTimeframe,
         imgbbApiKey,
@@ -275,6 +283,7 @@
         forceEnglishTechnicalTerms,
         debugMode, // Added
         enableGlassmorphism,
+        aiConfirmClear,
         apiKeys: {
           bitunix: bitunixKeys,
           binance: binanceKeys,
@@ -559,6 +568,7 @@
           bind:geminiModel
           bind:anthropicApiKey
           bind:anthropicModel
+          bind:aiConfirmClear
         />
       {:else if activeTab === "behavior"}
         <BehaviorTab
@@ -583,6 +593,8 @@
           bind:sidePanelMode
           bind:sidePanelLayout
           bind:chatStyle
+          bind:maxPrivateNotes
+          bind:minChatProfitFactor
         />
       {:else if activeTab === "indicators"}
         <IndicatorsTab

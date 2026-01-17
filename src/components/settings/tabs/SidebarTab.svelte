@@ -143,33 +143,39 @@
         </label>
       </div>
     </div>
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium">Max Private Notes</span>
-      <span class="text-xs text-[var(--text-secondary)]"
-        >Max number of notes stored locally</span
-      >
-      <input
-        type="number"
-        min="10"
-        max="1000"
-        step="10"
-        bind:value={maxPrivateNotes}
-        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-24"
-      />
-    </div>
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium">Min. Chat Profit Factor</span>
-      <span class="text-xs text-[var(--text-secondary)]"
-        >Hide messages from users with PF below this</span
-      >
-      <input
-        type="number"
-        min="0"
-        max="10"
-        step="0.1"
-        bind:value={minChatProfitFactor}
-        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-24"
-      />
+    <div class="flex flex-row gap-4 items-start">
+      <div class="flex flex-col gap-1 flex-1">
+        <span class="text-sm font-medium">Max Private Notes</span>
+        <span class="text-xs text-[var(--text-secondary)]"
+          >Max number of notes stored locally</span
+        >
+        <input
+          type="number"
+          min="10"
+          max="1000"
+          step="10"
+          bind:value={maxPrivateNotes}
+          class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-full"
+        />
+      </div>
+      <div class="flex flex-col gap-1 flex-1">
+        <span class="text-sm font-medium">Min. Chat Profit Factor</span>
+        <span class="text-xs text-[var(--text-secondary)]"
+          >Hide messages from users with PF below this</span
+        >
+        <input
+          type="text"
+          value={minChatProfitFactor}
+          oninput={(e) => {
+            const val = (e.target as HTMLInputElement).value.replace(",", ".");
+            const num = parseFloat(val);
+            if (!isNaN(num)) {
+              minChatProfitFactor = num;
+            }
+          }}
+          class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-full"
+        />
+      </div>
     </div>
     <div class="flex flex-col gap-1">
       <span class="text-sm font-medium">{$_("settings.sidePanelLayout")}</span>
