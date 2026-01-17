@@ -117,7 +117,6 @@ export const app = {
       if (currentKeys !== lastKeys && s.apiKeys.bitunix.key && s.apiKeys.bitunix.secret) {
         lastKeys = currentKeys;
         if (browser) {
-          console.log("[App] API Keys changed, reconnecting Private WS...");
           bitunixWs.connect();
         }
       }

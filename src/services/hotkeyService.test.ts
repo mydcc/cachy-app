@@ -82,8 +82,11 @@ describe("HotkeyService", () => {
       enableSidePanel: true,
       sidePanelMode: "chat",
       sidePanelLayout: "standard", // Fixed: Added missing property
+      favoriteSymbols: [], // Fixed: Added missing property
       chatStyle: "minimal",
+      chatFontSize: 14, // Fixed: Added missing property
       customSystemPrompt: "",
+      panelIsExpanded: false, // Fixed: Added missing property
       panelState: { width: 400, height: 600, x: 20, y: 20 },
       aiProvider: "gemini",
       openaiApiKey: "",
@@ -160,6 +163,7 @@ describe("HotkeyService", () => {
       loadingMessage: "",
       syncProgress: null,
       isAtrFetching: false, // Added missing property
+      tooltip: { visible: false, type: null, data: null, x: 0, y: 0 }, // Fixed: Added missing property
     });
 
     // hotkeyService doesn't have an init(), it's likely initialized in App or Layout

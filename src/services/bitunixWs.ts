@@ -495,6 +495,8 @@ class BitunixWebSocketService {
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (error) {
       console.error("Error during Bitunix login construction/sending:", error);
+      // Set store to error state so UI reflects failure
+      wsStatusStore.set("error");
     }
   }
 

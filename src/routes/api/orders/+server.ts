@@ -11,13 +11,37 @@ import type {
   NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
+import { Decimal } from "decimal.js";
+
+// Helper to safely format numbers for API without scientific notation
+// and without unnecessary rounding errors
+function formatApiNumber(val: number | string | undefined): string {
+  if (val === undefined || val === null || val === "") return "";
+  const d = new Decimal(val);
+  // toFixed(20) avoids scientific notation for small numbers.
+  // We then trim trailing zeros to keep it clean, but keep at least one decimal if it was a float?
+  // Actually Bitunix probably handles "10.0000" fine, but "10" is safer.
+  // Standard approach: Use Decimal.js toString() which avoids "e" usually,
+  // but for very small numbers it might still use it.
+  // improved: toFixed with trim.
+  let s = d.toFixed(20);
+  if (s.includes(".")) {
+    s = s.replace(/\.?0+$/, "");
+  }
+  return s;
+}
 
 export const POST: RequestHandler = async ({ request }) => {
-  let body: any;
+  let body: any; // We still parse generic JSON first
   try {
     body = await request.json();
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  // Type guard validation
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid request body" }, { status: 400 });
   }
 
   const { exchange, apiKey, apiSecret, type } = body;
@@ -77,22 +101,21 @@ export const POST: RequestHandler = async ({ request }) => {
           );
         }
 
-        if (orderType === "LIMIT" || orderType === "STOP_LIMIT" || orderType === "TAKE_PROFIT_LIMIT") {
-            // Price validation
-            const price = parseFloat(body.price);
-            if (isNaN(price) || price <= 0) {
+        if (
+            (orderType === "LIMIT" || orderType === "STOP_LIMIT" || orderType === "TAKE_PROFIT_LIMIT") &&
+            (!body.price || isNaN(parseFloat(body.price)) || parseFloat(body.price) <= 0)
+        ) {
               return json(
                 { error: "Invalid price for LIMIT/STOP order." },
                 { status: 400 },
               );
-            }
         }
       }
     }
   }
 
   try {
-    let result: any = null;
+    let result: NormalizedOrder[] | any = null;
     if (exchange === "bitunix") {
       if (type === "pending") {
         const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
@@ -110,7 +133,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // To close a position, we place a MARKET order in the opposite direction
-        const closeOrder = {
+        const closeOrder: BitunixOrderPayload = {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
           type: "MARKET",
@@ -124,19 +147,17 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(result);
-  } catch (e: any) {
-    // Sanitize error log to prevent leaking API keys/headers (which might be in the error object properties)
+  } catch (e: unknown) {
+    // Sanitize error log to prevent leaking API keys/headers
     const errorMsg = e instanceof Error ? e.message : String(e);
 
-    // Check for sensitive patterns (simple check)
+    // Check for sensitive patterns
     const sanitizedMsg = errorMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
 
     console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
-    // Return a generic error if it's a 500, or specific if it's safe
-    // We assume e.message from our internal helpers is reasonably safe, but we wrap it just in case
     return json(
-      { error: e.message || `Failed to process ${type}` },
+      { error: errorMsg || `Failed to process ${type}` },
       { status: 500 },
     );
   }
@@ -151,11 +172,12 @@ async function placeBitunixOrder(
   const path = "/api/v1/futures/trade/place_order";
 
   // Construct Payload
+  // Use formatApiNumber to safely convert numbers to strings
   const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: String(orderData.qty),
+    qty: formatApiNumber(orderData.qty),
     reduceOnly: orderData.reduceOnly || false,
   };
 
@@ -166,16 +188,16 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = String(orderData.price);
+    payload.price = formatApiNumber(orderData.price);
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = String(orderData.triggerPrice);
+    payload.triggerPrice = formatApiNumber(orderData.triggerPrice);
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = String(orderData.stopPrice);
+    payload.triggerPrice = formatApiNumber(orderData.stopPrice);
   }
 
   // Clean null/undefined
@@ -253,7 +275,6 @@ async function fetchBitunixPendingOrders(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  // Use 'unknown' first to safely cast
   const res = (await response.json()) as BitunixResponse<
     BitunixOrder[] | BitunixOrderListWrapper
   >;
