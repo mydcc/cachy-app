@@ -13,6 +13,7 @@
     sidePanelLayout: SidePanelLayout;
     chatStyle: "minimal" | "bubble" | "terminal";
     maxPrivateNotes: number;
+    minChatProfitFactor: number;
   }
 
   let {
@@ -26,6 +27,7 @@
     sidePanelLayout = $bindable(),
     chatStyle = $bindable(),
     maxPrivateNotes = $bindable(),
+    minChatProfitFactor = $bindable(),
   }: Props = $props();
 </script>
 
@@ -152,6 +154,20 @@
         max="1000"
         step="10"
         bind:value={maxPrivateNotes}
+        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-24"
+      />
+    </div>
+    <div class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Min. Chat Profit Factor</span>
+      <span class="text-xs text-[var(--text-secondary)]"
+        >Hide messages from users with PF below this</span
+      >
+      <input
+        type="number"
+        min="0"
+        max="10"
+        step="0.1"
+        bind:value={minChatProfitFactor}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-24"
       />
     </div>

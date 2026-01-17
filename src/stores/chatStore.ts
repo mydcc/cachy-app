@@ -1,6 +1,8 @@
 import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
 import { settingsStore } from "./settingsStore";
+import { journalStore } from "./journalStore";
+import { calculator } from "../lib/calculator";
 
 export interface ChatMessage {
   id: string;
@@ -8,6 +10,7 @@ export interface ChatMessage {
   timestamp: number;
   senderId?: string; // 'me' or 'other'
   sender?: "user" | "system"; // from API
+  profitFactor?: number;
 }
 
 export interface ChatState {
@@ -28,13 +31,21 @@ function createChatStore() {
 
   let pollIntervalId: any;
 
-  // Helper to merge new messages avoiding duplicates
   const mergeMessages = (
     current: ChatMessage[],
     incoming: ChatMessage[],
   ): ChatMessage[] => {
+    const settings = get(settingsStore);
+    const minPF = settings.minChatProfitFactor || 0;
+
     const existingIds = new Set(current.map((m) => m.id));
-    const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
+    const uniqueIncoming = incoming.filter((m) => {
+      // Filter by Profit Factor if defined
+      if (typeof m.profitFactor === "number" && m.profitFactor < minPF) {
+        return false;
+      }
+      return !existingIds.has(m.id);
+    });
 
     let merged = [...current, ...uniqueIncoming];
     merged.sort((a, b) => a.timestamp - b.timestamp);
@@ -99,12 +110,18 @@ function createChatStore() {
         throw new Error("Please wait 2 seconds between messages.");
       }
 
+      // Calculate own PF
+      const stats = calculator.calculateJournalStats(get(journalStore));
+      const myPF = stats.profitFactor.isFinite()
+        ? stats.profitFactor.toNumber()
+        : 0;
+
       // Send to API
       try {
         const res = await fetch("/api/chat-v2", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ text }),
+          body: JSON.stringify({ text, profitFactor: myPF }),
         });
 
         if (!res.ok) {

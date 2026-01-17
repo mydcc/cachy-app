@@ -11,6 +11,7 @@ interface ChatMessage {
   text: string;
   sender: "user" | "system";
   timestamp: number;
+  profitFactor?: number;
 }
 
 // Helper to ensure DB exists and read it
@@ -69,7 +70,7 @@ export const GET: RequestHandler = async ({ url }) => {
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
-    const { text, sender } = await request.json();
+    const { text, sender, profitFactor } = await request.json();
 
     if (!text || typeof text !== "string") {
       return json({ error: "Message text is required" }, { status: 400 });
@@ -80,6 +81,7 @@ export const POST: RequestHandler = async ({ request }) => {
       text: text.slice(0, 500), // Limit length per message
       sender: sender || "user",
       timestamp: Date.now(),
+      profitFactor: typeof profitFactor === "number" ? profitFactor : undefined,
     };
 
     const messages = await getMessages();

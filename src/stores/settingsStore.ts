@@ -88,6 +88,7 @@ export interface Settings {
   enableGlassmorphism: boolean;
   chatFontSize: number;
   panelIsExpanded: boolean;
+  minChatProfitFactor: number;
 }
 
 const defaultSettings: Settings = {
@@ -151,6 +152,7 @@ const defaultSettings: Settings = {
   panelIsExpanded: false,
   maxPrivateNotes: 50,
   aiConfirmClear: true,
+  minChatProfitFactor: 0.0,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -275,6 +277,8 @@ function loadSettingsFromLocalStorage(): Settings {
       maxPrivateNotes:
         settings.maxPrivateNotes ?? defaultSettings.maxPrivateNotes,
       aiConfirmClear: settings.aiConfirmClear ?? defaultSettings.aiConfirmClear,
+      minChatProfitFactor:
+        settings.minChatProfitFactor ?? defaultSettings.minChatProfitFactor,
     };
 
     return cleanSettings;

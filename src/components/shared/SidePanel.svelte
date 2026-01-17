@@ -218,7 +218,7 @@
       content = $chatStore.messages
         .map(
           (m) =>
-            `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
+            `${m.senderId === "me" ? "YOU" : "USER"} (${m.profitFactor ? "PF: " + m.profitFactor.toFixed(2) : "N/A"}) (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
         )
         .join("\n---\n\n");
     }
@@ -815,7 +815,7 @@
                 class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
               >
                 <div
-                  class="text-sm whitespace-pre-wrap text-[var(--text-primary)]"
+                  class="text-sm whitespace-pre-wrap text-white/90 font-medium"
                 >
                   {msg.text}
                 </div>
@@ -846,14 +846,19 @@
                 {:else}
                   <div class="flex flex-col">
                     <span
-                      class="text-[9px] font-bold opacity-40 uppercase mb-0.5"
+                      class="text-[9px] font-bold opacity-40 uppercase mb-0.5 flex items-center gap-1"
                       class:text-[var(--accent-color)]={msg.senderId === "me"}
                     >
-                      {msg.sender === "system"
-                        ? "System"
-                        : msg.senderId === "me"
-                          ? "You"
-                          : "User"}
+                      <span>
+                        {msg.senderId === "me" ? "You" : "User"}
+                      </span>
+                      {#if msg.profitFactor !== undefined}
+                        <span
+                          class="px-1 bg-[var(--accent-color)]/10 text-[var(--accent-color)] rounded border border-[var(--accent-color)]/20 text-[8px]"
+                        >
+                          PF: {msg.profitFactor.toFixed(2)}
+                        </span>
+                      {/if}
                     </span>
                     <span class="text-sm">{msg.text}</span>
                     <span class="text-[9px] opacity-40 mt-1 font-mono">
