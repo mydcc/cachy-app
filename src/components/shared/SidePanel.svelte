@@ -767,6 +767,13 @@
                       minute: "2-digit",
                     })}
                   </span>
+                {:else}
+                  <div class="text-[9px] mt-1 opacity-50 font-mono">
+                    {new Date(msg.timestamp).toLocaleTimeString([], {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </div>
                 {/if}
               </div>
             {/each}
@@ -849,6 +856,12 @@
                           : "User"}
                     </span>
                     <span class="text-sm">{msg.text}</span>
+                    <span class="text-[9px] opacity-40 mt-1 font-mono">
+                      {new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
                   </div>
                 {/if}
               </div>
