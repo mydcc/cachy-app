@@ -173,6 +173,7 @@ class BitunixWebSocketService {
     };
 
     ws.onclose = () => {
+      if (this.isDestroyed) return;
       if (this.wsPublic === ws) {
         this.cleanup("public");
         this.scheduleReconnect("public");
@@ -267,6 +268,7 @@ class BitunixWebSocketService {
     };
 
     ws.onclose = () => {
+      if (this.isDestroyed) return;
       if (this.wsPrivate === ws) {
         this.isAuthenticated = false;
         this.cleanup("private");
@@ -568,7 +570,7 @@ class BitunixWebSocketService {
             price: data.mp || "0",
             indexPrice: data.ip || "0",
             fundingRate: data.fr || "0",
-            nextFundingTime: data.nft || 0,
+            nextFundingTime: String(data.nft || 0),
           });
         } else if (symbol && data) {
           console.warn("[BitunixWS] Invalid price data received:", {

@@ -21,6 +21,13 @@ export function enhancedInput(
       ? options.showSpinButtons
       : globalShow;
 
+  // Set inputMode for mobile keyboards
+  if (options.noDecimals) {
+    node.inputMode = "numeric";
+  } else {
+    node.inputMode = "decimal";
+  }
+
   let wrapper: HTMLDivElement | null = null;
   let upBtn: HTMLDivElement | null = null;
   let downBtn: HTMLDivElement | null = null;

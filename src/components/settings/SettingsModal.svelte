@@ -83,6 +83,7 @@
   let enableSidePanel: boolean = $state(false);
   let sidePanelMode: "chat" | "notes" | "ai" = $state("notes");
   let sidePanelLayout: SidePanelLayout = $state("standard");
+  let chatStyle: "minimal" | "bubble" | "terminal" = $state("minimal");
 
   // AI Settings
   let aiProviderState: AiProvider = $state("gemini");
@@ -184,6 +185,7 @@
         enableSidePanel = $settingsStore.enableSidePanel;
         sidePanelMode = $settingsStore.sidePanelMode;
         sidePanelLayout = $settingsStore.sidePanelLayout || "compact"; // Changed from "standard"
+        chatStyle = $settingsStore.chatStyle || "minimal";
         isPro = $settingsStore.isPro;
         showSpinButtons = $settingsStore.showSpinButtons || "hover";
         syncFavorites = $settingsStore.syncFavorites; // Added
@@ -254,6 +256,7 @@
         enableSidePanel,
         sidePanelMode,
         sidePanelLayout,
+        chatStyle,
         favoriteTimeframes,
         syncRsiTimeframe,
         imgbbApiKey,
@@ -579,6 +582,7 @@
           bind:enableSidePanel
           bind:sidePanelMode
           bind:sidePanelLayout
+          bind:chatStyle
         />
       {:else if activeTab === "indicators"}
         <IndicatorsTab
