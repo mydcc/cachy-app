@@ -64,7 +64,7 @@
   --bg-tertiary: var(--blue-800);
   --chat-bubble-bg: var(--blue-900);
   --chat-messages-bg: var(--blue-950);
-  --scrollbar-thumb: var(--blue-700);
+  --scrollbar-thumb: var(--blue-800);
   --scrollbar-track: var(--blue-900);
   --text-primary: var(--blue-100);
   --text-secondary: var(--blue-300);
@@ -234,8 +234,8 @@
   /* Slightly lighter for card backgrounds */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-purple-dark);
-  --scrollbar-thumb: var(--core-purple);
-  --scrollbar-track: #08051e;
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
   --text-primary: var(--purple-light);
   --text-secondary: var(--highlight-meteorite);
   --text-tertiary: var(--core-meteorite);
@@ -332,8 +332,8 @@
   /* Slightly lighter for card backgrounds */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-blue-dark);
-  --scrollbar-thumb: var(--core-blue-pro);
-  --scrollbar-track: #05081a;
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);
@@ -400,7 +400,7 @@
   --bg-tertiary: var(--gray-700);
   --chat-bubble-bg: var(--gray-700);
   --chat-messages-bg: var(--gray-900);
-  --scrollbar-thumb: var(--red-700);
+  --scrollbar-thumb: var(--gray-700);
   --scrollbar-track: var(--gray-900);
   --text-primary: var(--gray-200);
   --text-secondary: var(--gray-400);
@@ -459,7 +459,7 @@
   --bg-tertiary: var(--gray-900);
   --chat-bubble-bg: var(--gray-950);
   --chat-messages-bg: var(--matrix-base);
-  --scrollbar-thumb: var(--green-400);
+  --scrollbar-thumb: var(--gray-900);
   --scrollbar-track: var(--matrix-base);
   --text-primary: var(--green-400);
   --text-secondary: var(--green-600);
@@ -519,7 +519,7 @@
   --bg-tertiary: var(--dark-purple-600);
   --chat-bubble-bg: var(--dark-purple-800);
   --chat-messages-bg: var(--dark-purple-800);
-  --scrollbar-thumb: var(--purple);
+  --scrollbar-thumb: var(--dark-purple-600);
   --scrollbar-track: var(--dark-purple-800);
   --text-primary: var(--light-gray);
   --text-secondary: var(--purple);
@@ -1530,8 +1530,8 @@
   --bg-tertiary: var(--ayu-light-border);
   --chat-bubble-bg: var(--ayu-light-bg-alt);
   --chat-messages-bg: var(--ayu-light-bg);
-  --scrollbar-thumb: var(--ayu-light-border-hover);
-  --scrollbar-track: var(--ayu-light-bg-alt);
+  --scrollbar-thumb: #e0e0e0;
+  --scrollbar-track: var(--ayu-light-bg);
   --text-primary: var(--ayu-light-fg);
   --text-secondary: var(--ayu-light-fg-alt);
   --border-color: var(--ayu-light-border);
