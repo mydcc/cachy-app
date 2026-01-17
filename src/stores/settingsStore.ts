@@ -125,7 +125,7 @@ const defaultSettings: Settings = {
   openaiApiKey: "",
   openaiModel: "gpt-4o",
   geminiApiKey: "",
-  geminiModel: "gemini-1.5-flash",
+  geminiModel: "gemini-2.5-flash",
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
   aiConfirmActions: false,
@@ -181,7 +181,7 @@ function loadSettingsFromLocalStorage(): Settings {
     if (!settings.aiProvider) settings.aiProvider = defaultSettings.aiProvider;
 
     if (settings.geminiModel === "flash") {
-      settings.geminiModel = "gemini-1.5-flash";
+      settings.geminiModel = "gemini-2.5-flash";
     }
     if (settings.geminiModel === "pro") {
       settings.geminiModel = "gemini-2.0-flash-exp";

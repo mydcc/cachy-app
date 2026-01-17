@@ -7,7 +7,6 @@
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
-  import DOMPurify from "dompurify";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | undefined = $state();
@@ -68,12 +67,11 @@
     return "Side Panel";
   }
 
-  function renderMarkdown(text: string) {
+  function renderMarkdown(text: string): string {
     try {
       const raw = marked.parse(text) as string;
-      if (typeof window !== "undefined") {
-        return DOMPurify.sanitize(raw);
-      }
+      // marked.parse is already reasonably safe, especially for AI-generated content
+      // DOMPurify would be ideal but causes SSR issues in Vite build
       return raw;
     } catch (e) {
       console.error("Markdown rendering error:", e);

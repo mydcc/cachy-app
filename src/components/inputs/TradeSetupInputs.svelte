@@ -214,6 +214,8 @@
   let smileyX = $state(0);
   let smileyY = $state(0);
 
+  import { portal } from "../../lib/actions/portal";
+
   async function copyStopLossToClipboard(
     value: string,
     event: MouseEvent | KeyboardEvent,
@@ -611,6 +613,7 @@
 <!-- Smiley Feedback -->
 {#if showSmiley}
   <div
+    use:portal
     class="smiley-feedback"
     style="left: {smileyX + 10}px; top: {smileyY - 10}px;"
   >

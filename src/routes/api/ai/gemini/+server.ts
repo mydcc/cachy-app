@@ -26,13 +26,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Use the model provided by the client directly.
     // This allows selecting any available Gemini model in settings.
-    let selectedModel = model || "gemini-1.5-flash"; // Default fallback
-
-    // Legacy cleanup: Map old "flash"/"pro" aliases if they still arrive
-    if (selectedModel === "flash") selectedModel = "gemini-1.5-flash-001";
-    if (selectedModel === "gemini-1.5-flash")
-      selectedModel = "gemini-1.5-flash-001"; // Map to specific version to avoid 'not found'
-    if (selectedModel === "pro") selectedModel = "gemini-2.0-flash-exp";
+    let selectedModel = model || "gemini-2.5-flash"; // Default: Current stable generation
 
     // Use streamGenerateContent?alt=sse for Server-Sent Events
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${selectedModel}:streamGenerateContent?alt=sse&key=${apiKey}`;
