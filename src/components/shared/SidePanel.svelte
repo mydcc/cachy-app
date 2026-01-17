@@ -626,7 +626,7 @@
           bind:this={messagesContainer}
           class="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3 scroll-smooth"
           class:bg-black={isTerminal}
-          class:bg-[var(--bg-primary)]={!isTerminal}
+          class:bg-[var(--chat-messages-bg)]={!isTerminal}
         >
           {#if $settingsStore.sidePanelMode === "ai"}
             <!-- AI Messages -->
