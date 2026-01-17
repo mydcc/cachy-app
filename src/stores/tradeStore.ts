@@ -1,8 +1,9 @@
-import { writable } from "svelte/store";
+import { writable, get } from "svelte/store";
 import { CONSTANTS } from "../lib/constants";
 import type { AppState } from "./types";
 import { resultsStore, initialResultsState } from "./resultsStore";
 import { uiStore } from "./uiStore";
+import { settingsStore } from "./settingsStore";
 import { browser } from "$app/environment";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
@@ -145,8 +146,22 @@ export const toggleAtrInputs = (useAtrSl: boolean) => {
 
 // Helper function to reset all inputs
 export const resetAllInputs = () => {
-  tradeStore.set(JSON.parse(JSON.stringify(initialTradeState)));
+  const currentSymbol = get(tradeStore).symbol;
+
+  const newState = JSON.parse(JSON.stringify(initialTradeState));
+  newState.symbol = currentSymbol;
+  newState.useAtrSl = false; // User requested Auto-ATR off
+  newState.entryPrice = null; // Ensuring price is cleared
+  newState.stopLossPrice = null;
+
+  // Preserve default timeframe/multiplier from initial state (which are 5m, 1.2)
+
+  tradeStore.set(newState);
   resultsStore.set(initialResultsState);
+
+  // Turn off Auto-Price-Update
+  settingsStore.update(s => ({ ...s, autoUpdatePriceInput: false }));
+
   uiStore.showError("dashboard.promptForData");
 };
 

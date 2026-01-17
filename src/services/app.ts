@@ -840,97 +840,76 @@ export const app = {
     const currentAppState = get(tradeStore);
     if (
       changedIndex !== null &&
+      currentAppState.targets[changedIndex] &&
       currentAppState.targets[changedIndex].isLocked
     ) {
       return;
     }
 
     const targets = JSON.parse(JSON.stringify(currentAppState.targets));
-    const ONE_HUNDRED = new Decimal(100);
-    const ZERO = new Decimal(0);
 
-    type DecimalTarget = {
-      price: Decimal;
-      percent: Decimal;
-      isLocked: boolean;
-      originalIndex: number;
-    };
+    // Parse values to integers (since UI enforces noDecimals)
+    const items = targets.map((t: any, i: number) => ({
+      ...t,
+      percent: Math.round(Number(t.percent) || 0),
+      index: i,
+    }));
 
-    const decTargets: DecimalTarget[] = targets.map(
-      (
-        t: { price: number | null; percent: number | null; isLocked: boolean },
-        i: number,
-      ) => ({
-        price: parseDecimal(t.price),
-        percent: parseDecimal(t.percent),
-        isLocked: t.isLocked,
-        originalIndex: i,
-      }),
-    );
+    const ONE_HUNDRED = 100;
+    const changedItem = changedIndex !== null ? items[changedIndex] : null;
 
-    const totalSum = decTargets.reduce((sum, t) => sum.plus(t.percent), ZERO);
-    const diff = ONE_HUNDRED.minus(totalSum);
+    // 1. Calculate Reserved Sum (Locked Items + Changed Item)
+    // If changedIndex is null (e.g. from add/remove row), changedItem is null.
+    // Then we treat all unlocked as "Others".
 
-    if (diff.isZero()) return;
-
-    const otherUnlocked = decTargets.filter(
-      (t) => !t.isLocked && t.originalIndex !== changedIndex,
-    );
-
-    if (otherUnlocked.length === 0) {
-      if (changedIndex !== null) {
-        decTargets[changedIndex].percent =
-          decTargets[changedIndex].percent.plus(diff);
+    let lockedSum = 0;
+    items.forEach((t: any) => {
+      if (t.isLocked && t.index !== changedIndex) {
+        lockedSum += t.percent;
       }
-    } else if (diff.gt(ZERO)) {
-      const share = diff.div(otherUnlocked.length);
-      otherUnlocked.forEach((t) => {
-        decTargets[t.originalIndex].percent =
-          decTargets[t.originalIndex].percent.plus(share);
-      });
-    } else {
-      let deficit = diff.abs();
-      for (let i = otherUnlocked.length - 1; i >= 0; i--) {
-        if (deficit.isZero()) break;
-        const target = otherUnlocked[i];
-        const originalTarget = decTargets[target.originalIndex];
-        const reduction = Decimal.min(deficit, originalTarget.percent);
+    });
 
-        originalTarget.percent = originalTarget.percent.minus(reduction);
-        deficit = deficit.minus(reduction);
+    // 2. Handle Overflow of Changed Item itself
+    if (changedItem) {
+      if (lockedSum + changedItem.percent > ONE_HUNDRED) {
+        // Cap the changed item if it violates 100% with locked items
+        changedItem.percent = Math.max(0, ONE_HUNDRED - lockedSum);
       }
     }
 
-    let finalTargets = decTargets.map((t) => ({
-      ...t,
-      percent: t.percent.toDecimalPlaces(0, Decimal.ROUND_HALF_UP),
-    }));
+    const currentUsed = lockedSum + (changedItem ? changedItem.percent : 0);
+    const availableForOthers = ONE_HUNDRED - currentUsed;
 
-    let finalSum = finalTargets.reduce((sum, t) => sum.plus(t.percent), ZERO);
-    let roundingDiff = ONE_HUNDRED.minus(finalSum);
+    // 3. Identification of "Others" (Unlocked and not the one being edited)
+    const others = items.filter((t: any) => !t.isLocked && t.index !== changedIndex);
 
-    if (!roundingDiff.isZero()) {
-      let targetToAdjust = finalTargets.find(
-        (t, i) =>
-          !t.isLocked &&
-          i !== changedIndex &&
-          t.percent.plus(roundingDiff).gte(0),
-      );
-      if (!targetToAdjust) {
-        targetToAdjust = finalTargets.find(
-          (t) => !t.isLocked && t.percent.plus(roundingDiff).gte(0),
-        );
-      }
-      if (targetToAdjust) {
-        targetToAdjust.percent = targetToAdjust.percent.plus(roundingDiff);
-      }
+    if (others.length > 0) {
+      // Distribute availableForOthers among 'others'
+      // If availableForOthers is negative, we shouldn't be here if logic above is correct?
+      // Wait, if changedItem increased, availableForOthers decreases.
+      // It can be negative if changedItem + lockedSum > 100 (Handled above).
+      // So availableForOthers >= 0.
+
+      // Distribute `availableForOthers` evenly
+      const count = others.length;
+      const baseShare = Math.floor(availableForOthers / count);
+      let remainder = availableForOthers % count;
+
+      others.forEach((t: any) => {
+        t.percent = baseShare + (remainder > 0 ? 1 : 0);
+        remainder--;
+      });
+    } else {
+      // No others to distribute to.
+      // We accept Sum < 100 (Underflow) to allow user to type "6" before "60".
+      // We handled Overflow (>100) via clamping above.
     }
 
     updateTradeStore((state) => ({
       ...state,
-      targets: finalTargets.map((t) => ({
-        price: t.price.toNumber(),
-        percent: t.percent.toNumber(),
+      targets: items.map((t: any) => ({
+        price: t.price,
+        percent: t.percent,
         isLocked: t.isLocked,
       })),
     }));
