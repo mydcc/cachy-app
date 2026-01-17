@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { settingsStore } from "../../stores/settingsStore";
   import { tradeStore } from "../../stores/tradeStore";
   import { accountStore } from "../../stores/accountStore";
@@ -180,37 +180,40 @@
   }
 
   onMount(() => {
-    refreshAll();
+    // Initial fetch to get the current state before WS takes over
     const provider = $settingsStore.apiProvider || "bitunix";
     const keys = $settingsStore.apiKeys[provider];
     if (keys?.key && keys?.secret) {
+      fetchAccount();
+      fetchPositions();
       fetchOrders("pending");
     }
-
-    const interval = setInterval(refreshAll, 10000);
-    return () => clearInterval(interval);
   });
 
-  // React to settings changes (e.g. keys added)
+  // Load orders only when switching to the tab and if not already loaded or stale
   $effect(() => {
-    if ($settingsStore.apiKeys && $settingsStore.apiProvider) {
-      const p = $settingsStore.apiProvider;
-      const k = $settingsStore.apiKeys[p];
-      if (k?.key && k?.secret && activeTab === "positions") {
-        fetchPositions();
-        fetchAccount();
-      }
+    if (activeTab === "orders" && openOrders.length === 0) {
+      fetchOrders("pending");
     }
   });
 
   $effect(() => {
-    if (activeTab === "orders") fetchOrders("pending");
+    // History should only load once when requested or via manual refresh
+    if (activeTab === "history" && historyOrders.length === 0) {
+      fetchOrders("history");
+    }
   });
+
+  // Watch for API key changes to re-trigger initial fetch
   $effect(() => {
-    if (activeTab === "history") fetchOrders("history");
-  });
-  $effect(() => {
-    if (activeTab === "positions") fetchPositions();
+    const provider = $settingsStore.apiProvider || "bitunix";
+    const keys = $settingsStore.apiKeys[provider];
+    if (keys?.key && keys?.secret) {
+      untrack(() => {
+        fetchAccount();
+        fetchPositions();
+      });
+    }
   });
 
   // Filter History

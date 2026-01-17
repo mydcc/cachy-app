@@ -103,11 +103,25 @@ export const app = {
       app.calculateAndDisplay();
       app.setupPriceUpdates();
       app.setupRealtimeUpdates(); // Initialize WS updates
+      bitunixWs.connect(); // Start WebSockets
     }
   },
 
   setupRealtimeUpdates: () => {
     if (!browser) return;
+
+    // Watch for API key changes to reconnect private WebSocket
+    let lastKeys = "";
+    settingsStore.subscribe((s) => {
+      const currentKeys = `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
+      if (currentKeys !== lastKeys && s.apiKeys.bitunix.key && s.apiKeys.bitunix.secret) {
+        lastKeys = currentKeys;
+        if (browser) {
+          console.log("[App] API Keys changed, reconnecting Private WS...");
+          bitunixWs.connect();
+        }
+      }
+    });
 
     // Cleanup existing subscription to prevent leaks/duplicates
     if (tradeStoreUnsubscribe) {
