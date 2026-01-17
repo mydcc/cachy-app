@@ -14,6 +14,8 @@
         filteredCount?: number;
         // Event Props
         ontoggleSettings?: () => void;
+        // Snippets
+        actions?: import("svelte").Snippet;
     }
 
     let {
@@ -25,6 +27,7 @@
         totalTrades = 0,
         filteredCount = 0,
         ontoggleSettings,
+        actions,
     }: Props = $props();
 
     function toggleSettings() {
@@ -76,14 +79,20 @@
 
         <!-- Actions: Pivot Toggle & Settings -->
         <div class="filter-actions">
-            <span class="trade-count mr-2">
-                {#if filteredCount < totalTrades}
+            {#if actions}
+                {@render actions()}
+            {/if}
+            {#if filteredCount < totalTrades}
+                <span class="trade-count mr-2">
                     {filteredCount}/{totalTrades}
-                {:else}
+                    {$_("journal.trades")}
+                </span>
+            {:else}
+                <span class="trade-count mr-2">
                     {totalTrades}
-                {/if}
-                {$_("journal.trades")}
-            </span>
+                    {$_("journal.trades")}
+                </span>
+            {/if}
 
             <label class="pivot-toggle">
                 <input type="checkbox" bind:checked={groupBySymbol} />
@@ -221,7 +230,7 @@
 
     .pivot-toggle input:checked + .toggle-slider::before {
         transform: translateX(16px);
-        background: white;
+        background: var(--gray-900, #121212);
     }
 
     .toggle-text {
