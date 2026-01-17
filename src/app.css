@@ -62,18 +62,20 @@
   --bg-primary: var(--blue-950);
   --bg-secondary: var(--blue-900);
   --bg-tertiary: var(--blue-800);
-  --chat-bubble-bg: var(--blue-950);
+  --chat-bubble-bg: var(--blue-900);
   --chat-messages-bg: var(--blue-950);
+  --scrollbar-thumb: var(--blue-700);
+  --scrollbar-track: var(--blue-900);
   --text-primary: var(--blue-100);
   --text-secondary: var(--blue-300);
   --text-tertiary: var(--blue-600);
-  --border-color: var(--blue-700);
-  --accent-color: var(--sky-400);
-  --accent-color-hover: var(--sky-500);
+  --border-color: var(--blue-800);
+  --accent-color: var(--sky-500);
+  --accent-color-hover: var(--sky-400);
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
-  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--blue-700);
@@ -110,6 +112,8 @@
   --pure-white: #ffffff;
   --slate-200: #e2e8f0;
   --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  /* Added for instruction */
   --slate-500: #64748b;
   --slate-300: #cbd5e1;
   --slate-400: #94a3b8;
@@ -120,6 +124,12 @@
   --red-600: #dc2626;
   --red-500: #ef4444;
   --amber-500: #f59e0b;
+  --indigo-600: #4f46e5;
+  /* Added for instruction */
+  --indigo-500: #6366f1;
+  /* Added for instruction */
+  --orange-500: #f97316;
+  /* Added for instruction */
   --black-transparent: rgba(0, 0, 0, 0.1);
   --white-transparent: rgba(255, 255, 255, 0.7);
 
@@ -127,18 +137,20 @@
   --bg-primary: var(--slate-100);
   --bg-secondary: var(--pure-white);
   --bg-tertiary: var(--slate-200);
-  --chat-bubble-bg: var(--slate-200);
-  --chat-messages-bg: var(--slate-100);
-  --text-primary: var(--slate-800);
+  --chat-bubble-bg: var(--slate-100);
+  --chat-messages-bg: var(--pure-white);
+  --scrollbar-thumb: var(--slate-300);
+  --scrollbar-track: var(--slate-100);
+  --text-primary: var(--slate-900);
   --text-secondary: var(--slate-500);
   --text-tertiary: var(--slate-400);
   --border-color: var(--slate-300);
-  --accent-color: var(--sky-400);
-  --accent-color-hover: var(--sky-500);
+  --accent-color: var(--indigo-600);
+  --accent-color-hover: var(--indigo-500);
   --success-color: var(--green-600);
   --danger-color: var(--red-600);
-  --warning-color: var(--amber-500);
-  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --warning-color: var(--orange-500);
+  --shadow-tooltip: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--slate-400);
@@ -216,10 +228,14 @@
   --bg-primary: radial-gradient(farthest-side at top,
       var(--gradient-purple-light),
       var(--gradient-purple-dark));
-  --bg-secondary: var(--bg-secondary-derived);
-  --bg-tertiary: var(--bg-tertiary-derived);
+  --bg-secondary: #120e3a;
+  /* Darkened for better contrast in settings */
+  --bg-tertiary: #1e1b4b;
+  /* Adjusted for better card/input separation */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-purple-dark);
+  --scrollbar-thumb: var(--core-purple);
+  --scrollbar-track: var(--bg-secondary);
   --text-primary: var(--purple-light);
   --text-secondary: var(--highlight-meteorite);
   --text-tertiary: var(--core-meteorite);
@@ -309,10 +325,14 @@
   --bg-primary: radial-gradient(farthest-side at top,
       var(--gradient-blue-light),
       var(--gradient-blue-dark));
-  --bg-secondary: var(--bg-secondary-derived);
-  --bg-tertiary: var(--bg-tertiary-derived);
+  --bg-secondary: #0a112f;
+  /* Darkened for better contrast in settings */
+  --bg-tertiary: #162252;
+  /* Adjusted for better hierarchy */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-blue-dark);
+  --scrollbar-thumb: var(--core-blue-pro);
+  --scrollbar-track: var(--bg-secondary);
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);
@@ -378,6 +398,8 @@
   --bg-tertiary: var(--gray-700);
   --chat-bubble-bg: var(--gray-700);
   --chat-messages-bg: var(--gray-900);
+  --scrollbar-thumb: var(--red-700);
+  --scrollbar-track: var(--gray-900);
   --text-primary: var(--gray-200);
   --text-secondary: var(--gray-400);
   --text-tertiary: var(--gray-600);
@@ -387,6 +409,7 @@
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--orange-500);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gray-blue-400);
@@ -434,6 +457,8 @@
   --bg-tertiary: var(--gray-900);
   --chat-bubble-bg: var(--gray-950);
   --chat-messages-bg: var(--matrix-base);
+  --scrollbar-thumb: var(--green-400);
+  --scrollbar-track: var(--matrix-base);
   --text-primary: var(--green-400);
   --text-secondary: var(--green-600);
   --border-color: var(--green-700);
@@ -442,6 +467,7 @@
   --success-color: var(--green-400);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--green-700);
@@ -491,6 +517,8 @@
   --bg-tertiary: var(--dark-purple-600);
   --chat-bubble-bg: var(--dark-purple-800);
   --chat-messages-bg: var(--dark-purple-800);
+  --scrollbar-thumb: var(--purple);
+  --scrollbar-track: var(--dark-purple-800);
   --text-primary: var(--light-gray);
   --text-secondary: var(--purple);
   --border-color: var(--dark-purple-400);
@@ -499,6 +527,7 @@
   --success-color: var(--green);
   --danger-color: var(--red);
   --warning-color: var(--yellow);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--dark-purple-600);
@@ -518,7 +547,7 @@
   --toggle-bg-off: var(--dark-purple-600);
   --toggle-bg-on: var(--purple);
   --toggle-circle-bg: var(--text-primary);
-  --toggle-circle-bg-on: var(--purple-100);
+  --toggle-circle-bg-on: var(--purple);
   --overlay-color: var(--black-overlay);
 }
 
@@ -551,6 +580,8 @@
   --bg-tertiary: var(--base1);
   --chat-bubble-bg: var(--base2);
   --chat-messages-bg: var(--base3);
+  --scrollbar-thumb: var(--base02);
+  --scrollbar-track: var(--base2);
   --text-primary: var(--base00);
   --text-secondary: var(--base01);
   --border-color: var(--base02);
@@ -559,6 +590,7 @@
   --success-color: var(--green);
   --danger-color: var(--red);
   --warning-color: var(--yellow);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.1);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
@@ -608,6 +640,8 @@
   --bg-tertiary: var(--polar-night-3);
   --chat-bubble-bg: var(--polar-night-3);
   --chat-messages-bg: var(--polar-night-1);
+  --scrollbar-thumb: var(--polar-night-4);
+  --scrollbar-track: var(--polar-night-1);
   --text-primary: var(--snow-storm-1);
   --text-secondary: var(--snow-storm-2);
   --border-color: var(--polar-night-4);
@@ -733,6 +767,8 @@
   --bg-tertiary: var(--mono-bg-light);
   --chat-bubble-bg: var(--mono-bg-dark);
   --chat-messages-bg: var(--mono-bg-dark);
+  --scrollbar-thumb: var(--mono-gray);
+  --scrollbar-track: var(--mono-bg);
   --text-primary: var(--mono-fg);
   --text-secondary: var(--mono-gray);
   --border-color: var(--mono-bg-light);
@@ -796,6 +832,8 @@
   --bg-tertiary: var(--tokyo-bg-dark);
   --chat-bubble-bg: var(--tokyo-bg-dark);
   --chat-messages-bg: var(--tokyo-bg);
+  --scrollbar-thumb: var(--tokyo-comment);
+  --scrollbar-track: var(--tokyo-bg);
   --text-primary: var(--tokyo-fg);
   --text-secondary: var(--tokyo-fg-alt);
   --border-color: var(--tokyo-comment);
@@ -859,6 +897,8 @@
   --bg-tertiary: var(--ever-bg-dark);
   --chat-bubble-bg: var(--ever-bg-dark);
   --chat-messages-bg: var(--ever-bg);
+  --scrollbar-thumb: var(--ever-gray);
+  --scrollbar-track: var(--ever-bg);
   --text-primary: var(--ever-fg);
   --text-secondary: var(--ever-gray);
   --border-color: var(--ever-bg3);
@@ -922,6 +962,8 @@
   /* Optimized card background (darker than base01) */
   --chat-bubble-bg: var(--base02);
   --chat-messages-bg: var(--base03);
+  --scrollbar-thumb: var(--base01);
+  --scrollbar-track: var(--base03);
   --text-primary: var(--base0);
   --text-secondary: var(--base1);
   --border-color: var(--base02);
@@ -987,6 +1029,8 @@
   --bg-tertiary: var(--cat-surface0);
   --chat-bubble-bg: var(--cat-mantle);
   --chat-messages-bg: var(--cat-base);
+  --scrollbar-thumb: var(--cat-surface2);
+  --scrollbar-track: var(--cat-mantle);
   --text-primary: var(--cat-text);
   --text-secondary: var(--cat-subtext1);
   --border-color: var(--cat-surface1);
@@ -1049,6 +1093,8 @@
   --bg-tertiary: var(--one-bg-light);
   --chat-bubble-bg: var(--one-bg-dark);
   --chat-messages-bg: var(--one-bg);
+  --scrollbar-thumb: var(--one-comment);
+  --scrollbar-track: var(--one-bg-dark);
   --text-primary: var(--one-fg);
   --text-secondary: var(--one-comment);
   --border-color: var(--one-comment);
@@ -1109,6 +1155,8 @@
   --bg-tertiary: var(--obsidian-border);
   --chat-bubble-bg: var(--obsidian-bg-alt);
   --chat-messages-bg: var(--obsidian-bg);
+  --scrollbar-thumb: var(--obsidian-border-light);
+  --scrollbar-track: var(--obsidian-bg-alt);
   --text-primary: var(--obsidian-fg);
   --text-secondary: var(--obsidian-gray);
   --border-color: var(--obsidian-border);
@@ -1168,6 +1216,8 @@
   --bg-tertiary: var(--drac-soft-border);
   --chat-bubble-bg: var(--drac-soft-bg-alt);
   --chat-messages-bg: var(--drac-soft-bg);
+  --scrollbar-thumb: var(--drac-soft-comment);
+  --scrollbar-track: var(--drac-soft-bg);
   --text-primary: var(--drac-soft-fg);
   --text-secondary: var(--drac-soft-purple);
   --border-color: var(--drac-soft-border);
@@ -1231,6 +1281,8 @@
   --bg-tertiary: var(--ayu-border);
   --chat-bubble-bg: var(--ayu-bg-alt);
   --chat-messages-bg: var(--ayu-bg);
+  --scrollbar-thumb: var(--ayu-border-light);
+  --scrollbar-track: var(--ayu-bg-alt);
   --text-primary: var(--ayu-fg);
   --text-secondary: var(--ayu-fg);
   --border-color: var(--ayu-border);
@@ -1292,6 +1344,8 @@
   --bg-tertiary: var(--cobalt-bg-alt);
   --chat-bubble-bg: var(--cobalt-bg-dark);
   --chat-messages-bg: var(--cobalt-bg);
+  --scrollbar-thumb: var(--cobalt-comment);
+  --scrollbar-track: var(--cobalt-bg-dark);
   --text-primary: var(--cobalt-fg);
   --text-secondary: var(--cobalt-comment);
   --border-color: var(--cobalt-bg-alt);
@@ -1354,6 +1408,8 @@
   --bg-tertiary: var(--owl-bg-lighter);
   --chat-bubble-bg: var(--owl-bg-light);
   --chat-messages-bg: var(--owl-bg);
+  --scrollbar-thumb: var(--owl-bg-lightest);
+  --scrollbar-track: var(--owl-bg-light);
   --text-primary: var(--owl-fg);
   --text-secondary: var(--owl-comment);
   --border-color: var(--owl-bg-lighter);
@@ -2497,13 +2553,13 @@ svg {
 }
 
 ::-webkit-scrollbar-track {
-  background: var(--bg-secondary);
+  background: var(--scrollbar-track, var(--bg-secondary));
 }
 
 ::-webkit-scrollbar-thumb {
-  background-color: var(--bg-tertiary);
+  background-color: var(--scrollbar-thumb, var(--bg-tertiary));
   border-radius: 6px;
-  border: 3px solid var(--bg-secondary);
+  border: 3px solid var(--scrollbar-track, var(--bg-secondary));
 }
 
 ::-webkit-scrollbar-thumb:hover {
@@ -2513,7 +2569,7 @@ svg {
 /* Firefox Scrollbar Styles */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--bg-tertiary) var(--bg-secondary);
+  scrollbar-color: var(--scrollbar-thumb, var(--bg-tertiary)) var(--scrollbar-track, var(--bg-secondary));
 }
 
 /* Modal Size Utilities */

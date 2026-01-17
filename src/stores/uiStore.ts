@@ -145,6 +145,11 @@ function createUiStore() {
         const bgColor = bgColors[themeName] || bgColors["dark"];
         html.style.backgroundColor = bgColor;
 
+        // Option 3: Browser-native integration
+        // Set color-scheme to help browser render native elements (scrollbars, form controls)
+        const isLightTheme = ["light", "solarized-light", "github-light", "ayu-light"].includes(themeName);
+        html.style.colorScheme = isLightTheme ? "light" : "dark";
+
         // Ensure background-image is cleared when manually setting background color
         // to prevent gradients from sticking around if theme changes from gradient to solid
         html.style.backgroundImage = "none";
