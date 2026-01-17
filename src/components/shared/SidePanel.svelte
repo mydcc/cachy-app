@@ -487,6 +487,7 @@
               class="hover:text-[var(--accent-color)] transition-colors cursor-pointer bg-transparent border-none p-0"
               style="font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;"
               onclick={cycleMode}
+              ondblclick={(e) => e.stopPropagation()}
             >
               {getPanelTitle($settingsStore.sidePanelMode)}
             </button>
@@ -501,6 +502,7 @@
               <button
                 class="hover:text-[var(--text-primary)] transition-colors p-0.5"
                 onclick={() => changeFontSize(-1)}
+                ondblclick={(e) => e.stopPropagation()}
                 title="Smaller Font"
               >
                 <svg
@@ -518,7 +520,8 @@
               >
               <button
                 class="hover:text-[var(--text-primary)] transition-colors p-0.5"
-                onclick={() => changeFontSize(1)}
+                onclick={() => changeFontSize(+1)}
+                ondblclick={(e) => e.stopPropagation()}
                 title="Larger Font"
               >
                 <svg
@@ -544,6 +547,7 @@
               class:text-green-700={isTerminal}
               class:hover:text-green-300={isTerminal}
               onclick={exportChat}
+              ondblclick={(e) => e.stopPropagation()}
               title="Export Chat"
             >
               <svg
@@ -565,6 +569,7 @@
               class:text-green-700={isTerminal}
               class:hover:text-green-300={isTerminal}
               onclick={toggleExpand}
+              ondblclick={(e) => e.stopPropagation()}
               title={$settingsStore.panelIsExpanded
                 ? "Collapse Panel"
                 : "Expand Panel"}
@@ -636,6 +641,7 @@
                   clearFn();
                 }
               }}
+              ondblclick={(e) => e.stopPropagation()}
               title="Clear History"
             >
               <!-- TRASH ICON -->
@@ -659,6 +665,7 @@
               class:hover:text-green-300={isTerminal}
               aria-label="Close"
               onclick={toggle}
+              ondblclick={(e) => e.stopPropagation()}
             >
               <svg
                 xmlns="http://www.w3.org/2000/svg"
