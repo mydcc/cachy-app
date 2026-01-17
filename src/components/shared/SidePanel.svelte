@@ -849,25 +849,29 @@
                     --- {msg.text} ---
                   </div>
                 {:else}
-                  {@const isMe = msg.clientId === $chatStore.clientId}
+                  {@const isMe =
+                    msg.clientId === $chatStore.clientId ||
+                    msg.senderId === "me"}
                   <div class="flex flex-col">
                     <span
-                      class="text-[9px] font-bold opacity-40 uppercase mb-0.5 flex items-center gap-1"
+                      class="text-[9px] font-bold opacity-60 uppercase mb-0.5 flex items-center gap-1.5"
                       class:text-[var(--accent-color)]={isMe}
+                      class:opacity-100={isMe}
                     >
                       <span>
                         {isMe ? "You" : "User"}
                       </span>
                       {#if msg.profitFactor !== undefined}
                         <span
-                          class="px-1 bg-[var(--accent-color)]/10 text-[var(--accent-color)] rounded border border-[var(--accent-color)]/20 text-[8px]"
+                          class="px-1.5 py-0.5 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded text-[7px] font-black shadow-sm"
+                          style="line-height: 1;"
                         >
-                          PF: {msg.profitFactor.toFixed(2)}
+                          PF {msg.profitFactor.toFixed(2)}
                         </span>
                       {/if}
                     </span>
-                    <span class="text-sm">{msg.text}</span>
-                    <span class="text-[9px] opacity-40 mt-1 font-mono">
+                    <span class="text-sm leading-tight">{msg.text}</span>
+                    <span class="text-[9px] opacity-30 mt-1 font-mono">
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
@@ -893,6 +897,19 @@
               {$_(errorMessage) || errorMessage || $aiStore.error}
             </div>
           {/if}
+          <div class="flex justify-between items-center mb-1 px-1">
+            {#if $settingsStore.sidePanelMode === "chat"}
+              <span class="text-[9px] font-bold opacity-40 uppercase"
+                >Sending as Verified Trader</span
+              >
+              <span
+                class="text-[9px] font-bold text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-1 rounded"
+                >Your PF: {$chatStore.messages
+                  .find((m) => m.senderId === "me")
+                  ?.profitFactor?.toFixed(2) || "0.30"}</span
+              >
+            {/if}
+          </div>
           <div class="relative w-full">
             <input
               bind:this={inputEl}
