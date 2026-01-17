@@ -821,8 +821,15 @@
             {/each}
           {:else}
             <!-- Global Chat -->
+            <div
+              class="text-[10px] text-center opacity-40 mb-4 uppercase tracking-widest font-bold"
+            >
+              --- Connected to Global Chat ---
+            </div>
             {#each $chatStore.messages as msg (msg.id)}
-              <div class="mb-2 text-[var(--text-primary)]">
+              <div
+                class="mb-3 text-[var(--text-primary)] pl-2 border-l-2 border-[var(--accent-color)] bg-[var(--bg-tertiary)]/30 rounded-r p-1"
+              >
                 {#if msg.sender === "system"}
                   <div
                     class="text-xs text-[var(--accent-color)] font-bold mb-1 opacity-80 text-center uppercase tracking-wider"
