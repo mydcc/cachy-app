@@ -151,45 +151,72 @@
 }
 
 /* =================================================================
-   Meteorite Theme
+   Meteorite Theme - Vollständige Farbpalette
    ================================================================= */
 .theme-meteorite {
-  /* --- Core Palette --- */
+  /* --- Core Colors --- */
   --core-purple: #4e21e7;
   --core-meteorite: #433f65;
   --core-green-free: #0da49a;
   --core-blue-pro: #334eff;
   --core-red-insights: #ee485f;
-  --purple-light: #ede8fd;
-  --purple-dark: #0c082f;
-  --highlight-purple-alt: #c2befa;
-  --highlight-red: #fa9de7;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #fa9de7;
+  --highlight-red: #ff60ee;
+
+  /* --- Gradient Colors --- */
   --gradient-purple-light: #2b1f99;
   --gradient-purple-dark: #0c082f;
-  --bg-secondary-derived: #1a154a;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
+  --gradient-blue-light: #3c6e99;
+  --gradient-blue-dark: #08103f;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #0c082f;
+  --bg-tertiary-derived: #1a1333;
   --accent-hover-derived: #5c71ff;
   --default-hover-derived: #5b587d;
   --danger-hover-derived: #f46d7e;
   --success-hover-derived: #3db6af;
-  --overlay-derived: rgba(12, 8, 47, 0.7);
+  --overlay-derived: rgba(12, 8, 47, 0.8);
 
-  /* --- Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-purple-light),
-    var(--gradient-purple-dark)
-  );
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-purple-light),
+      var(--gradient-purple-dark));
   --bg-secondary: var(--bg-secondary-derived);
-  --bg-tertiary: var(--gradient-purple-light);
+  --bg-tertiary: var(--bg-tertiary-derived);
   --text-primary: var(--purple-light);
-  --text-secondary: var(--highlight-purple-alt);
+  --text-secondary: var(--highlight-meteorite);
   --text-tertiary: var(--core-meteorite);
   --border-color: var(--core-meteorite);
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
   --success-color: var(--core-green-free);
   --danger-color: var(--core-red-insights);
-  --warning-color: var(--highlight-red);
+  --warning-color: var(--highlight-red-alt);
+  --shadow-tooltip: 0 30px 90px -20px rgba(12, 8, 47, 0.5);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--core-meteorite);
   --btn-default-hover-bg: var(--default-hover-derived);
   --btn-default-text: var(--purple-light);
@@ -201,55 +228,85 @@
   --btn-accent-text: var(--purple-light);
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--purple-dark);
+  --btn-success-text: var(--purple-light);
+
+  /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
   --toggle-bg-on: var(--core-blue-pro);
-  --toggle-circle-bg: var(--text-primary);
+  --toggle-circle-bg: var(--purple-light);
   --toggle-circle-bg-on: var(--purple-light);
+
+  /* --- Overlay --- */
   --overlay-color: var(--overlay-derived);
 }
 
 /* =================================================================
-   Steel Theme
+   Steel Theme - Vollständige Farbpalette
    ================================================================= */
 .theme-steel {
-  /* --- Core Palette --- */
+  /* --- Core Colors --- */
   --core-purple: #4e21e7;
   --core-meteorite: #433f65;
   --core-green-free: #0da49a;
   --core-blue-pro: #334eff;
   --core-red-insights: #ee485f;
-  --blue-pro-light: #eaedff;
-  --blue-pro-dark: #08103f;
-  --highlight-blue-alt: #c2cfed;
-  --highlight-red: #fa9de7;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #fa9de7;
+  --highlight-red: #ff60ee;
+
+  /* --- Gradient Colors --- */
+  --gradient-purple-light: #2b1f99;
+  --gradient-purple-dark: #0c082f;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
   --gradient-blue-light: #3c6e99;
   --gradient-blue-dark: #08103f;
-  --bg-secondary-derived: #1a2a6c;
-  --bg-tertiary-derived: #283a80;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #08103f;
+  --bg-tertiary-derived: #1a2645;
   --accent-hover-derived: #5c71ff;
   --default-hover-derived: #5b587d;
   --danger-hover-derived: #f46d7e;
   --success-hover-derived: #3db6af;
-  --overlay-derived: rgba(8, 16, 63, 0.7);
+  --overlay-derived: rgba(8, 16, 63, 0.8);
 
-  /* --- Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-blue-light),
-    var(--gradient-blue-dark)
-  );
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-blue-light),
+      var(--gradient-blue-dark));
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
   --text-primary: var(--blue-pro-light);
-  --text-secondary: var(--highlight-blue-alt);
+  --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);
   --border-color: var(--core-meteorite);
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
   --success-color: var(--core-green-free);
   --danger-color: var(--core-red-insights);
-  --warning-color: var(--highlight-red);
+  --warning-color: var(--highlight-red-alt);
+  --shadow-tooltip: 0 30px 90px -20px rgba(8, 16, 63, 0.5);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--core-meteorite);
   --btn-default-hover-bg: var(--default-hover-derived);
   --btn-default-text: var(--blue-pro-light);
@@ -261,11 +318,15 @@
   --btn-accent-text: var(--blue-pro-light);
   --btn-success-bg: var(--core-green-free);
   --btn-success-hover-bg: var(--success-hover-derived);
-  --btn-success-text: var(--blue-pro-dark);
+  --btn-success-text: var(--blue-pro-light);
+
+  /* --- Toggle Colors --- */
   --toggle-bg-off: var(--core-meteorite);
   --toggle-bg-on: var(--core-blue-pro);
-  --toggle-circle-bg: var(--text-primary);
+  --toggle-circle-bg: var(--blue-pro-light);
   --toggle-circle-bg-on: var(--blue-pro-light);
+
+  /* --- Overlay --- */
   --overlay-color: var(--overlay-derived);
 }
 
@@ -1246,11 +1307,9 @@
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
   --btn-success-bg: var(--midnight-success);
-  --btn-success-hover-bg: color-mix(
-    in srgb,
-    var(--midnight-success) 80%,
-    black
-  );
+  --btn-success-hover-bg: color-mix(in srgb,
+      var(--midnight-success) 80%,
+      black);
   --btn-success-text: var(--midnight-text-primary);
   --toggle-bg-off: var(--midnight-bg-overlay);
   --toggle-bg-on: var(--midnight-gold);
@@ -1734,7 +1793,7 @@ input[type="number"] {
   transition: background-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track {
+input[type="checkbox"]:checked+.atr-toggle-track {
   background-color: var(--toggle-bg-on);
 }
 
@@ -1747,7 +1806,7 @@ input[type="checkbox"]:checked + .atr-toggle-track {
     border-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track::after {
+input[type="checkbox"]:checked+.atr-toggle-track::after {
   transform: translateX(calc(100% + 2px));
   border-color: var(--toggle-circle-bg-on) !important;
   background-color: var(--toggle-circle-bg-on) !important;
@@ -2114,11 +2173,9 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   }
 
   30% {
-    background-color: color-mix(
-      in srgb,
-      var(--accent-color) 50%,
-      var(--bg-tertiary)
-    );
+    background-color: color-mix(in srgb,
+        var(--accent-color) 50%,
+        var(--bg-tertiary));
   }
 
   100% {
@@ -2183,8 +2240,7 @@ body {
   /* Allows pull-to-refresh and rubber-banding */
   -webkit-tap-highlight-color: transparent;
   /* Clean mobile taps */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 h1,
@@ -2198,12 +2254,10 @@ svg {
 
 /* Loading Shimmer */
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--bg-tertiary) 25%,
-    color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
-    var(--bg-tertiary) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--bg-tertiary) 25%,
+      color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
+      var(--bg-tertiary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }

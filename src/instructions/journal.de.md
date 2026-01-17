@@ -83,6 +83,8 @@ Das Journal besteht aus zwei Hauptbereichen:
 
 - **CSV Export:** Deine Daten gehören dir! Nutze den Export für externe Backups oder Excel-Analysen.
 
+- **Verschlüsselte Backups:** Beim Export über die Einstellungen kannst du optional ein Passwort setzen, um deine Trading-Historie und API-Schlüssel mit AES-256-bit-Verschlüsselung zu schützen. Dies ist besonders wichtig, wenn du Backups in der Cloud speicherst.
+
 - **Screenshots:** Lade Chart-Screenshots für jeden Trade hoch. Ein Bild sagt mehr als 1000 Zahlen – speichere Setup und Ausführung visuell.
 
 <a id="filter-suchfunktionen"></a>

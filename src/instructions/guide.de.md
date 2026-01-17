@@ -62,6 +62,20 @@ $$ \text{Erforderliche Margin} = \frac{\text{Ordervolumen}}{\text{Hebel}} $$
 **6. Break-Even Preis (Long)**
 $$ \text{Break Even} = \text{Einstiegspreis} \times \frac{1 + \text{Gebührenrate}}{1 - \text{Gebührenrate}} $$
 
+### Visuelle Risk/Reward-Anzeige (VisualBar)
+
+Unter den Eingabefeldern erscheint eine interaktive **VisualBar**, die dein Trade-Setup visuell darstellt:
+
+**Was siehst du?**
+
+- **Roter Bereich (links):** Zeigt dein Risiko vom Stop-Loss bis zum Entry-Point
+- **Grüner Bereich (rechts):** Zeigt dein Gewinnpotential vom Entry bis zu deinen Take Profits
+- **Weiße Marker:** Zeigen exakt SL, Entry und TP-Positionen
+- **TP-Labels:** Über jedem TP siehst du das Risk/Reward-Verhältnis (z.B. "2.5R")
+
+**Nutzen:**
+Mit einem Blick erkennst du, ob dein Trade ein gutes Risk/Reward-Verhältnis hat. Ein profitabler Trade sollte deutlich mehr grünen (Profit) als roten (Risk) Bereich zeigen.
+
 ---
 
 ## 2. Marktübersicht & Sidebar
@@ -163,14 +177,32 @@ Zugriff auf die Einstellungen über das Zahnrad-Symbol.
 
 Da Cachy nur lokal läuft, liegt die Verantwortung für deine Daten bei dir.
 
-- **Backup:** Gehe zu Einstellungen -> System -> **Backup erstellen**. Dies lädt eine JSON-Datei mit all deinen Einstellungen, Journaleinträgen und Presets herunter.
+- **Backup erstellen:** Gehe zu Einstellungen → System → **Backup erstellen**.
+  - **Optional:** Aktiviere **"Backup verschlüsseln"** und gib ein sicheres Passwort ein.
+  - Dies lädt eine JSON-Datei mit all deinen Einstellungen, Journaleinträgen und Presets herunter.
+  - Bei aktivierter Verschlüsselung werden alle API-Schlüssel und sensiblen Daten mit AES-256-bit-Verschlüsselung geschützt.
+
 - **Wiederherstellen (Restore):** Nutze **Aus Backup wiederherstellen**, um eine zuvor gespeicherte JSON-Datei zu laden.
+  - Bei verschlüsselten Backups musst du das korrekte Passwort eingeben.
+  - **Achtung:** Ein falsches Passwort führt zur Fehlermeldung "Decryption failed".
+
+**Sicherheitshinweis:** Speichere dein Backup-Passwort sicher! Ohne das Passwort können verschlüsselte Backups nicht wiederhergestellt werden.
 
 ### Anpassung
 
 - **Themes:** Wähle aus über 20 verschiedenen Designs (z.B. 'Midnight', 'Dracula', 'Nord').
 - **Hotkeys:** Passe Tastaturkürzel für Geschwindigkeit an (z.B. `S` für Short, `L` für Long).
 - **Debug-Modus:** Aktiviere detaillierte System-Logs in der Browser-Konsole für die Fehlerdiagnose.
+
+### Marktdaten-Aktualisierung
+
+Unter **Einstellungen → Behavior → Market Data Interval** kannst du einstellen, wie oft Cachy Marktdaten aktualisiert:
+
+- **1 Sekunde:** Maximale Echtzeitdaten (höhere Last)
+- **1 Minute:** Ausgewogene Aktualisierung (Standard)
+- **10 Minuten:** Minimale API-Nutzung (schont Ratenlimits)
+
+**Empfehlung:** Für aktives Day-Trading wähle 1 Sekunde. Für Swing-Trading genügen 1-10 Minuten.
 
 ### Side Panel (Seitenleiste)
 

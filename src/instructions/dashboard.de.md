@@ -90,7 +90,7 @@ Erfolgreiches Trading ist kein Glücksspiel – es ist ein Geschäft mit diszipl
 
 Dies ist der häufigste Anwendungsfall. Du gibst vor, wie viel Prozent deines Kapitals du riskieren möchtest, und der Calculator berechnet die **exakte Positionsgröße**.
 
-#### Beispiel-Szenario:
+#### Beispiel-Szenario
 
 **Deine Eingaben:**
 
@@ -101,7 +101,7 @@ Dies ist der häufigste Anwendungsfall. Du gibst vor, wie viel Prozent deines Ka
 - **Entry Price:** 50.000 €
 - **Stop-Loss:** 49.500 €
 
-#### Die Berechnung in 3 Schritten:
+#### Die Berechnung in 3 Schritten
 
 **Schritt 1: Risikobetrag in €**
 
@@ -178,7 +178,7 @@ Der ATR misst die **durchschnittliche Preisschwankung** über einen Zeitraum:
 - **Hoher ATR** = Hohe Volatilität (Markt bewegt sich stark)
 - **Niedriger ATR** = Geringe Volatilität (Markt bewegt sich ruhig)
 
-#### Berechnung:
+#### Berechnung
 
 Für die letzten 14 Perioden wird jeweils die "True Range" berechnet:
 
@@ -191,7 +191,7 @@ True Range = Maximum von:
 ATR = Durchschnitt der 14 True Ranges
 ```
 
-#### So nutzt du es:
+#### So nutzt du es
 
 1. **Aktiviere** "ATR Stop-Loss"
 2. **Wähle den Modus:**
@@ -199,12 +199,13 @@ ATR = Durchschnitt der 14 True Ranges
    - **Manual:** Du gibst einen eigenen ATR-Wert ein
 3. **Setze den Multiplikator** (typisch: 1,5 - 2,5)
 4. **Stop-Loss wird berechnet:**
+
    ```
    Long:  Stop-Loss = Entry - (ATR × Multiplikator)
    Short: Stop-Loss = Entry + (ATR × Multiplikator)
    ```
 
-#### Beispiel:
+#### Beispiel
 
 - Entry: 50.000 €
 - ATR: 800 €
@@ -224,7 +225,7 @@ ATR = Durchschnitt der 14 True Ranges
 
 Professionelle Trader verkaufen ihre Position nicht auf einmal, sondern **schrittweise an mehreren Zielen**.
 
-#### Wie es funktioniert:
+#### Wie es funktioniert
 
 **Definiere bis zu 3 Take-Profit-Ziele:**
 
@@ -246,7 +247,7 @@ Professionelle Trader verkaufen ihre Position nicht auf einmal, sondern **schrit
 - Exit %: 20%
 - R/R: 12:1
 
-#### Der Calculator zeigt dir:
+#### Der Calculator zeigt dir
 
 1. **Individual R/R** für jedes Ziel
 2. **Weighted R/R** (Durchschnitt, gewichtet nach Exit %)
@@ -303,13 +304,45 @@ Mit **50% Win Rate** aber **1:1 R/R**:
 
 ---
 
+### VisualBar: Grafische Risk/Reward-Darstellung
+
+Nachdem du Entry, Stop-Loss und Take-Profits eingegeben hast, zeigt die **VisualBar** dein Setup visuell an.
+
+#### Aufbau der VisualBar
+
+```
+[SL] ──|━━━━━━━━━━━━━━━|──────────────────────────────────|
+       ↑ (rot)          ↑               (grün)             ↑
+     SL-Punkt        Entry                               TP3
+                     
+```
+
+**Elemente:**
+
+1. **Roter Balken (links):** Risiko-Bereich (Stop-Loss bis Entry)
+2. **Grüner Balken (rechts):** Gewinn-Bereich (Entry bis weitester TP)
+3. **Weiße Marker:** Präzise Positionierung von SL, Entry und allen TPs
+4. **TP-Labels:** Über jedem TP wird angezeigt:
+   - TP-Nummer (TP1, TP2, TP3)
+   - Risk/Reward-Verhältnis (z.B. "2.5R")
+
+#### Interpretation
+
+- **Mehr Grün als Rot:** Gutes Risk/Reward-Verhältnis ✅
+- **Ausgeglichenes Verhältnis:** 1:1 RR (Breakeven bei 50% Win Rate) ⚠️
+- **Mehr Rot als Grün:** Schlechtes RR, Trade überdenken ❌
+
+**Vorteil:** Du siehst sofort, ob dein Trade die Mühe wert ist – ohne Zahlen zu berechnen.
+
+---
+
 <a id="calculator-zum-journal"></a>
 
 ## 3. Vom Calculator zum Journal
 
 Der Calculator plant deinen Trade – das **Journal dokumentiert und analysiert** ihn.
 
-### Der perfekte Workflow:
+### Der perfekte Workflow
 
 1. **Calculator:** Trade planen
    - Position Size berechnen
@@ -331,7 +364,7 @@ Der Calculator plant deinen Trade – das **Journal dokumentiert und analysiert*
    - Fehler identifizieren
    - Optimierungen ableiten
 
-### Schnellzugriff:
+### Schnellzugriff
 
 - Klicke auf **"Journal"** in der Sidebar
 - Oder nutze den Button **"Save to Journal"** (wenn verfügbar)
@@ -467,6 +500,13 @@ Erfolgreiches Trading ist ein **wiederholbarer Prozess**:
 - Nach 2 Verlusten in Folge: PAUSE
 - Nach großem Gewinn: PAUSE (Overconfidence!)
 - Müde, gestresst, emotional? KEIN TRADING
+
+**6. Sichere Backups**
+
+- Erstelle **monatlich** ein verschlüsseltes Backup deines Journals
+- Speichere Backups an einem sicheren Ort (z.B. externe Festplatte, Cloud)
+- Teste gelegentlich die Wiederherstellung, um sicherzustellen, dass dein Passwort funktioniert
+- **Wichtig:** Ohne Passwort ist ein verschlüsseltes Backup unbrauchbar!
 
 ---
 
