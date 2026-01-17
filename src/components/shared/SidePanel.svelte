@@ -2,6 +2,7 @@
   import { onMount } from "svelte";
   import { fly, scale } from "svelte/transition";
   import { chatStore } from "../../stores/chatStore";
+  import { notesStore } from "../../stores/notesStore";
   import { aiStore } from "../../stores/aiStore";
   import { settingsStore } from "../../stores/settingsStore";
   import { _ } from "../../locales/i18n";
@@ -36,6 +37,8 @@
     try {
       if (mode === "ai") {
         await aiStore.sendMessage(messageText);
+      } else if (mode === "notes") {
+        notesStore.addNote(messageText);
       } else {
         await chatStore.sendMessage(messageText);
       }
@@ -207,11 +210,15 @@
             `${m.role === "user" ? "YOU" : "AI"} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`,
         )
         .join("\n---\n\n");
+    } else if ($settingsStore.sidePanelMode === "notes") {
+      content = $notesStore.messages
+        .map((m) => `${new Date(m.timestamp).toLocaleString()}:\n${m.text}\n`)
+        .join("\n---\n\n");
     } else {
       content = $chatStore.messages
         .map(
           (m) =>
-            `MSG (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
+            `${m.senderId === "me" ? "YOU" : "USER"} (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
         )
         .join("\n---\n\n");
     }
@@ -604,8 +611,13 @@
                 class="transition-colors hover:text-red-500 p-0.5"
                 class:text-green-700={isTerminal}
                 class:text-[var(--text-secondary)]={!isTerminal}
-                onclick={() =>
-                  confirm("Clear chat history?") && aiStore.clearHistory()}
+                onclick={() => {
+                  if ($settingsStore.aiConfirmClear) {
+                    if (confirm("Clear chat history?")) aiStore.clearHistory();
+                  } else {
+                    aiStore.clearHistory();
+                  }
+                }}
                 title="Clear History"
               >
                 <!-- TRASH ICON -->
@@ -789,10 +801,50 @@
                 {/if}
               </div>
             {/if}
+          {:else if $settingsStore.sidePanelMode === "notes"}
+            <!-- Private Notes -->
+            {#each $notesStore.messages as msg (msg.id)}
+              <div
+                class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
+              >
+                <div
+                  class="text-sm whitespace-pre-wrap text-[var(--text-primary)]"
+                >
+                  {msg.text}
+                </div>
+                <div
+                  class="text-[10px] text-[var(--text-tertiary)] mt-2 text-right opacity-60"
+                >
+                  {new Date(msg.timestamp).toLocaleString()}
+                </div>
+              </div>
+            {/each}
           {:else}
-            <!-- Standard Chat (Not AI) -->
+            <!-- Global Chat -->
             {#each $chatStore.messages as msg (msg.id)}
-              <div class="mb-2 text-[var(--text-primary)]">{msg.text}</div>
+              <div class="mb-2 text-[var(--text-primary)]">
+                {#if msg.sender === "system"}
+                  <div
+                    class="text-xs text-[var(--accent-color)] font-bold mb-1 opacity-80 text-center uppercase tracking-wider"
+                  >
+                    --- {msg.text} ---
+                  </div>
+                {:else}
+                  <div class="flex flex-col">
+                    <span
+                      class="text-[9px] font-bold opacity-40 uppercase mb-0.5"
+                      class:text-[var(--accent-color)]={msg.senderId === "me"}
+                    >
+                      {msg.sender === "system"
+                        ? "System"
+                        : msg.senderId === "me"
+                          ? "You"
+                          : "User"}
+                    </span>
+                    <span class="text-sm">{msg.text}</span>
+                  </div>
+                {/if}
+              </div>
             {/each}
           {/if}
         </div>

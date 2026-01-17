@@ -59,6 +59,7 @@ export interface Settings {
   sidePanelLayout: SidePanelLayout;
   chatStyle: "minimal" | "bubble" | "terminal";
   panelState: PanelState;
+  maxPrivateNotes: number;
 
   // Custom AI Instructions
   customSystemPrompt: string; // User defined instructions
@@ -73,6 +74,7 @@ export interface Settings {
   anthropicModel: string;
   aiConfirmActions: boolean;
   aiTradeHistoryLimit: number; // NEW: Context limit
+  aiConfirmClear: boolean;
 
   // UI Settings
   showSpinButtons: boolean | "hover";
@@ -147,6 +149,8 @@ const defaultSettings: Settings = {
   enableGlassmorphism: true,
   chatFontSize: 13,
   panelIsExpanded: false,
+  maxPrivateNotes: 50,
+  aiConfirmClear: true,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -268,6 +272,9 @@ function loadSettingsFromLocalStorage(): Settings {
       chatFontSize: settings.chatFontSize ?? defaultSettings.chatFontSize,
       panelIsExpanded:
         settings.panelIsExpanded ?? defaultSettings.panelIsExpanded,
+      maxPrivateNotes:
+        settings.maxPrivateNotes ?? defaultSettings.maxPrivateNotes,
+      aiConfirmClear: settings.aiConfirmClear ?? defaultSettings.aiConfirmClear,
     };
 
     return cleanSettings;

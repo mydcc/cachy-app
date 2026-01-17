@@ -6,7 +6,8 @@ export interface ChatMessage {
   id: string;
   text: string;
   timestamp: number;
-  senderId?: string; // To differentiate 'me' vs 'others' if needed
+  senderId?: string; // 'me' or 'other'
+  sender?: "user" | "system"; // from API
 }
 
 export interface ChatState {
@@ -14,9 +15,8 @@ export interface ChatState {
   lastSentTimestamp: number;
 }
 
-const LOCAL_STORAGE_KEY = "cachy_chat_history";
-const MAX_MESSAGES = 1000;
-const POLL_INTERVAL = 3000; // Poll every 3 seconds
+// Global Chat doesn't use LocalStorage anymore, it syncs with Server
+const POLL_INTERVAL = 3000;
 
 const initialState: ChatState = {
   messages: [],
@@ -24,32 +24,9 @@ const initialState: ChatState = {
 };
 
 function createChatStore() {
-  // Load initial state from local storage
-  let initial = initialState;
-  if (browser) {
-    try {
-      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-      if (stored) {
-        initial = JSON.parse(stored);
-      }
-    } catch (e) {
-      console.error("Failed to load chat history", e);
-    }
-  }
-
-  const { subscribe, set, update } = writable<ChatState>(initial);
+  const { subscribe, set, update } = writable<ChatState>(initialState);
 
   let pollIntervalId: any;
-
-  // Helper to persist to localStorage
-  const saveToStorage = (state: ChatState) => {
-    if (!browser) return;
-    try {
-      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(state));
-    } catch (e) {
-      console.error("Failed to save chat history", e);
-    }
-  };
 
   // Helper to merge new messages avoiding duplicates
   const mergeMessages = (
@@ -60,12 +37,11 @@ function createChatStore() {
     const uniqueIncoming = incoming.filter((m) => !existingIds.has(m.id));
 
     let merged = [...current, ...uniqueIncoming];
-    // Sort by timestamp
     merged.sort((a, b) => a.timestamp - b.timestamp);
 
-    // Trim
-    if (merged.length > MAX_MESSAGES) {
-      merged = merged.slice(-MAX_MESSAGES);
+    // Frontend Limit (display last 500 max)
+    if (merged.length > 500) {
+      merged = merged.slice(-500);
     }
     return merged;
   };
@@ -96,7 +72,6 @@ function createChatStore() {
                         data.messages,
                       );
                       const newState = { ...s, messages: newMessages };
-                      saveToStorage(newState);
                       return newState;
                     });
                   }
@@ -117,7 +92,6 @@ function createChatStore() {
 
     sendMessage: async (text: string) => {
       const state = get({ subscribe });
-      const settings = get(settingsStore);
       const now = Date.now();
 
       // Rate Limit Check (2 seconds)
@@ -125,55 +99,37 @@ function createChatStore() {
         throw new Error("Please wait 2 seconds between messages.");
       }
 
-      const newMessage: ChatMessage = {
-        id: now.toString() + Math.random().toString(36).substr(2, 9),
-        text: text.slice(0, 140),
-        timestamp: now,
-        senderId: "me",
-      };
+      // Send to API
+      try {
+        const res = await fetch("/api/chat-v2", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text }),
+        });
 
-      if (settings.sidePanelMode === "chat") {
-        // Send to API
-        try {
-          const res = await fetch("/api/chat-v2", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text }),
-          });
-
-          if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.error || "Failed to send");
-          }
-
-          // On success, we can add it locally or wait for poll.
-          const data = await res.json();
-
-          update((s) => {
-            const merged = mergeMessages(s.messages, [data.message]);
-            const newState = { ...s, messages: merged, lastSentTimestamp: now };
-            saveToStorage(newState);
-            return newState;
-          });
-        } catch (e) {
-          console.error(e);
-          throw e;
+        if (!res.ok) {
+          const err = await res.json();
+          throw new Error(err.error || "Failed to send");
         }
-      } else {
-        // Notes Mode (Local Only)
+
+        const data = await res.json();
+
         update((s) => {
-          const merged = mergeMessages(s.messages, [newMessage]);
+          // Optimistic update or wait for poll? 
+          // Let's add it immediately for better UX
+          const merged = mergeMessages(s.messages, [data.message]);
           const newState = { ...s, messages: merged, lastSentTimestamp: now };
-          saveToStorage(newState);
           return newState;
         });
+      } catch (e) {
+        console.error(e);
+        throw e;
       }
     },
 
     clearHistory: () => {
-      const newState = { messages: [], lastSentTimestamp: 0 };
-      set(newState);
-      saveToStorage(newState);
+      // Only clears local view, server history remains
+      set({ ...initialState });
     },
   };
 }

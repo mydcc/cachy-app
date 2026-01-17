@@ -1,10 +1,10 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
+import { promises as fs } from "fs";
+import path from "path";
 
-// Simple in-memory store for chat messages
-// In a real app, this would be a database.
-// Being a global variable, it persists as long as the server process runs.
-// On Vercel/Serverless, this would reset frequently, but for a VPS/PM2 setup it works fine.
+const DB_FILE = "db/chat_messages.json";
+const MAX_HISTORY = 1000;
 
 interface ChatMessage {
   id: string;
@@ -13,22 +13,45 @@ interface ChatMessage {
   timestamp: number;
 }
 
-// Initialize with a welcome message
-let messages: ChatMessage[] = [
-  {
-    id: "system-welcome",
-    text: "Welcome to the global chat!",
-    sender: "system",
-    timestamp: Date.now(),
-  },
-];
+// Helper to ensure DB exists and read it
+async function getMessages(): Promise<ChatMessage[]> {
+  try {
+    // Try to read the file
+    // In a real server environment, ensure 'db' folder exists
+    const data = await fs.readFile(DB_FILE, "utf-8");
+    return JSON.parse(data);
+  } catch (error: any) {
+    if (error.code === "ENOENT") {
+      // File doesn't exist, create it with welcome message
+      const initial: ChatMessage[] = [
+        {
+          id: "system-welcome",
+          text: "Welcome to the global chat!",
+          sender: "system",
+          timestamp: Date.now(),
+        },
+      ];
+      // Ensure directory exists
+      await fs.mkdir(path.dirname(DB_FILE), { recursive: true });
+      await fs.writeFile(DB_FILE, JSON.stringify(initial, null, 2));
+      return initial;
+    }
+    console.error("Error reading chat db:", error);
+    return [];
+  }
+}
 
-// Keep only the last 100 messages to prevent memory overflow
-const MAX_HISTORY = 100;
+async function saveMessages(messages: ChatMessage[]) {
+  try {
+    await fs.writeFile(DB_FILE, JSON.stringify(messages, null, 2));
+  } catch (error) {
+    console.error("Error writing chat db:", error);
+  }
+}
 
 export const GET: RequestHandler = async ({ url }) => {
-  // Optional: filter by 'since' timestamp to get only new messages
   const since = url.searchParams.get("since");
+  const messages = await getMessages();
   let result = messages;
 
   if (since) {
@@ -54,17 +77,20 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const newMessage: ChatMessage = {
       id: crypto.randomUUID(),
-      text: text.slice(0, 500), // Limit length
-      sender: sender || "user", // default to user
+      text: text.slice(0, 500), // Limit length per message
+      sender: sender || "user",
       timestamp: Date.now(),
     };
 
+    const messages = await getMessages();
     messages.push(newMessage);
 
     // Trim history
     if (messages.length > MAX_HISTORY) {
-      messages = messages.slice(messages.length - MAX_HISTORY);
+      messages.splice(0, messages.length - MAX_HISTORY);
     }
+
+    await saveMessages(messages);
 
     return json({
       success: true,

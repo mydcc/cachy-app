@@ -12,6 +12,7 @@
     geminiModel: string;
     anthropicApiKey: string;
     anthropicModel: string;
+    aiConfirmClear: boolean;
   }
 
   let {
@@ -22,6 +23,7 @@
     geminiModel = $bindable(),
     anthropicApiKey = $bindable(),
     anthropicModel = $bindable(),
+    aiConfirmClear = $bindable(),
   }: Props = $props();
 </script>
 
@@ -59,6 +61,23 @@
       <input
         type="checkbox"
         bind:checked={$settingsStore.aiConfirmActions}
+        class="toggle-checkbox"
+      />
+    </div>
+
+    <!-- AI Clear Confirm Toggle -->
+    <div
+      class="flex items-center justify-between py-2 border-t border-[var(--border-color)]"
+    >
+      <div class="flex flex-col">
+        <span class="text-xs font-bold">Confirm Clear History</span>
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Show confirmation dialog before clearing AI chat.</span
+        >
+      </div>
+      <input
+        type="checkbox"
+        bind:checked={aiConfirmClear}
         class="toggle-checkbox"
       />
     </div>

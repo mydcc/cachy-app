@@ -12,6 +12,7 @@
     sidePanelMode: "chat" | "notes" | "ai";
     sidePanelLayout: SidePanelLayout;
     chatStyle: "minimal" | "bubble" | "terminal";
+    maxPrivateNotes: number;
   }
 
   let {
@@ -24,6 +25,7 @@
     sidePanelMode = $bindable(),
     sidePanelLayout = $bindable(),
     chatStyle = $bindable(),
+    maxPrivateNotes = $bindable(),
   }: Props = $props();
 </script>
 
@@ -138,6 +140,20 @@
           <span class="text-sm">AI Chat</span>
         </label>
       </div>
+    </div>
+    <div class="flex flex-col gap-1">
+      <span class="text-sm font-medium">Max Private Notes</span>
+      <span class="text-xs text-[var(--text-secondary)]"
+        >Max number of notes stored locally</span
+      >
+      <input
+        type="number"
+        min="10"
+        max="1000"
+        step="10"
+        bind:value={maxPrivateNotes}
+        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-24"
+      />
     </div>
     <div class="flex flex-col gap-1">
       <span class="text-sm font-medium">{$_("settings.sidePanelLayout")}</span>
