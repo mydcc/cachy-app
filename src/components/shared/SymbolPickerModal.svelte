@@ -5,6 +5,8 @@
     import ModalFrame from "./ModalFrame.svelte";
     import { updateTradeStore } from "../../stores/tradeStore";
     import { app } from "../../services/app";
+    import { bitunixWs } from "../../services/bitunixWs";
+    import { marketStore } from "../../stores/marketStore";
 
     let isOpen = $state(false);
     let searchQuery = $state("");
@@ -17,10 +19,15 @@
 
     let filteredSymbols = $derived.by(() => {
         if (!searchQuery) return symbols;
-        return symbols.filter((s) =>
-            s.toLowerCase().includes(searchQuery.toLowerCase()),
-        );
+        const q = searchQuery.toLowerCase();
+        return symbols.filter((s) => s.toLowerCase().includes(q));
     });
+
+    function getChangePercent(s: string) {
+        const data = $marketStore[s];
+        if (!data || !data.priceChangePercent) return null;
+        return data.priceChangePercent.toNumber();
+    }
 
     function selectSymbol(s: string) {
         updateTradeStore((state) => ({ ...state, symbol: s }));
@@ -34,11 +41,51 @@
         searchQuery = "";
     }
 
-    function focusAction(node: HTMLInputElement) {
-        if (isOpen) {
-            setTimeout(() => node.focus(), 50);
+    function handleGlobalKeydown(e: KeyboardEvent) {
+        if (!isOpen) return;
+
+        // Skip if ESC or Enter
+        if (e.key === "Escape" || e.key === "Enter") return;
+
+        const input = document.querySelector(
+            ".symbol-picker-container input",
+        ) as HTMLInputElement;
+        if (input && document.activeElement !== input) {
+            // Redirect printable characters and basic editing keys
+            if (
+                e.key.length === 1 ||
+                e.key === "Backspace" ||
+                e.key === "Delete"
+            ) {
+                input.focus();
+            }
         }
     }
+
+    $effect(() => {
+        if (isOpen) {
+            window.addEventListener("keydown", handleGlobalKeydown);
+            // WebSocket Subscriptions for all suggested symbols
+            symbols.forEach((s) => bitunixWs.subscribe(s, "ticker"));
+
+            // Initial focus
+            setTimeout(() => {
+                const input = document.querySelector(
+                    ".symbol-picker-container input",
+                ) as HTMLInputElement;
+                input?.focus();
+            }, 60);
+        } else {
+            window.removeEventListener("keydown", handleGlobalKeydown);
+        }
+
+        return () => {
+            window.removeEventListener("keydown", handleGlobalKeydown);
+            // Cleanup subscriptions.
+            // We use the symbols list directly to ensure all picker subs are closed.
+            symbols.forEach((s) => bitunixWs.unsubscribe(s, "ticker"));
+        };
+    });
 </script>
 
 <ModalFrame
@@ -57,23 +104,51 @@
                 placeholder="Suchen..."
                 class="input-field w-full px-4 py-2 rounded-md"
                 autocomplete="off"
-                use:focusAction
             />
         </div>
 
-        <div class="symbol-grid scrollbar-thin overflow-y-auto max-h-[60vh]">
+        <div
+            class="symbol-grid scrollbar-thin overflow-y-auto max-h-[60vh] pr-1"
+        >
             {#if filteredSymbols.length === 0}
                 <div class="text-center py-8 text-[var(--text-secondary)]">
                     Keine Symbole gefunden.
                 </div>
             {:else}
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
                     {#each filteredSymbols as s}
+                        {@const change = getChangePercent(s)}
                         <button
-                            class="symbol-item p-3 rounded-lg bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all text-sm font-medium border border-[var(--border-color)]"
+                            class="symbol-item group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
                             onclick={() => selectSymbol(s)}
                         >
-                            {s}
+                            <span
+                                class="symbol-name text-sm font-bold tracking-tight mb-1"
+                                >{s}</span
+                            >
+
+                            {#if change !== null}
+                                <span
+                                    class="change-badge text-[10px] font-mono px-1.5 py-0.5 rounded-md
+                                    {change > 0
+                                        ? 'bg-green-500/20 text-green-400 group-hover:bg-white/20 group-hover:text-white'
+                                        : change < 0
+                                          ? 'bg-red-500/20 text-red-400 group-hover:bg-white/20 group-hover:text-white'
+                                          : 'bg-gray-500/20 text-gray-400 group-hover:text-white'}"
+                                >
+                                    {change > 0 ? "+" : ""}{change.toFixed(2)}%
+                                </span>
+                            {:else}
+                                <span
+                                    class="text-[10px] text-[var(--text-secondary)] group-hover:text-white/70"
+                                    >--%</span
+                                >
+                            {/if}
+
+                            <!-- Hover Effekt Glow -->
+                            <div
+                                class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-white pointer-events-none"
+                            ></div>
                         </button>
                     {/each}
                 </div>
@@ -98,14 +173,21 @@
     }
 
     .symbol-item {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        text-align: center;
-        min-height: 3rem;
+        min-height: 4.5rem;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .symbol-item:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+        border-color: rgba(255, 255, 255, 0.2);
     }
 
     .search-container {
         border-bottom: 1px solid var(--border-color);
+    }
+
+    .change-badge {
+        transition: all 0.2s ease;
     }
 </style>
