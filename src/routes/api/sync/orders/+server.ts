@@ -1,6 +1,13 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
+import { CONSTANTS } from "../../../../lib/constants";
+
+// Helper for log sanitization
+function sanitizeError(msg: string): string {
+  if (!msg) return "Unknown error";
+  return msg.replace(/\?.*$/, "?[REDACTED]").substring(0, 300);
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret, limit } = await request.json();
@@ -54,7 +61,9 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.error(
         "Error fetching regular orders:",
-        (regularResult.reason as Error).message || "Unknown error",
+        sanitizeError(
+          (regularResult.reason as Error).message || "Unknown error",
+        ),
       );
     }
 
@@ -63,7 +72,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.warn(
         "Error fetching TP/SL orders:",
-        (tpslResult.reason as Error).message,
+        sanitizeError((tpslResult.reason as Error).message),
       );
     }
 
@@ -72,7 +81,7 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       console.warn(
         "Error fetching plan orders:",
-        (planResult.reason as Error).message,
+        sanitizeError((planResult.reason as Error).message),
       );
     }
 
@@ -81,7 +90,7 @@ export const POST: RequestHandler = async ({ request }) => {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
     console.error(
       `Error fetching orders from Bitunix:`,
-      e.message || "Unknown error",
+      sanitizeError(e.message || "Unknown error"),
     );
     return json(
       { error: e.message || "Failed to fetch orders" },
@@ -148,7 +157,7 @@ async function fetchBitunixData(
   limit: number = 100,
   endTime?: number,
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
 
   // Params for the request
   const params: Record<string, string> = {

@@ -112,6 +112,7 @@ export const CONSTANTS = {
   DEFAULT_ATR_MULTIPLIER: "1.2",
   BITUNIX_WS_PUBLIC_URL: "wss://fapi.bitunix.com/public/",
   BITUNIX_WS_PRIVATE_URL: "wss://fapi.bitunix.com/private/",
+  BITUNIX_API_URL: "https://fapi.bitunix.com",
 };
 
 export const themes = [

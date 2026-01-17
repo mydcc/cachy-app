@@ -96,7 +96,7 @@ export interface BitunixPriceData {
   mp: string; // Market Price
   ip: string; // Index Price
   fr: string; // Funding Rate
-  nft: number; // Next Funding Time
+  nft: number | string; // Next Funding Time
 }
 
 export interface BitunixTickerData {

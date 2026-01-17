@@ -124,7 +124,7 @@ function createMarketStore() {
         price: string;
         indexPrice: string;
         fundingRate: string;
-        nextFundingTime: string;
+        nextFundingTime: string | number;
       },
     ) => {
       touchSymbol(symbol); // Update LRU
@@ -141,7 +141,9 @@ function createMarketStore() {
         // Bitunix timestamps often come as strings, ensure conversion if needed
         let nft = 0;
         if (data.nextFundingTime) {
-          if (/^\d+$/.test(data.nextFundingTime)) {
+          if (typeof data.nextFundingTime === "number") {
+            nft = data.nextFundingTime;
+          } else if (/^\d+$/.test(data.nextFundingTime)) {
             nft = parseInt(data.nextFundingTime, 10);
           } else {
             nft = new Date(data.nextFundingTime).getTime();

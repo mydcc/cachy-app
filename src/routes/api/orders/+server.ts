@@ -11,6 +11,15 @@ import type {
   NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
+import { CONSTANTS } from "../../../lib/constants";
+
+// Helper to sanitize error messages (remove potential keys/signatures)
+function sanitizeError(msg: string): string {
+  if (!msg) return "Unknown error";
+  // Remove query params which might contain api-key or sign
+  // Also truncate very long messages
+  return msg.replace(/\?.*$/, "?[REDACTED]").substring(0, 300);
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   let body: any;
@@ -75,11 +84,32 @@ export const POST: RequestHandler = async ({ request }) => {
           );
         }
 
-        if (orderType === "LIMIT" || orderType === "STOP_LIMIT") {
+        if (
+          orderType === "LIMIT" ||
+          orderType === "STOP_LIMIT" ||
+          orderType === "TAKE_PROFIT_LIMIT"
+        ) {
           const price = parseFloat(body.price);
           if (isNaN(price) || price <= 0) {
             return json(
               { error: "Invalid price for LIMIT order." },
+              { status: 400 },
+            );
+          }
+        }
+
+        if (
+          [
+            "STOP_LIMIT",
+            "STOP_MARKET",
+            "TAKE_PROFIT_LIMIT",
+            "TAKE_PROFIT_MARKET",
+          ].includes(orderType)
+        ) {
+          const trigger = parseFloat(body.triggerPrice || body.stopPrice);
+          if (isNaN(trigger) || trigger <= 0) {
+            return json(
+              { error: "Invalid trigger price for Conditional order." },
               { status: 400 },
             );
           }
@@ -101,7 +131,7 @@ export const POST: RequestHandler = async ({ request }) => {
         result = await placeBitunixOrder(apiKey, apiSecret, body);
       } else if (type === "close-position") {
         // To close a position, we place a MARKET order in the opposite direction
-        const closeOrder = {
+        const closeOrder: BitunixOrderPayload = {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
           type: "MARKET",
@@ -118,7 +148,10 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: any) {
     // Sanitize error log to prevent leaking API keys/headers (which might be in the error object properties)
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`Error processing ${type} on ${exchange}:`, errorMsg);
+    console.error(
+      `Error processing ${type} on ${exchange}:`,
+      sanitizeError(errorMsg),
+    );
     return json(
       { error: e.message || `Failed to process ${type}` },
       { status: 500 },
@@ -131,7 +164,7 @@ async function placeBitunixOrder(
   apiSecret: string,
   orderData: BitunixOrderPayload,
 ): Promise<any> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
   // Construct Payload
@@ -208,7 +241,7 @@ async function fetchBitunixPendingOrders(
   apiKey: string,
   apiSecret: string,
 ): Promise<NormalizedOrder[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_pending_orders";
 
   const { nonce, timestamp, signature } = generateBitunixSignature(
@@ -295,7 +328,7 @@ async function fetchBitunixHistoryOrders(
   apiKey: string,
   apiSecret: string,
 ): Promise<NormalizedOrder[]> {
-  const baseUrl = "https://fapi.bitunix.com";
+  const baseUrl = CONSTANTS.BITUNIX_API_URL || "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
 
   // Default limit 20
