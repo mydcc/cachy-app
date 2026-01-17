@@ -4,17 +4,17 @@ import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
 
 // Helper to slugify text for heading IDs
-const slugify = (raw: string) => {
-  return raw
+const slugify = (text: string) => {
+  return text
     .toLowerCase()
     .trim()
-    // 1. Remove leading # symbols and following space
     .replace(/^#+\s+/, "")
-    // 2. Remove non-word characters except spaces and hyphens
-    .replace(/[^\w\s-]/g, "")
-    // 3. Replace spaces with hyphens
+    // Remove symbols but keep letters (including Unicode), numbers, and spaces
+    .replace(/[^\p{L}\p{N}\s-]/gu, "")
+    // Replace spaces with a single hyphen
     .replace(/\s+/g, "-")
-    // 4. Remove any remaining trailing/leading hyphens (optional but cleaner)
+    // Collapse multiple hyphens
+    .replace(/-+/g, "-")
     .replace(/^-+|-+$/g, "");
 };
 

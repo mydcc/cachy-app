@@ -18,13 +18,13 @@ Dieses Dokument dient als umfassendes technisches Handbuch für Entwickler, Inve
 
 ## Inhaltsverzeichnis
 
-1. [Produktphilosophie & Grundwerte](#1-produktphilosophie--grundwerte)
+1. [Produktphilosophie & Grundwerte](#1-produktphilosophie-grundwerte)
 2. [Systemarchitektur](#2-systemarchitektur)
-3. [Kernlogik & Mathematik ("Das Herzstück")](#3-kernlogik--mathematik-das-herzstück)
+3. [Kernlogik & Mathematik ("Das Herzstück")](#3-kernlogik-mathematik-das-herzstück)
 4. [Der Trade-Lebenszyklus ("Das Nervensystem")](#4-der-trade-lebenszyklus-das-nervensystem)
-5. [Externe Integrationen & Datenfeeds](#5-externe-integrationen--datenfeeds)
-6. [Sicherheits- & Datenschutzmodell](#6-sicherheits---datenschutzmodell)
-7. [Skalierbarkeit & Zukunfts-Roadmap](#7-skalierbarkeit--zukunfts-roadmap)
+5. [Externe Integrationen & Datenfeeds](#5-externe-integrationen-datenfeeds)
+6. [Sicherheits- & Datenschutzmodell](#6-sicherheits-datenschutzmodell)
+7. [Skalierbarkeit & Zukunfts-Roadmap](#7-skalierbarkeit-zukunfts-roadmap)
 8. [Entwickler-Leitfaden](#8-entwickler-leitfaden)
 
 ---

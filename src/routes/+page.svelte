@@ -64,12 +64,12 @@
         const container = anchor.closest(".prose");
         if (container) {
           e.preventDefault();
-          const targetId = anchor.hash.slice(1);
-          const targetEl = container.querySelector(`#${targetId}`);
+          const targetId = decodeURIComponent(anchor.hash.slice(1));
+          // Use getElementById for IDs that might start with numbers
+          const targetEl = document.getElementById(targetId);
 
-          if (targetEl) {
+          if (targetEl && container.contains(targetEl)) {
             targetEl.scrollIntoView({ behavior: "smooth" });
-            // Update URL hash without jumping
             history.pushState(null, "", anchor.hash);
           }
         }

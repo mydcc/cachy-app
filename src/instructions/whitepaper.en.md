@@ -18,13 +18,13 @@ This document serves as a comprehensive technical manual for developers, investo
 
 ## Table of Contents
 
-1. [Product Philosophy & Core Values](#1-product-philosophy--core-values)
+1. [Product Philosophy & Core Values](#1-product-philosophy-core-values)
 2. [System Architecture](#2-system-architecture)
-3. [Core Logic & Mathematics ("The Heart")](#3-core-logic--mathematics-the-heart)
+3. [Core Logic & Mathematics ("The Heart")](#3-core-logic-mathematics-the-heart)
 4. [The Trade Lifecycle ("The Nervous System")](#4-the-trade-lifecycle-the-nervous-system)
-5. [External Integrations & Data Feeds](#5-external-integrations--data-feeds)
-6. [Security & Privacy Model](#6-security--privacy-model)
-7. [Scalability & Future Roadmap](#7-scalability--future-roadmap)
+5. [External Integrations & Data Feeds](#5-external-integrations-data-feeds)
+6. [Security & Privacy Model](#6-security-privacy-model)
+7. [Scalability & Future Roadmap](#7-scalability-future-roadmap)
 8. [Developer Guide](#8-developer-guide)
 
 ---
