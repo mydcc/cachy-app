@@ -300,6 +300,7 @@
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
+  --chat-messages-bg: var(--gradient-blue-dark);
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);
