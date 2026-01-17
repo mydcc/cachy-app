@@ -158,18 +158,22 @@
             bind:value={geminiModel}
             class="input-field p-1.5 px-2 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full"
           >
+            <option value="gemini-3-flash-preview"
+              >Gemini 3 Flash (Vorschau 🚀)</option
+            >
+            <option value="gemini-3-pro-preview"
+              >Gemini 3 Pro (Vorschau 🧠)</option
+            >
             <option value="gemini-2.5-flash"
               >Gemini 2.5 Flash (Empfohlen ⭐)</option
             >
             <option value="gemini-2.0-flash">Gemini 2.0 Flash (Stabil)</option>
-            <option value="gemma-3-27b-it"
-              >Gemma 3 27b (14.400 Req/Tag! 🚀)</option
-            >
+            <option value="gemma-3-27b-it">Gemma 3 27b (Open Model ✨)</option>
           </select>
         </div>
         <p class="text-[10px] text-[var(--text-secondary)] italic">
-          Tipp: 'Gemini 2.5 Flash' bietet die beste Balance. 'Gemma 3' für
-          intensive Nutzung (hohe Rate-Limits: 14.4k/Tag).
+          Tipp: 'Gemini 2.5 Flash' ist ideal für den Alltag. 'Gemma 3' bietet
+          hohe Ratenlimits (14.4k/Tag). Gemini 3 für maximale Intelligenz.
         </p>
       </div>
       <div
