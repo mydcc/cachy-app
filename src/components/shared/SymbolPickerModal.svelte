@@ -10,6 +10,8 @@
 
     let isOpen = $state(false);
     let searchQuery = $state("");
+    let sortMode = $state<"alpha" | "gainers" | "losers">("alpha");
+    let filterMode = $state<"all" | "volatile">("all");
 
     modalManager.subscribe((state) => {
         isOpen = state.isOpen && state.type === "symbolPicker";
@@ -21,6 +23,31 @@
         if (!searchQuery) return symbols;
         const q = searchQuery.toLowerCase();
         return symbols.filter((s) => s.toLowerCase().includes(q));
+    });
+
+    let sortedAndFilteredSymbols = $derived.by(() => {
+        let result = [...filteredSymbols];
+
+        // Sortierung
+        if (sortMode === "gainers" || sortMode === "losers") {
+            result.sort((a, b) => {
+                const changeA = getChangePercent(a) || 0;
+                const changeB = getChangePercent(b) || 0;
+                return sortMode === "gainers"
+                    ? changeB - changeA // Höchste zuerst
+                    : changeA - changeB; // Niedrigste zuerst
+            });
+        }
+
+        // Filterung
+        if (filterMode === "volatile") {
+            result = result.filter((s) => {
+                const change = Math.abs(getChangePercent(s) || 0);
+                return change >= 5; // Mindestens 5% Änderung
+            });
+        }
+
+        return result;
     });
 
     function getChangePercent(s: string) {
@@ -39,6 +66,16 @@
     function handleClose() {
         modalManager._handleModalConfirm(false);
         searchQuery = "";
+    }
+
+    function cycleSortMode() {
+        if (sortMode === "alpha") sortMode = "gainers";
+        else if (sortMode === "gainers") sortMode = "losers";
+        else sortMode = "alpha";
+    }
+
+    function toggleFilter() {
+        filterMode = filterMode === "all" ? "volatile" : "all";
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {
@@ -97,6 +134,45 @@
     on:close={handleClose}
     extraClasses="modal-size-lg"
 >
+    <svelte:fragment slot="header-extra">
+        <div class="flex gap-2">
+            <!-- Sort Button -->
+            <button
+                class="header-btn"
+                onclick={cycleSortMode}
+                title="Sortierung: {sortMode === 'alpha'
+                    ? 'Alphabetisch'
+                    : sortMode === 'gainers'
+                      ? 'Top Gainers'
+                      : 'Top Losers'}"
+            >
+                <span class="icon">⇅</span>
+                <span class="label"
+                    >{sortMode === "alpha"
+                        ? "A-Z"
+                        : sortMode === "gainers"
+                          ? "+%"
+                          : "-%"}</span
+                >
+            </button>
+
+            <!-- Filter Button -->
+            <button
+                class="header-btn"
+                class:active={filterMode === "volatile"}
+                onclick={toggleFilter}
+                title="Filter: {filterMode === 'all'
+                    ? 'Alle'
+                    : 'Nur Volatile (>5%)'}"
+            >
+                <span class="icon">🔥</span>
+                <span class="label"
+                    >{filterMode === "all" ? "Alle" : ">5%"}</span
+                >
+            </button>
+        </div>
+    </svelte:fragment>
+
     <div class="symbol-picker-container">
         <div
             class="search-container mb-4 sticky top-0 bg-[var(--bg-secondary)] pb-2 z-10"
@@ -119,20 +195,20 @@
                 </div>
             {:else}
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                    {#each filteredSymbols as s}
+                    {#each sortedAndFilteredSymbols as s}
                         {@const change = getChangePercent(s)}
                         <button
                             class="symbol-item group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
                             onclick={() => selectSymbol(s)}
                         >
                             <span
-                                class="symbol-name text-sm font-bold tracking-tight mb-1"
+                                class="symbol-name text-base font-bold tracking-tight mb-1"
                                 >{s}</span
                             >
 
                             {#if change !== null}
                                 <span
-                                    class="change-badge text-[10px] font-mono px-1.5 py-0.5 rounded-md
+                                    class="change-badge text-sm font-mono px-2 py-1 rounded-md w-full text-center
                                     {change > 0
                                         ? 'bg-green-500/20 text-green-400 group-hover:bg-white/20 group-hover:text-white'
                                         : change < 0
@@ -176,7 +252,7 @@
     }
 
     .symbol-item {
-        min-height: 4.5rem;
+        min-height: 5.5rem;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
         color: var(--text-primary);
     }
@@ -206,5 +282,39 @@
 
     .change-badge {
         transition: all 0.2s ease;
+    }
+
+    .header-btn {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        padding: 0.375rem 0.75rem;
+        border-radius: 0.5rem;
+        background-color: var(--bg-tertiary);
+        color: var(--text-secondary);
+        border: 1px solid var(--border-color);
+        font-size: 0.875rem;
+        font-weight: 500;
+        transition: all 0.2s ease;
+        cursor: pointer;
+    }
+
+    .header-btn:hover {
+        background-color: var(--accent-color);
+        color: var(--btn-accent-text);
+        border-color: var(--accent-color);
+    }
+
+    .header-btn.active {
+        background-color: var(--accent-color);
+        color: var(--btn-accent-text);
+    }
+
+    .header-btn .icon {
+        font-size: 1rem;
+    }
+
+    .header-btn .label {
+        font-family: "Inter", monospace;
     }
 </style>
