@@ -1,17 +1,20 @@
 <script lang="ts">
     import { modalManager } from "../../services/modalManager";
-    import { CONSTANTS } from "../../lib/constants";
+    import { CONSTANTS, icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import ModalFrame from "./ModalFrame.svelte";
     import { updateTradeStore } from "../../stores/tradeStore";
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
     import { marketStore } from "../../stores/marketStore";
+    import { settingsStore } from "../../stores/settingsStore";
 
     let isOpen = $state(false);
     let searchQuery = $state("");
+    let viewMode = $state<"favorites" | "gainers" | "volatile" | "all">(
+        "favorites",
+    );
     let sortMode = $state<"alpha" | "gainers" | "losers">("alpha");
-    let filterMode = $state<"all" | "volatile">("all");
 
     modalManager.subscribe((state) => {
         isOpen = state.isOpen && state.type === "symbolPicker";
@@ -19,32 +22,50 @@
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
 
-    let filteredSymbols = $derived.by(() => {
-        if (!searchQuery) return symbols;
-        const q = searchQuery.toLowerCase();
-        return symbols.filter((s) => s.toLowerCase().includes(q));
-    });
-
     let sortedAndFilteredSymbols = $derived.by(() => {
-        let result = [...filteredSymbols];
+        let result = [];
 
-        // Sortierung
-        if (sortMode === "gainers" || sortMode === "losers") {
-            result.sort((a, b) => {
-                const changeA = getChangePercent(a) || 0;
-                const changeB = getChangePercent(b) || 0;
-                return sortMode === "gainers"
-                    ? changeB - changeA // Höchste zuerst
-                    : changeA - changeB; // Niedrigste zuerst
+        // 1. Basis-Filterung (Suche oder ViewMode)
+        if (searchQuery) {
+            // Bei Suche global suchen
+            const q = searchQuery.toLowerCase();
+            result = symbols.filter((s) => s.toLowerCase().includes(q));
+        } else {
+            // Kein Suchbegriff -> ViewMode anwenden
+            if (viewMode === "favorites") {
+                const favs = $settingsStore.favoriteSymbols || [];
+                result = symbols.filter((s) => favs.includes(s));
+            } else if (viewMode === "all") {
+                result = [...symbols];
+            } else {
+                result = [...symbols]; // Für gainers/volatile erstmal alle nehmen
+            }
+        }
+
+        // 2. Spezial-Filter (Volatile) - nur wenn kein expliziter "All/Adv" mode
+        if (viewMode === "volatile" && !searchQuery) {
+            result = result.filter((s) => {
+                const change = Math.abs(getChangePercent(s) || 0);
+                return change >= 5; // Mindestens 5%
             });
         }
 
-        // Filterung
-        if (filterMode === "volatile") {
-            result = result.filter((s) => {
-                const change = Math.abs(getChangePercent(s) || 0);
-                return change >= 5; // Mindestens 5% Änderung
+        // 3. Sortierung
+        // Bei "Gainers" ViewMode erzwingen wir Sortierung, sonst nutzen wir sortMode
+        const effectiveSort =
+            viewMode === "gainers" && !searchQuery ? "gainers" : sortMode;
+
+        if (effectiveSort === "gainers" || effectiveSort === "losers") {
+            result.sort((a, b) => {
+                const changeA = getChangePercent(a) || 0;
+                const changeB = getChangePercent(b) || 0;
+                return effectiveSort === "gainers"
+                    ? changeB - changeA
+                    : changeA - changeB;
             });
+        } else {
+            // Alpha sort (default)
+            result.sort();
         }
 
         return result;
@@ -68,14 +89,23 @@
         searchQuery = "";
     }
 
-    function cycleSortMode() {
-        if (sortMode === "alpha") sortMode = "gainers";
-        else if (sortMode === "gainers") sortMode = "losers";
-        else sortMode = "alpha";
+    function toggleFavorite(e: MouseEvent, symbol: string) {
+        e.stopPropagation();
+        settingsStore.update((s) => {
+            const favs = s.favoriteSymbols || [];
+            if (favs.includes(symbol)) {
+                return {
+                    ...s,
+                    favoriteSymbols: favs.filter((f) => f !== symbol),
+                };
+            } else {
+                return { ...s, favoriteSymbols: [...favs, symbol] };
+            }
+        });
     }
 
-    function toggleFilter() {
-        filterMode = filterMode === "all" ? "volatile" : "all";
+    function isFavorite(symbol: string) {
+        return ($settingsStore.favoriteSymbols || []).includes(symbol);
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {
@@ -136,39 +166,37 @@
 >
     <svelte:fragment slot="header-extra">
         <div class="flex gap-2">
-            <!-- Sort Button -->
             <button
                 class="header-btn"
-                onclick={cycleSortMode}
-                title="Sortierung: {sortMode === 'alpha'
-                    ? 'Alphabetisch'
-                    : sortMode === 'gainers'
-                      ? 'Top Gainers'
-                      : 'Top Losers'}"
+                class:active={viewMode === "favorites"}
+                onclick={() => (viewMode = "favorites")}
+                title="Favoriten"
             >
-                <span class="icon">⇅</span>
-                <span class="label"
-                    >{sortMode === "alpha"
-                        ? "A-Z"
-                        : sortMode === "gainers"
-                          ? "+%"
-                          : "-%"}</span
-                >
+                <span class="icon">★</span>
             </button>
-
-            <!-- Filter Button -->
             <button
                 class="header-btn"
-                class:active={filterMode === "volatile"}
-                onclick={toggleFilter}
-                title="Filter: {filterMode === 'all'
-                    ? 'Alle'
-                    : 'Nur Volatile (>5%)'}"
+                class:active={viewMode === "gainers"}
+                onclick={() => (viewMode = "gainers")}
+                title="Top Gainers"
+            >
+                <span class="icon">📈</span>
+            </button>
+            <button
+                class="header-btn"
+                class:active={viewMode === "volatile"}
+                onclick={() => (viewMode = "volatile")}
+                title="Volatile (>5%)"
             >
                 <span class="icon">🔥</span>
-                <span class="label"
-                    >{filterMode === "all" ? "Alle" : ">5%"}</span
-                >
+            </button>
+            <button
+                class="header-btn"
+                class:active={viewMode === "all"}
+                onclick={() => (viewMode = "all")}
+                title="Alle Symbole"
+            >
+                <span class="label">ALL</span>
             </button>
         </div>
     </svelte:fragment>
@@ -187,7 +215,7 @@
         </div>
 
         <div class="symbol-grid scrollbar-thin overflow-y-auto h-[65vh] pr-1">
-            {#if filteredSymbols.length === 0}
+            {#if sortedAndFilteredSymbols.length === 0}
                 <div class="text-center py-8 text-[var(--text-secondary)]">
                     Keine Symbole gefunden.
                 </div>
@@ -195,10 +223,22 @@
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {#each sortedAndFilteredSymbols as s}
                         {@const change = getChangePercent(s)}
-                        <button
-                            class="symbol-item group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="symbol-item cursor-pointer group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
                             onclick={() => selectSymbol(s)}
+                            onkeydown={(e) =>
+                                e.key === "Enter" && selectSymbol(s)}
                         >
+                            <button
+                                class="absolute top-1 right-1 p-1 rounded-full text-[var(--text-tertiary)] hover:text-yellow-400 hover:bg-white/10 transition-colors z-20"
+                                onclick={(e) => toggleFavorite(e, s)}
+                            >
+                                {@html isFavorite(s)
+                                    ? icons.starFilled
+                                    : icons.starEmpty}
+                            </button>
                             <span
                                 class="symbol-name text-base font-bold tracking-tight mb-1"
                                 >{s}</span
@@ -226,7 +266,7 @@
                             <div
                                 class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-white pointer-events-none"
                             ></div>
-                        </button>
+                        </div>
                     {/each}
                 </div>
             {/if}

@@ -44,6 +44,7 @@ export interface Settings {
 
   // Indicator & Timeframe Settings
   favoriteTimeframes: string[];
+  favoriteSymbols: string[];
   syncRsiTimeframe: boolean;
 
   // ImgBB Settings
@@ -106,6 +107,7 @@ const defaultSettings: Settings = {
     binance: { key: "", secret: "" },
   },
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
+  favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT"], // Defaults
   syncRsiTimeframe: true,
   imgbbApiKey: "71a5689343bb63d5c85a76e4375f1d0b",
   imgbbExpiration: 0,
@@ -218,6 +220,8 @@ function loadSettingsFromLocalStorage(): Settings {
       apiKeys: settings.apiKeys,
       favoriteTimeframes:
         settings.favoriteTimeframes ?? defaultSettings.favoriteTimeframes,
+      favoriteSymbols:
+        settings.favoriteSymbols ?? defaultSettings.favoriteSymbols,
       syncRsiTimeframe:
         settings.syncRsiTimeframe ?? defaultSettings.syncRsiTimeframe,
       imgbbApiKey: settings.imgbbApiKey,
