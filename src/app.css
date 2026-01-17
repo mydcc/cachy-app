@@ -58,10 +58,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--blue-950);
   --bg-secondary: var(--blue-900);
   --bg-tertiary: var(--blue-800);
+  --chat-bubble-bg: var(--blue-950);
+  --chat-messages-bg: var(--blue-950);
   --text-primary: var(--blue-100);
   --text-secondary: var(--blue-300);
   --text-tertiary: var(--blue-600);
@@ -72,6 +74,8 @@
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--blue-700);
   --btn-default-hover-bg: var(--blue-600);
   --btn-default-text: var(--blue-100);
@@ -84,6 +88,8 @@
   --btn-success-bg: var(--green-500);
   --btn-success-hover-bg: var(--green-600);
   --btn-success-text: var(--blue-950);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--blue-700);
   --toggle-bg-on: var(--sky-500);
   --toggle-circle-bg: var(--blue-100);
@@ -117,10 +123,12 @@
   --black-transparent: rgba(0, 0, 0, 0.1);
   --white-transparent: rgba(255, 255, 255, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--slate-100);
   --bg-secondary: var(--pure-white);
   --bg-tertiary: var(--slate-200);
+  --chat-bubble-bg: var(--slate-200);
+  --chat-messages-bg: var(--slate-100);
   --text-primary: var(--slate-800);
   --text-secondary: var(--slate-500);
   --text-tertiary: var(--slate-400);
@@ -131,18 +139,22 @@
   --danger-color: var(--red-600);
   --warning-color: var(--amber-500);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--slate-400);
   --btn-default-hover-bg: var(--slate-300);
   --btn-default-text: var(--slate-800);
   --btn-danger-bg: var(--red-500);
   --btn-danger-hover-bg: var(--red-600);
-  --btn-danger-text: var(--slate-800);
+  --btn-danger-text: var(--slate-100);
   --btn-accent-bg: var(--sky-400);
   --btn-accent-hover-bg: var(--sky-500);
-  --btn-accent-text: var(--slate-800);
+  --btn-accent-text: var(--pure-white);
   --btn-success-bg: var(--green-600);
   --btn-success-hover-bg: var(--green-700);
-  --btn-success-text: var(--slate-800);
+  --btn-success-text: var(--pure-white);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--slate-400);
   --toggle-bg-on: var(--sky-400);
   --toggle-circle-bg: var(--slate-100);
@@ -360,10 +372,12 @@
   --white: #ffffff;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--gray-900);
   --bg-secondary: var(--gray-800);
   --bg-tertiary: var(--gray-700);
+  --chat-bubble-bg: var(--gray-700);
+  --chat-messages-bg: var(--gray-900);
   --text-primary: var(--gray-200);
   --text-secondary: var(--gray-400);
   --text-tertiary: var(--gray-600);
@@ -373,18 +387,22 @@
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--orange-500);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--gray-blue-400);
   --btn-default-hover-bg: var(--gray-blue-500);
   --btn-default-text: var(--gray-900);
   --btn-danger-bg: var(--red-800);
   --btn-danger-hover-bg: var(--red-700);
-  --btn-danger-text: var(--gray-900);
+  --btn-danger-text: var(--white);
   --btn-accent-bg: var(--lime-300);
   --btn-accent-hover-bg: var(--lime-400);
   --btn-accent-text: var(--gray-900);
   --btn-success-bg: var(--green-500);
   --btn-success-hover-bg: var(--green-600);
-  --btn-success-text: var(--gray-900);
+  --btn-success-text: var(--white);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--gray-600);
   --toggle-bg-on: var(--lime-300);
   --toggle-circle-bg: var(--gray-200);
@@ -410,10 +428,12 @@
   --yellow-400: #ffff00;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--matrix-base);
   --bg-secondary: var(--gray-950);
   --bg-tertiary: var(--gray-900);
+  --chat-bubble-bg: var(--gray-950);
+  --chat-messages-bg: var(--matrix-base);
   --text-primary: var(--green-400);
   --text-secondary: var(--green-600);
   --border-color: var(--green-700);
@@ -422,18 +442,22 @@
   --success-color: var(--green-400);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--green-700);
   --btn-default-hover-bg: var(--green-600);
   --btn-default-text: var(--matrix-base);
   --btn-danger-bg: var(--red-800);
   --btn-danger-hover-bg: var(--red-900);
-  --btn-danger-text: var(--matrix-base);
+  --btn-danger-text: #ffffff;
   --btn-accent-bg: var(--green-400);
   --btn-accent-hover-bg: var(--green-500);
   --btn-accent-text: var(--matrix-base);
   --btn-success-bg: var(--green-400);
   --btn-success-hover-bg: var(--green-500);
   --btn-success-text: var(--green-700);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--green-700);
   --toggle-bg-on: var(--green-400);
   --toggle-circle-bg: var(--matrix-base);
@@ -461,10 +485,12 @@
   --yellow: #f1fa8c;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--dark-purple-800);
   --bg-secondary: var(--dark-purple-700);
   --bg-tertiary: var(--dark-purple-600);
+  --chat-bubble-bg: var(--dark-purple-800);
+  --chat-messages-bg: var(--dark-purple-800);
   --text-primary: var(--light-gray);
   --text-secondary: var(--purple);
   --border-color: var(--dark-purple-400);
@@ -473,6 +499,8 @@
   --success-color: var(--green);
   --danger-color: var(--red);
   --warning-color: var(--yellow);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--dark-purple-600);
   --btn-default-hover-bg: var(--dark-purple-400);
   --btn-default-text: var(--light-gray);
@@ -485,6 +513,8 @@
   --btn-success-bg: var(--green);
   --btn-success-hover-bg: var(--green-hover);
   --btn-success-text: var(--dark-purple-800);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--dark-purple-600);
   --toggle-bg-on: var(--purple);
   --toggle-circle-bg: var(--text-primary);
@@ -515,10 +545,12 @@
   --yellow: #b58900;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--base3);
   --bg-secondary: var(--base2);
   --bg-tertiary: var(--base1);
+  --chat-bubble-bg: var(--base2);
+  --chat-messages-bg: var(--base3);
   --text-primary: var(--base00);
   --text-secondary: var(--base01);
   --border-color: var(--base02);
@@ -527,18 +559,22 @@
   --success-color: var(--green);
   --danger-color: var(--red);
   --warning-color: var(--yellow);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
   --btn-default-hover-bg: var(--base03);
   --btn-default-text: var(--base04);
   --btn-danger-bg: var(--red);
   --btn-danger-hover-bg: var(--orange);
-  --btn-danger-text: var(--base04);
+  --btn-danger-text: var(--base3);
   --btn-accent-bg: var(--blue);
   --btn-accent-hover-bg: var(--blue-dark);
   --btn-accent-text: var(--base3);
   --btn-success-bg: var(--green);
   --btn-success-hover-bg: var(--green-dark);
-  --btn-success-text: var(--base04);
+  --btn-success-text: var(--base3);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--base02);
   --toggle-bg-on: var(--blue);
   --toggle-circle-bg: var(--base3);
@@ -566,10 +602,12 @@
   --aurora-yellow: #ebcb8b;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--polar-night-1);
   --bg-secondary: var(--polar-night-2);
   --bg-tertiary: var(--polar-night-3);
+  --chat-bubble-bg: var(--polar-night-3);
+  --chat-messages-bg: var(--polar-night-1);
   --text-primary: var(--snow-storm-1);
   --text-secondary: var(--snow-storm-2);
   --border-color: var(--polar-night-4);
@@ -578,6 +616,8 @@
   --success-color: var(--aurora-green);
   --danger-color: var(--aurora-red);
   --warning-color: var(--aurora-yellow);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--polar-night-3);
   --btn-default-hover-bg: var(--polar-night-4);
   --btn-default-text: var(--snow-storm-1);
@@ -590,6 +630,8 @@
   --btn-success-bg: var(--aurora-green);
   --btn-success-hover-bg: var(--aurora-green-dark);
   --btn-success-text: var(--polar-night-1);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--polar-night-3);
   --toggle-bg-on: var(--frost-3);
   --toggle-circle-bg: var(--snow-storm-1);
@@ -623,10 +665,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--gruv-dark0);
   --bg-secondary: var(--gruv-dark0-hard);
   --bg-tertiary: var(--gruv-dark1);
+  --chat-bubble-bg: var(--gruv-dark0-hard);
+  --chat-messages-bg: var(--gruv-dark0);
   --text-primary: var(--gruv-light1);
   --text-secondary: var(--gruv-gray);
   --border-color: var(--gruv-dark2);
@@ -636,6 +680,8 @@
   --danger-color: var(--gruv-red-bright);
   --warning-color: var(--gruv-yellow-bright);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--gruv-dark4);
   --btn-default-hover-bg: var(--gruv-dark2);
   --btn-default-text: var(--gruv-light1);
@@ -648,6 +694,8 @@
   --btn-success-bg: var(--gruv-green);
   --btn-success-hover-bg: var(--gruv-green-bright);
   --btn-success-text: var(--gruv-dark0-hard);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--gruv-dark2);
   --toggle-bg-on: var(--gruv-aqua-bright);
   --toggle-circle-bg: var(--gruv-light1);
@@ -679,10 +727,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--mono-bg-dark);
   --bg-secondary: var(--mono-bg);
   --bg-tertiary: var(--mono-bg-light);
+  --chat-bubble-bg: var(--mono-bg-dark);
+  --chat-messages-bg: var(--mono-bg-dark);
   --text-primary: var(--mono-fg);
   --text-secondary: var(--mono-gray);
   --border-color: var(--mono-bg-light);
@@ -692,6 +742,8 @@
   --danger-color: var(--mono-red);
   --warning-color: var(--mono-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--mono-bg-light);
   --btn-default-hover-bg: var(--mono-bg-lighter);
   --btn-default-text: var(--mono-fg);
@@ -704,6 +756,8 @@
   --btn-success-bg: var(--mono-green);
   --btn-success-hover-bg: var(--mono-green-light);
   --btn-success-text: var(--mono-bg-dark);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--mono-bg-light);
   --toggle-bg-on: var(--mono-pink);
   --toggle-circle-bg: var(--mono-fg);
@@ -736,10 +790,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--tokyo-bg);
   --bg-secondary: var(--tokyo-bg-light);
   --bg-tertiary: var(--tokyo-bg-dark);
+  --chat-bubble-bg: var(--tokyo-bg-dark);
+  --chat-messages-bg: var(--tokyo-bg);
   --text-primary: var(--tokyo-fg);
   --text-secondary: var(--tokyo-fg-alt);
   --border-color: var(--tokyo-comment);
@@ -749,6 +805,8 @@
   --danger-color: var(--tokyo-red);
   --warning-color: var(--tokyo-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--tokyo-comment);
   --btn-default-hover-bg: var(--tokyo-comment-light);
   --btn-default-text: var(--tokyo-fg);
@@ -761,6 +819,8 @@
   --btn-success-bg: var(--tokyo-green);
   --btn-success-hover-bg: var(--tokyo-green-light);
   --btn-success-text: var(--tokyo-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--tokyo-comment);
   --toggle-bg-on: var(--tokyo-blue);
   --toggle-circle-bg: var(--tokyo-fg);
@@ -793,10 +853,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--ever-bg);
   --bg-secondary: var(--ever-bg-alt);
   --bg-tertiary: var(--ever-bg-dark);
+  --chat-bubble-bg: var(--ever-bg-dark);
+  --chat-messages-bg: var(--ever-bg);
   --text-primary: var(--ever-fg);
   --text-secondary: var(--ever-gray);
   --border-color: var(--ever-bg3);
@@ -806,6 +868,8 @@
   --danger-color: var(--ever-red);
   --warning-color: var(--ever-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--ever-gray);
   --btn-default-hover-bg: var(--ever-gray-light);
   --btn-default-text: var(--ever-bg);
@@ -818,6 +882,8 @@
   --btn-success-bg: var(--ever-green);
   --btn-success-hover-bg: var(--ever-green-light);
   --btn-success-text: var(--ever-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--ever-gray);
   --toggle-bg-on: var(--ever-aqua);
   --toggle-circle-bg: var(--ever-fg);
@@ -849,22 +915,27 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--base03);
   --bg-secondary: var(--base02);
-  --bg-tertiary: var(--base01);
+  --bg-tertiary: #0a3d4a;
+  /* Optimized card background (darker than base01) */
+  --chat-bubble-bg: var(--base02);
+  --chat-messages-bg: var(--base03);
   --text-primary: var(--base0);
   --text-secondary: var(--base1);
-  --border-color: var(--base01);
+  --border-color: var(--base02);
   --accent-color: var(--blue);
   --accent-color-hover: var(--blue-light);
   --success-color: var(--green);
   --danger-color: var(--red);
   --warning-color: var(--yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
-  --btn-default-bg: var(--base01);
-  --btn-default-hover-bg: var(--base00);
-  --btn-default-text: var(--base0);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--base02);
+  --btn-default-hover-bg: var(--base01);
+  --btn-default-text: var(--base1);
   --btn-danger-bg: var(--red);
   --btn-danger-hover-bg: var(--orange);
   --btn-danger-text: var(--base03);
@@ -874,10 +945,12 @@
   --btn-success-bg: var(--green);
   --btn-success-hover-bg: var(--green-light);
   --btn-success-text: var(--base03);
-  --toggle-bg-off: var(--base01);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--base02);
   --toggle-bg-on: var(--blue);
-  --toggle-circle-bg: var(--base0);
-  --toggle-circle-bg-on: var(--base3);
+  --toggle-circle-bg: var(--base03);
+  --toggle-circle-bg-on: var(--base03);
   --overlay-color: var(--black-overlay);
 }
 
@@ -908,10 +981,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--cat-base);
   --bg-secondary: var(--cat-mantle);
   --bg-tertiary: var(--cat-surface0);
+  --chat-bubble-bg: var(--cat-mantle);
+  --chat-messages-bg: var(--cat-base);
   --text-primary: var(--cat-text);
   --text-secondary: var(--cat-subtext1);
   --border-color: var(--cat-surface1);
@@ -921,6 +996,8 @@
   --danger-color: var(--cat-red);
   --warning-color: var(--cat-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--cat-surface1);
   --btn-default-hover-bg: var(--cat-surface2);
   --btn-default-text: var(--cat-text);
@@ -933,6 +1010,8 @@
   --btn-success-bg: var(--cat-green);
   --btn-success-hover-bg: var(--cat-green-light);
   --btn-success-text: var(--cat-base);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--cat-surface1);
   --toggle-bg-on: var(--cat-lavender);
   --toggle-circle-bg: var(--cat-text);
@@ -964,10 +1043,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--one-bg);
   --bg-secondary: var(--one-bg-dark);
   --bg-tertiary: var(--one-bg-light);
+  --chat-bubble-bg: var(--one-bg-dark);
+  --chat-messages-bg: var(--one-bg);
   --text-primary: var(--one-fg);
   --text-secondary: var(--one-comment);
   --border-color: var(--one-comment);
@@ -977,6 +1058,8 @@
   --danger-color: var(--one-red);
   --warning-color: var(--one-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--one-comment);
   --btn-default-hover-bg: var(--one-comment-light);
   --btn-default-text: var(--one-fg);
@@ -989,6 +1072,8 @@
   --btn-success-bg: var(--one-green);
   --btn-success-hover-bg: var(--one-green-light);
   --btn-success-text: var(--one-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--one-comment);
   --toggle-bg-on: var(--one-blue);
   --toggle-circle-bg: var(--one-fg);
@@ -1018,10 +1103,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--obsidian-bg);
   --bg-secondary: var(--obsidian-bg-alt);
   --bg-tertiary: var(--obsidian-border);
+  --chat-bubble-bg: var(--obsidian-bg-alt);
+  --chat-messages-bg: var(--obsidian-bg);
   --text-primary: var(--obsidian-fg);
   --text-secondary: var(--obsidian-gray);
   --border-color: var(--obsidian-border);
@@ -1031,6 +1118,8 @@
   --danger-color: var(--obsidian-red);
   --warning-color: var(--obsidian-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--obsidian-border);
   --btn-default-hover-bg: var(--obsidian-border-light);
   --btn-default-text: var(--obsidian-fg);
@@ -1043,6 +1132,8 @@
   --btn-success-bg: var(--obsidian-green);
   --btn-success-hover-bg: var(--obsidian-green-light);
   --btn-success-text: var(--obsidian-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--obsidian-border);
   --toggle-bg-on: var(--obsidian-blue);
   --toggle-circle-bg: var(--obsidian-fg);
@@ -1071,10 +1162,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--drac-soft-bg);
   --bg-secondary: var(--drac-soft-bg-alt);
   --bg-tertiary: var(--drac-soft-border);
+  --chat-bubble-bg: var(--drac-soft-bg-alt);
+  --chat-messages-bg: var(--drac-soft-bg);
   --text-primary: var(--drac-soft-fg);
   --text-secondary: var(--drac-soft-purple);
   --border-color: var(--drac-soft-border);
@@ -1084,6 +1177,8 @@
   --danger-color: var(--drac-soft-red);
   --warning-color: var(--drac-soft-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--drac-soft-border);
   --btn-default-hover-bg: var(--drac-soft-comment);
   --btn-default-text: var(--drac-soft-fg);
@@ -1096,6 +1191,8 @@
   --btn-success-bg: var(--drac-soft-green);
   --btn-success-hover-bg: var(--drac-soft-green-light);
   --btn-success-text: var(--drac-soft-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--drac-soft-border);
   --toggle-bg-on: var(--drac-soft-purple);
   --toggle-circle-bg: var(--drac-soft-fg);
@@ -1128,10 +1225,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--ayu-bg);
   --bg-secondary: var(--ayu-bg-alt);
   --bg-tertiary: var(--ayu-border);
+  --chat-bubble-bg: var(--ayu-bg-alt);
+  --chat-messages-bg: var(--ayu-bg);
   --text-primary: var(--ayu-fg);
   --text-secondary: var(--ayu-fg);
   --border-color: var(--ayu-border);
@@ -1141,6 +1240,8 @@
   --danger-color: var(--ayu-error);
   --warning-color: var(--ayu-func);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-border);
   --btn-default-hover-bg: var(--ayu-border-light);
   --btn-default-text: var(--ayu-fg);
@@ -1153,6 +1254,8 @@
   --btn-success-bg: var(--ayu-added);
   --btn-success-hover-bg: var(--ayu-added-light);
   --btn-success-text: var(--ayu-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--ayu-border);
   --toggle-bg-on: var(--ayu-entity);
   --toggle-circle-bg: var(--ayu-fg);
@@ -1183,10 +1286,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--cobalt-bg);
   --bg-secondary: var(--cobalt-bg-dark);
   --bg-tertiary: var(--cobalt-bg-alt);
+  --chat-bubble-bg: var(--cobalt-bg-dark);
+  --chat-messages-bg: var(--cobalt-bg);
   --text-primary: var(--cobalt-fg);
   --text-secondary: var(--cobalt-comment);
   --border-color: var(--cobalt-bg-alt);
@@ -1196,6 +1301,8 @@
   --danger-color: var(--cobalt-red);
   --warning-color: var(--cobalt-orange);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--cobalt-bg-alt);
   --btn-default-hover-bg: var(--cobalt-bg-alt-light);
   --btn-default-text: var(--cobalt-fg);
@@ -1208,6 +1315,8 @@
   --btn-success-bg: var(--cobalt-green);
   --btn-success-hover-bg: var(--cobalt-green-light);
   --btn-success-text: var(--cobalt-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--cobalt-bg-alt);
   --toggle-bg-on: var(--cobalt-yellow);
   --toggle-circle-bg: var(--cobalt-bg);
@@ -1239,10 +1348,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--owl-bg);
   --bg-secondary: var(--owl-bg-light);
   --bg-tertiary: var(--owl-bg-lighter);
+  --chat-bubble-bg: var(--owl-bg-light);
+  --chat-messages-bg: var(--owl-bg);
   --text-primary: var(--owl-fg);
   --text-secondary: var(--owl-comment);
   --border-color: var(--owl-bg-lighter);
@@ -1252,6 +1363,8 @@
   --danger-color: var(--owl-red);
   --warning-color: var(--owl-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--owl-bg-lighter);
   --btn-default-hover-bg: var(--owl-bg-lightest);
   --btn-default-text: var(--owl-fg);
@@ -1264,6 +1377,8 @@
   --btn-success-bg: var(--owl-green);
   --btn-success-hover-bg: var(--owl-green-light);
   --btn-success-text: var(--owl-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--owl-bg-lighter);
   --toggle-bg-on: var(--owl-purple);
   --toggle-circle-bg: var(--owl-fg);
@@ -1290,10 +1405,12 @@
   --black-transparent: rgba(0, 0, 0, 0.3);
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--midnight-bg-main);
   --bg-secondary: var(--midnight-bg-cards);
   --bg-tertiary: var(--midnight-bg-overlay);
+  --chat-bubble-bg: var(--midnight-bg-cards);
+  --chat-messages-bg: var(--midnight-bg-main);
   --text-primary: var(--midnight-text-primary);
   --text-secondary: var(--midnight-text-secondary);
   --border-color: var(--midnight-border);
@@ -1303,6 +1420,8 @@
   --danger-color: var(--midnight-error);
   --warning-color: var(--midnight-warning);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--midnight-bg-overlay);
   --btn-default-hover-bg: var(--midnight-border);
   --btn-default-text: var(--midnight-text-primary);
@@ -1313,10 +1432,10 @@
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
   --btn-success-bg: var(--midnight-success);
-  --btn-success-hover-bg: color-mix(in srgb,
-      var(--midnight-success) 80%,
-      black);
+  --btn-success-hover-bg: color-mix(in srgb, var(--midnight-success) 80%, black);
   --btn-success-text: var(--midnight-text-primary);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--midnight-bg-overlay);
   --toggle-bg-on: var(--midnight-gold);
   --toggle-circle-bg: var(--midnight-bg-main);
@@ -1345,10 +1464,12 @@
   --ayu-light-border-hover: #d9d9d9;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--ayu-light-bg);
   --bg-secondary: var(--ayu-light-bg-alt);
   --bg-tertiary: var(--ayu-light-border);
+  --chat-bubble-bg: var(--ayu-light-bg-alt);
+  --chat-messages-bg: var(--ayu-light-bg);
   --text-primary: var(--ayu-light-fg);
   --text-secondary: var(--ayu-light-fg-alt);
   --border-color: var(--ayu-light-border);
@@ -1357,6 +1478,8 @@
   --success-color: var(--ayu-light-green);
   --danger-color: var(--ayu-light-red);
   --warning-color: var(--ayu-light-orange);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-light-border);
   --btn-default-hover-bg: var(--ayu-light-border-hover);
   --btn-default-text: var(--ayu-light-fg);
@@ -1369,6 +1492,8 @@
   --btn-success-bg: var(--ayu-light-green);
   --btn-success-hover-bg: var(--ayu-light-green-light);
   --btn-success-text: var(--ayu-light-fg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--ayu-light-border);
   --toggle-bg-on: var(--ayu-light-accent);
   --toggle-circle-bg: var(--ayu-light-bg);
@@ -1397,10 +1522,12 @@
   --ayu-mirage-border-hover: #3e4554;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--ayu-mirage-bg);
   --bg-secondary: var(--ayu-mirage-bg-alt);
   --bg-tertiary: var(--ayu-mirage-border);
+  --chat-bubble-bg: var(--ayu-mirage-bg-alt);
+  --chat-messages-bg: var(--ayu-mirage-bg);
   --text-primary: var(--ayu-mirage-fg);
   --text-secondary: var(--ayu-mirage-fg-alt);
   --border-color: var(--ayu-mirage-border);
@@ -1409,6 +1536,8 @@
   --success-color: var(--ayu-mirage-green);
   --danger-color: var(--ayu-mirage-red);
   --warning-color: var(--ayu-mirage-orange);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-mirage-border);
   --btn-default-hover-bg: var(--ayu-mirage-border-hover);
   --btn-default-text: var(--ayu-mirage-fg);
@@ -1421,6 +1550,8 @@
   --btn-success-bg: var(--ayu-mirage-green);
   --btn-success-hover-bg: var(--ayu-mirage-green-light);
   --btn-success-text: var(--ayu-mirage-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--ayu-mirage-border);
   --toggle-bg-on: var(--ayu-mirage-accent);
   --toggle-circle-bg: var(--ayu-mirage-fg);
@@ -1455,10 +1586,12 @@
   --gh-dark-btn-accent-hover-bg: #2ea043;
   --black-overlay: rgba(0, 0, 0, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--gh-dark-bg);
   --bg-secondary: var(--gh-dark-bg-alt);
   --bg-tertiary: var(--gh-dark-border);
+  --chat-bubble-bg: var(--gh-dark-bg-alt);
+  --chat-messages-bg: var(--gh-dark-bg);
   --text-primary: var(--gh-dark-fg);
   --text-secondary: var(--gh-dark-fg-alt);
   --border-color: var(--gh-dark-border);
@@ -1467,6 +1600,8 @@
   --success-color: var(--gh-dark-green);
   --danger-color: var(--gh-dark-red);
   --warning-color: var(--gh-dark-orange);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--gh-dark-btn-bg);
   --btn-default-hover-bg: var(--gh-dark-btn-hover-bg);
   --btn-default-text: var(--gh-dark-fg);
@@ -1479,6 +1614,8 @@
   --btn-success-bg: var(--gh-dark-green);
   --btn-success-hover-bg: var(--gh-dark-green-light);
   --btn-success-text: var(--gh-dark-bg);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--gh-dark-border);
   --toggle-bg-on: var(--gh-dark-blue);
   --toggle-circle-bg: var(--gh-dark-fg);
@@ -1513,10 +1650,12 @@
   --gh-light-btn-accent-hover-bg: #2c974b;
   --white-overlay: rgba(255, 255, 255, 0.7);
 
-  /* --- Mapping --- */
+  /* --- Semantic Mapping --- */
   --bg-primary: var(--gh-light-bg);
   --bg-secondary: var(--gh-light-bg-alt);
   --bg-tertiary: var(--gh-light-btn-hover-bg);
+  --chat-bubble-bg: var(--gh-light-bg-alt);
+  --chat-messages-bg: var(--gh-light-bg);
   --text-primary: var(--gh-light-fg);
   --text-secondary: var(--gh-light-fg-alt);
   --border-color: var(--gh-light-border);
@@ -1525,6 +1664,8 @@
   --success-color: var(--gh-light-green);
   --danger-color: var(--gh-light-red);
   --warning-color: var(--gh-light-orange);
+
+  /* --- Button Colors --- */
   --btn-default-bg: var(--gh-light-btn-bg);
   --btn-default-hover-bg: var(--gh-light-btn-hover-bg);
   --btn-default-text: var(--gh-light-fg);
@@ -1537,6 +1678,8 @@
   --btn-success-bg: var(--gh-light-green);
   --btn-success-hover-bg: var(--gh-light-green-light);
   --btn-success-text: var(--gh-light-white);
+
+  /* --- Toggle & UI --- */
   --toggle-bg-off: var(--gh-light-border);
   --toggle-bg-on: var(--gh-light-blue);
   --toggle-circle-bg: var(--gh-light-bg);
