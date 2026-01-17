@@ -459,6 +459,7 @@
             aria-label="Resize Width"
           ></div>
         {/if}
+        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
         <div
           class="h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
           class:border-green-900={isTerminal}
@@ -470,12 +471,18 @@
           tabindex="0"
         >
           <h3
-            class="font-bold text-xs tracking-widest uppercase cursor-pointer hover:text-[var(--accent-color)] transition-colors"
+            class="font-bold text-xs tracking-widest uppercase"
             class:text-green-500={isTerminal}
             class:text-[var(--text-primary)]={!isTerminal}
-            onclick={cycleMode}
           >
-            {getPanelTitle($settingsStore.sidePanelMode)}
+            <button
+              type="button"
+              class="hover:text-[var(--accent-color)] transition-colors cursor-pointer bg-transparent border-none p-0"
+              style="font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;"
+              onclick={cycleMode}
+            >
+              {getPanelTitle($settingsStore.sidePanelMode)}
+            </button>
           </h3>
 
           <div class="flex items-center gap-2">

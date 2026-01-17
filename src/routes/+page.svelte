@@ -53,6 +53,33 @@
   // Initialisierung der App-Logik, sobald die Komponente gemountet ist
   onMount(() => {
     app.init();
+
+    // Global listener for markdown anchor links
+    const handleAnchorClick = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      const anchor = target.closest("a");
+
+      if (anchor && anchor.hash && anchor.hash.startsWith("#")) {
+        // Check if the anchor is inside a markdown container
+        const container = anchor.closest(".prose");
+        if (container) {
+          e.preventDefault();
+          const targetId = anchor.hash.slice(1);
+          const targetEl = container.querySelector(`#${targetId}`);
+
+          if (targetEl) {
+            targetEl.scrollIntoView({ behavior: "smooth" });
+            // Update URL hash without jumping
+            history.pushState(null, "", anchor.hash);
+          }
+        }
+      }
+    };
+
+    document.addEventListener("click", handleAnchorClick);
+    return () => {
+      document.removeEventListener("click", handleAnchorClick);
+    };
   });
 
   // Load modal contents when opened

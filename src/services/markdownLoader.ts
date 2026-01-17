@@ -3,11 +3,35 @@ import markedKatex from "marked-katex-extension";
 import { locale } from "../locales/i18n";
 import { get } from "svelte/store";
 
-// Register KaTeX extension
+// Helper to slugify text for heading IDs
+const slugify = (raw: string) => {
+  return raw
+    .toLowerCase()
+    .trim()
+    // 1. Remove leading # symbols and following space
+    .replace(/^#+\s+/, "")
+    // 2. Remove non-word characters except spaces and hyphens
+    .replace(/[^\w\s-]/g, "")
+    // 3. Replace spaces with hyphens
+    .replace(/\s+/g, "-")
+    // 4. Remove any remaining trailing/leading hyphens (optional but cleaner)
+    .replace(/^-+|-+$/g, "");
+};
+
+// Register KaTeX extension and Heading ID logic
 marked.use(
   markedKatex({
     throwOnError: false,
   }),
+  {
+    renderer: {
+      heading(args: any) {
+        const { text, depth, raw } = args;
+        const id = slugify(raw);
+        return `<h${depth} id="${id}">${text}</h${depth}>\n`;
+      },
+    } as any,
+  },
 );
 
 interface InstructionContent {
