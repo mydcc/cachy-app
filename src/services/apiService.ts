@@ -109,8 +109,7 @@ class RequestManager {
                 }
 
                 console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
-                    retries + 1
+                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
                   })`,
                   e,
                 );
@@ -485,6 +484,63 @@ export const apiService = {
       priority,
       1,
       timeout,
+    );
+  },
+
+  async fetchBitunixMarketSnapshot(
+    priority: "high" | "normal" = "normal",
+  ): Promise<Ticker24h[]> {
+    const key = `BITUNIX:SNAPSHOT`;
+    return requestManager.schedule(
+      key,
+      async (signal) => {
+        try {
+          const params = new URLSearchParams({ provider: "bitunix" });
+          // Call without 'symbols' param to get all tickers
+          const response = await fetch(`/api/tickers?${params.toString()}`, {
+            signal,
+          });
+
+          if (!response.ok) throw new Error("apiErrors.generic");
+          const res = await apiService.safeJson(response);
+
+          if (res.code !== undefined && res.code !== 0) {
+            throw new Error(getBitunixErrorKey(res.code));
+          }
+          if (!res.data || !Array.isArray(res.data)) {
+            throw new Error("apiErrors.invalidResponse");
+          }
+
+          return res.data.map((ticker: any) => {
+            const openRaw = Number(ticker.open);
+            const lastRaw = Number(ticker.lastPrice);
+            const baseVolRaw = Number(ticker.baseVol);
+            const quoteVolRaw = Number(ticker.quoteVol);
+
+            const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
+            const last = new Decimal(isNaN(lastRaw) ? 0 : lastRaw);
+            const change = !open.isZero()
+              ? last.minus(open).dividedBy(open).times(100)
+              : new Decimal(0);
+
+            return {
+              provider: "bitunix",
+              symbol: ticker.symbol,
+              lastPrice: last,
+              highPrice: new Decimal(ticker.high || 0),
+              lowPrice: new Decimal(ticker.low || 0),
+              volume: new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw),
+              quoteVolume: new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw),
+              priceChangePercent: change,
+            };
+          });
+        } catch (e) {
+          console.error("Snapshot Fetch Error", e);
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          throw new Error("apiErrors.generic");
+        }
+      },
+      priority,
     );
   },
 

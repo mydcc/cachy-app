@@ -8,6 +8,8 @@
     import { bitunixWs } from "../../services/bitunixWs";
     import { marketStore } from "../../stores/marketStore";
     import { settingsStore } from "../../stores/settingsStore";
+    import { apiService } from "../../services/apiService";
+    import { Decimal } from "decimal.js";
 
     let isOpen = $state(false);
     let searchQuery = $state("");
@@ -16,65 +18,149 @@
     );
     let sortMode = $state<"alpha" | "gainers" | "losers">("alpha");
 
+    // Filter States
+    let snapshot = $state<Record<string, any>>({});
+    let isSnapshotLoading = $state(false);
+    let minVolumeStr = $state("0");
+    let hideAlts = $state(false);
+
     modalManager.subscribe((state) => {
         isOpen = state.isOpen && state.type === "symbolPicker";
     });
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
 
+    // Load Snapshot
+    $effect(() => {
+        if (isOpen) {
+            isSnapshotLoading = true;
+            apiService
+                .fetchBitunixMarketSnapshot()
+                .then((data) => {
+                    const map: any = {};
+                    data.forEach((t) => (map[t.symbol] = t));
+                    snapshot = map;
+                    isSnapshotLoading = false;
+                })
+                .catch((e) => {
+                    console.error("Snapshot failed", e);
+                    isSnapshotLoading = false;
+                });
+        }
+    });
+
     let sortedAndFilteredSymbols = $derived.by(() => {
         let result = [];
 
-        // 1. Basis-Filterung (Suche oder ViewMode)
+        // 1. Initial Set: Filter by Search OR Constants (USDT)
         if (searchQuery) {
-            // Bei Suche global suchen
             const q = searchQuery.toLowerCase();
             result = symbols.filter((s) => s.toLowerCase().includes(q));
         } else {
-            // Kein Suchbegriff -> ViewMode anwenden
-            if (viewMode === "favorites") {
-                const favs = $settingsStore.favoriteSymbols || [];
-                result = symbols.filter((s) => favs.includes(s));
-            } else if (viewMode === "all") {
-                result = [...symbols];
-            } else {
-                result = [...symbols]; // Für gainers/volatile erstmal alle nehmen
-            }
+            // Basic list
+            result = [...symbols];
         }
 
-        // 2. Spezial-Filter (Volatile) - nur wenn kein expliziter "All/Adv" mode
-        if (viewMode === "volatile" && !searchQuery) {
+        // 2. Filter: Hide Alts (Only Majors)
+        if (hideAlts) {
+            const majors = new Set(CONSTANTS.MAJORS);
+            result = result.filter((s) => majors.has(s));
+        }
+
+        // 3. Filter: Min Volume (using Snapshot)
+        const minVol = parseFloat(minVolumeStr);
+        if (minVol > 0) {
             result = result.filter((s) => {
-                const change = Math.abs(getChangePercent(s) || 0);
-                return change >= 5; // Mindestens 5%
+                const data = snapshot[s];
+                if (!data) return false; // No data yet = hide? or show? -> Hide if filtering
+                return data.quoteVolume.gte(minVol);
             });
         }
 
-        // 3. Sortierung
-        // Bei "Gainers" ViewMode erzwingen wir Sortierung, sonst nutzen wir sortMode
+        // 4. View Mode
+        if (!searchQuery) {
+            if (viewMode === "favorites") {
+                const favs = $settingsStore.favoriteSymbols || [];
+                result = result.filter((s) => favs.includes(s));
+            } else if (viewMode === "volatile") {
+                result = result.filter((s) => {
+                    // Prefer snapshot for static filtering
+                    const change =
+                        snapshot[s]?.priceChangePercent?.toNumber() || 0;
+                    return Math.abs(change) >= 5;
+                });
+            }
+        }
+
+        // 5. Sorting
         const effectiveSort =
             viewMode === "gainers" && !searchQuery ? "gainers" : sortMode;
 
         if (effectiveSort === "gainers" || effectiveSort === "losers") {
             result.sort((a, b) => {
-                const changeA = getChangePercent(a) || 0;
-                const changeB = getChangePercent(b) || 0;
+                // Prefer snapshot for sorting stability
+                const changeA =
+                    snapshot[a]?.priceChangePercent?.toNumber() || 0;
+                const changeB =
+                    snapshot[b]?.priceChangePercent?.toNumber() || 0;
                 return effectiveSort === "gainers"
                     ? changeB - changeA
                     : changeA - changeB;
             });
         } else {
-            // Alpha sort (default)
             result.sort();
         }
 
         return result;
     });
 
+    // Lazy Subscription Management
+    let previousSubs = $state(new Set<string>());
+
+    $effect(() => {
+        if (!isOpen) {
+            if (previousSubs.size > 0) {
+                previousSubs.forEach((s) => bitunixWs.unsubscribe(s, "ticker"));
+                previousSubs = new Set();
+            }
+            return;
+        }
+
+        // Subscribe to top 50 visible symbols
+        const visible = sortedAndFilteredSymbols.slice(0, 50);
+        const newSubs = new Set(visible);
+
+        // Diffing
+        previousSubs.forEach((s) => {
+            if (!newSubs.has(s)) bitunixWs.unsubscribe(s, "ticker");
+        });
+        newSubs.forEach((s) => {
+            if (!previousSubs.has(s)) bitunixWs.subscribe(s, "ticker");
+        });
+
+        previousSubs = newSubs;
+
+        // Cleanup on unmount handled by return logic below
+        // (Svelte 5 effects don't return cleanup in the same way, we use a separate effect for component destroy?)
+        // Actually Svelte 5 $effect returns a cleanup function logic is cleaner differently.
+        // We will add a cleanup effect.
+    });
+
+    $effect(() => {
+        return () => {
+            // Global Cleanup
+            Array.from(previousSubs).forEach((s) =>
+                bitunixWs.unsubscribe(s, "ticker"),
+            );
+        };
+    });
+
     function getChangePercent(s: string) {
-        const data = $marketStore[s];
-        if (!data || !data.priceChangePercent) return null;
-        return data.priceChangePercent.toNumber();
+        // Prioritize Live Data, Fallback to Snapshot
+        const live = $marketStore[s]?.priceChangePercent;
+        if (live !== undefined && live !== null) return live.toNumber();
+        const snap = snapshot[s]?.priceChangePercent;
+        return snap ? snap.toNumber() : null;
     }
 
     function selectSymbol(s: string) {
@@ -116,29 +202,25 @@
         ) as HTMLInputElement;
         if (!input) return;
 
-        // Redirect printable characters and basic search keys if not focused
         if (document.activeElement !== input) {
-            // Check if it's a "printable" key or Backspace/Delete
             if (
                 e.key.length === 1 ||
                 e.key === "Backspace" ||
                 e.key === "Delete"
             ) {
-                // Ignore if CMD/CTRL/ALT is pressed
                 if (e.ctrlKey || e.metaKey || e.altKey) return;
-
                 input.focus();
             }
+        } else if (e.key === "ArrowDown" || e.key === "ArrowUp") {
+            e.preventDefault();
+        } else if (e.key === "Escape") {
+            handleClose();
         }
     }
 
     $effect(() => {
         if (isOpen) {
             window.addEventListener("keydown", handleGlobalKeydown);
-            // WebSocket Subscriptions for all suggested symbols
-            symbols.forEach((s) => bitunixWs.subscribe(s, "ticker"));
-
-            // Initial focus
             setTimeout(() => {
                 const input = document.querySelector(
                     ".symbol-picker-container input",
@@ -148,12 +230,10 @@
         } else {
             window.removeEventListener("keydown", handleGlobalKeydown);
         }
-
         return () => {
             window.removeEventListener("keydown", handleGlobalKeydown);
-            // Cleanup subscriptions.
-            // We use the symbols list directly to ensure all picker subs are closed.
-            symbols.forEach((s) => bitunixWs.unsubscribe(s, "ticker"));
+            const subs = Array.from(previousSubs); // Capture for closure
+            subs.forEach((s) => bitunixWs.unsubscribe(s, "ticker"));
         };
     });
 </script>
@@ -212,6 +292,53 @@
                 class="input-field w-full px-4 py-2 rounded-md"
                 autocomplete="off"
             />
+
+            <div
+                class="flex items-center gap-4 mt-2 text-sm text-[var(--text-secondary)]"
+            >
+                <!-- Volume Filter -->
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-medium uppercase tracking-wider"
+                        >Min Vol</span
+                    >
+                    <select
+                        bind:value={minVolumeStr}
+                        class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded px-2 py-1 text-xs focus:ring-1 focus:ring-[var(--accent-color)] outline-none"
+                    >
+                        <option value="0">All</option>
+                        <option value="1000000">1M</option>
+                        <option value="5000000">5M</option>
+                        <option value="10000000">10M</option>
+                        <option value="50000000">50M</option>
+                    </select>
+                </div>
+
+                <!-- Alt Filter -->
+                <label
+                    class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+                >
+                    <input
+                        type="checkbox"
+                        bind:checked={hideAlts}
+                        class="checkbox checkbox-xs border-[var(--border-color)]"
+                    />
+                    <span class="text-xs font-medium uppercase tracking-wider"
+                        >Hide Alts</span
+                    >
+                </label>
+
+                <!-- Loading State -->
+                {#if isSnapshotLoading}
+                    <span
+                        class="animate-pulse text-[var(--accent-color)] ml-auto text-xs"
+                        >Syncing Market...</span
+                    >
+                {:else}
+                    <span class="ml-auto text-xs opacity-50"
+                        >{sortedAndFilteredSymbols.length} Pairs</span
+                    >
+                {/if}
+            </div>
         </div>
 
         <div class="symbol-grid scrollbar-thin overflow-y-auto h-[65vh] pr-1">
