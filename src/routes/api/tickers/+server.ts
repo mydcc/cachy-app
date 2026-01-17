@@ -7,14 +7,26 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   const provider = url.searchParams.get("provider") || "bitunix";
   const type = url.searchParams.get("type"); // 'price' (default) or '24hr'
 
-  if (!symbols) {
+  // symbols parameter is optional for snapshot (all tickers)
+  // But we might want to enforce it for 'price' type on Binance?
+  // For now, allow empty symbols for Bitunix snapshot.
+  if (!symbols && provider === "binance" && type !== "24hr") {
+    // Binance ticker/price usually returns all if empty, but let's be safe/conservative
+    // Actually Binance allows it too. But let's stick to the current requirement: Bitunix Snapshot.
+    // So validation:
+  }
+
+  if (!symbols && provider === "binance") {
+    // Optional: check if Binance supports all tickers endpoint used below.
+    // Binance logic below builds url with symbol=${symbols}. If symbols is null, it fails.
+    // So for Binance we require symbols for now (unless we update Binance logic too).
     return json(
-      { message: 'Query parameter "symbols" is required.' },
+      { message: 'Query parameter "symbols" is required for Binance.' },
       { status: 400 },
     );
   }
 
-  const cacheKey = `tickers:${provider}:${symbols}:${type || "default"}`;
+  const cacheKey = `tickers:${provider}:${symbols || "ALL"}:${type || "default"}`;
 
   try {
     const data = await cache.getOrFetch(
@@ -30,7 +42,10 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           }
         } else {
           // Default to Bitunix
-          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/tickers?symbols=${symbols}`;
+          apiUrl = `https://fapi.bitunix.com/api/v1/futures/market/tickers`;
+          if (symbols) {
+            apiUrl += `?symbols=${symbols}`;
+          }
         }
 
         const response = await fetch(apiUrl);
