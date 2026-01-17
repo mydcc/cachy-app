@@ -1,6 +1,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { generateBitunixSignature } from "../../../../utils/server/bitunix";
+import type { BitunixOrder } from "../../../../types/bitunix";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { apiKey, apiSecret, limit } = await request.json();
@@ -10,7 +11,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   try {
-    let allOrders: any[] = [];
+    let allOrders: BitunixOrder[] = [];
     const startTime = Date.now();
     const TIMEOUT_MS = 50000; // 50s timeout safety for serverless functions
 
@@ -52,39 +53,35 @@ export const POST: RequestHandler = async ({ request }) => {
     if (regularResult.status === "fulfilled") {
       allOrders = allOrders.concat(regularResult.value);
     } else {
-      console.error(
-        "Error fetching regular orders:",
-        (regularResult.reason as Error).message || "Unknown error",
-      );
+      const msg = (regularResult.reason as Error).message || "Unknown error";
+      // Sanitize
+      console.error("Error fetching regular orders:", msg.replaceAll(apiKey, "***"));
     }
 
     if (tpslResult.status === "fulfilled") {
       allOrders = allOrders.concat(tpslResult.value);
     } else {
-      console.warn(
-        "Error fetching TP/SL orders:",
-        (tpslResult.reason as Error).message,
-      );
+       const msg = (tpslResult.reason as Error).message || "Unknown error";
+      console.warn("Error fetching TP/SL orders:", msg.replaceAll(apiKey, "***"));
     }
 
     if (planResult.status === "fulfilled") {
       allOrders = allOrders.concat(planResult.value);
     } else {
-      console.warn(
-        "Error fetching plan orders:",
-        (planResult.reason as Error).message,
-      );
+      const msg = (planResult.reason as Error).message || "Unknown error";
+      console.warn("Error fetching plan orders:", msg.replaceAll(apiKey, "***"));
     }
 
     return json({ data: allOrders, isPartial });
   } catch (e: any) {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
+    const rawMsg = e.message || "Unknown error";
     console.error(
       `Error fetching orders from Bitunix:`,
-      e.message || "Unknown error",
+      rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***")
     );
     return json(
-      { error: e.message || "Failed to fetch orders" },
+      { error: rawMsg || "Failed to fetch orders" },
       { status: 500 },
     );
   }
@@ -95,9 +92,9 @@ async function fetchAllPages(
   apiSecret: string,
   path: string,
   checkTimeout: () => boolean,
-): Promise<any[]> {
+): Promise<BitunixOrder[]> {
   const maxPages = 50; // Reduced from 100 to prevent long waits
-  let accumulated: any[] = [];
+  let accumulated: BitunixOrder[] = [];
   let currentEndTime: number | undefined = undefined;
 
   for (let i = 0; i < maxPages; i++) {
@@ -119,7 +116,7 @@ async function fetchAllPages(
     accumulated = accumulated.concat(batch);
 
     // Pagination logic: use the creation time of the last item
-    const lastItem = batch[batch.length - 1];
+    const lastItem = batch[batch.length - 1] as any; // Cast to access varying time fields
 
     if (!lastItem) break;
 
@@ -147,7 +144,7 @@ async function fetchBitunixData(
   path: string,
   limit: number = 100,
   endTime?: number,
-): Promise<any[]> {
+): Promise<BitunixOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
 
   // Params for the request
