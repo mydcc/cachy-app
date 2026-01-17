@@ -82,6 +82,9 @@ describe("HotkeyService", () => {
       enableSidePanel: true,
       sidePanelMode: "chat",
       sidePanelLayout: "standard", // Fixed: Added missing property
+      chatStyle: "minimal",
+      panelState: { width: 400, height: 600, x: 0, y: 0 },
+      customSystemPrompt: "",
       aiProvider: "gemini",
       openaiApiKey: "",
       openaiModel: "gpt-4o",

@@ -498,6 +498,10 @@ class BitunixWebSocketService {
   // Helper: Validate price-related data to prevent crashes from malformed WS messages
   private validatePriceData(data: Partial<BitunixPriceData>): boolean {
     if (!data) return false;
+
+    // Market Price (mp) is mandatory for a valid price update to prevent zero-price glitches
+    if (data.mp === undefined || data.mp === null) return false;
+
     // Price fields should be numeric strings or numbers > 0
     // 'mp' = market price, 'ip' = index price, 'fr' = funding rate, 'nft' = next funding time
     const fields = ["mp", "ip", "fr", "nft"] as const;
@@ -568,7 +572,7 @@ class BitunixWebSocketService {
             price: data.mp || "0",
             indexPrice: data.ip || "0",
             fundingRate: data.fr || "0",
-            nextFundingTime: data.nft || 0,
+            nextFundingTime: String(data.nft || 0),
           });
         } else if (symbol && data) {
           console.warn("[BitunixWS] Invalid price data received:", {
@@ -697,6 +701,11 @@ class BitunixWebSocketService {
     }
   }
 
+  /**
+   * Subscribes to a public channel.
+   * NOTE: Reference counting is handled by MarketWatcher.
+   * Direct calls to this method bypass ref counting and should be avoided for "price" or "ticker" channels.
+   */
   subscribe(symbol: string, channel: string) {
     if (!symbol) return;
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");

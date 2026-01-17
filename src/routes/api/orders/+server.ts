@@ -35,14 +35,21 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Security: Validate Order Parameters
     if (type === "place-order" || type === "close-position") {
-      const q = type === "close-position" ? body.amount : body.qty;
-      const qty = parseFloat(q);
+      // Robust quantity normalization: Check both qty and amount
+      let rawQty = body.qty;
+      if (rawQty === undefined || rawQty === null || rawQty === "") {
+        rawQty = body.amount;
+      }
+
+      const qty = parseFloat(rawQty);
       if (isNaN(qty) || qty <= 0) {
         return json(
           { error: "Invalid quantity. Must be a positive number." },
           { status: 400 },
         );
       }
+      // Normalize body for downstream usage
+      body.qty = rawQty;
 
       const side = body.side?.toUpperCase();
       if (side !== "BUY" && side !== "SELL") {
@@ -75,11 +82,15 @@ export const POST: RequestHandler = async ({ request }) => {
           );
         }
 
-        if (orderType === "LIMIT" || orderType === "STOP_LIMIT") {
+        if (
+          orderType === "LIMIT" ||
+          orderType === "STOP_LIMIT" ||
+          orderType === "TAKE_PROFIT_LIMIT"
+        ) {
           const price = parseFloat(body.price);
           if (isNaN(price) || price <= 0) {
             return json(
-              { error: "Invalid price for LIMIT order." },
+              { error: `Invalid price for ${orderType} order.` },
               { status: 400 },
             );
           }
@@ -126,6 +137,17 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 };
 
+// Safe string conversion avoiding scientific notation for API payloads
+function safeString(num: number | string | undefined): string | undefined {
+  if (num === undefined || num === null) return undefined;
+  const s = String(num);
+  if (s.includes("e") || s.includes("E")) {
+    // Avoid scientific notation for API compatibility
+    return Number(num).toFixed(12).replace(/\.?0+$/, "");
+  }
+  return s;
+}
+
 async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
@@ -134,12 +156,12 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
-  // Construct Payload
+  // Construct Payload with safe strings
   const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: String(orderData.qty),
+    qty: safeString(orderData.qty)!,
     reduceOnly: orderData.reduceOnly || false,
   };
 
@@ -150,16 +172,16 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = String(orderData.price);
+    payload.price = safeString(orderData.price);
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = String(orderData.triggerPrice);
+    payload.triggerPrice = safeString(orderData.triggerPrice);
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = String(orderData.stopPrice);
+    payload.triggerPrice = safeString(orderData.stopPrice);
   }
 
   // Clean null/undefined
@@ -176,32 +198,40 @@ async function placeBitunixOrder(
 
   const url = `${baseUrl}${path}`;
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      "api-key": apiKey,
-      timestamp: timestamp,
-      nonce: nonce,
-      sign: signature,
-      "Content-Type": "application/json",
-    },
-    body: bodyStr,
-  });
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "api-key": apiKey,
+        timestamp: timestamp,
+        nonce: nonce,
+        sign: signature,
+        "Content-Type": "application/json",
+      },
+      body: bodyStr,
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    const safeText = text.slice(0, 200);
-    throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
+    if (!response.ok) {
+      const text = await response.text();
+      const safeText = text.slice(0, 200);
+      throw new Error(`Bitunix HTTP error: ${response.status} ${safeText}`);
+    }
+
+    const res: BitunixResponse<any> = await response.json();
+    if (String(res.code) !== "0") {
+      throw new Error(
+        `Bitunix API Logic Error: ${res.code} - ${res.msg || "Unknown error"}`,
+      );
+    }
+
+    return res.data;
+  } catch (error: any) {
+    // Distinguish between Network/Fetch errors and API Logic errors if possible
+    if (error.name === "TypeError" && error.message.includes("fetch")) {
+      throw new Error(`Network Error during order placement: ${error.message}`);
+    }
+    throw error;
   }
-
-  const res: BitunixResponse<any> = await response.json();
-  if (String(res.code) !== "0") {
-    throw new Error(
-      `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
-    );
-  }
-
-  return res.data;
 }
 
 async function fetchBitunixPendingOrders(
