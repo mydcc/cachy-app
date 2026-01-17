@@ -16,7 +16,7 @@
     let viewMode = $state<"favorites" | "gainers" | "volatile" | "all">(
         "favorites",
     );
-    let sortMode = $state<"alpha" | "gainers" | "losers">("alpha");
+    let sortMode = $state<"alpha" | "gainers" | "losers" | "volume">("alpha");
 
     // Filter States
     let snapshot = $state<Record<string, any>>({});
@@ -96,16 +96,27 @@
         const effectiveSort =
             viewMode === "gainers" && !searchQuery ? "gainers" : sortMode;
 
-        if (effectiveSort === "gainers" || effectiveSort === "losers") {
+        if (effectiveSort === "gainers") {
             result.sort((a, b) => {
-                // Prefer snapshot for sorting stability
                 const changeA =
                     snapshot[a]?.priceChangePercent?.toNumber() || 0;
                 const changeB =
                     snapshot[b]?.priceChangePercent?.toNumber() || 0;
-                return effectiveSort === "gainers"
-                    ? changeB - changeA
-                    : changeA - changeB;
+                return changeB - changeA;
+            });
+        } else if (effectiveSort === "losers") {
+            result.sort((a, b) => {
+                const changeA =
+                    snapshot[a]?.priceChangePercent?.toNumber() || 0;
+                const changeB =
+                    snapshot[b]?.priceChangePercent?.toNumber() || 0;
+                return changeA - changeB;
+            });
+        } else if (effectiveSort === "volume") {
+            result.sort((a, b) => {
+                const volA = snapshot[a]?.quoteVolume?.toNumber() || 0;
+                const volB = snapshot[b]?.quoteVolume?.toNumber() || 0;
+                return volB - volA;
             });
         } else {
             result.sort();
@@ -326,6 +337,36 @@
                         >Hide Alts</span
                     >
                 </label>
+
+                <div class="h-4 w-[1px] bg-[var(--border-color)] mx-1"></div>
+
+                <!-- Sort Options -->
+                <div class="flex items-center gap-1.5">
+                    <button
+                        class="sort-pill"
+                        class:active={sortMode === "alpha"}
+                        onclick={() => (sortMode = "alpha")}
+                        title="A-Z">AZ</button
+                    >
+                    <button
+                        class="sort-pill"
+                        class:active={sortMode === "gainers"}
+                        onclick={() => (sortMode = "gainers")}
+                        title="Gainers">%↑</button
+                    >
+                    <button
+                        class="sort-pill"
+                        class:active={sortMode === "losers"}
+                        onclick={() => (sortMode = "losers")}
+                        title="Losers">%↓</button
+                    >
+                    <button
+                        class="sort-pill"
+                        class:active={sortMode === "volume"}
+                        onclick={() => (sortMode = "volume")}
+                        title="Volume">VOL</button
+                    >
+                </div>
 
                 <!-- Loading State -->
                 {#if isSnapshotLoading}

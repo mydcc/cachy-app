@@ -8,6 +8,7 @@ import {
 import { favoritesStore } from "../stores/favoritesStore";
 import { uiStore } from "../stores/uiStore";
 import { app } from "./app";
+import { modalManager } from "./modalManager";
 import { CONSTANTS } from "../lib/constants";
 
 // --- Types & Constants ---
@@ -256,6 +257,13 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     defaultKey: "Alt+P",
     action: () => app.handleFetchPrice(),
   },
+  {
+    id: "TOGGLE_SYMBOL_PICKER",
+    label: "Open Symbol Picker",
+    category: "UI & Navigation",
+    defaultKey: "Alt+F",
+    action: () => modalManager.show("Symbol auswählen", "", "symbolPicker"),
+  },
 ];
 
 // --- Legacy Mode Maps ---
@@ -279,6 +287,7 @@ export const MODE1_MAP: Record<string, string> = {
   TOGGLE_TECHNICALS: "K",
   TOGGLE_SETTINGS: ",",
   RESET_INPUTS: "R",
+  TOGGLE_SYMBOL_PICKER: "F",
 };
 
 export const MODE2_MAP: Record<string, string> = {
@@ -301,6 +310,7 @@ export const MODE2_MAP: Record<string, string> = {
   TOGGLE_SIDEBAR: "Alt+B",
   TOGGLE_TECHNICALS: "Alt+K",
   TOGGLE_SETTINGS: "Alt+,",
+  TOGGLE_SYMBOL_PICKER: "Alt+F",
 };
 
 export const MODE3_MAP: Record<string, string> = {
@@ -324,6 +334,7 @@ export const MODE3_MAP: Record<string, string> = {
   TOGGLE_SIDEBAR: "B",
   TOGGLE_TECHNICALS: "K",
   TOGGLE_SETTINGS: ",",
+  TOGGLE_SYMBOL_PICKER: "F",
 };
 
 // --- Key Matching Logic ---
