@@ -334,7 +334,7 @@
 >
   {#if $settingsStore.showSidebars}
     <!-- Left Sidebar: Positions Table (Sticky) -->
-    <div class="hidden xl:flex flex-col gap-3 w-80 shrink-0 sticky top-8 z-40">
+    <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
       <PositionsSidebar />
     </div>
   {/if}
