@@ -676,6 +676,7 @@
                   class:border-[var(--border-color)]={isBubble &&
                     msg.role === "assistant"}
                   class:shadow-sm={isBubble && msg.role === "assistant"}
+                  class:overflow-x-hidden={isBubble}
                 >
                   <!-- Copy Button (shows on hover) -->
                   <button
