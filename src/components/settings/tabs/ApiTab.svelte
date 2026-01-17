@@ -15,13 +15,13 @@
     bitunixKeys = $bindable(),
     binanceKeys = $bindable(),
     imgbbApiKey = $bindable(),
-    imgbbExpiration = $bindable()
+    imgbbExpiration = $bindable(),
   }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
   <div
-    class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2"
+    class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-2"
   >
     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
       {$_("settings.imgbbHeader")}
@@ -47,7 +47,7 @@
         id="imgbb-exp"
         name="imgbbExpiration"
         bind:value={imgbbExpiration}
-        class="input-field p-1 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+        class="input-field p-2. 5 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
       >
         <option value={0}>{$_("settings.imgbbPermanent")}</option>
         <option value={600}>{$_("settings.imgbb10m")}</option>
@@ -82,13 +82,13 @@
   </div>
   {#if apiProvider === "bitunix"}
     <div
-      class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2"
+      class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-2"
     >
       <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
         Bitunix Credentials
       </h4>
       <div class="flex flex-col gap-1">
-        <label for="bx-key" class="text-xs">API Key</label>
+        <label for="bx-key" class="text-sm">API Key</label>
         <input
           id="bx-key"
           name="bitunixKey"
@@ -100,7 +100,7 @@
         />
       </div>
       <div class="flex flex-col gap-1">
-        <label for="bx-secret" class="text-xs">Secret Key</label>
+        <label for="bx-secret" class="text-sm">Secret Key</label>
         <input
           id="bx-secret"
           name="bitunixSecret"
@@ -114,13 +114,13 @@
     </div>
   {:else}
     <div
-      class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-2"
+      class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-2"
     >
       <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
         Binance Credentials
       </h4>
       <div class="flex flex-col gap-1">
-        <label for="bn-key" class="text-xs">API Key</label>
+        <label for="bn-key" class="text-sm">API Key</label>
         <input
           id="bn-key"
           name="binanceKey"
@@ -132,7 +132,7 @@
         />
       </div>
       <div class="flex flex-col gap-1">
-        <label for="bn-secret" class="text-xs">Secret Key</label>
+        <label for="bn-secret" class="text-sm">Secret Key</label>
         <input
           id="bn-secret"
           name="binanceSecret"

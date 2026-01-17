@@ -27,7 +27,7 @@
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
   <div
-    class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-4"
+    class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-4"
   >
     <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
       AI Provider Settings

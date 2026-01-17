@@ -110,12 +110,12 @@
       {$_("settings.indicators.title") || "Indicator Settings"}
     </h3>
 
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+    <div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
       <!-- Left Column -->
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-6">
         <!-- RSI Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -135,14 +135,14 @@
 
           <div class="grid grid-cols-2 gap-x-4 gap-y-2 mt-1">
             <div class="flex items-center justify-between">
-              <label for="rsi-length" class="text-xs">Length</label>
+              <label for="rsi-length" class="text-sm">Length</label>
               <input
                 id="rsi-length"
                 type="number"
                 bind:value={rsiSettings.length}
                 min="2"
                 max="100"
-                class="input-field rounded settings-number-input text-xs"
+                class="input-field rounded settings-number-input text-sm w-20"
                 disabled={!isPro}
                 use:enhancedInput={{ min: 2, max: 100 }}
               />
@@ -207,14 +207,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- MACD Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -336,14 +336,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- EMA Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -441,14 +441,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- EMA 2 -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -546,14 +546,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- EMA 3 -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -651,14 +651,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- Source selection for all EMAs -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex items-center justify-between"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex items-center justify-between"
         >
           <label for="ema-source" class="text-xs">Common Source</label>
           <select
@@ -678,10 +678,10 @@
       </div>
 
       <!-- Right Column -->
-      <div class="flex flex-col gap-4">
+      <div class="flex flex-col gap-6">
         <!-- Stochastic Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -760,14 +760,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- CCI Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -862,14 +862,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- ADX Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -924,14 +924,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- Awesome Oscillator Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -986,14 +986,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- Momentum Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -1048,14 +1048,14 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
 
         <!-- Pivots Settings -->
         <div
-          class="p-3 border border-[var(--border-color)] rounded bg-[var(--bg-tertiary)] flex flex-col gap-3 relative overflow-hidden"
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
         >
           <div
             class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
@@ -1105,7 +1105,7 @@
 
           {#if !isPro}
             <div
-              class="absolute inset-0 bg-black/20 backdrop-blur-[1px] rounded z-10"
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
 ></div>
           {/if}
         </div>
