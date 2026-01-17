@@ -115,7 +115,7 @@
     });
 
     // Lazy Subscription Management
-    let previousSubs = $state(new Set<string>());
+    let previousSubs = new Set<string>();
 
     $effect(() => {
         if (!isOpen) {
