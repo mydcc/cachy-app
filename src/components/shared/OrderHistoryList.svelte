@@ -1,7 +1,8 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
+  import { uiStore } from "../../stores/uiStore";
+  // import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte"; // No longer needed here
 
   interface Props {
     orders?: any[];
@@ -11,60 +12,30 @@
 
   let { orders = [], loading = false, error = "" }: Props = $props();
 
-  let hoveredOrder: any = $state(null);
-  let tooltipX = $state(0);
-  let tooltipY = $state(0);
-  let tooltipTimeout: any;
+  // Removed local tooltip state in favor of uiStore
 
   function handleMouseEnter(event: MouseEvent, order: any) {
-    if (tooltipTimeout) clearTimeout(tooltipTimeout);
-    hoveredOrder = order;
-    updateTooltipPosition(event);
-  }
-
-  // Do NOT update on move to keep it fixed
-  function handleMouseMove(event: MouseEvent) {
-    // No-op for fixed position
+    const pos = getTooltipPosition(event);
+    uiStore.showTooltip("order", order, pos.x, pos.y);
   }
 
   function handleMouseLeave() {
-    tooltipTimeout = setTimeout(() => {
-      hoveredOrder = null;
-    }, 200); // 200ms grace period to move into tooltip
+    uiStore.hideTooltip();
   }
 
-  function handleTooltipEnter() {
-    if (tooltipTimeout) clearTimeout(tooltipTimeout);
-  }
-
-  function handleTooltipLeave() {
-    hoveredOrder = null;
-  }
-
-  function updateTooltipPosition(event: MouseEvent) {
-    const tooltipWidth = 320; // Approx width
-    const tooltipHeight = 400; // Approx max height
+  function getTooltipPosition(event: MouseEvent) {
+    const tooltipWidth = 320;
+    const tooltipHeight = 400;
     const padding = 10;
-
     let x = event.clientX + padding;
     let y = event.clientY + padding;
 
-    // Check right edge
-    if (x + tooltipWidth > window.innerWidth) {
+    if (x + tooltipWidth > window.innerWidth)
       x = event.clientX - tooltipWidth - padding;
-    }
-
-    // Check bottom edge
-    if (y + tooltipHeight > window.innerHeight) {
+    if (y + tooltipHeight > window.innerHeight)
       y = event.clientY - tooltipHeight - padding;
-    }
 
-    // Ensure not off-screen top/left
-    x = Math.max(padding, x);
-    y = Math.max(padding, y);
-
-    tooltipX = x;
-    tooltipY = y;
+    return { x: Math.max(padding, x), y: Math.max(padding, y) };
   }
 
   function formatDate(timestamp: number) {
@@ -106,7 +77,7 @@
     <div class="flex justify-center p-4">
       <div
         class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-></div>
+      ></div>
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -127,7 +98,6 @@
             <div
               class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
               onmouseenter={(e) => handleMouseEnter(e, order)}
-              onmousemove={handleMouseMove}
               onmouseleave={handleMouseLeave}
               role="tooltip"
             >
@@ -173,7 +143,7 @@
                 {formatDynamicDecimal(
                   order.avgPrice && Number(order.avgPrice) > 0
                     ? order.avgPrice
-                    : order.price
+                    : order.price,
                 )}
               </span>
 
@@ -206,14 +176,4 @@
   {/if}
 </div>
 
-{#if hoveredOrder}
-  <div
-    class="fixed z-[9999] pointer-events-auto"
-    style="top: {tooltipY}px; left: {tooltipX}px;"
-    onmouseenter={handleTooltipEnter}
-    onmouseleave={handleTooltipLeave}
-    role="tooltip"
-  >
-    <OrderDetailsTooltip order={hoveredOrder} />
-  </div>
-{/if}
+<!-- Global Tooltip handled in +layout.svelte -->

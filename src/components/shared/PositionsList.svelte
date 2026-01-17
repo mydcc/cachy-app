@@ -2,7 +2,8 @@
   import { settingsStore } from "../../stores/settingsStore";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
-  import PositionTooltip from "./PositionTooltip.svelte";
+  import { uiStore } from "../../stores/uiStore";
+  // import PositionTooltip from "./PositionTooltip.svelte"; // Global handled
   import Button from "./Button.svelte";
 
   interface Props {
@@ -22,25 +23,18 @@
     ontpSl,
   }: Props = $props();
 
-  // Tooltip Logic
-  let hoveredPosition: any = $state(null);
-  let tooltipX = $state(0);
-  let tooltipY = $state(0);
+  // Removed local tooltip state
 
   function handleMouseEnter(event: MouseEvent, pos: any) {
-    hoveredPosition = pos;
-    updateTooltipPosition(event);
-  }
-
-  function handleMouseMove(event: MouseEvent) {
-    if (hoveredPosition) updateTooltipPosition(event);
+    const coords = getTooltipPosition(event);
+    uiStore.showTooltip("position", pos, coords.x, coords.y);
   }
 
   function handleMouseLeave() {
-    hoveredPosition = null;
+    uiStore.hideTooltip();
   }
 
-  function updateTooltipPosition(event: MouseEvent) {
+  function getTooltipPosition(event: MouseEvent) {
     const tooltipWidth = 320;
     const tooltipHeight = 250;
     const padding = 10;
@@ -52,11 +46,7 @@
     if (y + tooltipHeight > window.innerHeight)
       y = event.clientY - tooltipHeight - padding;
 
-    x = Math.max(padding, x);
-    y = Math.max(padding, y);
-
-    tooltipX = x;
-    tooltipY = y;
+    return { x: Math.max(padding, x), y: Math.max(padding, y) };
   }
 
   // PnL Logic
@@ -137,7 +127,6 @@
                   role="group"
                   aria-label="Position Details"
                   onmouseenter={(e) => handleMouseEnter(e, pos)}
-                  onmousemove={handleMouseMove}
                   onmouseleave={handleMouseLeave}
                 >
                   <span class="font-bold text-sm text-[var(--text-primary)]"
@@ -261,7 +250,6 @@
                 role="group"
                 aria-label="Symbol Details"
                 onmouseenter={(e) => handleMouseEnter(e, pos)}
-                onmousemove={handleMouseMove}
                 onmouseleave={handleMouseLeave}
               >
                 <span class="font-bold text-xs">{pos.symbol}</span>
@@ -299,11 +287,4 @@
   {/if}
 </div>
 
-{#if hoveredPosition}
-  <div
-    class="fixed z-[9999] pointer-events-none"
-    style="top: {tooltipY}px; left: {tooltipX}px;"
-  >
-    <PositionTooltip position={hoveredPosition} />
-  </div>
-{/if}
+<!-- Global Tooltip handled in +layout.svelte -->

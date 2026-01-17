@@ -302,13 +302,14 @@
 <svelte:window onclick={closeContextMenu} />
 
 <div
-  class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 relative z-20 overflow-hidden w-full"
+  class="bg-[var(--bg-secondary)] rounded-xl shadow-lg border border-[var(--border-color)] flex flex-col transition-all duration-300 relative z-20 w-full"
   class:h-auto={isOpen}
   class:h-12={!isOpen}
 >
   <!-- Header / Toggle -->
   <div
-    class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)]"
+    class="p-3 flex justify-between items-center bg-[var(--bg-tertiary)] cursor-pointer select-none border-b border-[var(--border-color)] rounded-t-xl"
+    class:rounded-b-xl={!isOpen}
     onclick={toggle}
     onkeydown={(e) => handleKeydown(e, toggle)}
     role="button"
@@ -403,7 +404,7 @@
     </div>
 
     <!-- Content Area -->
-    <div class="bg-[var(--bg-secondary)]">
+    <div class="bg-[var(--bg-secondary)] rounded-b-xl">
       {#if activeTab === "positions"}
         <PositionsList
           positions={$accountStore.positions}

@@ -1,7 +1,8 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte";
+  import { uiStore } from "../../stores/uiStore";
+  // import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte"; // Global handled
 
   interface Props {
     orders?: any[];
@@ -11,56 +12,30 @@
 
   let { orders = [], loading = false, error = "" }: Props = $props();
 
-  let hoveredOrder: any = $state(null);
-  let tooltipX = $state(0);
-  let tooltipY = $state(0);
-  let tooltipTimeout: any;
+  // Removed local tooltip state
 
   function handleMouseEnter(event: MouseEvent, order: any) {
-    if (tooltipTimeout) clearTimeout(tooltipTimeout);
-    hoveredOrder = order;
-    updateTooltipPosition(event);
-  }
-
-  function handleMouseMove(event: MouseEvent) {
-    // No-op for fixed position
+    const coords = getTooltipPosition(event);
+    uiStore.showTooltip("order", order, coords.x, coords.y);
   }
 
   function handleMouseLeave() {
-    tooltipTimeout = setTimeout(() => {
-      hoveredOrder = null;
-    }, 200);
+    uiStore.hideTooltip();
   }
 
-  function handleTooltipEnter() {
-    if (tooltipTimeout) clearTimeout(tooltipTimeout);
-  }
-
-  function handleTooltipLeave() {
-    hoveredOrder = null;
-  }
-
-  function updateTooltipPosition(event: MouseEvent) {
+  function getTooltipPosition(event: MouseEvent) {
     const tooltipWidth = 320;
     const tooltipHeight = 400;
     const padding = 10;
-
     let x = event.clientX + padding;
     let y = event.clientY + padding;
 
-    if (x + tooltipWidth > window.innerWidth) {
+    if (x + tooltipWidth > window.innerWidth)
       x = event.clientX - tooltipWidth - padding;
-    }
-
-    if (y + tooltipHeight > window.innerHeight) {
+    if (y + tooltipHeight > window.innerHeight)
       y = event.clientY - tooltipHeight - padding;
-    }
 
-    x = Math.max(padding, x);
-    y = Math.max(padding, y);
-
-    tooltipX = x;
-    tooltipY = y;
+    return { x: Math.max(padding, x), y: Math.max(padding, y) };
   }
 
   function formatDate(timestamp: number) {
@@ -97,7 +72,7 @@
     <div class="flex justify-center p-4">
       <div
         class="animate-spin rounded-full h-5 w-5 border-b-2 border-[var(--accent-color)]"
-></div>
+      ></div>
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
@@ -118,7 +93,6 @@
             <div
               class="flex flex-col justify-center border-r border-[var(--border-color)] border-opacity-30 pr-1 cursor-help relative"
               onmouseenter={(e) => handleMouseEnter(e, order)}
-              onmousemove={handleMouseMove}
               onmouseleave={handleMouseLeave}
               role="tooltip"
             >
@@ -182,14 +156,4 @@
   {/if}
 </div>
 
-{#if hoveredOrder}
-  <div
-    class="fixed z-[9999] pointer-events-auto"
-    style="top: {tooltipY}px; left: {tooltipX}px;"
-    onmouseenter={handleTooltipEnter}
-    onmouseleave={handleTooltipLeave}
-    role="tooltip"
-  >
-    <OrderDetailsTooltip order={hoveredOrder} />
-  </div>
-{/if}
+<!-- Global Tooltip handled in +layout.svelte -->

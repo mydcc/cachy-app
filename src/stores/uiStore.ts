@@ -28,6 +28,13 @@ interface UiState {
     current: number;
     step: string; // e.g. "Fetching History", "Processing 10/50"
   } | null;
+  tooltip: {
+    visible: boolean;
+    type: "position" | "order" | null;
+    data: any;
+    x: number;
+    y: number;
+  };
 }
 
 const initialUiState: UiState = {
@@ -50,6 +57,13 @@ const initialUiState: UiState = {
   isLoading: false,
   loadingMessage: "",
   syncProgress: null,
+  tooltip: {
+    visible: false,
+    type: null,
+    data: null,
+    x: 0,
+    y: 0,
+  },
 };
 
 // Synchron mit HTML-Script: Lade Theme VOR Store-Erstellung
@@ -231,6 +245,16 @@ function createUiStore() {
       update((state) => ({ ...state, isLoading: false, loadingMessage: "" })),
     setSyncProgress: (progress: UiState["syncProgress"]) =>
       update((state) => ({ ...state, syncProgress: progress })),
+    showTooltip: (type: "position" | "order", data: any, x: number, y: number) =>
+      update((state) => ({
+        ...state,
+        tooltip: { visible: true, type, data, x, y },
+      })),
+    hideTooltip: () =>
+      update((state) => ({
+        ...state,
+        tooltip: { ...state.tooltip, visible: false },
+      })),
   };
 }
 

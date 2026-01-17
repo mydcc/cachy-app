@@ -8,6 +8,8 @@
   import SettingsModal from "../components/settings/SettingsModal.svelte";
   import CustomModal from "../components/shared/CustomModal.svelte";
   import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
+  import PositionTooltip from "../components/shared/PositionTooltip.svelte";
+  import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import { onMount } from "svelte";
   import { initZoomPlugin } from "../lib/chartSetup";
 
@@ -261,6 +263,22 @@
 
 {#if !$settingsStore.disclaimerAccepted}
   <DisclaimerModal />
+{/if}
+
+{#if $uiStore.tooltip.visible}
+  <div
+    class="fixed z-[10000] pointer-events-auto"
+    style="top: {$uiStore.tooltip.y}px; left: {$uiStore.tooltip.x}px;"
+    onmouseenter={() => {}}
+    onmouseleave={() => uiStore.hideTooltip()}
+    role="tooltip"
+  >
+    {#if $uiStore.tooltip.type === "position"}
+      <PositionTooltip position={$uiStore.tooltip.data} />
+    {:else if $uiStore.tooltip.type === "order"}
+      <OrderDetailsTooltip order={$uiStore.tooltip.data} />
+    {/if}
+  </div>
 {/if}
 
 <style>
