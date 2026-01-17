@@ -189,8 +189,12 @@ function loadSettingsFromLocalStorage(): Settings {
     if (settings.geminiModel === "flash") {
       settings.geminiModel = "gemini-2.5-flash";
     }
-    if (settings.geminiModel === "pro") {
-      settings.geminiModel = "gemini-2.0-flash-exp";
+    // Migrate old 'pro' alias or expired experimental models to the latest stable Flash model
+    if (
+      settings.geminiModel === "pro" ||
+      settings.geminiModel === "gemini-2.0-flash-exp"
+    ) {
+      settings.geminiModel = "gemini-2.5-flash";
     }
 
     // Ensure History Config exists

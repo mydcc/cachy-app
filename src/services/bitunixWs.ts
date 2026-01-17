@@ -100,9 +100,9 @@ class BitunixWebSocketService {
       ) {
         return;
       }
-      if (this.wsPublic.readyState === WebSocket.CLOSING) {
-        this.cleanup("public");
-      }
+      // Ensure strict cleanup of any existing socket (CLOSING or CLOSED)
+      // This removes listeners and clears timers before creating a new one
+      this.cleanup("public");
     }
 
     wsStatusStore.set("connecting");
@@ -204,9 +204,8 @@ class BitunixWebSocketService {
       ) {
         return;
       }
-      if (this.wsPrivate.readyState === WebSocket.CLOSING) {
-        this.cleanup("private");
-      }
+      // Ensure strict cleanup of any existing socket (CLOSING or CLOSED)
+      this.cleanup("private");
     }
 
     let ws: WebSocket;

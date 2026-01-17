@@ -4,6 +4,7 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import { Decimal } from "decimal.js";
 import type {
   BitunixResponse,
   BitunixOrder,
@@ -25,6 +26,18 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
   }
+
+// Helper to avoid scientific notation (e.g. 1e-7) while preserving precision
+function formatBitunixValue(val: string | number): string {
+  // Use toFixed(20) to ensure we get a plain string for small numbers,
+  // then trim trailing zeros/decimal point.
+  // Default toFixed() (0 args) rounds to integer, which was a bug.
+  let s = new Decimal(val).toFixed(20);
+  if (s.includes(".")) {
+    s = s.replace(/\.?0+$/, "");
+  }
+  return s;
+}
 
   // Security: Validate API Key length
   if (exchange === "bitunix") {
@@ -155,7 +168,8 @@ async function placeBitunixOrder(
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: String(orderData.qty),
+    // Use formatBitunixValue to avoid scientific notation (e.g. 1e-7)
+    qty: formatBitunixValue(orderData.qty),
     reduceOnly: orderData.reduceOnly || false,
   };
 
@@ -166,16 +180,16 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = String(orderData.price);
+    payload.price = formatBitunixValue(orderData.price);
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = String(orderData.triggerPrice);
+    payload.triggerPrice = formatBitunixValue(orderData.triggerPrice);
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = String(orderData.stopPrice);
+    payload.triggerPrice = formatBitunixValue(orderData.stopPrice);
   }
 
   // Clean null/undefined

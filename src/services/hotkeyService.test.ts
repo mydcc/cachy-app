@@ -72,6 +72,7 @@ describe("HotkeyService", () => {
       isPro: true,
       feePreference: "maker",
       favoriteTimeframes: [],
+      favoriteSymbols: [], // Added missing prop
       syncRsiTimeframe: true,
       imgbbApiKey: "",
       imgbbExpiration: 0,
@@ -83,13 +84,15 @@ describe("HotkeyService", () => {
       sidePanelMode: "chat",
       sidePanelLayout: "standard", // Fixed: Added missing property
       chatStyle: "minimal",
+      chatFontSize: 13, // Added missing prop
+      panelIsExpanded: false, // Added missing prop
       customSystemPrompt: "",
       panelState: { width: 400, height: 600, x: 20, y: 20 },
       aiProvider: "gemini",
       openaiApiKey: "",
       openaiModel: "gpt-4o",
       geminiApiKey: "",
-      geminiModel: "gemini-2.0-flash",
+      geminiModel: "gemini-2.5-flash", // Updated to match store default
       anthropicApiKey: "",
       anthropicModel: "claude-3-5-sonnet-20240620",
       disclaimerAccepted: true,

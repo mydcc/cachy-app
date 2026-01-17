@@ -20,17 +20,55 @@ export function parseDecimal(
   if (value === null || value === undefined) {
     return new Decimal(0);
   }
-  // Convert to string to handle both numbers and strings uniformly
-  const stringValue = String(value).replace(",", ".").trim();
+  let stringValue = String(value).trim();
+
+  // Heuristic for handling localized number formats (German vs English)
+  // Check for presence of both separators
+  const hasComma = stringValue.includes(",");
+  const hasDot = stringValue.includes(".");
+
+  if (hasComma && hasDot) {
+    // Both present (e.g. 1.000,00 or 1,000.00)
+    // The last one is likely the decimal separator
+    const lastCommaIndex = stringValue.lastIndexOf(",");
+    const lastDotIndex = stringValue.lastIndexOf(".");
+
+    if (lastCommaIndex > lastDotIndex) {
+      // German Format: 1.000,00 -> Remove dots, replace comma with dot
+      stringValue = stringValue.replace(/\./g, "").replace(",", ".");
+    } else {
+      // English Format: 1,000.00 -> Remove commas
+      stringValue = stringValue.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Only commas (e.g. 1,5 or 1,000,000)
+    // If multiple commas, it's definitely English thousands: 1,000,000 -> 1000000
+    // If single comma, it's ambiguous (1,000 could be 1k or 1.0).
+    // Default assumption in this app context (often German users): 1,5 is 1.5.
+    // However, if we blindly replace, 1,000,000 becomes 1.000.000 -> NaN in JS/Decimal usually, or 1?
+    // Decimal('1.0.0') throws.
+    // Let's count commas.
+    const commaCount = (stringValue.match(/,/g) || []).length;
+    if (commaCount > 1) {
+      // 1,000,000 -> Remove all commas
+      stringValue = stringValue.replace(/,/g, "");
+    } else {
+      // Single comma: 1,5 -> 1.5
+      stringValue = stringValue.replace(",", ".");
+    }
+  }
 
   // If the string is empty after trimming, it's a 0.
   if (stringValue === "") {
     return new Decimal(0);
   }
 
-  // Check if the result is a finite number
+  // Check if the result is a finite number (native check)
+  // Note: Number('1e-7') works.
   const numValue = Number(stringValue);
   if (isNaN(numValue) || !isFinite(numValue)) {
+    // Fallback: Try Decimal directly in case Number() failed but Decimal succeeds?
+    // Unlikely for standard numbers.
     return new Decimal(0);
   }
 
