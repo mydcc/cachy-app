@@ -70,7 +70,9 @@
                 const data = await response.json();
                 if (data.error) {
                   // Suppress specific symbol errors, just warn
-                  console.warn(`TP/SL fetch warning for ${sym}:`, data.error);
+                  if (!data.error.includes("code: 2")) {
+                    console.warn(`TP/SL fetch warning for ${sym}:`, data.error);
+                  }
                   return [];
                 }
                 return Array.isArray(data) ? data : data.rows || [];
@@ -187,7 +189,6 @@
   }
 </script>
 
-```typescript
 <div class="flex flex-col h-full bg-[var(--bg-secondary)]">
   <!-- Sub-Tabs for Pending/History -->
   <div
