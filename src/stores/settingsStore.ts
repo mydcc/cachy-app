@@ -83,6 +83,8 @@ export interface Settings {
   confirmTradeDeletion: boolean;
   confirmBulkDeletion: boolean;
   enableGlassmorphism: boolean;
+  chatFontSize: number;
+  panelIsExpanded: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -141,6 +143,8 @@ const defaultSettings: Settings = {
   confirmTradeDeletion: true,
   confirmBulkDeletion: true,
   enableGlassmorphism: true,
+  chatFontSize: 13,
+  panelIsExpanded: false,
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -257,6 +261,9 @@ function loadSettingsFromLocalStorage(): Settings {
         settings.confirmBulkDeletion ?? defaultSettings.confirmBulkDeletion,
       enableGlassmorphism:
         settings.enableGlassmorphism ?? defaultSettings.enableGlassmorphism,
+      chatFontSize: settings.chatFontSize ?? defaultSettings.chatFontSize,
+      panelIsExpanded:
+        settings.panelIsExpanded ?? defaultSettings.panelIsExpanded,
     };
 
     return cleanSettings;

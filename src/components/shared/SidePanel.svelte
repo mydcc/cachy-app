@@ -183,6 +183,54 @@
       panelState: { ...panelState },
     }));
   }
+
+  function changeFontSize(delta: number) {
+    settingsStore.update((s) => ({
+      ...s,
+      chatFontSize: Math.max(8, Math.min(24, (s.chatFontSize || 13) + delta)),
+    }));
+  }
+
+  function copyToClipboard(text: string) {
+    if (typeof navigator !== "undefined") {
+      navigator.clipboard.writeText(text);
+      // Optional: add a toast or similar feedback here if available
+    }
+  }
+
+  function exportChat() {
+    let content = "";
+    if ($settingsStore.sidePanelMode === "ai") {
+      content = $aiStore.messages
+        .map(
+          (m) =>
+            `${m.role === "user" ? "YOU" : "AI"} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`,
+        )
+        .join("\n---\n\n");
+    } else {
+      content = $chatStore.messages
+        .map(
+          (m) =>
+            `MSG (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
+        )
+        .join("\n---\n\n");
+    }
+
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `cachy-chat-export-${new Date().toISOString().slice(0, 10)}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  function toggleExpand() {
+    settingsStore.update((s) => ({
+      ...s,
+      panelIsExpanded: !s.panelIsExpanded,
+    }));
+  }
 </script>
 
 {#if $settingsStore.enableSidePanel}
@@ -285,19 +333,21 @@
     <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
-        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed"
+        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100]"
         transition:fly={{
           y: isFloating ? 20 : 0,
           x: isSidebar ? -30 : 0,
           duration: 250,
         }}
-        style={isSidebar
-          ? `width: ${panelState?.width || 320}px;`
-          : panelState
-            ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
-            : ""}
-        class:mb-4={isFloating}
-        class:rounded-lg={isFloating}
+        style={$settingsStore.panelIsExpanded
+          ? "width: 100vw; height: 100vh; left: 0; top: 0; border-radius: 0;"
+          : isSidebar
+            ? `width: ${panelState?.width || 320}px;`
+            : panelState
+              ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
+              : ""}
+        class:mb-4={isFloating && !$settingsStore.panelIsExpanded}
+        class:rounded-lg={isFloating && !$settingsStore.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
         class:bg-[var(--bg-secondary)]={isTerminal}
@@ -408,10 +458,123 @@
             {getPanelTitle($settingsStore.sidePanelMode)}
           </h3>
 
-          <div class="flex items-center gap-3">
+          <div class="flex items-center gap-2">
+            <!-- Font Size Controls -->
+            <div
+              class="flex items-center gap-1 mr-2 border-r border-[var(--border-color)] pr-2"
+              class:border-green-900={isTerminal}
+            >
+              <button
+                class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+                onclick={() => changeFontSize(-1)}
+                title="Smaller Font"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3 w-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  ><line x1="5" y1="12" x2="19" y2="12" /></svg
+                >
+              </button>
+              <span class="text-[9px] font-mono opacity-50 w-4 text-center"
+                >{$settingsStore.chatFontSize || 13}</span
+              >
+              <button
+                class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+                onclick={() => changeFontSize(1)}
+                title="Larger Font"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-3 w-3"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2.5"
+                  ><line x1="12" y1="5" x2="12" y2="19" /><line
+                    x1="5"
+                    y1="12"
+                    x2="19"
+                    y2="12"
+                  /></svg
+                >
+              </button>
+            </div>
+
+            <!-- Export Button -->
+            <button
+              class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+              class:text-green-700={isTerminal}
+              class:hover:text-green-300={isTerminal}
+              onclick={exportChat}
+              title="Export Chat"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" /><polyline
+                  points="7 10 12 15 17 10"
+                /><line x1="12" y1="15" x2="12" y2="3" /></svg
+              >
+            </button>
+
+            <!-- Expand / Shrink -->
+            <button
+              class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+              class:text-green-700={isTerminal}
+              class:hover:text-green-300={isTerminal}
+              onclick={toggleExpand}
+              title={$settingsStore.panelIsExpanded
+                ? "Collapse Panel"
+                : "Expand Panel"}
+            >
+              {#if $settingsStore.panelIsExpanded}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  ><polyline points="4 14 10 14 10 20" /><polyline
+                    points="20 10 14 10 14 4"
+                  /><line x1="14" y1="10" x2="21" y2="3" /><line
+                    x1="3"
+                    y1="21"
+                    x2="10"
+                    y2="14"
+                  /></svg
+                >
+              {:else}
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  ><polyline points="15 3 21 3 21 9" /><polyline
+                    points="9 21 3 21 3 15"
+                  /><line x1="21" y1="3" x2="14" y2="10" /><line
+                    x1="3"
+                    y1="21"
+                    x2="10"
+                    y2="14"
+                  /></svg
+                >
+              {/if}
+            </button>
+
             {#if $settingsStore.sidePanelMode === "ai"}
               <button
-                class="transition-colors hover:text-red-500"
+                class="transition-colors hover:text-red-500 p-0.5"
                 class:text-green-700={isTerminal}
                 class:text-[var(--text-secondary)]={!isTerminal}
                 onclick={() =>
@@ -433,7 +596,7 @@
               </button>
             {/if}
             <button
-              class="transition-colors"
+              class="transition-colors p-0.5"
               class:text-green-500={isTerminal}
               class:text-[var(--text-secondary)]={!isTerminal}
               class:hover:text-[var(--text-primary)]={!isTerminal}
@@ -483,27 +646,69 @@
                 {/if}
 
                 <div
-                  class="leading-relaxed transition-all
-                    {isTerminal
-                    ? msg.role === 'user'
-                      ? 'text-green-400 w-full text-right'
-                      : 'text-green-600 w-full'
-                    : ''}
-                    {isMinimal
-                    ? msg.role === 'user'
-                      ? 'text-[var(--accent-color)] text-right max-w-[90%]'
-                      : 'text-[var(--text-primary)] max-w-[95%] text-left'
-                    : ''}
-                    {isBubble
-                    ? msg.role === 'user'
-                      ? 'bg-gradient-to-br from-indigo-600 to-blue-600 text-white rounded-[1.2rem] rounded-tr-none px-4 py-2 shadow-md max-w-[85%]'
-                      : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-[1.2rem] rounded-tl-none px-4 py-2 border border-[var(--border-color)] shadow-sm max-w-[85%]'
-                    : ''}
-                    "
+                  class="leading-relaxed transition-all relative group"
+                  style="font-size: {$settingsStore.chatFontSize || 13}px"
+                  class:text-green-400={isTerminal && msg.role === "user"}
+                  class:text-green-600={isTerminal && msg.role === "assistant"}
+                  class:w-full={isTerminal}
+                  class:text-right={isTerminal && msg.role === "user"}
+                  class:text-[var(--accent-color)]={isMinimal &&
+                    msg.role === "user"}
+                  class:text-[var(--text-primary)]={isMinimal &&
+                    msg.role === "assistant"}
+                  class:max-w-[90%]={isMinimal && msg.role === "user"}
+                  class:max-w-[95%]={isMinimal && msg.role === "assistant"}
+                  class:text-left={isMinimal && msg.role === "assistant"}
+                  class:bg-gradient-to-br={isBubble && msg.role === "user"}
+                  class:from-indigo-600={isBubble && msg.role === "user"}
+                  class:to-blue-600={isBubble && msg.role === "user"}
+                  class:text-white={isBubble && msg.role === "user"}
+                  class:rounded-[1.2rem]={isBubble}
+                  class:rounded-tr-none={isBubble && msg.role === "user"}
+                  class:px-4={isBubble}
+                  class:py-2={isBubble}
+                  class:shadow-md={isBubble && msg.role === "user"}
+                  class:max-w-[85%]={isBubble}
+                  class:bg-[var(--bg-secondary)]={isBubble &&
+                    msg.role === "assistant"}
+                  class:rounded-tl-none={isBubble && msg.role === "assistant"}
+                  class:border={isBubble && msg.role === "assistant"}
+                  class:border-[var(--border-color)]={isBubble &&
+                    msg.role === "assistant"}
+                  class:shadow-sm={isBubble && msg.role === "assistant"}
                 >
+                  <!-- Copy Button (shows on hover) -->
+                  <button
+                    class="absolute -top-2 {msg.role === 'user'
+                      ? '-left-6'
+                      : '-right-6'} p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--accent-color)]"
+                    onclick={() => copyToClipboard(msg.content)}
+                    title="Copy Content"
+                  >
+                    <svg
+                      xmlns="http://www.w3.org/2000/svg"
+                      class="h-3 w-3"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      ><rect
+                        x="9"
+                        y="9"
+                        width="13"
+                        height="13"
+                        rx="2"
+                        ry="2"
+                      /><path
+                        d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                      /></svg
+                    >
+                  </button>
+
                   {#if msg.role === "assistant"}
                     <div
-                      class="markdown-content text-sm"
+                      class="markdown-content"
+                      style="font-size: inherit"
                       class:terminal-md={isTerminal}
                     >
                       {@html renderMarkdown(msg.content)}
