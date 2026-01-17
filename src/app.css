@@ -191,8 +191,9 @@
   --red-insights-dark: #0f0523;
 
   /* --- Derived Colors --- */
-  --bg-secondary-derived: #0c082f;
-  --bg-tertiary-derived: #1a1333;
+  --bg-secondary-derived: #1a154a;
+  --bg-tertiary-derived: #2b1f99;
+  --chat-bubble-assistant-bg: #0c082f;
   --accent-hover-derived: #5c71ff;
   --default-hover-derived: #5b587d;
   --danger-hover-derived: #f46d7e;
@@ -205,6 +206,7 @@
       var(--gradient-purple-dark));
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --text-primary: var(--purple-light);
   --text-secondary: var(--highlight-meteorite);
   --text-tertiary: var(--core-meteorite);
@@ -281,8 +283,9 @@
   --red-insights-dark: #0f0523;
 
   /* --- Derived Colors --- */
-  --bg-secondary-derived: #08103f;
-  --bg-tertiary-derived: #1a2645;
+  --bg-secondary-derived: #1a2a6c;
+  --bg-tertiary-derived: #3c6e99;
+  --chat-bubble-assistant-bg: #08103f;
   --accent-hover-derived: #5c71ff;
   --default-hover-derived: #5b587d;
   --danger-hover-derived: #f46d7e;
@@ -295,6 +298,7 @@
       var(--gradient-blue-dark));
   --bg-secondary: var(--bg-secondary-derived);
   --bg-tertiary: var(--bg-tertiary-derived);
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);

@@ -669,7 +669,7 @@
                   class:py-2={isBubble}
                   class:shadow-md={isBubble && msg.role === "user"}
                   class:max-w-[85%]={isBubble}
-                  class:bg-[var(--bg-secondary)]={isBubble &&
+                  class:bg-[var(--chat-bubble-bg)]={isBubble &&
                     msg.role === "assistant"}
                   class:rounded-tl-none={isBubble && msg.role === "assistant"}
                   class:border={isBubble && msg.role === "assistant"}
