@@ -225,6 +225,24 @@
     URL.revokeObjectURL(url);
   }
 
+  function cycleMode() {
+    const modes: ("ai" | "notes" | "chat")[] = ["ai", "notes", "chat"];
+    const currentIdx = modes.indexOf($settingsStore.sidePanelMode);
+    const nextIdx = (currentIdx + 1) % modes.length;
+    settingsStore.update((s) => ({
+      ...s,
+      sidePanelMode: modes[nextIdx],
+    }));
+  }
+
+  function toggleLayout() {
+    settingsStore.update((s) => ({
+      ...s,
+      sidePanelLayout:
+        $settingsStore.sidePanelLayout === "floating" ? "standard" : "floating",
+    }));
+  }
+
   function toggleExpand() {
     settingsStore.update((s) => ({
       ...s,
@@ -447,13 +465,15 @@
           class:border-[var(--border-color)]={!isTerminal}
           class:cursor-move={!isSidebar}
           onmousedown={!isSidebar ? (e) => handleMouseDown(e, "move") : null}
+          ondblclick={() => toggleLayout()}
           role="toolbar"
           tabindex="0"
         >
           <h3
-            class="font-bold text-xs tracking-widest uppercase"
+            class="font-bold text-xs tracking-widest uppercase cursor-pointer hover:text-[var(--accent-color)] transition-colors"
             class:text-green-500={isTerminal}
             class:text-[var(--text-primary)]={!isTerminal}
+            onclick={cycleMode}
           >
             {getPanelTitle($settingsStore.sidePanelMode)}
           </h3>
