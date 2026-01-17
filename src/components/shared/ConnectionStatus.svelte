@@ -1,5 +1,6 @@
 <script lang="ts">
   import { wsStatusStore } from "../../stores/marketStore";
+  import { onMount, onDestroy } from "svelte";
 
   let wsStatus = $derived($wsStatusStore);
 
@@ -22,6 +23,31 @@
           ? "⟳ Reconnecting..."
           : "✗ Disconnected",
   );
+
+  // Listen to browser online/offline events
+  let handleOnline: (() => void) | undefined;
+  let handleOffline: (() => void) | undefined;
+
+  onMount(() => {
+    handleOnline = () => {
+      // Browser is back online - connection will auto-reconnect
+      console.log("[ConnectionStatus] Browser online");
+    };
+
+    handleOffline = () => {
+      // Browser went offline - immediately show disconnected
+      console.log("[ConnectionStatus] Browser offline");
+      wsStatusStore.set("disconnected");
+    };
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+  });
+
+  onDestroy(() => {
+    if (handleOnline) window.removeEventListener("online", handleOnline);
+    if (handleOffline) window.removeEventListener("offline", handleOffline);
+  });
 </script>
 
 <div
