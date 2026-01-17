@@ -24,10 +24,18 @@
 
 <div class="visual-bar-card">
   {#if entryPrice !== null && stopLossPrice !== null}
+    {@const isValid = (p: number) =>
+      tradeType === "long" ? p > entryPrice : p < entryPrice}
+
+    {@const validPrices = safeTargets
+      .map((t) => t.price)
+      .filter((p): p is number => p !== null && isValid(p))}
+
     {@const furthestPrice =
       tradeType === "long"
-        ? Math.max(entryPrice, ...safeTargets.map((t) => t.price || 0))
-        : Math.min(entryPrice, ...safeTargets.map((t) => t.price || 1e12))}
+        ? Math.max(entryPrice, ...validPrices)
+        : Math.min(entryPrice, ...validPrices)}
+
     {@const totalDiff = Math.abs(furthestPrice - stopLossPrice)}
     {@const isReady = totalDiff > 0}
 
@@ -37,7 +45,7 @@
       {@const entryX = getX(entryPrice)}
       {@const tpData = safeTargets
         .map((t, i) => {
-          if (!t.price) return null;
+          if (!t.price || !isValid(t.price)) return null;
           const detail = safeCalculatedTpDetails.find((d) => d.index === i);
           return {
             idx: i + 1,
