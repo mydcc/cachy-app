@@ -228,18 +228,19 @@
   --bg-primary: radial-gradient(farthest-side at top,
       var(--gradient-purple-light),
       var(--gradient-purple-dark));
-  --bg-secondary: #120e3a;
-  /* Darkened for better contrast in settings */
-  --bg-tertiary: #1e1b4b;
-  /* Adjusted for better card/input separation */
+  --bg-secondary: #08051e;
+  /* Deepest purple for sidebar & inputs */
+  --bg-tertiary: #161245;
+  /* Slightly lighter for card backgrounds */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-purple-dark);
   --scrollbar-thumb: var(--core-purple);
-  --scrollbar-track: var(--bg-secondary);
+  --scrollbar-track: #08051e;
   --text-primary: var(--purple-light);
   --text-secondary: var(--highlight-meteorite);
   --text-tertiary: var(--core-meteorite);
-  --border-color: var(--core-meteorite);
+  --border-color: #2b1f99;
+  /* Sharper borders for better separation */
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
   --success-color: var(--core-green-free);
@@ -325,18 +326,19 @@
   --bg-primary: radial-gradient(farthest-side at top,
       var(--gradient-blue-light),
       var(--gradient-blue-dark));
-  --bg-secondary: #0a112f;
-  /* Darkened for better contrast in settings */
-  --bg-tertiary: #162252;
-  /* Adjusted for better hierarchy */
+  --bg-secondary: #05081a;
+  /* Deepest blue for sidebar & inputs */
+  --bg-tertiary: #0f173d;
+  /* Slightly lighter for card backgrounds */
   --chat-bubble-bg: var(--chat-bubble-assistant-bg);
   --chat-messages-bg: var(--gradient-blue-dark);
   --scrollbar-thumb: var(--core-blue-pro);
-  --scrollbar-track: var(--bg-secondary);
+  --scrollbar-track: #05081a;
   --text-primary: var(--blue-pro-light);
   --text-secondary: var(--highlight-blue-pro);
   --text-tertiary: var(--core-meteorite);
-  --border-color: var(--core-meteorite);
+  --border-color: #1a2a6c;
+  /* Sharper borders for better separation */
   --accent-color: var(--core-blue-pro);
   --accent-color-hover: var(--accent-hover-derived);
   --success-color: var(--core-green-free);
@@ -1467,6 +1469,8 @@
   --bg-tertiary: var(--midnight-bg-overlay);
   --chat-bubble-bg: var(--midnight-bg-cards);
   --chat-messages-bg: var(--midnight-bg-main);
+  --scrollbar-thumb: var(--midnight-bg-overlay);
+  --scrollbar-track: var(--midnight-bg-main);
   --text-primary: var(--midnight-text-primary);
   --text-secondary: var(--midnight-text-secondary);
   --border-color: var(--midnight-border);
@@ -1526,6 +1530,8 @@
   --bg-tertiary: var(--ayu-light-border);
   --chat-bubble-bg: var(--ayu-light-bg-alt);
   --chat-messages-bg: var(--ayu-light-bg);
+  --scrollbar-thumb: var(--ayu-light-border-hover);
+  --scrollbar-track: var(--ayu-light-bg-alt);
   --text-primary: var(--ayu-light-fg);
   --text-secondary: var(--ayu-light-fg-alt);
   --border-color: var(--ayu-light-border);
@@ -1584,6 +1590,8 @@
   --bg-tertiary: var(--ayu-mirage-border);
   --chat-bubble-bg: var(--ayu-mirage-bg-alt);
   --chat-messages-bg: var(--ayu-mirage-bg);
+  --scrollbar-thumb: var(--ayu-mirage-border-hover);
+  --scrollbar-track: var(--ayu-mirage-bg-alt);
   --text-primary: var(--ayu-mirage-fg);
   --text-secondary: var(--ayu-mirage-fg-alt);
   --border-color: var(--ayu-mirage-border);
@@ -1648,6 +1656,8 @@
   --bg-tertiary: var(--gh-dark-border);
   --chat-bubble-bg: var(--gh-dark-bg-alt);
   --chat-messages-bg: var(--gh-dark-bg);
+  --scrollbar-thumb: var(--gh-dark-btn-bg);
+  --scrollbar-track: var(--gh-dark-bg);
   --text-primary: var(--gh-dark-fg);
   --text-secondary: var(--gh-dark-fg-alt);
   --border-color: var(--gh-dark-border);
@@ -1712,6 +1722,8 @@
   --bg-tertiary: var(--gh-light-btn-hover-bg);
   --chat-bubble-bg: var(--gh-light-bg-alt);
   --chat-messages-bg: var(--gh-light-bg);
+  --scrollbar-thumb: var(--gh-light-border);
+  --scrollbar-track: var(--gh-light-bg-alt);
   --text-primary: var(--gh-light-fg);
   --text-secondary: var(--gh-light-fg-alt);
   --border-color: var(--gh-light-border);
@@ -2408,15 +2420,6 @@ button,
   transition:
     opacity var(--transition-fast),
     background var(--transition-fast);
-}
-
-button:hover:not(:disabled),
-.clickable:hover {
-  /* Scale removed as per user request */
-}
-
-button:active:not(:disabled) {
-  /* Scale removed as per user request */
 }
 
 input:focus,
