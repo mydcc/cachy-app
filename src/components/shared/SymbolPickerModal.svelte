@@ -44,19 +44,22 @@
     function handleGlobalKeydown(e: KeyboardEvent) {
         if (!isOpen) return;
 
-        // Skip if ESC or Enter
-        if (e.key === "Escape" || e.key === "Enter") return;
-
         const input = document.querySelector(
             ".symbol-picker-container input",
         ) as HTMLInputElement;
-        if (input && document.activeElement !== input) {
-            // Redirect printable characters and basic editing keys
+        if (!input) return;
+
+        // Redirect printable characters and basic search keys if not focused
+        if (document.activeElement !== input) {
+            // Check if it's a "printable" key or Backspace/Delete
             if (
                 e.key.length === 1 ||
                 e.key === "Backspace" ||
                 e.key === "Delete"
             ) {
+                // Ignore if CMD/CTRL/ALT is pressed
+                if (e.ctrlKey || e.metaKey || e.altKey) return;
+
                 input.focus();
             }
         }
@@ -92,7 +95,7 @@
     {isOpen}
     title="Symbol auswählen"
     on:close={handleClose}
-    extraClasses="modal-size-md"
+    extraClasses="modal-size-lg"
 >
     <div class="symbol-picker-container">
         <div
@@ -115,7 +118,7 @@
                     Keine Symbole gefunden.
                 </div>
             {:else}
-                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
                     {#each filteredSymbols as s}
                         {@const change = getChangePercent(s)}
                         <button
@@ -175,12 +178,26 @@
     .symbol-item {
         min-height: 4.5rem;
         box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        color: var(--text-primary);
     }
 
     .symbol-item:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         border-color: rgba(255, 255, 255, 0.2);
+        /* VIP Theme Support: Use the button accent text color on hover */
+        color: var(--btn-accent-text, white) !important;
+    }
+
+    /* Target badges specifically on hover for high contrast */
+    .symbol-item:hover .change-badge {
+        background-color: rgba(0, 0, 0, 0.1) !important;
+        color: inherit !important;
+    }
+
+    :global(.modal-size-lg) {
+        max-width: 850px !important;
+        width: 95% !important;
     }
 
     .search-container {
