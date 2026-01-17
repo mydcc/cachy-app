@@ -606,34 +606,51 @@
               {/if}
             </button>
 
-            {#if $settingsStore.sidePanelMode === "ai"}
-              <button
-                class="transition-colors hover:text-red-500 p-0.5"
-                class:text-green-700={isTerminal}
-                class:text-[var(--text-secondary)]={!isTerminal}
-                onclick={() => {
-                  if ($settingsStore.aiConfirmClear) {
-                    if (confirm("Clear chat history?")) aiStore.clearHistory();
-                  } else {
-                    aiStore.clearHistory();
+            <button
+              class="transition-colors hover:text-red-500 p-0.5"
+              class:text-green-700={isTerminal}
+              class:text-[var(--text-secondary)]={!isTerminal}
+              onclick={() => {
+                const mode = $settingsStore.sidePanelMode;
+                const confirmClear = $settingsStore.aiConfirmClear; // We reuse this setting for simplicity or add a general one
+
+                const clearFn = () => {
+                  if (mode === "ai") aiStore.clearHistory();
+                  else if (mode === "notes") notesStore.clearNotes();
+                  else chatStore.clearHistory();
+                };
+
+                if (confirmClear) {
+                  if (
+                    confirm(
+                      $_(
+                        mode === "notes"
+                          ? "notes.clearConfirm"
+                          : "chat.clearConfirm",
+                      ) || "Clear history?",
+                    )
+                  ) {
+                    clearFn();
                   }
-                }}
-                title="Clear History"
+                } else {
+                  clearFn();
+                }
+              }}
+              title="Clear History"
+            >
+              <!-- TRASH ICON -->
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                class="h-4 w-4"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                ><polyline points="3 6 5 6 21 6" /><path
+                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                /></svg
               >
-                <!-- TRASH ICON -->
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  ><polyline points="3 6 5 6 21 6" /><path
-                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                  /></svg
-                >
-              </button>
-            {/if}
+            </button>
             <button
               class="transition-colors p-0.5"
               class:text-green-500={isTerminal}
@@ -815,7 +832,8 @@
                 class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
               >
                 <div
-                  class="text-sm whitespace-pre-wrap text-white/90 font-medium"
+                  class="whitespace-pre-wrap text-white/90 font-medium"
+                  style="font-size: {$settingsStore.chatFontSize || 13}px"
                 >
                   {msg.text}
                 </div>
@@ -870,7 +888,11 @@
                         </span>
                       {/if}
                     </span>
-                    <span class="text-sm leading-tight">{msg.text}</span>
+                    <span
+                      class="leading-tight text-[var(--text-primary)]"
+                      style="font-size: {$settingsStore.chatFontSize || 13}px"
+                      >{msg.text}</span
+                    >
                     <span class="text-[9px] opacity-30 mt-1 font-mono">
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
@@ -890,31 +912,29 @@
           class:border-green-900={isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
-          {#if errorMessage || $aiStore.error}
+          <div class="flex justify-between items-center mb-1.5 px-1">
+            <span
+              class="text-[9px] font-bold opacity-30 uppercase tracking-tight"
+              >Verified Session</span
+            >
+            <span
+              class="text-[9px] font-bold text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-1.5 py-0.5 rounded shadow-sm border border-[var(--accent-color)]/20"
+              >Reputation: PF 0.30</span
+            >
+          </div>
+          {#if errorMessage}
             <div
               class="text-xs text-[var(--danger-color)] mb-2 animate-pulse px-2"
             >
               {$_(errorMessage) || errorMessage || $aiStore.error}
             </div>
           {/if}
-          <div class="flex justify-between items-center mb-1 px-1">
-            {#if $settingsStore.sidePanelMode === "chat"}
-              <span class="text-[9px] font-bold opacity-40 uppercase"
-                >Sending as Verified Trader</span
-              >
-              <span
-                class="text-[9px] font-bold text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-1 rounded"
-                >Your PF: {$chatStore.messages
-                  .find((m) => m.senderId === "me")
-                  ?.profitFactor?.toFixed(2) || "0.30"}</span
-              >
-            {/if}
-          </div>
           <div class="relative w-full">
             <input
               bind:this={inputEl}
               type="text"
-              class="w-full border rounded px-4 py-2 text-sm focus:outline-none transition-all"
+              class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
+              style="font-size: {$settingsStore.chatFontSize || 13}px"
               class:bg-black={isTerminal}
               class:text-green-500={isTerminal}
               class:border-green-800={isTerminal}
