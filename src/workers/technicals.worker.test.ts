@@ -28,21 +28,21 @@ describe('technicals.worker', () => {
     describe('calculateAllIndicators', () => {
         const mockKlines = Array(200).fill(0).map((_, i) => ({
             time: 1000 + i,
-            open: 100 + i,
-            high: 105 + i,
-            low: 95 + i,
-            close: 102 + i,
-            volume: 1000
+            open: new Decimal(100 + i),
+            high: new Decimal(105 + i),
+            low: new Decimal(95 + i),
+            close: new Decimal(102 + i),
+            volume: new Decimal(1000)
         }));
 
         it('should return all indicators populated', () => {
-            const result = calculateAllIndicators({
-                klines: mockKlines,
-                settings: {
+            const result = calculateAllIndicators(
+                mockKlines,
+                {
                     rsi: { length: 14 },
                     ema: { ema1: { length: 9 }, ema2: { length: 21 }, ema3: { length: 50 } }
-                }
-            });
+                } as any
+            );
 
             expect(result.oscillators).toBeDefined();
             expect(result.movingAverages).toBeDefined();
@@ -57,10 +57,10 @@ describe('technicals.worker', () => {
 
         it('should handle incomplete data gracefully', () => {
             const shortKlines = mockKlines.slice(0, 5); // Too short for EMA 9
-            const result = calculateAllIndicators({
-                klines: shortKlines,
-                settings: { ema: { ema1: { length: 9 } } }
-            });
+            const result = calculateAllIndicators(
+                shortKlines,
+                { ema: { ema1: { length: 9 } } } as any
+            );
 
             // Should not crash, just empty or partial results
             expect(result.movingAverages.length).toBe(0);

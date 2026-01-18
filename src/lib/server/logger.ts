@@ -111,9 +111,6 @@ class ServerLogger extends EventEmitter {
 
     // Emit event for SSE streams
     this.emit("log", entry);
-
-    // Auch auf dem Server-Terminal ausgeben (optional, aber nützlich)
-    // console.log(`[SERVER-LOG][${level.toUpperCase()}] ${message}`, data ? JSON.stringify(entry.data) : '');
   }
 
   public info(message: string, data?: any) {

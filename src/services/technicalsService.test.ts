@@ -67,8 +67,6 @@ function generateKlines(count: number) {
 describe("technicalsService", () => {
   it("should calculate new oscillators correctly", async () => {
     const klines = generateKlines(250);
-    // Force talibReady true to use JS fallbacks in test environment
-    technicalsService.setTalibReady(true);
     const result = await technicalsService.calculateTechnicals(klines);
 
     expect(result).toBeDefined();
@@ -102,9 +100,6 @@ describe("technicalsService", () => {
       ao: { fastLength: 2, slowLength: 5 },
       momentum: { length: 5, source: "close" },
     };
-
-    // Force talibReady true to use JS fallbacks in test environment
-    technicalsService.setTalibReady(true);
 
     const result = await technicalsService.calculateTechnicals(
       klines,

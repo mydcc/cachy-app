@@ -26,6 +26,7 @@
   import { onboardingService } from "../../services/onboardingService";
   import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
   import { settingsStore } from "../../stores/settingsStore";
+  import { uiStore } from "../../stores/uiStore";
   import { modalManager } from "../../services/modalManager";
   import { app } from "../../services/app";
 
@@ -250,7 +251,7 @@
         showSmiley = false;
       }, 1000);
     } catch (err) {
-      console.error("Failed to copy:", err);
+      uiStore.showError("Failed to copy to clipboard");
     }
   }
 </script>
