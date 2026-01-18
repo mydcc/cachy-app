@@ -90,9 +90,9 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json({ data: allOrders, isPartial });
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Log only the message to prevent leaking sensitive data (e.g. headers/keys in error objects)
-    const rawMsg = e.message || "Unknown error";
+    const rawMsg = e instanceof Error ? e.message : String(e);
     console.error(
       `Error fetching orders from Bitunix:`,
       rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***")
@@ -139,8 +139,8 @@ async function fetchAllPages(
 
     const timeField =
       lastItem.ctime ||
-      (lastItem as any).createTime ||
-      (lastItem as any).updateTime;
+      lastItem.createTime ||
+      lastItem.updateTime;
 
     if (timeField !== undefined && timeField !== null) {
       const parsedTime = Number(timeField);

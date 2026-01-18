@@ -33,7 +33,9 @@ export interface BitunixOrder {
   tradeQty?: string; // Filled qty
   status?: string; // NEW, FILLED, CANCELED
   ctime?: number; // Create time
+  createTime?: number; // Alias often found in Plan orders
   mtime?: number; // Modify time
+  updateTime?: number; // Alias often found in Plan orders
   leverage?: string;
   marginMode?: string;
   positionMode?: string;

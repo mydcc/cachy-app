@@ -73,7 +73,6 @@ class TechnicalsWorkerManager {
 
   private checkIdle() {
     if (this.worker && this.pendingResolves.size === 0 && Date.now() - this.lastActive > this.IDLE_TIMEOUT) {
-      // console.log("Terminating Idle Worker");
       this.terminate();
     }
   }
