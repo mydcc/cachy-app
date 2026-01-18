@@ -25,9 +25,9 @@
   let statusColor = $derived(
     wsStatus === "connected"
       ? "var(--success-color)"
-      : wsStatus === "connecting" || wsStatus === "reconnecting"
+      : wsStatus === "connecting"
         ? "var(--warning-color)"
-        : "var(--danger-color)",
+        : "var(--danger-color)", // error, reconnecting, disconnected -> Red
   );
 
   // Detailed status text for tooltip
@@ -36,8 +36,8 @@
       ? "✓ Connected"
       : wsStatus === "connecting"
         ? "⟳ Connecting..."
-        : wsStatus === "reconnecting"
-          ? "⟳ Reconnecting..."
+        : wsStatus === "reconnecting" || wsStatus === "error"
+          ? "✗ Connection Error / Retrying..."
           : "✗ Disconnected",
   );
 

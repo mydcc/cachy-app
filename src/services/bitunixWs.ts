@@ -74,7 +74,7 @@ class BitunixWebSocketService {
 
   private connectionTimeoutPublic: any = null;
   private connectionTimeoutPrivate: any = null;
-  private readonly CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
+  private readonly CONNECTION_TIMEOUT_MS = 3500; // 3.5 seconds - Be aggressive to show Red faster
 
   private isDestroyed = false;
 
@@ -115,7 +115,7 @@ class BitunixWebSocketService {
     }
 
     // 2. UI Status Logic (Combined)
-    // Global override: If browser says we are offline, show disconnected (red)
+    // Always check browser online status first
     if (typeof navigator !== "undefined" && !navigator.onLine) {
       wsStatusStore.set("disconnected");
       return;
@@ -127,20 +127,28 @@ class BitunixWebSocketService {
     const pubReady = pubState === WsState.CONNECTED || pubState === WsState.AUTHENTICATED;
     const privReady = hasKeys ? (privState === WsState.AUTHENTICATED) : true;
 
+    // GREEN: Everything is fine
     if (pubReady && privReady) {
       wsStatusStore.set("connected");
       return;
     }
 
-    // "Connecting" (Yellow) is only for ACTIVE work phases.
-    // "Reconnecting" (Waiting for timer after fail) is Disconnected for the user.
-    const isActiveWork = (s: WsState) =>
+    // YELLOW: Active work in progress (Connecting or Authenticating)
+    const isActivelyWorking = (s: WsState) =>
       s === WsState.CONNECTING ||
       s === WsState.AUTHENTICATING;
 
-    if (isActiveWork(pubState) || (hasKeys && isActiveWork(privState))) {
+    if (isActivelyWorking(pubState) || (hasKeys && isActivelyWorking(privState))) {
       wsStatusStore.set("connecting");
-    } else if (pubState === WsState.ERROR || privState === WsState.ERROR || pubState === WsState.RECONNECTING || privState === WsState.RECONNECTING) {
+      return;
+    }
+
+    // RED: Passive failure or waiting for retry
+    const isWaitingOrError = (s: WsState) =>
+      s === WsState.RECONNECTING ||
+      s === WsState.ERROR;
+
+    if (isWaitingOrError(pubState) || (hasKeys && isWaitingOrError(privState))) {
       wsStatusStore.set("error");
     } else {
       wsStatusStore.set("disconnected");
