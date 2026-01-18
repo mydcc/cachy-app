@@ -115,37 +115,27 @@ class BitunixWebSocketService {
     }
 
     // 2. UI Status Logic (Combined)
-    // Priority: RECONNECTING > CONNECTING/AUTHENTICATING > ERROR > CONNECTED
-
-    // If any is reconnecting, show reconnecting
-    if (pubState === WsState.RECONNECTING || privState === WsState.RECONNECTING) {
-      wsStatusStore.set("reconnecting");
-      return;
-    }
-
-    // If any is connecting/authenticating, show connecting
-    if (
-      pubState === WsState.CONNECTING ||
-      privState === WsState.CONNECTING ||
-      privState === WsState.AUTHENTICATING
-    ) {
-      wsStatusStore.set("connecting");
-      return;
-    }
-
-    // Only set connected if BOTH are in a "ready" state
-    // Public is ready if CONNECTED or AUTHENTICATED
-    // Private is ready ONLY if AUTHENTICATED (because we need auth for orders)
-
-    // Check if API keys are even configured
     const settings = get(settingsStore);
     const hasKeys = !!(settings.apiKeys?.bitunix?.key && settings.apiKeys?.bitunix?.secret);
+
+    // console.debug(`[BitunixWS] Status Sync - Public: ${pubState}, Private: ${privState}, HasKeys: ${hasKeys}`);
 
     const pubReady = pubState === WsState.CONNECTED || pubState === WsState.AUTHENTICATED;
     const privReady = hasKeys ? (privState === WsState.AUTHENTICATED) : true;
 
     if (pubReady && privReady) {
       wsStatusStore.set("connected");
+      return;
+    }
+
+    // Determine if we should show "connecting" (Yellow)
+    const isTransitional = (s: WsState) =>
+      s === WsState.CONNECTING ||
+      s === WsState.AUTHENTICATING ||
+      s === WsState.RECONNECTING;
+
+    if (isTransitional(pubState) || (hasKeys && isTransitional(privState))) {
+      wsStatusStore.set("reconnecting"); // This shows as yellow in the UI
     } else if (pubState === WsState.ERROR || privState === WsState.ERROR) {
       wsStatusStore.set("error");
     } else {

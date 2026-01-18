@@ -53,6 +53,7 @@ export class WSStateMachine {
                 [WsEvent.ERROR]: WsState.RECONNECTING, // Fail to connect -> Retry
                 [WsEvent.CLOSE]: WsState.RECONNECTING,
                 [WsEvent.STOP]: WsState.DISCONNECTED,
+                [WsEvent.START]: WsState.CONNECTING, // Allow redundant starts
             },
             [WsState.CONNECTED]: {
                 [WsEvent.LOGIN_REQ]: WsState.AUTHENTICATING,
@@ -110,7 +111,9 @@ export class WSStateMachine {
                 this.onStateChange(toState, fromState);
             }
         } else {
-            // console.warn(`[WS-FSM] Invalid Transition: ${fromState} -> ??? (Event: ${event})`);
+            if (event !== WsEvent.START || fromState !== WsState.CONNECTING) {
+                console.debug(`[WS-FSM] Invalid Transition: ${fromState} -> ??? (Event: ${event})`);
+            }
         }
         return toState;
     }
