@@ -115,10 +115,14 @@ class BitunixWebSocketService {
     }
 
     // 2. UI Status Logic (Combined)
+    // Global override: If browser says we are offline, show disconnected (red)
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      wsStatusStore.set("disconnected");
+      return;
+    }
+
     const settings = get(settingsStore);
     const hasKeys = !!(settings.apiKeys?.bitunix?.key && settings.apiKeys?.bitunix?.secret);
-
-    // console.debug(`[BitunixWS] Status Sync - Public: ${pubState}, Private: ${privState}, HasKeys: ${hasKeys}`);
 
     const pubReady = pubState === WsState.CONNECTED || pubState === WsState.AUTHENTICATED;
     const privReady = hasKeys ? (privState === WsState.AUTHENTICATED) : true;
@@ -128,15 +132,15 @@ class BitunixWebSocketService {
       return;
     }
 
-    // Determine if we should show "connecting" (Yellow)
-    const isTransitional = (s: WsState) =>
+    // "Connecting" (Yellow) is only for ACTIVE work phases.
+    // "Reconnecting" (Waiting for timer after fail) is Disconnected for the user.
+    const isActiveWork = (s: WsState) =>
       s === WsState.CONNECTING ||
-      s === WsState.AUTHENTICATING ||
-      s === WsState.RECONNECTING;
+      s === WsState.AUTHENTICATING;
 
-    if (isTransitional(pubState) || (hasKeys && isTransitional(privState))) {
-      wsStatusStore.set("reconnecting"); // This shows as yellow in the UI
-    } else if (pubState === WsState.ERROR || privState === WsState.ERROR) {
+    if (isActiveWork(pubState) || (hasKeys && isActiveWork(privState))) {
+      wsStatusStore.set("connecting");
+    } else if (pubState === WsState.ERROR || privState === WsState.ERROR || pubState === WsState.RECONNECTING || privState === WsState.RECONNECTING) {
       wsStatusStore.set("error");
     } else {
       wsStatusStore.set("disconnected");
