@@ -17,9 +17,9 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
-import { encrypt, decrypt } from "./cryptoService";
+import { encrypt, decrypt, decryptLegacy } from "./cryptoService";
 
-const BACKUP_VERSION = 2; // Incrementing version for encryption support
+const BACKUP_VERSION = 3; // Version 3: Strong PBKDF2 Encryption
 const APP_NAME = "R-Calculator";
 
 // The structure for the data payload in the backup
@@ -151,20 +151,31 @@ export async function restoreFromBackup(
         };
       }
 
-      if (!backup.encryptedData || !backup.salt || !backup.iv) {
-        return {
-          success: false,
-          message: "Invalid encrypted backup file format.",
-        };
-      }
-
       try {
-        const decryptedJson = await decrypt(
-          backup.encryptedData,
-          password,
-          backup.salt,
-          backup.iv,
-        );
+        let decryptedJson: string;
+
+        // Legacy Support for Version 2 (and 1 if encrypted)
+        if (backup.backupVersion < 3) {
+          decryptedJson = await decryptLegacy(
+            backup.encryptedData || "",
+            password,
+          );
+        } else {
+          // Version 3+ (Strong Encryption)
+          if (!backup.encryptedData || !backup.salt || !backup.iv) {
+            return {
+              success: false,
+              message: "Invalid encrypted backup file format (Missing Salt/IV).",
+            };
+          }
+          decryptedJson = await decrypt(
+            backup.encryptedData,
+            password,
+            backup.salt,
+            backup.iv,
+          );
+        }
+
         data = JSON.parse(decryptedJson);
       } catch (e) {
         return {
