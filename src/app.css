@@ -10,6 +10,7 @@
   font-style: normal;
   font-weight: 400;
   src: url("/fonts/Inter_18pt-Regular.ttf") format("truetype");
+  font-display: swap;
 }
 
 @font-face {
@@ -17,6 +18,7 @@
   font-style: normal;
   font-weight: 500;
   src: url("/fonts/Inter_18pt-Medium.ttf") format("truetype");
+  font-display: swap;
 }
 
 @font-face {
@@ -24,6 +26,7 @@
   font-style: normal;
   font-weight: 600;
   src: url("/fonts/Inter_18pt-SemiBold.ttf") format("truetype");
+  font-display: swap;
 }
 
 @font-face {
@@ -31,6 +34,40 @@
   font-style: normal;
   font-weight: 700;
   src: url("/fonts/Inter_18pt-Bold.ttf") format("truetype");
+  font-display: swap;
+}
+
+/* Variable Fonts */
+@font-face {
+  font-family: "IBM Plex Sans";
+  src: url("/fonts/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "JetBrains Mono";
+  src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Roboto Mono";
+  src: url("/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: "Source Sans 3";
+  src: url("/fonts/Source_Sans_3/SourceSans3-VariableFont_wght.ttf") format("truetype");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
 }
 
 /* =================================================================
@@ -1767,7 +1804,7 @@ html {
 }
 
 body {
-  font-family: "Inter", sans-serif;
+  font-family: var(--app-font-family, "Inter"), sans-serif;
   background: transparent;
   /* Background is on html */
   color: var(--text-primary);

@@ -126,6 +126,7 @@
   let currentLanguage: string = $state("en");
   let forceEnglishTechnicalTerms: boolean = $state(false);
   let aiConfirmClear: boolean = $state(true);
+  let fontFamily: string = $state("Inter");
 
   // Track active tab
   let activeTab:
@@ -253,6 +254,7 @@
         currentLanguage = $locale || "en";
         forceEnglishTechnicalTerms = $settingsStore.forceEnglishTechnicalTerms;
         aiConfirmClear = $settingsStore.aiConfirmClear ?? true;
+        fontFamily = $settingsStore.fontFamily || "Inter";
 
         isInitialized = true;
       }
@@ -301,6 +303,7 @@
         debugMode, // Added
         enableGlassmorphism,
         aiConfirmClear,
+        fontFamily,
         apiKeys: {
           bitunix: bitunixKeys,
           binance: binanceKeys,
@@ -565,6 +568,7 @@
           bind:currentTheme
           bind:feePreference
           bind:forceEnglishTechnicalTerms
+          bind:fontFamily
           {isPro}
           {themes}
         />

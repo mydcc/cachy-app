@@ -164,6 +164,16 @@
       }
     }
   });
+
+  // Update Font Family
+  $effect(() => {
+    if (typeof document !== "undefined") {
+      document.documentElement.style.setProperty(
+        "--app-font-family",
+        $settingsStore.fontFamily,
+      );
+    }
+  });
 </script>
 
 <svelte:head>

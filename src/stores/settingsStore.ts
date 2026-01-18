@@ -106,6 +106,7 @@ export interface Settings {
   chatFontSize: number;
   panelIsExpanded: boolean;
   minChatProfitFactor: number;
+  fontFamily: string;
 }
 
 const defaultSettings: Settings = {
@@ -170,6 +171,7 @@ const defaultSettings: Settings = {
   maxPrivateNotes: 50,
   aiConfirmClear: true,
   minChatProfitFactor: 0.0,
+  fontFamily: "Inter",
 };
 
 function loadSettingsFromLocalStorage(): Settings {
@@ -296,6 +298,7 @@ function loadSettingsFromLocalStorage(): Settings {
       aiConfirmClear: settings.aiConfirmClear ?? defaultSettings.aiConfirmClear,
       minChatProfitFactor:
         settings.minChatProfitFactor ?? defaultSettings.minChatProfitFactor,
+      fontFamily: settings.fontFamily ?? defaultSettings.fontFamily,
     };
 
     return cleanSettings;

@@ -25,6 +25,7 @@
     forceEnglishTechnicalTerms: boolean;
     isPro: boolean;
     themes: Array<{ value: string; label: string }>;
+    fontFamily: string;
   }
 
   let {
@@ -33,8 +34,17 @@
     feePreference = $bindable(),
     forceEnglishTechnicalTerms = $bindable(),
     isPro,
-    themes
+    themes,
+    fontFamily = $bindable(),
   }: Props = $props();
+
+  const fonts = [
+    { value: "Inter", label: "Inter" },
+    { value: "IBM Plex Sans", label: "IBM Plex Sans" },
+    { value: "JetBrains Mono", label: "JetBrains Mono" },
+    { value: "Roboto Mono", label: "Roboto Mono" },
+    { value: "Source Sans 3", label: "Source Sans 3" },
+  ];
 </script>
 
 <div
@@ -80,9 +90,26 @@
         {/each}
       </select>
     </div>
+    <div class="flex flex-col gap-1">
+      <label
+        for="settings-font"
+        class="text-xs font-medium text-[var(--text-secondary)]"
+        >Schriftart</label
+      >
+      <select
+        id="settings-font"
+        name="fontFamily"
+        bind:value={fontFamily}
+        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+      >
+        {#each fonts as font}
+          <option value={font.value}>{font.label}</option>
+        {/each}
+      </select>
+    </div>
   </div>
 
-  {#if currentLanguage === 'de'}
+  {#if currentLanguage === "de"}
     <label class="flex items-center gap-2 cursor-pointer mt-1">
       <input
         type="checkbox"
