@@ -899,14 +899,15 @@
     href="https://github.com/mydcc/cachy-app"
     target="_blank"
     rel="noopener noreferrer"
-    class="text-link"
+    class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
+    title="GitHub"
     use:trackClick={{
       category: "Navigation",
       action: "Click",
       name: "GitHub",
     }}
   >
-    GitHub
+    {@html icons.github}
   </a>
   <button
     class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}"
