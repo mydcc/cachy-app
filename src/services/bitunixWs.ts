@@ -64,6 +64,9 @@ class BitunixWebSocketService {
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
 
+  private publicRetryCount = 0;
+  private privateRetryCount = 0;
+
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
 
@@ -94,6 +97,7 @@ class BitunixWebSocketService {
 
   destroy() {
     this.isDestroyed = true;
+    wsStatusStore.set("disconnected");
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.handleOnline);
       window.removeEventListener("offline", this.handleOffline);
@@ -162,6 +166,7 @@ class BitunixWebSocketService {
 
       wsStatusStore.set("connected");
       this.isReconnectingPublic = false;
+      this.publicRetryCount = 0;
 
       this.startHeartbeat(ws, "public");
       // Initialize watchdog immediately on connection
@@ -261,6 +266,7 @@ class BitunixWebSocketService {
       if (this.wsPrivate !== ws) return;
 
       this.isReconnectingPrivate = false;
+      this.privateRetryCount = 0;
       this.startHeartbeat(ws, "private");
       this.resetWatchdog("private", ws);
       this.login(apiKey, apiSecret);
@@ -307,18 +313,27 @@ class BitunixWebSocketService {
       this.isReconnectingPublic = true;
       wsStatusStore.set("disconnected");
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
+
+      // Exponential backoff: 1s, 2s, 4s, 8s, 16s, 30s (max)
+      const delay = Math.min(1000 * Math.pow(2, this.publicRetryCount), 30000);
+      this.publicRetryCount++;
+
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
         if (!this.isDestroyed) this.connectPublic();
-      }, RECONNECT_DELAY);
+      }, delay);
     } else {
       if (this.isReconnectingPrivate) return;
       this.isReconnectingPrivate = true;
       if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
+
+      const delay = Math.min(1000 * Math.pow(2, this.privateRetryCount), 30000);
+      this.privateRetryCount++;
+
       this.reconnectTimerPrivate = setTimeout(() => {
         this.isReconnectingPrivate = false;
         if (!this.isDestroyed) this.connectPrivate();
-      }, RECONNECT_DELAY);
+      }, delay);
     }
   }
 
