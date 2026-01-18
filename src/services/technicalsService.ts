@@ -17,7 +17,6 @@
 
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import talibWasmUrl from "talib-web/lib/talib.wasm?url";
 import type { IndicatorSettings } from "../stores/indicatorStore";
 import type { TechnicalsData, IndicatorResult } from "./technicalsTypes";
 import {
@@ -31,28 +30,6 @@ import {
 export { JSIndicators };
 export type { Kline, TechnicalsData, IndicatorResult };
 
-// Initialize talib-web WASM module
-let talibReady = false;
-// Explicitly point to the WASM file using Vite asset URL
-const wasmPath = browser ? talibWasmUrl : undefined;
-
-let talibInit: Promise<void> | undefined;
-
-if (browser && wasmPath) {
-  talibInit = import("talib-web")
-    .then((module) => module.default)
-    .then((talib) => talib.init(wasmPath))
-    .then(() => {
-      talibReady = true;
-    })
-    .catch((err) => {
-      console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
-    });
-} else {
-  // SSR or no WASM path
-  talibInit = Promise.resolve();
-}
-
 // Cache for indicator calculations
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
 const MAX_CACHE_SIZE = 20;
@@ -63,10 +40,6 @@ interface TechnicalsResultCacheEntry {
 }
 
 export const technicalsService = {
-  // Test helper to bypass WASM initialization
-  setTalibReady(ready: boolean) {
-    talibReady = ready;
-  },
 
   async calculateTechnicals(
     klinesInput: {
