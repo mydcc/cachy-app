@@ -839,13 +839,13 @@
                 class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
               >
                 <div
-                  class="whitespace-pre-wrap text-white/90 font-medium"
+                  class="whitespace-pre-wrap text-[var(--text-primary)] font-medium"
                   style="font-size: {$settingsStore.chatFontSize || 13}px"
                 >
                   {msg.text}
                 </div>
                 <div
-                  class="text-[10px] text-[var(--text-tertiary)] mt-2 text-right opacity-60"
+                  class="text-[10px] text-[var(--text-secondary)] mt-2 text-right"
                 >
                   {new Date(msg.timestamp).toLocaleString()}
                 </div>
