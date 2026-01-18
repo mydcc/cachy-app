@@ -273,28 +273,32 @@ export const technicalsService = {
           const { type, payload, error } = e.data;
           if (type === "RESULT") {
             worker.terminate();
-            // Rehydrate Decimals from strings if needed
-            // payload.pivots... are strings from worker to avoid messaging issues
-            // We trust the worker result for now or map it back.
-            // The View expects Decimals.
-            const rehydrate = (obj: any): any => {
-              // Deep map strings to Decimals if they look like numbers? 
-              // Or just manually map known fields.
-              // For safety, let's keep the service return type consistent.
-              // TODO: Robust rehydration.
-              // For now, let's return payload and cast, ensuring View handles strings or Decimals loosely 
-              // or we map it here.
-
-              // Quick map for critical fields:
+            // Rehydrate Decimals from strings
+            try {
               if (payload.oscillators) {
                 payload.oscillators.forEach((o: any) => {
-                  o.value = new Decimal(o.value);
-                  if (o.signal) o.signal = new Decimal(o.signal);
+                  o.value = new Decimal(o.value || 0);
                 });
               }
-              // ... other fields
-            };
-            rehydrate(payload);
+              if (payload.movingAverages) {
+                payload.movingAverages.forEach((m: any) => {
+                  m.value = new Decimal(m.value || 0);
+                });
+              }
+              if (payload.pivots && payload.pivots.classic) {
+                Object.keys(payload.pivots.classic).forEach((key) => {
+                  payload.pivots.classic[key] = new Decimal(payload.pivots.classic[key] || 0);
+                });
+              }
+              if (payload.pivotBasis) {
+                payload.pivotBasis.high = new Decimal(payload.pivotBasis.high || 0);
+                payload.pivotBasis.low = new Decimal(payload.pivotBasis.low || 0);
+                payload.pivotBasis.close = new Decimal(payload.pivotBasis.close || 0);
+                payload.pivotBasis.open = new Decimal(payload.pivotBasis.open || 0);
+              }
+            } catch (rehydrateError) {
+              console.error("Rehydration error:", rehydrateError);
+            }
 
             calculationCache.set(cacheKey, { data: payload, timestamp: Date.now() });
             resolve(payload);
