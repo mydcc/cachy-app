@@ -33,8 +33,8 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 5000; // 5 seconds
-const WATCHDOG_TIMEOUT = 10000; // 10 seconds
+const PING_INTERVAL = 3000; // 3 seconds (was 5)
+const WATCHDOG_TIMEOUT = 5000; // 5 seconds (was 10)
 const RECONNECT_DELAY = 1000; // 1 second
 
 interface Subscription {
@@ -54,7 +54,7 @@ class BitunixWebSocketService {
 
   private lastWatchdogResetPublic = 0;
   private lastWatchdogResetPrivate = 0;
-  private readonly WATCHDOG_THROTTLE_MS = 2000; // Reset watchdog max every 2 seconds
+  private readonly WATCHDOG_THROTTLE_MS = 500; // Reset watchdog max every 0.5 seconds (was 2s)
 
   public publicSubscriptions: Set<string> = new Set();
 
@@ -177,8 +177,8 @@ class BitunixWebSocketService {
       try {
         // Reset watchdog on ANY activity (throttled to avoid excessive timers)
         const now = Date.now();
-        if (now - this.lastWatchdogResetPublic > 5000) {
-          // Throttle to 5s
+        if (now - this.lastWatchdogResetPublic > 500) {
+          // Throttle to 500ms (was 5s)
           this.resetWatchdog("public", ws);
           this.lastWatchdogResetPublic = now;
         }
