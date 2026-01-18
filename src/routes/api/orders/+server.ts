@@ -11,14 +11,18 @@ import type {
   NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
-import { Decimal } from "decimal.js";
+import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
-  let body: any;
+  let body: Record<string, any>;
   try {
     body = await request.json();
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
+  }
+
+  if (!body || typeof body !== "object") {
+    return json({ error: "Invalid body format" }, { status: 400 });
   }
 
   const { exchange, apiKey, apiSecret, type } = body;
@@ -102,7 +106,8 @@ export const POST: RequestHandler = async ({ request }) => {
         const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret);
         result = { orders };
       } else if (type === "place-order") {
-        result = await placeBitunixOrder(apiKey, apiSecret, body);
+        const orderPayload = body as BitunixOrderPayload;
+        result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
         // Double check amount before creating close order
         const amount = parseFloat(body.amount);
@@ -111,7 +116,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // To close a position, we place a MARKET order in the opposite direction
-        const closeOrder = {
+        const closeOrder: BitunixOrderPayload = {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
           type: "MARKET",
@@ -151,24 +156,12 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
-  // Helper to format numbers avoiding scientific notation
-  const formatNum = (val: string | number | undefined): string | undefined => {
-    if (val === undefined || val === null) return undefined;
-    try {
-      // Use Decimal to ensure we get a full string representation (no 1e-7)
-      // toFixed(20) ensures high precision, then we strip trailing zeros
-      return new Decimal(val).toFixed(20).replace(/\.?0+$/, "");
-    } catch (e) {
-      return String(val);
-    }
-  };
-
   // Construct Payload
   const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: formatNum(orderData.qty)!,
+    qty: formatApiNum(orderData.qty)!,
     reduceOnly: orderData.reduceOnly || false,
   };
 
@@ -179,16 +172,16 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = formatNum(orderData.price);
+    payload.price = formatApiNum(orderData.price);
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = formatNum(orderData.triggerPrice);
+    payload.triggerPrice = formatApiNum(orderData.triggerPrice);
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = formatNum(orderData.stopPrice);
+    payload.triggerPrice = formatApiNum(orderData.stopPrice);
   }
 
   // Clean null/undefined

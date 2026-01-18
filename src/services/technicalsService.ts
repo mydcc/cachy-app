@@ -184,7 +184,6 @@ if (browser && wasmPath) {
     .init(wasmPath)
     .then(() => {
       talibReady = true;
-      console.log(`talib-web initialized successfully from ${wasmPath}`);
     })
     .catch((err) => {
       console.error(`Failed to initialize talib-web form ${wasmPath}:`, err);
@@ -235,8 +234,6 @@ export const technicalsService = {
 
     // Ensure talib is initialized (though we use JS fallbacks for most)
     if (!talibReady) {
-      console.log("Waiting for talib-web initialization...");
-
       try {
         await talibInit;
         if (!talibReady) {

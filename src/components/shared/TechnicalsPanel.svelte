@@ -108,22 +108,11 @@
 
   async function updateTechnicals() {
     if (!klinesHistory.length) return;
-    const startTime = Date.now();
     try {
-      if ($settingsStore.debugMode) {
-        console.log(
-          `[Technicals] Calculating for ${symbol}:${timeframe} (${klinesHistory.length} klines)`,
-        );
-      }
       data = await technicalsService.calculateTechnicals(
         klinesHistory,
         indicatorSettings,
       );
-      if ($settingsStore.debugMode) {
-        console.log(
-          `[Technicals] Calculation complete in ${Date.now() - startTime}ms`,
-        );
-      }
     } catch (e) {
       console.error("[Technicals] Calculation error:", e);
     }
@@ -306,26 +295,7 @@
 
     untrack(() => {
       if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
-        if ($settingsStore.debugMode) {
-          console.log(
-            `[Technicals] Real-time kline update for ${symbol}:${timeframe}`,
-            currentKline,
-          );
-        }
         handleRealTimeUpdate(currentKline);
-      } else if (
-        $settingsStore.debugMode &&
-        showPanel &&
-        !isStale &&
-        !currentKline
-      ) {
-        // Only log if we expect data but have none
-        console.log(
-          `[Technicals] Waiting for kline data in store for ${normalizeSymbol(
-            symbol,
-            "bitunix",
-          )}:${timeframe}`,
-        );
       }
     });
   });

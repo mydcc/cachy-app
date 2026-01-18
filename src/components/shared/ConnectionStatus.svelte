@@ -31,12 +31,10 @@
   onMount(() => {
     handleOnline = () => {
       // Browser is back online - connection will auto-reconnect
-      console.log("[ConnectionStatus] Browser online");
     };
 
     handleOffline = () => {
       // Browser went offline - immediately show disconnected
-      console.log("[ConnectionStatus] Browser offline");
       wsStatusStore.set("disconnected");
     };
 
