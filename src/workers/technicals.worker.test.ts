@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { calculateAllIndicators } from './technicals.worker';
+import { calculateAllIndicators } from '../utils/technicalsCalculator';
 import { JSIndicators } from '../utils/indicators';
 import { Decimal } from 'decimal.js';
 

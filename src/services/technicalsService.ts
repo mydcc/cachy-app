@@ -19,15 +19,10 @@ import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import type { IndicatorSettings } from "../stores/indicatorStore";
 import type { TechnicalsData, IndicatorResult } from "./technicalsTypes";
-import {
-  JSIndicators,
-  calculateAwesomeOscillator,
-  calculatePivots,
-  getRsiAction,
-  type Kline
-} from "../utils/indicators";
+import { type Kline } from "../utils/indicators";
+import { calculateAllIndicators, getEmptyData } from "../utils/technicalsCalculator";
 
-export { JSIndicators };
+export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
 // Cache for indicator calculations
@@ -38,6 +33,152 @@ interface TechnicalsResultCacheEntry {
   data: TechnicalsData;
   timestamp: number;
 }
+
+// --- Worker Manager (Singleton) ---
+class TechnicalsWorkerManager {
+  private worker: Worker | null = null;
+  private pendingResolves: Map<string, (value: any) => void> = new Map();
+  private pendingRejects: Map<string, (reason?: any) => void> = new Map();
+  private checkInterval: any = null;
+  private lastActive: number = Date.now();
+  private readonly IDLE_TIMEOUT = 60000; // 1 min
+
+  getWorker(): Worker | null {
+    if (!browser) return null;
+
+    // Revive if missing
+    if (!this.worker) {
+      this.initWorker();
+    }
+    return this.worker;
+  }
+
+  private initWorker() {
+    if (!browser || typeof Worker === 'undefined') return;
+
+    try {
+      this.worker = new Worker(new URL('../workers/technicals.worker.ts', import.meta.url), { type: 'module' });
+      this.worker.onmessage = this.handleMessage.bind(this);
+      this.worker.onerror = this.handleError.bind(this);
+      this.lastActive = Date.now();
+
+      // Watchdog
+      if (!this.checkInterval) {
+        this.checkInterval = setInterval(() => this.checkIdle(), 10000);
+      }
+    } catch (e) {
+      console.error("Failed to init Technicals Worker", e);
+    }
+  }
+
+  private checkIdle() {
+    if (this.worker && this.pendingResolves.size === 0 && Date.now() - this.lastActive > this.IDLE_TIMEOUT) {
+      // console.log("Terminating Idle Worker");
+      this.terminate();
+    }
+  }
+
+  private terminate() {
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+    this.pendingResolves.clear();
+    this.pendingRejects.clear();
+    if (this.checkInterval) {
+      clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+  }
+
+  private handleMessage(e: MessageEvent) {
+    this.lastActive = Date.now();
+    const { type, payload, error, id } = e.data;
+    if (id && this.pendingResolves.has(id)) {
+      if (type === "RESULT") {
+        this.pendingResolves.get(id)!(payload);
+      } else {
+        const reject = this.pendingRejects.get(id);
+        if (reject) reject(error);
+      }
+      this.pendingResolves.delete(id);
+      this.pendingRejects.delete(id);
+    }
+  }
+
+  private handleError(e: ErrorEvent) {
+    console.error("Worker Error details:", e);
+    // Reject all pending
+    this.pendingRejects.forEach(reject => reject(e.message));
+    this.pendingResolves.clear();
+    this.pendingRejects.clear();
+    // Restart worker next time
+    this.terminate();
+  }
+
+  public async calculate(payload: any): Promise<TechnicalsData> {
+    const worker = this.getWorker();
+    if (!worker) {
+      throw new Error("Worker not available");
+    }
+
+    const id = Date.now().toString() + Math.random().toString();
+
+    return new Promise((resolve, reject) => {
+      // 3s Timeout
+      const timeout = setTimeout(() => {
+        if (this.pendingResolves.has(id)) {
+          this.pendingResolves.delete(id);
+          this.pendingRejects.delete(id);
+          reject(new Error("Worker Timeout"));
+          // If checking fails, we might want to kill worker?
+          // For now, assume single heavy task caused it, let it recover or die by other means
+        }
+      }, 3000);
+
+      this.pendingResolves.set(id, (data) => {
+        clearTimeout(timeout);
+
+        // Rehydrate Decimals
+        try {
+          if (data.oscillators) data.oscillators.forEach((o: any) => o.value = new Decimal(o.value || 0));
+          if (data.movingAverages) data.movingAverages.forEach((m: any) => m.value = new Decimal(m.value || 0));
+          // Add full rehydration if needed, strict typing
+          const rehydratePivots = (p: any) => {
+            const c = p.classic;
+            return {
+              classic: {
+                p: new Decimal(c.p), r1: new Decimal(c.r1), r2: new Decimal(c.r2), r3: new Decimal(c.r3),
+                s1: new Decimal(c.s1), s2: new Decimal(c.s2), s3: new Decimal(c.s3)
+              }
+            };
+          };
+          if (data.pivots) data.pivots = rehydratePivots(data.pivots);
+          if (data.pivotBasis) {
+            data.pivotBasis.high = new Decimal(data.pivotBasis.high);
+            data.pivotBasis.low = new Decimal(data.pivotBasis.low);
+            data.pivotBasis.open = new Decimal(data.pivotBasis.open);
+            data.pivotBasis.close = new Decimal(data.pivotBasis.close);
+          }
+
+          resolve(data);
+        } catch (err) {
+          reject(err);
+        }
+      });
+
+      this.pendingRejects.set(id, (err) => {
+        clearTimeout(timeout);
+        reject(err);
+      });
+
+      worker.postMessage({ type: "CALCULATE", payload, id });
+    });
+  }
+}
+
+const workerManager = new TechnicalsWorkerManager();
+
 
 export const technicalsService = {
 
@@ -65,82 +206,27 @@ export const technicalsService = {
       return cached.data;
     }
 
+    // Prepare Serializable Data
+    const klinesSerializable = klinesInput.map(k => ({
+      time: k.time,
+      open: k.open.toString(),
+      high: k.high.toString(),
+      low: k.low.toString(),
+      close: k.close.toString(),
+      volume: (k.volume || 0).toString()
+    }));
+    const cleanSettings = JSON.parse(JSON.stringify(settings || {}));
+
     // --- Worker Offloading ---
     if (browser && window.Worker) {
-      return new Promise((resolve, reject) => {
-        const worker = new Worker(new URL('../workers/technicals.worker.ts', import.meta.url), { type: 'module' });
-
-        const timeout = setTimeout(() => {
-          worker.terminate();
-          console.warn("Worker timed out, falling back to main thread.");
-          resolve(this.calculateTechnicalsInline(klinesInput, settings));
-        }, 3000); // 3s timeout
-
-        worker.onmessage = (e) => {
-          clearTimeout(timeout);
-          const { type, payload, error } = e.data;
-          if (type === "RESULT") {
-            worker.terminate();
-            // Rehydrate Decimals from strings
-            try {
-              if (payload.oscillators) {
-                payload.oscillators.forEach((o: any) => {
-                  o.value = new Decimal(o.value || 0);
-                });
-              }
-              if (payload.movingAverages) {
-                payload.movingAverages.forEach((m: any) => {
-                  m.value = new Decimal(m.value || 0);
-                });
-              }
-              if (payload.pivots && payload.pivots.classic) {
-                Object.keys(payload.pivots.classic).forEach((key) => {
-                  payload.pivots.classic[key] = new Decimal(payload.pivots.classic[key] || 0);
-                });
-              }
-              if (payload.pivotBasis) {
-                payload.pivotBasis.high = new Decimal(payload.pivotBasis.high || 0);
-                payload.pivotBasis.low = new Decimal(payload.pivotBasis.low || 0);
-                payload.pivotBasis.close = new Decimal(payload.pivotBasis.close || 0);
-                payload.pivotBasis.open = new Decimal(payload.pivotBasis.open || 0);
-              }
-            } catch (rehydrateError) {
-              console.error("Rehydration error:", rehydrateError);
-            }
-
-            calculationCache.set(cacheKey, { data: payload, timestamp: Date.now() });
-            resolve(payload);
-          } else {
-            worker.terminate();
-            console.error("Worker Error:", error);
-            resolve(this.calculateTechnicalsInline(klinesInput, settings));
-          }
-        };
-
-        worker.onerror = (err) => {
-          clearTimeout(timeout);
-          worker.terminate();
-          console.error("Worker System Error:", err);
-          resolve(this.calculateTechnicalsInline(klinesInput, settings));
-        };
-
-        // Send Data
-        const klinesSerializable = klinesInput.map(k => ({
-          time: k.time,
-          open: (k.open || 0).toString(),
-          high: (k.high || 0).toString(),
-          low: (k.low || 0).toString(),
-          close: (k.close || 0).toString(),
-          volume: (k.volume || 0).toString()
-        }));
-
-        const cleanSettings = JSON.parse(JSON.stringify(settings || {}));
-
-        worker.postMessage({
-          type: "CALCULATE",
-          payload: { klines: klinesSerializable, settings: cleanSettings }
-        });
-      });
+      try {
+        const result = await workerManager.calculate({ klines: klinesSerializable, settings: cleanSettings });
+        calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+        return result;
+      } catch (e) {
+        console.warn("Worker execution failed, falling back to inline calculation.", e);
+        // Fallback continues below
+      }
     }
 
     // Fallback or SSR
@@ -196,269 +282,8 @@ export const technicalsService = {
       }
     });
 
-    if (klines.length < 2) return this.getEmptyData();
-
-    // Helper to get source array based on config (returns Decimal[])
-    const getSource = (sourceType: string): Decimal[] => {
-      switch (sourceType) {
-        case "open":
-          return klines.map((k) => k.open);
-        case "high":
-          return klines.map((k) => k.high);
-        case "low":
-          return klines.map((k) => k.low);
-        case "hl2":
-          return klines.map((k) => k.high.plus(k.low).div(2));
-        case "hlc3":
-          return klines.map((k) => k.high.plus(k.low).plus(k.close).div(3));
-        default:
-          return klines.map((k) => k.close);
-      }
-    };
-
-    // Convert Decimal arrays to number arrays for talib
-    const highsNum = klines.map((k) => k.high.toNumber());
-    const lowsNum = klines.map((k) => k.low.toNumber());
-    const closesNum = klines.map((k) => k.close.toNumber());
-    const currentPrice = klines[klines.length - 1].close;
-
-    // Initializing technicals...
-
-    // --- Oscillators ---
-    const oscillators: IndicatorResult[] = [];
-
-    try {
-      // 1. RSI
-      const rsiLen = settings?.rsi?.length || 14;
-      const rsiSource = getSource(settings?.rsi?.source || "close").map((d) =>
-        d.toNumber(),
-      );
-      const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
-      const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
-
-      oscillators.push({
-        name: "RSI",
-        value: rsiVal,
-        params: rsiLen.toString(),
-        action: getRsiAction(
-          rsiVal,
-          settings?.rsi?.overbought || 70,
-          settings?.rsi?.oversold || 30,
-        ),
-      });
-
-      // 2. Stochastic
-      const stochK = settings?.stochastic?.kPeriod || 14;
-      const stochD = settings?.stochastic?.dPeriod || 3;
-      const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
-
-      let kLine = JSIndicators.stoch(
-        Array.from(highsNum),
-        Array.from(lowsNum),
-        Array.from(closesNum),
-        stochK,
-      );
-      if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
-      const dLine = JSIndicators.sma(kLine, stochD);
-
-      const stochKVal = new Decimal(kLine[kLine.length - 1]);
-      const stochDVal = new Decimal(dLine[dLine.length - 1]);
-
-      let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal))
-        stochAction = "Buy";
-      else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal))
-        stochAction = "Sell";
-
-      oscillators.push({
-        name: "Stoch",
-        params: `${stochK}, ${stochKSmooth}, ${stochD}`,
-        value: stochKVal,
-        action: stochAction,
-        // signal: stochDVal // Add if UI supports it
-      });
-
-      // 3. CCI
-      const cciLen = settings?.cci?.length || 20;
-      const cciSmoothLen = settings?.cci?.smoothingLength || 1;
-      const cciSmoothType = settings?.cci?.smoothingType || "sma";
-
-      // Default CCI source is Typical Price (HLC3)
-      const cciSource = getSource(settings?.cci?.source || "hlc3").map((d) =>
-        d.toNumber(),
-      );
-
-      let cciResults = JSIndicators.cci(cciSource, cciLen);
-
-      // Apply smoothing if requested
-      if (cciSmoothLen > 1) {
-        if (cciSmoothType === "ema") {
-          cciResults = JSIndicators.ema(cciResults, cciSmoothLen);
-        } else {
-          cciResults = JSIndicators.sma(cciResults, cciSmoothLen);
-        }
-      }
-
-      const cciVal = new Decimal(cciResults[cciResults.length - 1]);
-
-      oscillators.push({
-        name: "CCI",
-        value: cciVal,
-        params:
-          cciSmoothLen > 1
-            ? `${cciLen}, ${cciSmoothLen} (${cciSmoothType.toUpperCase()})`
-            : cciLen.toString(),
-        action: cciVal.gt(100) ? "Sell" : cciVal.lt(-100) ? "Buy" : "Neutral",
-      });
-
-      // 4. ADX
-      const adxLen = settings?.adx?.adxSmoothing || 14;
-      const adxResults = JSIndicators.adx(
-        Array.from(highsNum),
-        Array.from(lowsNum),
-        Array.from(closesNum),
-        adxLen,
-      );
-      const adxVal = new Decimal(adxResults[adxResults.length - 1]);
-
-      oscillators.push({
-        name: "ADX",
-        value: adxVal,
-        params: adxLen.toString(),
-        action: adxVal.gt(25) ? "Buy" : "Neutral",
-      });
-
-      // 5. Awesome Oscillator (manually calculated)
-      const aoFast = settings?.ao?.fastLength || 5;
-      const aoSlow = settings?.ao?.slowLength || 34;
-      const aoVal = new Decimal(calculateAwesomeOscillator(
-        highsNum,
-        lowsNum,
-        aoFast,
-        aoSlow,
-      ));
-
-      let aoAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (aoVal.gt(0)) aoAction = "Buy";
-      else if (aoVal.lt(0)) aoAction = "Sell";
-
-      oscillators.push({
-        name: "Awesome Osc.",
-        params: `${aoFast}, ${aoSlow}`,
-        value: aoVal,
-        action: aoAction,
-      });
-
-      // 6. Momentum
-      const momLen = settings?.momentum?.length || 10;
-      const momSource = getSource(settings?.momentum?.source || "close").map(
-        (d) => d.toNumber(),
-      );
-      const momResults = JSIndicators.mom(momSource, momLen);
-      const momVal = new Decimal(momResults[momResults.length - 1]);
-
-      let momAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (momVal.gt(0)) momAction = "Buy";
-      else if (momVal.lt(0)) momAction = "Sell";
-
-      oscillators.push({
-        name: "Momentum",
-        params: `${momLen}`,
-        value: momVal,
-        action: momAction,
-      });
-
-      // 7. MACD
-      const macdFast = settings?.macd?.fastLength || 12;
-      const macdSlow = settings?.macd?.slowLength || 26;
-      const macdSig = settings?.macd?.signalLength || 9;
-      const macdSource = getSource(settings?.macd?.source || "close").map((d) =>
-        d.toNumber(),
-      );
-
-      const macdResults = JSIndicators.macd(
-        macdSource,
-        macdFast,
-        macdSlow,
-        macdSig,
-      );
-      const macdVal = new Decimal(
-        macdResults.macd[macdResults.macd.length - 1],
-      );
-      const macdSignalVal = new Decimal(
-        macdResults.signal[macdResults.signal.length - 1],
-      );
-
-      let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-      if (!macdVal.isZero() || !macdSignalVal.isZero()) {
-        if (macdVal.gt(macdSignalVal)) macdAction = "Buy";
-        else if (macdVal.lt(macdSignalVal)) macdAction = "Sell";
-      }
-
-      oscillators.push({
-        name: "MACD",
-        params: `${macdFast}, ${macdSlow}, ${macdSig}`,
-        value: macdVal,
-        signal: macdSignalVal,
-        action: macdAction,
-      });
-    } catch (error) {
-      console.error("Error calculating oscillators:", error);
-    }
-
-    // --- Moving Averages ---
-    const movingAverages: IndicatorResult[] = [];
-    try {
-      const ema1 = settings?.ema?.ema1?.length || 20;
-      const ema2 = settings?.ema?.ema2?.length || 50;
-      const ema3 = settings?.ema?.ema3?.length || 200;
-      const emaSource = getSource(settings?.ema?.source || "close").map((d) =>
-        d.toNumber(),
-      );
-
-      const emaPeriods = [ema1, ema2, ema3];
-
-      for (const period of emaPeriods) {
-        const emaResults = JSIndicators.ema(emaSource, period);
-        const emaVal = new Decimal(emaResults[emaResults.length - 1]);
-
-        movingAverages.push({
-          name: "EMA",
-          params: `${period}`,
-          value: emaVal,
-          action: currentPrice.gt(emaVal) ? "Buy" : "Sell",
-        });
-      }
-    } catch (error) {
-      console.error("Error calculating moving averages:", error);
-    }
-
-    // --- Pivots ---
-    const pivotType = settings?.pivots?.type || "classic";
-    const pivotData = calculatePivots(klines, pivotType); // Using imported helper
-
-    // --- Summary ---
-    let buy = 0;
-    let sell = 0;
-    let neutral = 0;
-
-    [...oscillators, ...movingAverages].forEach((ind) => {
-      if (ind.action === "Buy") buy++;
-      else if (ind.action === "Sell") sell++;
-      else neutral++;
-    });
-
-    let summaryAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-    if (buy > sell && buy > neutral) summaryAction = "Buy";
-    else if (sell > buy && sell > neutral) summaryAction = "Sell";
-
-    const result: TechnicalsData = {
-      oscillators,
-      movingAverages,
-      pivots: pivotData.pivots,
-      pivotBasis: pivotData.basis,
-      summary: { buy, sell, neutral, action: summaryAction },
-    };
+    // Use Shared Calculator
+    const result = calculateAllIndicators(klines, settings);
 
     // Store in cache
     if (calculationCache.size >= MAX_CACHE_SIZE) {
@@ -471,28 +296,7 @@ export const technicalsService = {
   },
 
   getEmptyData(): TechnicalsData {
-    return {
-      oscillators: [],
-      movingAverages: [],
-      pivots: {
-        classic: {
-          p: new Decimal(0),
-          r1: new Decimal(0),
-          r2: new Decimal(0),
-          r3: new Decimal(0),
-          s1: new Decimal(0),
-          s2: new Decimal(0),
-          s3: new Decimal(0),
-        },
-      },
-      pivotBasis: {
-        high: new Decimal(0),
-        low: new Decimal(0),
-        close: new Decimal(0),
-        open: new Decimal(0)
-      },
-      summary: { buy: 0, sell: 0, neutral: 0, action: "Neutral" },
-    };
+    return getEmptyData();
   }
 };
 
