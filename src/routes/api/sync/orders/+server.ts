@@ -116,12 +116,14 @@ async function fetchAllPages(
     accumulated = accumulated.concat(batch);
 
     // Pagination logic: use the creation time of the last item
-    const lastItem = batch[batch.length - 1] as any; // Cast to access varying time fields
+    const lastItem = batch[batch.length - 1];
 
     if (!lastItem) break;
 
     const timeField =
-      lastItem.ctime || lastItem.createTime || lastItem.updateTime;
+      lastItem.ctime ||
+      (lastItem as any).createTime ||
+      (lastItem as any).updateTime;
 
     if (timeField !== undefined && timeField !== null) {
       const parsedTime = Number(timeField);

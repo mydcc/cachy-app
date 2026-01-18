@@ -77,20 +77,24 @@ async function fetchBitunixKlines(
 
   if (!response.ok) {
     const text = await response.text();
+    let data;
     try {
-      const data = JSON.parse(text);
-      if (
-        data.code === 2 ||
-        data.code === "2" ||
-        (data.msg && data.msg.toLowerCase().includes("system error"))
-      ) {
-        const error = new Error("Symbol not found");
-        (error as any).status = 404;
-        throw error;
-      }
-    } catch (e: any) {
-      if (e.status === 404) throw e;
+      data = JSON.parse(text);
+    } catch (e) {
+      // Ignore JSON parse error, fallback to generic error
     }
+
+    if (
+      data &&
+      (data.code === 2 ||
+        data.code === "2" ||
+        (data.msg && typeof data.msg === "string" && data.msg.toLowerCase().includes("system error")))
+    ) {
+      const error = new Error("Symbol not found");
+      (error as any).status = 404;
+      throw error;
+    }
+
     console.error(`Bitunix API error ${response.status}: ${text}`);
     const error = new Error(`Bitunix API error: ${response.status}`);
     (error as any).status = response.status;

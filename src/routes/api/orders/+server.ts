@@ -147,7 +147,7 @@ async function placeBitunixOrder(
   apiKey: string,
   apiSecret: string,
   orderData: BitunixOrderPayload,
-): Promise<any> {
+): Promise<BitunixOrder> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
@@ -223,7 +223,7 @@ async function placeBitunixOrder(
     throw new Error(`Bitunix API error: ${response.status} ${safeText}`);
   }
 
-  const res: BitunixResponse<any> = await response.json();
+  const res: BitunixResponse<BitunixOrder> = await response.json();
   if (String(res.code) !== "0") {
     throw new Error(
       `Bitunix API error code: ${res.code} - ${res.msg || "Unknown error"}`,
