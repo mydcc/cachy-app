@@ -44,6 +44,11 @@
     { value: "JetBrains Mono", label: "JetBrains Mono" },
     { value: "Roboto Mono", label: "Roboto Mono" },
     { value: "Source Sans 3", label: "Source Sans 3" },
+    { value: "Manrope", label: "Manrope" },
+    { value: "Nunito Sans", label: "Nunito Sans" },
+    { value: "Red Hat Display", label: "Red Hat Display" },
+    { value: "Schibsted Grotesk", label: "Schibsted Grotesk" },
+    { value: "Space Grotesk", label: "Space Grotesk" },
   ];
 </script>
 

@@ -126,6 +126,7 @@ describe("HotkeyService", () => {
       minChatProfitFactor: 0.0,
       panelIsExpanded: false,
       isDeepDiveUnlocked: false,
+      fontFamily: "Inter", // Added missing prop
     });
 
     tradeStore.set({
