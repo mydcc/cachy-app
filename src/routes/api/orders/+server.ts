@@ -11,6 +11,7 @@ import type {
   NormalizedOrder,
   BitunixOrderPayload,
 } from "../../../types/bitunix";
+import { Decimal } from "decimal.js";
 
 export const POST: RequestHandler = async ({ request }) => {
   let body: any;
@@ -150,12 +151,24 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
+  // Helper to format numbers avoiding scientific notation
+  const formatNum = (val: string | number | undefined): string | undefined => {
+    if (val === undefined || val === null) return undefined;
+    try {
+      // Use Decimal to ensure we get a full string representation (no 1e-7)
+      // toFixed(20) ensures high precision, then we strip trailing zeros
+      return new Decimal(val).toFixed(20).replace(/\.?0+$/, "");
+    } catch (e) {
+      return String(val);
+    }
+  };
+
   // Construct Payload
   const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: String(orderData.qty),
+    qty: formatNum(orderData.qty)!,
     reduceOnly: orderData.reduceOnly || false,
   };
 
@@ -166,16 +179,16 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = String(orderData.price);
+    payload.price = formatNum(orderData.price);
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = String(orderData.triggerPrice);
+    payload.triggerPrice = formatNum(orderData.triggerPrice);
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = String(orderData.stopPrice);
+    payload.triggerPrice = formatNum(orderData.stopPrice);
   }
 
   // Clean null/undefined

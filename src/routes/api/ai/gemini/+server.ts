@@ -52,7 +52,6 @@ export const POST: RequestHandler = async ({ request }) => {
       payload.systemInstruction = systemInstruction;
     }
 
-    console.log(`Gemini Proxy: Sending request with model ${selectedModel}`);
     const response = await fetch(url, {
       method: "POST",
       headers: {

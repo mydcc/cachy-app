@@ -96,44 +96,58 @@ function createAccountStore() {
             return store;
           }
 
-          const newPos: Position = {
-            positionId: data.positionId,
-            symbol: data.symbol,
-            side: side,
-            size: new Decimal(data.qty || 0),
-            entryPrice: new Decimal(
-              data.averagePrice || data.avgOpenPrice || 0,
-            ),
-            leverage: new Decimal(data.leverage || 0),
-            unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-            margin: new Decimal(data.margin || 0),
-            marginMode: data.marginMode
-              ? data.marginMode.toLowerCase()
-              : "cross",
-            liquidationPrice: new Decimal(0),
-            markPrice: new Decimal(0),
-            breakEvenPrice: new Decimal(0),
-          };
-
           if (existing) {
-            // Merge with existing to preserve missing fields
-            if (newPos.entryPrice.isZero())
-              newPos.entryPrice = existing.entryPrice;
+            // Merge logic: Only overwrite if field is present in data
+            // For numerical strings like '0', '0.0', checking for undefined is safer than truthy check
+            const safeDecimal = (val: any, fallback: Decimal) =>
+              val !== undefined && val !== null ? new Decimal(val) : fallback;
+            const safeString = (val: any, fallback: string) =>
+              val !== undefined && val !== null ? String(val) : fallback;
 
-            // Preserve calculation fields if not in payload
-            newPos.liquidationPrice = existing.liquidationPrice;
-            newPos.markPrice = existing.markPrice;
-            newPos.breakEvenPrice = existing.breakEvenPrice;
-
-            // Preserve structural fields if not in payload
-            if (!data.marginMode) newPos.marginMode = existing.marginMode;
-            if (!data.leverage) newPos.leverage = existing.leverage;
-
+            const newPos: Position = {
+              positionId: data.positionId, // Key
+              symbol: data.symbol, // Key
+              side: side,
+              size: safeDecimal(data.qty, existing.size),
+              entryPrice: safeDecimal(
+                data.averagePrice || data.avgOpenPrice,
+                existing.entryPrice,
+              ),
+              leverage: safeDecimal(data.leverage, existing.leverage),
+              unrealizedPnl: safeDecimal(
+                data.unrealizedPNL,
+                existing.unrealizedPnl,
+              ),
+              margin: safeDecimal(data.margin, existing.margin),
+              marginMode: data.marginMode
+                ? data.marginMode.toLowerCase()
+                : existing.marginMode,
+              // These fields are rarely in WS partial updates, preserve existing
+              liquidationPrice: existing.liquidationPrice,
+              markPrice: existing.markPrice,
+              breakEvenPrice: existing.breakEvenPrice,
+            };
             currentPositions[index] = newPos;
           } else {
-            // Only add NEW position if we have critical fields
-            // If marginMode is missing on NEW, defaulting to 'cross' is risky but acceptable if side is present?
-            // Let's rely on standard API behavior: New positions usually come with full snapshot.
+            // New Position: Use data or safe defaults (0)
+            const newPos: Position = {
+              positionId: data.positionId,
+              symbol: data.symbol,
+              side: side,
+              size: new Decimal(data.qty || 0),
+              entryPrice: new Decimal(
+                data.averagePrice || data.avgOpenPrice || 0,
+              ),
+              leverage: new Decimal(data.leverage || 0),
+              unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
+              margin: new Decimal(data.margin || 0),
+              marginMode: data.marginMode
+                ? data.marginMode.toLowerCase()
+                : "cross",
+              liquidationPrice: new Decimal(0),
+              markPrice: new Decimal(0),
+              breakEvenPrice: new Decimal(0),
+            };
             currentPositions.push(newPos);
           }
         }
@@ -159,21 +173,36 @@ function createAccountStore() {
           }
         } else {
           // Update or Create
-          const newOrder: OpenOrder = {
-            orderId: data.orderId,
-            symbol: data.symbol,
-            side: data.side ? data.side.toLowerCase() : "buy",
-            type: data.type ? data.type.toLowerCase() : "limit",
-            price: new Decimal(data.price || 0),
-            amount: new Decimal(data.qty || 0),
-            filled: new Decimal(data.dealAmount || 0),
-            status: data.orderStatus,
-            timestamp: parseTimestamp(data.ctime) || Date.now(),
-          };
+          const existing = index !== -1 ? currentOrders[index] : null;
 
-          if (index !== -1) {
-            currentOrders[index] = newOrder;
+          if (existing) {
+             const safeDecimal = (val: any, fallback: Decimal) =>
+              val !== undefined && val !== null ? new Decimal(val) : fallback;
+
+             const newOrder: OpenOrder = {
+              orderId: data.orderId,
+              symbol: data.symbol,
+              side: data.side ? data.side.toLowerCase() : existing.side,
+              type: data.type ? data.type.toLowerCase() : existing.type,
+              price: safeDecimal(data.price, existing.price),
+              amount: safeDecimal(data.qty, existing.amount),
+              filled: safeDecimal(data.dealAmount, existing.filled),
+              status: data.orderStatus || existing.status,
+              timestamp: parseTimestamp(data.ctime) || existing.timestamp,
+             };
+             currentOrders[index] = newOrder;
           } else {
+            const newOrder: OpenOrder = {
+              orderId: data.orderId,
+              symbol: data.symbol,
+              side: data.side ? data.side.toLowerCase() : "buy",
+              type: data.type ? data.type.toLowerCase() : "limit",
+              price: new Decimal(data.price || 0),
+              amount: new Decimal(data.qty || 0),
+              filled: new Decimal(data.dealAmount || 0),
+              status: data.orderStatus,
+              timestamp: parseTimestamp(data.ctime) || Date.now(),
+            };
             currentOrders.push(newOrder);
           }
         }
