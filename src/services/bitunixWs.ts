@@ -76,10 +76,15 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
+    // P0 Fix: Force cleanup and status set BEFORE reconnecting to clear zombie state
+    this.cleanup("public");
+    this.cleanup("private");
+    wsStatusStore.set("connecting");
     this.connect();
   };
 
   private handleOffline = () => {
+    // P0 Fix: Set status immediately, don't wait for onclose
     wsStatusStore.set("disconnected");
     // Just trigger reconnection, don't kill the timers
     this.scheduleReconnect("public");
@@ -227,6 +232,8 @@ class BitunixWebSocketService {
       }
     }
 
+    wsStatusStore.set("connecting");
+
     let ws: WebSocket;
     try {
       ws = new WebSocket(WS_PRIVATE_URL);
@@ -338,11 +345,14 @@ class BitunixWebSocketService {
         // Check if previous ping was answered
         if (type === "public" && this.awaitingPongPublic) {
           console.warn("Bitunix Public WS: Pong timeout. Reconnecting...");
+          wsStatusStore.set("reconnecting"); // Set status immediately
           ws.close(); // Force reconnect
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
           console.warn("Bitunix Private WS: Pong timeout. Reconnecting...");
+          // Private status isn't directly mirrored in marketStore, but we can set reconnecting
+          wsStatusStore.set("reconnecting");
           ws.close();
           return;
         }
@@ -370,6 +380,7 @@ class BitunixWebSocketService {
 
       this.watchdogTimerPublic = setTimeout(() => {
         console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
+        wsStatusStore.set("reconnecting"); // P0 Fix: Update status BEFORE closing
         if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
           this.wsPublic.close(); // Force close to trigger onclose -> reconnect
         }

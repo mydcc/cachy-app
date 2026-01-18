@@ -20,7 +20,7 @@
         ? "⟳ Connecting to Bitunix..."
         : wsStatus === "reconnecting"
           ? "⟳ Reconnecting to Bitunix..."
-          : "✗ Disconnected",
+          : "✗ Waiting for connection...",
   );
 
   let isAnimated = $derived(wsStatus !== "connected");
