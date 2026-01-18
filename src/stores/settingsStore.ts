@@ -118,7 +118,7 @@ const defaultSettings: Settings = {
   showIndicatorParams: false,
   hideUnfilledOrders: false,
   positionViewMode: "detailed",
-  isPro: false,
+  isPro: true,
   feePreference: "taker", // Default to Taker fees
   hotkeyMode: "mode2", // Safety Mode as default
   customHotkeys: {},
