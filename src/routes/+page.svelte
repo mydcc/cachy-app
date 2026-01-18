@@ -856,61 +856,79 @@
 </div>
 
 <footer
-  class="relative z-10 w-full max-w-4xl mx-auto text-center py-4 text-sm text-[var(--text-secondary)] flex justify-center items-center gap-4"
+  class="relative z-10 w-full max-w-4xl mx-auto text-center py-4 px-4 text-sm text-[var(--text-secondary)] flex flex-col md:flex-row justify-center items-center gap-4"
 >
-  <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
-  <a
-    href="https://github.com/mydcc/cachy-app"
-    target="_blank"
-    rel="noopener noreferrer"
-    class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
-    title="GitHub"
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "GitHub",
-    }}
+  <div class="flex items-center justify-between w-full md:w-auto gap-4">
+    <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
+    <button
+      class="text-link md:hidden {$settingsStore.isPro
+        ? 'text-green-500 font-bold'
+        : ''}"
+      onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
+    >
+      {$settingsStore.isPro ? $_("app.proActive") : $_("app.pro")}
+    </button>
+  </div>
+
+  <div
+    class="flex flex-wrap justify-center items-center gap-x-4 gap-y-2 text-xs md:text-sm"
   >
-    {@html icons.github}
-  </a>
+    <a
+      href="https://github.com/mydcc/cachy-app"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="text-link flex items-center justify-center hover:text-[var(--accent-color)] transition-all duration-300 hover:scale-110"
+      title="GitHub"
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "GitHub",
+      }}
+    >
+      {@html icons.github}
+    </a>
+    <button
+      class="text-link"
+      onclick={() => uiStore.toggleGuideModal(true)}
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "ShowGuide",
+      }}>{$_("app.guideButton")}</button
+    >
+    <button
+      class="text-link"
+      onclick={() => uiStore.toggleChangelogModal(true)}
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "ShowChangelog",
+      }}>{$_("app.changelogTitle")}</button
+    >
+    <button
+      class="text-link"
+      onclick={() => uiStore.togglePrivacyModal(true)}
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "ShowPrivacy",
+      }}>{$_("app.privacyLegal")}</button
+    >
+    <button
+      class="text-link"
+      onclick={() => uiStore.toggleWhitepaperModal(true)}
+      use:trackClick={{
+        category: "Navigation",
+        action: "Click",
+        name: "ShowWhitepaper",
+      }}>{$_("app.whitepaper")}</button
+    >
+  </div>
+
   <button
-    class="text-link"
-    onclick={() => uiStore.toggleGuideModal(true)}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "ShowGuide",
-    }}>{$_("app.guideButton")}</button
-  >
-  <button
-    class="text-link"
-    onclick={() => uiStore.toggleChangelogModal(true)}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "ShowChangelog",
-    }}>{$_("app.changelogTitle")}</button
-  >
-  <button
-    class="text-link"
-    onclick={() => uiStore.togglePrivacyModal(true)}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "ShowPrivacy",
-    }}>{$_("app.privacyLegal")}</button
-  >
-  <button
-    class="text-link"
-    onclick={() => uiStore.toggleWhitepaperModal(true)}
-    use:trackClick={{
-      category: "Navigation",
-      action: "Click",
-      name: "ShowWhitepaper",
-    }}>{$_("app.whitepaper")}</button
-  >
-  <button
-    class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}"
+    class="text-link hidden md:inline-block {$settingsStore.isPro
+      ? 'text-green-500 font-bold'
+      : ''}"
     onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
   >
     {$settingsStore.isPro ? $_("app.proActive") : $_("app.pro")}
