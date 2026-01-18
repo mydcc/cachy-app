@@ -85,10 +85,13 @@ class BitunixWebSocketService {
 
   private handleOffline = () => {
     wsStatusStore.set("disconnected");
-    this.fsmPublic.transition(WsEvent.STOP);
-    this.fsmPrivate.transition(WsEvent.STOP);
-    this.cleanup("public");
-    this.cleanup("private");
+    // Transition to ERROR to trigger RECONNECTING state
+    if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
+      this.fsmPublic.transition(WsEvent.ERROR);
+    }
+    if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
+      this.fsmPrivate.transition(WsEvent.ERROR);
+    }
   };
 
   constructor() {
@@ -454,9 +457,13 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;
       }
-      if (this.reconnectTimerPublic) {
-        clearTimeout(this.reconnectTimerPublic);
-        this.reconnectTimerPublic = null;
+
+      // Protect Reconnect Timer if we are in loop
+      if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
+        if (this.reconnectTimerPublic) {
+          clearTimeout(this.reconnectTimerPublic);
+          this.reconnectTimerPublic = null;
+        }
       }
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
@@ -476,9 +483,12 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPrivate);
         this.connectionTimeoutPrivate = null;
       }
-      if (this.reconnectTimerPrivate) {
-        clearTimeout(this.reconnectTimerPrivate);
-        this.reconnectTimerPrivate = null;
+
+      if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
+        if (this.reconnectTimerPrivate) {
+          clearTimeout(this.reconnectTimerPrivate);
+          this.reconnectTimerPrivate = null;
+        }
       }
       if (this.wsPrivate) {
         this.wsPrivate.onopen = null;
