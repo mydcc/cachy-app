@@ -64,7 +64,7 @@ describe('backupService', () => {
     await backupService.createBackup('password');
 
     expect(capturedBlob).not.toBeNull();
-    const backupText = await (capturedBlob as Blob).text();
+    const backupText = await (capturedBlob as unknown as Blob).text();
     const backupData = JSON.parse(backupText);
 
     expect(backupData.backupVersion).toBe(4);
@@ -92,7 +92,7 @@ describe('backupService', () => {
     await backupService.createBackup('password');
 
     expect(capturedBlob).not.toBeNull();
-    const backupText = await (capturedBlob as Blob).text();
+    const backupText = await (capturedBlob as unknown as Blob).text();
 
     // Clear and Restore
     localStorage.clear();
@@ -119,7 +119,7 @@ describe('backupService', () => {
     vi.spyOn(document.body, 'removeChild').mockImplementation(() => mockLink);
 
     await backupService.createBackup('password');
-    const backupText = await (capturedBlob as Blob).text();
+    const backupText = await (capturedBlob as unknown as Blob).text();
 
     const result = await backupService.restoreFromBackup(backupText, 'wrong');
     expect(result.success).toBe(false);

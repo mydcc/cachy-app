@@ -1,5 +1,6 @@
 import { describe, it, expect } from 'vitest';
-import { calculateAllIndicators, JSIndicators } from './technicals.worker';
+import { calculateAllIndicators } from './technicals.worker';
+import { JSIndicators } from '../utils/indicators';
 import { Decimal } from 'decimal.js';
 
 describe('technicals.worker', () => {
@@ -51,7 +52,7 @@ describe('technicals.worker', () => {
             // Check RSI existence
             const rsi = result.oscillators.find((o: any) => o.name === 'RSI');
             expect(rsi).toBeDefined();
-            expect(rsi.value).not.toBe("NaN");
+            expect(rsi!.value).not.toBe("NaN");
         });
 
         it('should handle incomplete data gracefully', () => {

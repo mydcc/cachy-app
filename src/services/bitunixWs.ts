@@ -145,172 +145,148 @@ class BitunixWebSocketService {
     this.connectPrivate();
   }
 
-  private connectPublic() {
+  private connectSocket(type: "public" | "private", url: string) {
     if (this.isDestroyed) return;
 
-    // Clean up any pending reconnect timer to prevent race conditions
-    if (this.reconnectTimerPublic) {
-      clearTimeout(this.reconnectTimerPublic);
-      this.reconnectTimerPublic = null;
+    // 1. Cleanup Reconnect Timers
+    if (type === "public") {
+      if (this.reconnectTimerPublic) {
+        clearTimeout(this.reconnectTimerPublic);
+        this.reconnectTimerPublic = null;
+      }
+    } else {
+      if (this.reconnectTimerPrivate) {
+        clearTimeout(this.reconnectTimerPrivate);
+        this.reconnectTimerPrivate = null;
+      }
     }
 
-    // Check if we can start connecting
-    const currentState = this.fsmPublic.currentState;
-    if (
-      currentState === WsState.CONNECTED ||
-      currentState === WsState.CONNECTING
-    )
-      return;
+    // 2. Check FSM State
+    const fsm = type === "public" ? this.fsmPublic : this.fsmPrivate;
+    const currentState = fsm.currentState;
+    const activeStates = [
+      WsState.CONNECTED,
+      WsState.CONNECTING,
+      WsState.AUTHENTICATED,
+      WsState.AUTHENTICATING,
+    ];
 
-    this.fsmPublic.transition(WsEvent.START);
+    if (activeStates.includes(currentState)) return;
 
+    fsm.transition(WsEvent.START);
+
+    // 3. Create WebSocket
     let ws: WebSocket;
     try {
-      ws = new WebSocket(WS_PUBLIC_URL);
-      this.wsPublic = ws;
+      ws = new WebSocket(url);
+      if (type === "public") this.wsPublic = ws;
+      else this.wsPrivate = ws;
 
-      if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
-      this.connectionTimeoutPublic = setTimeout(() => {
-        if (this.isDestroyed) return;
-        if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Public WS Timeout");
-          if (this.wsPublic === ws) {
-            this.cleanup("public");
-            this.fsmPublic.transition(WsEvent.ERROR); // Trigger Reconnect
-          } else {
-            ws.close();
-          }
-        }
-      }, this.CONNECTION_TIMEOUT_MS);
-
+      this.setupConnectionTimeout(type, ws);
     } catch (e) {
-      console.error("Failed to create Public WS:", e);
-      this.fsmPublic.transition(WsEvent.ERROR);
+      console.error(`Failed to create ${type} WS:`, e);
+      fsm.transition(WsEvent.ERROR);
       return;
     }
 
+    // 4. Bind Handlers
     ws.onopen = () => {
-      if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
-      if (this.wsPublic !== ws) return;
+      this.clearConnectionTimeout(type);
+      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
+      if (currentWs !== ws) return;
 
-      this.fsmPublic.transition(WsEvent.OPEN);
-      this.publicRetryCount = 0;
+      fsm.transition(WsEvent.OPEN);
 
-      this.startHeartbeat(ws, "public");
-      this.startWatchdog("public", ws);
-      this.resubscribePublic();
+      if (type === "public") this.publicRetryCount = 0;
+      else this.privateRetryCount = 0;
+
+      this.startHeartbeat(ws, type);
+      this.startWatchdog(type, ws);
+
+      if (type === "public") {
+        this.resubscribePublic();
+      } else {
+        const settings = get(settingsStore);
+        const apiKey = settings.apiKeys?.bitunix?.key;
+        const apiSecret = settings.apiKeys?.bitunix?.secret;
+        if (apiKey && apiSecret) {
+          fsm.transition(WsEvent.LOGIN_REQ);
+          this.login(apiKey, apiSecret);
+        }
+      }
     };
 
     ws.onmessage = (event) => {
-      if (this.wsPublic !== ws) return;
+      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
+      if (currentWs !== ws) return;
       try {
-        this.lastActivityPublic = Date.now();
+        this.setLastActivity(type, Date.now());
         const message = JSON.parse(event.data);
-        this.handleMessage(message, "public");
+        this.handleMessage(message, type);
       } catch (e) {
-        console.error("Error parsing Public WS message:", e);
+        console.error(`Error parsing ${type} WS message:`, e);
       }
     };
 
     ws.onclose = () => {
       if (this.isDestroyed) return;
-      if (this.wsPublic === ws) {
-        this.cleanup("public");
-        this.fsmPublic.transition(WsEvent.CLOSE);
+      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
+      if (currentWs === ws) {
+        this.cleanup(type);
+        fsm.transition(WsEvent.CLOSE);
       }
     };
 
     ws.onerror = (error) => {
-      console.error("Bitunix Public WebSocket error:", error);
-      // Let onclose handle the state transition mostly, but error can trigger it too
+      console.error(`Bitunix ${type} WebSocket error:`, error);
     };
   }
 
+  private connectPublic() {
+    this.connectSocket("public", WS_PUBLIC_URL);
+  }
+
   private connectPrivate() {
-    if (this.isDestroyed) return;
-
+    // Validate keys before connecting (optimization)
     const settings = get(settingsStore);
-    const apiKey = settings.apiKeys?.bitunix?.key;
-    const apiSecret = settings.apiKeys?.bitunix?.secret;
+    if (!settings.apiKeys?.bitunix?.key || !settings.apiKeys?.bitunix?.secret) return;
+    this.connectSocket("private", WS_PRIVATE_URL);
+  }
 
-    if (!apiKey || !apiSecret) return;
-
-    // Clean up any pending reconnect timer
-    if (this.reconnectTimerPrivate) {
-      clearTimeout(this.reconnectTimerPrivate);
-      this.reconnectTimerPrivate = null;
-    }
-
-    const currentState = this.fsmPrivate.currentState;
-    if (
-      currentState === WsState.CONNECTED ||
-      currentState === WsState.AUTHENTICATED ||
-      currentState === WsState.AUTHENTICATING ||
-      currentState === WsState.CONNECTING
-    )
-      return;
-
-    this.fsmPrivate.transition(WsEvent.START);
-
-    let ws: WebSocket;
-    try {
-      ws = new WebSocket(WS_PRIVATE_URL);
-      this.wsPrivate = ws;
-
-      if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
-      this.connectionTimeoutPrivate = setTimeout(() => {
-        if (this.isDestroyed) return;
-        if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Private WS Timeout");
-          if (this.wsPrivate === ws) {
-            this.cleanup("private");
-            this.fsmPrivate.transition(WsEvent.ERROR);
-          } else {
-            ws.close();
-          }
-        }
-      }, this.CONNECTION_TIMEOUT_MS);
-    } catch (e) {
-      console.error("Failed to create Private WS:", e);
-      this.fsmPrivate.transition(WsEvent.ERROR);
-      return;
-    }
-
-    ws.onopen = () => {
-      if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
-      if (this.wsPrivate !== ws) return;
-
-      this.fsmPrivate.transition(WsEvent.OPEN);
-      this.privateRetryCount = 0;
-      this.startHeartbeat(ws, "private");
-      this.startWatchdog("private", ws);
-
-      this.fsmPrivate.transition(WsEvent.LOGIN_REQ);
-      this.login(apiKey, apiSecret);
-    };
-
-    ws.onmessage = (event) => {
-      if (this.wsPrivate !== ws) return;
-      try {
-        this.lastActivityPrivate = Date.now();
-        const message = JSON.parse(event.data);
-        this.handleMessage(message, "private");
-      } catch (e) {
-        console.error("Error parsing Private WS message:", e);
-      }
-    };
-
-    ws.onclose = () => {
+  private setupConnectionTimeout(type: "public" | "private", ws: WebSocket) {
+    this.clearConnectionTimeout(type);
+    const timeoutId = setTimeout(() => {
       if (this.isDestroyed) return;
-      if (this.wsPrivate === ws) {
-        this.cleanup("private");
-        this.fsmPrivate.transition(WsEvent.CLOSE);
+      if (ws.readyState !== WebSocket.OPEN) {
+        console.warn(`Bitunix ${type} WS Timeout`);
+        const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
+        if (currentWs === ws) {
+          this.cleanup(type);
+          const fsm = type === "public" ? this.fsmPublic : this.fsmPrivate;
+          fsm.transition(WsEvent.ERROR);
+        } else {
+          ws.close();
+        }
       }
-    };
+    }, this.CONNECTION_TIMEOUT_MS);
 
-    ws.onerror = (error) => {
-      console.error("Bitunix Private WebSocket error:", error);
-    };
+    if (type === "public") this.connectionTimeoutPublic = timeoutId;
+    else this.connectionTimeoutPrivate = timeoutId;
+  }
+
+  private clearConnectionTimeout(type: "public" | "private") {
+    if (type === "public") {
+      if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
+      this.connectionTimeoutPublic = null;
+    } else {
+      if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
+      this.connectionTimeoutPrivate = null;
+    }
+  }
+
+  private setLastActivity(type: "public" | "private", time: number) {
+    if (type === "public") this.lastActivityPublic = time;
+    else this.lastActivityPrivate = time;
   }
 
   private scheduleReconnect(type: "public" | "private") {
