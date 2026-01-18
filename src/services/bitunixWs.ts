@@ -34,9 +34,9 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 2000; // 2 seconds - Very aggressive ping
-const WATCHDOG_TIMEOUT = 4000; // 4 seconds - Die quickly if no data
-const RECONNECT_DELAY = 1000; // 1 second - fast retry
+const PING_INTERVAL = 20000; // 20 seconds (standard interval)
+const WATCHDOG_TIMEOUT = 60000; // 60 seconds
+const RECONNECT_DELAY = 3000; // 3 seconds
 const MAX_RETRIES = 5;
 
 interface Subscription {
@@ -74,53 +74,21 @@ class BitunixWebSocketService {
 
   private connectionTimeoutPublic: any = null;
   private connectionTimeoutPrivate: any = null;
-  private readonly CONNECTION_TIMEOUT_MS = 3500; // 3.5 seconds - Be aggressive to show Red faster
+  private readonly CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
 
   private isDestroyed = false;
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
-
-    // Reset Retry Logic on "Back Online" signal
-    this.publicRetryCount = 0;
-    this.privateRetryCount = 0;
-
-    // Clear any pending long backoff timers
-    if (this.reconnectTimerPublic) {
-      clearTimeout(this.reconnectTimerPublic);
-      this.reconnectTimerPublic = null;
-    }
-    if (this.reconnectTimerPrivate) {
-      clearTimeout(this.reconnectTimerPrivate);
-      this.reconnectTimerPrivate = null;
-    }
-
-    // Force FSMs to restart immediately
-    // Use STOP to reset to DISCONNECTED, so connect() sees we are ready to start.
-    if (this.fsmPublic.currentState === WsState.RECONNECTING || this.fsmPublic.currentState === WsState.ERROR) {
-      this.fsmPublic.transition(WsEvent.STOP);
-    }
-    if (this.fsmPrivate.currentState === WsState.RECONNECTING || this.fsmPrivate.currentState === WsState.ERROR) {
-      this.fsmPrivate.transition(WsEvent.STOP);
-    }
-
     this.connect();
   };
 
   private handleOffline = () => {
     wsStatusStore.set("disconnected");
-    // Do NOT stop the FSMs, or we lose the reconnect loop.
-    // Transition to ERROR so we enter RECONNECTING state.
-    if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
-      this.fsmPublic.transition(WsEvent.ERROR);
-    }
-    if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
-      this.fsmPrivate.transition(WsEvent.ERROR);
-    }
-    // We do NOT call cleanup here manually. The FSM / Watchdog logic will handle it, 
-    // or the browser offline state simply means we wait for online.
-    // If we call cleanup, we risk killing the timer if logic is brittle.
-    // But mostly, transitioning to ERROR ensures we go to RECONNECTING.
+    this.fsmPublic.transition(WsEvent.STOP);
+    this.fsmPrivate.transition(WsEvent.STOP);
+    this.cleanup("public");
+    this.cleanup("private");
   };
 
   constructor() {
@@ -129,7 +97,7 @@ class BitunixWebSocketService {
       window.addEventListener("offline", this.handleOffline);
     }
 
-    // Legacy Mode: UI Status driven ONLY by Public FSM (Market Data)
+    // Sync Public FSM state to UI Store
     this.fsmPublic.stateStore.subscribe((state) => {
       switch (state) {
         case WsState.CONNECTED:
@@ -141,7 +109,6 @@ class BitunixWebSocketService {
           wsStatusStore.set("connecting");
           break;
         case WsState.RECONNECTING:
-          // User Requirement: Reconnecting = "No Connection" = Red
           wsStatusStore.set("disconnected");
           this.scheduleReconnect("public");
           break;
@@ -152,7 +119,7 @@ class BitunixWebSocketService {
       }
     });
 
-    // Private FSM just reconnects silently
+    // Handle Private FSM Reconnection logic via callback or subscription
     this.fsmPrivate.stateStore.subscribe((state) => {
       if (state === WsState.RECONNECTING) {
         this.scheduleReconnect("private");
@@ -391,13 +358,11 @@ class BitunixWebSocketService {
         // Check if previous ping was answered
         if (type === "public" && this.awaitingPongPublic) {
           console.warn("Bitunix Public WS: Pong timeout. Reconnecting...");
-          this.fsmPublic.transition(WsEvent.ERROR);
-          ws.close();
+          ws.close(); // Force reconnect
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
           console.warn("Bitunix Private WS: Pong timeout. Reconnecting...");
-          this.fsmPrivate.transition(WsEvent.ERROR);
           ws.close();
           return;
         }
@@ -435,10 +400,10 @@ class BitunixWebSocketService {
           return;
         }
         if (Date.now() - this.lastActivityPublic > WATCHDOG_TIMEOUT) {
-          clearInterval(intervalId); // STOP WATCHING IMMEDIATELY
           console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
-          this.fsmPublic.transition(WsEvent.ERROR);
-          if (this.wsPublic) this.wsPublic.close();
+          if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+            this.wsPublic.close();
+          }
         }
       } else {
         if (ws !== this.wsPrivate) {
@@ -446,13 +411,13 @@ class BitunixWebSocketService {
           return;
         }
         if (Date.now() - this.lastActivityPrivate > WATCHDOG_TIMEOUT) {
-          clearInterval(intervalId); // STOP WATCHING IMMEDIATELY
           console.warn("Bitunix Private WS Watchdog Timeout. Terminating.");
-          this.fsmPrivate.transition(WsEvent.ERROR);
-          if (this.wsPrivate) this.wsPrivate.close();
+          if (this.wsPrivate && this.wsPrivate.readyState === WebSocket.OPEN) {
+            this.wsPrivate.close();
+          }
         }
       }
-    }, 1000); // Check every 1 second
+    }, 5000); // Check every 5 seconds
 
     if (type === "public") this.watchdogTimerPublic = intervalId;
     else this.watchdogTimerPrivate = intervalId;
@@ -487,14 +452,9 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;
       }
-
-      // Only clear if we are NOT reconnecting. 
-      // If we are, we need this timer to fire!
-      if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
-        if (this.reconnectTimerPublic) {
-          clearTimeout(this.reconnectTimerPublic);
-          this.reconnectTimerPublic = null;
-        }
+      if (this.reconnectTimerPublic) {
+        clearTimeout(this.reconnectTimerPublic);
+        this.reconnectTimerPublic = null;
       }
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
@@ -514,12 +474,9 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPrivate);
         this.connectionTimeoutPrivate = null;
       }
-
-      if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
-        if (this.reconnectTimerPrivate) {
-          clearTimeout(this.reconnectTimerPrivate);
-          this.reconnectTimerPrivate = null;
-        }
+      if (this.reconnectTimerPrivate) {
+        clearTimeout(this.reconnectTimerPrivate);
+        this.reconnectTimerPrivate = null;
       }
       if (this.wsPrivate) {
         this.wsPrivate.onopen = null;

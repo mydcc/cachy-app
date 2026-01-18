@@ -25,11 +25,9 @@
   let statusColor = $derived(
     wsStatus === "connected"
       ? "var(--success-color)"
-      : wsStatus === "connecting"
+      : wsStatus === "connecting" || wsStatus === "reconnecting"
         ? "var(--warning-color)"
-        : wsStatus === "reconnecting"
-          ? "var(--warning-color)"
-          : "var(--danger-color)",
+        : "var(--danger-color)",
   );
 
   // Detailed status text for tooltip
