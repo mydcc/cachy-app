@@ -8,28 +8,28 @@
 import { Decimal } from "decimal.js";
 import { calculateAllIndicators } from "../utils/technicalsCalculator";
 import type { Kline } from "../utils/indicators";
-import type { TechnicalsData } from "../services/technicalsTypes";
-
-interface WorkerMessage {
-    type: string;
-    payload: any;
-    id?: string;
-}
+import type { TechnicalsData, WorkerMessage, SerializedTechnicalsData, WorkerCalculatePayload } from "../services/technicalsTypes";
 
 const ctx: Worker = self as any;
 
 // Helper to serialize Decimal based results back to JSON-friendly format
-function serializeResult(data: TechnicalsData): any {
+function serializeResult(data: TechnicalsData): SerializedTechnicalsData {
     return {
         oscillators: data.oscillators.map(o => ({
-            ...o,
+            name: o.name,
+            params: o.params,
             value: o.value.toString(),
             signal: o.signal?.toString(),
-            histogram: o.histogram?.toString()
+            histogram: o.histogram?.toString(),
+            action: o.action
         })),
         movingAverages: data.movingAverages.map(m => ({
-            ...m,
-            value: m.value.toString()
+            name: m.name,
+            params: m.params,
+            value: m.value.toString(),
+            action: m.action,
+            signal: m.signal?.toString(),
+            histogram: m.histogram?.toString()
         })),
         pivots: {
             classic: {
@@ -57,12 +57,13 @@ function serializeResult(data: TechnicalsData): any {
 ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
     const { type, payload, id } = e.data;
 
-    if (type === "CALCULATE") {
+    if (type === "CALCULATE" && payload) {
         try {
-            const { klines, settings } = payload;
+            const calculatePayload = payload as WorkerCalculatePayload;
+            const { klines, settings } = calculatePayload;
 
             // Rehydrate Klines to Decimal for calculation
-            const klinesDec: Kline[] = klines.map((k: any) => ({
+            const klinesDec: Kline[] = klines.map((k) => ({
                 time: k.time,
                 open: new Decimal(k.open),
                 high: new Decimal(k.high),
@@ -76,11 +77,13 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             // Serialize back to string for transport
             const serialized = serializeResult(result);
 
-            ctx.postMessage({ type: "RESULT", payload: serialized, id });
+            const response: WorkerMessage = { type: "RESULT", payload: serialized, id };
+            ctx.postMessage(response);
 
         } catch (error: any) {
             console.error("Worker Calculation Error: ", error);
-            ctx.postMessage({ type: "ERROR", error: error.message, id });
+            const errorResponse: WorkerMessage = { type: "ERROR", error: error.message, id };
+            ctx.postMessage(errorResponse);
         }
     }
 };

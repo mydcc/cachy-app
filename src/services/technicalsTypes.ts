@@ -62,3 +62,49 @@ export interface TechnicalsData {
     action: "Buy" | "Sell" | "Neutral";
   };
 }
+
+
+export interface SerializedIndicatorResult {
+  name: string;
+  params?: string;
+  value: string;
+  signal?: string;
+  histogram?: string;
+  action: "Buy" | "Sell" | "Neutral";
+}
+
+export interface SerializedTechnicalsData {
+  oscillators: SerializedIndicatorResult[];
+  movingAverages: SerializedIndicatorResult[];
+  pivots: {
+    classic: {
+      p: string; r1: string; r2: string; r3: string;
+      s1: string; s2: string; s3: string;
+    }
+  };
+  pivotBasis?: {
+    high: string; low: string; open: string; close: string;
+  };
+  summary: TechnicalsData['summary'];
+}
+
+export interface WorkerCalculatePayload {
+  klines: {
+    time: number;
+    open: string;
+    high: string;
+    low: string;
+    close: string;
+    volume: string;
+  }[];
+  settings: any; // IndicatorSettings
+}
+
+export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR";
+
+export interface WorkerMessage {
+  type: WorkerMessageType;
+  payload?: any;
+  error?: string;
+  id?: string;
+}

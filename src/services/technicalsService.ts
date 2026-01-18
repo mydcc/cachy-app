@@ -37,7 +37,7 @@ interface TechnicalsResultCacheEntry {
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: any) => void> = new Map();
+  private pendingResolves: Map<string, (value: TechnicalsData) => void> = new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private checkInterval: any = null;
   private lastActive: number = Date.now();
@@ -95,7 +95,12 @@ class TechnicalsWorkerManager {
     const { type, payload, error, id } = e.data;
     if (id && this.pendingResolves.has(id)) {
       if (type === "RESULT") {
-        this.pendingResolves.get(id)!(payload);
+        try {
+          const hydrated = this.rehydrate(payload);
+          this.pendingResolves.get(id)!(hydrated);
+        } catch (err) {
+          this.pendingRejects.get(id)!(err);
+        }
       } else {
         const reject = this.pendingRejects.get(id);
         if (reject) reject(error);
@@ -103,6 +108,30 @@ class TechnicalsWorkerManager {
       this.pendingResolves.delete(id);
       this.pendingRejects.delete(id);
     }
+  }
+
+  // Helper to hydrate serialized data back to Decimal
+  private rehydrate(data: any): TechnicalsData {
+    if (data.oscillators) data.oscillators.forEach((o: any) => o.value = new Decimal(o.value || 0));
+    if (data.movingAverages) data.movingAverages.forEach((m: any) => m.value = new Decimal(m.value || 0));
+
+    const rehydratePivots = (p: any) => {
+      const c = p.classic;
+      return {
+        classic: {
+          p: new Decimal(c.p), r1: new Decimal(c.r1), r2: new Decimal(c.r2), r3: new Decimal(c.r3),
+          s1: new Decimal(c.s1), s2: new Decimal(c.s2), s3: new Decimal(c.s3)
+        }
+      };
+    };
+    if (data.pivots) data.pivots = rehydratePivots(data.pivots);
+    if (data.pivotBasis) {
+      data.pivotBasis.high = new Decimal(data.pivotBasis.high);
+      data.pivotBasis.low = new Decimal(data.pivotBasis.low);
+      data.pivotBasis.open = new Decimal(data.pivotBasis.open);
+      data.pivotBasis.close = new Decimal(data.pivotBasis.close);
+    }
+    return data as TechnicalsData;
   }
 
   private handleError(e: ErrorEvent) {
@@ -124,46 +153,18 @@ class TechnicalsWorkerManager {
     const id = Date.now().toString() + Math.random().toString();
 
     return new Promise((resolve, reject) => {
-      // 3s Timeout
+      // 30s Timeout (Robustness Fix)
       const timeout = setTimeout(() => {
         if (this.pendingResolves.has(id)) {
           this.pendingResolves.delete(id);
           this.pendingRejects.delete(id);
           reject(new Error("Worker Timeout"));
-          // If checking fails, we might want to kill worker?
-          // For now, assume single heavy task caused it, let it recover or die by other means
         }
-      }, 3000);
+      }, 30000);
 
       this.pendingResolves.set(id, (data) => {
         clearTimeout(timeout);
-
-        // Rehydrate Decimals
-        try {
-          if (data.oscillators) data.oscillators.forEach((o: any) => o.value = new Decimal(o.value || 0));
-          if (data.movingAverages) data.movingAverages.forEach((m: any) => m.value = new Decimal(m.value || 0));
-          // Add full rehydration if needed, strict typing
-          const rehydratePivots = (p: any) => {
-            const c = p.classic;
-            return {
-              classic: {
-                p: new Decimal(c.p), r1: new Decimal(c.r1), r2: new Decimal(c.r2), r3: new Decimal(c.r3),
-                s1: new Decimal(c.s1), s2: new Decimal(c.s2), s3: new Decimal(c.s3)
-              }
-            };
-          };
-          if (data.pivots) data.pivots = rehydratePivots(data.pivots);
-          if (data.pivotBasis) {
-            data.pivotBasis.high = new Decimal(data.pivotBasis.high);
-            data.pivotBasis.low = new Decimal(data.pivotBasis.low);
-            data.pivotBasis.open = new Decimal(data.pivotBasis.open);
-            data.pivotBasis.close = new Decimal(data.pivotBasis.close);
-          }
-
-          resolve(data);
-        } catch (err) {
-          reject(err);
-        }
+        resolve(data);
       });
 
       this.pendingRejects.set(id, (err) => {

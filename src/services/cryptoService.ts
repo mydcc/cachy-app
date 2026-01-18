@@ -135,9 +135,9 @@ export async function decrypt(
         try {
           const key = await deriveKey(passwordKey, salt as any, attempt.iter, attempt.hash);
           const decryptedBuffer = await window.crypto.subtle.decrypt(
-            { name: "AES-CBC", iv },
+            { name: "AES-CBC", iv: iv as any },
             key,
-            ciphertextBuffer,
+            ciphertextBuffer as any,
           );
           const dec = new TextDecoder();
           const text = dec.decode(decryptedBuffer);
