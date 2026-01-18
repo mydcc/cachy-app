@@ -97,62 +97,35 @@ class BitunixWebSocketService {
       window.addEventListener("offline", this.handleOffline);
     }
 
-    // Sync BOTH FSM states to UI Store
-    this.fsmPublic.stateStore.subscribe(() => this.syncStoresWithFSMs());
-    this.fsmPrivate.stateStore.subscribe(() => this.syncStoresWithFSMs());
-  }
+    // Legacy Mode: UI Status driven ONLY by Public FSM (Market Data)
+    this.fsmPublic.stateStore.subscribe((state) => {
+      switch (state) {
+        case WsState.CONNECTED:
+        case WsState.AUTHENTICATED:
+          wsStatusStore.set("connected");
+          break;
+        case WsState.CONNECTING:
+        case WsState.AUTHENTICATING:
+          wsStatusStore.set("connecting");
+          break;
+        case WsState.RECONNECTING:
+          // User Requirement: Reconnecting = "No Connection" = Red
+          wsStatusStore.set("disconnected");
+          this.scheduleReconnect("public");
+          break;
+        case WsState.DISCONNECTED:
+        case WsState.ERROR:
+          wsStatusStore.set("disconnected");
+          break;
+      }
+    });
 
-  private syncStoresWithFSMs() {
-    const pubState = this.fsmPublic.currentState;
-    const privState = this.fsmPrivate.currentState;
-
-    // 1. Reconnection Logic (Side Effects)
-    if (pubState === WsState.RECONNECTING) {
-      this.scheduleReconnect("public");
-    }
-    if (privState === WsState.RECONNECTING) {
-      this.scheduleReconnect("private");
-    }
-
-    // 2. UI Status Logic (Combined)
-    // Always check browser online status first
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      wsStatusStore.set("disconnected");
-      return;
-    }
-
-    const settings = get(settingsStore);
-    const hasKeys = !!(settings.apiKeys?.bitunix?.key && settings.apiKeys?.bitunix?.secret);
-
-    const pubReady = pubState === WsState.CONNECTED || pubState === WsState.AUTHENTICATED;
-    const privReady = hasKeys ? (privState === WsState.AUTHENTICATED) : true;
-
-    // GREEN: Everything is fine
-    if (pubReady && privReady) {
-      wsStatusStore.set("connected");
-      return;
-    }
-
-    // YELLOW: Active work in progress (Connecting or Authenticating)
-    const isActivelyWorking = (s: WsState) =>
-      s === WsState.CONNECTING ||
-      s === WsState.AUTHENTICATING;
-
-    if (isActivelyWorking(pubState) || (hasKeys && isActivelyWorking(privState))) {
-      wsStatusStore.set("connecting");
-      return;
-    }
-
-    // RED: Passive failure or waiting for retry
-    const isWaitingOrError = (s: WsState) =>
-      s === WsState.RECONNECTING ||
-      s === WsState.ERROR;
-
-    if (isWaitingOrError(pubState) || (hasKeys && isWaitingOrError(privState))) {
-      wsStatusStore.set("error");
-    } else {
-      wsStatusStore.set("disconnected");
-    }
+    // Private FSM just reconnects silently
+    this.fsmPrivate.stateStore.subscribe((state) => {
+      if (state === WsState.RECONNECTING) {
+        this.scheduleReconnect("private");
+      }
+    });
   }
 
   destroy() {
