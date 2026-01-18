@@ -1,5 +1,6 @@
 import { get } from "svelte/store";
 import { settingsStore } from "../stores/settingsStore";
+import { _ } from "../locales/i18n";
 import {
   parseDecimal,
   parseDateString,
@@ -172,13 +173,24 @@ export const csvService = {
     // Validation: Maximum 1000 trades per import
     const MAX_IMPORT_LINES = 1001; // 1 header + 1000 trades
     if (lines.length > MAX_IMPORT_LINES) {
-      throw new Error(
-        `Zu viele Zeilen (${lines.length - 1} Trades). Maximum: 1000 Trades pro Import. Bitte teilen Sie die CSV-Datei auf.`,
-      );
+      const translate = get(_);
+      const msg =
+        (translate("csvTooManyLines", {
+          values: {
+            count: lines.length - 1,
+            max: 1000,
+          },
+        }) as string) ||
+        `Too many lines (${lines.length - 1}). Max 1000 trades per import.`;
+      throw new Error(msg);
     }
 
     if (lines.length < 2) {
-      throw new Error("CSV ist leer oder hat nur eine Kopfzeile.");
+      const translate = get(_);
+      throw new Error(
+        (translate("csvEmpty") as string) ||
+          "CSV is empty or has only a header.",
+      );
     }
 
     const headers = this.splitCSV(lines[0]).map((h) =>
@@ -256,11 +268,15 @@ export const csvService = {
     const missingKeys = requiredKeys.filter((k) => !presentMappedKeys.has(k));
 
     if (missingKeys.length > 0) {
-      throw new Error(
-        `CSV-Datei fehlen benötigte Spalten (oder unbekannte Sprache): ${missingKeys.join(
-          ", ",
-        )}`,
-      );
+      const translate = get(_);
+      const msg =
+        (translate("csvMissingColumns", {
+          values: {
+            columns: missingKeys.join(", "),
+          },
+        }) as string) ||
+        `CSV file missing required columns: ${missingKeys.join(", ")}`;
+      throw new Error(msg);
     }
 
     const { useUtcDateParsing } = get(settingsStore);
