@@ -105,13 +105,12 @@ export class WSStateMachine {
         const toState = allowed ? allowed[event] : undefined;
 
         if (toState) {
-            console.log(`[WS-FSM] Transition: ${fromState} -> ${toState} (Event: ${event})`);
             this._state.set(toState);
             if (this.onStateChange) {
                 this.onStateChange(toState, fromState);
             }
         } else {
-            console.warn(`[WS-FSM] Invalid Transition: ${fromState} -> ??? (Event: ${event})`);
+            // console.warn(`[WS-FSM] Invalid Transition: ${fromState} -> ??? (Event: ${event})`);
         }
         return toState;
     }

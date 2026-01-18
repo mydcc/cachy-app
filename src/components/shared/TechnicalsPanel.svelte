@@ -322,7 +322,7 @@
 
 {#if showPanel}
   <div
-    class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative"
+    class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative overflow-hidden"
     class:md:w-64={!$settingsStore.showIndicatorParams}
     class:md:w-[19rem]={$settingsStore.showIndicatorParams}
   >
