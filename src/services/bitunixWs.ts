@@ -96,11 +96,12 @@ class BitunixWebSocketService {
     }
 
     // Force FSMs to restart immediately
+    // Use STOP to reset to DISCONNECTED, so connect() sees we are ready to start.
     if (this.fsmPublic.currentState === WsState.RECONNECTING || this.fsmPublic.currentState === WsState.ERROR) {
-      this.fsmPublic.transition(WsEvent.RETRY);
+      this.fsmPublic.transition(WsEvent.STOP);
     }
     if (this.fsmPrivate.currentState === WsState.RECONNECTING || this.fsmPrivate.currentState === WsState.ERROR) {
-      this.fsmPrivate.transition(WsEvent.RETRY);
+      this.fsmPrivate.transition(WsEvent.STOP);
     }
 
     this.connect();
@@ -426,6 +427,7 @@ class BitunixWebSocketService {
           return;
         }
         if (Date.now() - this.lastActivityPublic > WATCHDOG_TIMEOUT) {
+          clearInterval(intervalId); // STOP WATCHING IMMEDIATELY
           console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
           this.fsmPublic.transition(WsEvent.ERROR);
           if (this.wsPublic) this.wsPublic.close();
@@ -436,6 +438,7 @@ class BitunixWebSocketService {
           return;
         }
         if (Date.now() - this.lastActivityPrivate > WATCHDOG_TIMEOUT) {
+          clearInterval(intervalId); // STOP WATCHING IMMEDIATELY
           console.warn("Bitunix Private WS Watchdog Timeout. Terminating.");
           this.fsmPrivate.transition(WsEvent.ERROR);
           if (this.wsPrivate) this.wsPrivate.close();
