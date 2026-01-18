@@ -476,9 +476,14 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;
       }
-      if (this.reconnectTimerPublic) {
-        clearTimeout(this.reconnectTimerPublic);
-        this.reconnectTimerPublic = null;
+
+      // Only clear if we are NOT reconnecting. 
+      // If we are, we need this timer to fire!
+      if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
+        if (this.reconnectTimerPublic) {
+          clearTimeout(this.reconnectTimerPublic);
+          this.reconnectTimerPublic = null;
+        }
       }
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
@@ -498,9 +503,12 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPrivate);
         this.connectionTimeoutPrivate = null;
       }
-      if (this.reconnectTimerPrivate) {
-        clearTimeout(this.reconnectTimerPrivate);
-        this.reconnectTimerPrivate = null;
+
+      if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
+        if (this.reconnectTimerPrivate) {
+          clearTimeout(this.reconnectTimerPrivate);
+          this.reconnectTimerPrivate = null;
+        }
       }
       if (this.wsPrivate) {
         this.wsPrivate.onopen = null;
