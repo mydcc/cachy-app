@@ -34,9 +34,9 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 20000; // 20 seconds (standard interval)
-const WATCHDOG_TIMEOUT = 60000; // 60 seconds
-const RECONNECT_DELAY = 3000; // 3 seconds
+const PING_INTERVAL = 2000; // 2 seconds (aggressive)
+const WATCHDOG_TIMEOUT = 4000; // 4 seconds (strict)
+const RECONNECT_DELAY = 1000; // 1 second
 const MAX_RETRIES = 5;
 
 interface Subscription {
@@ -358,11 +358,13 @@ class BitunixWebSocketService {
         // Check if previous ping was answered
         if (type === "public" && this.awaitingPongPublic) {
           console.warn("Bitunix Public WS: Pong timeout. Reconnecting...");
+          this.fsmPublic.transition(WsEvent.ERROR); // Force Red Status
           ws.close(); // Force reconnect
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
           console.warn("Bitunix Private WS: Pong timeout. Reconnecting...");
+          this.fsmPrivate.transition(WsEvent.ERROR);
           ws.close();
           return;
         }
@@ -417,7 +419,7 @@ class BitunixWebSocketService {
           }
         }
       }
-    }, 5000); // Check every 5 seconds
+    }, 1000); // Check every 1 second
 
     if (type === "public") this.watchdogTimerPublic = intervalId;
     else this.watchdogTimerPrivate = intervalId;
