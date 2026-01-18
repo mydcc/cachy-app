@@ -250,6 +250,8 @@ export const technicalsService = {
     }
 
     // Ensure talib is initialized (though we use JS fallbacks for most)
+    /*
+    // OPTIMIZATION: Removed blocking wait for WASM since we use JSIndicators exclusively for now.
     if (!talibReady) {
       try {
         await talibInit;
@@ -265,6 +267,7 @@ export const technicalsService = {
         );
       }
     }
+    */
 
     // 1. Normalize Data to strict Kline format with Decimals
     const klines: Kline[] = [];

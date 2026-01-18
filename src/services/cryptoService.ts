@@ -23,35 +23,63 @@ import CryptoJS from "crypto-js";
  */
 
 /**
- * Encrypts a string using a password.
- * Returns an object with the encrypted data.
- * Crypto-JS handles salt and IV internally if we pass a password string.
+ * Encrypts a string using a password with robust PBKDF2 key derivation.
+ * Returns an object with the encrypted data, salt, and IV.
  */
 export async function encrypt(
   text: string,
   password: string,
 ): Promise<{ ciphertext: string; salt: string; iv: string }> {
-  // CryptoJS.AES.encrypt returns a CipherParams object
-  const encrypted = CryptoJS.AES.encrypt(text, password);
+  // 1. Generate random Salt (128-bit)
+  const salt = CryptoJS.lib.WordArray.random(128 / 8);
+
+  // 2. Derive Key (256-bit) using PBKDF2 with 10k iterations
+  const key = CryptoJS.PBKDF2(password, salt, {
+    keySize: 256 / 32,
+    iterations: 10000,
+  });
+
+  // 3. Generate random IV (128-bit)
+  const iv = CryptoJS.lib.WordArray.random(128 / 8);
+
+  // 4. Encrypt using AES-256 (CBC is default) with proper Key and IV
+  const encrypted = CryptoJS.AES.encrypt(text, key, {
+    iv: iv,
+    mode: CryptoJS.mode.CBC,
+    padding: CryptoJS.pad.Pkcs7,
+  });
 
   return {
-    ciphertext: encrypted.toString(),
-    salt: encrypted.salt ? encrypted.salt.toString() : "",
-    iv: encrypted.iv ? encrypted.iv.toString() : "",
+    ciphertext: encrypted.ciphertext.toString(CryptoJS.enc.Base64),
+    salt: salt.toString(CryptoJS.enc.Base64),
+    iv: iv.toString(CryptoJS.enc.Base64),
   };
 }
 
 /**
- * Decrypts a ciphertext using a password.
+ * Decrypts ciphertext using PBKDF2 derived key (Standard for Backup V3+).
  */
 export async function decrypt(
   ciphertext: string,
   password: string,
-  _saltB64?: string, // Kept for interface compatibility with previous version
-  _ivB64?: string, // Kept for interface compatibility with previous version
+  saltB64: string,
+  ivB64: string,
 ): Promise<string> {
   try {
-    const bytes = CryptoJS.AES.decrypt(ciphertext, password);
+    const salt = CryptoJS.enc.Base64.parse(saltB64);
+    const iv = CryptoJS.enc.Base64.parse(ivB64);
+
+    const key = CryptoJS.PBKDF2(password, salt, {
+      keySize: 256 / 32,
+      iterations: 10000,
+    });
+
+    const bytes = CryptoJS.AES.decrypt(ciphertext, key, {
+      iv: iv,
+      mode: CryptoJS.mode.CBC,
+      padding: CryptoJS.pad.Pkcs7,
+    });
+
     const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
 
     if (!decryptedText) {
@@ -61,5 +89,28 @@ export async function decrypt(
     return decryptedText;
   } catch (e) {
     throw new Error("Decryption failed. Probably wrong password.");
+  }
+}
+
+/**
+ * Legacy Decryption for Backup V2 (Weak default KDF).
+ * Kept for backward compatibility.
+ */
+export async function decryptLegacy(
+  ciphertext: string,
+  password: string,
+): Promise<string> {
+  try {
+    // Legacy: Default OpenSSL KDF (Weak)
+    const bytes = CryptoJS.AES.decrypt(ciphertext, password);
+    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
+
+    if (!decryptedText) {
+      throw new Error("Legacy decryption failed.");
+    }
+
+    return decryptedText;
+  } catch (e) {
+    throw new Error("Legacy decryption failed.");
   }
 }
