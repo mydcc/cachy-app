@@ -19,7 +19,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { encrypt, decrypt, decryptLegacy } from "./cryptoService";
 
-const BACKUP_VERSION = 3; // Version 3: Strong PBKDF2 Encryption
+const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
 const APP_NAME = "R-Calculator";
 
 // The structure for the data payload in the backup
@@ -59,14 +59,28 @@ function getDataFromLocalStorage(key: string): string | null {
 export async function createBackup(password?: string) {
   if (!browser) return;
 
+  // Validation: Ensure we are not backing up garbage
+  const getValidatedData = (key: string): string | null => {
+    const raw = getDataFromLocalStorage(key);
+    if (!raw) return null;
+    try {
+      JSON.parse(raw); // Check if valid JSON
+      return raw;
+    } catch (e) {
+      console.error(`Backup Logic: Detected corrupt JSON for key ${key}. Skipping.`);
+      // Optional: We could throw interrupt here, but skipping corrupt keys might be safer for user data retrieval
+      return null;
+    }
+  };
+
   const rawData: BackupData = {
-    settings: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
-    presets: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
-    journal: getDataFromLocalStorage(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
-    tradeState: getDataFromLocalStorage(
+    settings: getValidatedData(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY),
+    presets: getValidatedData(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY),
+    journal: getValidatedData(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY),
+    tradeState: getValidatedData(
       CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
     ),
-    theme: getDataFromLocalStorage("theme"),
+    theme: getDataFromLocalStorage("theme"), // Theme is often just a string ("dark"|"light"), not JSON
   };
 
   const backupFile: BackupFile = {
@@ -155,13 +169,16 @@ export async function restoreFromBackup(
         let decryptedJson: string;
 
         // Legacy Support for Version 2 (and 1 if encrypted)
+        // V3 also supports weak encryption if it was created before this patch, but marked as V3.
+        // However, our new decrypt function auto-detects iterations, so we can just call decrypt().
+        // For strictness, only V1/V2 force decryptLegacy.
         if (backup.backupVersion < 3) {
           decryptedJson = await decryptLegacy(
             backup.encryptedData || "",
             password,
           );
         } else {
-          // Version 3+ (Strong Encryption)
+          // Version 3+ (Stronger or Strongest Encryption)
           if (!backup.encryptedData || !backup.salt || !backup.iv) {
             return {
               success: false,

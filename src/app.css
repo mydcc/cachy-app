@@ -1778,6 +1778,12 @@ body {
   min-height: 100vh;
 }
 
+table,
+input,
+select {
+  font-variant-numeric: tabular-nums;
+}
+
 .calculator-wrapper {
   background-color: var(--bg-secondary);
 }
@@ -1786,12 +1792,14 @@ body {
   background-color: var(--bg-tertiary);
   border: 1px solid var(--border-color);
   color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
 }
 
 .settings-number-input {
   width: 70px;
   text-align: left;
   padding: 0.25rem 0.5rem;
+  font-variant-numeric: tabular-nums;
 }
 
 .input-field:disabled {
@@ -1863,6 +1871,7 @@ body {
   text-align: right;
   word-break: break-all;
   flex-grow: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 .fade-in {
@@ -2277,6 +2286,7 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .journal-table {
   width: 100%;
   border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
 }
 
 .journal-table th,

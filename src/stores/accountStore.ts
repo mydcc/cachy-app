@@ -193,10 +193,10 @@ function createAccountStore() {
           const existing = index !== -1 ? currentOrders[index] : null;
 
           if (existing) {
-             const safeDecimal = (val: any, fallback: Decimal) =>
+            const safeDecimal = (val: any, fallback: Decimal) =>
               val !== undefined && val !== null ? new Decimal(val) : fallback;
 
-             const newOrder: OpenOrder = {
+            const newOrder: OpenOrder = {
               orderId: data.orderId,
               symbol: data.symbol,
               side: data.side ? data.side.toLowerCase() : existing.side,
@@ -206,8 +206,8 @@ function createAccountStore() {
               filled: safeDecimal(data.dealAmount, existing.filled),
               status: data.orderStatus || existing.status,
               timestamp: parseTimestamp(data.ctime) || existing.timestamp,
-             };
-             currentOrders[index] = newOrder;
+            };
+            currentOrders[index] = newOrder;
           } else {
             const newOrder: OpenOrder = {
               orderId: data.orderId,
@@ -253,6 +253,188 @@ function createAccountStore() {
         return store;
       });
     },
+
+    // --- Batch Updates for Performance ---
+    updatePositionsBatch: (dataList: any[]) => {
+      if (!Array.isArray(dataList) || dataList.length === 0) return;
+
+      update((store) => {
+        const currentPositions = [...store.positions];
+
+        for (const data of dataList) {
+          const index = currentPositions.findIndex(
+            (p) => String(p.positionId) === String(data.positionId),
+          );
+
+          // Robust check for close event or zero quantity
+          const isClose =
+            data.event === "CLOSE" ||
+            (data.qty !== undefined && Number(data.qty) === 0);
+
+          if (isClose) {
+            if (index !== -1) {
+              currentPositions.splice(index, 1);
+            }
+          } else {
+            // OPEN or UPDATE
+            const existing = index !== -1 ? currentPositions[index] : null;
+
+            let side = data.side
+              ? data.side.toLowerCase()
+              : existing
+                ? existing.side
+                : null;
+
+            if (!side) {
+              // Skip invalid updates
+              continue;
+            }
+
+            // Safe Decimal helpers
+            const safeDecimal = (val: any, fallback: Decimal) =>
+              val !== undefined && val !== null ? new Decimal(val) : fallback;
+
+            if (existing) {
+              const newPos: Position = {
+                positionId: data.positionId,
+                symbol: data.symbol,
+                side: side,
+                size: safeDecimal(data.qty, existing.size),
+                entryPrice: safeDecimal(
+                  data.averagePrice || data.avgOpenPrice,
+                  existing.entryPrice,
+                ),
+                leverage: safeDecimal(data.leverage, existing.leverage),
+                unrealizedPnl: safeDecimal(
+                  data.unrealizedPNL,
+                  existing.unrealizedPnl,
+                ),
+                margin: safeDecimal(data.margin, existing.margin),
+                marginMode: data.marginMode
+                  ? data.marginMode.toLowerCase()
+                  : existing.marginMode,
+                liquidationPrice: existing.liquidationPrice,
+                markPrice: existing.markPrice,
+                breakEvenPrice: existing.breakEvenPrice,
+              };
+              currentPositions[index] = newPos;
+            } else {
+              const newPos: Position = {
+                positionId: data.positionId,
+                symbol: data.symbol,
+                side: side,
+                size: new Decimal(data.qty || 0),
+                entryPrice: new Decimal(
+                  data.averagePrice || data.avgOpenPrice || 0,
+                ),
+                leverage: new Decimal(data.leverage || 0),
+                unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
+                margin: new Decimal(data.margin || 0),
+                marginMode: data.marginMode
+                  ? data.marginMode.toLowerCase()
+                  : "cross",
+                liquidationPrice: new Decimal(0),
+                markPrice: new Decimal(0),
+                breakEvenPrice: new Decimal(0),
+              };
+              currentPositions.push(newPos);
+            }
+          }
+        }
+        return { ...store, positions: currentPositions };
+      });
+    },
+
+    updateOrdersBatch: (dataList: any[]) => {
+      if (!Array.isArray(dataList) || dataList.length === 0) return;
+
+      update((store) => {
+        const currentOrders = [...store.openOrders];
+
+        for (const data of dataList) {
+          const index = currentOrders.findIndex(
+            (o) => String(o.orderId) === String(data.orderId),
+          );
+
+          const isClosed = [
+            "FILLED",
+            "CANCELED",
+            "PART_FILLED_CANCELED",
+          ].includes(data.orderStatus);
+
+          if (isClosed) {
+            if (index !== -1) {
+              currentOrders.splice(index, 1);
+            }
+          } else {
+            const existing = index !== -1 ? currentOrders[index] : null;
+
+            if (existing) {
+              const safeDecimal = (val: any, fallback: Decimal) =>
+                val !== undefined && val !== null ? new Decimal(val) : fallback;
+
+              const newOrder: OpenOrder = {
+                orderId: data.orderId,
+                symbol: data.symbol,
+                side: data.side ? data.side.toLowerCase() : existing.side,
+                type: data.type ? data.type.toLowerCase() : existing.type,
+                price: safeDecimal(data.price, existing.price),
+                amount: safeDecimal(data.qty, existing.amount),
+                filled: safeDecimal(data.dealAmount, existing.filled),
+                status: data.orderStatus || existing.status,
+                timestamp: parseTimestamp(data.ctime) || existing.timestamp,
+              };
+              currentOrders[index] = newOrder;
+            } else {
+              const newOrder: OpenOrder = {
+                orderId: data.orderId,
+                symbol: data.symbol,
+                side: data.side ? data.side.toLowerCase() : "buy",
+                type: data.type ? data.type.toLowerCase() : "limit",
+                price: new Decimal(data.price || 0),
+                amount: new Decimal(data.qty || 0),
+                filled: new Decimal(data.dealAmount || 0),
+                status: data.orderStatus,
+                timestamp: parseTimestamp(data.ctime) || Date.now(),
+              };
+              currentOrders.push(newOrder);
+            }
+          }
+        }
+        return { ...store, openOrders: currentOrders };
+      });
+    },
+
+    updateBalanceBatch: (dataList: any[]) => {
+      if (!Array.isArray(dataList) || dataList.length === 0) return;
+
+      update((store) => {
+        const currentAssets = [...store.assets];
+
+        for (const data of dataList) {
+          if (data.coin === "USDT") {
+            const idx = currentAssets.findIndex((a) => a.currency === "USDT");
+
+            const newAsset = {
+              currency: "USDT",
+              available: new Decimal(data.available || 0),
+              margin: new Decimal(data.margin || 0),
+              frozen: new Decimal(data.frozen || 0),
+              total: new Decimal(data.available || 0)
+                .plus(new Decimal(data.margin || 0))
+                .plus(new Decimal(data.frozen || 0)),
+            };
+
+            if (idx !== -1) {
+              currentAssets[idx] = newAsset;
+            } else {
+              currentAssets.push(newAsset);
+            }
+          }
+        }
+        return { ...store, assets: currentAssets };
+      });
+    }
   };
 }
 

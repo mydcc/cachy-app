@@ -697,30 +697,29 @@ class BitunixWebSocketService {
       else if (message.ch === "position") {
         const data = message.data;
         if (data) {
+          // Robustness Fix: Use Batch Updates to prevent UI freeze on snapshots
           if (Array.isArray(data)) {
-            data.forEach((item: any) =>
-              accountStore.updatePositionFromWs(item),
-            );
+            accountStore.updatePositionsBatch(data);
           } else {
-            accountStore.updatePositionFromWs(data);
+            accountStore.updatePositionsBatch([data]);
           }
         }
       } else if (message.ch === "order") {
         const data = message.data;
         if (data) {
           if (Array.isArray(data)) {
-            data.forEach((item: any) => accountStore.updateOrderFromWs(item));
+            accountStore.updateOrdersBatch(data);
           } else {
-            accountStore.updateOrderFromWs(data);
+            accountStore.updateOrdersBatch([data]);
           }
         }
       } else if (message.ch === "wallet") {
         const data = message.data;
         if (data) {
           if (Array.isArray(data)) {
-            data.forEach((item: any) => accountStore.updateBalanceFromWs(item));
+            accountStore.updateBalanceBatch(data);
           } else {
-            accountStore.updateBalanceFromWs(data);
+            accountStore.updateBalanceBatch([data]);
           }
         }
       }

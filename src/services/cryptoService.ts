@@ -22,6 +22,9 @@ import CryptoJS from "crypto-js";
  * This is used to protect sensitive data in backups.
  */
 
+const STRONG_ITERATIONS = 600000;
+const LEGACY_ITERATIONS = 10000;
+
 /**
  * Encrypts a string using a password with robust PBKDF2 key derivation.
  * Returns an object with the encrypted data, salt, and IV.
@@ -33,10 +36,10 @@ export async function encrypt(
   // 1. Generate random Salt (128-bit)
   const salt = CryptoJS.lib.WordArray.random(128 / 8);
 
-  // 2. Derive Key (256-bit) using PBKDF2 with 10k iterations
+  // 2. Derive Key (256-bit) using PBKDF2 with 600k iterations (OWASP recommendation)
   const key = CryptoJS.PBKDF2(password, salt, {
     keySize: 256 / 32,
-    iterations: 10000,
+    iterations: STRONG_ITERATIONS,
   });
 
   // 3. Generate random IV (128-bit)
@@ -58,6 +61,7 @@ export async function encrypt(
 
 /**
  * Decrypts ciphertext using PBKDF2 derived key (Standard for Backup V3+).
+ * Auto-detects iteration count by trying Strong first, then Legacy.
  */
 export async function decrypt(
   ciphertext: string,
@@ -65,31 +69,44 @@ export async function decrypt(
   saltB64: string,
   ivB64: string,
 ): Promise<string> {
-  try {
-    const salt = CryptoJS.enc.Base64.parse(saltB64);
-    const iv = CryptoJS.enc.Base64.parse(ivB64);
+  const salt = CryptoJS.enc.Base64.parse(saltB64);
+  const iv = CryptoJS.enc.Base64.parse(ivB64);
 
-    const key = CryptoJS.PBKDF2(password, salt, {
-      keySize: 256 / 32,
-      iterations: 10000,
-    });
+  // Helper to try decryption with specific iterations
+  const tryDecrypt = (iterations: number): string | null => {
+    try {
+      const key = CryptoJS.PBKDF2(password, salt, {
+        keySize: 256 / 32,
+        iterations: iterations,
+      });
 
-    const bytes = CryptoJS.AES.decrypt(ciphertext, key, {
-      iv: iv,
-      mode: CryptoJS.mode.CBC,
-      padding: CryptoJS.pad.Pkcs7,
-    });
+      const bytes = CryptoJS.AES.decrypt(ciphertext, key, {
+        iv: iv,
+        mode: CryptoJS.mode.CBC,
+        padding: CryptoJS.pad.Pkcs7,
+      });
 
-    const decryptedText = bytes.toString(CryptoJS.enc.Utf8);
-
-    if (!decryptedText) {
-      throw new Error("Decryption failed. Probably wrong password.");
+      const text = bytes.toString(CryptoJS.enc.Utf8);
+      // Basic validation: Decrypted text must be non-empty string
+      return text && text.length > 0 ? text : null;
+    } catch (e) {
+      return null;
     }
+  };
 
-    return decryptedText;
-  } catch (e) {
+  // 1. Try Strong Iterations (New Standard)
+  let decryptedText = tryDecrypt(STRONG_ITERATIONS);
+
+  // 2. If failed, try Legacy Iterations (Backward Compatibility)
+  if (!decryptedText) {
+    decryptedText = tryDecrypt(LEGACY_ITERATIONS);
+  }
+
+  if (!decryptedText) {
     throw new Error("Decryption failed. Probably wrong password.");
   }
+
+  return decryptedText;
 }
 
 /**
