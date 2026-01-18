@@ -148,9 +148,19 @@ class BitunixWebSocketService {
   private connectPublic() {
     if (this.isDestroyed) return;
 
+    // Clean up any pending reconnect timer to prevent race conditions
+    if (this.reconnectTimerPublic) {
+      clearTimeout(this.reconnectTimerPublic);
+      this.reconnectTimerPublic = null;
+    }
+
     // Check if we can start connecting
     const currentState = this.fsmPublic.currentState;
-    if (currentState === WsState.CONNECTED || currentState === WsState.CONNECTING) return;
+    if (
+      currentState === WsState.CONNECTED ||
+      currentState === WsState.CONNECTING
+    )
+      return;
 
     this.fsmPublic.transition(WsEvent.START);
 
@@ -225,8 +235,20 @@ class BitunixWebSocketService {
 
     if (!apiKey || !apiSecret) return;
 
+    // Clean up any pending reconnect timer
+    if (this.reconnectTimerPrivate) {
+      clearTimeout(this.reconnectTimerPrivate);
+      this.reconnectTimerPrivate = null;
+    }
+
     const currentState = this.fsmPrivate.currentState;
-    if (currentState === WsState.CONNECTED || currentState === WsState.AUTHENTICATED || currentState === WsState.AUTHENTICATING || currentState === WsState.CONNECTING) return;
+    if (
+      currentState === WsState.CONNECTED ||
+      currentState === WsState.AUTHENTICATED ||
+      currentState === WsState.AUTHENTICATING ||
+      currentState === WsState.CONNECTING
+    )
+      return;
 
     this.fsmPrivate.transition(WsEvent.START);
 
@@ -305,15 +327,30 @@ class BitunixWebSocketService {
       );
       this.publicRetryCount++;
 
-      console.log(`Scheduling Public Reconnect in ${delay}ms... (Attempt ${this.publicRetryCount})`);
+      // Robustness: Check state again before scheduling
+      if (
+        this.fsmPublic.currentState === WsState.CONNECTED ||
+        this.fsmPublic.currentState === WsState.CONNECTING
+      )
+        return;
+
+      // console.debug(`Scheduling Public Reconnect in ${delay}ms... (Attempt ${this.publicRetryCount})`);
       this.reconnectTimerPublic = setTimeout(() => {
         this.reconnectTimerPublic = null;
         this.fsmPublic.transition(WsEvent.RETRY); // Transition state back to CONNECTING
         this.connectPublic();
       }, delay);
-
     } else {
       if (this.reconnectTimerPrivate) return;
+
+      // Robustness: Check state
+      if (
+        this.fsmPrivate.currentState === WsState.CONNECTED ||
+        this.fsmPrivate.currentState === WsState.CONNECTING ||
+        this.fsmPrivate.currentState === WsState.AUTHENTICATING ||
+        this.fsmPrivate.currentState === WsState.AUTHENTICATED
+      )
+        return;
 
       const delay = Math.min(
         RECONNECT_DELAY * Math.pow(1.5, this.privateRetryCount),
@@ -321,7 +358,7 @@ class BitunixWebSocketService {
       );
       this.privateRetryCount++;
 
-      console.log(`Scheduling Private Reconnect in ${delay}ms... (Attempt ${this.privateRetryCount})`);
+      // console.debug(`Scheduling Private Reconnect in ${delay}ms... (Attempt ${this.privateRetryCount})`);
       this.reconnectTimerPrivate = setTimeout(() => {
         this.reconnectTimerPrivate = null;
         this.fsmPrivate.transition(WsEvent.RETRY);

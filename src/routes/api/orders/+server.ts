@@ -59,7 +59,8 @@ export const POST: RequestHandler = async ({ request }) => {
     if (type === "place-order" || type === "close-position") {
       // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
       const rawQty = type === "close-position" ? body.amount : body.qty;
-      const qty = parseFloat(rawQty);
+      // Strict check: must be string or number convertible to positive number
+      const qty = parseFloat(String(rawQty));
 
       if (isNaN(qty) || qty <= 0) {
         return json(
@@ -77,7 +78,10 @@ export const POST: RequestHandler = async ({ request }) => {
       }
 
       if (!body.symbol || typeof body.symbol !== "string") {
-        return json({ error: "Symbol is required and must be a string." }, { status: 400 });
+        return json(
+          { error: "Symbol is required and must be a string." },
+          { status: 400 },
+        );
       }
 
       // Check price for Limit orders (place-order only usually)
@@ -99,15 +103,19 @@ export const POST: RequestHandler = async ({ request }) => {
           );
         }
 
-        if (orderType === "LIMIT" || orderType === "STOP_LIMIT" || orderType === "TAKE_PROFIT_LIMIT") {
-            // Price validation
-            const price = parseFloat(body.price);
-            if (isNaN(price) || price <= 0) {
-              return json(
-                { error: "Invalid price for LIMIT/STOP order." },
-                { status: 400 },
-              );
-            }
+        if (
+          orderType === "LIMIT" ||
+          orderType === "STOP_LIMIT" ||
+          orderType === "TAKE_PROFIT_LIMIT"
+        ) {
+          // Price validation
+          const price = parseFloat(String(body.price));
+          if (isNaN(price) || price <= 0) {
+            return json(
+              { error: "Invalid price for LIMIT/STOP order." },
+              { status: 400 },
+            );
+          }
         }
       }
     }
@@ -123,13 +131,25 @@ export const POST: RequestHandler = async ({ request }) => {
         const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret);
         result = { orders };
       } else if (type === "place-order") {
-        const orderPayload = body as BitunixOrderPayload;
+        // Safe Construction of Payload after validation above
+        const orderPayload: BitunixOrderPayload = {
+          symbol: body.symbol,
+          side: body.side,
+          type: body.type,
+          qty: String(body.qty), // Ensure string
+          price: body.price ? String(body.price) : undefined,
+          reduceOnly: !!body.reduceOnly,
+          triggerPrice: body.triggerPrice
+            ? String(body.triggerPrice)
+            : undefined,
+          stopPrice: body.stopPrice ? String(body.stopPrice) : undefined,
+        };
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
         // Double check amount before creating close order
-        const amount = parseFloat(body.amount);
+        const amount = parseFloat(String(body.amount));
         if (isNaN(amount) || amount <= 0) {
-           throw new Error("Invalid amount for closing position");
+          throw new Error("Invalid amount for closing position");
         }
 
         // To close a position, we place a MARKET order in the opposite direction
@@ -137,7 +157,7 @@ export const POST: RequestHandler = async ({ request }) => {
           symbol: body.symbol,
           side: body.side, // Must be opposite of position
           type: "MARKET",
-          qty: body.amount,
+          qty: String(body.amount),
           reduceOnly: true,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
@@ -147,7 +167,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(result);
-  } catch (e: any) {
+  } catch (e: unknown) {
     // Sanitize error log to prevent leaking API keys/headers (which might be in the error object properties)
     const errorMsg = e instanceof Error ? e.message : String(e);
 
