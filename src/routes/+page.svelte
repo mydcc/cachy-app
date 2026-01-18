@@ -878,6 +878,19 @@
       name: "ShowWhitepaper",
     }}>{$_("app.whitepaper")}</button
   >
+  <a
+    href="https://github.com/mydcc/cachy-app"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="text-link"
+    use:trackClick={{
+      category: "Navigation",
+      action: "Click",
+      name: "GitHub",
+    }}
+  >
+    GitHub
+  </a>
   <button
     class="text-link {$settingsStore.isPro ? 'text-green-500 font-bold' : ''}"
     onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
