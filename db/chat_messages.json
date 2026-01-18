@@ -4,5 +4,11 @@
     "text": "Welcome to the global chat!",
     "sender": "system",
     "timestamp": 1768714131353
+  },
+  {
+    "id": "3073c2ce-2881-409f-91fe-85d5e50b4d98",
+    "text": "Hello World",
+    "sender": "user",
+    "timestamp": 1768766422974
   }
 ]
