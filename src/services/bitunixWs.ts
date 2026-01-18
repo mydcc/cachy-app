@@ -97,34 +97,60 @@ class BitunixWebSocketService {
       window.addEventListener("offline", this.handleOffline);
     }
 
-    // Sync Public FSM state to UI Store
-    this.fsmPublic.stateStore.subscribe((state) => {
-      switch (state) {
-        case WsState.CONNECTED:
-        case WsState.AUTHENTICATED:
-          wsStatusStore.set("connected");
-          break;
-        case WsState.CONNECTING:
-        case WsState.AUTHENTICATING:
-          wsStatusStore.set("connecting");
-          break;
-        case WsState.RECONNECTING:
-          wsStatusStore.set("reconnecting");
-          this.scheduleReconnect("public");
-          break;
-        case WsState.DISCONNECTED:
-        case WsState.ERROR:
-          wsStatusStore.set("disconnected");
-          break;
-      }
-    });
+    // Sync BOTH FSM states to UI Store
+    this.fsmPublic.stateStore.subscribe(() => this.syncStoresWithFSMs());
+    this.fsmPrivate.stateStore.subscribe(() => this.syncStoresWithFSMs());
+  }
 
-    // Handle Private FSM Reconnection logic via callback or subscription
-    this.fsmPrivate.stateStore.subscribe((state) => {
-      if (state === WsState.RECONNECTING) {
-        this.scheduleReconnect("private");
-      }
-    });
+  private syncStoresWithFSMs() {
+    const pubState = this.fsmPublic.currentState;
+    const privState = this.fsmPrivate.currentState;
+
+    // 1. Reconnection Logic (Side Effects)
+    if (pubState === WsState.RECONNECTING) {
+      this.scheduleReconnect("public");
+    }
+    if (privState === WsState.RECONNECTING) {
+      this.scheduleReconnect("private");
+    }
+
+    // 2. UI Status Logic (Combined)
+    // Priority: RECONNECTING > CONNECTING/AUTHENTICATING > ERROR > CONNECTED
+
+    // If any is reconnecting, show reconnecting
+    if (pubState === WsState.RECONNECTING || privState === WsState.RECONNECTING) {
+      wsStatusStore.set("reconnecting");
+      return;
+    }
+
+    // If any is connecting/authenticating, show connecting
+    if (
+      pubState === WsState.CONNECTING ||
+      privState === WsState.CONNECTING ||
+      privState === WsState.AUTHENTICATING
+    ) {
+      wsStatusStore.set("connecting");
+      return;
+    }
+
+    // Only set connected if BOTH are in a "ready" state
+    // Public is ready if CONNECTED or AUTHENTICATED
+    // Private is ready ONLY if AUTHENTICATED (because we need auth for orders)
+
+    // Check if API keys are even configured
+    const settings = get(settingsStore);
+    const hasKeys = !!(settings.apiKeys?.bitunix?.key && settings.apiKeys?.bitunix?.secret);
+
+    const pubReady = pubState === WsState.CONNECTED || pubState === WsState.AUTHENTICATED;
+    const privReady = hasKeys ? (privState === WsState.AUTHENTICATED) : true;
+
+    if (pubReady && privReady) {
+      wsStatusStore.set("connected");
+    } else if (pubState === WsState.ERROR || privState === WsState.ERROR) {
+      wsStatusStore.set("error");
+    } else {
+      wsStatusStore.set("disconnected");
+    }
   }
 
   destroy() {
@@ -358,11 +384,13 @@ class BitunixWebSocketService {
         // Check if previous ping was answered
         if (type === "public" && this.awaitingPongPublic) {
           console.warn("Bitunix Public WS: Pong timeout. Reconnecting...");
-          ws.close(); // Force reconnect
+          this.fsmPublic.transition(WsEvent.ERROR);
+          ws.close();
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
           console.warn("Bitunix Private WS: Pong timeout. Reconnecting...");
+          this.fsmPrivate.transition(WsEvent.ERROR);
           ws.close();
           return;
         }
