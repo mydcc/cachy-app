@@ -143,7 +143,7 @@ Contributions are welcome! Please follow these steps:
 
 This project is published under the [GNU Affero General Public License v3.0 (AGPLv3)](LICENSE).
 
-Copyright (C) 2025 MYDCT
+Copyright (C) 2026 MYDCT
 
 ---
 
