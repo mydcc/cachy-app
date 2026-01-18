@@ -25,7 +25,7 @@
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
-  import DOMPurify from "dompurify";
+  import * as DOMPurify from "dompurify";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | undefined = $state();
