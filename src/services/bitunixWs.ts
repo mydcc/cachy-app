@@ -1,19 +1,19 @@
 /*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
+* Copyright (C) 2026 MYDCT
+*
+* This program is free software: you can redistribute it and/or modify
+* it under the terms of the GNU Affero General Public License as published by
+* the Free Software Foundation, either version 3 of the License, or
+* (at your option) any later version.
+*
+* This program is distributed in the hope that it will be useful,
+* but WITHOUT ANY WARRANTY; without even the implied warranty of
+* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+* GNU Affero General Public License for more details.
+*
+* You should have received a copy of the GNU Affero General Public License
+* along with this program.  If not, see <https://www.gnu.org/licenses/>.
+*/
 
 import { writable, get } from "svelte/store";
 import { marketStore, wsStatusStore } from "../stores/marketStore";
@@ -21,7 +21,6 @@ import { accountStore } from "../stores/accountStore";
 import { settingsStore } from "../stores/settingsStore";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
-import { WSStateMachine, WsState, WsEvent } from "./wsStateMachine";
 import CryptoJS from "crypto-js";
 import type {
   BitunixWSMessage,
@@ -34,10 +33,9 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 2000; // 2 seconds (aggressive)
-const WATCHDOG_TIMEOUT = 4000; // 4 seconds (strict)
+const PING_INTERVAL = 5000; // 5 seconds
+const WATCHDOG_TIMEOUT = 10000; // 10 seconds
 const RECONNECT_DELAY = 1000; // 1 second
-const MAX_RETRIES = 5;
 
 interface Subscription {
   symbol: string;
@@ -48,26 +46,23 @@ class BitunixWebSocketService {
   private wsPublic: WebSocket | null = null;
   private wsPrivate: WebSocket | null = null;
 
-  // State Machines
-  private fsmPublic = new WSStateMachine();
-  private fsmPrivate = new WSStateMachine();
-
   private pingTimerPublic: any = null;
   private pingTimerPrivate: any = null;
 
   private watchdogTimerPublic: any = null;
   private watchdogTimerPrivate: any = null;
 
-  private lastActivityPublic = 0;
-  private lastActivityPrivate = 0;
+  private lastWatchdogResetPublic = 0;
+  private lastWatchdogResetPrivate = 0;
+  private readonly WATCHDOG_THROTTLE_MS = 2000; // Reset watchdog max every 2 seconds
 
   public publicSubscriptions: Set<string> = new Set();
 
   private reconnectTimerPublic: any = null;
   private reconnectTimerPrivate: any = null;
 
-  private publicRetryCount = 0;
-  private privateRetryCount = 0;
+  private isReconnectingPublic = false;
+  private isReconnectingPrivate = false;
 
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
@@ -76,6 +71,7 @@ class BitunixWebSocketService {
   private connectionTimeoutPrivate: any = null;
   private readonly CONNECTION_TIMEOUT_MS = 10000; // 10 seconds
 
+  private isAuthenticated = false;
   private isDestroyed = false;
 
   private handleOnline = () => {
@@ -85,13 +81,9 @@ class BitunixWebSocketService {
 
   private handleOffline = () => {
     wsStatusStore.set("disconnected");
-    // Transition to ERROR to trigger RECONNECTING state
-    if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
-      this.fsmPublic.transition(WsEvent.ERROR);
-    }
-    if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
-      this.fsmPrivate.transition(WsEvent.ERROR);
-    }
+    // Just trigger reconnection, don't kill the timers
+    this.scheduleReconnect("public");
+    this.scheduleReconnect("private");
   };
 
   constructor() {
@@ -99,46 +91,14 @@ class BitunixWebSocketService {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
     }
-
-    // Sync Public FSM state to UI Store
-    this.fsmPublic.stateStore.subscribe((state) => {
-      switch (state) {
-        case WsState.CONNECTED:
-        case WsState.AUTHENTICATED:
-          wsStatusStore.set("connected");
-          break;
-        case WsState.CONNECTING:
-        case WsState.AUTHENTICATING:
-          wsStatusStore.set("connecting");
-          break;
-        case WsState.RECONNECTING:
-          wsStatusStore.set("disconnected");
-          this.scheduleReconnect("public");
-          break;
-        case WsState.DISCONNECTED:
-        case WsState.ERROR:
-          wsStatusStore.set("disconnected");
-          break;
-      }
-    });
-
-    // Handle Private FSM Reconnection logic via callback or subscription
-    this.fsmPrivate.stateStore.subscribe((state) => {
-      if (state === WsState.RECONNECTING) {
-        this.scheduleReconnect("private");
-      }
-    });
   }
 
   destroy() {
     this.isDestroyed = true;
-    wsStatusStore.set("disconnected");
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.handleOnline);
       window.removeEventListener("offline", this.handleOffline);
     }
-    this.fsmPublic.transition(WsEvent.STOP);
-    this.fsmPrivate.transition(WsEvent.STOP);
     this.cleanup("public");
     this.cleanup("private");
   }
@@ -148,201 +108,218 @@ class BitunixWebSocketService {
     this.connectPrivate();
   }
 
-  private connectSocket(type: "public" | "private", url: string) {
+  private connectPublic() {
     if (this.isDestroyed) return;
 
-    // 1. Cleanup Reconnect Timers
-    if (type === "public") {
-      if (this.reconnectTimerPublic) {
-        clearTimeout(this.reconnectTimerPublic);
-        this.reconnectTimerPublic = null;
+    if (this.wsPublic) {
+      if (
+        this.wsPublic.readyState === WebSocket.OPEN ||
+        this.wsPublic.readyState === WebSocket.CONNECTING
+      ) {
+        return;
       }
-    } else {
-      if (this.reconnectTimerPrivate) {
-        clearTimeout(this.reconnectTimerPrivate);
-        this.reconnectTimerPrivate = null;
+      if (this.wsPublic.readyState === WebSocket.CLOSING) {
+        this.cleanup("public");
       }
     }
 
-    // 2. Check FSM State
-    const fsm = type === "public" ? this.fsmPublic : this.fsmPrivate;
-    const currentState = fsm.currentState;
-    const activeStates = [
-      WsState.CONNECTED,
-      WsState.CONNECTING,
-      WsState.AUTHENTICATED,
-      WsState.AUTHENTICATING,
-    ];
+    wsStatusStore.set("connecting");
 
-    if (activeStates.includes(currentState)) return;
-
-    fsm.transition(WsEvent.START);
-
-    // 3. Create WebSocket
     let ws: WebSocket;
     try {
-      ws = new WebSocket(url);
-      if (type === "public") this.wsPublic = ws;
-      else this.wsPrivate = ws;
+      ws = new WebSocket(WS_PUBLIC_URL);
+      this.wsPublic = ws;
 
-      this.setupConnectionTimeout(type, ws);
+      // Set connection timeout to detect hanging initial connections
+      if (this.connectionTimeoutPublic)
+        clearTimeout(this.connectionTimeoutPublic);
+      this.connectionTimeoutPublic = setTimeout(() => {
+        if (this.isDestroyed) return;
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.warn(
+            "Bitunix Public WS Connection Timeout. Closing to trigger retry.",
+          );
+          // P0 Fix: Explicit cleanup to prevent timer leaks
+          if (this.wsPublic === ws) {
+            this.cleanup("public");
+            this.scheduleReconnect("public");
+          } else {
+            ws.close();
+          }
+        }
+      }, this.CONNECTION_TIMEOUT_MS);
     } catch (e) {
-      console.error(`Failed to create ${type} WS:`, e);
-      fsm.transition(WsEvent.ERROR);
+      console.error("Failed to create Public WS:", e);
+      this.scheduleReconnect("public");
       return;
     }
 
-    // 4. Bind Handlers
     ws.onopen = () => {
-      this.clearConnectionTimeout(type);
-      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
-      if (currentWs !== ws) return;
+      if (this.connectionTimeoutPublic)
+        clearTimeout(this.connectionTimeoutPublic);
 
-      fsm.transition(WsEvent.OPEN);
+      // Only proceed if this is still the active socket
+      if (this.wsPublic !== ws) return;
 
-      if (type === "public") this.publicRetryCount = 0;
-      else this.privateRetryCount = 0;
+      wsStatusStore.set("connected");
+      this.isReconnectingPublic = false;
 
-      this.startHeartbeat(ws, type);
-      this.startWatchdog(type, ws);
-
-      if (type === "public") {
-        this.resubscribePublic();
-      } else {
-        const settings = get(settingsStore);
-        const apiKey = settings.apiKeys?.bitunix?.key;
-        const apiSecret = settings.apiKeys?.bitunix?.secret;
-        if (apiKey && apiSecret) {
-          fsm.transition(WsEvent.LOGIN_REQ);
-          this.login(apiKey, apiSecret);
-        }
-      }
+      this.startHeartbeat(ws, "public");
+      // Initialize watchdog immediately on connection
+      this.resetWatchdog("public", ws);
+      this.resubscribePublic();
     };
 
     ws.onmessage = (event) => {
-      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
-      if (currentWs !== ws) return;
+      // Check if this socket is still active
+      if (this.wsPublic !== ws) return;
+
       try {
-        this.setLastActivity(type, Date.now());
+        // Reset watchdog on ANY activity (throttled to avoid excessive timers)
+        const now = Date.now();
+        if (now - this.lastWatchdogResetPublic > 5000) {
+          // Throttle to 5s
+          this.resetWatchdog("public", ws);
+          this.lastWatchdogResetPublic = now;
+        }
+
         const message = JSON.parse(event.data);
-        this.handleMessage(message, type);
+        this.handleMessage(message, "public");
       } catch (e) {
-        console.error(`Error parsing ${type} WS message:`, e);
+        console.error("Error parsing Public WS message:", e);
       }
     };
 
     ws.onclose = () => {
       if (this.isDestroyed) return;
-      const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
-      if (currentWs === ws) {
-        this.cleanup(type);
-        fsm.transition(WsEvent.CLOSE);
+      if (this.wsPublic === ws) {
+        wsStatusStore.set("reconnecting");
+        this.cleanup("public");
+        this.scheduleReconnect("public");
       }
     };
 
     ws.onerror = (error) => {
-      console.error(`Bitunix ${type} WebSocket error:`, error);
+      console.error("Bitunix Public WebSocket error:", error);
     };
   }
 
-  private connectPublic() {
-    this.connectSocket("public", WS_PUBLIC_URL);
-  }
-
   private connectPrivate() {
-    // Validate keys before connecting (optimization)
+    if (this.isDestroyed) return;
+
     const settings = get(settingsStore);
-    if (!settings.apiKeys?.bitunix?.key || !settings.apiKeys?.bitunix?.secret) return;
-    this.connectSocket("private", WS_PRIVATE_URL);
-  }
+    const apiKey = settings.apiKeys?.bitunix?.key;
+    const apiSecret = settings.apiKeys?.bitunix?.secret;
 
-  private setupConnectionTimeout(type: "public" | "private", ws: WebSocket) {
-    this.clearConnectionTimeout(type);
-    const timeoutId = setTimeout(() => {
-      if (this.isDestroyed) return;
-      if (ws.readyState !== WebSocket.OPEN) {
-        console.warn(`Bitunix ${type} WS Timeout`);
-        const currentWs = type === "public" ? this.wsPublic : this.wsPrivate;
-        if (currentWs === ws) {
-          this.cleanup(type);
-          const fsm = type === "public" ? this.fsmPublic : this.fsmPrivate;
-          fsm.transition(WsEvent.ERROR);
-        } else {
-          ws.close();
-        }
-      }
-    }, this.CONNECTION_TIMEOUT_MS);
-
-    if (type === "public") this.connectionTimeoutPublic = timeoutId;
-    else this.connectionTimeoutPrivate = timeoutId;
-  }
-
-  private clearConnectionTimeout(type: "public" | "private") {
-    if (type === "public") {
-      if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
-      this.connectionTimeoutPublic = null;
-    } else {
-      if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
-      this.connectionTimeoutPrivate = null;
+    if (!apiKey || !apiSecret) {
+      return;
     }
-  }
 
-  private setLastActivity(type: "public" | "private", time: number) {
-    if (type === "public") this.lastActivityPublic = time;
-    else this.lastActivityPrivate = time;
+    if (this.wsPrivate) {
+      if (
+        this.wsPrivate.readyState === WebSocket.OPEN ||
+        this.wsPrivate.readyState === WebSocket.CONNECTING
+      ) {
+        return;
+      }
+      if (this.wsPrivate.readyState === WebSocket.CLOSING) {
+        this.cleanup("private");
+      }
+    }
+
+    let ws: WebSocket;
+    try {
+      ws = new WebSocket(WS_PRIVATE_URL);
+      this.wsPrivate = ws;
+
+      // Set connection timeout
+      if (this.connectionTimeoutPrivate)
+        clearTimeout(this.connectionTimeoutPrivate);
+      this.connectionTimeoutPrivate = setTimeout(() => {
+        if (this.isDestroyed) return;
+        if (ws.readyState !== WebSocket.OPEN) {
+          console.warn(
+            "Bitunix Private WS Connection Timeout. Closing to trigger retry.",
+          );
+          // P0 Fix: Explicit cleanup to prevent timer leaks
+          if (this.wsPrivate === ws) {
+            this.cleanup("private");
+            this.scheduleReconnect("private");
+          } else {
+            ws.close();
+          }
+        }
+      }, this.CONNECTION_TIMEOUT_MS);
+    } catch (e) {
+      console.error("Failed to create Private WS:", e);
+      this.scheduleReconnect("private");
+      return;
+    }
+
+    ws.onopen = () => {
+      if (this.connectionTimeoutPrivate)
+        clearTimeout(this.connectionTimeoutPrivate);
+      if (this.wsPrivate !== ws) return;
+
+      this.isReconnectingPrivate = false;
+      this.startHeartbeat(ws, "private");
+      this.resetWatchdog("private", ws);
+      this.login(apiKey, apiSecret);
+    };
+
+    ws.onmessage = (event) => {
+      // Check if this socket is still active
+      if (this.wsPrivate !== ws) return;
+
+      try {
+        // Reset watchdog on ANY activity (throttled)
+        const now = Date.now();
+        if (now - this.lastWatchdogResetPrivate > this.WATCHDOG_THROTTLE_MS) {
+          this.resetWatchdog("private", ws);
+          this.lastWatchdogResetPrivate = now;
+        }
+
+        const message = JSON.parse(event.data);
+        this.handleMessage(message, "private");
+      } catch (e) {
+        console.error("Error parsing Private WS message:", e);
+      }
+    };
+
+    ws.onclose = () => {
+      if (this.isDestroyed) return;
+      if (this.wsPrivate === ws) {
+        this.isAuthenticated = false;
+        this.cleanup("private");
+        this.scheduleReconnect("private");
+      }
+    };
+
+    ws.onerror = (error) => {
+      console.error("Bitunix Private WebSocket error:", error);
+    };
   }
 
   private scheduleReconnect(type: "public" | "private") {
     if (this.isDestroyed) return;
 
     if (type === "public") {
-      // Logic handled by FSM subscription mostly, creates loop if we call it blindly.
-      // We checks if timer already running.
-      if (this.reconnectTimerPublic) return;
-
-      const delay = Math.min(
-        RECONNECT_DELAY * Math.pow(1.5, this.publicRetryCount),
-        30000
-      );
-      this.publicRetryCount++;
-
-      // Robustness: Check state again before scheduling
-      if (
-        this.fsmPublic.currentState === WsState.CONNECTED ||
-        this.fsmPublic.currentState === WsState.CONNECTING
-      )
-        return;
-
-      // console.debug(`Scheduling Public Reconnect in ${delay}ms... (Attempt ${this.publicRetryCount})`);
+      if (this.isReconnectingPublic) return;
+      this.isReconnectingPublic = true;
+      wsStatusStore.set("disconnected");
+      if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
-        this.reconnectTimerPublic = null;
-        this.fsmPublic.transition(WsEvent.RETRY); // Transition state back to CONNECTING
-        this.connectPublic();
-      }, delay);
+        this.isReconnectingPublic = false;
+        if (!this.isDestroyed) this.connectPublic();
+      }, RECONNECT_DELAY);
     } else {
-      if (this.reconnectTimerPrivate) return;
-
-      // Robustness: Check state
-      if (
-        this.fsmPrivate.currentState === WsState.CONNECTED ||
-        this.fsmPrivate.currentState === WsState.CONNECTING ||
-        this.fsmPrivate.currentState === WsState.AUTHENTICATING ||
-        this.fsmPrivate.currentState === WsState.AUTHENTICATED
-      )
-        return;
-
-      const delay = Math.min(
-        RECONNECT_DELAY * Math.pow(1.5, this.privateRetryCount),
-        30000
-      );
-      this.privateRetryCount++;
-
-      // console.debug(`Scheduling Private Reconnect in ${delay}ms... (Attempt ${this.privateRetryCount})`);
+      if (this.isReconnectingPrivate) return;
+      this.isReconnectingPrivate = true;
+      if (this.reconnectTimerPrivate) clearTimeout(this.reconnectTimerPrivate);
       this.reconnectTimerPrivate = setTimeout(() => {
-        this.reconnectTimerPrivate = null;
-        this.fsmPrivate.transition(WsEvent.RETRY);
-        this.connectPrivate();
-      }, delay);
+        this.isReconnectingPrivate = false;
+        if (!this.isDestroyed) this.connectPrivate();
+      }, RECONNECT_DELAY);
     }
   }
 
@@ -361,13 +338,11 @@ class BitunixWebSocketService {
         // Check if previous ping was answered
         if (type === "public" && this.awaitingPongPublic) {
           console.warn("Bitunix Public WS: Pong timeout. Reconnecting...");
-          this.fsmPublic.transition(WsEvent.ERROR); // Force Red Status
           ws.close(); // Force reconnect
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
           console.warn("Bitunix Private WS: Pong timeout. Reconnecting...");
-          this.fsmPrivate.transition(WsEvent.ERROR);
           ws.close();
           return;
         }
@@ -387,45 +362,29 @@ class BitunixWebSocketService {
     else this.pingTimerPrivate = timer;
   }
 
-  private startWatchdog(type: "public" | "private", ws: WebSocket) {
-    // Clear existing watchdog timer
+  private resetWatchdog(type: "public" | "private", ws: WebSocket) {
     if (type === "public") {
-      if (this.watchdogTimerPublic) clearInterval(this.watchdogTimerPublic);
-      this.lastActivityPublic = Date.now();
-    } else {
-      if (this.watchdogTimerPrivate) clearInterval(this.watchdogTimerPrivate);
-      this.lastActivityPrivate = Date.now();
-    }
-
-    const intervalId = setInterval(() => {
+      if (this.watchdogTimerPublic) clearTimeout(this.watchdogTimerPublic);
       // Ensure we are operating on the current socket
-      if (type === "public") {
-        if (ws !== this.wsPublic) {
-          clearInterval(intervalId);
-          return;
-        }
-        if (Date.now() - this.lastActivityPublic > WATCHDOG_TIMEOUT) {
-          console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
-          if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-            this.wsPublic.close();
-          }
-        }
-      } else {
-        if (ws !== this.wsPrivate) {
-          clearInterval(intervalId);
-          return;
-        }
-        if (Date.now() - this.lastActivityPrivate > WATCHDOG_TIMEOUT) {
-          console.warn("Bitunix Private WS Watchdog Timeout. Terminating.");
-          if (this.wsPrivate && this.wsPrivate.readyState === WebSocket.OPEN) {
-            this.wsPrivate.close();
-          }
-        }
-      }
-    }, 1000); // Check every 1 second
+      if (ws !== this.wsPublic) return;
 
-    if (type === "public") this.watchdogTimerPublic = intervalId;
-    else this.watchdogTimerPrivate = intervalId;
+      this.watchdogTimerPublic = setTimeout(() => {
+        console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
+        if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+          this.wsPublic.close(); // Force close to trigger onclose -> reconnect
+        }
+      }, WATCHDOG_TIMEOUT);
+    } else {
+      if (this.watchdogTimerPrivate) clearTimeout(this.watchdogTimerPrivate);
+      if (ws !== this.wsPrivate) return;
+
+      this.watchdogTimerPrivate = setTimeout(() => {
+        console.warn("Bitunix Private WS Watchdog Timeout. Terminating.");
+        if (this.wsPrivate && this.wsPrivate.readyState === WebSocket.OPEN) {
+          this.wsPrivate.close();
+        }
+      }, WATCHDOG_TIMEOUT);
+    }
   }
 
   private stopHeartbeat(type: "public" | "private") {
@@ -435,7 +394,7 @@ class BitunixWebSocketService {
         this.pingTimerPublic = null;
       }
       if (this.watchdogTimerPublic) {
-        clearInterval(this.watchdogTimerPublic);
+        clearTimeout(this.watchdogTimerPublic);
         this.watchdogTimerPublic = null;
       }
     } else {
@@ -444,7 +403,7 @@ class BitunixWebSocketService {
         this.pingTimerPrivate = null;
       }
       if (this.watchdogTimerPrivate) {
-        clearInterval(this.watchdogTimerPrivate);
+        clearTimeout(this.watchdogTimerPrivate);
         this.watchdogTimerPrivate = null;
       }
     }
@@ -457,13 +416,9 @@ class BitunixWebSocketService {
         clearTimeout(this.connectionTimeoutPublic);
         this.connectionTimeoutPublic = null;
       }
-
-      // Protect Reconnect Timer if we are in loop
-      if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
-        if (this.reconnectTimerPublic) {
-          clearTimeout(this.reconnectTimerPublic);
-          this.reconnectTimerPublic = null;
-        }
+      if (this.reconnectTimerPublic) {
+        clearTimeout(this.reconnectTimerPublic);
+        this.reconnectTimerPublic = null;
       }
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
@@ -478,17 +433,15 @@ class BitunixWebSocketService {
         }
       }
       this.wsPublic = null;
+      this.isReconnectingPublic = false;
     } else {
       if (this.connectionTimeoutPrivate) {
         clearTimeout(this.connectionTimeoutPrivate);
         this.connectionTimeoutPrivate = null;
       }
-
-      if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
-        if (this.reconnectTimerPrivate) {
-          clearTimeout(this.reconnectTimerPrivate);
-          this.reconnectTimerPrivate = null;
-        }
+      if (this.reconnectTimerPrivate) {
+        clearTimeout(this.reconnectTimerPrivate);
+        this.reconnectTimerPrivate = null;
       }
       if (this.wsPrivate) {
         this.wsPrivate.onopen = null;
@@ -503,6 +456,7 @@ class BitunixWebSocketService {
         }
       }
       this.wsPrivate = null;
+      this.isReconnectingPrivate = false;
     }
   }
 
@@ -604,7 +558,7 @@ class BitunixWebSocketService {
           message.code === "0" ||
           message.msg === "success"
         ) {
-          this.fsmPrivate.transition(WsEvent.LOGIN_OK);
+          this.isAuthenticated = true;
           this.subscribePrivate();
         } else {
           console.error("Bitunix Login Failed:", message);
@@ -727,29 +681,30 @@ class BitunixWebSocketService {
       else if (message.ch === "position") {
         const data = message.data;
         if (data) {
-          // Robustness Fix: Use Batch Updates to prevent UI freeze on snapshots
           if (Array.isArray(data)) {
-            accountStore.updatePositionsBatch(data);
+            data.forEach((item: any) =>
+              accountStore.updatePositionFromWs(item),
+            );
           } else {
-            accountStore.updatePositionsBatch([data]);
+            accountStore.updatePositionFromWs(data);
           }
         }
       } else if (message.ch === "order") {
         const data = message.data;
         if (data) {
           if (Array.isArray(data)) {
-            accountStore.updateOrdersBatch(data);
+            data.forEach((item: any) => accountStore.updateOrderFromWs(item));
           } else {
-            accountStore.updateOrdersBatch([data]);
+            accountStore.updateOrderFromWs(data);
           }
         }
       } else if (message.ch === "wallet") {
         const data = message.data;
         if (data) {
           if (Array.isArray(data)) {
-            accountStore.updateBalanceBatch(data);
+            data.forEach((item: any) => accountStore.updateBalanceFromWs(item));
           } else {
-            accountStore.updateBalanceBatch([data]);
+            accountStore.updateBalanceFromWs(data);
           }
         }
       }
@@ -793,7 +748,7 @@ class BitunixWebSocketService {
   }
 
   private subscribePrivate() {
-    if (this.fsmPrivate.currentState !== WsState.AUTHENTICATED || !this.wsPrivate) return;
+    if (!this.isAuthenticated || !this.wsPrivate) return;
 
     const channels = ["position", "order", "wallet"];
     const args = channels.map((ch) => ({ ch }));
