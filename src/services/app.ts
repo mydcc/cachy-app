@@ -207,8 +207,9 @@ export const app = {
   setupPriceUpdates: () => {
     if (!browser) return;
 
-    // Watch settings and symbol changes to adjust interval
+    // Watch settings, status and symbol changes to adjust interval
     settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
+    wsStatusStore.subscribe(() => app.refreshPriceUpdateInterval());
 
     // Initial setup
     app.refreshPriceUpdateInterval();
@@ -221,7 +222,10 @@ export const app = {
     }
 
     const settings = get(settingsStore);
-    const intervalMs = (settings.marketDataInterval || 10) * 1000;
+    const wsStatus = get(wsStatusStore);
+    // Faster fallback (3s) when WS is not connected
+    const baseInterval = (settings.marketDataInterval || 10) * 1000;
+    const intervalMs = wsStatus === "connected" ? baseInterval : 3000;
 
     priceUpdateIntervalId = setInterval(() => {
       const currentSymbol = get(tradeStore).symbol;
