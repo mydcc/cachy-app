@@ -109,10 +109,18 @@ class BitunixWebSocketService {
 
   private handleOffline = () => {
     wsStatusStore.set("disconnected");
-    this.fsmPublic.transition(WsEvent.STOP);
-    this.fsmPrivate.transition(WsEvent.STOP);
-    this.cleanup("public");
-    this.cleanup("private");
+    // Do NOT stop the FSMs, or we lose the reconnect loop.
+    // Transition to ERROR so we enter RECONNECTING state.
+    if (this.fsmPublic.currentState !== WsState.RECONNECTING) {
+      this.fsmPublic.transition(WsEvent.ERROR);
+    }
+    if (this.fsmPrivate.currentState !== WsState.RECONNECTING) {
+      this.fsmPrivate.transition(WsEvent.ERROR);
+    }
+    // We do NOT call cleanup here manually. The FSM / Watchdog logic will handle it, 
+    // or the browser offline state simply means we wait for online.
+    // If we call cleanup, we risk killing the timer if logic is brittle.
+    // But mostly, transitioning to ERROR ensures we go to RECONNECTING.
   };
 
   constructor() {
