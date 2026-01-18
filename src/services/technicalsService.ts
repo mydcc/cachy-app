@@ -318,18 +318,22 @@ export const technicalsService = {
 
         // Send Data
         // We need to serialise Decimals to strings/numbers for the worker
+        // and ensure settings is a plain object to avoid DataCloneError
         const klinesSerializable = klinesInput.map(k => ({
           time: k.time,
-          open: k.open.toString(),
-          high: k.high.toString(),
-          low: k.low.toString(),
-          close: k.close.toString(),
-          volume: k.volume?.toString() || "0"
+          open: (k.open || 0).toString(),
+          high: (k.high || 0).toString(),
+          low: (k.low || 0).toString(),
+          close: (k.close || 0).toString(),
+          volume: (k.volume || 0).toString()
         }));
+
+        // Deep clone settings to strip any non-cloneable proxies/functions
+        const cleanSettings = JSON.parse(JSON.stringify(settings || {}));
 
         worker.postMessage({
           type: "CALCULATE",
-          payload: { klines: klinesSerializable, settings }
+          payload: { klines: klinesSerializable, settings: cleanSettings }
         });
       });
     }

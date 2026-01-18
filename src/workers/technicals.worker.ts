@@ -192,16 +192,13 @@ const JSIndicators = {
 
 // --- Helpers that were in the service ---
 
-async function calculateAwesomeOscillator(
+function calculateAwesomeOscillator(
     high: number[],
     low: number[],
     fastPeriod: number,
     slowPeriod: number,
-): Promise<number> {
-    // Simplified logic for worker (returning number instead of Decimal object for serialization)
-    const h = high;
-    const l = low;
-    const hl2 = h.map((val, i) => (val + l[i]) / 2);
+): number {
+    const hl2 = high.map((val, i) => (val + low[i]) / 2);
 
     const getSMA = (data: number[], period: number): number => {
         if (data.length < period) return 0;
@@ -321,7 +318,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             const oscillators = [];
             const movingAverages: any[] = [];
 
-            // RSI
+            // 1. RSI
             const rsiLen = settings?.rsi?.length || 14;
             const rsiResults = JSIndicators.rsi(closesNum, rsiLen);
             const rsiVal = rsiResults[rsiResults.length - 1];
@@ -332,14 +329,71 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
                 action: getRsiAction(rsiVal, settings?.rsi?.overbought || 70, settings?.rsi?.oversold || 30)
             });
 
-            // MACD
+            // 2. STOCH
+            const stochK = settings?.stoch?.kPeriod || 14;
+            const stochResults = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
+            const stochVal = stochResults[stochResults.length - 1];
+            let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+            if (stochVal >= 80) stochAction = "Sell";
+            else if (stochVal <= 20) stochAction = "Buy";
+            oscillators.push({
+                name: "Stochastic",
+                value: stochVal.toString(),
+                params: stochK.toString(),
+                action: stochAction
+            });
+
+            // 3. CCI
+            const cciLen = settings?.cci?.length || 20;
+            const cciResults = JSIndicators.cci(closesNum, cciLen);
+            const cciVal = cciResults[cciResults.length - 1];
+            let cciAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+            if (cciVal >= 100) cciAction = "Sell";
+            else if (cciVal <= -100) cciAction = "Buy";
+            oscillators.push({
+                name: "CCI",
+                value: cciVal.toString(),
+                params: cciLen.toString(),
+                action: cciAction
+            });
+
+            // 4. ADX
+            const adxLen = settings?.adx?.length || 14;
+            const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+            const adxVal = adxResults[adxResults.length - 1];
+            let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+            // Simple logic: if ADX > 25, trend is strong. Buy if price > EMA20, Sell if price < EMA20 (proxy)
+            // For now, let's look at price vs previous price
+            const prevClose = closesNum[closesNum.length - 2];
+            if (adxVal > 25) {
+                adxAction = currentPrice.toNumber() > prevClose ? "Buy" : "Sell";
+            }
+            oscillators.push({
+                name: "ADX",
+                value: adxVal.toString(),
+                params: adxLen.toString(),
+                action: adxAction
+            });
+
+            // 5. MOM
+            const momLen = settings?.mom?.length || 10;
+            const momResults = JSIndicators.mom(closesNum, momLen);
+            const momVal = momResults[momResults.length - 1];
+            oscillators.push({
+                name: "Momentum",
+                value: momVal.toString(),
+                params: momLen.toString(),
+                action: momVal > 0 ? "Buy" : "Sell"
+            });
+
+            // 6. MACD
             const macdFast = settings?.macd?.fastLength || 12;
             const macdSlow = settings?.macd?.slowLength || 26;
             const macdSig = settings?.macd?.signalLength || 9;
             const macdRes = JSIndicators.macd(closesNum, macdFast, macdSlow, macdSig);
             const macdVal = macdRes.macd[macdRes.macd.length - 1];
             const macdSigVal = macdRes.signal[macdRes.signal.length - 1];
-            let macdAction = "Neutral";
+            let macdAction: "Buy" | "Sell" | "Neutral" = "Neutral";
             if (macdVal > macdSigVal) macdAction = "Buy";
             else if (macdVal < macdSigVal) macdAction = "Sell";
             oscillators.push({
@@ -350,26 +404,61 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
                 action: macdAction
             });
 
+            // 7. AO
+            const aoFast = settings?.ao?.fastLength || 5;
+            const aoSlow = settings?.ao?.slowLength || 34;
+            const aoVal = calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow);
+            oscillators.push({
+                name: "Awesome Osc.",
+                value: aoVal.toString(),
+                params: `${aoFast}, ${aoSlow}`,
+                action: aoVal > 0 ? "Buy" : "Sell"
+            });
+
+            // --- Moving Averages ---
+            const ema1 = settings?.movingAverages?.ema1 || 10;
+            const ema2 = settings?.movingAverages?.ema2 || 20;
+            const ema3 = settings?.movingAverages?.ema3 || 30;
+            const maList = [ema1, ema2, ema3, 50, 100, 200];
+            const currentClose = closesNum[closesNum.length - 1];
+
+            maList.forEach(period => {
+                const res = JSIndicators.ema(closesNum, period);
+                const val = res[res.length - 1];
+                if (val > 0) {
+                    movingAverages.push({
+                        name: "EMA",
+                        value: val.toString(),
+                        params: period.toString(),
+                        action: currentClose > val ? "Buy" : "Sell"
+                    });
+                }
+            });
+
             // Pivot
             const pivotType = settings?.pivots?.type || "classic";
             const pivotResult = calculatePivots(klinesDec, pivotType);
 
             // Summary Logic
             let buy = 0, sell = 0, neutral = 0;
-            oscillators.forEach(o => {
-                if (o.action === "Buy") buy++;
-                else if (o.action === "Sell") sell++;
+            [...oscillators, ...movingAverages].forEach(ind => {
+                if (ind.action === "Buy") buy++;
+                else if (ind.action === "Sell") sell++;
                 else neutral++;
             });
-            let summaryAction = "Neutral";
+            let summaryAction: "Buy" | "Sell" | "Neutral" = "Neutral";
             if (buy > sell && buy > neutral) summaryAction = "Buy";
             else if (sell > buy && sell > neutral) summaryAction = "Sell";
 
             const result = {
                 oscillators,
-                movingAverages, // Add EMAs etc later if needed
-                pivots: pivotResult ? pivotResult.pivots : null,
-                pivotBasis: pivotResult ? pivotResult.basis : null,
+                movingAverages,
+                pivots: pivotResult ? pivotResult.pivots : {
+                    classic: { p: "0", r1: "0", r2: "0", r3: "0", s1: "0", s2: "0", s3: "0" }
+                },
+                pivotBasis: pivotResult ? pivotResult.basis : {
+                    high: "0", low: "0", close: "0", open: "0"
+                },
                 summary: { buy, sell, neutral, action: summaryAction }
             };
 
