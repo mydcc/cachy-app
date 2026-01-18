@@ -34,9 +34,9 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 20000; // 20 seconds (standard interval)
-const WATCHDOG_TIMEOUT = 60000; // 60 seconds
-const RECONNECT_DELAY = 3000; // 3 seconds
+const PING_INTERVAL = 2000; // 2 seconds - Very aggressive ping
+const WATCHDOG_TIMEOUT = 4000; // 4 seconds - Die quickly if no data
+const RECONNECT_DELAY = 1000; // 1 second - fast retry
 const MAX_RETRIES = 5;
 
 interface Subscription {
@@ -431,9 +431,8 @@ class BitunixWebSocketService {
         }
         if (Date.now() - this.lastActivityPublic > WATCHDOG_TIMEOUT) {
           console.warn("Bitunix Public WS Watchdog Timeout. Terminating.");
-          if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-            this.wsPublic.close();
-          }
+          this.fsmPublic.transition(WsEvent.ERROR);
+          if (this.wsPublic) this.wsPublic.close();
         }
       } else {
         if (ws !== this.wsPrivate) {
@@ -442,12 +441,11 @@ class BitunixWebSocketService {
         }
         if (Date.now() - this.lastActivityPrivate > WATCHDOG_TIMEOUT) {
           console.warn("Bitunix Private WS Watchdog Timeout. Terminating.");
-          if (this.wsPrivate && this.wsPrivate.readyState === WebSocket.OPEN) {
-            this.wsPrivate.close();
-          }
+          this.fsmPrivate.transition(WsEvent.ERROR);
+          if (this.wsPrivate) this.wsPrivate.close();
         }
       }
-    }, 5000); // Check every 5 seconds
+    }, 1000); // Check every 1 second
 
     if (type === "public") this.watchdogTimerPublic = intervalId;
     else this.watchdogTimerPrivate = intervalId;
