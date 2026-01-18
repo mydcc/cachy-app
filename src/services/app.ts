@@ -895,28 +895,60 @@ export const app = {
     const availableForOthers = ONE_HUNDRED - currentUsed;
 
     // 3. Identification of "Others" (Unlocked and not the one being edited)
-    const others = items.filter((t: any) => !t.isLocked && t.index !== changedIndex);
+    const others = items.filter(
+      (t: any) => !t.isLocked && t.index !== changedIndex,
+    );
 
     if (others.length > 0) {
-      // Distribute availableForOthers among 'others'
-      // If availableForOthers is negative, we shouldn't be here if logic above is correct?
-      // Wait, if changedItem increased, availableForOthers decreases.
-      // It can be negative if changedItem + lockedSum > 100 (Handled above).
-      // So availableForOthers >= 0.
+      // Current sum of others before adjustment
+      const currentOthersSum = others.reduce(
+        (acc: number, t: any) => acc + t.percent,
+        0,
+      );
 
-      // Distribute `availableForOthers` evenly
-      const count = others.length;
-      const baseShare = Math.floor(availableForOthers / count);
-      let remainder = availableForOthers % count;
+      // The amount others SHOULD sum up to
+      const targetOthersSum = availableForOthers;
+      const diff = targetOthersSum - currentOthersSum;
 
-      others.forEach((t: any) => {
-        t.percent = baseShare + (remainder > 0 ? 1 : 0);
-        remainder--;
-      });
+      if (diff === 0) {
+        // No adjustment needed
+      } else if (diff > 0) {
+        // Surplus: We released percentage (e.g. decreased the edited TP).
+        // Distribute diff evenly among others.
+        const count = others.length;
+        const share = Math.floor(diff / count);
+        let remainder = diff % count;
+
+        others.forEach((t: any) => {
+          t.percent += share + (remainder > 0 ? 1 : 0);
+          remainder--;
+        });
+      } else {
+        // Deficit: We increased the edited TP.
+        // We need to subtract abs(diff) from others.
+        // Strategy: Subtract from last to first (Reverse Order) as per requirement/convention
+        // to avoid touching the first TPs if possible.
+        let amountToRemove = Math.abs(diff);
+
+        // Iterate reversed
+        for (let i = others.length - 1; i >= 0; i--) {
+          const t = others[i];
+          const canTake = t.percent; // We can take down to 0
+          const take = Math.min(amountToRemove, canTake);
+          t.percent -= take;
+          amountToRemove -= take;
+          if (amountToRemove <= 0) break;
+        }
+      }
     } else {
       // No others to distribute to.
-      // We accept Sum < 100 (Underflow) to allow user to type "6" before "60".
-      // We handled Overflow (>100) via clamping above.
+      // If we are in a scenario where all other items are locked,
+      // this single unlocked item is implicitly locked to the remainder of 100%.
+      // We enforce this to maintain the 100% total invariant, preventing
+      // accidental underflows when the user has locked everything else.
+      if (changedItem) {
+        changedItem.percent = Math.max(0, ONE_HUNDRED - lockedSum);
+      }
     }
 
     updateTradeStore((state) => ({

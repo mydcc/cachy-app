@@ -42,6 +42,23 @@ export function parseDecimal(
   }
 }
 
+/**
+ * Formats a number for API payloads, ensuring no scientific notation (e.g. 1e-7) is used.
+ * Uses high precision (20 decimals) and trims trailing zeros.
+ */
+export function formatApiNum(
+  val: string | number | undefined | null,
+): string | undefined {
+  if (val === undefined || val === null) return undefined;
+  try {
+    // Use Decimal to ensure we get a full string representation (no 1e-7)
+    // toFixed(20) ensures high precision, then we strip trailing zeros
+    return new Decimal(val).toFixed(20).replace(/\.?0+$/, "");
+  } catch (e) {
+    return String(val);
+  }
+}
+
 export function formatDynamicDecimal(
   value: Decimal | string | number | null | undefined,
   maxPlaces = 4,

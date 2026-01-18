@@ -72,6 +72,7 @@ describe("HotkeyService", () => {
       isPro: true,
       feePreference: "maker",
       favoriteTimeframes: [],
+      favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
       syncRsiTimeframe: true,
       imgbbApiKey: "",
       imgbbExpiration: 0,
@@ -102,6 +103,12 @@ describe("HotkeyService", () => {
       aiTradeHistoryLimit: 50,
       forceEnglishTechnicalTerms: false,
       enableGlassmorphism: true,
+      maxPrivateNotes: 50,
+      aiConfirmClear: true,
+      chatFontSize: 13,
+      minChatProfitFactor: 0.0,
+      panelIsExpanded: false,
+      isDeepDiveUnlocked: false,
     });
 
     tradeStore.set({
@@ -160,6 +167,13 @@ describe("HotkeyService", () => {
       loadingMessage: "",
       syncProgress: null,
       isAtrFetching: false, // Added missing property
+      tooltip: {
+        visible: false,
+        type: null,
+        data: null,
+        x: 0,
+        y: 0,
+      },
     });
 
     // hotkeyService doesn't have an init(), it's likely initialized in App or Layout
