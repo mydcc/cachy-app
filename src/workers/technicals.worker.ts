@@ -330,7 +330,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             });
 
             // 2. STOCH
-            const stochK = settings?.stoch?.kPeriod || 14;
+            const stochK = settings?.stochastic?.kPeriod || 14;
             const stochResults = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
             const stochVal = stochResults[stochResults.length - 1];
             let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -347,9 +347,10 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             const cciLen = settings?.cci?.length || 20;
             const cciResults = JSIndicators.cci(closesNum, cciLen);
             const cciVal = cciResults[cciResults.length - 1];
+            const cciThreshold = settings?.cci?.threshold || 100;
             let cciAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-            if (cciVal >= 100) cciAction = "Sell";
-            else if (cciVal <= -100) cciAction = "Buy";
+            if (cciVal >= cciThreshold) cciAction = "Sell";
+            else if (cciVal <= -cciThreshold) cciAction = "Buy";
             oscillators.push({
                 name: "CCI",
                 value: cciVal.toString(),
@@ -365,7 +366,8 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             // Simple logic: if ADX > 25, trend is strong. Buy if price > EMA20, Sell if price < EMA20 (proxy)
             // For now, let's look at price vs previous price
             const prevClose = closesNum[closesNum.length - 2];
-            if (adxVal > 25) {
+            const adxThreshold = settings?.adx?.threshold || 25;
+            if (adxVal > adxThreshold) {
                 adxAction = currentPrice.toNumber() > prevClose ? "Buy" : "Sell";
             }
             oscillators.push({
@@ -376,7 +378,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             });
 
             // 5. MOM
-            const momLen = settings?.mom?.length || 10;
+            const momLen = settings?.momentum?.length || 10;
             const momResults = JSIndicators.mom(closesNum, momLen);
             const momVal = momResults[momResults.length - 1];
             oscillators.push({
@@ -416,10 +418,10 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
             });
 
             // --- Moving Averages ---
-            const ema1 = settings?.movingAverages?.ema1 || 10;
-            const ema2 = settings?.movingAverages?.ema2 || 20;
-            const ema3 = settings?.movingAverages?.ema3 || 30;
-            const maList = [ema1, ema2, ema3, 50, 100, 200];
+            const ema1 = settings?.ema?.ema1?.length || 21;
+            const ema2 = settings?.ema?.ema2?.length || 50;
+            const ema3 = settings?.ema?.ema3?.length || 200;
+            const maList = [ema1, ema2, ema3];
             const currentClose = closesNum[closesNum.length - 1];
 
             maList.forEach(period => {
