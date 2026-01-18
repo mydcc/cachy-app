@@ -33,10 +33,10 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 2000; // 2 seconds (was 3)
-const WATCHDOG_TIMEOUT = 4000; // 4 seconds (was 5)
-const RECONNECT_DELAY = 1000; // 1 second
-const CONNECTION_TIMEOUT_MS = 5000; // 5 seconds (was 10)
+const PING_INTERVAL = 1500; // 1.5 seconds (was 2)
+const WATCHDOG_TIMEOUT = 3000; // 3 seconds (was 4)
+const RECONNECT_DELAY = 500; // 0.5 second (was 1s)
+const CONNECTION_TIMEOUT_MS = 3000; // 3 seconds (was 5)
 
 interface Subscription {
   symbol: string;
@@ -55,7 +55,7 @@ class BitunixWebSocketService {
 
   private lastWatchdogResetPublic = 0;
   private lastWatchdogResetPrivate = 0;
-  private readonly WATCHDOG_THROTTLE_MS = 500; // Reset watchdog max every 0.5 seconds (was 2s)
+  private readonly WATCHDOG_THROTTLE_MS = 100; // Reset watchdog max every 0.1 seconds (was 0.5s)
 
   public publicSubscriptions: Set<string> = new Set();
 
@@ -76,11 +76,13 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
-    // P0 Fix: Force cleanup and status set BEFORE reconnecting to clear zombie state
+    console.log("Bitunix WS: Browser reported online. Forcing reconnect.");
     this.cleanup("public");
     this.cleanup("private");
     wsStatusStore.set("connecting");
-    this.connect();
+    // Force connect even if navigator.onLine might still be false (cached)
+    this.connectPublic(true);
+    this.connectPrivate();
   };
 
   private handleOffline = () => {
@@ -123,11 +125,12 @@ class BitunixWebSocketService {
     this.connectPrivate();
   }
 
-  private connectPublic() {
+  private connectPublic(force = false) {
     if (this.isDestroyed) return;
 
-    // Safety check: Browser knows we are offline
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
+    // Safety check: Browser knows we are offline. 
+    // Allow override if manually triggered by handleOnline.
+    if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       wsStatusStore.set("disconnected");
       return;
     }
@@ -198,8 +201,7 @@ class BitunixWebSocketService {
       try {
         // Reset watchdog on ANY activity (throttled to avoid excessive timers)
         const now = Date.now();
-        if (now - this.lastWatchdogResetPublic > 500) {
-          // Throttle to 500ms (was 5s)
+        if (now - this.lastWatchdogResetPublic > this.WATCHDOG_THROTTLE_MS) {
           this.resetWatchdog("public", ws);
           this.lastWatchdogResetPublic = now;
         }
@@ -381,6 +383,8 @@ class BitunixWebSocketService {
             wsStatusStore.set("disconnected");
           } else {
             wsStatusStore.set("reconnecting");
+            this.cleanup(type);
+            this.scheduleReconnect(type);
           }
           ws.close(); // Force reconnect
           return;
@@ -423,9 +427,13 @@ class BitunixWebSocketService {
           wsStatusStore.set("disconnected");
         } else {
           wsStatusStore.set("reconnecting");
+          // P0 Fix: Directly trigger cleanup and reconnect here instead of waiting for onclose,
+          // which can hang on broken connections.
+          this.cleanup("public");
+          this.scheduleReconnect("public");
         }
         if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-          this.wsPublic.close(); // Force close to trigger onclose -> reconnect
+          try { this.wsPublic.close(); } catch (e) { }
         }
       }, WATCHDOG_TIMEOUT);
     } else {

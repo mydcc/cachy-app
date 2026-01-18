@@ -192,6 +192,16 @@ export const app = {
         }
       }
     });
+
+    // Immediate fallback when WS status changes to disconnected/reconnecting
+    wsStatusStore.subscribe((status) => {
+      if (status === "disconnected" || status === "reconnecting") {
+        const settings = get(settingsStore);
+        if (settings.autoUpdatePriceInput && settings.apiProvider === "bitunix") {
+          app.handleFetchPrice(true);
+        }
+      }
+    });
   },
 
   setupPriceUpdates: () => {
