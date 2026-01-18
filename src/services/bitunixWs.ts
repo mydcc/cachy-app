@@ -80,6 +80,29 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
+
+    // Reset Retry Logic on "Back Online" signal
+    this.publicRetryCount = 0;
+    this.privateRetryCount = 0;
+
+    // Clear any pending long backoff timers
+    if (this.reconnectTimerPublic) {
+      clearTimeout(this.reconnectTimerPublic);
+      this.reconnectTimerPublic = null;
+    }
+    if (this.reconnectTimerPrivate) {
+      clearTimeout(this.reconnectTimerPrivate);
+      this.reconnectTimerPrivate = null;
+    }
+
+    // Force FSMs to restart immediately
+    if (this.fsmPublic.currentState === WsState.RECONNECTING || this.fsmPublic.currentState === WsState.ERROR) {
+      this.fsmPublic.transition(WsEvent.RETRY);
+    }
+    if (this.fsmPrivate.currentState === WsState.RECONNECTING || this.fsmPrivate.currentState === WsState.ERROR) {
+      this.fsmPrivate.transition(WsEvent.RETRY);
+    }
+
     this.connect();
   };
 

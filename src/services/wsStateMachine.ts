@@ -77,6 +77,8 @@ export class WSStateMachine {
             [WsState.RECONNECTING]: {
                 [WsEvent.RETRY]: WsState.CONNECTING,
                 [WsEvent.STOP]: WsState.DISCONNECTED,
+                [WsEvent.ERROR]: WsState.RECONNECTING, // Ignore errors while already reconnecting
+                [WsEvent.CLOSE]: WsState.RECONNECTING, // Ignore close while already reconnecting
             },
             [WsState.ERROR]: {
                 [WsEvent.START]: WsState.CONNECTING, // Manual restart
