@@ -1,6 +1,8 @@
 {
   "name": "cachy-app",
   "version": "0.94.2",
+  "author": "MYDCT",
+  "license": "AGPL-3.0-only",
   "scripts": {
     "dev": "vite dev",
     "build": "vite build",
