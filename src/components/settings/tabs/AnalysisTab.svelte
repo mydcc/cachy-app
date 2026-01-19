@@ -678,6 +678,124 @@
                     </div>
                 {/if}
 
+                <!-- Volatility -->
+                {#if activeCategory === "volatility"}
+                    <!-- ATR -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>ATR</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="atr-len"
+                                    type="number"
+                                    bind:value={indicatorState.atr.length}
+                                    min={1}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- Bollinger Bands -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Bollinger Bands</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="bb-len"
+                                    type="number"
+                                    bind:value={
+                                        indicatorState.bollingerBands.length
+                                    }
+                                    min={2}
+                                    max={100}
+                                /><Field
+                                    label="Std Dev"
+                                    id="bb-std"
+                                    type="number"
+                                    step={0.1}
+                                    bind:value={
+                                        indicatorState.bollingerBands.stdDev
+                                    }
+                                    min={0.1}
+                                    max={10}
+                                />
+                            </div>
+                            <div class="row mt-2">
+                                <Select
+                                    label="Source"
+                                    id="bb-src"
+                                    bind:value={
+                                        indicatorState.bollingerBands.source
+                                    }
+                                    options={[
+                                        "close",
+                                        "open",
+                                        "high",
+                                        "low",
+                                        "hl2",
+                                        "hlc3",
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+                {/if}
+
+                <!-- Volume -->
+                {#if activeCategory === "volume"}
+                    <!-- Volume MA -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Volume MA</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="vma-len"
+                                    type="number"
+                                    bind:value={indicatorState.volumeMa.length}
+                                    min={1}
+                                    max={200}
+                                /><Select
+                                    label="MA Type"
+                                    id="vma-type"
+                                    bind:value={indicatorState.volumeMa.maType}
+                                    options={["sma", "ema", "wma"]}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- OBV -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>OBV (On-Balance Volume)</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <p class="text-xs text-[var(--text-secondary)]">
+                                No configuration needed. OBV is calculated
+                                automatically.
+                            </p>
+                        </div>
+                        <ProOverlay />
+                    </div>
+                {/if}
+
                 <!-- Volatility & Volume areas follow same pattern but truncated here for brevity in the component itself -->
                 <!-- In final version all sub-indicators would be fully included -->
             </div>

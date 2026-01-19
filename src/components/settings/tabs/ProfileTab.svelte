@@ -27,6 +27,71 @@
         { value: "Schibsted Grotesk", label: "Schibsted Grotesk" },
         { value: "Space Grotesk", label: "Space Grotesk" },
     ];
+
+    // Hotkey Descriptions for Preset Modes
+    const MODE1_DESCRIPTIONS: Record<string, string> = {
+        "1": "Favorite 1",
+        "2": "Favorite 2",
+        "3": "Favorite 3",
+        "4": "Favorite 4",
+        T: "Next TP",
+        Plus: "Add TP",
+        Minus: "Remove TP",
+        E: "Entry Price",
+        O: "Stop Loss",
+        L: "Set Long",
+        S: "Set Short",
+        J: "Journal",
+        P: "Fetch Price",
+        B: "Toggle Sidebars",
+        K: "Toggle Technicals",
+        ",": "Settings",
+        R: "Reset",
+        F: "Symbol Picker",
+    };
+
+    const MODE2_DESCRIPTIONS: Record<string, string> = {
+        "Alt+1": "Favorite 1",
+        "Alt+2": "Favorite 2",
+        "Alt+3": "Favorite 3",
+        "Alt+4": "Favorite 4",
+        "Alt+T": "Next TP",
+        "Alt+Plus": "Add TP",
+        "Alt+Minus": "Remove TP",
+        "Alt+E": "Entry Price",
+        "Alt+O": "Stop Loss",
+        "Alt+L": "Set Long",
+        "Alt+S": "Set Short",
+        "Alt+J": "Journal",
+        "Alt+P": "Fetch Price",
+        "Alt+B": "Toggle Sidebars",
+        "Alt+K": "Toggle Technicals",
+        "Alt+,": "Settings",
+        "Alt+R": "Reset",
+        "Alt+F": "Symbol Picker",
+    };
+
+    const MODE3_DESCRIPTIONS: Record<string, string> = {
+        "1": "Favorite 1",
+        "2": "Favorite 2",
+        "3": "Favorite 3",
+        "4": "Favorite 4",
+        T: "Next TP",
+        "Shift+T": "Prev TP",
+        Plus: "Add TP",
+        Minus: "Remove TP",
+        E: "Entry Price",
+        O: "Stop Loss",
+        L: "Set Long",
+        S: "Set Short",
+        J: "Journal",
+        P: "Fetch Price",
+        B: "Toggle Sidebars",
+        K: "Toggle Technicals",
+        ",": "Settings",
+        R: "Reset",
+        F: "Symbol Picker",
+    };
 </script>
 
 <div class="profile-tab flex flex-col gap-6" role="tabpanel" id="tab-profile">
@@ -222,19 +287,37 @@
         >
             {#if settingsState.hotkeyMode !== "custom"}
                 <div
-                    class="preset-info p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] text-center"
+                    class="hotkey-preview p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
                 >
-                    <p class="text-sm text-[var(--text-secondary)] mb-4">
-                        {$_("settings.profile.presetInfo") ||
-                            "You are using a preset hotkey mode. Switch to 'Custom' to remap individual keys."}
-                    </p>
-                    <button
-                        class="action-btn"
-                        onclick={() => (settingsState.hotkeyMode = "custom")}
-                    >
-                        {$_("settings.profile.switchToCustom") ||
-                            "Customize Hotkeys"}
-                    </button>
+                    <div class="flex justify-between items-center mb-3">
+                        <p class="text-xs text-[var(--text-secondary)]">
+                            {$_("settings.profile.activeHotkeys") ||
+                                "Active Hotkeys"}
+                        </p>
+                        <button
+                            class="text-xs text-[var(--accent)] hover:underline"
+                            onclick={() =>
+                                (settingsState.hotkeyMode = "custom")}
+                        >
+                            {$_("settings.profile.customize") || "Customize"}
+                        </button>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                        {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
+                            <div
+                                class="flex justify-between items-center p-2 rounded bg-[var(--bg-primary)] border border-[var(--border-color)]"
+                            >
+                                <span class="text-[var(--text-secondary)]"
+                                    >{label}</span
+                                >
+                                <kbd
+                                    class="px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] font-mono text-[10px]"
+                                    >{key}</kbd
+                                >
+                            </div>
+                        {/each}
+                    </div>
                 </div>
             {:else}
                 <div

@@ -124,8 +124,18 @@ export interface IndicatorSettings {
     vwap: {
         length: number; // 0 for session/full
     };
+    volumeMa: {
+        length: number;
+        maType: "sma" | "ema" | "wma";
+    };
     volumeProfile: {
         rows: number;
+    };
+    // Alias for backward compatibility
+    bollingerBands: {
+        length: number;
+        stdDev: number;
+        source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     };
 }
 
@@ -228,8 +238,17 @@ const defaultSettings: IndicatorSettings = {
     vwap: {
         length: 0,
     },
+    volumeMa: {
+        length: 20,
+        maType: "sma",
+    },
     volumeProfile: {
         rows: 24,
+    },
+    bollingerBands: {
+        length: 20,
+        stdDev: 2,
+        source: "close",
     },
 };
 
@@ -266,6 +285,8 @@ class IndicatorManager {
     obv = $state(defaultSettings.obv);
     vwap = $state(defaultSettings.vwap);
     volumeProfile = $state(defaultSettings.volumeProfile);
+    volumeMa = $state(defaultSettings.volumeMa);
+    bollingerBands = $state(defaultSettings.bollingerBands);
     pivots = $state(defaultSettings.pivots);
 
     private listeners: Set<(value: IndicatorSettings) => void> = new Set();
@@ -376,6 +397,8 @@ class IndicatorManager {
             ichimoku: $state.snapshot(this.ichimoku),
             choppiness: $state.snapshot(this.choppiness),
             volumeProfile: $state.snapshot(this.volumeProfile),
+            volumeMa: $state.snapshot(this.volumeMa),
+            bollingerBands: $state.snapshot(this.bollingerBands),
         };
     }
 
