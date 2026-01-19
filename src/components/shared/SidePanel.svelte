@@ -787,30 +787,69 @@
                     {msg.content}
                   {/if}
 
-                  <!-- Action Confirmation Buttons -->
+                  <!-- Action Confirmation UI -->
                   {#if msg.role === "system"}
                     {@const pendingMatch =
                       msg.content.match(/\[PENDING:([^\]]+)\]/)}
                     {#if pendingMatch}
-                      {@const pendingActionId = pendingMatch[1]}
-                      {#if aiState.pendingActions.has(pendingActionId)}
-                        <div class="flex gap-2 mt-3">
-                          <button
-                            class="px-3 py-1.5 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded transition-colors shadow-sm"
-                            onclick={() =>
-                              aiState.confirmAction(pendingActionId)}
-                          >
-                            ✅ Bestätigen
-                          </button>
-                          <button
-                            class="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded transition-colors shadow-sm"
-                            onclick={() =>
-                              aiState.rejectAction(pendingActionId)}
-                          >
-                            ❌ Ablehnen
-                          </button>
+                      {@const pendingId = pendingMatch[1]}
+                      {@const pending = aiState.pendingActions.get(pendingId)}
+                      {#if pending}
+                        <div class="action-confirmation-block mt-2">
+                            <div class="action-table-container">
+                              <table class="action-mini-table">
+                                <thead>
+                                  <tr>
+                                    <th colspan="2"
+                                      >Vorgeschlagene Änderungen</th
+                                    >
+                                  </tr>
+                                </thead>
+                                <tbody>
+                                  {#each pending.actions as action}
+                                    <tr>
+                                      <td class="action-label"
+                                        >{aiState
+                                          .describeAction(action)
+                                          .split(": ")[0]}</td
+                                      >
+                                      <td class="action-value"
+                                        >{aiState
+                                          .describeAction(action)
+                                          .split(": ")[1] || ""}</td
+                                      >
+                                    </tr>
+                                  {/each}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                              <button
+                                class="confirm-btn"
+                                onclick={() => aiState.confirmAction(pendingId)}
+                              >
+                                Anwenden
+                              </button>
+                              <button
+                                class="reject-btn"
+                                onclick={() => aiState.rejectAction(pendingId)}
+                              >
+                                Ignorieren
+                              </button>
+                            </div>
+                          </div>
+                      {:else}
+                        <div class="text-[0.7rem] opacity-50 italic mt-1">
+                          {msg.content.replace(
+                            "[PENDING:" + pendingId + "]",
+                            "",
+                          )}
                         </div>
                       {/if}
+                    {:else}
+                      <div class="text-[0.75rem] opacity-60">
+                        {msg.content}
+                      </div>
                     {/if}
                   {/if}
                 </div>
@@ -1093,5 +1132,82 @@
   .terminal-md :global(*) {
     color: #22c55e !important; /* Tailwind green-500 */
     font-family: monospace !important;
+  }
+
+  /* Action UI */
+  .action-confirmation-block {
+    background: var(--bg-color-secondary);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 8px;
+    max-width: 250px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  }
+
+  .action-mini-table {
+    width: 100%;
+    font-size: 0.75rem;
+    border-collapse: collapse;
+    color: var(--text-primary);
+  }
+
+  .action-mini-table th {
+    text-align: left;
+    padding-bottom: 4px;
+    border-bottom: 1px solid var(--border-color);
+    font-weight: 600;
+    opacity: 0.7;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .action-mini-table td {
+    padding: 2px 0;
+  }
+
+  .action-label {
+    opacity: 0.6;
+    font-weight: 400;
+  }
+
+  .action-value {
+    text-align: right;
+    font-weight: 600;
+    font-family: monospace;
+    color: var(--accent-color);
+  }
+
+  .confirm-btn {
+    flex: 1;
+    background: var(--accent-color);
+    color: white;
+    border: none;
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s;
+  }
+
+  .confirm-btn:hover {
+    filter: brightness(1.2);
+  }
+
+  .reject-btn {
+    background: rgba(125, 125, 125, 0.1);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-color);
+    padding: 4px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 400;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .reject-btn:hover {
+    background: rgba(125, 125, 125, 0.2);
   }
 </style>

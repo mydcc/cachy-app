@@ -28,8 +28,7 @@ export interface AiMessage {
 
 export interface PendingAction {
     id: string;
-    action: any;
-    description: string;
+    actions: any[];
     timestamp: number;
 }
 
@@ -314,14 +313,29 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     // 2. Execute Actions
                     const confirmActions = settings.aiConfirmActions ?? false;
 
-                    actions.forEach((action) => {
-                        if (!action) return;
-                        try {
-                            this.executeAction(action, confirmActions);
-                        } catch (err) {
-                            console.error("Single action failed", err);
-                        }
-                    });
+                    if (confirmActions) {
+                        // Create a batch pending action
+                        const actionId = this.addPendingAction(actions);
+
+                        // Add ONE system message for the whole batch
+                        const sysMsg: AiMessage = {
+                            id: crypto.randomUUID(),
+                            role: "system",
+                            content: `[PENDING:${actionId}]`,
+                            timestamp: Date.now(),
+                        };
+                        this.messages = [...this.messages, sysMsg];
+                    } else {
+                        // Execute immediately
+                        actions.forEach((action) => {
+                            if (!action) return;
+                            try {
+                                this.executeAction(action, false);
+                            } catch (err) {
+                                console.error("Single action failed", err);
+                            }
+                        });
+                    }
                 }
             } catch (actionErr) {
                 console.error("Action parsing error:", actionErr);
@@ -486,21 +500,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
     }
 
     private executeAction(action: any, confirmNeeded: boolean): boolean {
-        if (confirmNeeded) {
-            // Instead of blocking, add to pending actions
-            const actionId = this.addPendingAction(action);
-
-            // Add system message with pending action
-            const sysMsg: AiMessage = {
-                id: crypto.randomUUID(),
-                role: "system",
-                content: `⏳ ${this.describeAction(action)} [PENDING:${actionId}]`,
-                timestamp: Date.now(),
-            };
-            this.messages = [...this.messages, sysMsg];
-
-            return false; // Not executed yet
-        }
+        // confirmNeeded is now handled at the batch level in processResponse
+        if (confirmNeeded) return false;
 
         try {
             switch (action.action) {
@@ -566,7 +567,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
     /**
      * Describe an action in compact human-readable format
      */
-    private describeAction(action: any): string {
+    public describeAction(action: any): string {
         switch (action.action) {
             case "setEntryPrice":
                 return `Entry: ${action.value}`;
@@ -594,17 +595,13 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
     /**
      * Add action to pending queue for user confirmation
      */
-    private addPendingAction(action: any): string {
+    private addPendingAction(actions: any[]): string {
         const id = crypto.randomUUID();
-        const description = this.describeAction(action);
-
         this.pendingActions.set(id, {
             id,
-            action,
-            description,
+            actions,
             timestamp: Date.now()
         });
-
         return id;
     }
 
@@ -615,8 +612,10 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
         const pending = this.pendingActions.get(actionId);
         if (!pending) return;
 
-        // Execute action without confirmation
-        this.executeAction(pending.action, false);
+        // Execute all actions in batch
+        pending.actions.forEach(action => {
+            this.executeAction(action, false);
+        });
 
         // Remove from pending
         this.pendingActions.delete(actionId);
