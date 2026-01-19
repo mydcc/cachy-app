@@ -68,6 +68,186 @@
       >.
     </p>
   </div>
+
+  <!-- AI Provider Key Section (Dynamic) -->
+  <div
+    class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3"
+  >
+    <div class="flex items-center justify-between">
+      <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
+        AI & Intelligence
+      </h4>
+      <span
+        class="text-[10px] bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded font-bold"
+        >PRO</span
+      >
+    </div>
+
+    {#if settingsState.aiProvider === "gemini"}
+      <div class="flex flex-col gap-1">
+        <label
+          for="gemini-key"
+          class="text-xs font-medium text-[var(--text-secondary)]"
+        >
+          Google Gemini API Key
+        </label>
+        <div class="flex gap-2">
+          <input
+            id="gemini-key"
+            type="password"
+            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm flex-1"
+            placeholder="Enter Gemini API key"
+            bind:value={settingsState.geminiApiKey}
+          />
+          <a
+            href="https://aistudio.google.com/app/apikey"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary-action flex items-center px-3 rounded text-xs whitespace-nowrap"
+            title="Get Key">Get Key</a
+          >
+        </div>
+      </div>
+    {:else if settingsState.aiProvider === "openai"}
+      <div class="flex flex-col gap-1">
+        <label
+          for="openai-key"
+          class="text-xs font-medium text-[var(--text-secondary)]"
+        >
+          OpenAI API Key
+        </label>
+        <div class="flex gap-2">
+          <input
+            id="openai-key"
+            type="password"
+            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm flex-1"
+            placeholder="Enter OpenAI API key"
+            bind:value={settingsState.openaiApiKey}
+          />
+          <a
+            href="https://platform.openai.com/api-keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary-action flex items-center px-3 rounded text-xs whitespace-nowrap"
+            title="Get Key">Get Key</a
+          >
+        </div>
+      </div>
+    {:else if settingsState.aiProvider === "anthropic"}
+      <div class="flex flex-col gap-1">
+        <label
+          for="anthropic-key"
+          class="text-xs font-medium text-[var(--text-secondary)]"
+        >
+          Anthropic API Key
+        </label>
+        <div class="flex gap-2">
+          <input
+            id="anthropic-key"
+            type="password"
+            class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm flex-1"
+            placeholder="Enter Anthropic API key"
+            bind:value={settingsState.anthropicApiKey}
+          />
+          <a
+            href="https://console.anthropic.com/settings/keys"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn-secondary-action flex items-center px-3 rounded text-xs whitespace-nowrap"
+            title="Get Key">Get Key</a
+          >
+        </div>
+      </div>
+    {/if}
+    <p class="text-[10px] text-[var(--text-tertiary)] italic">
+      The selected AI provider ({settingsState.aiProvider}) is used for Chat,
+      Journal Analysis and Trade Deep Dives.
+    </p>
+  </div>
+
+  <!-- News Section -->
+  <div
+    class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3"
+  >
+    <div class="flex items-center justify-between">
+      <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
+        Market Sentiment & News
+      </h4>
+    </div>
+
+    <label class="flex items-center gap-2 cursor-pointer">
+      <input
+        type="checkbox"
+        bind:checked={settingsState.enableNewsAnalysis}
+        class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
+      />
+      <div>
+        <span class="text-sm font-medium text-[var(--text-primary)]"
+          >Enable Market Sentiment Analysis</span
+        >
+        <p class="text-[10px] text-[var(--text-tertiary)]">
+          Adds a sentiment panel to Market Overview based on external news.
+        </p>
+      </div>
+    </label>
+
+    {#if settingsState.enableNewsAnalysis}
+      <div
+        class="flex flex-col gap-3 pl-3 border-l-2 border-[var(--border-color)] mt-1"
+      >
+        <div class="flex flex-col gap-1">
+          <label
+            for="cryptopanic-key"
+            class="text-xs font-medium text-[var(--text-secondary)]"
+          >
+            CryptoPanic API Key (Recommended)
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="cryptopanic-key"
+              type="password"
+              class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm flex-1"
+              placeholder="Optional: Enter key"
+              bind:value={settingsState.cryptoPanicApiKey}
+            />
+            <a
+              href="https://cryptopanic.com/developers/api/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-secondary-action flex items-center px-3 rounded text-xs whitespace-nowrap"
+              title="Get Key">Get Key</a
+            >
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1">
+          <label
+            for="newsapi-key"
+            class="text-xs font-medium text-[var(--text-secondary)]"
+          >
+            NewsAPI.org Key (Backup)
+          </label>
+          <div class="flex gap-2">
+            <input
+              id="newsapi-key"
+              type="password"
+              class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm flex-1"
+              placeholder="Optional: Enter key"
+              bind:value={settingsState.newsApiKey}
+            />
+            <a
+              href="https://newsapi.org/register"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="btn-secondary-action flex items-center px-3 rounded text-xs whitespace-nowrap"
+              title="Get Key">Get Key</a
+            >
+          </div>
+        </div>
+      </div>
+    {/if}
+  </div>
+
   <div class="flex flex-col gap-1">
     <label for="api-provider" class="text-sm font-medium"
       >{$_("settings.providerLabel")}</label

@@ -7,6 +7,7 @@
  * (at your option) any later version.
  */
 
+import { untrack } from "svelte";
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 
@@ -228,12 +229,18 @@ class SettingsManager {
             // Auto-save effect
             $effect.root(() => {
                 $effect(() => {
-                    this.save();
-                    this.notifyListeners();
+                    // Critical: Use untrack to prevent infinite loops when listeners react
+                    // and then somehow trigger another state change in SettingsManager
+                    const data = this.toJSON();
+                    untrack(() => {
+                        this.save();
+                        this.notifyListeners();
+                    });
                 });
             });
         }
     }
+
 
     // Load from LocalStorage
     private load() {
@@ -243,8 +250,14 @@ class SettingsManager {
 
             const parsed = JSON.parse(d);
 
+            // Deep merge apiKeys to ensure both bitunix and binance have key/secret even if partial in storage
+            const mergedApiKeys = {
+                bitunix: { ...defaultSettings.apiKeys.bitunix, ...(parsed.apiKeys?.bitunix || {}) },
+                binance: { ...defaultSettings.apiKeys.binance, ...(parsed.apiKeys?.binance || {}) }
+            };
+
             // Merge with defaults to ensure all fields exist
-            const merged = { ...defaultSettings, ...parsed, apiKeys: { ...defaultSettings.apiKeys, ...(parsed.apiKeys || {}) } };
+            const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
 
             // Apply to state
             this.apiProvider = merged.apiProvider;

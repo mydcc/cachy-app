@@ -167,11 +167,13 @@ class MarketWatcher {
       if (settings.apiProvider === "binance" || wsStatus !== "connected") {
         this.requests.forEach((channels, symbol) => {
           if (channels.has("price")) {
-            // Fetch price via REST
-            apiService.fetchBitunixPrice(symbol, "normal").catch(() => { });
+            // Fetch price via REST using the correct provider
+            if (settings.apiProvider === "binance") {
+              apiService.fetchBinancePrice(symbol, "normal").catch(() => { });
+            } else {
+              apiService.fetchBitunixPrice(symbol, "normal").catch(() => { });
+            }
           }
-          // Note: ATR and Technicals are currently handled directly in their components
-          // but could be moved here for better consolidation.
         });
       }
     }, this.currentIntervalSeconds * 1000);
