@@ -42,6 +42,8 @@
   );
 
   async function loadData() {
+    if (!settingsState.enableNewsAnalysis) return;
+
     if (!settingsState.cryptoPanicApiKey && !settingsState.newsApiKey) {
       error = "no_api_key";
       return;
@@ -51,8 +53,8 @@
     error = null;
 
     try {
-      news = await newsService.fetchNews(symbol);
-      if (news.length > 0) {
+      news = await newsService.fetchNews(symbol) || []; // Robust fallback
+      if (news && news.length > 0) {
         analysis = await newsService.analyzeSentiment(news);
       }
     } catch (e) {
@@ -64,8 +66,8 @@
   }
 
   onMount(() => {
-    // Only load if keys are present to avoid error spam on initial load
-    if (settingsState.cryptoPanicApiKey || settingsState.newsApiKey) {
+    // Only load if enabled and keys are present
+    if (settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)) {
         loadData();
     }
   });
@@ -139,7 +141,7 @@
             {#if analysis}
                 <div class="mb-4 bg-[var(--bg-secondary)] p-3 rounded-lg border-l-4" style:border-color={sentimentColor}>
                     <p class="text-sm italic text-[var(--text-primary)]">"{analysis.summary}"</p>
-                    {#if analysis.keyFactors.length > 0}
+                    {#if analysis.keyFactors && analysis.keyFactors.length > 0}
                         <div class="mt-2 flex flex-wrap gap-2">
                             {#each analysis.keyFactors as factor}
                                 <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-[var(--bg-primary)] opacity-80">

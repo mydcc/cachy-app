@@ -87,6 +87,7 @@ export interface Settings {
     fontFamily: string;
     cryptoPanicApiKey?: string;
     newsApiKey?: string;
+    enableNewsAnalysis: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -150,6 +151,7 @@ const defaultSettings: Settings = {
     fontFamily: "Inter",
     cryptoPanicApiKey: "",
     newsApiKey: "",
+    enableNewsAnalysis: false,
 };
 
 class SettingsManager {
@@ -215,6 +217,7 @@ class SettingsManager {
     fontFamily = $state<string>(defaultSettings.fontFamily);
     cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
     newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
+    enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
 
     // Subscriptions for legacy compatibility
     private listeners: Set<(value: Settings) => void> = new Set();
@@ -298,6 +301,7 @@ class SettingsManager {
             this.fontFamily = merged.fontFamily;
             this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
             this.newsApiKey = merged.newsApiKey;
+            this.enableNewsAnalysis = merged.enableNewsAnalysis;
 
             // Cleanup / Migration Logic matching old store
             if (parsed.marketDataInterval === "manual") {
@@ -384,6 +388,7 @@ class SettingsManager {
             fontFamily: this.fontFamily,
             cryptoPanicApiKey: this.cryptoPanicApiKey,
             newsApiKey: this.newsApiKey,
+            enableNewsAnalysis: this.enableNewsAnalysis,
         };
     }
 
