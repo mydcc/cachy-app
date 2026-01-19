@@ -79,7 +79,6 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
-    console.log("Bitunix WS: Browser reported online. Forcing reconnect.");
     this.cleanup("public");
     this.cleanup("private");
     wsStatusStore.set("connecting");
@@ -111,12 +110,10 @@ class BitunixWebSocketService {
         }
 
         if (status === "connected" && timeSincePublic > 2000) {
-          console.warn("Bitunix WS: Stale connection detected (2s). Updating status.");
           wsStatusStore.set("reconnecting");
         }
 
         if (status !== "disconnected" && timeSincePublic > 5000) {
-          console.warn("Bitunix WS: Force disconnected due to inactivity (5s).");
           wsStatusStore.set("disconnected");
           this.cleanup("public");
         }
@@ -159,7 +156,6 @@ class BitunixWebSocketService {
         // If it's connecting for too long, cleanup and force a new one
         const now = Date.now();
         if (this.wsPublic.readyState === WebSocket.CONNECTING && now - this.lastMessageTimePublic > 5000) {
-          console.warn("Bitunix Public WS stuck in CONNECTING. Cleaning up.");
           this.cleanup("public");
         } else {
           return;
@@ -178,7 +174,6 @@ class BitunixWebSocketService {
       this.connectionTimeoutPublic = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Public WS Connection Timeout.");
           if (this.wsPublic === ws) {
             this.cleanup("public");
             this.scheduleReconnect("public");
@@ -266,7 +261,6 @@ class BitunixWebSocketService {
       this.connectionTimeoutPrivate = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Private WS Connection Timeout.");
           if (this.wsPrivate === ws) {
             this.cleanup("private");
             this.scheduleReconnect("private");
@@ -366,13 +360,11 @@ class BitunixWebSocketService {
     const timer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         if (type === "public" && this.awaitingPongPublic) {
-          console.warn("Bitunix Public WS: Pong timeout.");
           this.cleanup(type);
           this.scheduleReconnect(type);
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
-          console.warn("Bitunix Private WS: Pong timeout.");
           this.cleanup("private");
           this.scheduleReconnect("private");
           return;
@@ -396,7 +388,6 @@ class BitunixWebSocketService {
       if (ws !== this.wsPublic) return;
 
       this.watchdogTimerPublic = setTimeout(() => {
-        console.warn("Bitunix Public WS Watchdog Timeout.");
         if (this.wsPublic === ws) {
           wsStatusStore.set("reconnecting");
           this.cleanup("public");
@@ -408,7 +399,6 @@ class BitunixWebSocketService {
       if (ws !== this.wsPrivate) return;
 
       this.watchdogTimerPrivate = setTimeout(() => {
-        console.warn("Bitunix Private WS Watchdog Timeout.");
         if (this.wsPrivate === ws) {
           this.cleanup("private");
           this.scheduleReconnect("private");

@@ -417,7 +417,6 @@ export const csvService = {
           };
           return normalizeJournalEntry(importedTrade);
         } catch (err) {
-          console.warn("Error parsing CSV line:", entry, err);
           return null;
         }
       })

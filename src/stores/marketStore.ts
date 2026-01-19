@@ -18,6 +18,7 @@
 import { writable } from "svelte/store";
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
+import { parseTimestamp } from "../utils/utils";
 
 export interface MarketData {
   symbol: string;
@@ -156,14 +157,7 @@ function createMarketStore() {
         };
 
         // Bitunix timestamps often come as strings, ensure conversion if needed
-        let nft = 0;
-        if (data.nextFundingTime) {
-          if (/^\d+$/.test(data.nextFundingTime)) {
-            nft = parseInt(data.nextFundingTime, 10);
-          } else {
-            nft = new Date(data.nextFundingTime).getTime();
-          }
-        }
+        const nft = parseTimestamp(data.nextFundingTime);
 
         const updated = {
           ...store,
