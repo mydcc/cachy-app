@@ -53,6 +53,7 @@
     loading = true;
     error = "";
     try {
+      if (provider === "bitunix") {
         // Bitunix default behavior
         const symbolsToFetch = new Set<string>();
         if ($tradeStore.symbol) symbolsToFetch.add($tradeStore.symbol);
