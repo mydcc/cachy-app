@@ -18,9 +18,9 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { fly, scale } from "svelte/transition";
-  import { chatStore } from "../../stores/chatStore";
-  import { notesStore } from "../../stores/notesStore";
-  import { aiStore } from "../../stores/aiStore";
+  import { chatState } from "../../stores/chat.svelte";
+  import { notesState } from "../../stores/notes.svelte";
+  import { aiState } from "../../stores/ai.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
@@ -42,9 +42,7 @@
     }
   });
 
-  onMount(() => {
-    chatStore.init();
-  });
+  // onMount init removed as chatState handles itself via effects
 
   async function handleSend() {
     if (!messageText.trim()) return;
@@ -55,11 +53,11 @@
 
     try {
       if (mode === "ai") {
-        await aiStore.sendMessage(messageText);
+        await aiState.sendMessage(messageText);
       } else if (mode === "notes") {
-        notesStore.addNote(messageText);
+        notesState.addNote(messageText);
       } else {
-        await chatStore.sendMessage(messageText);
+        await chatState.sendMessage(messageText);
       }
       messageText = "";
     } catch (e: any) {
@@ -221,18 +219,18 @@
   function exportChat() {
     let content = "";
     if (settingsState.sidePanelMode === "ai") {
-      content = $aiStore.messages
+      content = aiState.messages
         .map(
           (m) =>
             `${m.role === "user" ? "YOU" : "AI"} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`,
         )
         .join("\n---\n\n");
     } else if (settingsState.sidePanelMode === "notes") {
-      content = $notesStore.messages
+      content = notesState.messages
         .map((m) => `${new Date(m.timestamp).toLocaleString()}:\n${m.text}\n`)
         .join("\n---\n\n");
     } else {
-      content = $chatStore.messages
+      content = chatState.messages
         .map(
           (m) =>
             `${m.senderId === "me" ? "YOU" : "USER"} (${m.profitFactor ? "PF: " + m.profitFactor.toFixed(2) : "N/A"}) (${new Date(m.timestamp).toLocaleString()}):\n${m.text}\n`,
@@ -628,9 +626,9 @@
                 const confirmClear = settingsState.aiConfirmClear; // We reuse this setting for simplicity or add a general one
 
                 const clearFn = () => {
-                  if (mode === "ai") aiStore.clearHistory();
-                  else if (mode === "notes") notesStore.clearNotes();
-                  else chatStore.clearHistory();
+                  if (mode === "ai") aiState.clearHistory();
+                  else if (mode === "notes") notesState.clearNotes();
+                  else chatState.clearHistory();
                 };
 
                 if (confirmClear) {
@@ -701,7 +699,7 @@
         >
           {#if settingsState.sidePanelMode === "ai"}
             <!-- AI Messages -->
-            {#each $aiStore.messages as msg (msg.id)}
+            {#each aiState.messages as msg (msg.id)}
               <div
                 class="flex flex-col text-sm {msg.role === 'user'
                   ? 'items-end'
@@ -810,7 +808,7 @@
               </div>
             {/each}
 
-            {#if $aiStore.isStreaming}
+            {#if aiState.isStreaming}
               <div class="flex flex-col items-start animate-pulse">
                 {#if isTerminal}
                   <span class="text-xs text-green-500 blink"
@@ -825,7 +823,7 @@
               </div>
             {/if}
 
-            {#if $aiStore.messages.length === 0}
+            {#if aiState.messages.length === 0}
               <div
                 class="flex flex-col items-center justify-center h-full opacity-40 select-none"
               >
@@ -842,7 +840,7 @@
             {/if}
           {:else if settingsState.sidePanelMode === "notes"}
             <!-- Private Notes -->
-            {#each $notesStore.messages as msg (msg.id)}
+            {#each notesState.messages as msg (msg.id)}
               <div
                 class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
               >
@@ -866,9 +864,9 @@
             >
               --- Connected to Global Chat ---
             </div>
-            {#each $chatStore.messages.filter((m) => {
+            {#each chatState.messages.filter((m) => {
               if (m.sender === "system") return true;
-              if (m.clientId === $chatStore.clientId) return true;
+              if (m.clientId === chatState.clientId) return true;
               if (m.profitFactor === undefined) return true;
               return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
             }) as msg (msg.id)}
@@ -883,7 +881,7 @@
                   </div>
                 {:else}
                   {@const isMe =
-                    msg.clientId === $chatStore.clientId ||
+                    msg.clientId === chatState.clientId ||
                     msg.senderId === "me"}
                   <div class="flex flex-col">
                     <span
@@ -941,7 +939,7 @@
             <div
               class="text-xs text-[var(--danger-color)] mb-2 animate-pulse px-2"
             >
-              {$_(errorMessage) || errorMessage || $aiStore.error}
+              {$_(errorMessage) || errorMessage || aiState.error}
             </div>
           {/if}
           <div class="relative w-full">
@@ -970,7 +968,7 @@
               bind:value={messageText}
               onkeydown={handleKeydown}
               disabled={isSending ||
-                (settingsState.sidePanelMode === "ai" && $aiStore.isStreaming)}
+                (settingsState.sidePanelMode === "ai" && aiState.isStreaming)}
             />
             {#if !isTerminal}
               <button
