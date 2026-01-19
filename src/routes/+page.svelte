@@ -54,6 +54,7 @@
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
   import SidePanel from "../components/shared/SidePanel.svelte";
+  import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
   let fileInput: HTMLInputElement | undefined = $state();
@@ -372,6 +373,9 @@
     <!-- Left Sidebar: Positions Table (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
       <PositionsSidebar />
+      {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+        <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
+      {/if}
     </div>
   {/if}
 
@@ -782,6 +786,10 @@
       <div class="xl:hidden mt-8 flex flex-col gap-4">
         <!-- Add PositionsSidebar for Mobile -->
         <PositionsSidebar />
+
+        {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+          <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
+        {/if}
 
         <MarketOverview
           onToggleTechnicals={toggleTechnicals}

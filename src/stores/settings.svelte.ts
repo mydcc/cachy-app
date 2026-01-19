@@ -164,9 +164,11 @@ class SettingsManager {
     private _apiProvider = $state<"bitunix" | "binance">(defaultSettings.apiProvider);
     get apiProvider() { return this._apiProvider; }
     set apiProvider(v: "bitunix" | "binance") {
+        if (this.isInitializing) return;
         if (v !== this._apiProvider) {
             console.warn(`[Settings] apiProvider changing: ${this._apiProvider} -> ${v}`, new Error().stack);
             this._apiProvider = v;
+            this.save();
         }
     }
     marketDataInterval = $state<number>(defaultSettings.marketDataInterval);
@@ -294,8 +296,29 @@ class SettingsManager {
 
             const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
 
+            // Migration: Ensure bitunix is default once if not already migrated
+            const migrationKey = "cachy_v0.94_broker_migrated_v2";
+            const migrationDone = localStorage.getItem(migrationKey);
+
             untrack(() => {
-                const loadedProvider = merged.apiProvider;
+                let loadedProvider = merged.apiProvider;
+
+                if (!migrationDone) {
+                    console.warn("[Settings] First load of v0.94: Forcing Bitunix as default.");
+                    loadedProvider = "bitunix";
+                    localStorage.setItem(migrationKey, "true");
+                }
+
+                // Extra safety: Only allow binance if keys are present and not default placeholders
+                const hasBinanceKeys = merged.apiKeys?.binance?.key &&
+                    merged.apiKeys.binance.key.length > 5 &&
+                    merged.apiKeys.binance.secret;
+
+                if (loadedProvider === "binance" && !hasBinanceKeys) {
+                    console.warn("[Settings] Binance selected but no valid keys found. Falling back to Bitunix.");
+                    loadedProvider = "bitunix";
+                }
+
                 const finalProvider = (loadedProvider === "binance") ? "binance" : "bitunix";
 
                 // Set the private field directly during load to avoid dual logging
