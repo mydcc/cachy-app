@@ -475,6 +475,8 @@
     "theme": "Theme",
     "themeDark": "Dark",
     "themeLight": "Light",
+    "fontFamily": "Font Family",
+    "forceEnglishTechnicalTerms": "Technical terms in English (Entry, TP, etc.)",
     "language": "Language",
     "backup": "Backup",
     "restore": "Restore",
@@ -534,7 +536,11 @@
     "tabs": {
       "general": "General",
       "api": "API & Connection",
+      "ai": "AI Chat",
       "behavior": "Behavior",
+      "hotkeys": "Hotkeys",
+      "sidebar": "Sidebar",
+      "indicators": "Technicals",
       "system": "System"
     },
     "indicators": {
@@ -551,7 +557,8 @@
   "common": {
     "save": "Save",
     "cancel": "Cancel",
-    "ok": "OK"
+    "ok": "OK",
+    "close": "Close"
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",

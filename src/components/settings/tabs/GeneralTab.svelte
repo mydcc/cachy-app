@@ -92,7 +92,7 @@
       <label
         for="settings-font"
         class="text-xs font-medium text-[var(--text-secondary)]"
-        >Schriftart</label
+        >{$_("settings.fontFamily")}</label
       >
       <select
         id="settings-font"
@@ -115,7 +115,7 @@
         class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
       />
       <span class="text-sm text-[var(--text-primary)]"
-        >Fachbegriffe auf Englisch (Entry, TP, etc.)</span
+        >{$_("settings.forceEnglishTechnicalTerms")}</span
       >
     </label>
   {/if}

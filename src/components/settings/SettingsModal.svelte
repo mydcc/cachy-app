@@ -16,6 +16,7 @@
 -->
 
 <script lang="ts">
+  import { untrack } from "svelte";
   import ModalFrame from "../shared/ModalFrame.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
@@ -44,7 +45,7 @@
   import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
 
   // Tab State
-  let activeTab:
+  type TabType =
     | "general"
     | "api"
     | "ai"
@@ -52,16 +53,24 @@
     | "system"
     | "sidebar"
     | "indicators"
-    | "hotkeys" = $state("general");
+    | "hotkeys";
 
-  // Sync active tab from uiStore if needed, or just let it be independent
+  let activeTab: TabType = $state("general");
+
+  // Sync active tab from uiStore only when the modal opens
   $effect(() => {
     if ($uiStore.showSettingsModal) {
-      if ($uiStore.settingsTab) {
-        activeTab = $uiStore.settingsTab as any;
-      }
+      untrack(() => {
+        activeTab = ($uiStore.settingsTab as any) || "general";
+      });
     }
   });
+
+  function selectTab(tab: TabType) {
+    activeTab = tab;
+    // Update store so it remains consistent if modal is reopened
+    uiStore.update((s) => ({ ...s, settingsTab: tab }));
+  }
 
   const availableTimeframes = [
     "1m",
@@ -237,7 +246,7 @@
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
         onclick={(e) => {
           e.stopPropagation(); // prevent modal close
-          activeTab = "general";
+          selectTab("general");
         }}
         role="tab"
         aria-selected={activeTab === "general"}
@@ -251,7 +260,7 @@
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
         onclick={(e) => {
           e.stopPropagation();
-          activeTab = "api";
+          selectTab("api");
         }}
         role="tab"
         aria-selected={activeTab === "api"}
@@ -263,18 +272,18 @@
         'ai'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "ai")}
+        onclick={() => selectTab("ai")}
         role="tab"
         aria-selected={activeTab === "ai"}
       >
-        AI Chat
+        {$_("settings.tabs.ai")}
       </button>
       <button
         class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
         'behavior'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "behavior")}
+        onclick={() => selectTab("behavior")}
         role="tab"
         aria-selected={activeTab === "behavior"}
       >
@@ -285,40 +294,40 @@
         'hotkeys'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "hotkeys")}
+        onclick={() => selectTab("hotkeys")}
         role="tab"
         aria-selected={activeTab === "hotkeys"}
       >
-        Hotkeys
+        {$_("settings.tabs.hotkeys")}
       </button>
       <button
         class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
         'sidebar'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "sidebar")}
+        onclick={() => selectTab("sidebar")}
         role="tab"
         aria-selected={activeTab === "sidebar"}
       >
-        Sidebar
+        {$_("settings.tabs.sidebar")}
       </button>
       <button
         class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
         'indicators'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "indicators")}
+        onclick={() => selectTab("indicators")}
         role="tab"
         aria-selected={activeTab === "indicators"}
       >
-        Technicals
+        {$_("settings.tabs.indicators")}
       </button>
       <button
         class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
         'system'
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => (activeTab = "system")}
+        onclick={() => selectTab("system")}
         role="tab"
         aria-selected={activeTab === "system"}
       >
