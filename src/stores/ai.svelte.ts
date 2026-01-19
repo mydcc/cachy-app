@@ -14,6 +14,7 @@ import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
 import { journalState } from "./journal.svelte";
+import { cmcService } from "../services/cmcService";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -85,8 +86,8 @@ class AiManager {
         this.save();
 
         try {
-            // 2. Gather Context
-            const context = this.gatherContext();
+            // 2. Gather Context (Async)
+            const context = await this.gatherContext();
 
             // 3. Prepare Messages (History + System + User)
             const systemPrompt = `You are a professional trading assistant in the Cachy app.
@@ -338,12 +339,43 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
         }
     }
 
-    private gatherContext() {
+    private async gatherContext() {
         const trade = tradeState;
         const market = marketState.data;
         const account = accountState;
         const journal = journalState.entries || [];
         const settings = settingsState;
+
+        // CMC Data
+        let cmcContext = null;
+        if (settings.enableCmcContext && settings.cmcApiKey) {
+            try {
+                // Fetch in parallel for speed
+                const [globalMetrics, coinMeta] = await Promise.all([
+                    cmcService.getGlobalMetrics(),
+                    trade.symbol ? cmcService.getCoinMetadata(trade.symbol) : Promise.resolve(null)
+                ]);
+
+                if (globalMetrics || coinMeta) {
+                    cmcContext = {
+                        global: globalMetrics ? {
+                            btcDominance: globalMetrics.btc_dominance,
+                            marketCap: globalMetrics.total_market_cap,
+                            volume24h: globalMetrics.total_volume_24h,
+                            activeCoins: globalMetrics.active_cryptocurrencies
+                        } : "Unavailable",
+                        symbolMetadata: coinMeta ? {
+                            name: coinMeta.name,
+                            slug: coinMeta.slug,
+                            tags: coinMeta.tags,
+                            dateAdded: coinMeta.date_added
+                        } : "Unavailable"
+                    };
+                }
+            } catch (e) {
+                console.warn("Failed to gather CMC context:", e);
+            }
+        }
 
         // Calculate Portfolio Stats
         const totalTrades = journal.length;
@@ -403,6 +435,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                 atrMultiplier: trade.atrMultiplier,
                 useAtrSl: trade.useAtrSl,
             },
+            marketIntelligence: cmcContext
         };
     }
 

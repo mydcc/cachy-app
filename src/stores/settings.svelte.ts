@@ -88,6 +88,8 @@ export interface Settings {
     cryptoPanicApiKey?: string;
     newsApiKey?: string;
     enableNewsAnalysis: boolean;
+    cmcApiKey?: string;
+    enableCmcContext: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -152,6 +154,8 @@ const defaultSettings: Settings = {
     cryptoPanicApiKey: "",
     newsApiKey: "",
     enableNewsAnalysis: false,
+    cmcApiKey: "",
+    enableCmcContext: false,
 };
 
 class SettingsManager {
@@ -218,6 +222,8 @@ class SettingsManager {
     cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
     newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
+    cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
+    enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
 
     // Subscriptions for legacy compatibility
     private listeners: Set<(value: Settings) => void> = new Set();
@@ -302,6 +308,8 @@ class SettingsManager {
             this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
             this.newsApiKey = merged.newsApiKey;
             this.enableNewsAnalysis = merged.enableNewsAnalysis;
+            this.cmcApiKey = merged.cmcApiKey;
+            this.enableCmcContext = merged.enableCmcContext;
 
             // Cleanup / Migration Logic matching old store
             if (parsed.marketDataInterval === "manual") {
@@ -389,6 +397,8 @@ class SettingsManager {
             cryptoPanicApiKey: this.cryptoPanicApiKey,
             newsApiKey: this.newsApiKey,
             enableNewsAnalysis: this.enableNewsAnalysis,
+            cmcApiKey: this.cmcApiKey,
+            enableCmcContext: this.enableCmcContext,
         };
     }
 
