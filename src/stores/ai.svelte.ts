@@ -8,6 +8,7 @@
  */
 
 import { browser } from "$app/environment";
+import { Decimal } from "decimal.js";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
@@ -15,6 +16,9 @@ import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
 import { journalState } from "./journal.svelte";
 import { cmcService } from "../services/cmcService";
+import { indicatorState } from "./indicator.svelte";
+import { technicalsService } from "../services/technicalsService";
+import { apiService } from "../services/apiService";
 import { newsService } from "../services/newsService";
 import type { JournalEntry } from "./types";
 
@@ -125,15 +129,25 @@ TONE & STYLE:
 - Professional, objective, and data-driven.
 - Be skeptical of "easy" trades; challenge the user's assumptions if data suggests otherwise.
 - HUMOR: Occasionally use dry trading humor and well-known crypto culture references (e.g., "Bitcoin only goes right", "Market Makers hate this trick", "Tom Lee is always bullish"). Don't overdo it, keep it as a "Senior Trader" witty remark.
+- INTRODUCTION: Always start your response with just "Hi". Keep further greetings minimal.
 - Use structured bullet points and bold text for key metrics.`;
 
             const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}
 
-CORE CAPABILITIES & CONTEXT:
-- MARKET INTELLIGENCE (CMC): Access to CoinMarketCap data including Global Market Cap, BTC Dominance, 24h Volume, and asset-specific Metadata (Tags, Launch Date). 
-- LATEST NEWS (SENTIMENT): Access to live headlines from CryptoPanic and NewsAPI.org. Use these to gauge market sentiment and identify potential catalysts.
-- PORTFOLIO DATA: Real-time access to user's Trade History, Winrate, Account Size, and Open Positions.
-- INTERFACE ACCESS: You see exactly what the user enters (Entry, SL, TP, ATR Settings) in the 'tradeSetup' object.
+REAL-TIME CONTEXT:
+${JSON.stringify(context, null, 2)}
+
+TIME SENSITIVITY:
+Today is ${new Date().toLocaleDateString("de-DE", { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' })}.
+MANDATORY: ALWAYS refer to the current date and time from the context above. NEVER use dates from your training data (like 2023 or 2024). If the context shows a different price or date than your internal knowledge, the context is the SOLE TRUTH.
+
+CORE CAPABILITIES:
+- MARKET INTELLIGENCE (CMC): Access to CoinMarketCap data.
+- MARKET OVERVIEW: Full access to 24h High/Low, Funding Rates, Volume, and real-time Orderbook depth.
+- TECHNICALS: Full access to technical indicators (RSI, EMAs, Pivots) and trend summaries.
+- LATEST NEWS: Headlines from CryptoPanic and NewsAPI.org.
+- PORTFOLIO DATA: Real-time access to user's stats and positions.
+- INTERFACE ACCESS: You see exactly what the user enters in 'tradeSetup'.
 - ACTION EXECUTION: You can DIRECTLY set values in the user's trading interface. 
 
 FORMAT: To update values, output a JSON block at the very end:
@@ -450,11 +464,98 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             }))
             : [];
 
+        // Technicals Data (New Addition)
+        let technicalsContext = null;
+        if (symbol && settings.showTechnicals) {
+            try {
+                const timeframe = trade.analysisTimeframe || "1h";
+                const limit = indicatorState.historyLimit || 750;
+                const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+                if (klines && klines.length > 0) {
+                    const data = await technicalsService.calculateTechnicals(klines, indicatorState);
+                    if (data) {
+                        technicalsContext = {
+                            timeframe,
+                            summary: data.summary,
+                            confluence: data.confluence ? {
+                                score: data.confluence.score,
+                                level: data.confluence.level,
+                                timeframe: data.confluence.timeframe
+                            } : "N/A",
+                            divergences: data.divergences && data.divergences.length > 0 ? data.divergences.map(d => ({
+                                type: d.type,
+                                indicator: d.indicator,
+                                intensity: d.intensity,
+                                description: d.description
+                            })) : "None",
+                            oscillators: data.oscillators.map(o => ({ name: o.name, value: o.value.toString(), action: o.action })),
+                            movingAverages: data.movingAverages.map(m => ({ name: m.name, value: m.value.toString(), action: m.action })),
+                            advanced: data.advanced ? {
+                                ichimoku: data.advanced.ichimoku ? {
+                                    action: data.advanced.ichimoku.action,
+                                    tkCross: data.advanced.ichimoku.tkCross,
+                                    cloudPosition: data.advanced.ichimoku.cloudPosition
+                                } : undefined,
+                                vwap: data.advanced.vwap ? data.advanced.vwap.value.toString() : undefined,
+                                mfi: data.advanced.mfi ? data.advanced.mfi.value.toString() : undefined,
+                                chop: data.advanced.chop ? data.advanced.chop.value.toString() : undefined
+                            } : undefined,
+                            pivots: {
+                                type: indicatorState.pivots.type,
+                                classic: Object.fromEntries(
+                                    Object.entries(data.pivots.classic).map(([k, v]) => [k, v.toString()])
+                                )
+                            },
+                            volatility: data.volatility ? {
+                                atr: data.volatility.atr.toString(),
+                                bbPercentP: data.volatility.bb.percentP.toFixed(4)
+                            } : "N/A"
+                        };
+                    }
+                }
+            } catch (e) {
+                console.warn("Failed to gather Technicals context:", e);
+            }
+        }
+
+        // Market Details with Imbalance & Spread
+        let marketDetails = null;
+        if (marketData) {
+            let imbalance = "Unknown";
+            let spread = "Unknown";
+            if (marketData.depth && marketData.depth.bids.length > 0 && marketData.depth.asks.length > 0) {
+                const bestBid = new Decimal(marketData.depth.bids[0][0]);
+                const bestAsk = new Decimal(marketData.depth.asks[0][0]);
+                spread = bestAsk.minus(bestBid).toString();
+
+                const totalBidVol = marketData.depth.bids.slice(0, 5).reduce((sum, b) => sum + Number(b[1]), 0);
+                const totalAskVol = marketData.depth.asks.slice(0, 5).reduce((sum, a) => sum + Number(a[1]), 0);
+                imbalance = ((totalBidVol / (totalBidVol + totalAskVol)) * 100).toFixed(2) + "% Bids";
+            }
+
+            marketDetails = {
+                high24h: marketData.highPrice?.toString(),
+                low24h: marketData.lowPrice?.toString(),
+                volume24h: marketData.volume?.toString(),
+                fundingRate: marketData.fundingRate ? (marketData.fundingRate.times(100).toFixed(4) + "%") : "N/A",
+                nextFunding: marketData.nextFundingTime ? new Date(marketData.nextFundingTime).toISOString() : "N/A",
+                orderbook: marketData.depth ? {
+                    imbalance,
+                    spread,
+                    topBids: marketData.depth.bids.slice(0, 3).map(b => b[0]),
+                    topAsks: marketData.depth.asks.slice(0, 3).map(a => a[0])
+                } : "Unavailable"
+            };
+        }
+
         return {
+            currentTime: new Date().toISOString(),
             portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
             activeSymbol: symbol,
             currentPrice: marketData?.lastPrice?.toString() || "Unknown",
             priceChange24h: marketData?.priceChangePercent?.toString() + "%" || "Unknown",
+            marketDetails,
+            technicals: technicalsContext,
             openPositions: Array.isArray(account.positions)
                 ? account.positions.map((p: any) => ({
                     symbol: p.symbol,

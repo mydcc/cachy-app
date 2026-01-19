@@ -80,6 +80,13 @@ export interface IndicatorSettings {
         type: "classic" | "woodie" | "camarilla" | "fibonacci";
         viewMode: "integrated" | "separated" | "abstract";
     };
+    atr: {
+        length: number;
+    };
+    bb: {
+        length: number;
+        stdDev: number;
+    };
 }
 
 const defaultSettings: IndicatorSettings = {
@@ -138,6 +145,13 @@ const defaultSettings: IndicatorSettings = {
         type: "classic",
         viewMode: "integrated",
     },
+    atr: {
+        length: 14,
+    },
+    bb: {
+        length: 20,
+        stdDev: 2,
+    },
 };
 
 const STORE_KEY = "cachy_indicator_settings";
@@ -157,6 +171,8 @@ class IndicatorManager {
     momentum = $state(defaultSettings.momentum);
     ema = $state(defaultSettings.ema);
     pivots = $state(defaultSettings.pivots);
+    atr = $state(defaultSettings.atr);
+    bb = $state(defaultSettings.bb);
 
     private listeners: Set<(value: IndicatorSettings) => void> = new Set();
 
@@ -252,6 +268,8 @@ class IndicatorManager {
             momentum: $state.snapshot(this.momentum),
             ema: $state.snapshot(this.ema),
             pivots: $state.snapshot(this.pivots),
+            atr: $state.snapshot(this.atr),
+            bb: $state.snapshot(this.bb),
         };
     }
 
@@ -279,6 +297,8 @@ class IndicatorManager {
         this.momentum = next.momentum;
         this.ema = next.ema;
         this.pivots = next.pivots;
+        this.atr = next.atr;
+        this.bb = next.bb;
     }
 
     reset() {
@@ -297,6 +317,8 @@ class IndicatorManager {
         this.momentum = d.momentum;
         this.ema = d.ema;
         this.pivots = d.pivots;
+        this.atr = d.atr;
+        this.bb = d.bb;
     }
 }
 

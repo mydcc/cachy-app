@@ -32,7 +32,25 @@ export interface IndicatorResult {
   value: Decimal;
   signal?: Decimal; // For MACD signal line, etc.
   histogram?: Decimal; // For MACD histogram
-  action: "Buy" | "Sell" | "Neutral";
+  action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
+}
+
+export interface DivergenceItem {
+  indicator: string; // "RSI", "MACD", "StochRSI"
+  type: "Regular" | "Hidden";
+  side: "Bullish" | "Bearish";
+  startIdx: number;
+  endIdx: number;
+  priceStart: Decimal;
+  priceEnd: Decimal;
+  indStart: Decimal;
+  indEnd: Decimal;
+}
+
+export interface ConfluenceData {
+  score: number; // 0-100
+  level: "Strong Sell" | "Sell" | "Neutral" | "Buy" | "Strong Buy";
+  contributing: string[]; // Reasons
 }
 
 export interface TechnicalsData {
@@ -61,6 +79,33 @@ export interface TechnicalsData {
     neutral: number;
     action: "Buy" | "Sell" | "Neutral";
   };
+  volatility?: {
+    atr: Decimal;
+    bb: {
+      upper: Decimal;
+      middle: Decimal;
+      lower: Decimal;
+      percentP: Decimal; // Price position within bands (0-1)
+    };
+  };
+  // New Fields
+  divergences?: DivergenceItem[];
+  confluence?: ConfluenceData;
+  advanced?: {
+    vwap?: Decimal;
+    mfi?: { value: Decimal; action: string };
+    stochRsi?: { k: Decimal; d: Decimal; action: string };
+    williamsR?: { value: Decimal; action: string };
+    choppiness?: { value: Decimal; state: "Trend" | "Range" };
+    ichimoku?: {
+      conversion: Decimal;
+      base: Decimal;
+      spanA: Decimal;
+      spanB: Decimal;
+      action: string
+    };
+    parabolicSar?: Decimal;
+  };
 }
 
 
@@ -70,7 +115,19 @@ export interface SerializedIndicatorResult {
   value: string;
   signal?: string;
   histogram?: string;
-  action: "Buy" | "Sell" | "Neutral";
+  action: "Buy" | "Sell" | "Neutral" | "Strong Buy" | "Strong Sell";
+}
+
+export interface SerializedDivergenceItem {
+  indicator: string;
+  type: "Regular" | "Hidden";
+  side: "Bullish" | "Bearish";
+  priceStart: string;
+  priceEnd: string;
+  indStart: string;
+  indEnd: string;
+  startIdx: number;
+  endIdx: number;
 }
 
 export interface SerializedTechnicalsData {
@@ -86,6 +143,32 @@ export interface SerializedTechnicalsData {
     high: string; low: string; open: string; close: string;
   };
   summary: TechnicalsData['summary'];
+  volatility?: {
+    atr: string;
+    bb: {
+      upper: string;
+      middle: string;
+      lower: string;
+      percentP: string;
+    };
+  };
+  divergences?: SerializedDivergenceItem[];
+  confluence?: ConfluenceData;
+  advanced?: {
+    vwap?: string;
+    mfi?: { value: string; action: string };
+    stochRsi?: { k: string; d: string; action: string };
+    williamsR?: { value: string; action: string };
+    choppiness?: { value: string; state: "Trend" | "Range" };
+    ichimoku?: {
+      conversion: string;
+      base: string;
+      spanA: string;
+      spanB: string;
+      action: string
+    };
+    parabolicSar?: string;
+  };
 }
 
 export interface WorkerCalculatePayload {

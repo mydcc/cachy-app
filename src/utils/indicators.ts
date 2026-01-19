@@ -186,6 +186,244 @@ export const JSIndicators = {
 
     return this.ema(dx, period);
   },
+
+  atr(high: number[], low: number[], close: number[], period: number): number[] {
+    const result = new Array(close.length).fill(0);
+    if (close.length < period) return result;
+    const tr = new Array(close.length).fill(0);
+    for (let i = 1; i < close.length; i++) {
+      tr[i] = Math.max(
+        high[i] - low[i],
+        Math.abs(high[i] - close[i - 1]),
+        Math.abs(low[i] - close[i - 1]),
+      );
+    }
+    // ATR is usually a smoothed moving average of TR
+    return this.ema(tr, period);
+  },
+
+  bb(data: number[], period: number, stdDev: number = 2) {
+    const sma = this.sma(data, period);
+    const upper = new Array(data.length).fill(0);
+    const lower = new Array(data.length).fill(0);
+
+    for (let i = period - 1; i < data.length; i++) {
+      const slice = data.slice(i - period + 1, i + 1);
+      const avg = sma[i];
+      let sumSqDiff = 0;
+      for (const val of slice) sumSqDiff += Math.pow(val - avg, 2);
+      const standardDev = Math.sqrt(sumSqDiff / period);
+      upper[i] = avg + standardDev * stdDev;
+      lower[i] = avg - standardDev * stdDev;
+    }
+    return { middle: sma, upper, lower };
+  },
+
+  // --- Advanced Indicators ---
+
+  vwap(
+    high: number[],
+    low: number[],
+    close: number[],
+    volume: number[],
+  ): number[] {
+    const result = new Array(close.length).fill(0);
+    // VWAP is typically Intraday, resetting at start of day.
+    // However, for general timeframe usage (like TradingView's sessionless VWAP), 
+    // we often need a rolling window or a full accumulation if "anchored".
+    // For this generic implementation, we'll do a simple cumulative VWAP 
+    // but ideally, this should accept an "anchor" or reset periodicity.
+    // For simplicity in this context (and consistency with similar libs):
+    // We will implement a "Rolling VWAP" if period is provided, or Cumulative if not?
+    // Standard VWAP is Cumulative from start of data series here.
+
+    let cumVol = 0;
+    let cumVolPrice = 0;
+
+    for (let i = 0; i < close.length; i++) {
+      const typicalPrice = (high[i] + low[i] + close[i]) / 3;
+      const vol = volume[i];
+      cumVol += vol;
+      cumVolPrice += typicalPrice * vol;
+      result[i] = cumVol === 0 ? 0 : cumVolPrice / cumVol;
+    }
+    return result;
+  },
+
+  mfi(
+    high: number[],
+    low: number[],
+    close: number[],
+    volume: number[],
+    period: number
+  ): number[] {
+    const result = new Array(close.length).fill(0);
+    if (close.length < period + 1) return result;
+
+    const typicalPrices = close.map((c, i) => (high[i] + low[i] + c) / 3);
+    const moneyFlow = typicalPrices.map((tp, i) => tp * volume[i]);
+
+    const posFlow = new Array(close.length).fill(0);
+    const negFlow = new Array(close.length).fill(0);
+
+    // 1. Calculate Flows
+    for (let i = 1; i < close.length; i++) {
+      if (typicalPrices[i] > typicalPrices[i - 1]) {
+        posFlow[i] = moneyFlow[i];
+      } else if (typicalPrices[i] < typicalPrices[i - 1]) {
+        negFlow[i] = moneyFlow[i];
+      }
+    }
+
+    // 2. Sum over period
+    for (let i = period; i < close.length; i++) {
+      let sumPos = 0;
+      let sumNeg = 0;
+      for (let j = 0; j < period; j++) {
+        sumPos += posFlow[i - j];
+        sumNeg += negFlow[i - j];
+      }
+      const mfr = sumNeg === 0 ? 100 : sumPos / sumNeg;
+      result[i] = 100 - (100 / (1 + mfr));
+    }
+
+    return result;
+  },
+
+  stochRsi(data: number[], period: number, kPeriod: number, dPeriod: number, smoothK: number) {
+    const rsiRaw = this.rsi(data, period);
+    // Stoch of RSI
+    // Use the stoch function but on RSI data
+    // JSIndicators.stoch expects High, Low, Close. 
+    // For StochRSI, High=RSI, Low=RSI, Close=RSI
+
+    // We need a helper for simple stochastic on a single array
+    const stochSingle = (src: number[], len: number) => {
+      const res = new Array(src.length).fill(0);
+      for (let i = len - 1; i < src.length; i++) {
+        const slice = src.slice(i - len + 1, i + 1);
+        const min = Math.min(...slice);
+        const max = Math.max(...slice);
+        const range = max - min;
+        res[i] = range === 0 ? 50 : ((src[i] - min) / range) * 100;
+      }
+      return res;
+    };
+
+    let kPoints = stochSingle(rsiRaw, kPeriod);
+
+    if (smoothK > 1) {
+      kPoints = this.sma(kPoints, smoothK);
+    }
+
+    const dPoints = this.sma(kPoints, dPeriod);
+
+    return { k: kPoints, d: dPoints };
+  },
+
+  williamsR(high: number[], low: number[], close: number[], period: number): number[] {
+    const result = new Array(close.length).fill(0);
+    if (close.length < period) return result;
+
+    for (let i = period - 1; i < close.length; i++) {
+      const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
+      const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
+      const range = highestHigh - lowestLow;
+      result[i] = range === 0 ? 0 : ((highestHigh - close[i]) / range) * -100;
+    }
+    return result;
+  },
+
+  choppiness(high: number[], low: number[], close: number[], period: number): number[] {
+    const result = new Array(close.length).fill(0);
+    if (close.length < period) return result;
+    // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
+
+    // First calculate TR for each candle
+    const tr = new Array(close.length).fill(0);
+    for (let i = 1; i < close.length; i++) {
+      tr[i] = Math.max(high[i] - low[i], Math.abs(high[i] - close[i - 1]), Math.abs(low[i] - close[i - 1]));
+    }
+
+    const log10n = Math.log10(period);
+
+    for (let i = period; i < close.length; i++) {
+      let sumTr = 0;
+      for (let j = 0; j < period; j++) sumTr += tr[i - j];
+
+      const maxHigh = Math.max(...high.slice(i - period + 1, i + 1));
+      const minLow = Math.min(...low.slice(i - period + 1, i + 1));
+      const range = maxHigh - minLow;
+
+      if (range === 0) result[i] = 0;
+      else {
+        result[i] = 100 * Math.log10(sumTr / range) / log10n;
+      }
+    }
+    return result;
+  },
+
+  ichimoku(
+    high: number[],
+    low: number[],
+    conversionPeriod: number,
+    basePeriod: number,
+    spanBPeriod: number,
+    laggingSpan2: number
+  ) {
+    // Tenkan-sen (Conversion Line): (9-period high + 9-period low)/2
+    // Kijun-sen (Base Line): (26-period high + 26-period low)/2
+    // Senkou Span A (Leading Span A): (Conversion Line + Base Line)/2
+    // Senkou Span B (Leading Span B): (52-period high + 52-period low)/2
+    // Chikou Span (Lagging Span): Close plotted 26 days in the past (handled by UI offset mostly, but here we just return close)
+
+    const getAvg = (len: number, idx: number) => {
+      if (idx < len - 1) return 0;
+      const h = Math.max(...high.slice(idx - len + 1, idx + 1));
+      const l = Math.min(...low.slice(idx - len + 1, idx + 1));
+      return (h + l) / 2;
+    };
+
+    const len = high.length;
+    const conversion = new Array(len).fill(0);
+    const base = new Array(len).fill(0);
+    const spanA = new Array(len).fill(0);
+    const spanB = new Array(len).fill(0);
+    // const lagging = close.map((c, i) => c); // Just the close price
+
+    for (let i = 0; i < len; i++) {
+      conversion[i] = getAvg(conversionPeriod, i);
+      base[i] = getAvg(basePeriod, i);
+      spanA[i] = (conversion[i] + base[i]) / 2;
+      spanB[i] = getAvg(spanBPeriod, i);
+    }
+
+    // Span A and B are shifted FORWARD by displacement (usually 26)
+    // We will return the raw arrays aligned to current time, 
+    // the consumer must handle the "future" plotting or we shift array here?
+    // Standard: Span A/B value at index `i` is plotted at `i + displacement`.
+    // To make it easy for "Current Status" checks:
+    // The "Cloud" valid for TODAY (index i) comes from calculations made `displacement` bars ago.
+
+    const displacement = basePeriod; // Often 26
+
+    // E.g. Cloud at i = SpanA[i-26]
+    const currentSpanA = new Array(len).fill(0);
+    const currentSpanB = new Array(len).fill(0);
+
+    for (let i = displacement; i < len; i++) {
+      currentSpanA[i] = spanA[i - displacement];
+      currentSpanB[i] = spanB[i - displacement];
+    }
+
+    return {
+      conversion,
+      base,
+      spanA: currentSpanA, // This is the cloud value "active" at time i
+      spanB: currentSpanB, // This is the cloud value "active" at time i
+      lagging: [] // Not needed for current signal check usually, visual only
+    };
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---

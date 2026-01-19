@@ -45,6 +45,10 @@ export const julesService = {
     const account = accountState;
     const wsStatus = marketState.connectionStatus;
 
+    // Get Market/Technicals Context for current symbol
+    const currentSymbol = trade.symbol;
+    const marketData = currentSymbol ? marketState.data[currentSymbol] : null;
+
     // Sanitize Settings (remove API Secrets)
     const safeSettings = {
       ...settings,
@@ -85,6 +89,24 @@ export const julesService = {
       settings: safeSettings,
       tradeState: safeTradeState,
       accountSummary: safeAccount,
+      marketStatus: {
+        connected: wsStatus === "connected",
+        data: marketData ? {
+          lastPrice: marketData.lastPrice,
+          priceChange: marketData.priceChangePercent,
+          technicals: marketData.technicals ? {
+            summary: marketData.technicals.summary,
+            confluence: marketData.technicals.confluence,
+            // We send key signals to AI, not entire array of 1000s of numbers
+            signals: {
+              rsi: marketData.technicals.oscillators.find(o => o.name === "RSI")?.value,
+              macdAction: marketData.technicals.oscillators.find(o => o.name === "MACD")?.action,
+              divergences: marketData.technicals.divergences,
+              ichimokuAction: marketData.technicals.advanced?.ichimoku?.action
+            }
+          } : "Calculating..."
+        } : "No Data"
+      },
       uiState: {
         theme: ui.currentTheme,
         activeModal: ui.showJournalModal

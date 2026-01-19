@@ -36,6 +36,7 @@ export interface MarketData {
             time: number;
         }
     >;
+    technicals?: import("../services/technicalsTypes").TechnicalsData;
 }
 
 export type WSStatus =
@@ -136,6 +137,7 @@ class MarketManager {
         if (partial.fundingRate !== undefined) current.fundingRate = partial.fundingRate;
         if (partial.nextFundingTime !== undefined) current.nextFundingTime = partial.nextFundingTime;
         if (partial.depth !== undefined) current.depth = partial.depth;
+        if (partial.technicals !== undefined) current.technicals = partial.technicals;
 
         this.enforceCacheLimit();
     }

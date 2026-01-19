@@ -48,7 +48,52 @@ function serializeResult(data: TechnicalsData): SerializedTechnicalsData {
             close: data.pivotBasis.close.toString(),
             open: data.pivotBasis.open.toString(),
         } : undefined,
-        summary: data.summary
+        summary: data.summary,
+        volatility: data.volatility ? {
+            atr: data.volatility.atr.toString(),
+            bb: {
+                upper: data.volatility.bb.upper.toString(),
+                middle: data.volatility.bb.middle.toString(),
+                lower: data.volatility.bb.lower.toString(),
+                percentP: data.volatility.bb.percentP.toString()
+            }
+        } : undefined,
+        divergences: data.divergences?.map(d => ({
+            ...d,
+            priceStart: d.priceStart.toString(),
+            priceEnd: d.priceEnd.toString(),
+            indStart: d.indStart.toString(),
+            indEnd: d.indEnd.toString()
+        })),
+        confluence: data.confluence,
+        advanced: data.advanced ? {
+            vwap: data.advanced.vwap?.toString(),
+            mfi: data.advanced.mfi ? {
+                value: data.advanced.mfi.value.toString(),
+                action: data.advanced.mfi.action
+            } : undefined,
+            stochRsi: data.advanced.stochRsi ? {
+                k: data.advanced.stochRsi.k.toString(),
+                d: data.advanced.stochRsi.d.toString(),
+                action: data.advanced.stochRsi.action
+            } : undefined,
+            williamsR: data.advanced.williamsR ? {
+                value: data.advanced.williamsR.value.toString(),
+                action: data.advanced.williamsR.action
+            } : undefined,
+            choppiness: data.advanced.choppiness ? {
+                value: data.advanced.choppiness.value.toString(),
+                state: data.advanced.choppiness.state
+            } : undefined,
+            ichimoku: data.advanced.ichimoku ? {
+                conversion: data.advanced.ichimoku.conversion.toString(),
+                base: data.advanced.ichimoku.base.toString(),
+                spanA: data.advanced.ichimoku.spanA.toString(),
+                spanB: data.advanced.ichimoku.spanB.toString(),
+                action: data.advanced.ichimoku.action
+            } : undefined,
+            parabolicSar: data.advanced.parabolicSar?.toString()
+        } : undefined
     };
 }
 
