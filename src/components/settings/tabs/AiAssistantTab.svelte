@@ -98,15 +98,34 @@
                     />
                 </div>
 
-                <!-- Gemini Model Name -->
+                <!-- Gemini Model Selector (Curated) -->
                 <div class="field-group">
                     <label for="gemini-model">Gemini Model</label>
-                    <input
+                    <select
                         id="gemini-model"
                         bind:value={settingsState.geminiModel}
-                        placeholder="gemini-1.5-pro"
                         class="input-field"
-                    />
+                    >
+                        <option value="gemini-2.5-flash"
+                            >Gemini 2.5 Flash (Recommended ⭐)</option
+                        >
+                        <option value="gemini-2.0-flash"
+                            >Gemini 2.0 Flash (Stable)</option
+                        >
+                        <option value="gemini-3-flash-preview"
+                            >Gemini 3 Flash (Preview 🚀)</option
+                        >
+                        <option value="gemini-3-pro-preview"
+                            >Gemini 3 Pro (Preview 🧠)</option
+                        >
+                        <option value="gemma-3-27b-it"
+                            >Gemma 3 27b (Open Model ✨)</option
+                        >
+                    </select>
+                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                        {$_("settings.ai.geminiModelDesc") ||
+                            "Gemini 2.5 Flash offers the best balance. Gemma 3 has high rate limits (14.4k/day)."}
+                    </p>
                 </div>
             </div>
         </div>

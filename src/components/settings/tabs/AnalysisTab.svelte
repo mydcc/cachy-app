@@ -351,6 +351,109 @@
                         </div>
                         <ProOverlay />
                     </div>
+
+                    <!-- Williams %R -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Williams %R</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="wr-len"
+                                    type="number"
+                                    bind:value={indicatorState.williamsR.length}
+                                    min={2}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- MFI -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Money Flow Index</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="mfi-len"
+                                    type="number"
+                                    bind:value={indicatorState.mfi.length}
+                                    min={2}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- Momentum -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Momentum</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Length"
+                                    id="mom-len"
+                                    type="number"
+                                    bind:value={indicatorState.momentum.length}
+                                    min={2}
+                                    max={100}
+                                /><Select
+                                    label="Source"
+                                    id="mom-src"
+                                    bind:value={indicatorState.momentum.source}
+                                    options={[
+                                        "close",
+                                        "open",
+                                        "high",
+                                        "low",
+                                        "hl2",
+                                        "hlc3",
+                                    ]}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- Awesome Oscillator -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Awesome Osc</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Fast Len"
+                                    id="ao-fast"
+                                    type="number"
+                                    bind:value={indicatorState.ao.fastLength}
+                                    min={1}
+                                    max={100}
+                                /><Field
+                                    label="Slow Len"
+                                    id="ao-slow"
+                                    type="number"
+                                    bind:value={indicatorState.ao.slowLength}
+                                    min={1}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
                 {/if}
 
                 {#if activeCategory === "trend"}
@@ -464,6 +567,110 @@
                                     bind:value={
                                         indicatorState.ichimoku.basePeriod
                                     }
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- ADX -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>ADX</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Scaling (Smth)"
+                                    id="adx-s"
+                                    type="number"
+                                    bind:value={indicatorState.adx.adxSmoothing}
+                                    min={2}
+                                    max={100}
+                                /><Field
+                                    label="DI Len"
+                                    id="adx-di"
+                                    type="number"
+                                    bind:value={indicatorState.adx.diLength}
+                                    min={2}
+                                    max={100}
+                                />
+                            </div>
+                            <div class="row mt-2">
+                                <Field
+                                    label="Threshold"
+                                    id="adx-th"
+                                    type="number"
+                                    bind:value={indicatorState.adx.threshold}
+                                    min={0}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- SuperTrend -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>SuperTrend</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Field
+                                    label="Factor"
+                                    id="st-fac"
+                                    type="number"
+                                    step={0.1}
+                                    bind:value={
+                                        indicatorState.superTrend.factor
+                                    }
+                                    min={0.1}
+                                    max={20}
+                                /><Field
+                                    label="Period"
+                                    id="st-per"
+                                    type="number"
+                                    bind:value={
+                                        indicatorState.superTrend.period
+                                    }
+                                    min={2}
+                                    max={100}
+                                />
+                            </div>
+                        </div>
+                        <ProOverlay />
+                    </div>
+
+                    <!-- Pivots -->
+                    <div class="indicator-card">
+                        <div class="indicator-header">
+                            <h4>Pivots</h4>
+                            <ProBadge />
+                        </div>
+                        <div class="indicator-body">
+                            <div class="row">
+                                <Select
+                                    label="Type"
+                                    id="piv-type"
+                                    bind:value={indicatorState.pivots.type}
+                                    options={[
+                                        "classic",
+                                        "woodie",
+                                        "camarilla",
+                                        "fibonacci",
+                                    ]}
+                                /><Select
+                                    label="Mode"
+                                    id="piv-mode"
+                                    bind:value={indicatorState.pivots.viewMode}
+                                    options={[
+                                        "integrated",
+                                        "separated",
+                                        "abstract",
+                                    ]}
                                 />
                             </div>
                         </div>

@@ -259,6 +259,27 @@
                         />
                     </div>
                 {/if}
+
+                {#if settingsState.sidePanelMode === "chat"}
+                    <div class="field-group">
+                        <label for="min-chat-pf"
+                            >{$_("settings.minChatProfitFactor") ||
+                                "Min. Chat Profit Factor"}</label
+                        >
+                        <input
+                            id="min-chat-pf"
+                            type="number"
+                            step="0.01"
+                            bind:value={settingsState.minChatProfitFactor}
+                            use:enhancedInput
+                            class="input-field"
+                        />
+                        <p class="text-[10px] text-[var(--text-secondary)]">
+                            {$_("settings.minChatProfitFactorDesc") ||
+                                "Filter chat messages from users below this PF"}
+                        </p>
+                    </div>
+                {/if}
             </div>
         {/if}
 
