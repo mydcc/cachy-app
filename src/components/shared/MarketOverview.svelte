@@ -189,26 +189,39 @@
     countdownInterval = setInterval(update, 1000);
   }
 
+  let fetchLock = false;
+
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
     if (!symbol || symbol.length < 3) return;
 
-    const interval = settingsState.marketDataInterval * 1000;
-    // Add jitter to prevent all cards polling at the exact same millisecond
+    // For favorites on Binance (REST), use a much slower interval to prevent freezing
+    const baseInterval = settingsState.marketDataInterval;
+    const effectiveInterval =
+      isFavoriteTile && provider === "binance"
+        ? Math.max(baseInterval, 10) * 1000 // Min 10s for favorites
+        : baseInterval * 1000;
+
+    // Add jitter
     const jitter = Math.floor(Math.random() * 2000);
 
     setTimeout(() => {
-      if (!restIntervalId) {
-        // Only set if not already cleared
-        restIntervalId = setInterval(() => fetchRestData(true), interval);
+      if (!restIntervalId && !fetchLock) {
+        restIntervalId = setInterval(
+          () => fetchRestData(true),
+          effectiveInterval,
+        );
       }
     }, jitter);
   }
 
   async function fetchRestData(isBackground = false) {
     if (!symbol || symbol.length < 3) return;
+    if (fetchLock) return;
+
     if (!isBackground && !tickerData) restLoading = true;
 
+    fetchLock = true;
     try {
       const data = await apiService.fetchTicker24h(symbol, provider);
       tickerData = data;
@@ -220,6 +233,7 @@
       restError = "N/A";
     } finally {
       restLoading = false;
+      fetchLock = false;
     }
   }
 

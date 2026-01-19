@@ -64,6 +64,8 @@ class BitunixWebSocketService {
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
 
+  private globalMonitorInterval: any = null;
+
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
 
@@ -97,7 +99,7 @@ class BitunixWebSocketService {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
 
-      setInterval(() => {
+      this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
 
         const now = Date.now();
@@ -108,6 +110,9 @@ class BitunixWebSocketService {
           if (status !== "disconnected") marketState.connectionStatus = "disconnected";
           return;
         }
+
+        // Only monitor if we are actually supposed to be using bitunix
+        if (settingsState.apiProvider !== "bitunix") return;
 
         if (status === "connected" && timeSincePublic > 2000) {
           console.warn("Bitunix WS: Stale connection detected (2s). Updating status.");
@@ -129,6 +134,10 @@ class BitunixWebSocketService {
 
   destroy() {
     this.isDestroyed = true;
+    if (this.globalMonitorInterval) {
+      clearInterval(this.globalMonitorInterval);
+      this.globalMonitorInterval = null;
+    }
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.handleOnline);
       window.removeEventListener("offline", this.handleOffline);
