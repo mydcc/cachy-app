@@ -108,6 +108,11 @@
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
       "atrMultiplierLabel": "Multiplier",
+      "selectSymbol": "Symbol auswählen",
+      "priceDeviation": "Abweichung zum Markt",
+      "autoUpdateOn": "Auto-Update An",
+      "autoUpdateOff": "Auto-Update Aus",
+      "fetchAtrValue": "ATR Wert abrufen",
       "symbolPlaceholder": "Symbol (z.B. BTCUSDT)",
       "fetchPriceTitle": "Live-Preis holen",
       "fetchPriceAriaLabel": "Live-Preis holen",
@@ -548,7 +553,8 @@
       "hotkeys": "Hotkeys",
       "sidebar": "Sidebar",
       "indicators": "Technicals",
-      "system": "System"
+      "system": "System",
+      "data": "Daten-Wartung"
     },
     "indicators": {
       "title": "Indikator Einstellungen",

@@ -80,7 +80,6 @@ class BitunixWebSocketService {
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
-    console.log("Bitunix WS: Browser reported online. Forcing reconnect.");
     this.cleanup("public");
     this.cleanup("private");
     marketState.connectionStatus = "connecting";
@@ -115,12 +114,10 @@ class BitunixWebSocketService {
         if (settingsState.apiProvider !== "bitunix") return;
 
         if (status === "connected" && timeSincePublic > 2000) {
-          console.warn("Bitunix WS: Stale connection detected (2s). Updating status.");
           marketState.connectionStatus = "reconnecting";
         }
 
         if (status !== "disconnected" && timeSincePublic > 5000) {
-          console.warn("Bitunix WS: Force disconnected due to inactivity (5s).");
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
@@ -167,7 +164,6 @@ class BitunixWebSocketService {
         // If it's connecting for too long, cleanup and force a new one
         const now = Date.now();
         if (this.wsPublic.readyState === WebSocket.CONNECTING && now - this.lastMessageTimePublic > 5000) {
-          console.warn("Bitunix Public WS stuck in CONNECTING. Cleaning up.");
           this.cleanup("public");
         } else {
           return;
@@ -186,7 +182,6 @@ class BitunixWebSocketService {
       this.connectionTimeoutPublic = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Public WS Connection Timeout.");
           if (this.wsPublic === ws) {
             this.cleanup("public");
             this.scheduleReconnect("public");
@@ -221,7 +216,6 @@ class BitunixWebSocketService {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "public");
         } catch (e) {
-          console.error("Error parsing Public WS message:", e);
         }
       };
 
@@ -239,10 +233,8 @@ class BitunixWebSocketService {
       };
 
       ws.onerror = (error) => {
-        console.error("Bitunix Public WebSocket error:", error);
       };
     } catch (e) {
-      console.error("Failed to create Public WS:", e);
       this.scheduleReconnect("public");
     }
   }
@@ -274,7 +266,6 @@ class BitunixWebSocketService {
       this.connectionTimeoutPrivate = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
-          console.warn("Bitunix Private WS Connection Timeout.");
           if (this.wsPrivate === ws) {
             this.cleanup("private");
             this.scheduleReconnect("private");
@@ -308,7 +299,6 @@ class BitunixWebSocketService {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "private");
         } catch (e) {
-          console.error("Error parsing Private WS message:", e);
         }
       };
 
@@ -326,10 +316,8 @@ class BitunixWebSocketService {
       };
 
       ws.onerror = (error) => {
-        console.error("Bitunix Private WebSocket error:", error);
       };
     } catch (e) {
-      console.error("Failed to create Private WS:", e);
       this.scheduleReconnect("private");
     }
   }
@@ -374,13 +362,11 @@ class BitunixWebSocketService {
     const timer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         if (type === "public" && this.awaitingPongPublic) {
-          console.warn("Bitunix Public WS: Pong timeout.");
           this.cleanup(type);
           this.scheduleReconnect(type);
           return;
         }
         if (type === "private" && this.awaitingPongPrivate) {
-          console.warn("Bitunix Private WS: Pong timeout.");
           this.cleanup("private");
           this.scheduleReconnect("private");
           return;
@@ -404,7 +390,6 @@ class BitunixWebSocketService {
       if (ws !== this.wsPublic) return;
 
       this.watchdogTimerPublic = setTimeout(() => {
-        console.warn("Bitunix Public WS Watchdog Timeout.");
         if (this.wsPublic === ws) {
           marketState.connectionStatus = "reconnecting";
           this.cleanup("public");
@@ -416,7 +401,6 @@ class BitunixWebSocketService {
       if (ws !== this.wsPrivate) return;
 
       this.watchdogTimerPrivate = setTimeout(() => {
-        console.warn("Bitunix Private WS Watchdog Timeout.");
         if (this.wsPrivate === ws) {
           this.cleanup("private");
           this.scheduleReconnect("private");
@@ -486,7 +470,6 @@ class BitunixWebSocketService {
       const payload = { op: "login", args: [{ apiKey, timestamp, nonce, sign }] };
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (error) {
-      console.error("Error during Bitunix login:", error);
     }
   }
 
@@ -601,7 +584,6 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      console.error(`Error handling ${type} message:`, err);
     }
   }
 
