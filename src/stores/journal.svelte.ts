@@ -36,9 +36,40 @@ class JournalManager {
             const parsedData = JSON.parse(d);
             if (Array.isArray(parsedData)) {
                 this.entries = parsedData.map((trade) => normalizeJournalEntry(trade));
+
+                // Auto-calculate missing ATR values for closed trades
+                this.autoCalculateMissingAtr();
             }
         } catch (e) {
             console.warn("Could not load journal from localStorage.", e);
+        }
+    }
+
+    /**
+     * Automatically calculates and fills missing atrValue for closed trades (Won/Lost)
+     * This runs asynchronously in the background after journal load
+     */
+    private async autoCalculateMissingAtr() {
+        if (!browser) return;
+
+        // Import dynamically to avoid circular dependencies
+        const { dataRepairService } = await import("../services/dataRepairService");
+
+        // Check if there are any trades needing ATR calculation
+        const count = dataRepairService.scanForMissingAtr();
+
+        if (count > 0) {
+            console.log(`[Journal] Auto-calculating ATR for ${count} trades...`);
+
+            // Run repair in background without blocking UI
+            dataRepairService.repairMissingAtr((current, total, message) => {
+                // Silent background operation - no UI feedback
+                if (current === total) {
+                    console.log(`[Journal] ATR auto-calculation completed for ${total} trades`);
+                }
+            }).catch(err => {
+                console.warn("[Journal] ATR auto-calculation failed:", err);
+            });
         }
     }
 

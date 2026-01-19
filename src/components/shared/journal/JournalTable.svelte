@@ -312,6 +312,21 @@
                                     >
                                 </th>
                             {/if}
+                            {#if columnVisibility.atr && !groupBySymbol}
+                                <th
+                                    onclick={() => handleSort("atrValue")}
+                                    class="sortable"
+                                >
+                                    {$_("journal.table.atr")}
+                                    <span class="sort-icon"
+                                        >{activeSortField === "atrValue"
+                                            ? activeSortDirection === "asc"
+                                                ? "↑"
+                                                : "↓"
+                                            : ""}</span
+                                    >
+                                </th>
+                            {/if}
                             {#if columnVisibility.sl && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("stopLossPrice")}
@@ -581,6 +596,18 @@
                                         !item.exitPrice.isZero()
                                             ? formatDynamicDecimal(
                                                   item.exitPrice,
+                                                  4,
+                                              )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.atr}
+                                    <td
+                                        class="text-xs text-[var(--text-secondary)]"
+                                        >{item.atrValue !== undefined &&
+                                        item.atrValue !== null
+                                            ? formatDynamicDecimal(
+                                                  item.atrValue,
                                                   4,
                                               )
                                             : "-"}</td
