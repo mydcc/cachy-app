@@ -20,12 +20,8 @@
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
-  import { favoritesStore } from "../../stores/favoritesStore";
-  import {
-    marketStore,
-    wsStatusStore,
-    type MarketData,
-  } from "../../stores/marketStore";
+  import { favoritesState } from "../../stores/favorites.svelte";
+  import { marketState, type MarketData } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
   import {
     apiService,
@@ -251,7 +247,7 @@
   }
 
   function toggleFavorite() {
-    if (symbol) favoritesStore.toggleFavorite(symbol);
+    if (symbol) favoritesState.toggleFavorite(symbol);
   }
 
   function loadToCalculator() {
@@ -280,10 +276,9 @@
   // WS Data
   let wsData = $derived.by(() => {
     if (!symbol) return null;
-    const store = $marketStore as Record<string, MarketData>;
-    return store[symbol] || null;
+    return marketState.data[symbol] || null;
   });
-  let wsStatus = $derived($wsStatusStore);
+  let wsStatus = $derived(marketState.connectionStatus);
   // Derived Real-time values
   let currentPrice = $derived.by(() => {
     return (wsData?.lastPrice ??
@@ -427,7 +422,9 @@
       });
     }
   });
-  let isFavorite = $derived(symbol ? $favoritesStore.includes(symbol) : false);
+  let isFavorite = $derived(
+    symbol ? favoritesState.items.includes(symbol) : false,
+  );
   $effect(() => {
     if (nextFundingTime) untrack(startCountdown);
   });

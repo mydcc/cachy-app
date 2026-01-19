@@ -18,7 +18,7 @@
 <script lang="ts">
   import { onMount } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
-  import { accountStore } from "../../stores/accountStore";
+  import { accountState } from "../../stores/account.svelte";
   import { tradeStore } from "../../stores/tradeStore";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -53,12 +53,10 @@
     loading = true;
     error = "";
     try {
-      // Bitunix TP/SL endpoints require a symbol or favor it.
-      // Other providers might support global fetching.
-      if (provider === "bitunix") {
+        // Bitunix default behavior
         const symbolsToFetch = new Set<string>();
         if ($tradeStore.symbol) symbolsToFetch.add($tradeStore.symbol);
-        $accountStore.positions.forEach((p) => symbolsToFetch.add(p.symbol));
+        accountState.positions.forEach((p) => symbolsToFetch.add(p.symbol));
 
         const fetchList =
           symbolsToFetch.size > 0 ? Array.from(symbolsToFetch) : [undefined];

@@ -19,7 +19,7 @@ import { get, writable } from "svelte/store";
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";
-import { wsStatusStore } from "../stores/marketStore";
+import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 
@@ -161,7 +161,7 @@ class MarketWatcher {
 
     this.pollingInterval = setInterval(() => {
       const settings = settingsState;
-      const wsStatus = get(wsStatusStore);
+      const wsStatus = marketState.connectionStatus;
 
       // Polling as Fallback or for Binance
       if (settings.apiProvider === "binance" || wsStatus !== "connected") {

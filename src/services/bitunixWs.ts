@@ -1,23 +1,22 @@
 /*
-* Copyright (C) 2026 MYDCT
-*
-* This program is free software: you can redistribute it and/or modify
-* it under the terms of the GNU Affero General Public License as published by
-* the Free Software Foundation, either version 3 of the License, or
-* (at your option) any later version.
-*
-* This program is distributed in the hope that it will be useful,
-* but WITHOUT ANY WARRANTY; without even the implied warranty of
-* MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-* GNU Affero General Public License for more details.
-*
-* You should have received a copy of the GNU Affero General Public License
-* along with this program.  If not, see <https://www.gnu.org/licenses/>.
-*/
+ * Copyright (C) 2026 MYDCT
+ *
+ * This program is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU Affero General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
+ */
 
-import { writable, get } from "svelte/store";
-import { marketStore, wsStatusStore } from "../stores/marketStore";
-import { accountStore } from "../stores/accountStore";
+import { marketState } from "../stores/market.svelte";
+import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
@@ -82,13 +81,13 @@ class BitunixWebSocketService {
     console.log("Bitunix WS: Browser reported online. Forcing reconnect.");
     this.cleanup("public");
     this.cleanup("private");
-    wsStatusStore.set("connecting");
+    marketState.connectionStatus = "connecting";
     this.connectPublic(true);
     this.connectPrivate();
   };
 
   private handleOffline = () => {
-    wsStatusStore.set("disconnected");
+    marketState.connectionStatus = "disconnected";
     this.cleanup("public");
     this.cleanup("private");
   };
@@ -103,21 +102,21 @@ class BitunixWebSocketService {
 
         const now = Date.now();
         const timeSincePublic = now - this.lastMessageTimePublic;
-        const status = get(wsStatusStore);
+        const status = marketState.connectionStatus;
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
-          if (status !== "disconnected") wsStatusStore.set("disconnected");
+          if (status !== "disconnected") marketState.connectionStatus = "disconnected";
           return;
         }
 
         if (status === "connected" && timeSincePublic > 2000) {
           console.warn("Bitunix WS: Stale connection detected (2s). Updating status.");
-          wsStatusStore.set("reconnecting");
+          marketState.connectionStatus = "reconnecting";
         }
 
         if (status !== "disconnected" && timeSincePublic > 5000) {
           console.warn("Bitunix WS: Force disconnected due to inactivity (5s).");
-          wsStatusStore.set("disconnected");
+          marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
 
@@ -147,7 +146,7 @@ class BitunixWebSocketService {
     if (this.isDestroyed) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
-      wsStatusStore.set("disconnected");
+      marketState.connectionStatus = "disconnected";
       return;
     }
 
@@ -168,7 +167,7 @@ class BitunixWebSocketService {
       this.cleanup("public");
     }
 
-    wsStatusStore.set("connecting");
+    marketState.connectionStatus = "connecting";
 
     try {
       const ws = new WebSocket(WS_PUBLIC_URL);
@@ -192,7 +191,7 @@ class BitunixWebSocketService {
         if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) return;
 
-        wsStatusStore.set("connected");
+        marketState.connectionStatus = "connected";
         this.isReconnectingPublic = false;
         this.lastMessageTimePublic = Date.now();
         this.startHeartbeat(ws, "public");
@@ -221,9 +220,9 @@ class BitunixWebSocketService {
         if (this.isDestroyed) return;
         if (this.wsPublic === ws) {
           if (typeof navigator !== "undefined" && !navigator.onLine) {
-            wsStatusStore.set("disconnected");
+            marketState.connectionStatus = "disconnected";
           } else {
-            wsStatusStore.set("reconnecting");
+            marketState.connectionStatus = "reconnecting";
             this.scheduleReconnect("public");
           }
           this.cleanup("public");
@@ -309,7 +308,7 @@ class BitunixWebSocketService {
         if (this.wsPrivate === ws) {
           this.isAuthenticated = false;
           if (typeof navigator !== "undefined" && !navigator.onLine) {
-            wsStatusStore.set("disconnected");
+            marketState.connectionStatus = "disconnected";
           } else {
             this.scheduleReconnect("private");
           }
@@ -330,14 +329,14 @@ class BitunixWebSocketService {
     if (this.isDestroyed) return;
 
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      wsStatusStore.set("disconnected");
+      marketState.connectionStatus = "disconnected";
       return;
     }
 
     if (type === "public") {
       if (this.isReconnectingPublic) return;
       this.isReconnectingPublic = true;
-      wsStatusStore.set("reconnecting");
+      marketState.connectionStatus = "reconnecting";
       if (this.reconnectTimerPublic) clearTimeout(this.reconnectTimerPublic);
       this.reconnectTimerPublic = setTimeout(() => {
         this.isReconnectingPublic = false;
@@ -398,7 +397,7 @@ class BitunixWebSocketService {
       this.watchdogTimerPublic = setTimeout(() => {
         console.warn("Bitunix Public WS Watchdog Timeout.");
         if (this.wsPublic === ws) {
-          wsStatusStore.set("reconnecting");
+          marketState.connectionStatus = "reconnecting";
           this.cleanup("public");
           this.scheduleReconnect("public");
         }
@@ -526,7 +525,7 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixPriceData>;
         if (symbol && data && this.validatePriceData(data)) {
-          marketStore.updatePrice(symbol, {
+          marketState.updatePrice(symbol, {
             price: data.mp || "0",
             indexPrice: data.ip || "0",
             fundingRate: data.fr || "0",
@@ -539,7 +538,7 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixTickerData>;
         if (symbol && data && this.validateTickerData(data)) {
-          marketStore.updateTicker(symbol, {
+          marketState.updateTicker(symbol, {
             lastPrice: data.la || "0",
             high: data.h || "0",
             low: data.l || "0",
@@ -554,7 +553,7 @@ class BitunixWebSocketService {
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data;
-        if (symbol && data) marketStore.updateDepth(symbol, { bids: data.b, asks: data.a });
+        if (symbol && data) marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
       } else if (message.ch && (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day")) {
         const rawSymbol = message.symbol;
         if (!rawSymbol) return;
@@ -571,25 +570,25 @@ class BitunixWebSocketService {
               timeframe = revMap[bitunixTf] || bitunixTf;
             }
           }
-          marketStore.updateKline(symbol, timeframe, { o: data.o, h: data.h, l: data.l, c: data.c, b: data.b || data.v, t: data.t || data.id || data.ts || Date.now() });
+          marketState.updateKline(symbol, timeframe, { o: data.o, h: data.h, l: data.l, c: data.c, b: data.b || data.v, t: data.t || data.id || data.ts || Date.now() });
         }
       } else if (message.ch === "position") {
         const data = message.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountStore.updatePositionFromWs(item));
-          else accountStore.updatePositionFromWs(data);
+          if (Array.isArray(data)) data.forEach((item: any) => accountState.updatePositionFromWs(item));
+          else accountState.updatePositionFromWs(data);
         }
       } else if (message.ch === "order") {
         const data = message.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountStore.updateOrderFromWs(item));
-          else accountStore.updateOrderFromWs(data);
+          if (Array.isArray(data)) data.forEach((item: any) => accountState.updateOrderFromWs(item));
+          else accountState.updateOrderFromWs(data);
         }
       } else if (message.ch === "wallet") {
         const data = message.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountStore.updateBalanceFromWs(item));
-          else accountStore.updateBalanceFromWs(data);
+          if (Array.isArray(data)) data.forEach((item: any) => accountState.updateBalanceFromWs(item));
+          else accountState.updateBalanceFromWs(data);
         }
       }
     } catch (err) {

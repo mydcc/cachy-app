@@ -36,7 +36,7 @@
   import { presetStore } from "../stores/presetStore";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { uiState } from "../stores/ui.svelte"; // Import uiState
-  import { favoritesStore } from "../stores/favoritesStore"; // Import favorites store
+  import { favoritesState } from "../stores/favorites.svelte";
   import { modalManager } from "../services/modalManager";
   import { onMount, untrack } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale

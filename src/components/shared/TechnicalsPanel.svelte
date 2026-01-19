@@ -23,7 +23,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
-  import { marketStore } from "../../stores/marketStore";
+  import { marketState } from "../../stores/market.svelte";
   import { bitunixWs } from "../../services/bitunixWs";
   import { apiService } from "../../services/apiService";
   import { technicalsService } from "../../services/technicalsService";
@@ -246,7 +246,7 @@
   let showPanel = $derived(settingsState.showTechnicals && isVisible);
   let indicatorSettings = $derived(indicatorState);
   // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)
-  let wsData = $derived(symbol ? $marketStore[symbol] : null);
+  let wsData = $derived(symbol ? marketState.data[symbol] : null);
   let currentKline = $derived(wsData?.klines ? wsData.klines[timeframe] : null);
   // Trigger fetch/subscribe when relevant props change
   // Trigger fetch/subscribe when relevant props change

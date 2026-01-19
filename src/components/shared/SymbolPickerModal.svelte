@@ -23,7 +23,7 @@
     import { updateTradeStore } from "../../stores/tradeStore";
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
-    import { marketStore } from "../../stores/marketStore";
+    import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { apiService } from "../../services/apiService";
     import { Decimal } from "decimal.js";
@@ -185,7 +185,7 @@
 
     function getChangePercent(s: string) {
         // Prioritize Live Data, Fallback to Snapshot
-        const live = $marketStore[s]?.priceChangePercent;
+        const live = marketState.data[s]?.priceChangePercent;
         if (live !== undefined && live !== null) return live.toNumber();
         const snap = snapshot[s]?.priceChangePercent;
         return snap ? snap.toNumber() : null;

@@ -1,7 +1,7 @@
 <script lang="ts">
-  import { wsStatusStore } from "../../stores/marketStore";
+  import { marketState } from "../../stores/market.svelte";
 
-  let wsStatus = $derived($wsStatusStore);
+  let wsStatus = $derived(marketState.connectionStatus);
 
   // Map status to theme variables
   let statusColor = $derived(

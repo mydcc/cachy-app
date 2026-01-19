@@ -20,8 +20,8 @@ import { settingsState } from "../stores/settings.svelte";
 import { julesStore } from "../stores/julesStore";
 import { tradeStore } from "../stores/tradeStore";
 import { uiState } from "../stores/ui.svelte";
-import { accountStore } from "../stores/accountStore";
-import { marketStore, wsStatusStore } from "../stores/marketStore"; // Import wsStatusStore separately
+import { accountState } from "../stores/account.svelte";
+import { marketState } from "../stores/market.svelte";
 
 interface JulesReportContext {
   settings?: any;
@@ -42,8 +42,8 @@ export const julesService = {
     const settings = settingsState;
     const trade = get(tradeStore);
     const ui = uiState;
-    const account = get(accountStore);
-    const wsStatus = get(wsStatusStore); // Get WS status from its dedicated store
+    const account = accountState;
+    const wsStatus = marketState.connectionStatus;
 
     // Sanitize Settings (remove API Secrets)
     const safeSettings = {
@@ -69,13 +69,16 @@ export const julesService = {
       riskAmount: trade.riskAmount,
     };
 
-    // Simplify Account Store
     const safeAccount = {
-      balance: (account as any).balance,
-      availableBalance: (account as any).availableBalance,
-      positionsCount: account.positions ? account.positions.length : 0,
-      ordersCount: account.openOrders ? account.openOrders.length : 0,
-      isConnected: wsStatus === "connected", // Use the value from wsStatusStore
+      // accountState has no 'balance' field on root, it uses 'assets' array.
+      // We need to find USDT balance or just summary.
+      // Legacy accountStore had computed props, but AccountManager splits them.
+      // Let's sum up available or just take USDT.
+      balance: account.assets.find(a => a.currency === "USDT")?.total.toNumber() || 0,
+      availableBalance: account.assets.find(a => a.currency === "USDT")?.available.toNumber() || 0,
+      positionsCount: account.positions.length,
+      ordersCount: account.openOrders.length,
+      isConnected: wsStatus === "connected",
     };
 
     return {

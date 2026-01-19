@@ -40,7 +40,7 @@ import { journalStore } from "../stores/journalStore";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
-import { marketStore, wsStatusStore } from "../stores/marketStore"; // Import marketStore and wsStatusStore
+import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs"; // Import WS Service
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
@@ -172,7 +172,7 @@ export const app = {
 
     // Watch for Market Data updates
     if (marketStoreUnsubscribe) marketStoreUnsubscribe();
-    marketStoreUnsubscribe = marketStore.subscribe((data) => {
+    marketStoreUnsubscribe = marketState.subscribe((data) => {
       const state = get(tradeStore);
       const settings = settingsState;
 
@@ -194,7 +194,7 @@ export const app = {
     });
 
     // Immediate fallback when WS status changes to disconnected/reconnecting
-    wsStatusStore.subscribe((status) => {
+    marketState.subscribeStatus((status) => {
       if (status === "disconnected" || status === "reconnecting") {
         const settings = settingsState;
         if (settings.autoUpdatePriceInput && settings.apiProvider === "bitunix") {
@@ -209,7 +209,7 @@ export const app = {
 
     // Watch settings, status and symbol changes to adjust interval
     settingsState.subscribe(() => app.refreshPriceUpdateInterval());
-    wsStatusStore.subscribe(() => app.refreshPriceUpdateInterval());
+    marketState.subscribeStatus(() => app.refreshPriceUpdateInterval());
 
     // Initial setup
     app.refreshPriceUpdateInterval();
@@ -222,7 +222,7 @@ export const app = {
     }
 
     const settings = settingsState;
-    const wsStatus = get(wsStatusStore);
+    const wsStatus = marketState.connectionStatus;
     // Faster fallback (3s) when WS is not connected
     const baseInterval = (settings.marketDataInterval || 10) * 1000;
     const intervalMs = wsStatus === "connected" ? baseInterval : 3000;
@@ -239,7 +239,7 @@ export const app = {
           if (settings.apiProvider === "binance") {
             app.handleFetchPrice(true);
           } else {
-            const wsStatus = get(wsStatusStore);
+            const wsStatus = marketState.connectionStatus;
             if (wsStatus !== "connected") {
               app.handleFetchPrice(true);
             }

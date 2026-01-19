@@ -19,7 +19,7 @@
   import { onMount, untrack } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeStore } from "../../stores/tradeStore";
-  import { accountStore } from "../../stores/accountStore";
+  import { accountState } from "../../stores/account.svelte";
   import { _ } from "../../locales/i18n";
 
   // Sub-components
@@ -103,10 +103,7 @@
         // Since PositionsList uses `positions` prop, let's pass data.
         // Ideally, accountStore should manage this.
         if (data.positions) {
-          accountStore.update((prev) => ({
-            ...prev,
-            positions: data.positions,
-          }));
+          accountState.positions = data.positions;
         }
       }
     } catch (e) {
@@ -385,7 +382,7 @@
         onclick={() => (activeTab = "positions")}
         oncontextmenu={handleContextMenu}
       >
-        {$_("dashboard.positions") || "Positions"} ({$accountStore.positions
+        {$_("dashboard.positions") || "Positions"} ({accountState.positions
           .length})
       </button>
       <button
@@ -424,7 +421,7 @@
     <div class="bg-[var(--bg-secondary)] rounded-b-xl">
       {#if activeTab === "positions"}
         <PositionsList
-          positions={$accountStore.positions}
+          positions={accountState.positions}
           loading={loadingPositions}
           error={errorPositions}
           onclose={handleClosePosition}
