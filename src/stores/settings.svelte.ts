@@ -243,6 +243,7 @@ class SettingsManager {
     private isInitializing = true;
     private listeners: Set<(value: Settings) => void> = new Set();
     private notifyTimer: any = null;
+    private saveTimer: any = null;
 
     constructor() {
         if (browser) {
@@ -253,7 +254,7 @@ class SettingsManager {
                 $effect(() => {
                     if (this.isInitializing) return;
 
-                    // Trigger reactivity
+                    // Trigger reactivity on all settings
                     this.apiProvider;
                     this.apiKeys;
                     this.isPro;
@@ -261,11 +262,19 @@ class SettingsManager {
                     this.cryptoPanicPlan;
                     this.cryptoPanicFilter;
                     this.enableNewsAnalysis;
+                    this.marketDataInterval;
+                    this.autoUpdatePriceInput;
+                    this.showSidebars;
+                    this.enableGlassmorphism;
+                    this.fontFamily;
 
-                    const data = this.toJSON();
                     untrack(() => {
-                        this.save();
-                        this.notifyListeners();
+                        // Debounce saves to prevent excessive writes
+                        if (this.saveTimer) clearTimeout(this.saveTimer);
+                        this.saveTimer = setTimeout(() => {
+                            this.save();
+                            this.notifyListeners();
+                        }, 200);
                     });
                 });
             });
@@ -276,14 +285,15 @@ class SettingsManager {
                     console.warn("[Settings] Syncing from other tab...");
                     this.isInitializing = true;
                     this.load();
-                    setTimeout(() => this.isInitializing = false, 50);
+                    setTimeout(() => this.isInitializing = false, 100);
                 }
             });
 
+            // Longer timeout to ensure DOM and all reactive dependencies are settled
             setTimeout(() => {
                 this.isInitializing = false;
                 console.warn("[Settings] Store ready. Current Provider:", this.apiProvider);
-            }, 100);
+            }, 500);
         }
     }
 

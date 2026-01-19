@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { get, writable } from "svelte/store";
+
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";

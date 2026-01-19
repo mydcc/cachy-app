@@ -9,7 +9,7 @@
 
 // Stores
 import { untrack } from "svelte";
-import { get } from "svelte/store";
+
 import { tradeState } from "../stores/trade.svelte";
 import { resultsState } from "../stores/results.svelte";
 import { presetState } from "../stores/preset.svelte";
