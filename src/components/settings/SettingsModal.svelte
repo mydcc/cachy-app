@@ -21,6 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { modalState } from "../../stores/modal.svelte";
   import { _ } from "../../locales/i18n";
   import {
     createBackup,
@@ -119,19 +120,24 @@
 
   // System Tab Functions
   async function handleBackup() {
-    const useEncryption = confirm(
+    const useEncryption = await modalState.show(
+      $_("settings.tabs.system"),
       $_("app.backupEncryptQuestion") ||
         "Do you want to encrypt this backup with a password?",
+      "confirm",
     );
     let password = "";
 
     if (useEncryption) {
-      password =
-        prompt(
-          $_("app.backupPasswordPrompt") || "Enter a password for encryption:",
-        ) || "";
+      const result = await modalState.show(
+        $_("settings.tabs.system"),
+        $_("app.backupPasswordPrompt") || "Enter a password for encryption:",
+        "prompt",
+      );
+      password = typeof result === "string" ? result : "";
+
       if (!password) {
-        alert(
+        uiState.showError(
           $_("app.backupPasswordRequired") ||
             "Password is required for encryption.",
         );
@@ -152,15 +158,25 @@
 
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (confirm($_("app.restoreConfirmMessage"))) {
+      const confirmed = await modalState.show(
+        $_("settings.tabs.system"),
+        $_("app.restoreConfirmMessage"),
+        "confirm",
+      );
+
+      if (confirmed) {
         let result = await restoreFromBackup(content);
 
         // Handle encrypted backup that needs a password
         if (result.needsPassword) {
-          const password = prompt(
+          const pwResult = await modalState.show(
+            $_("settings.tabs.system"),
             $_("app.backupPasswordEntryPrompt") ||
               "This backup is encrypted. Please enter the password:",
+            "prompt",
           );
+          const password = typeof pwResult === "string" ? pwResult : "";
+
           if (password) {
             result = await restoreFromBackup(content, password);
           } else {
@@ -170,14 +186,18 @@
         }
 
         if (result.success) {
-          alert(result.message);
+          await modalState.show(
+            $_("settings.tabs.system"),
+            result.message,
+            "alert",
+          );
           window.location.reload();
         } else {
           // Translate common error keys if they are returned as keys
           const message = result.message.startsWith("app.")
             ? $_(result.message)
             : result.message;
-          alert(message);
+          uiState.showError(message);
         }
       }
       // Reset input
@@ -185,15 +205,20 @@
     };
 
     reader.onerror = () => {
-      alert($_("app.fileReadError"));
+      uiState.showError($_("app.fileReadError"));
       input.value = "";
     };
 
     reader.readAsText(file);
   }
 
-  function handleReset() {
-    if (confirm($_("settings.resetConfirm"))) {
+  async function handleReset() {
+    const confirmed = await modalState.show(
+      $_("settings.tabs.system"),
+      $_("settings.resetConfirm"),
+      "confirm",
+    );
+    if (confirmed) {
       localStorage.clear();
       window.location.reload();
     }
@@ -336,7 +361,7 @@
         role="tab"
         aria-selected={activeTab === "data"}
       >
-        Daten-Wartung
+        {$_("settings.tabs.data")}
       </button>
     </div>
 

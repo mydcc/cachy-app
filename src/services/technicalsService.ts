@@ -67,7 +67,6 @@ class TechnicalsWorkerManager {
         this.checkInterval = setInterval(() => this.checkIdle(), 10000);
       }
     } catch (e) {
-      console.error("Failed to init Technicals Worker", e);
     }
   }
 
@@ -135,7 +134,6 @@ class TechnicalsWorkerManager {
   }
 
   private handleError(e: ErrorEvent) {
-    console.error("Worker Error details:", e);
     // Reject all pending
     this.pendingRejects.forEach(reject => reject(e.message));
     this.pendingResolves.clear();
@@ -224,7 +222,6 @@ export const technicalsService = {
         calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
         return result;
       } catch (e) {
-        console.warn("Worker execution failed, falling back to inline calculation.", e);
         // Fallback continues below
       }
     }
