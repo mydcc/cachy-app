@@ -18,11 +18,7 @@
 <script lang="ts">
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
-  import {
-    journalStore,
-    performanceMetrics,
-    qualityMetrics,
-  } from "../../stores/journalStore";
+  import { journalState } from "../../stores/journal.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { app } from "../../services/app";
   import { imgbbService } from "../../services/imgbbService";
@@ -271,7 +267,7 @@
   let journalFilterStatus = $derived(tradeState.journalFilterStatus);
 
   let processedTrades = $derived(
-    $journalStore.filter((trade) => {
+    journalState.entries.filter((trade) => {
       const query = journalSearchQuery.toLowerCase();
       const matchesSearch =
         trade.symbol.toLowerCase().includes(query) ||
@@ -400,7 +396,7 @@
 
       const url = await imgbbService.uploadToImgbb(file);
       // Update trade in store
-      const trade = $journalStore.find((t) => t.id === id);
+      const trade = journalState.entries.find((t) => t.id === id);
       if (trade) {
         app.updateTrade(id, { screenshot: url });
         uiState.showFeedback("save");
@@ -453,7 +449,7 @@
     bind:filterDateStart
     bind:filterDateEnd
     bind:groupBySymbol
-    totalTrades={$journalStore.length}
+    totalTrades={journalState.entries.length}
     filteredCount={processedTrades.length}
     ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
   >
@@ -642,7 +638,7 @@
       class="font-bold p-2.5 rounded-lg bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)]"
       title={$_("journal.showJournalInstructionsTitle")}
       aria-label={$_("journal.showJournalInstructionsAriaLabel")}
-      onclick={() => app.uiManager.showReadme("journal")}
+      onclick={() => uiState.toggleGuideModal(true)}
     >
       {@html icons.book}</button
     >

@@ -736,7 +736,7 @@
             class="font-bold p-3 rounded-lg btn-secondary-action"
             title={$_("dashboard.showInstructionsTitle")}
             aria-label={$_("dashboard.showInstructionsAriaLabel")}
-            onclick={() => app.uiManager.showReadme("dashboard")}
+            onclick={() => uiState.toggleGuideModal(true)}
             use:trackClick={{
               category: "Navigation",
               action: "Click",

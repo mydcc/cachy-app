@@ -13,7 +13,7 @@ import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
-import { journalStore } from "./journalStore";
+import { journalState } from "./journal.svelte";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -342,7 +342,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
         const trade = tradeState;
         const market = marketState.data;
         const account = accountState;
-        const journal = get(journalStore) || [];
+        const journal = journalState.entries || [];
         const settings = settingsState;
 
         // Calculate Portfolio Stats

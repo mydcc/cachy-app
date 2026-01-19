@@ -26,7 +26,7 @@ describe("marketStore", () => {
   });
 
   it("should have updateTicker function", () => {
-    expect(typeof marketStore.updateTicker).toBe("function");
+    expect(typeof marketState.updateTicker).toBe("function");
   });
 
   it("should update ticker data correctly", () => {

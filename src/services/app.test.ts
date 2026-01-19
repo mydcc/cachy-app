@@ -24,7 +24,7 @@ import {
 } from "../stores/trade.svelte";
 import { resultsState, INITIAL_RESULTS_STATE } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { journalStore } from "../stores/journalStore"; // Still legacy? Planned for next module.
+import { journalState } from "../stores/journal.svelte";
 import { app } from "./app";
 import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
@@ -483,13 +483,13 @@ describe("app service - ATR and Locking Logic", () => {
         binance: { key: "", secret: "" },
       },
     });
-    journalStore.set([]); // Clear journal
+    journalState.set([]); // Clear journal
 
     // Mock syncService instead of direct fetch inside syncBitunixHistory as it has complex store usage
     const syncSpy = vi
       .spyOn(app, "syncBitunixHistory")
       .mockImplementation(async () => {
-        journalStore.set([
+        journalState.set([
           {
             id: 1,
             tradeId: "1",
@@ -513,7 +513,7 @@ describe("app service - ATR and Locking Logic", () => {
 
     await app.syncBitunixHistory();
 
-    const journal = get(journalStore);
+    const journal = journalState.entries;
     expect(journal.length).toBe(2);
 
     expect(new Date(journal[0].date).toISOString()).toBe(

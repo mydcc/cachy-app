@@ -24,26 +24,7 @@
     import { _ } from "../../../locales/i18n";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import { hexToRgba } from "../../../utils/colors";
-    import {
-        journalStore,
-        psychologyMetrics,
-        marketMetrics,
-        timingMetrics,
-        confluenceMetrics,
-        durationStatsMetrics,
-        durationDataMetrics,
-        tagEvolutionMetrics,
-        assetMetrics,
-        riskMetrics,
-        calendarMetrics,
-        tagMetrics,
-        qualityMetrics,
-        performanceMetrics,
-        executionMetrics,
-        riskRadarMetrics,
-        marketContextMetrics,
-        systemQualityMetrics,
-    } from "../../../stores/journalStore";
+    import { journalState } from "../../../stores/journal.svelte";
     import { calculator } from "../../../lib/calculator";
     import DashboardNav from "../DashboardNav.svelte";
     import LineChart from "../charts/LineChart.svelte";
@@ -76,7 +57,7 @@
     };
 
     // --- Data Logic derived from stores ---
-    let journal = $derived($journalStore);
+    let journal = $derived(journalState.entries);
 
     // 1. PERFORMANCE (Trends)
     let rollingData = $derived(
@@ -119,7 +100,7 @@
             : null,
     );
     // Performance Drawdown
-    let perfMetrics = $derived($performanceMetrics || {});
+    let perfMetrics = $derived(journalState.performanceMetrics || {});
     let drawdownData = $derived({
         labels: (perfMetrics.drawdownSeries || []).map((d) =>
             new Date(d.x).toLocaleDateString(),
@@ -137,8 +118,8 @@
     });
 
     // 2. EXECUTION
-    let execData = $derived($executionMetrics || {});
-    let qualMetrics = $derived($qualityMetrics || {});
+    let execData = $derived(journalState.executionMetrics || {});
+    let qualMetrics = $derived(journalState.qualityMetrics || {});
     let sixSegmentData = $derived({
         labels: [
             $_("journal.deepDive.charts.labels.winLong"),
@@ -164,7 +145,7 @@
     });
 
     // 3. RISK
-    let riskRadarData = $derived($riskRadarMetrics || {});
+    let riskRadarData = $derived(journalState.riskRadarMetrics || {});
     let rDistData = $derived({
         labels: Object.keys(qualMetrics.rHistogram || {}),
         datasets: [
@@ -175,7 +156,7 @@
             },
         ],
     });
-    let riskScatterData = $derived($riskMetrics || {});
+    let riskScatterData = $derived(journalState.riskMetrics || {});
     let riskRewardScatter = $derived({
         datasets: [
             {
@@ -189,7 +170,7 @@
     });
 
     // 4. MARKET
-    let marketCtx = $derived($marketContextMetrics || null);
+    let marketCtx = $derived(journalState.marketContextMetrics || null);
     let marketAtrData = $derived(
         marketCtx
             ? {
@@ -223,7 +204,7 @@
             : null,
     );
 
-    let marketData = $derived($marketMetrics || {});
+    let marketData = $derived(journalState.marketMetrics || {});
     let leverageDistData = $derived({
         labels: marketData.leverageLabels || [],
         datasets: [
@@ -247,7 +228,7 @@
                   shortCurve: [],
               },
     );
-    let assetData = $derived($assetMetrics || {});
+    let assetData = $derived(journalState.assetMetrics || {});
     let assetBubbleData = $derived({
         datasets: [
             {
@@ -330,8 +311,8 @@
     });
 
     // 6. TIME
-    let confluenceData = $derived($confluenceMetrics || []);
-    let calendarData = $derived($calendarMetrics || []);
+    let confluenceData = $derived(journalState.confluenceMetrics || []);
+    let calendarData = $derived(journalState.calendarMetrics || []);
     let availableYears = $derived(
         (() => {
             const years = new Set<number>();
@@ -348,7 +329,7 @@
     }
 
     // 7. STRATEGIES
-    let tagData = $derived($tagMetrics || {});
+    let tagData = $derived(journalState.tagMetrics || {});
     let tagPnlData = $derived({
         labels: tagData.labels || [],
         datasets: [
@@ -361,7 +342,9 @@
             },
         ],
     });
-    let tagEvolutionData = $derived($tagEvolutionMetrics || { datasets: [] });
+    let tagEvolutionData = $derived(
+        journalState.tagEvolutionMetrics || { datasets: [] },
+    );
     let tagEvolutionChartData = $derived({
         datasets: (tagEvolutionData.datasets || []).map((ds, i) => ({
             label: ds.label,
@@ -383,7 +366,7 @@
     });
 
     // 8. BEHAVIOR (Psychology)
-    let psychData = $derived($psychologyMetrics || {});
+    let psychData = $derived(journalState.psychologyMetrics || {});
     let winStreakData = $derived({
         labels: psychData.streakLabels || [],
         datasets: [
@@ -457,7 +440,7 @@
     );
 
     // 10. SYSTEM QUALITY (SQN)
-    let sqnMetrics = $derived($systemQualityMetrics || null);
+    let sqnMetrics = $derived(journalState.systemQualityMetrics || null);
     let rollingSQNData = $derived(
         rollingData
             ? {

@@ -18,7 +18,7 @@
 import { get } from "svelte/store";
 import { parseTimestamp } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
-import { journalStore } from "../stores/journalStore";
+import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { apiService } from "./apiService";
@@ -168,7 +168,7 @@ export const syncService = {
       }
 
       // --- Process History (Optimized Parallel Batching) ---
-      const currentJournal = get(journalStore);
+      const currentJournal = journalState.entries;
       const existingHistoryIds = new Set(
         currentJournal.map((j) => String(j.tradeId || j.id)),
       );
@@ -352,7 +352,7 @@ export const syncService = {
 
         // Add trades to journal immediately (streaming/incremental update)
         if (validResults.length > 0) {
-          const currentJournalState = get(journalStore);
+          const currentJournalState = journalState.entries;
           const keptJournal = currentJournalState.filter(
             (j) => !(j.isManual === false && j.status === "Open"),
           );
@@ -361,7 +361,7 @@ export const syncService = {
             (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
           );
 
-          journalStore.set(updatedJournal);
+          journalState.set(updatedJournal);
           syncService.saveJournal(updatedJournal);
         }
 

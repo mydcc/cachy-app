@@ -7,25 +7,11 @@
  * (at your option) any later version.
  */
 
-import { get } from "svelte/store"; // Still needed for journalStore
-import {
-  parseDecimal,
-  formatDynamicDecimal,
-  parseDateString,
-  parseTimestamp,
-  normalizeJournalEntry,
-} from "../utils/utils";
-import { CONSTANTS } from "../lib/constants";
-import { apiService } from "./apiService";
-import { modalManager } from "./modalManager";
-import { uiManager } from "./uiManager";
-import { calculator } from "../lib/calculator";
-// Legacy stores removed
+// Stores
 import { tradeState } from "../stores/trade.svelte";
 import { resultsState } from "../stores/results.svelte";
 import { presetState } from "../stores/preset.svelte";
-
-import { journalStore } from "../stores/journalStore";
+import { journalState } from "../stores/journal.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
@@ -33,6 +19,11 @@ import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs"; // Import WS Service
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
+import { apiService } from "./apiService";
+import { calculator } from "../lib/calculator";
+import { CONSTANTS } from "../lib/constants";
+import { modalManager } from "./modalManager";
+import { normalizeJournalEntry, parseDecimal } from "../utils/utils";
 import type {
   JournalEntry,
   TradeValues,
@@ -96,7 +87,7 @@ const calculatorService = new CalculatorService(
 
 export const app = {
   calculator: calculator,
-  uiManager: uiManager,
+  uiManager: uiState,
   currentMarketPrice: null as Decimal | null,
 
   init: () => {
@@ -250,7 +241,7 @@ export const app = {
     if (!browser) return [];
     // Optimisation: Read from store memory instead of parsing localStorage on every call
     // This dramatically reduces I/O blocking on main thread for large datasets
-    const fromStore = get(journalStore);
+    const fromStore = journalState.entries;
     if (fromStore && fromStore.length > 0) {
       return fromStore;
     }
@@ -309,7 +300,7 @@ export const app = {
 
     journalData.push(newTrade);
     app.saveJournal(journalData);
-    journalStore.set(journalData);
+    journalState.set(journalData);
 
     // Track meaningful user action: adding a trade to journal
     const activeTargets =
@@ -336,7 +327,7 @@ export const app = {
     if (tradeIndex !== -1) {
       journalData[tradeIndex].status = newStatus;
       app.saveJournal(journalData);
-      journalStore.set(journalData);
+      journalState.set(journalData);
       trackCustomEvent("Journal", "UpdateStatus", newStatus);
     }
   },
@@ -346,13 +337,13 @@ export const app = {
     if (tradeIndex !== -1) {
       journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
       app.saveJournal(journalData);
-      journalStore.set(journalData);
+      journalState.set(journalData);
     }
   },
   deleteTrade: (id: number) => {
     const d = app.getJournal().filter((t) => t.id != id);
     app.saveJournal(d);
-    journalStore.set(d);
+    journalState.set(d);
     trackCustomEvent("Journal", "DeleteTrade");
   },
   async clearJournal() {
@@ -369,7 +360,7 @@ export const app = {
       )
     ) {
       app.saveJournal([]);
-      journalStore.set([]);
+      journalState.set([]);
       uiState.showFeedback("save", 2000);
     }
   },
@@ -512,7 +503,7 @@ export const app = {
   },
   exportToCSV: () => {
     if (!browser) return;
-    const journalData = get(journalStore);
+    const journalData = journalState.entries;
     if (journalData.length === 0) {
       uiState.showError("Journal ist leer.");
       return;
@@ -559,7 +550,7 @@ export const app = {
         const entries = csvService.parseCSVContent(text);
 
         if (entries.length > 0) {
-          const currentJournal = get(journalStore);
+          const currentJournal = journalState.entries;
           const combined = [...currentJournal, ...entries];
           const unique = Array.from(
             new Map(combined.map((trade) => [trade.id, trade])).values(),
@@ -572,7 +563,7 @@ export const app = {
               "confirm",
             )
           ) {
-            journalStore.set(unique);
+            journalState.set(unique);
             trackCustomEvent("Journal", "Import", "CSV", entries.length);
             uiState.showFeedback("save", 2000);
           }

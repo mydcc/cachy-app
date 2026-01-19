@@ -10,7 +10,7 @@
 import { browser } from "$app/environment";
 import { get } from "svelte/store";
 import { settingsState } from "./settings.svelte";
-import { journalStore } from "./journalStore";
+import { journalState } from "./journal.svelte";
 import { calculator } from "../lib/calculator";
 
 export interface ChatMessage {
@@ -103,8 +103,8 @@ class ChatManager {
         }
 
         // Calculate own PF
-        const stats = calculator.calculateJournalStats(get(journalStore));
-        const myPF = stats.profitFactor.isFinite()
+        const stats = calculator.calculateJournalStats(journalState.entries);
+        const pf = stats.profitFactor && stats.profitFactor.isFinite()
             ? stats.profitFactor.toNumber()
             : 0;
 
@@ -115,7 +115,7 @@ class ChatManager {
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
                     text,
-                    profitFactor: myPF,
+                    profitFactor: pf,
                     clientId: this.clientId,
                 }),
             });
