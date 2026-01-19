@@ -59,16 +59,16 @@ class JournalManager {
         const count = dataRepairService.scanForMissingAtr();
 
         if (count > 0) {
-            console.log(`[Journal] Auto-calculating ATR for ${count} trades...`);
+            // console.log(`[Journal] Auto-calculating ATR for ${count} trades...`);
 
             // Run repair in background without blocking UI
             dataRepairService.repairMissingAtr((current, total, message) => {
                 // Silent background operation - no UI feedback
                 if (current === total) {
-                    console.log(`[Journal] ATR auto-calculation completed for ${total} trades`);
+                    // console.log(`[Journal] ATR auto-calculation completed for ${total} trades`);
                 }
             }).catch(err => {
-                console.warn("[Journal] ATR auto-calculation failed:", err);
+                // console.warn("[Journal] ATR auto-calculation failed:", err);
             });
         }
     }

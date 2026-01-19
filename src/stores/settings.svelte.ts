@@ -169,7 +169,7 @@ class SettingsManager {
     get apiProvider() { return this._apiProvider; }
     set apiProvider(v: "bitunix" | "binance") {
         if (v !== this._apiProvider) {
-            console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
+            // console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
             this._apiProvider = v;
             // Let $effect handle saving, don't call save() directly
         }
@@ -272,13 +272,13 @@ class SettingsManager {
                     });
                 });
 
-                console.warn("[Settings] Store ready. Provider:", this.apiProvider);
+                // console.warn("[Settings] Store ready. Provider:", this.apiProvider);
             });
 
             // 3. Listen for changes from other tabs
             window.addEventListener("storage", (e) => {
                 if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
-                    console.warn("[Settings] Syncing from other tab...");
+                    // console.warn("[Settings] Syncing from other tab...");
                     this.effectActive = false; // Disable effect temporarily
                     this.load();
                     this.effectActive = true; // Re-enable
@@ -418,10 +418,10 @@ class SettingsManager {
             // Only save if actually different (prevent unnecessary writes)
             if (current !== newData) {
                 localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, newData);
-                console.log("[Settings] Saved");
+                // console.log("[Settings] Saved");
             }
         } catch (e) {
-            console.error("[Settings] Save failed:", e);
+            // console.error("[Settings] Save failed:", e);
         }
     }
 

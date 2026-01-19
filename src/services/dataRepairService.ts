@@ -103,7 +103,7 @@ export const dataRepairService = {
                             atrValue: atr
                         });
 
-                        console.log(`[DataRepair] Updated ATR for ${trade.symbol}: ${atr.toString()}`);
+                        // console.log(`[DataRepair] Updated ATR for ${trade.symbol}: ${atr.toString()}`);
                     }
                 }
 

@@ -92,7 +92,7 @@ export const syncService = {
           orders = orderResult.data;
         }
       } catch (err) {
-        console.warn("Failed to fetch orders:", err);
+        // console.warn("Failed to fetch orders:", err);
       }
 
       // Lookup for SL
@@ -293,7 +293,7 @@ export const syncService = {
               }
             }
           } catch (err) {
-            console.warn(`MAE/MFE failed for ${p.symbol}:`, err);
+            // console.warn(`MAE/MFE failed for ${p.symbol}:`, err);
           }
 
           let riskAmount = new Decimal(0),
@@ -392,7 +392,7 @@ export const syncService = {
         );
       }
     } catch (e: any) {
-      console.error("Sync error:", e);
+      // console.error("Sync error:", e);
       trackCustomEvent("Sync", "BitunixHistory", "Error");
       uiState.showError("Sync failed: " + e.message);
     } finally {

@@ -111,7 +111,7 @@ class RequestManager {
               return await task(controller.signal);
             } catch (e) {
               if (e instanceof Error && e.name === "AbortError") {
-                console.warn(`[ReqMgr] Timeout for ${key}`);
+                // console.warn(`[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
                 const errorMsg =
@@ -125,11 +125,7 @@ class RequestManager {
                   throw e;
                 }
 
-                console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
-                  })`,
-                  e,
-                );
+                // console.warn(`[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`);
                 // Wait a bit before retry (increased for rate limit recovery)
                 await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
                 return executeWithRetry(attempt + 1);
@@ -207,7 +203,7 @@ export const apiService = {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
-      console.error("Expected JSON but received:", text.slice(0, 100));
+      // console.error("Expected JSON but received:", text.slice(0, 100));
       throw new Error("apiErrors.invalidResponseFormat");
     }
     return response.json();
@@ -308,9 +304,7 @@ export const apiService = {
                 errData.error &&
                 !errData.error.includes("Symbol not found")
               ) {
-                console.error(
-                  `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
-                );
+                // console.error(`fetchBitunixKlines failed with ${response.status}: ${errData.error}`);
               }
             } catch {
               /* ignore parsing error */
@@ -361,7 +355,7 @@ export const apiService = {
 
                   return { open, high, low, close, volume, time };
                 } catch (e) {
-                  console.warn("Skipping invalid kline:", kline, e);
+                  // console.warn("Skipping invalid kline:", kline, e);
                   return null;
                 }
               },
@@ -369,7 +363,7 @@ export const apiService = {
             .filter((k): k is Kline => k !== null);
         } catch (e: any) {
           if (e.message !== "apiErrors.symbolNotFound") {
-            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+            // console.error(`fetchBitunixKlines error for ${symbol}:`, e);
           }
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
@@ -481,7 +475,7 @@ export const apiService = {
 
                 return { open, high, low, close, volume, time };
               } catch (e) {
-                console.warn("Skipping invalid Binance kline:", kline, e);
+                // console.warn("Skipping invalid Binance kline:", kline, e);
                 return null;
               }
             })
@@ -552,7 +546,7 @@ export const apiService = {
             };
           });
         } catch (e) {
-          console.error("Snapshot Fetch Error", e);
+          // console.error("Snapshot Fetch Error", e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
@@ -656,7 +650,7 @@ export const apiService = {
             };
           }
         } catch (e) {
-          console.error("fetchTicker24h error", e);
+          // console.error("fetchTicker24h error", e);
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&

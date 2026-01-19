@@ -91,7 +91,7 @@ class CmcService {
                 return parsed;
             }
         } catch (e) {
-            console.warn("[CmcService] Global Metrics Fetch Failed:", e);
+            // console.warn("[CmcService] Global Metrics Fetch Failed:", e);
         }
         return null;
     }
@@ -139,7 +139,7 @@ class CmcService {
                 return parsed;
             }
         } catch (e) {
-            console.warn(`[CmcService] Metadata fetch failed for ${rawSymbol}:`, e);
+            // console.warn(`[CmcService] Metadata fetch failed for ${rawSymbol}:`, e);
         }
         return null;
     }

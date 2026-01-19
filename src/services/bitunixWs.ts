@@ -486,13 +486,18 @@ class BitunixWebSocketService {
 
   private validateTickerData(data: Partial<BitunixTickerData>): boolean {
     if (!data) return false;
-    const critical = ["la", "o"] as const;
-    for (const field of critical) {
-      if (!data[field]) return false;
-      const val = parseFloat(String(data[field]));
+    // Allow partial updates. Only validate fields if they are present.
+    // However, if 'la' (Last Price) is present, it must be valid.
+    if (data.la) {
+      const val = parseFloat(String(data.la));
       if (isNaN(val) || val <= 0) return false;
     }
-    return true;
+    if (data.o) {
+      const val = parseFloat(String(data.o));
+      if (isNaN(val) || val <= 0) return false;
+    }
+    // Check if at least one meaningful field is present
+    return !!(data.la || data.o || data.h || data.l || data.r);
   }
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {

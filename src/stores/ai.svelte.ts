@@ -253,7 +253,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     if (res.status === 429) {
                         attempt++;
                         const delay = Math.pow(2, attempt) * 1000;
-                        console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
+                        // console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
                         if (attempt === 1) {
                             this.error = "Rate limited. Retrying...";
                         }
@@ -266,7 +266,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                 } catch (e: any) {
                     if (attempt === MAX_RETRIES - 1) throw e; // Final failure
                     attempt++;
-                    console.warn(`API Error: ${e.message}. Retrying...`);
+                    // console.warn(`API Error: ${e.message}. Retrying...`);
                     await new Promise((r) => setTimeout(r, 1000));
                 }
             }
@@ -409,7 +409,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     };
                 }
             } catch (e) {
-                console.warn("Failed to gather CMC context:", e);
+                // console.warn("Failed to gather CMC context:", e);
             }
         }
 
@@ -433,7 +433,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     }));
                 }
             } catch (e) {
-                console.warn("Failed to gather News context:", e);
+                // console.warn("Failed to gather News context:", e);
             }
         }
 
@@ -533,7 +533,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     }
                 }
             } catch (e) {
-                console.warn("Failed to gather Technicals context:", e);
+                // console.warn("Failed to gather Technicals context:", e);
             }
         }
 
@@ -638,17 +638,17 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(action.value) }));
+                        tradeState.update((s) => ({ ...s, entryPrice: parseFloat(action.value) }));
                     }
                     break;
                 case "setStopLoss":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+                        tradeState.update((s) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
                     }
                     break;
                 case "setTakeProfit":
                     if (typeof action.index === "number") {
-                        tradeState.update((s: any) => {
+                        tradeState.update((s) => {
                             const newTargets = [...s.targets];
                             if (newTargets[action.index]) {
                                 let updatedTarget = { ...newTargets[action.index] };
@@ -662,35 +662,35 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     break;
                 case "setLeverage":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(action.value) }));
+                        tradeState.update((s) => ({ ...s, leverage: parseFloat(action.value) }));
                     }
                     break;
                 case "setRisk":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+                        tradeState.update((s) => ({ ...s, riskPercentage: parseFloat(action.value) }));
                     }
                     break;
                 case "setSymbol":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, symbol: action.value }));
+                        tradeState.update((s) => ({ ...s, symbol: action.value }));
                     }
                     break;
                 case "setAtrMultiplier":
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
                     if (mult) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+                        tradeState.update((s) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
                     }
                     break;
                 case "setUseAtrSl":
                     if (typeof action.value === "boolean") {
-                        tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
+                        tradeState.update((s) => ({ ...s, useAtrSl: action.value }));
                     }
                     break;
             }
             return true;
         } catch (e) {
-            console.error("AI Action Execution Failed", e);
+            // console.error("AI Action Execution Failed", e);
             return false;
         }
     }
@@ -753,6 +753,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         // Update message to show confirmed status
         this.updateActionMessage(actionId, "confirmed");
+        this.save();
     }
 
     /**
@@ -767,6 +768,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         // Update message to show rejected status
         this.updateActionMessage(actionId, "rejected");
+        this.save();
     }
 
     /**
