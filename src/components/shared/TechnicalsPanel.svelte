@@ -301,7 +301,7 @@
             <div
               class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
             >
-              <div class="grid grid-cols-4 gap-1">
+              <div class="grid grid-cols-3 gap-1">
                 {#each ["5m", "15m", "30m", "1h", "4h", "1d"] as tf}
                   <button
                     class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] rounded text-[var(--text-primary)]"
@@ -562,79 +562,49 @@
                 </div>
               {/if}
 
-              <!-- Ichimoku -->
+              <!-- Ichimoku (Restyled) -->
               {#if data.advanced.ichimoku}
-                <div class="bg-[var(--bg-tertiary)] p-2 rounded mt-1">
-                  <div class="flex justify-between items-center mb-1">
-                    <span
-                      class="text-[10px] uppercase text-[var(--text-secondary)]"
-                      >Ichimoku</span
-                    >
-                    <span
-                      class="text-xs font-bold {getActionColor(
-                        data.advanced.ichimoku.action,
-                      )}">{data.advanced.ichimoku.action}</span
-                    >
-                  </div>
+                <div
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                >
+                  <span>Ichimoku</span>
+                  <span
+                    class="font-bold {getActionColor(
+                      data.advanced.ichimoku.action,
+                    )}">{data.advanced.ichimoku.action}</span
+                  >
                 </div>
               {/if}
             </div>
           {/if}
 
-          <!-- SIGNALS SECTION -->
-          <div
-            class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-2"
-          >
+          <!-- SIGNALS SECTION (Restyled) -->
+          {#if data.divergences && data.divergences.length > 0}
             <div
-              class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
             >
-              Signals
-            </div>
-
-            <!-- Divergences -->
-            {#if data.divergences && data.divergences.length > 0}
+              <div
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                Signals (Divergences)
+              </div>
               {#each data.divergences as div}
                 <div
-                  class="bg-[var(--bg-tertiary)] p-2 rounded border-l-2 {div.side ===
-                  'Bullish'
-                    ? 'border-[var(--success-color)]'
-                    : 'border-[var(--danger-color)]'}"
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
                 >
-                  <div class="flex justify-between text-xs font-bold">
-                    <span>{div.indicator}</span>
-                    <span
-                      class={div.side === "Bullish"
-                        ? "text-[var(--success-color)]"
-                        : "text-[var(--danger-color)]"}
-                      >{div.side} {div.type}</span
-                    >
-                  </div>
+                  <span>{div.indicator}</span>
+                  <span
+                    class="font-bold {div.side === 'Bullish'
+                      ? 'text-[var(--success-color)]'
+                      : 'text-[var(--danger-color)]'}"
+                  >
+                    {div.side}
+                    {div.type}
+                  </span>
                 </div>
               {/each}
-            {:else}
-              <div
-                class="text-xs text-[var(--text-secondary)] italic text-center py-2"
-              >
-                No divergences
-              </div>
-            {/if}
-
-            <!-- Confluence Factors (Restored) -->
-            {#if data.confluence && data.confluence.contributing.length > 0}
-              <div class="mt-2">
-                <div
-                  class="text-[10px] uppercase text-[var(--text-secondary)] mb-1"
-                >
-                  Contributing Factors
-                </div>
-                <ul class="text-xs list-disc pl-4 text-[var(--text-secondary)]">
-                  {#each data.confluence.contributing as reason}
-                    <li>{reason}</li>
-                  {/each}
-                </ul>
-              </div>
-            {/if}
-          </div>
+            </div>
+          {/if}
         </div>
       </div>
     {/if}
