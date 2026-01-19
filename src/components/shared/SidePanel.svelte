@@ -786,6 +786,33 @@
                   {:else}
                     {msg.content}
                   {/if}
+
+                  <!-- Action Confirmation Buttons -->
+                  {#if msg.role === "system"}
+                    {@const pendingMatch =
+                      msg.content.match(/\[PENDING:([^\]]+)\]/)}
+                    {#if pendingMatch}
+                      {@const pendingActionId = pendingMatch[1]}
+                      {#if aiState.pendingActions.has(pendingActionId)}
+                        <div class="flex gap-2 mt-3">
+                          <button
+                            class="px-3 py-1.5 text-xs font-bold bg-green-600 hover:bg-green-700 text-white rounded transition-colors shadow-sm"
+                            onclick={() =>
+                              aiState.confirmAction(pendingActionId)}
+                          >
+                            ✅ Bestätigen
+                          </button>
+                          <button
+                            class="px-3 py-1.5 text-xs font-bold bg-red-600 hover:bg-red-700 text-white rounded transition-colors shadow-sm"
+                            onclick={() =>
+                              aiState.rejectAction(pendingActionId)}
+                          >
+                            ❌ Ablehnen
+                          </button>
+                        </div>
+                      {/if}
+                    {/if}
+                  {/if}
                 </div>
 
                 {#if isBubble}

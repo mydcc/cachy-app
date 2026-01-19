@@ -26,6 +26,13 @@ export interface AiMessage {
     provider?: AiProvider;
 }
 
+export interface PendingAction {
+    id: string;
+    action: any;
+    description: string;
+    timestamp: number;
+}
+
 const LOCAL_STORAGE_KEY = "cachy_ai_history";
 const MAX_MESSAGES = 50;
 
@@ -33,6 +40,7 @@ class AiManager {
     messages = $state<AiMessage[]>([]);
     isStreaming = $state(false);
     error = $state<string | null>(null);
+    pendingActions = $state<Map<string, PendingAction>>(new Map());
 
     constructor() {
         if (browser) {
@@ -305,27 +313,15 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
                     // 2. Execute Actions
                     const confirmActions = settings.aiConfirmActions ?? false;
-                    let blockedCount = 0;
 
                     actions.forEach((action) => {
                         if (!action) return;
                         try {
-                            const success = this.executeAction(action, confirmActions);
-                            if (!success) blockedCount++;
+                            this.executeAction(action, confirmActions);
                         } catch (err) {
                             console.error("Single action failed", err);
                         }
                     });
-
-                    if (blockedCount > 0) {
-                        const sysMsg: AiMessage = {
-                            id: crypto.randomUUID(),
-                            role: "system",
-                            content: "⚠️ **Aktionen blockiert:** Bitte deaktiviere 'Ask before Actions' in den AI-Einstellungen.",
-                            timestamp: Date.now(),
-                        };
-                        this.messages = [...this.messages, sysMsg];
-                    }
                 }
             } catch (actionErr) {
                 console.error("Action parsing error:", actionErr);
@@ -490,7 +486,21 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
     }
 
     private executeAction(action: any, confirmNeeded: boolean): boolean {
-        if (confirmNeeded) return false;
+        if (confirmNeeded) {
+            // Instead of blocking, add to pending actions
+            const actionId = this.addPendingAction(action);
+
+            // Add system message with pending action
+            const sysMsg: AiMessage = {
+                id: crypto.randomUUID(),
+                role: "system",
+                content: `⏳ ${this.describeAction(action)} [PENDING:${actionId}]`,
+                timestamp: Date.now(),
+            };
+            this.messages = [...this.messages, sysMsg];
+
+            return false; // Not executed yet
+        }
 
         try {
             switch (action.action) {
@@ -550,6 +560,97 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
         } catch (e) {
             console.error("AI Action Execution Failed", e);
             return false;
+        }
+    }
+
+    /**
+     * Describe an action in compact human-readable format
+     */
+    private describeAction(action: any): string {
+        switch (action.action) {
+            case "setEntryPrice":
+                return `Entry: ${action.value}`;
+            case "setStopLoss":
+                return `Stop Loss: ${action.value}`;
+            case "setTakeProfit":
+                return `TP${action.index + 1}: ${action.value}`;
+            case "setLeverage":
+                return `Leverage: ${action.value}x`;
+            case "setRisk":
+                return `Risk: ${action.value}%`;
+            case "setSymbol":
+                return `Symbol: ${action.value}`;
+            case "setAtrMultiplier":
+            case "setStopLossATR":
+                const mult = action.value || action.atrMultiplier;
+                return `ATR SL: ${mult}x`;
+            case "setUseAtrSl":
+                return action.value ? "ATR SL: ON" : "ATR SL: OFF";
+            default:
+                return `Action: ${action.action}`;
+        }
+    }
+
+    /**
+     * Add action to pending queue for user confirmation
+     */
+    private addPendingAction(action: any): string {
+        const id = crypto.randomUUID();
+        const description = this.describeAction(action);
+
+        this.pendingActions.set(id, {
+            id,
+            action,
+            description,
+            timestamp: Date.now()
+        });
+
+        return id;
+    }
+
+    /**
+     * Confirm and execute a pending action
+     */
+    confirmAction(actionId: string) {
+        const pending = this.pendingActions.get(actionId);
+        if (!pending) return;
+
+        // Execute action without confirmation
+        this.executeAction(pending.action, false);
+
+        // Remove from pending
+        this.pendingActions.delete(actionId);
+
+        // Update message to show confirmed status
+        this.updateActionMessage(actionId, "confirmed");
+    }
+
+    /**
+     * Reject a pending action
+     */
+    rejectAction(actionId: string) {
+        const pending = this.pendingActions.get(actionId);
+        if (!pending) return;
+
+        // Remove from pending
+        this.pendingActions.delete(actionId);
+
+        // Update message to show rejected status
+        this.updateActionMessage(actionId, "rejected");
+    }
+
+    /**
+     * Update action message to show status
+     */
+    private updateActionMessage(actionId: string, status: "confirmed" | "rejected") {
+        const idx = this.messages.findIndex(m => m.content.includes(`[PENDING:${actionId}]`));
+        if (idx !== -1) {
+            const statusEmoji = status === "confirmed" ? "✅" : "❌";
+            const statusText = status === "confirmed" ? "Bestätigt" : "Abgelehnt";
+
+            // Remove [PENDING:id] and add status
+            this.messages[idx].content = this.messages[idx].content
+                .replace(`[PENDING:${actionId}]`, `[${statusEmoji} ${statusText}]`);
         }
     }
 

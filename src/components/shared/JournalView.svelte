@@ -203,6 +203,7 @@
     type: true,
     entry: true,
     exit: true,
+    atr: true,
     sl: true,
     size: true,
     pnl: true,

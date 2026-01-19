@@ -268,6 +268,7 @@
       "type": "Type",
       "entry": "Entry",
       "exit": "Exit",
+      "atr": "ATR",
       "sl": "SL",
       "size": "Size",
       "pnl": "P/L",
