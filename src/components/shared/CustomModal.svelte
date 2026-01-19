@@ -16,58 +16,48 @@
 -->
 
 <script lang="ts">
-  import { modalManager, type ModalState } from "../../services/modalManager";
+  import { modalState } from "../../stores/modal.svelte";
   import { _ } from "../../locales/i18n";
   import { trackClick } from "../../lib/actions";
   import ModalFrame from "./ModalFrame.svelte";
 
-  let modalState: ModalState = $state({
-    title: "",
-    message: "",
-    type: "alert",
-    defaultValue: "",
-    isOpen: false,
-    resolve: null,
-    extraClasses: "",
-  });
-
-  modalManager.subscribe((state) => {
-    modalState = state;
-  });
+  // Use derived state for reactivity or just access properties directly in template
+  // Since modalState.state is a Rune ($state), we can access it directly.
+  let mState = $derived(modalState.state);
 
   function handleConfirm(result: boolean | string) {
-    modalManager._handleModalConfirm(result);
+    modalState.handleModalConfirm(result);
   }
 
   function handleInput(event: Event) {
-    modalState.defaultValue = (event.target as HTMLInputElement).value;
+    modalState.state.defaultValue = (event.target as HTMLInputElement).value;
   }
 </script>
 
 <ModalFrame
-  isOpen={modalState.isOpen}
-  title={modalState.title}
+  isOpen={mState.isOpen}
+  title={mState.title}
   on:close={() => handleConfirm(false)}
-  extraClasses={modalState.extraClasses || "modal-size-sm"}
+  extraClasses={mState.extraClasses || "modal-size-sm"}
 >
   <div class="prose dark:prose-invert w-full max-w-none">
-    {@html modalState.message}
+    {@html mState.message}
   </div>
 
-  {#if modalState.type === "prompt"}
+  {#if mState.type === "prompt"}
     <input
       id="modal-prompt-input"
       name="modalPromptInput"
       type="text"
       class="input-field w-full px-3 py-2 rounded-md my-4"
       placeholder={$_("dashboard.customModal.promptPlaceholder")}
-      bind:value={modalState.defaultValue}
+      bind:value={modalState.state.defaultValue}
       oninput={handleInput}
     />
   {/if}
 
   <div class="flex justify-end gap-4 mt-6">
-    {#if modalState.type === "confirm"}
+    {#if mState.type === "confirm"}
       <button
         class="font-bold py-2 px-4 rounded-lg bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)]"
         onclick={() => handleConfirm(true)}
@@ -91,7 +81,7 @@
         class="btn-modal-ok font-bold py-2 px-4 rounded-lg"
         onclick={() =>
           handleConfirm(
-            modalState.type === "prompt" ? modalState.defaultValue || "" : true
+            mState.type === "prompt" ? mState.defaultValue || "" : true,
           )}
         use:trackClick={{
           category: "CustomModal",

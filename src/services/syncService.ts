@@ -15,7 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { get } from "svelte/store";
+
 import { parseTimestamp } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { journalState } from "../stores/journal.svelte";

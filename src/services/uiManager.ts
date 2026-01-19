@@ -17,7 +17,7 @@
 
 import { CONSTANTS } from "../lib/constants";
 import { parseDecimal } from "../utils/utils";
-import { modalManager } from "./modalManager";
+import { modalState } from "../stores/modal.svelte";
 import { Decimal } from "decimal.js";
 import { loadInstruction } from "./markdownLoader";
 import { _ } from "../locales/i18n";
@@ -56,7 +56,7 @@ export const uiManager = {
     }
     const translatedTitle = get(_)(titleKey);
     // Pass the 'modal-size-instructions' class here to ensure it uses the updated 80vw width
-    modalManager.show(
+    modalState.show(
       translatedTitle,
       instruction.html,
       "alert",

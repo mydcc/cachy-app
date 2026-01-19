@@ -21,7 +21,7 @@ import { tradeState } from "../stores/trade.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
-import { modalManager } from "./modalManager";
+import { modalState } from "../stores/modal.svelte";
 import { CONSTANTS } from "../lib/constants";
 
 // --- Types & Constants ---
@@ -274,7 +274,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     label: "Open Symbol Picker",
     category: "UI & Navigation",
     defaultKey: "Alt+F",
-    action: () => modalManager.show("Symbol auswählen", "", "symbolPicker"),
+    action: () => modalState.show("Symbol auswählen", "", "symbolPicker"),
   },
 ];
 

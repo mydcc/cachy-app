@@ -17,7 +17,7 @@
 
 import { describe, it, expect, vi } from "vitest";
 import { julesService } from "./julesService";
-import { get } from "svelte/store";
+
 
 // Mock Stores
 vi.mock("../stores/settings.svelte", () => ({

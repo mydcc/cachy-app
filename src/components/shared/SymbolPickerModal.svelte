@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-    import { modalManager } from "../../services/modalManager";
+    import { modalState } from "../../stores/modal.svelte";
     import { CONSTANTS, icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import ModalFrame from "./ModalFrame.svelte";
@@ -41,8 +41,9 @@
     let minVolumeStr = $state("0");
     let hideAlts = $state(false);
 
-    modalManager.subscribe((state) => {
-        isOpen = state.isOpen && state.type === "symbolPicker";
+    $effect(() => {
+        isOpen =
+            modalState.state.isOpen && modalState.state.type === "symbolPicker";
     });
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
@@ -194,12 +195,12 @@
     function selectSymbol(s: string) {
         tradeState.update((state) => ({ ...state, symbol: s }));
         app.fetchAllAnalysisData(s, true);
-        modalManager._handleModalConfirm(s);
+        modalState.handleModalConfirm(s);
         searchQuery = "";
     }
 
     function handleClose() {
-        modalManager._handleModalConfirm(false);
+        modalState.handleModalConfirm(false);
         searchQuery = "";
     }
 

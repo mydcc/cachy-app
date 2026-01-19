@@ -27,7 +27,7 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
-  import { modalManager } from "../../services/modalManager";
+  import { modalState } from "../../stores/modal.svelte";
   import { app } from "../../services/app";
 
   const dispatch = createEventDispatcher();
@@ -283,7 +283,7 @@
           type="button"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           onclick={() =>
-            modalManager.show("Symbol auswählen", "", "symbolPicker")}
+            modalState.show("Symbol auswählen", "", "symbolPicker")}
           title="Symbol auswählen"
         >
           <svg

@@ -8,7 +8,7 @@
  */
 
 import { browser } from "$app/environment";
-import { get } from "svelte/store";
+
 import { settingsState } from "./settings.svelte";
 import { journalState } from "./journal.svelte";
 import { calculator } from "../lib/calculator";

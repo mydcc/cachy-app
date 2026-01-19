@@ -35,7 +35,7 @@
 
   import { CONSTANTS } from "../lib/constants";
 
-  import { julesStore } from "../stores/julesStore";
+  import { julesState } from "../stores/jules.svelte";
   interface Props {
     children?: import("svelte").Snippet;
   }
@@ -212,12 +212,13 @@
 
   <!-- Jules Report Overlay -->
   <!-- Jules Report Overlay -->
-  {#if $julesStore.isVisible || $julesStore.isLoading}
+  <!-- Jules Report Overlay -->
+  {#if julesState.isVisible || julesState.isLoading}
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
       class="fixed inset-0 z-[9999] flex items-center justify-center bg-black/50 backdrop-blur-sm transition-all animate-fade-in"
-      onclick={() => julesStore.hideReport()}
+      onclick={() => julesState.hideReport()}
       role="dialog"
       tabindex="-1"
     >
@@ -231,7 +232,7 @@
         <button
           class="absolute top-2 right-2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           aria-label="Close"
-          onclick={() => julesStore.hideReport()}
+          onclick={() => julesState.hideReport()}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -256,7 +257,7 @@
           </h3>
         </div>
 
-        {#if $julesStore.isLoading}
+        {#if julesState.isLoading}
           <div class="flex flex-col items-center justify-center py-8 gap-4">
             <div
               class="w-8 h-8 border-2 border-[var(--accent-color)] border-t-transparent rounded-full animate-spin"
@@ -270,14 +271,14 @@
             class="prose prose-invert prose-sm max-w-none max-h-[60vh] overflow-y-auto custom-scrollbar p-2 bg-[var(--bg-tertiary)] rounded"
           >
             <pre
-              class="whitespace-pre-wrap font-mono text-xs">{$julesStore.message}</pre>
+              class="whitespace-pre-wrap font-mono text-xs">{julesState.message}</pre>
           </div>
         {/if}
 
         <div class="mt-4 flex justify-end">
           <button
             class="px-4 py-2 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity font-bold text-sm"
-            onclick={() => julesStore.hideReport()}
+            onclick={() => julesState.hideReport()}
           >
             Close Report
           </button>

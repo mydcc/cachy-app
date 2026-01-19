@@ -32,7 +32,7 @@
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { favoritesState } from "../stores/favorites.svelte";
-  import { modalManager } from "../services/modalManager";
+  import { modalState } from "../stores/modal.svelte";
   import { onMount, untrack } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
   import { get } from "svelte/store"; // Import get
@@ -251,7 +251,7 @@
       if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
       if (uiState.showWhitepaperModal) uiState.toggleWhitepaperModal(false);
       if (uiState.showChangelogModal) uiState.toggleChangelogModal(false);
-      if (get(modalManager).isOpen) modalManager._handleModalConfirm(false);
+      if (modalState.state.isOpen) modalState.handleModalConfirm(false);
       return;
     }
 
@@ -278,7 +278,7 @@
     reader.onload = (e) => {
       const content = e.target?.result as string;
 
-      modalManager
+      modalState
         .show(
           $_("app.restoreConfirmTitle"),
           $_("app.restoreConfirmMessage"),
@@ -289,7 +289,7 @@
             let result = await restoreFromBackup(content);
 
             if (result.needsPassword) {
-              const password = await modalManager.show(
+              const password = await modalState.show(
                 $_("app.passwordRequiredTitle") || "Password Required",
                 $_("app.enterBackupPassword") ||
                   "Please enter the password for this backup:",

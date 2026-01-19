@@ -8,7 +8,7 @@
  */
 
 import { browser } from "$app/environment";
-import { get } from "svelte/store";
+
 import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";

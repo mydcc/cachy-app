@@ -17,7 +17,7 @@
 
 import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
-import { julesStore } from "../stores/julesStore";
+import { julesState } from "../stores/jules.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { accountState } from "../stores/account.svelte";
@@ -103,8 +103,9 @@ export const julesService = {
    * Sends a report to the Jules API Backend.
    */
   async reportToJules(error: any = null, mode: "AUTO" | "MANUAL" = "MANUAL") {
-    julesStore.setLoading(true);
     try {
+      julesState.setLoading(true);
+      julesState.showReport("Analyzing market conditions and your portfolio...");
       const context = this.getSystemSnapshot();
 
       const response = await fetch("/api/jules", {
@@ -129,12 +130,12 @@ export const julesService = {
 
       const result = await response.json();
 
-      julesStore.showReport(result.message);
+      julesState.showReport(result.message);
       return result.message;
-    } catch (err) {
+    } catch (err: any) {
       console.error("[JulesService] Failed to report:", err);
-      julesStore.setLoading(false);
-      return null; // Silent fail
+      julesState.setLoading(false);
+      return null;
     }
   },
 };
