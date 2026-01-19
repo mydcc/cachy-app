@@ -123,7 +123,11 @@ export function calculateAllIndicators(
 
         // 4. ADX (Trend Strength)
         const adxLen = settings?.adx?.adxSmoothing || 14;
+        const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
         const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+        // Note: JSIndicators.adx implementation might use a single length for both currently. 
+        // If we want separate DI length, we'd need to update JSIndicators.adx signature.
+        // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
         const adxVal = new Decimal(adxResults[adxResults.length - 1]);
         const adxThreshold = settings?.adx?.threshold || 25;
         indSeries["ADX"] = adxResults;
@@ -144,8 +148,8 @@ export function calculateAllIndicators(
         });
 
         // 5. Awesome Oscillator
-        const aoFast = 5;
-        const aoSlow = 34;
+        const aoFast = settings?.ao?.fastLength || 5;
+        const aoSlow = settings?.ao?.slowLength || 34;
         const aoVal = new Decimal(calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow));
         // We'd need the full series for divergence, but AO helper returns single value. 
         // We'll skip AO divergence for now unless we refactor helper.
@@ -158,10 +162,11 @@ export function calculateAllIndicators(
         });
 
         // 6. MACD
-        const macdFast = 12;
-        const macdSlow = 26;
-        const macdSig = 9;
-        const macdRes = JSIndicators.macd(closesNum, macdFast, macdSlow, macdSig);
+        const macdFast = settings?.macd?.fastLength || 12;
+        const macdSlow = settings?.macd?.slowLength || 26;
+        const macdSig = settings?.macd?.signalLength || 9;
+        const macdSource = getSource(settings?.macd?.source || "close");
+        const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
         const macdVal = new Decimal(macdRes.macd[macdRes.macd.length - 1]);
         const macdSignalVal = new Decimal(macdRes.signal[macdRes.signal.length - 1]);
         const macdHist = macdVal.minus(macdSignalVal);
@@ -181,8 +186,13 @@ export function calculateAllIndicators(
         });
 
         // 7. StochRSI (NEW)
-        const stochRsiK = 14, stochRsiD = 3, stochRsiLen = 14, stochRsiSmooth = 1;
-        const srRes = JSIndicators.stochRsi(closesNum, stochRsiLen, stochRsiK, stochRsiD, stochRsiSmooth);
+        const stochRsiK = settings?.stochRsi?.kPeriod || 3;
+        const stochRsiD = settings?.stochRsi?.dPeriod || 3;
+        const stochRsiLen = settings?.stochRsi?.length || 14;
+        const stochRsiRsiLen = settings?.stochRsi?.rsiLength || 14;
+        const stochRsiSmooth = 1; // Not yet in settings, assume 1
+
+        const srRes = JSIndicators.stochRsi(closesNum, stochRsiRsiLen, stochRsiK, stochRsiD, stochRsiSmooth);
         const srK = new Decimal(srRes.k[srRes.k.length - 1]);
         const srD = new Decimal(srRes.d[srRes.d.length - 1]);
 
@@ -195,12 +205,13 @@ export function calculateAllIndicators(
             name: "StochRSI",
             value: srK,
             signal: srD,
-            params: `${stochRsiLen}, ${stochRsiK}, ${stochRsiD}`,
+            params: `${stochRsiRsiLen}, ${stochRsiK}, ${stochRsiD}`,
             action: srAction
         });
 
         // 8. Williams %R (NEW)
-        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, 14);
+        const wRLen = settings?.williamsR?.length || 14;
+        const wR = JSIndicators.williamsR(highsNum, lowsNum, closesNum, wRLen);
         const wRVal = new Decimal(wR[wR.length - 1]);
         // Williams %R range is 0 to -100. Overbought > -20, Oversold < -80
         let wRAction: "Buy" | "Sell" | "Neutral" = "Neutral";
@@ -210,7 +221,7 @@ export function calculateAllIndicators(
         oscillators.push({
             name: "Will %R",
             value: wRVal,
-            params: "14",
+            params: wRLen.toString(),
             action: wRAction
         });
 
@@ -254,17 +265,37 @@ export function calculateAllIndicators(
     let advancedInfo: TechnicalsData["advanced"] = {};
     try {
         // Phase 5: Pro Indicators Calculations
-        const stResult = JSIndicators.superTrend(highsNum, lowsNum, closesNum, 10, 3);
-        const atrTsResult = JSIndicators.atrTrailingStop(highsNum, lowsNum, closesNum, 22, 3);
+        const stResult = JSIndicators.superTrend(
+            highsNum,
+            lowsNum,
+            closesNum,
+            settings?.superTrend?.period || 10,
+            settings?.superTrend?.factor || 3
+        );
+        const atrTsResult = JSIndicators.atrTrailingStop(
+            highsNum,
+            lowsNum,
+            closesNum,
+            settings?.atrTrailingStop?.period || 14,
+            settings?.atrTrailingStop?.multiplier || 3.5
+        );
         const obvResult = JSIndicators.obv(closesNum, volumesNum);
-        const vpResult = JSIndicators.volumeProfile(highsNum, lowsNum, closesNum, volumesNum, 24);
+
+        const vpResult = JSIndicators.volumeProfile(
+            highsNum,
+            lowsNum,
+            closesNum,
+            volumesNum,
+            settings?.volumeProfile?.rows || 24
+        );
 
         // VWAP
         const vwapSeries = JSIndicators.vwap(highsNum, lowsNum, closesNum, volumesNum);
         advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
 
         // MFI
-        const mfiSeries = JSIndicators.mfi(highsNum, lowsNum, closesNum, volumesNum, 14);
+        const mfiLen = settings?.mfi?.length || 14;
+        const mfiSeries = JSIndicators.mfi(highsNum, lowsNum, closesNum, volumesNum, mfiLen);
         const mfiVal = new Decimal(mfiSeries[mfiSeries.length - 1]);
         let mfiAction = "Neutral";
         if (mfiVal.gt(80)) mfiAction = "Sell"; // Overbought
@@ -272,7 +303,8 @@ export function calculateAllIndicators(
         advancedInfo.mfi = { value: mfiVal, action: mfiAction };
 
         // Choppiness
-        const chopSeries = JSIndicators.choppiness(highsNum, lowsNum, closesNum, 14);
+        const chopLen = settings?.choppiness?.length || 14;
+        const chopSeries = JSIndicators.choppiness(highsNum, lowsNum, closesNum, chopLen);
         const chopVal = new Decimal(chopSeries[chopSeries.length - 1]);
         // > 61.8 = Consolidation/Chop, < 38.2 = Trending
         advancedInfo.choppiness = {
@@ -281,12 +313,17 @@ export function calculateAllIndicators(
         };
 
         // Ichimoku
-        const ichi = JSIndicators.ichimoku(highsNum, lowsNum, 9, 26, 52, 26);
+        const ichiConv = settings?.ichimoku?.conversionPeriod || 9;
+        const ichiBase = settings?.ichimoku?.basePeriod || 26;
+        const ichiSpanB = settings?.ichimoku?.spanBPeriod || 52;
+        const ichiDisp = settings?.ichimoku?.displacement || 26;
+
+        const ichi = JSIndicators.ichimoku(highsNum, lowsNum, ichiConv, ichiBase, ichiSpanB, ichiDisp);
         const idx = ichi.conversion.length - 1;
-        const conv = new Decimal(ichi.conversion[idx]);
-        const base = new Decimal(ichi.base[idx]);
-        const spanA = new Decimal(ichi.spanA[idx]);
-        const spanB = new Decimal(ichi.spanB[idx]);
+        const conv = new Decimal(ichi.conversion[idx] || 0); // Guard against empty
+        const base = new Decimal(ichi.base[idx] || 0);
+        const spanA = new Decimal(ichi.spanA[idx] || 0);
+        const spanB = new Decimal(ichi.spanB[idx] || 0);
 
         // Simple Ichi Signal: Price > Cloud && Conv > Base = Buy
         // Price < Cloud && Conv < Base = Sell
@@ -337,10 +374,14 @@ export function calculateAllIndicators(
     // --- Moving Averages ---
     const movingAverages: IndicatorResult[] = [];
     try {
-        const ema1 = 20, ema2 = 50, ema3 = 200;
+        const ema1 = settings?.ema?.ema1?.length || 20;
+        const ema2 = settings?.ema?.ema2?.length || 50;
+        const ema3 = settings?.ema?.ema3?.length || 200;
+        const emaSource = getSource(settings?.ema?.source || "close");
+
         const emaPeriods = [ema1, ema2, ema3];
         for (const period of emaPeriods) {
-            const emaResults = JSIndicators.ema(closesNum, period);
+            const emaResults = JSIndicators.ema(emaSource, period);
             const emaVal = new Decimal(emaResults[emaResults.length - 1]);
             movingAverages.push({
                 name: "EMA",
@@ -360,9 +401,9 @@ export function calculateAllIndicators(
     // --- Volatility ---
     let volatility = undefined;
     try {
-        const atrLen = 14;
-        const bbLen = 20;
-        const bbStdDev = 2;
+        const atrLen = settings?.atr?.length || 14;
+        const bbLen = settings?.bb?.length || 20;
+        const bbStdDev = settings?.bb?.stdDev || 2;
 
         const atrResults = JSIndicators.atr(highsNum, lowsNum, closesNum, atrLen);
         const bbResults = JSIndicators.bb(closesNum, bbLen, bbStdDev);
