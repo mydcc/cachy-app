@@ -909,8 +909,9 @@
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-xs">Fast</label>
+              <label for="ao-fast" class="text-xs">Fast</label>
               <input
+                id="ao-fast"
                 type="number"
                 bind:value={indicatorState.ao.fastLength}
                 class="input-field rounded settings-number-input text-xs"
@@ -918,8 +919,9 @@
               />
             </div>
             <div class="flex items-center justify-between">
-              <label class="text-xs">Slow</label>
+              <label for="ao-slow" class="text-xs">Slow</label>
               <input
+                id="ao-slow"
                 type="number"
                 bind:value={indicatorState.ao.slowLength}
                 class="input-field rounded settings-number-input text-xs"
@@ -955,8 +957,9 @@
           </div>
           <div class="grid grid-cols-2 gap-x-4 gap-y-2">
             <div class="flex items-center justify-between">
-              <label class="text-xs">Length</label>
+              <label for="momentum-length" class="text-xs">Length</label>
               <input
+                id="momentum-length"
                 type="number"
                 bind:value={indicatorState.momentum.length}
                 class="input-field rounded settings-number-input text-xs"
@@ -991,8 +994,9 @@
             {/if}
           </div>
           <div class="flex justify-between items-center">
-            <label class="text-xs">Type</label>
+            <label for="pivots-type" class="text-xs">Type</label>
             <select
+              id="pivots-type"
               bind:value={indicatorState.pivots.type}
               class="input-field p-1 rounded text-xs"
               disabled={!settingsState.isPro}
