@@ -117,5 +117,172 @@ export const dataRepairService = {
         }
 
         onProgress(total, total, "Reparatur abgeschlossen.");
+    },
+
+    /**
+     * Scans for trades that are closed (Won/Lost) but missing MFE or MAE.
+     */
+    scanForMissingMfeMae(): number {
+        const trades = journalState.entries;
+        let count = 0;
+        for (const t of trades) {
+            if ((t.status === "Won" || t.status === "Lost") && (t.mfe === undefined || t.mae === undefined)) {
+                count++;
+            }
+        }
+        return count;
+    },
+
+    /**
+     * Repairs MFE/MAE by fetching historical data during the trade's lifetime.
+     */
+    async repairMfeMae(
+        onProgress: (current: number, total: number, message: string) => void
+    ) {
+        const allTrades = journalState.entries;
+        const targets = allTrades.filter(
+            (t) => (t.status === "Won" || t.status === "Lost") && (t.mfe === undefined || t.mae === undefined)
+        );
+
+        const total = targets.length;
+        if (total === 0) {
+            onProgress(0, 0, "Keine Trades für MFE/MAE-Reparatur.");
+            return;
+        }
+
+        let processed = 0;
+        const Decimal = (await import("decimal.js")).default; // Dynamic import or assume global if cleaner
+
+        for (const trade of targets) {
+            processed++;
+            onProgress(processed, total, `MFE/MAE für ${trade.symbol}...`);
+
+            try {
+                if (!trade.entryDate || !trade.exitDate) {
+                    // Cannot calc without window
+                    continue;
+                }
+
+                const startTs = new Date(trade.entryDate).getTime();
+                const endTs = new Date(trade.exitDate).getTime();
+
+                if (isNaN(startTs) || isNaN(endTs) || endTs <= startTs) {
+                    continue;
+                }
+
+                // Use 5m candles for reasonable precision/limit balance
+                const interval = "5m";
+                // Bitunix limit is typically 500-1000. 
+                // Duration in minutes
+                const durationMins = (endTs - startTs) / 60000;
+                // If duration is very long, 5m might not fit in one request if limit is small.
+                // Assuming standard fetch covers it or we accept partial precision (start of trade).
+                // Actually fetchBitunixKlines usually allows specifying start/end.
+
+                const klines = await apiService.fetchBitunixKlines(
+                    normalizeSymbol(trade.symbol, "bitunix"),
+                    interval,
+                    1000,
+                    startTs,
+                    endTs,
+                    "normal"
+                );
+
+                if (klines && klines.length > 0) {
+                    let highest = new Decimal(0);
+                    let lowest = new Decimal(klines[0].low);
+
+                    for (const k of klines) {
+                        const h = new Decimal(k.high);
+                        const l = new Decimal(k.low);
+                        if (h.gt(highest)) highest = h;
+                        if (l.lt(lowest)) lowest = l;
+                        // Initialize lowest correctly on first iteration if needed
+                        if (new Decimal(lowest).eq(0)) lowest = l;
+                    }
+
+                    // MFE/MAE Calc
+                    // Long: MFE = High - Entry, MAE = Entry - Low
+                    // Short: MFE = Entry - Low, MAE = High - Entry
+                    const entryPrice = new Decimal(trade.entryPrice);
+                    let mfe = new Decimal(0);
+                    let mae = new Decimal(0);
+
+                    if (trade.tradeType === "Long") {
+                        mfe = highest.minus(entryPrice);
+                        mae = entryPrice.minus(lowest);
+                    } else {
+                        mfe = entryPrice.minus(lowest);
+                        mae = highest.minus(entryPrice);
+                    }
+
+                    // Ensure positive values usually, or strictly mathematical? 
+                    // Usually MFE is positive gain, MAE is max draw down against you (also positive number representing distance).
+
+                    journalState.updateEntry({
+                        ...trade,
+                        mfe: mfe,
+                        mae: mae
+                    });
+                }
+
+            } catch (e) {
+                console.error(`[DataRepair] MFE/MAE Err ${trade.symbol}:`, e);
+            }
+
+            await new Promise(r => setTimeout(r, 500));
+        }
+
+        onProgress(total, total, "MFE/MAE Berechnungen fertig.");
+    },
+
+    /**
+     * Scans for symbols that do not match the clean format (e.g. uppercase, no separators).
+     */
+    scanForInvalidSymbols(): number {
+        const trades = journalState.entries;
+        let count = 0;
+        for (const t of trades) {
+            const clean = normalizeSymbol(t.symbol, "default"); // "BTCUSDT"
+            // If current symbol is different from clean version
+            // Basic check: looks like "BTC/USDT" or "btc"
+            if (t.symbol !== clean) {
+                count++;
+            }
+        }
+        return count;
+    },
+
+    /**
+     * Normalizes symbols to standard format (e.g. BTCUSDT).
+     */
+    async repairSymbols(
+        onProgress: (current: number, total: number, message: string) => void
+    ) {
+        const allTrades = journalState.entries;
+        const targets = allTrades.filter(t => t.symbol !== normalizeSymbol(t.symbol, "default"));
+
+        const total = targets.length;
+        if (total === 0) {
+            onProgress(0, 0, "Symbole bereits sauber.");
+            return;
+        }
+
+        let processed = 0;
+        for (const trade of targets) {
+            processed++;
+            // Instant update, no API needed
+            const clean = normalizeSymbol(trade.symbol, "default");
+
+            // Only update if changed
+            if (clean !== trade.symbol) {
+                journalState.updateEntry({
+                    ...trade,
+                    symbol: clean
+                });
+            }
+        }
+
+        onProgress(total, total, "Symbole bereinigt.");
     }
 };
