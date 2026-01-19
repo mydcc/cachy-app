@@ -189,6 +189,11 @@
   let tickerData = $derived(
     marketState.data[normalizeSymbol(symbol, "bitunix")],
   );
+  // WS Data
+  let wsData = $derived.by(() => {
+    if (!symbol) return null;
+    return marketState.data[normalizeSymbol(symbol, "bitunix")] || null;
+  });
   let displaySymbol = $derived(getDisplaySymbol(symbol));
 
   onMount(() => {
@@ -247,11 +252,6 @@
       app.fetchAllAnalysisData(symbol.toUpperCase());
     }
   }
-  // WS Data
-  let wsData = $derived.by(() => {
-    if (!symbol) return null;
-    return marketState.data[normalizeSymbol(symbol, "bitunix")] || null;
-  });
   let wsStatus = $derived(marketState.connectionStatus);
   // Derived Real-time values
   let currentPrice = $derived.by(() => {
@@ -452,9 +452,8 @@
       title="Refresh Stats"
       onclick={(e) => {
         e.stopPropagation();
-        fetchRestData();
+        app.handleFetchPrice();
       }}
-      class:animate-spin={restLoading}
     >
       {@html icons.refresh ||
         '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M21.34 5.5A10 10 0 1 1 11.99 2.02"/></svg>'}
@@ -474,9 +473,9 @@
     </div>
   </div>
 
-  {#if restError && !currentPrice}
+  {#if !currentPrice && !tickerData}
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
-      {$_("apiErrors.symbolNotFound") || "Symbol not found"}
+      {$_("apiErrors.noMarketData") || "No market data available"}
     </div>
   {:else if currentPrice || tickerData}
     <div class="flex flex-col gap-1 mt-1">
