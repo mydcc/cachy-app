@@ -799,7 +799,7 @@
             {$_("dashboard.favorites") || "Favorites"}
           </div>
           {#each favoritesState.items as fav (fav)}
-            {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
+            {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
               <MarketOverview customSymbol={fav} isFavoriteTile={true} />
             {/if}
           {/each}
@@ -841,7 +841,7 @@
         </div>
       {/if}
       {#each favoritesState.items as fav (fav)}
-        {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
+        {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
           <MarketOverview customSymbol={fav} isFavoriteTile={true} />
         {/if}
       {/each}
