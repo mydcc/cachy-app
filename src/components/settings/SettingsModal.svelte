@@ -55,20 +55,11 @@
     | "indicators"
     | "hotkeys";
 
-  let activeTab: TabType = $state("general");
-
-  // Sync active tab from uiStore only when the modal opens
-  $effect(() => {
-    if ($uiStore.showSettingsModal) {
-      untrack(() => {
-        activeTab = ($uiStore.settingsTab as any) || "general";
-      });
-    }
-  });
+  // Use the store as the unique source of truth for the active tab
+  // This prevents unintended resets when the store updates for other reasons
+  const activeTab = $derived(($uiStore.settingsTab as TabType) || "general");
 
   function selectTab(tab: TabType) {
-    activeTab = tab;
-    // Update store so it remains consistent if modal is reopened
     uiStore.update((s) => ({ ...s, settingsTab: tab }));
   }
 
