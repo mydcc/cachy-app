@@ -26,6 +26,7 @@ import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
+import { calculator } from "../lib/calculator";
 
 export const syncService = {
   syncBitunixPositions: async () => {
@@ -280,7 +281,6 @@ export const syncService = {
                   }
 
                   // ATR calculation using the same klines
-                  const { calculator } = await import("../lib/calculator");
                   const atrValue = calculator.calculateATR(klines, 14);
 
                   if (mfe.gt(0) && qty.gt(0)) {
