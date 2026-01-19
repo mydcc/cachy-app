@@ -283,8 +283,8 @@
           type="button"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           onclick={() =>
-            modalState.show("Symbol auswählen", "", "symbolPicker")}
-          title="Symbol auswählen"
+            modalState.show($_("dashboard.tradeSetupInputs.selectSymbol"), "", "symbolPicker")}
+          title={$_("dashboard.tradeSetupInputs.selectSymbol")}
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -368,7 +368,7 @@
         <div
           class="absolute -top-6 left-0 text-[10px] text-orange-500 font-bold animate-pulse"
         >
-          ⚠️ Abweichung zum Markt: {priceDeviation.toFixed(1)}%
+          ⚠️ {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(1)}%
         </div>
       {/if}
 
@@ -379,8 +379,8 @@
           ? 'var(--success-color)'
           : 'var(--danger-color)'};"
         title={settingsState.autoUpdatePriceInput
-          ? "Auto-Update On"
-          : "Auto-Update Off"}
+          ? $_("dashboard.tradeSetupInputs.autoUpdateOn")
+          : $_("dashboard.tradeSetupInputs.autoUpdateOff")}
         onclick={toggleAutoUpdatePrice}
         aria-label="Toggle Auto Update Price"
       ></button>
@@ -554,7 +554,7 @@
                   trackCustomEvent("ATR", "Fetch", symbol);
                   dispatch("fetchAtr");
                 }}
-                title="Fetch ATR Value"
+                title={$_("dashboard.tradeSetupInputs.fetchAtrValue")}
               >
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
