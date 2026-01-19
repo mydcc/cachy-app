@@ -35,12 +35,15 @@ class ChatManager {
         this.clientId = this.getClientId();
         if (browser) {
             // Auto-start polling when conditions are met
-            $effect(() => {
-                if (settingsState.enableSidePanel && settingsState.sidePanelMode === "chat") {
-                    this.poll(); // Initial poll
-                    const interval = setInterval(() => this.poll(), POLL_INTERVAL);
-                    return () => clearInterval(interval);
-                }
+            // Auto-start polling when conditions are met
+            $effect.root(() => {
+                $effect(() => {
+                    if (settingsState.enableSidePanel && settingsState.sidePanelMode === "chat") {
+                        this.poll(); // Initial poll
+                        const interval = setInterval(() => this.poll(), POLL_INTERVAL);
+                        return () => clearInterval(interval);
+                    }
+                });
             });
         }
     }
