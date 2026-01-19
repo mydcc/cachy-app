@@ -700,13 +700,18 @@
           {#if settingsState.sidePanelMode === "ai"}
             <!-- AI Messages -->
             {#each aiState.messages as msg (msg.id)}
+              {@const isActionMsg =
+                msg.role === "system" &&
+                (msg.content.includes("[PENDING:") ||
+                  msg.content.includes("[✅") ||
+                  msg.content.includes("[❌"))}
               <div
                 class="flex flex-col text-sm {msg.role === 'user'
                   ? 'items-end'
-                  : 'items-start'}"
+                  : 'items-start'} {isActionMsg ? 'my-1' : ''}"
               >
                 <!-- Label for Terminal / Minimal Mode -->
-                {#if !isBubble}
+                {#if !isBubble && !isActionMsg}
                   <div
                     class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                   >
@@ -732,19 +737,25 @@
                   class:from-indigo-600={isBubble && msg.role === "user"}
                   class:to-blue-600={isBubble && msg.role === "user"}
                   class:text-white={isBubble && msg.role === "user"}
-                  class:rounded-[1.2rem]={isBubble}
+                  class:rounded-[1.2rem]={isBubble && !isActionMsg}
                   class:rounded-tr-none={isBubble && msg.role === "user"}
-                  class:px-4={isBubble}
-                  class:py-2={isBubble}
+                  class:px-4={isBubble && !isActionMsg}
+                  class:py-2={isBubble && !isActionMsg}
                   class:shadow-md={isBubble && msg.role === "user"}
                   class:max-w-[85%]={isBubble}
                   class:bg-[var(--chat-bubble-bg)]={isBubble &&
-                    msg.role === "assistant"}
+                    msg.role === "assistant" &&
+                    !isActionMsg}
                   class:rounded-tl-none={isBubble && msg.role === "assistant"}
-                  class:border={isBubble && msg.role === "assistant"}
+                  class:border={isBubble &&
+                    msg.role === "assistant" &&
+                    !isActionMsg}
                   class:border-[var(--border-color)]={isBubble &&
-                    msg.role === "assistant"}
-                  class:shadow-sm={isBubble && msg.role === "assistant"}
+                    msg.role === "assistant" &&
+                    !isActionMsg}
+                  class:shadow-sm={isBubble &&
+                    msg.role === "assistant" &&
+                    !isActionMsg}
                   class:overflow-x-hidden={isBubble}
                 >
                   <!-- Copy Button (shows on hover) -->

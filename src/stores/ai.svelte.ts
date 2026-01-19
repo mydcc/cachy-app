@@ -297,13 +297,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                 const actions = this.parseActions(safeContent) || [];
 
                 if (Array.isArray(actions) && actions.length > 0) {
-                    // 1. Hide JSON from Chat UI
-                    const regexArray = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
-                    const regexSingle = /```json\s*(\{.*?\})\s*```/s;
-                    let cleanedContent = safeContent
-                        .replace(regexArray, "")
-                        .replace(regexSingle, "")
-                        .trim();
+                    // 1. Hide ALL JSON code blocks that contain trading actions
+                    const cleanedContent = safeContent.replace(/```json\s*[\s\S]*?"action"[\s\S]*?```/g, "").trim();
 
                     const idx = this.messages.findIndex(m => m.id === aiMsgId);
                     if (idx !== -1) {
