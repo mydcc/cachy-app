@@ -979,7 +979,7 @@
 
     .journal-table th {
         text-align: left;
-        padding: 0.75rem 0.5rem;
+        padding: 0.75rem 0.75rem;
         border-bottom: 2px solid var(--border-color);
         color: var(--text-secondary);
         font-weight: 600;
@@ -988,21 +988,17 @@
         letter-spacing: 0.05em;
     }
 
-    /* Fixed column widths for alignment */
+    /* Improved column widths for better spacing */
     .col-date {
-        min-width: 110px;
-        max-width: 110px;
-        width: 110px;
+        min-width: 145px;
+        padding-right: 1rem !important;
         white-space: nowrap;
     }
 
     .col-symbol {
-        min-width: 140px;
-        max-width: 140px;
-        width: 140px;
+        min-width: 110px;
+        padding-right: 1rem !important;
         white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
     }
 
     .col-duration {
@@ -1019,7 +1015,7 @@
     }
 
     .journal-table td {
-        padding: 0.5rem;
+        padding: 0.5rem 0.75rem;
         border-bottom: 1px solid var(--border-color);
         vertical-align: middle;
     }

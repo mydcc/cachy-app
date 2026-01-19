@@ -237,8 +237,8 @@ export const syncService = {
             }
           }
 
-          // MAE/MFE
-          let mae, mfe, efficiency;
+          // MAE/MFE & ATR
+          let mae, mfe, efficiency, atrValue;
           try {
             if (posTime > 0 && closeTime > posTime) {
               // Adaptive interval based on duration
@@ -279,14 +279,16 @@ export const syncService = {
                     mfe = Decimal.max(0, maxHigh.minus(entryPrice));
                   }
 
+                  // ATR calculation using the same klines
+                  const { calculator } = await import("../lib/calculator");
+                  const atrValue = calculator.calculateATR(klines, 14);
+
                   if (mfe.gt(0) && qty.gt(0)) {
                     efficiency = netPnl.div(mfe.times(qty));
                   } else if (qty.gt(0)) {
-                    // MFE is 0, but we still have a trade.
-                    // If netPnl > 0 with MFE 0, it's weird but mathematically 100% efficient?
-                    // Usually means entry was exactly at low (for long).
                     efficiency = netPnl.gt(0) ? new Decimal(1) : new Decimal(0);
                   }
+
                 }
               }
             }
@@ -343,6 +345,7 @@ export const syncService = {
             calculatedTpDetails: [],
             tags: [],
             fundingFee: funding,
+            atrValue,
             exitDate: new Date(closeTime).toISOString(),
           };
         });

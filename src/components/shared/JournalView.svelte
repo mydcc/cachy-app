@@ -409,6 +409,27 @@
       uiState.isLoading = false;
     }
   }
+
+  async function forceRecalculateAtr() {
+    if (!confirm($_("journal.confirmRecalculateAtr"))) return;
+
+    const { dataRepairService } =
+      await import("../../services/dataRepairService");
+    uiState.isLoading = true;
+    uiState.loadingMessage = "ATR-Neuberechnung gestartet...";
+
+    try {
+      await dataRepairService.repairMissingAtr((current, total, message) => {
+        uiState.setSyncProgress({ current, total, step: message });
+      }, true); // true = force
+      uiState.showFeedback("save");
+    } catch (err: any) {
+      uiState.showError("Fehler bei ATR-Berechnung: " + err.message);
+    } finally {
+      uiState.isLoading = false;
+      uiState.setSyncProgress(null);
+    }
+  }
 </script>
 
 <ModalFrame
@@ -540,6 +561,32 @@
               <span class="text-xs truncate">{$_(`journal.table.${col}`)}</span>
             </label>
           {/each}
+        </div>
+
+        <div class="mt-6 pt-4 border-t border-[var(--border-color)]">
+          <h4
+            class="text-xs font-bold uppercase text-[var(--text-secondary)] mb-3 tracking-wider"
+          >
+            {$_("settings.data.title")}
+          </h4>
+          <button
+            class="w-full text-left flex items-center gap-3 p-2 rounded hover:bg-[var(--bg-secondary)] transition-colors group"
+            onclick={forceRecalculateAtr}
+          >
+            <span
+              class="p-1.5 rounded bg-[var(--bg-tertiary)] group-hover:bg-[var(--accent-color)] group-hover:text-[var(--gray-900)] transition-colors"
+            >
+              🔄
+            </span>
+            <div class="flex flex-col">
+              <span class="text-xs font-bold"
+                >{$_("journal.labels.recalculateAtr")}</span
+              >
+              <span class="text-[10px] text-[var(--text-secondary)]"
+                >Fixes inconsistent or missing ATR data</span
+              >
+            </div>
+          </button>
         </div>
       </div>
     </div>

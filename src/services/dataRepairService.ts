@@ -21,18 +21,20 @@ export const dataRepairService = {
     },
 
     /**
-     * Iterates through all trades needing repair and attempts to fetch historical data
+     * Iterates through trades and attempts to fetch historical data
      * to calculate the ATR. Updates the journalState directly.
      * 
      * @param onProgress Callback (current, total, message)
+     * @param force If true, recalculates even if atrValue already exists
      */
     async repairMissingAtr(
-        onProgress: (current: number, total: number, message: string) => void
+        onProgress: (current: number, total: number, message: string) => void,
+        force: boolean = false
     ) {
         const allTrades = journalState.entries;
-        // Filter consistent with scan logic
+        // Filter: If force is true, take all closed trades. Otherwise only those missing ATR.
         const targets = allTrades.filter(
-            (t) => (t.status === "Won" || t.status === "Lost") && !t.atrValue
+            (t) => (t.status === "Won" || t.status === "Lost") && (force || !t.atrValue)
         );
 
         const total = targets.length;

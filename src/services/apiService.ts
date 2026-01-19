@@ -289,8 +289,8 @@ export const apiService = {
             interval: interval,
             limit: limit.toString(),
           });
-          if (startTime) params.append("start", startTime.toString());
-          if (endTime) params.append("end", endTime.toString());
+          if (startTime) params.append("startTime", startTime.toString());
+          if (endTime) params.append("endTime", endTime.toString());
 
           const response = await fetch(`/api/klines?${params.toString()}`, {
             signal,
