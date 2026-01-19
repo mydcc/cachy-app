@@ -24,7 +24,7 @@
   import { onboardingService } from "../../services/onboardingService";
   import { createEventDispatcher, onMount } from "svelte";
   import { icons } from "../../lib/constants";
-  import { updateTradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
 
@@ -58,7 +58,7 @@
   function handleAccountSizeInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       accountSize: value === "" ? null : parseFloat(value),
     }));
@@ -67,7 +67,7 @@
   function handleRiskPercentageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       riskPercentage: value === "" ? null : parseFloat(value),
     }));
@@ -76,7 +76,7 @@
   function handleRiskAmountInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       riskAmount: value === "" ? null : parseFloat(value),
     }));
@@ -116,7 +116,7 @@
       }
 
       if (typeof data.balance === "number") {
-        updateTradeStore((s) => ({ ...s, accountSize: data.balance }));
+        tradeState.update((s) => ({ ...s, accountSize: data.balance }));
         if (!silent) {
           uiState.showFeedback("save"); // Show success feedback
         }

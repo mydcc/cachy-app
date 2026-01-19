@@ -17,7 +17,6 @@
 
 <script lang="ts">
   import favicon from "../assets/favicon.svg";
-  import { tradeStore } from "../stores/tradeStore";
   import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";

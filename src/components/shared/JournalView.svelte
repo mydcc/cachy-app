@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import {
     journalStore,
@@ -267,8 +267,8 @@
   }
 
   // Extract tradeStore values to local reactive variables
-  let journalSearchQuery = $derived($tradeStore.journalSearchQuery);
-  let journalFilterStatus = $derived($tradeStore.journalFilterStatus);
+  let journalSearchQuery = $derived(tradeState.journalSearchQuery);
+  let journalFilterStatus = $derived(tradeState.journalFilterStatus);
 
   let processedTrades = $derived(
     $journalStore.filter((trade) => {
@@ -448,8 +448,8 @@
 
   <!-- Journal Filters Component - MOVED ABOVE TABLE -->
   <JournalFilters
-    bind:searchQuery={$tradeStore.journalSearchQuery}
-    bind:filterStatus={$tradeStore.journalFilterStatus}
+    bind:searchQuery={tradeState.journalSearchQuery}
+    bind:filterStatus={tradeState.journalFilterStatus}
     bind:filterDateStart
     bind:filterDateEnd
     bind:groupBySymbol

@@ -19,7 +19,7 @@
   import { onMount } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { accountState } from "../../stores/account.svelte";
-  import { tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import TpSlEditModal from "./TpSlEditModal.svelte";
@@ -56,7 +56,7 @@
       if (provider === "bitunix") {
         // Bitunix default behavior
         const symbolsToFetch = new Set<string>();
-        if ($tradeStore.symbol) symbolsToFetch.add($tradeStore.symbol);
+        if (tradeState.symbol) symbolsToFetch.add(tradeState.symbol);
         accountState.positions.forEach((p) => symbolsToFetch.add(p.symbol));
 
         const fetchList =

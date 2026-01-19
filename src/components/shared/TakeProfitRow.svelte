@@ -22,9 +22,8 @@
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";
   import { trackClick } from "../../lib/actions";
-  import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { app } from "../../services/app";
-  import { get } from "svelte/store";
   import type { IndividualTpResult } from "../../stores/types";
 
   const dispatch = createEventDispatcher();
@@ -47,10 +46,10 @@
 
   function toggleLock() {
     const newLockState = !isLocked;
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     if (currentTargets[index]) {
       currentTargets[index].isLocked = newLockState;
-      updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+      tradeState.update((s) => ({ ...s, targets: currentTargets }));
       app.adjustTpPercentages(index);
     }
   }
@@ -67,10 +66,10 @@
     const value = target.value;
     const newPrice = value === "" ? null : parseFloat(value);
 
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     if (currentTargets[index]) {
       currentTargets[index].price = newPrice;
-      updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+      tradeState.update((s) => ({ ...s, targets: currentTargets }));
     }
   }
 
@@ -79,10 +78,10 @@
     const value = target.value;
     const newPercent = value === "" ? null : parseFloat(value);
 
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     if (currentTargets[index]) {
       currentTargets[index].percent = newPercent;
-      updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+      tradeState.update((s) => ({ ...s, targets: currentTargets }));
       app.adjustTpPercentages(index);
     }
   }

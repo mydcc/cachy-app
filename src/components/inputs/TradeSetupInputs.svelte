@@ -24,7 +24,7 @@
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
   import { onboardingService } from "../../services/onboardingService";
-  import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { modalManager } from "../../services/modalManager";
@@ -95,7 +95,7 @@
   function handleFetchPriceClick() {
     trackCustomEvent("Price", "Fetch", symbol);
     // Force ATR SL to be active when fetching price manually
-    updateTradeStore((s) => ({ ...s, useAtrSl: true, atrMode: "auto" }));
+    tradeState.update((s) => ({ ...s, useAtrSl: true, atrMode: "auto" }));
     // Use unified fetch
     app.fetchAllAnalysisData(symbol, false);
   }
@@ -104,7 +104,7 @@
     // 1. Update Global Store (this triggers reactivity in app.ts / +page.svelte)
     // Only update if it's different to avoid redundant triggers
     if (symbol !== localSymbol) {
-      updateTradeStore((s) => ({ ...s, symbol: localSymbol }));
+      tradeState.update((s) => ({ ...s, symbol: localSymbol }));
     }
 
     app.updateSymbolSuggestions(localSymbol);
@@ -122,7 +122,7 @@
     dispatch("selectSymbolSuggestion", s);
     // When selecting suggestion, we want immediate update
     localSymbol = s;
-    updateTradeStore((s) => ({ ...s, symbol: localSymbol }));
+    tradeState.update((s) => ({ ...s, symbol: localSymbol }));
     app.fetchAllAnalysisData(localSymbol, true);
   }
 
@@ -172,7 +172,7 @@
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       entryPrice: value === "" ? null : parseFloat(value),
     }));
@@ -181,7 +181,7 @@
   function handleAtrValueInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       atrValue: value === "" ? null : parseFloat(value),
     }));
@@ -190,7 +190,7 @@
   function handleAtrMultiplierInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       atrMultiplier: value === "" ? null : parseFloat(value),
     }));
@@ -199,7 +199,7 @@
   function handleStopLossPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       stopLossPrice: value === "" ? null : parseFloat(value),
     }));

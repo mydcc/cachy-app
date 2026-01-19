@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { onMount, onDestroy, untrack } from "svelte";
-  import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { favoritesState } from "../../stores/favorites.svelte";
@@ -252,7 +252,7 @@
 
   function loadToCalculator() {
     if (isFavoriteTile && symbol) {
-      updateTradeStore((s) => {
+      tradeState.update((s) => {
         const newState = {
           ...s,
           symbol: symbol.toUpperCase(),
@@ -270,7 +270,7 @@
     }
   }
   // Use custom symbol if provided, otherwise fall back to store symbol
-  let symbol = $derived(customSymbol || $tradeStore.symbol || "");
+  let symbol = $derived(customSymbol || tradeState.symbol || "");
   let provider = $derived(settingsState.apiProvider);
   let displaySymbol = $derived(getDisplaySymbol(symbol));
   // WS Data
@@ -315,7 +315,7 @@
   // RSI Timeframe
   let effectiveRsiTimeframe = $derived(
     settingsState.syncRsiTimeframe
-      ? $tradeStore.atrTimeframe || indicatorState.rsi.defaultTimeframe || "1d"
+      ? tradeState.atrTimeframe || indicatorState.rsi.defaultTimeframe || "1d"
       : indicatorState.rsi.defaultTimeframe || "1d",
   );
   $effect(() => {

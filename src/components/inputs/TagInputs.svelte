@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { updateTradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { _ } from "../../locales/i18n";
 
   interface Props {
@@ -32,7 +32,7 @@
     if (cleaned) {
       if (!tags.includes(cleaned)) {
         // We update the store via the parent binding or store update
-        updateTradeStore((s) => ({ ...s, tags: [...s.tags, cleaned] }));
+        tradeState.update((s) => ({ ...s, tags: [...s.tags, cleaned] }));
       }
       tagInput = "";
     }
@@ -46,9 +46,9 @@
   }
 
   function removeTag(tagToRemove: string) {
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
-      tags: s.tags.filter((t) => t !== tagToRemove),
+      tags: s.tags.filter((t: string) => t !== tagToRemove),
     }));
   }
 </script>
@@ -88,7 +88,8 @@
 
 <style>
   .input-field:focus {
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.3),
+    box-shadow:
+      0 4px 6px -1px rgba(0, 0, 0, 0.3),
       0 2px 4px -1px rgba(0, 0, 0, 0.06);
     border-color: var(--accent-color);
     z-index: 10;

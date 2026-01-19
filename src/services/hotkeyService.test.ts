@@ -18,7 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
 import { settingsState } from "../stores/settings.svelte";
-import { tradeStore } from "../stores/tradeStore";
+import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { get } from "svelte/store";
 import { CONSTANTS } from "../lib/constants";
@@ -31,13 +31,14 @@ vi.mock("../stores/settings.svelte", () => ({
   },
 }));
 
-vi.mock("../stores/tradeStore", () => {
-  const { writable } = require("svelte/store");
-  return {
-    tradeStore: writable({}),
-    updateTradeStore: vi.fn(), // Mock the exported helper
-  };
-});
+vi.mock("../stores/trade.svelte", () => ({
+  tradeState: {
+    targets: [],
+    // Mock other needed props
+    update: vi.fn(),
+    set: vi.fn()
+  }
+}));
 
 vi.mock("../stores/ui.svelte", () => {
   return {
@@ -132,13 +133,12 @@ describe("HotkeyService", () => {
       fontFamily: "Inter", // Added missing prop
     });
 
-    tradeStore.set({
-      // Minimal required mock properties for tradeStore
+    Object.assign(tradeState, {
+      // Minimal required mock properties for tradeState
       targets: [],
       riskPercentage: 1,
       leverage: 10,
       tradeType: "long",
-      // Add other required properties to satisfy TS if needed, or cast
       symbol: "BTCUSDT",
       accountSize: 1000,
       entryPrice: null,

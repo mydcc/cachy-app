@@ -18,7 +18,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
-  import { tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
   import { _ } from "../../locales/i18n";
 
@@ -300,7 +300,7 @@
     const pos = event.detail;
     // Placeholder: Could open a modal or just pre-fill trade inputs
     // For now, let's load it into the Trade Inputs
-    tradeStore.update((s) => ({
+    tradeState.update((s) => ({
       ...s,
       symbol: pos.symbol,
       entryPrice: Number(pos.entryPrice),

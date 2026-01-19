@@ -18,7 +18,7 @@
 import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 import { julesStore } from "../stores/julesStore";
-import { tradeStore } from "../stores/tradeStore";
+import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { accountState } from "../stores/account.svelte";
 import { marketState } from "../stores/market.svelte";
@@ -40,7 +40,7 @@ export const julesService = {
    */
   getSystemSnapshot(): JulesReportContext {
     const settings = settingsState;
-    const trade = get(tradeStore);
+    const trade = tradeState;
     const ui = uiState;
     const account = accountState;
     const wsStatus = marketState.connectionStatus;

@@ -27,50 +27,36 @@ vi.mock("../stores/settings.svelte", () => ({
   },
 }));
 
-vi.mock("../stores/tradeStore", () => ({
-  tradeStore: {
-    subscribe: (fn: any) => {
+vi.mock("../stores/trade.svelte", () => ({
+  tradeState: {
+    symbol: "BTCUSDT",
+    targets: [],
+    subscribe: (fn: any) => { // Legacy compat mock if needed, or if julesService still subscribes
       fn({ symbol: "BTCUSDT", targets: [] });
       return () => { };
-    },
+    }
   },
 }));
 
-vi.mock("../stores/ui.svelte", () => ({
-  uiState: {
-    currentTheme: "dark",
-    showJournalModal: false,
-    showSettingsModal: false,
+vi.mock("../stores/account.svelte", () => ({
+  accountState: {
+    positions: [],
+    openOrders: [],
+    balance: "1000",
+    availableBalance: "1000",
+    isConnected: true
   },
 }));
 
-vi.mock("../stores/accountStore", () => ({
-  accountStore: {
-    subscribe: (fn: any) => {
-      fn({
-        positions: [],
-        openOrders: [],
-        balance: "1000",
-        availableBalance: "1000",
-      });
-      return () => { };
-    },
-  },
-}));
-
-vi.mock("../stores/marketStore", () => ({
-  marketStore: {
+vi.mock("../stores/market.svelte", () => ({
+  marketState: {
+    data: {},
+    connectionStatus: "connected",
     subscribe: (fn: any) => {
       fn({});
       return () => { };
-    },
-  },
-  wsStatusStore: {
-    subscribe: (fn: any) => {
-      fn("connected");
-      return () => { };
-    },
-  },
+    }
+  }
 }));
 
 // Mock Fetch

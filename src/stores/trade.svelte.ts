@@ -24,7 +24,7 @@ export interface TradeTarget {
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
-const INITIAL_TRADE_STATE = {
+export const INITIAL_TRADE_STATE = {
     tradeType: CONSTANTS.TRADE_TYPE_LONG,
     accountSize: 1000,
     riskPercentage: 1,
@@ -255,6 +255,16 @@ class TradeManager {
         // Handle nested Decimal if replaced? (lockedPositionSize)
         if (next.lockedPositionSize && !(next.lockedPositionSize instanceof Decimal)) {
             this.lockedPositionSize = new Decimal(next.lockedPositionSize);
+        }
+    }
+
+    // Helper for legacy 'set' pattern (useful for tests)
+    set(newState: any) {
+        Object.assign(this, newState);
+        if (newState.lockedPositionSize && !(newState.lockedPositionSize instanceof Decimal)) {
+            try {
+                this.lockedPositionSize = new Decimal(newState.lockedPositionSize);
+            } catch (e) { /* ignore */ }
         }
     }
 

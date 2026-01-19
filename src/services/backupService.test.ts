@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import * as backupService from './backupService';
 import { get } from 'svelte/store';
-import { accountStore } from '../stores/accountStore';
+import { accountState } from '../stores/account.svelte';
 
 // Mock $app/environment
 vi.mock('$app/environment', () => ({

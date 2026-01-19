@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { CONSTANTS } from "../../lib/constants";
-  import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
 
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
@@ -39,7 +39,7 @@
   }: Props = $props();
 
   function setTradeType(type: string) {
-    updateTradeStore((s) => ({ ...s, tradeType: type }));
+    tradeState.update((s) => ({ ...s, tradeType: type }));
     trackCustomEvent("Trade", "ChangeType", type);
   }
 
@@ -49,7 +49,7 @@
   function handleLeverageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       leverage: value === "" ? null : parseFloat(value),
     }));
@@ -58,21 +58,21 @@
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    updateTradeStore((s) => ({
+    tradeState.update((s) => ({
       ...s,
       fees: value === "" ? null : parseFloat(value),
     }));
   }
 
   // Leverage Sync Status
-  let remoteLev = $derived($tradeStore.remoteLeverage);
+  let remoteLev = $derived(tradeState.remoteLeverage);
   let isLeverageSynced = $derived(
     remoteLev !== undefined && leverage === remoteLev,
   );
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
-      updateTradeStore((s) => ({ ...s, leverage: remoteLev }));
+      tradeState.update((s) => ({ ...s, leverage: remoteLev }));
     }
   }
 
@@ -88,12 +88,12 @@
   // If tradeType is LONG/SHORT, does it matter? Usually Maker/Taker depends on order type (Limit/Market).
   // Let's assume Limit = Maker, Market = Taker for simplicity, OR use the feeMode toggle.
   // The `feeMode` toggle determines what we *expect* to pay.
-  let feeMode = $derived($tradeStore.feeMode || "maker_taker");
+  let feeMode = $derived(tradeState.feeMode || "maker_taker");
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
   let targetRemoteFee = $derived(
     entryType === "maker"
-      ? $tradeStore.remoteMakerFee
-      : $tradeStore.remoteTakerFee,
+      ? tradeState.remoteMakerFee
+      : tradeState.remoteTakerFee,
   );
 
   let isFeeSynced = $derived(
@@ -102,7 +102,7 @@
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
-      updateTradeStore((s) => ({ ...s, fees: targetRemoteFee }));
+      tradeState.update((s) => ({ ...s, fees: targetRemoteFee }));
     }
   }
 </script>

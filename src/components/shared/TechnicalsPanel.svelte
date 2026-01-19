@@ -19,7 +19,7 @@
   import { stopPropagation } from "svelte/legacy";
 
   import { onDestroy, untrack } from "svelte";
-  import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
+  import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
@@ -205,7 +205,7 @@
   }
 
   function setTimeframe(tf: string) {
-    updateTradeStore((s) => ({ ...s, analysisTimeframe: tf }));
+    tradeState.update((s) => ({ ...s, analysisTimeframe: tf }));
     showTimeframePopup = false;
   }
 
@@ -241,8 +241,8 @@
       .catch((err) => console.error("Failed to copy", err));
   }
   // Use analysisTimeframe for Technicals
-  let symbol = $derived($tradeStore.symbol);
-  let timeframe = $derived($tradeStore.analysisTimeframe || "1h");
+  let symbol = $derived(tradeState.symbol);
+  let timeframe = $derived(tradeState.analysisTimeframe || "1h");
   let showPanel = $derived(settingsState.showTechnicals && isVisible);
   let indicatorSettings = $derived(indicatorState);
   // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)

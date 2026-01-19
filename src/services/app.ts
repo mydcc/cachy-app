@@ -91,7 +91,7 @@ const CALCULATION_THROTTLE_MS = 200; // Throttle UI updates to max 5 times per s
 
 const calculatorService = new CalculatorService(
   calculator,
-  uiManager,
+  uiState, // Use the exported instance directly
 );
 
 export const app = {

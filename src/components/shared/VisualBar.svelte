@@ -18,7 +18,8 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
-  import { tradeStore } from "../../stores/tradeStore";
+
+  import { tradeState } from "../../stores/trade.svelte";
 
   interface Props {
     entryPrice: number | null;
@@ -36,7 +37,7 @@
 
   const safeTargets = $derived(targets ?? []);
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
-  const tradeType = $derived($tradeStore.tradeType);
+  const tradeType = $derived(tradeState.tradeType);
 </script>
 
 <div class="visual-bar-card">

@@ -43,7 +43,7 @@ export interface ResultsState {
     isMarginExceeded: boolean;
 }
 
-const INITIAL_RESULTS: ResultsState = {
+export const INITIAL_RESULTS_STATE: ResultsState = {
     positionSize: "-",
     requiredMargin: "-",
     netLoss: "-",
@@ -92,7 +92,7 @@ class ResultsManager {
     isMarginExceeded = $state(false);
 
     reset() {
-        Object.assign(this, INITIAL_RESULTS);
+        Object.assign(this, INITIAL_RESULTS_STATE);
     }
 
     // Bulk update helper for calculatorService
@@ -139,4 +139,4 @@ class ResultsManager {
 }
 
 export const resultsState = new ResultsManager();
-export const initialResultsState = INITIAL_RESULTS;
+export const initialResultsState = INITIAL_RESULTS_STATE;

@@ -17,11 +17,7 @@
 
 import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
-import {
-  tradeStore,
-  updateTradeStore,
-  resetAllInputs,
-} from "../stores/tradeStore";
+import { tradeState } from "../stores/trade.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
@@ -88,7 +84,7 @@ function loadFavorite(index: number) {
 }
 
 function cycleTakeProfitFocus(reverse: boolean = false) {
-  const state = get(tradeStore);
+  const state = tradeState;
   const targets = state.targets;
   const count = targets.length;
 
@@ -120,10 +116,10 @@ function cycleTakeProfitFocus(reverse: boolean = false) {
 }
 
 function removeLastTakeProfit() {
-  const state = get(tradeStore);
+  const state = tradeState;
   if (state.targets.length > 0) {
     const newTargets = state.targets.slice(0, -1);
-    updateTradeStore((s) => ({ ...s, targets: newTargets }));
+    tradeState.update((s) => ({ ...s, targets: newTargets }));
     app.adjustTpPercentages(null);
   }
 }
@@ -210,7 +206,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     category: "Trade Setup",
     defaultKey: "Alt+L",
     action: () =>
-      updateTradeStore((s) => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })),
+      tradeState.update((s) => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })),
   },
   {
     id: "SET_SHORT",
@@ -218,7 +214,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     category: "Trade Setup",
     defaultKey: "Alt+S",
     action: () =>
-      updateTradeStore((s) => ({
+      tradeState.update((s) => ({
         ...s,
         tradeType: CONSTANTS.TRADE_TYPE_SHORT,
       })),
@@ -228,7 +224,7 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     label: "Reset Trade Inputs",
     category: "Trade Setup",
     defaultKey: "Alt+R",
-    action: () => resetAllInputs(),
+    action: () => tradeState.resetInputs(true),
   },
 
   // --- UI & Navigation ---

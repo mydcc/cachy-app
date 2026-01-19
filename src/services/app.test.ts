@@ -19,20 +19,23 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
 import {
-  tradeStore,
-  updateTradeStore,
-  initialTradeState,
-  toggleAtrInputs,
-} from "../stores/tradeStore";
-import { resultsStore, initialResultsState } from "../stores/resultsStore";
+  tradeState,
+  INITIAL_TRADE_STATE,
+} from "../stores/trade.svelte";
+import { resultsState, INITIAL_RESULTS_STATE } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
-import { journalStore } from "../stores/journalStore";
+import { journalStore } from "../stores/journalStore"; // Still legacy? Planned for next module.
 import { app } from "./app";
 import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
 import { apiService } from "./apiService";
 import type { Kline } from "./apiService";
 import type { AppState } from "../stores/types";
+
+function toggleAtrInputs(enable: boolean) {
+  tradeState.toggleAtrInputs(enable);
+}
+
 
 // Mock the uiState to prevent errors during tests
 vi.mock("../stores/ui.svelte", () => ({
@@ -56,12 +59,12 @@ vi.mock("./apiService", () => ({
 describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
   beforeEach(() => {
     // Deep copy and set initial state for each test to ensure isolation
-    const state: AppState = JSON.parse(JSON.stringify(initialTradeState));
+    const state: any = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
     // Ensure analysisTimeframe is present
     state.analysisTimeframe = "1h";
-    tradeStore.set(state);
+    tradeState.set(state);
     // Set up a standard 3-target scenario
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       targets: [
         { price: 110, percent: 50, isLocked: false },
@@ -75,28 +78,28 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
   it("should distribute surplus evenly when another TP is decreased", () => {
     // User decreases TP2 from 30 to 20. Surplus of 10 is distributed
     // between the other unlocked targets (TP1 and TP3).
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     if (currentTargets[1]) currentTargets[1].percent = 20;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(1);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[0].percent).toBe(55); // 50 + 5
     expect(targets[1].percent).toBe(20); // The edited one
     expect(targets[2].percent).toBe(25); // 20 + 5
   });
 
   it("should distribute surplus to other unlocked TPs if one is locked", () => {
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[0].isLocked = true;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
 
     // User decreases TP3 from 20 to 10. Surplus of 10 should go to TP2.
     currentTargets[2].percent = 10;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[0].percent).toBe(50); // Locked
     expect(targets[1].percent).toBe(40); // 30 + 10
     expect(targets[2].percent).toBe(10);
@@ -106,12 +109,12 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
   it("should take deficit from other TPs in reverse order (T3 then T2)", () => {
     // User increases TP1 from 50 to 70. Deficit of 20.
     // Should be taken from T3 first. T3 has 20, so it becomes 0.
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[0].percent = 70;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[0].percent).toBe(70);
     expect(targets[1].percent).toBe(30);
     expect(targets[2].percent).toBe(0);
@@ -121,30 +124,30 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // User increases TP1 from 50 to 80. Deficit of 30.
     // T3 has 20, so it becomes 0. Remaining deficit is 10.
     // The remaining 10 is taken from T2 (30 -> 20).
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[0].percent = 80;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[0].percent).toBe(80);
     expect(targets[1].percent).toBe(20);
     expect(targets[2].percent).toBe(0);
   });
 
   it("should not take deficit from locked TPs", () => {
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[2].isLocked = true; // T3 is locked at 20
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
 
     // User increases TP1 from 50 to 75. Deficit of 25.
     // T3 is locked, so deficit must come from T2.
     // T2 has 30, so it becomes 5.
     currentTargets[0].percent = 75;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[0].percent).toBe(75);
     expect(targets[1].percent).toBe(5);
     expect(targets[2].percent).toBe(20); // Locked
@@ -152,7 +155,7 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
 
   // --- EDGE CASE TESTS ---
   it("should revert change if only one unlocked TP is edited (increase)", () => {
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       targets: [
         { price: 110, percent: 50, isLocked: true },
@@ -161,17 +164,17 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
       ],
     }));
     // User tries to increase the only unlocked TP. Should be reverted.
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[2].percent = 30;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[2].percent).toBe(20);
   });
 
   it("should revert change if only one unlocked TP is edited (decrease)", () => {
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       targets: [
         { price: 110, percent: 50, isLocked: true },
@@ -180,32 +183,38 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
       ],
     }));
     // User tries to decrease the only unlocked TP. Should be reverted.
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[2].percent = 10;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     expect(targets[2].percent).toBe(20);
   });
 
   it("should ignore changes to a locked field", () => {
     // This test ensures that if the UI somehow allows a change to a disabled
     // field, the logic doesn't process it.
-    updateTradeStore((state) => {
+    tradeState.update((state) => {
+      // Need to copy targets? state.targets is proxied in Runes
+      // But update gets a snapshot. 
+      // Actually tradeState.update takes `curr: any` and we return modified.
+      // But the implementation uses Object.assign(this, next). 
+      // If we mutate `state` inside and return it, it might work but best to return new object.
+      // For this test, let's keep it simple.
       state.targets[0].isLocked = true;
       return state;
     });
 
     // This simulates the user somehow changing the value, which updates the store
-    updateTradeStore((state) => {
+    tradeState.update((state) => {
       if (state.targets[0]) state.targets[0].percent = 99;
       return state;
     });
 
     app.adjustTpPercentages(0);
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     // The logic should simply RETURN and not process the change.
     // The "dirty" value of 99 will remain in the store, but this is expected
     // as the UI's `disabled` attribute is the primary guard. The logic is just a safeguard.
@@ -216,7 +225,7 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
 
   it("should re-balance correctly when a lock is released", () => {
     // Setup an invalid state created by locking
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       targets: [
         { price: 110, percent: 60, isLocked: true },
@@ -226,12 +235,12 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     }));
     // User unlocks TP2. The app should see the total is 120 and fix it.
     // The `adjustTpPercentages` is called from the UI on lock toggle.
-    const currentTargets = get(tradeStore).targets;
+    const currentTargets = tradeState.targets;
     currentTargets[1].isLocked = false;
-    updateTradeStore((s) => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(1); // The changedIndex is the one unlocked
 
-    const targets = get(tradeStore).targets;
+    const targets = tradeState.targets;
     const total = targets.reduce((sum, t) => sum + (t.percent || 0), 0);
     expect(total).toBe(100);
     expect(targets[0].percent).toBe(60); // Locked, unchanged
@@ -258,7 +267,7 @@ describe("Build Process", () => {
 describe("app service - ATR and Locking Logic", () => {
   beforeEach(() => {
     // Reset stores and mocks before each test
-    tradeStore.set(JSON.parse(JSON.stringify(initialTradeState)));
+    tradeState.set(JSON.parse(JSON.stringify(INITIAL_TRADE_STATE)));
     vi.clearAllMocks();
   });
 
@@ -287,7 +296,7 @@ describe("app service - ATR and Locking Logic", () => {
       .fn()
       .mockResolvedValue(mockKlines);
 
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       symbol: "BTCUSDT",
       atrTimeframe: "1h",
@@ -297,7 +306,7 @@ describe("app service - ATR and Locking Logic", () => {
     await app.fetchAtr();
 
     // Assert
-    const store = get(tradeStore);
+    const store = tradeState;
     expect(apiService.fetchBitunixKlines).toHaveBeenCalledWith(
       "BTCUSDT",
       "1h",
@@ -312,23 +321,23 @@ describe("app service - ATR and Locking Logic", () => {
 
   it("should toggle risk amount lock", () => {
     // Arrange
-    updateTradeStore((state) => ({ ...state, riskAmount: 100 }));
-    expect(get(tradeStore).isRiskAmountLocked).toBe(false);
+    tradeState.update((state) => ({ ...state, riskAmount: 100 }));
+    expect(tradeState.isRiskAmountLocked).toBe(false);
 
     // Act
     app.toggleRiskAmountLock();
 
     // Assert
-    expect(get(tradeStore).isRiskAmountLocked).toBe(true);
+    expect(tradeState.isRiskAmountLocked).toBe(true);
 
     // Act again to toggle off
     app.toggleRiskAmountLock();
-    expect(get(tradeStore).isRiskAmountLocked).toBe(false);
+    expect(tradeState.isRiskAmountLocked).toBe(false);
   });
 
   it("should enforce mutual exclusion: locking risk amount unlocks position size", () => {
     // Arrange
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       isPositionSizeLocked: true,
       lockedPositionSize: new Decimal(10),
@@ -339,7 +348,7 @@ describe("app service - ATR and Locking Logic", () => {
     app.toggleRiskAmountLock();
 
     // Assert
-    const store = get(tradeStore);
+    const store = tradeState;
     expect(store.isRiskAmountLocked).toBe(true);
     expect(store.isPositionSizeLocked).toBe(false);
     expect(store.lockedPositionSize).toBe(null);
@@ -347,27 +356,27 @@ describe("app service - ATR and Locking Logic", () => {
 
   it("should enforce mutual exclusion: locking position size unlocks risk amount", () => {
     // Arrange
-    updateTradeStore((state) => ({
+    tradeState.update((state) => ({
       ...state,
       isRiskAmountLocked: true,
       isPositionSizeLocked: false, // initial state
     }));
     // Set a valid position size in the results store so the lock can be engaged
-    resultsStore.set({ ...initialResultsState, positionSize: "1.23" });
+    resultsState.set({ ...INITIAL_RESULTS_STATE, positionSize: "1.23" });
 
     // Act
     app.togglePositionSizeLock();
 
     // Assert
-    const store = get(tradeStore);
+    const store = tradeState;
     expect(store.isPositionSizeLocked).toBe(true);
     expect(store.isRiskAmountLocked).toBe(false);
   });
 
   it("should backward-calculate risk percentage when risk amount is locked", () => {
     // Arrange
-    tradeStore.set({
-      ...initialTradeState,
+    tradeState.set({
+      ...INITIAL_TRADE_STATE,
       accountSize: 10000,
       riskAmount: 200, // User wants to risk 200
       isRiskAmountLocked: true,
@@ -380,7 +389,7 @@ describe("app service - ATR and Locking Logic", () => {
     app.calculateAndDisplay();
 
     // Assert
-    const store = get(tradeStore);
+    const store = tradeState;
     // 200 is 2% of 10000
     expect(store.riskPercentage).not.toBeNull();
     expect(new Decimal(store.riskPercentage!).toFixed(2)).toBe("2.00");
@@ -388,28 +397,28 @@ describe("app service - ATR and Locking Logic", () => {
 
   it("should set atrMode to auto when useAtrSl is toggled on", () => {
     // Override initial state to simulate off state for testing toggle
-    updateTradeStore((s) => ({ ...s, useAtrSl: false, atrMode: "manual" }));
+    tradeState.update((s) => ({ ...s, useAtrSl: false, atrMode: "manual" }));
 
-    let state = get(tradeStore);
+    let state = tradeState;
     expect(state.useAtrSl).toBe(false);
     expect(state.atrMode).toBe("manual");
 
     toggleAtrInputs(true);
 
-    state = get(tradeStore);
+    state = tradeState;
     expect(state.useAtrSl).toBe(true);
     expect(state.atrMode).toBe("auto");
 
     // Toggle back off, should retain atrMode
     toggleAtrInputs(false);
-    state = get(tradeStore);
+    state = tradeState;
     expect(state.useAtrSl).toBe(false);
     expect(state.atrMode).toBe("auto");
 
     // set to manual and toggle off and on
-    updateTradeStore((s) => ({ ...s, atrMode: "manual" }));
+    tradeState.update((s) => ({ ...s, atrMode: "manual" }));
     toggleAtrInputs(true);
-    state = get(tradeStore);
+    state = tradeState;
     expect(state.atrMode).toBe("auto");
   });
 

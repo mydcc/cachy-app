@@ -10,7 +10,7 @@
 import { browser } from "$app/environment";
 import { get } from "svelte/store";
 import { settingsState, type AiProvider } from "./settings.svelte";
-import { tradeStore } from "./tradeStore";
+import { tradeState } from "./trade.svelte";
 import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
 import { journalStore } from "./journalStore";
@@ -339,7 +339,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
     }
 
     private gatherContext() {
-        const trade = get(tradeStore) || {};
+        const trade = tradeState;
         const market = marketState.data;
         const account = accountState;
         const journal = get(journalStore) || [];
@@ -437,17 +437,17 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value) {
-                        tradeStore.update((s: any) => ({ ...s, entryPrice: parseFloat(action.value) }));
+                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(action.value) }));
                     }
                     break;
                 case "setStopLoss":
                     if (action.value) {
-                        tradeStore.update((s: any) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
                     }
                     break;
                 case "setTakeProfit":
                     if (typeof action.index === "number") {
-                        tradeStore.update((s: any) => {
+                        tradeState.update((s: any) => {
                             const newTargets = [...s.targets];
                             if (newTargets[action.index]) {
                                 let updatedTarget = { ...newTargets[action.index] };
@@ -461,29 +461,29 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     break;
                 case "setLeverage":
                     if (action.value) {
-                        tradeStore.update((s: any) => ({ ...s, leverage: parseFloat(action.value) }));
+                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(action.value) }));
                     }
                     break;
                 case "setRisk":
                     if (action.value) {
-                        tradeStore.update((s: any) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(action.value) }));
                     }
                     break;
                 case "setSymbol":
                     if (action.value) {
-                        tradeStore.update((s: any) => ({ ...s, symbol: action.value }));
+                        tradeState.update((s: any) => ({ ...s, symbol: action.value }));
                     }
                     break;
                 case "setAtrMultiplier":
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
                     if (mult) {
-                        tradeStore.update((s: any) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
                     }
                     break;
                 case "setUseAtrSl":
                     if (typeof action.value === "boolean") {
-                        tradeStore.update((s: any) => ({ ...s, useAtrSl: action.value }));
+                        tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
                     }
                     break;
             }

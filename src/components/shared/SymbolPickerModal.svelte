@@ -20,7 +20,7 @@
     import { CONSTANTS, icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import ModalFrame from "./ModalFrame.svelte";
-    import { updateTradeStore } from "../../stores/tradeStore";
+    import { tradeState } from "../../stores/trade.svelte";
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
     import { marketState } from "../../stores/market.svelte";
@@ -192,7 +192,7 @@
     }
 
     function selectSymbol(s: string) {
-        updateTradeStore((state) => ({ ...state, symbol: s }));
+        tradeState.update((state) => ({ ...state, symbol: s }));
         app.fetchAllAnalysisData(s, true);
         modalManager._handleModalConfirm(s);
         searchQuery = "";
