@@ -83,6 +83,10 @@
     }
   });
 
+  function toggleExpand() {
+    isExpanded = !isExpanded;
+  }
+
   function handleKeydown(event: KeyboardEvent) {
     if (event.key === "Enter" || event.key === " ") {
       event.preventDefault();
