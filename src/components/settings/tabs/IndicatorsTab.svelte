@@ -1013,6 +1013,177 @@
             ></div>
           {/if}
         </div>
+
+        <!-- ATR Settings -->
+        <div
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
+        >
+          <div
+            class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+          >
+            <h4
+              class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+            >
+              ATR
+            </h4>
+          </div>
+          <div class="flex items-center justify-between">
+            <label for="atr-length" class="text-sm">Length</label>
+            <input
+              id="atr-length"
+              type="number"
+              bind:value={indicatorState.atr.length}
+              min="2"
+              max="100"
+              class="input-field rounded settings-number-input text-sm w-20"
+              use:enhancedInput={{ min: 2, max: 100 }}
+            />
+          </div>
+        </div>
+
+        <!-- SuperTrend Settings -->
+        <div
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
+        >
+          <div
+            class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+          >
+            <h4
+              class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+            >
+              SuperTrend
+            </h4>
+            {#if !settingsState.isPro}
+              <span
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                >PRO</span
+              >
+            {/if}
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div class="flex items-center justify-between">
+              <label for="st-factor" class="text-xs">Factor</label>
+              <input
+                id="st-factor"
+                type="number"
+                bind:value={indicatorState.superTrend.factor}
+                step="0.1"
+                min="0.1"
+                max="20"
+                class="input-field rounded settings-number-input text-xs"
+                disabled={!settingsState.isPro}
+              />
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="st-period" class="text-xs">Period</label>
+              <input
+                id="st-period"
+                type="number"
+                bind:value={indicatorState.superTrend.period}
+                min="2"
+                max="100"
+                class="input-field rounded settings-number-input text-xs"
+                disabled={!settingsState.isPro}
+              />
+            </div>
+          </div>
+          {#if !settingsState.isPro}
+            <div
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
+            ></div>
+          {/if}
+        </div>
+
+        <!-- ATR Trailing Stop Settings -->
+        <div
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
+        >
+          <div
+            class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+          >
+            <h4
+              class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+            >
+              ATR Trailing Stop
+            </h4>
+            {#if !settingsState.isPro}
+              <span
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                >PRO</span
+              >
+            {/if}
+          </div>
+          <div class="grid grid-cols-2 gap-x-4 gap-y-2">
+            <div class="flex items-center justify-between">
+              <label for="atrt-period" class="text-xs">Period</label>
+              <input
+                id="atrt-period"
+                type="number"
+                bind:value={indicatorState.atrTrailingStop.period}
+                min="2"
+                max="100"
+                class="input-field rounded settings-number-input text-xs"
+                disabled={!settingsState.isPro}
+              />
+            </div>
+            <div class="flex items-center justify-between">
+              <label for="atrt-mult" class="text-xs">Multiplier</label>
+              <input
+                id="atrt-mult"
+                type="number"
+                bind:value={indicatorState.atrTrailingStop.multiplier}
+                step="0.1"
+                min="0.1"
+                max="20"
+                class="input-field rounded settings-number-input text-xs"
+                disabled={!settingsState.isPro}
+              />
+            </div>
+          </div>
+          {#if !settingsState.isPro}
+            <div
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
+            ></div>
+          {/if}
+        </div>
+
+        <!-- MFI Settings -->
+        <div
+          class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-3 relative overflow-hidden"
+        >
+          <div
+            class="flex justify-between items-center border-b border-[var(--border-color)] pb-2 mb-1"
+          >
+            <h4
+              class="text-xs font-bold uppercase text-[var(--text-secondary)]"
+            >
+              MFI
+            </h4>
+            {#if !settingsState.isPro}
+              <span
+                class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
+                >PRO</span
+              >
+            {/if}
+          </div>
+          <div class="flex items-center justify-between">
+            <label for="mfi-length" class="text-xs">Length</label>
+            <input
+              id="mfi-length"
+              type="number"
+              bind:value={indicatorState.mfi.length}
+              min="2"
+              max="100"
+              class="input-field rounded settings-number-input text-xs w-20"
+              disabled={!settingsState.isPro}
+            />
+          </div>
+          {#if !settingsState.isPro}
+            <div
+              class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
+            ></div>
+          {/if}
+        </div>
       </div>
     </div>
   </div>

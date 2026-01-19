@@ -273,13 +273,18 @@
       class="flex justify-between items-center pb-2 timeframe-selector-container relative border-b border-[var(--border-color)] mb-2"
     >
       <div class="flex items-center gap-2">
-        <h3 class="font-bold text-[var(--text-primary)]">Tech Analysis</h3>
-        <span
-          class="text-xs bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)]"
+        <button
+          type="button"
+          class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-colors flex items-center gap-2 border-none outline-none bg-transparent cursor-pointer p-0"
           onclick={toggleTimeframePopup}
         >
-          {timeframe}
-        </span>
+          {$_("settings.technicals.title")}
+          <span
+            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] font-mono"
+          >
+            {timeframe}
+          </span>
+        </button>
       </div>
       <!-- Timeframe Popup Code (Simplified/Collapsed) -->
       {#if showTimeframePopup}
@@ -319,71 +324,65 @@
         style="max-height: 500px;"
       >
         <div class="flex flex-col gap-4">
-          <!-- DASHBOARD SECTION -->
-          <div class="flex flex-col gap-2">
-            <!-- Confluence & Summary -->
-            <div class="bg-[var(--bg-tertiary)] p-3 rounded text-center">
-              <div
-                class="flex justify-between items-center mb-2 border-b border-[var(--border-color)] pb-2"
+          <!-- DASHBOARD SECTION (Minimalist List) -->
+          <div class="flex flex-col gap-1">
+            <!-- Summary Action -->
+            <div
+              class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+            >
+              <span class="text-[var(--text-secondary)] uppercase"
+                >Summary Action</span
               >
-                <span class="text-[10px] uppercase text-[var(--text-secondary)]"
-                  >Summary Action</span
-                >
-                <span class="font-bold {getActionColor(data.summary.action)}"
-                  >{data.summary.action}</span
-                >
-              </div>
-
-              {#if data.confluence}
-                <div class="flex flex-col items-center py-1">
-                  <div
-                    class="text-[10px] uppercase text-[var(--text-secondary)] mb-1"
-                  >
-                    Market Confluence
-                  </div>
-                  <div
-                    class="text-xl font-black {getActionColor(
-                      data.confluence.level,
-                    )} drop-shadow-sm"
-                  >
-                    {Math.round(data.confluence.score)}%
-                  </div>
-                  <div
-                    class="text-xs font-bold {getActionColor(
-                      data.confluence.level,
-                    )}"
-                  >
-                    {data.confluence.level.toUpperCase()}
-                  </div>
-                </div>
-              {/if}
+              <span class="font-bold {getActionColor(data.summary.action)}"
+                >{translateAction(data.summary.action)}</span
+              >
             </div>
 
-            <!-- Volatility (Restored position) -->
-            {#if data.volatility}
-              <div class="bg-[var(--bg-tertiary)] p-2 rounded">
-                <div
-                  class="text-[10px] uppercase text-[var(--text-secondary)] mb-1"
+            <!-- Market Confluence -->
+            {#if data.confluence}
+              <div
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+              >
+                <span class="text-[var(--text-secondary)] uppercase"
+                  >Market Confluence</span
                 >
-                  Volatility
-                </div>
-                <div class="flex justify-between text-xs">
-                  <span>ATR</span>
-                  <span class="font-mono">{formatVal(data.volatility.atr)}</span
+                <div class="flex items-center gap-2">
+                  <span
+                    class="font-bold {getActionColor(data.confluence.level)}"
+                    >{Math.round(data.confluence.score)}%</span
+                  >
+                  <span
+                    class="text-[10px] font-bold {getActionColor(
+                      data.confluence.level,
+                    )}">{translateAction(data.confluence.level)}</span
                   >
                 </div>
-                <div class="flex justify-between text-xs">
-                  <span>BB Width</span>
-                  <span class="font-mono"
-                    >{formatVal(
-                      data.volatility.bb.upper
-                        .minus(data.volatility.bb.lower)
-                        .div(data.volatility.bb.middle)
-                        .times(100),
-                      2,
-                    )}%</span
-                  >
-                </div>
+              </div>
+            {/if}
+
+            <!-- Volatility -->
+            {#if data.volatility}
+              <div
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+              >
+                <span class="text-[var(--text-secondary)] uppercase">ATR</span>
+                <span class="font-mono">{formatVal(data.volatility.atr)}</span>
+              </div>
+              <div
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+              >
+                <span class="text-[var(--text-secondary)] uppercase"
+                  >BB Width</span
+                >
+                <span class="font-mono"
+                  >{formatVal(
+                    data.volatility.bb.upper
+                      .minus(data.volatility.bb.lower)
+                      .div(data.volatility.bb.middle)
+                      .times(100),
+                    2,
+                  )}%</span
+                >
               </div>
             {/if}
           </div>

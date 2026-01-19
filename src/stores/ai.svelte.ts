@@ -123,6 +123,7 @@ STRICT OPERATING RULES:
 ANALYTICAL RIGOR:
 - RATIONALE: For every calculation or trade setup shared, provide a specific reason based on the provided context data. Explain WHY you chose certain TP/SL levels.
 - DECISIVE DATA: Identify and highlight the exact data point that was decisive for your recommendation (e.g., "Decisive: BTC 24h Trend (+5%) supporting a Long bias" or "Decisive: High Volatility (ATR) requiring wider stops").
+- DATA AVAILABILITY: You ALWAYS have the 'REAL_TIME_PRICE' in your context. If it says 'Unknown', only then do you not have it. Do not claim to lack price data if it is present in the context JSON.
 - CONTEXTUAL AUDIT: If the context data contains conflicting signals, point them out and explain your weighting.
 
 TONE & STYLE:
@@ -452,7 +453,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         const limit = settings.aiTradeHistoryLimit || 50;
         const symbol = trade.symbol;
-        const marketData = symbol && market[symbol] ? market[symbol] : null;
+        // Ensure consistent lookup (try existing, then uppercase, then lowercase)
+        const marketData = symbol ? (market[symbol] || market[symbol.toUpperCase()] || market[symbol.toLowerCase()]) : null;
 
         const recentTrades = Array.isArray(journal)
             ? journal.slice(0, limit).map((t: JournalEntry) => ({
@@ -480,7 +482,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                             confluence: data.confluence ? {
                                 score: data.confluence.score,
                                 level: data.confluence.level,
-                                contributing: data.confluence.contributing // added 'contributing' instead of 'timeframe'
+                                contributing: data.confluence.contributing
                             } : "N/A",
                             divergences: data.divergences && data.divergences.length > 0 ? data.divergences.map(d => ({
                                 type: d.type,
@@ -513,9 +515,9 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                                     vaHigh: data.advanced.volumeProfile.vaHigh.toString(),
                                     vaLow: data.advanced.volumeProfile.vaLow.toString()
                                 } : undefined,
-                                vwap: data.advanced.vwap ? data.advanced.vwap.toString() : undefined, // Fixed: vwap is Decimal
+                                vwap: data.advanced.vwap ? data.advanced.vwap.toString() : undefined,
                                 mfi: data.advanced.mfi ? data.advanced.mfi.value.toString() : undefined,
-                                choppiness: data.advanced.choppiness ? data.advanced.choppiness.value.toString() : undefined // Fixed: name 'choppiness' not 'chop'
+                                choppiness: data.advanced.choppiness ? data.advanced.choppiness.value.toString() : undefined
                             } : undefined,
                             pivots: {
                                 type: indicatorState.pivots.type,
@@ -551,6 +553,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             }
 
             marketDetails = {
+                currentPrice: marketData.lastPrice?.toString() || "Unknown", // Added explicitly here too
                 high24h: marketData.highPrice?.toString(),
                 low24h: marketData.lowPrice?.toString(),
                 volume24h: marketData.volume?.toString(),
@@ -569,7 +572,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             currentTime: new Date().toISOString(),
             portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
             activeSymbol: symbol,
-            currentPrice: marketData?.lastPrice?.toString() || "Unknown",
+            REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
             priceChange24h: marketData?.priceChangePercent?.toString() + "%" || "Unknown",
             marketDetails,
             technicals: technicalsContext,
