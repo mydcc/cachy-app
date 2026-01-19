@@ -22,6 +22,13 @@ export interface IndicatorSettings {
         oversold: number;
         defaultTimeframe: string; // Used if sync is disabled
     };
+    stochRsi: {
+        length: number;
+        rsiLength: number;
+        kPeriod: number;
+        dPeriod: number;
+        source: "close";
+    };
     macd: {
         fastLength: number;
         slowLength: number;
@@ -34,6 +41,9 @@ export interface IndicatorSettings {
         kPeriod: number;
         kSmoothing: number;
         dPeriod: number;
+    };
+    williamsR: {
+        length: number;
     };
     cci: {
         length: number;
@@ -76,6 +86,12 @@ export interface IndicatorSettings {
         };
         source: "close" | "open" | "high" | "low" | "hl2" | "hlc3";
     };
+    ichimoku: {
+        conversionPeriod: number;
+        basePeriod: number;
+        spanBPeriod: number;
+        displacement: number;
+    };
     pivots: {
         type: "classic" | "woodie" | "camarilla" | "fibonacci";
         viewMode: "integrated" | "separated" | "abstract";
@@ -87,6 +103,9 @@ export interface IndicatorSettings {
         length: number;
         stdDev: number;
     };
+    choppiness: {
+        length: number;
+    };
     // Pro Indicators
     superTrend: {
         factor: number;
@@ -97,21 +116,16 @@ export interface IndicatorSettings {
         multiplier: number;
     };
     obv: {
-        // No params usually, maybe smoothing?
         smoothingLength: number;
     };
     mfi: {
         length: number;
     };
     vwap: {
-        // usually start of day resets, or session based. 
-        // For now simple infinite or period based? 
-        // Standard VWAP is strictly time-based, anchor is important.
-        // We'll stick to a simple anchor (e.g. Session or fixed period if rolling)
-        // Let's assume rolling for this simple impl or just simple period
-        length: number; // For rolling VWAP if that's what we did, or anchor logic?
-        // Checking indicators.ts, our vwap impl was: vwap(klines). 
-        // It likely does a cumulative calculation.
+        length: number; // 0 for session/full
+    };
+    volumeProfile: {
+        rows: number;
     };
 }
 
@@ -128,6 +142,13 @@ const defaultSettings: IndicatorSettings = {
         oversold: 30,
         defaultTimeframe: "1d",
     },
+    stochRsi: {
+        length: 14,
+        rsiLength: 14,
+        kPeriod: 3,
+        dPeriod: 3,
+        source: "close"
+    },
     macd: {
         fastLength: 12,
         slowLength: 26,
@@ -140,6 +161,9 @@ const defaultSettings: IndicatorSettings = {
         kPeriod: 14,
         kSmoothing: 3,
         dPeriod: 3,
+    },
+    williamsR: {
+        length: 14,
     },
     cci: {
         length: 20,
@@ -167,6 +191,12 @@ const defaultSettings: IndicatorSettings = {
         ema3: { length: 200, offset: 0, smoothingType: "sma", smoothingLength: 14 },
         source: "close",
     },
+    ichimoku: {
+        conversionPeriod: 9,
+        basePeriod: 26,
+        spanBPeriod: 52,
+        displacement: 26,
+    },
     pivots: {
         type: "classic",
         viewMode: "integrated",
@@ -178,6 +208,9 @@ const defaultSettings: IndicatorSettings = {
         length: 20,
         stdDev: 2,
     },
+    choppiness: {
+        length: 14,
+    },
     superTrend: {
         factor: 3,
         period: 10,
@@ -187,13 +220,16 @@ const defaultSettings: IndicatorSettings = {
         multiplier: 3.5,
     },
     obv: {
-        smoothingLength: 0, // 0 = disabled smoothing
+        smoothingLength: 0,
     },
     mfi: {
         length: 14,
     },
     vwap: {
-        length: 0, // 0 usually means session/full history in many contexts, but our impl might vary.
+        length: 0,
+    },
+    volumeProfile: {
+        rows: 24,
     },
 };
 
@@ -202,25 +238,35 @@ const STORE_KEY = "cachy_indicator_settings";
 class IndicatorManager {
     historyLimit = $state(defaultSettings.historyLimit);
     precision = $state(defaultSettings.precision);
-    rsi = $state(defaultSettings.rsi); // Deep reactive due to $state on object? No, $state(obj) is shallow unless constructed differently? 
-    // Wait, Svelte 5 $state(obj) makes the object reactive deeply by proxying. Check docs mentally: Yes, it returns a proxy.
-    // However, replacing rsi completely breaks reference? No, we modify properties.
 
-    macd = $state(defaultSettings.macd);
+    // Oscillators
+    rsi = $state(defaultSettings.rsi);
+    stochRsi = $state(defaultSettings.stochRsi);
     stochastic = $state(defaultSettings.stochastic);
+    williamsR = $state(defaultSettings.williamsR);
     cci = $state(defaultSettings.cci);
-    adx = $state(defaultSettings.adx);
-    ao = $state(defaultSettings.ao);
     momentum = $state(defaultSettings.momentum);
+    ao = $state(defaultSettings.ao);
+    mfi = $state(defaultSettings.mfi);
+
+    // Trend
+    macd = $state(defaultSettings.macd);
+    adx = $state(defaultSettings.adx);
     ema = $state(defaultSettings.ema);
-    pivots = $state(defaultSettings.pivots);
-    atr = $state(defaultSettings.atr);
-    bb = $state(defaultSettings.bb);
     superTrend = $state(defaultSettings.superTrend);
     atrTrailingStop = $state(defaultSettings.atrTrailingStop);
+    ichimoku = $state(defaultSettings.ichimoku);
+
+    // Volatility
+    atr = $state(defaultSettings.atr);
+    bb = $state(defaultSettings.bb);
+    choppiness = $state(defaultSettings.choppiness);
+
+    // Volume & Misc
     obv = $state(defaultSettings.obv);
-    mfi = $state(defaultSettings.mfi);
     vwap = $state(defaultSettings.vwap);
+    volumeProfile = $state(defaultSettings.volumeProfile);
+    pivots = $state(defaultSettings.pivots);
 
     private listeners: Set<(value: IndicatorSettings) => void> = new Set();
 
@@ -230,7 +276,7 @@ class IndicatorManager {
             $effect.root(() => {
                 $effect(() => {
                     this.save();
-                    this.notifyListeners(); // Notify legacy subscribers
+                    this.notifyListeners();
                 });
             });
         }
@@ -242,21 +288,21 @@ class IndicatorManager {
 
         try {
             const parsed = JSON.parse(stored);
-            // Migration for ADX 'length' to 'adxSmoothing'
+
+            // Migration for ADX
             let adxParsed = { ...defaultSettings.adx, ...(parsed.adx || {}) };
-            if (
-                parsed.adx &&
-                parsed.adx.length !== undefined &&
-                parsed.adx.adxSmoothing === undefined
-            ) {
+            if (parsed.adx && parsed.adx.length !== undefined && parsed.adx.adxSmoothing === undefined) {
                 adxParsed.adxSmoothing = parsed.adx.length;
             }
 
             this.historyLimit = parsed.historyLimit || defaultSettings.historyLimit;
-            this.precision = parsed.precision !== undefined ? parsed.precision : defaultSettings.precision;
+            this.precision = parsed.precision ?? defaultSettings.precision;
+
             this.rsi = { ...defaultSettings.rsi, ...parsed.rsi };
+            this.stochRsi = { ...defaultSettings.stochRsi, ...parsed.stochRsi };
             this.macd = { ...defaultSettings.macd, ...parsed.macd };
             this.stochastic = { ...defaultSettings.stochastic, ...parsed.stochastic };
+            this.williamsR = { ...defaultSettings.williamsR, ...parsed.williamsR };
             this.cci = { ...defaultSettings.cci, ...parsed.cci };
             this.adx = adxParsed;
             this.ao = { ...defaultSettings.ao, ...parsed.ao };
@@ -267,21 +313,18 @@ class IndicatorManager {
             this.obv = { ...defaultSettings.obv, ...parsed.obv };
             this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
             this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
+            this.ichimoku = { ...defaultSettings.ichimoku, ...parsed.ichimoku };
+            this.choppiness = { ...defaultSettings.choppiness, ...parsed.choppiness };
+            this.volumeProfile = { ...defaultSettings.volumeProfile, ...parsed.volumeProfile };
+
+            this.atr = { ...defaultSettings.atr, ...parsed.atr };
+            this.bb = { ...defaultSettings.bb, ...parsed.bb };
 
             this.ema = parsed.ema
                 ? {
-                    ema1: {
-                        ...defaultSettings.ema.ema1,
-                        ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
-                    },
-                    ema2: {
-                        ...defaultSettings.ema.ema2,
-                        ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
-                    },
-                    ema3: {
-                        ...defaultSettings.ema.ema3,
-                        ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
-                    },
+                    ema1: { ...defaultSettings.ema.ema1, ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }) },
+                    ema2: { ...defaultSettings.ema.ema2, ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }) },
+                    ema3: { ...defaultSettings.ema.ema3, ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }) },
                     source: parsed.ema.source || defaultSettings.ema.source,
                 }
                 : defaultSettings.ema;
@@ -313,8 +356,10 @@ class IndicatorManager {
             historyLimit: this.historyLimit,
             precision: this.precision,
             rsi: $state.snapshot(this.rsi),
+            stochRsi: $state.snapshot(this.stochRsi),
             macd: $state.snapshot(this.macd),
             stochastic: $state.snapshot(this.stochastic),
+            williamsR: $state.snapshot(this.williamsR),
             cci: $state.snapshot(this.cci),
             adx: $state.snapshot(this.adx),
             ao: $state.snapshot(this.ao),
@@ -328,10 +373,12 @@ class IndicatorManager {
             obv: $state.snapshot(this.obv),
             mfi: $state.snapshot(this.mfi),
             vwap: $state.snapshot(this.vwap),
+            ichimoku: $state.snapshot(this.ichimoku),
+            choppiness: $state.snapshot(this.choppiness),
+            volumeProfile: $state.snapshot(this.volumeProfile),
         };
     }
 
-    // Legacy support
     subscribe(fn: (value: IndicatorSettings) => void): () => void {
         fn(this.toJSON());
         this.listeners.add(fn);
@@ -343,12 +390,14 @@ class IndicatorManager {
     update(fn: (s: IndicatorSettings) => IndicatorSettings) {
         const current = this.toJSON();
         const next = fn(current);
-        // Apply back to state
+
         this.historyLimit = next.historyLimit;
         this.precision = next.precision;
         this.rsi = next.rsi;
+        this.stochRsi = next.stochRsi;
         this.macd = next.macd;
         this.stochastic = next.stochastic;
+        this.williamsR = next.williamsR;
         this.cci = next.cci;
         this.adx = next.adx;
         this.ao = next.ao;
@@ -362,18 +411,20 @@ class IndicatorManager {
         this.obv = next.obv;
         this.mfi = next.mfi;
         this.vwap = next.vwap;
+        this.ichimoku = next.ichimoku;
+        this.choppiness = next.choppiness;
+        this.volumeProfile = next.volumeProfile;
     }
 
     reset() {
-        this.historyLimit = defaultSettings.historyLimit;
-        // ... reset all fields manually or re-assign logic
-        // Simpler for now:
         const d = defaultSettings;
         this.historyLimit = d.historyLimit;
         this.precision = d.precision;
         this.rsi = d.rsi;
+        this.stochRsi = d.stochRsi;
         this.macd = d.macd;
         this.stochastic = d.stochastic;
+        this.williamsR = d.williamsR;
         this.cci = d.cci;
         this.adx = d.adx;
         this.ao = d.ao;
@@ -387,6 +438,9 @@ class IndicatorManager {
         this.obv = d.obv;
         this.mfi = d.mfi;
         this.vwap = d.vwap;
+        this.ichimoku = d.ichimoku;
+        this.choppiness = d.choppiness;
+        this.volumeProfile = d.volumeProfile;
     }
 }
 

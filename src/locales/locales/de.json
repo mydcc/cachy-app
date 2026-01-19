@@ -535,7 +535,12 @@
       "sell": "Verkaufen",
       "neutral": "Neutral",
       "strongBuy": "Stark Kaufen",
-      "strongSell": "Stark Verkaufen"
+      "strongSell": "Stark Verkaufen",
+      "strongbuy": "Stark Kaufen",
+      "strongsell": "Stark Verkaufen",
+      "title": "Technicals",
+      "summaryAction": "Zusammenfassung",
+      "marketConfluence": "Markt Konfluenz"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",

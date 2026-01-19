@@ -273,34 +273,60 @@
       class="flex justify-between items-center pb-2 timeframe-selector-container relative border-b border-[var(--border-color)] mb-2"
     >
       <div class="flex items-center gap-2">
+        <!-- Title Button (Opens Settings) -->
         <button
           type="button"
-          class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-colors flex items-center gap-2 border-none outline-none bg-transparent cursor-pointer p-0"
-          onclick={toggleTimeframePopup}
+          class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-colors border-none outline-none bg-transparent cursor-pointer p-0"
+          onclick={() => uiState.openSettings("indicators")}
         >
           {$_("settings.technicals.title")}
-          <span
-            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] font-mono"
+        </button>
+
+        <!-- Timeframe Badge with Hover Dropdown -->
+        <div
+          class="relative timeframe-selector-container"
+          onmouseenter={handleDropdownEnter}
+          onmouseleave={handleDropdownLeave}
+        >
+          <button
+            type="button"
+            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)] border-none outline-none font-mono flex items-center justify-center"
           >
             {timeframe}
-          </span>
-        </button>
-      </div>
-      <!-- Timeframe Popup Code (Simplified/Collapsed) -->
-      {#if showTimeframePopup}
-        <div
-          class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
-        >
-          <div class="grid grid-cols-4 gap-1">
-            {#each ["1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d"] as tf}
-              <button
-                class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] rounded"
-                onclick={() => setTimeframe(tf)}>{tf}</button
+          </button>
+
+          <!-- Dropdown -->
+          {#if showTimeframePopup}
+            <div
+              class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
+            >
+              <div class="grid grid-cols-4 gap-1">
+                {#each ["1m", "5m", "15m", "30m", "1h", "4h", "12h", "1d"] as tf}
+                  <button
+                    class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] rounded text-[var(--text-primary)]"
+                    onclick={() => setTimeframe(tf)}>{tf}</button
+                  >
+                {/each}
+              </div>
+              <div
+                class="flex gap-1 border-t border-[var(--border-color)] pt-2"
               >
-            {/each}
-          </div>
+                <input
+                  bind:value={customTimeframeInput}
+                  placeholder="e.g. 3m, 1W"
+                  class="w-full text-xs p-1 rounded border border-[var(--border-color)] bg-[var(--bg-primary)] text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
+                  onkeydown={(e) =>
+                    e.key === "Enter" && handleCustomTimeframeSubmit()}
+                />
+                <button
+                  class="px-2 bg-[var(--bg-tertiary)] text-xs rounded hover:bg-[var(--accent-color)] text-[var(--text-primary)]"
+                  onclick={handleCustomTimeframeSubmit}>OK</button
+                >
+              </div>
+            </div>
+          {/if}
         </div>
-      {/if}
+      </div>
 
       <!-- Status Dot -->
       {#if isStale || loading}
@@ -328,23 +354,28 @@
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
             <div
-              class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+              class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
             >
-              <span class="text-[var(--text-secondary)] uppercase"
-                >Summary Action</span
+              <span
+                class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
+                >{$_("settings.technicals.summaryAction")}</span
               >
               <span class="font-bold {getActionColor(data.summary.action)}"
-                >{translateAction(data.summary.action)}</span
+                >{$_(
+                  "settings.technicals." +
+                    data.summary.action.toLowerCase().replace(" ", ""),
+                )}</span
               >
             </div>
 
             <!-- Market Confluence -->
             {#if data.confluence}
               <div
-                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
-                <span class="text-[var(--text-secondary)] uppercase"
-                  >Market Confluence</span
+                <span
+                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
+                  >{$_("settings.technicals.marketConfluence")}</span
                 >
                 <div class="flex items-center gap-2">
                   <span
@@ -354,7 +385,11 @@
                   <span
                     class="text-[10px] font-bold {getActionColor(
                       data.confluence.level,
-                    )}">{translateAction(data.confluence.level)}</span
+                    )}"
+                    >{$_(
+                      "settings.technicals." +
+                        data.confluence.level.toLowerCase().replace(" ", ""),
+                    )}</span
                   >
                 </div>
               </div>
@@ -363,18 +398,24 @@
             <!-- Volatility -->
             {#if data.volatility}
               <div
-                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
-                <span class="text-[var(--text-secondary)] uppercase">ATR</span>
-                <span class="font-mono">{formatVal(data.volatility.atr)}</span>
+                <span
+                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
+                  >ATR</span
+                >
+                <span class="font-mono text-[var(--text-primary)]"
+                  >{formatVal(data.volatility.atr)}</span
+                >
               </div>
               <div
-                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors"
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
-                <span class="text-[var(--text-secondary)] uppercase"
+                <span
+                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
                   >BB Width</span
                 >
-                <span class="font-mono"
+                <span class="font-mono text-[var(--text-primary)]"
                   >{formatVal(
                     data.volatility.bb.upper
                       .minus(data.volatility.bb.lower)
