@@ -22,6 +22,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
+import { tradeState } from "../stores/trade.svelte";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -32,6 +33,7 @@ class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private pollingInterval: any = null;
   private currentIntervalSeconds: number = 10;
+  private fetchLocks = new Set<string>(); // "symbol:channel"
 
   constructor() {
     if (browser) {
@@ -159,24 +161,78 @@ class MarketWatcher {
   private startPolling() {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
 
-    this.pollingInterval = setInterval(() => {
-      const settings = settingsState;
-      const wsStatus = marketState.connectionStatus;
+    // Initial delay to avoid startup congestion
+    setTimeout(() => {
+      this.pollingInterval = setInterval(() => {
+        if (this.isPollingPaused()) return;
+        this.performPollingCycle();
+      }, 1000); // Check every second for what needs polling
+    }, 2000);
+  }
 
-      // Polling as Fallback or for Binance
-      if (settings.apiProvider === "binance" || wsStatus !== "connected") {
-        this.requests.forEach((channels, symbol) => {
-          if (channels.has("price")) {
-            // Fetch price via REST using the correct provider
-            if (settings.apiProvider === "binance") {
-              apiService.fetchBinancePrice(symbol, "normal").catch(() => { });
-            } else {
-              apiService.fetchBitunixPrice(symbol, "normal").catch(() => { });
-            }
-          }
+  private isPollingPaused() {
+    if (!browser) return true;
+    const settings = settingsState;
+    const wsStatus = marketState.connectionStatus;
+    // We only poll if Binance is selected OR Bitunix WS is down
+    return settings.apiProvider !== "binance" && wsStatus === "connected";
+  }
+
+  private async performPollingCycle() {
+    const settings = settingsState;
+    const provider = settings.apiProvider;
+    const interval = this.currentIntervalSeconds;
+
+    this.requests.forEach((channels, symbol) => {
+      channels.forEach((_, channel) => {
+        const lockKey = `${symbol}:${channel}`;
+        if (this.fetchLocks.has(lockKey)) return;
+
+        // Check if we need to poll this specific channel for this symbol
+        // (Simple time-based check could be added, for now we just poll)
+        this.pollSymbolChannel(symbol, channel, provider);
+      });
+    });
+  }
+
+  private async pollSymbolChannel(symbol: string, channel: string, provider: "bitunix" | "binance") {
+    const lockKey = `${symbol}:${channel}`;
+    this.fetchLocks.add(lockKey);
+
+    // Determine priority: high for the main trading symbol, normal for the rest
+    const isMainSymbol = tradeState.symbol && normalizeSymbol(tradeState.symbol, "bitunix") === symbol;
+    const priority = isMainSymbol ? "high" : "normal";
+
+    try {
+      if (channel === "price" || channel === "ticker") {
+        const data = await apiService.fetchTicker24h(symbol, provider, priority);
+        marketState.updateSymbol(symbol, {
+          lastPrice: data.lastPrice,
+          highPrice: data.highPrice,
+          lowPrice: data.lowPrice,
+          volume: data.volume,
+          priceChangePercent: data.priceChangePercent,
+          quoteVolume: data.quoteVolume
         });
+      } else if (channel.startsWith("kline_")) {
+        const tf = channel.replace("kline_", "");
+        const klines = await (provider === "binance"
+          ? apiService.fetchBinanceKlines(symbol, tf, 50)
+          : apiService.fetchBitunixKlines(symbol, tf, 50));
+
+        if (klines && klines.length > 0) {
+          marketState.updateSymbolKlines(symbol, tf, klines);
+        }
       }
-    }, this.currentIntervalSeconds * 1000);
+      // Depth not yet polled for Binance (requires specific API we logic)
+    } catch (e) {
+      // Silently fail in polling
+    } finally {
+      // Re-allow polling after interval
+      setTimeout(() => {
+        this.fetchLocks.delete(lockKey);
+      }, this.currentIntervalSeconds * 1000);
+    }
   }
 
   public getActiveSymbols(): string[] {

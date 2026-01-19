@@ -54,12 +54,6 @@
     isTechnicalsVisible = false,
   }: Props = $props();
 
-  // REST Data (24h Stats, Volume, Change)
-  let tickerData: Ticker24h | null = $state(null);
-  let restError: string | null = $state(null);
-  let restLoading = $state(false);
-  let restIntervalId: any = $state();
-
   // Initial state
   let animationKey = $state(0);
   let priceTrend: "up" | "down" | null = $state(null);
@@ -189,60 +183,19 @@
     countdownInterval = setInterval(update, 1000);
   }
 
-  let fetchLock = false;
-
-  function setupRestInterval() {
-    if (restIntervalId) clearInterval(restIntervalId);
-    if (!symbol || symbol.length < 3) return;
-
-    // For favorites on Binance (REST), use a much slower interval to prevent freezing
-    const baseInterval = settingsState.marketDataInterval;
-    const effectiveInterval =
-      isFavoriteTile && provider === "binance"
-        ? Math.max(baseInterval, 10) * 1000 // Min 10s for favorites
-        : baseInterval * 1000;
-
-    // Add jitter
-    const jitter = Math.floor(Math.random() * 2000);
-
-    setTimeout(() => {
-      if (!restIntervalId && !fetchLock) {
-        restIntervalId = setInterval(
-          () => fetchRestData(true),
-          effectiveInterval,
-        );
-      }
-    }, jitter);
-  }
-
-  async function fetchRestData(isBackground = false) {
-    if (!symbol || symbol.length < 3) return;
-    if (fetchLock) return;
-
-    if (!isBackground && !tickerData) restLoading = true;
-
-    fetchLock = true;
-    try {
-      const data = await apiService.fetchTicker24h(symbol, provider);
-      tickerData = data;
-      restError = null;
-    } catch (e: any) {
-      if (e.message !== "apiErrors.symbolNotFound") {
-        console.error("Failed to fetch REST market data", e);
-      }
-      restError = "N/A";
-    } finally {
-      restLoading = false;
-      fetchLock = false;
-    }
-  }
+  // Reactive Variables
+  let symbol = $derived(customSymbol || tradeState.symbol || "");
+  let provider = $derived(settingsState.apiProvider);
+  let tickerData = $derived(
+    marketState.data[normalizeSymbol(symbol, "bitunix")],
+  );
+  let displaySymbol = $derived(getDisplaySymbol(symbol));
 
   onMount(() => {
     // MarketWatcher handles connections and polling automatically
   });
 
   onDestroy(() => {
-    if (restIntervalId) clearInterval(restIntervalId);
     if (countdownInterval) clearInterval(countdownInterval);
     if (symbol && provider === "bitunix") {
       marketWatcher.unregister(symbol, "price");
@@ -294,14 +247,10 @@
       app.fetchAllAnalysisData(symbol.toUpperCase());
     }
   }
-  // Use custom symbol if provided, otherwise fall back to store symbol
-  let symbol = $derived(customSymbol || tradeState.symbol || "");
-  let provider = $derived(settingsState.apiProvider);
-  let displaySymbol = $derived(getDisplaySymbol(symbol));
   // WS Data
   let wsData = $derived.by(() => {
     if (!symbol) return null;
-    return marketState.data[symbol] || null;
+    return marketState.data[normalizeSymbol(symbol, "bitunix")] || null;
   });
   let wsStatus = $derived(marketState.connectionStatus);
   // Derived Real-time values
@@ -453,24 +402,20 @@
   $effect(() => {
     if (nextFundingTime) untrack(startCountdown);
   });
+  // Watch for symbol or provider changes
   $effect(() => {
-    if (symbol && provider === "bitunix") {
+    if (symbol) {
       marketWatcher.register(symbol, "price");
       marketWatcher.register(symbol, "ticker");
-      marketWatcher.register(symbol, "depth_book5");
+      return () => {
+        marketWatcher.unregister(symbol, "price");
+        marketWatcher.unregister(symbol, "ticker");
+      };
     }
   });
   $effect(() => {
-    if (symbol && provider) {
-      if (provider !== "bitunix") {
-        setupRestInterval();
-        fetchRestData();
-      } else {
-        if (restIntervalId) {
-          clearInterval(restIntervalId);
-          restIntervalId = undefined;
-        }
-      }
+    if (symbol && provider === "bitunix") {
+      marketWatcher.register(symbol, "depth_book5");
     }
   });
 </script>
@@ -569,6 +514,17 @@
 
       {#if depthData}
         <DepthBar bids={depthData.bids} asks={depthData.asks} />
+      {/if}
+
+      {#if tickerData}
+        <div class="stat-group">
+          <div class="stat-item">
+            <span class="stat-label">{tickerData.highPrice || 0}</span>
+          </div>
+          <div class="stat-item">
+            <span class="stat-label">{tickerData.lowPrice || 0}</span>
+          </div>
+        </div>
       {/if}
 
       {#if highPrice || tickerData}

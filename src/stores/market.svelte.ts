@@ -69,6 +69,20 @@ class MarketManager {
         }
     }
 
+    private getOrCreateSymbol(symbol: string): MarketData {
+        if (!this.data[symbol]) {
+            this.data[symbol] = {
+                symbol,
+                lastPrice: null,
+                indexPrice: null,
+                fundingRate: null,
+                nextFundingTime: null,
+                klines: {},
+            };
+        }
+        return this.data[symbol];
+    }
+
     // Helper: Touch symbol to update LRU
     private touchSymbol(symbol: string) {
         const now = Date.now();
@@ -83,7 +97,6 @@ class MarketManager {
     private evictLRU(): string | null {
         if (this.cacheMetadata.size === 0) return null;
 
-        // Find oldest by lastAccessed
         let oldest: string | null = null;
         let oldestTime = Infinity;
 
@@ -101,13 +114,7 @@ class MarketManager {
         return null;
     }
 
-    // Helper: Enforce cache size limit
     private enforceCacheLimit() {
-        const keys = Object.keys(this.data);
-        if (keys.length <= MAX_CACHE_SIZE) return;
-
-        // Clone to avoid mutation issues during iteration if needed, 
-        // but here we just need to delete from the proxy
         while (Object.keys(this.data).length > MAX_CACHE_SIZE) {
             const toEvict = this.evictLRU();
             if (!toEvict) break;
@@ -115,152 +122,87 @@ class MarketManager {
         }
     }
 
-    updatePrice(
-        symbol: string,
-        data: {
-            price: string;
-            indexPrice: string;
-            fundingRate: string;
-            nextFundingTime: string;
-        }
-    ) {
+    updateSymbol(symbol: string, partial: Partial<MarketData>) {
         this.touchSymbol(symbol);
+        const current = this.getOrCreateSymbol(symbol);
 
-        const current = this.data[symbol] || {
-            symbol,
-            lastPrice: null,
-            indexPrice: null,
-            fundingRate: null,
-            nextFundingTime: null,
-            klines: {},
-        };
-
-        // Bitunix timestamps often come as strings, ensure conversion if needed
-        let nft = 0;
-        if (data.nextFundingTime) {
-            if (/^\d+$/.test(data.nextFundingTime)) {
-                nft = parseInt(data.nextFundingTime, 10);
-            } else {
-                nft = new Date(data.nextFundingTime).getTime();
-            }
-        }
-
-        this.data[symbol] = {
-            ...current,
-            lastPrice: new Decimal(data.price),
-            indexPrice: new Decimal(data.indexPrice),
-            fundingRate: new Decimal(data.fundingRate),
-            nextFundingTime: nft,
-        };
+        if (partial.lastPrice !== undefined) current.lastPrice = partial.lastPrice;
+        if (partial.indexPrice !== undefined) current.indexPrice = partial.indexPrice;
+        if (partial.highPrice !== undefined) current.highPrice = partial.highPrice;
+        if (partial.lowPrice !== undefined) current.lowPrice = partial.lowPrice;
+        if (partial.volume !== undefined) current.volume = partial.volume;
+        if (partial.quoteVolume !== undefined) current.quoteVolume = partial.quoteVolume;
+        if (partial.priceChangePercent !== undefined) current.priceChangePercent = partial.priceChangePercent;
+        if (partial.fundingRate !== undefined) current.fundingRate = partial.fundingRate;
+        if (partial.nextFundingTime !== undefined) current.nextFundingTime = partial.nextFundingTime;
+        if (partial.depth !== undefined) current.depth = partial.depth;
 
         this.enforceCacheLimit();
     }
 
-    updateTicker(
-        symbol: string,
-        data: {
-            lastPrice: string;
-            high: string;
-            low: string;
-            vol: string;
-            quoteVol: string;
-            change: string;
-            open: string;
-        }
-    ) {
+    updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {
         this.touchSymbol(symbol);
+        const current = this.getOrCreateSymbol(symbol);
 
-        const current = this.data[symbol] || {
-            symbol,
-            lastPrice: null,
-            indexPrice: null,
-            fundingRate: null,
-            nextFundingTime: null,
-            klines: {},
-        };
+        klines.forEach(k => {
+            current.klines[timeframe] = {
+                open: k.open,
+                high: k.high,
+                low: k.low,
+                close: k.close,
+                volume: k.volume,
+                time: k.time
+            };
+        });
 
+        this.enforceCacheLimit();
+    }
+
+    // Legacy update methods refactored to use updateSymbol
+    updatePrice(symbol: string, data: any) {
+        let nft = 0;
+        if (data.nextFundingTime) {
+            nft = /^\d+$/.test(data.nextFundingTime) ? parseInt(data.nextFundingTime, 10) : new Date(data.nextFundingTime).getTime();
+        }
+        this.updateSymbol(symbol, {
+            lastPrice: new Decimal(data.price),
+            indexPrice: new Decimal(data.indexPrice),
+            fundingRate: new Decimal(data.fundingRate),
+            nextFundingTime: nft
+        });
+    }
+
+    updateTicker(symbol: string, data: any) {
         const last = new Decimal(data.lastPrice);
         const open = new Decimal(data.open);
         let pct = new Decimal(0);
-        if (!open.isZero()) {
-            pct = last.minus(open).div(open).times(100);
-        }
+        if (!open.isZero()) pct = last.minus(open).div(open).times(100);
 
-        this.data[symbol] = {
-            ...current,
+        this.updateSymbol(symbol, {
             lastPrice: last,
             highPrice: new Decimal(data.high),
             lowPrice: new Decimal(data.low),
             volume: new Decimal(data.vol),
             quoteVolume: new Decimal(data.quoteVol),
-            priceChangePercent: pct,
-        };
-
-        this.enforceCacheLimit();
+            priceChangePercent: pct
+        });
     }
 
-    updateDepth(symbol: string, data: { bids: any[]; asks: any[] }) {
-        this.touchSymbol(symbol);
-
-        const current = this.data[symbol] || {
-            symbol,
-            lastPrice: null,
-            indexPrice: null,
-            fundingRate: null,
-            nextFundingTime: null,
-            klines: {},
-        };
-
-        this.data[symbol] = {
-            ...current,
-            depth: {
-                bids: data.bids,
-                asks: data.asks,
-            },
-        };
-
-        this.enforceCacheLimit();
+    updateDepth(symbol: string, data: any) {
+        this.updateSymbol(symbol, {
+            depth: { bids: data.bids, asks: data.asks }
+        });
     }
 
-    updateKline(
-        symbol: string,
-        timeframe: string,
-        data: {
-            o: string;
-            h: string;
-            l: string;
-            c: string;
-            b: string;
-            t: number;
-        }
-    ) {
-        this.touchSymbol(symbol);
-
-        const current = this.data[symbol] || {
-            symbol,
-            lastPrice: null,
-            indexPrice: null,
-            fundingRate: null,
-            nextFundingTime: null,
-            klines: {},
-        };
-
-        this.data[symbol] = {
-            ...current,
-            klines: {
-                ...current.klines,
-                [timeframe]: {
-                    open: new Decimal(data.o),
-                    high: new Decimal(data.h),
-                    low: new Decimal(data.l),
-                    close: new Decimal(data.c),
-                    volume: new Decimal(data.b),
-                    time: data.t,
-                },
-            },
-        };
-
-        this.enforceCacheLimit();
+    updateKline(symbol: string, timeframe: string, data: any) {
+        this.updateSymbolKlines(symbol, timeframe, [{
+            open: new Decimal(data.o),
+            high: new Decimal(data.h),
+            low: new Decimal(data.l),
+            close: new Decimal(data.c),
+            volume: new Decimal(data.b),
+            time: data.t
+        }]);
     }
 
     reset() {
@@ -271,35 +213,26 @@ class MarketManager {
     cleanup() {
         const now = Date.now();
         const stale: string[] = [];
-
         this.cacheMetadata.forEach((meta, symbol) => {
-            if (now - meta.lastAccessed > TTL_MS) {
-                stale.push(symbol);
-            }
+            if (now - meta.lastAccessed > TTL_MS) stale.push(symbol);
         });
-
         stale.forEach((symbol) => {
             this.cacheMetadata.delete(symbol);
             delete this.data[symbol];
         });
     }
 
-    // Compatibility for legacy subscribers (if any remain during migration)
     subscribe(fn: (value: Record<string, MarketData>) => void) {
         fn(this.data);
         return $effect.root(() => {
-            $effect(() => {
-                fn(this.data);
-            });
+            $effect(() => { fn(this.data); });
         });
     }
 
     subscribeStatus(fn: (value: WSStatus) => void) {
         fn(this.connectionStatus);
         return $effect.root(() => {
-            $effect(() => {
-                fn(this.connectionStatus);
-            });
+            $effect(() => { fn(this.connectionStatus); });
         });
     }
 }
