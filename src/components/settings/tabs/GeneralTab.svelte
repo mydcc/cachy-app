@@ -270,6 +270,19 @@
                 title="Get Key"
               >Get Key</a>
           </div>
+          <!-- Endpoint Config for CryptoPanic -->
+          <div class="mt-1">
+             <label for="cryptopanic-url" class="text-[10px] text-[var(--text-tertiary)] flex items-center gap-1 cursor-pointer">
+                <span>Advanced: Custom API Endpoint</span>
+             </label>
+             <input
+                id="cryptopanic-url"
+                type="text"
+                class="input-field p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-tertiary)] text-xs w-full mt-1"
+                placeholder="https://cryptopanic.com/api/v1/posts/"
+                bind:value={settingsState.cryptoPanicBaseUrl}
+             />
+          </div>
         </div>
 
         <div class="flex flex-col gap-1">

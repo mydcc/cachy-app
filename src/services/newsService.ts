@@ -51,8 +51,8 @@ export const newsService = {
     // Prioritize CryptoPanic for crypto
     if (cryptoPanicApiKey) {
       try {
+        // Relaxed filter to ensure data availability
         const params: any = {
-          filter: "important",
           public: "true",
         };
         if (symbol) {
@@ -67,6 +67,7 @@ export const newsService = {
           body: JSON.stringify({
             source: "cryptopanic",
             apiKey: cryptoPanicApiKey,
+            baseUrl: settingsState.cryptoPanicBaseUrl,
             params,
           }),
         });

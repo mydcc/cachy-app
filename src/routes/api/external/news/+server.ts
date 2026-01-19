@@ -12,7 +12,7 @@ import type { RequestHandler } from "./$types";
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
   try {
-    const { source, apiKey, params } = await request.json();
+    const { source, apiKey, params, baseUrl } = await request.json();
 
     if (!apiKey) {
       return json({ error: "Missing API Key" }, { status: 400 });
@@ -20,9 +20,21 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     let url = "";
     if (source === "cryptopanic") {
-      // https://cryptopanic.com/api/v1/posts/?auth_token=...
       const query = new URLSearchParams(params).toString();
-      url = `https://cryptopanic.com/api/v1/posts/?auth_token=${apiKey}&${query}`;
+
+      // Use custom base URL if provided and valid, otherwise default
+      let base = "https://cryptopanic.com/api/v1/posts/";
+      if (baseUrl && (baseUrl.startsWith("http://") || baseUrl.startsWith("https://"))) {
+          base = baseUrl;
+      }
+
+      // Ensure base ends with ? or & or / to correctly append params
+      // Standard API: https://cryptopanic.com/api/v1/posts/?auth_token=...
+      // If user provided "https://myproxy.com/", we append ?auth_token...
+
+      const separator = base.includes("?") ? "&" : "?";
+      url = `${base}${separator}auth_token=${apiKey}&${query}`;
+
     } else if (source === "newsapi") {
       // https://newsapi.org/v2/everything?apiKey=...
       const query = new URLSearchParams(params).toString();

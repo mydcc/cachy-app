@@ -86,6 +86,7 @@ export interface Settings {
     minChatProfitFactor: number;
     fontFamily: string;
     cryptoPanicApiKey?: string;
+    cryptoPanicBaseUrl?: string;
     newsApiKey?: string;
     enableNewsAnalysis: boolean;
 }
@@ -150,6 +151,7 @@ const defaultSettings: Settings = {
     minChatProfitFactor: 0.0,
     fontFamily: "Inter",
     cryptoPanicApiKey: "",
+    cryptoPanicBaseUrl: "https://cryptopanic.com/api/v1/posts/",
     newsApiKey: "",
     enableNewsAnalysis: false,
 };
@@ -216,6 +218,7 @@ class SettingsManager {
     minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
     fontFamily = $state<string>(defaultSettings.fontFamily);
     cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
+    cryptoPanicBaseUrl = $state<string | undefined>(defaultSettings.cryptoPanicBaseUrl);
     newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
 
@@ -300,6 +303,7 @@ class SettingsManager {
             this.minChatProfitFactor = merged.minChatProfitFactor;
             this.fontFamily = merged.fontFamily;
             this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
+            this.cryptoPanicBaseUrl = merged.cryptoPanicBaseUrl;
             this.newsApiKey = merged.newsApiKey;
             this.enableNewsAnalysis = merged.enableNewsAnalysis;
 
@@ -387,6 +391,7 @@ class SettingsManager {
             minChatProfitFactor: this.minChatProfitFactor,
             fontFamily: this.fontFamily,
             cryptoPanicApiKey: this.cryptoPanicApiKey,
+            cryptoPanicBaseUrl: this.cryptoPanicBaseUrl,
             newsApiKey: this.newsApiKey,
             enableNewsAnalysis: this.enableNewsAnalysis,
         };
