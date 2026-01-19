@@ -554,6 +554,12 @@
     "spinButtonsHover": "Bei Mouseover",
     "spinButtonsHidden": "Ausgeblendet",
     "tabs": {
+      "profile": "Profil & Design",
+      "workspace": "Workspace & Sidebar",
+      "analysis": "Analyse-Logik",
+      "ai_assistant": "KI-Assistent",
+      "integrations": "Integrationen",
+      "maintenance": "Wartung",
       "general": "Allgemein",
       "api": "API & Verbindung",
       "ai": "AI Chat",
@@ -564,15 +570,32 @@
       "system": "System",
       "data": "Daten-Wartung"
     },
+    "profile": {
+      "hotkeysTitle": "Hotkeys",
+      "activeHotkeys": "Aktive Hotkeys",
+      "customize": "Anpassen",
+      "presetInfo": "Du verwendest ein Hotkey-Preset. Wechsle zu 'Custom', um einzelne Hotkeys neu zu belegen.",
+      "switchToCustom": "Hotkeys anpassen"
+    },
+    "ai": {
+      "contextTitle": "Kontext & Datenzugriff",
+      "newsDesc": "KI berücksichtigt aktuelle News-Schlagzeilen",
+      "cmcDesc": "Marktstatistiken für Symbole abrufen",
+      "historyDesc": "Anzahl der letzten Trades im KI-Kontext"
+    },
     "indicators": {
       "title": "Indikator Einstellungen",
       "general": "Allgemein",
       "precision": "Präzision",
+      "precisionDesc": "Anzahl der Dezimalstellen für Indikatorwerte",
       "historyLimit": "Historie Limit",
+      "historyDesc": "Maximale Anzahl der Kerzen für Berechnungen",
       "favoriteTimeframes": "Favorisierte Timeframes",
       "addTimeframe": "Timeframe hinzufügen...",
       "maxTimeframesSelected": "Max {max} Timeframes ausgewählt.",
-      "syncRsiTimeframe": "RSI Timeframe synchronisieren"
+      "syncRsiTimeframe": "RSI Timeframe synchronisieren",
+      "syncRsiDesc": "RSI verwendet automatisch den gleichen Timeframe wie der Chart",
+      "pnlViewMode": "PnL Darstellungsmodus"
     }
   },
   "common": {

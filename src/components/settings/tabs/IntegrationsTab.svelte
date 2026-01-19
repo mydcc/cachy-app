@@ -61,8 +61,9 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label>API Key</label>
+                        <label for="bitunix-api-key">API Key</label>
                         <input
+                            id="bitunix-api-key"
                             type={showKeys["bitunix_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.key}
                             class="api-input"
@@ -70,8 +71,9 @@
                         />
                     </div>
                     <div class="field-group mt-3">
-                        <label>API Secret</label>
+                        <label for="bitunix-api-secret">API Secret</label>
                         <input
+                            id="bitunix-api-secret"
                             type={showKeys["bitunix_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.secret}
                             class="api-input"
@@ -93,8 +95,9 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label>API Key</label>
+                        <label for="binance-api-key">API Key</label>
                         <input
+                            id="binance-api-key"
                             type={showKeys["binance_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.key}
                             class="api-input"
@@ -102,8 +105,9 @@
                         />
                     </div>
                     <div class="field-group mt-3">
-                        <label>API Secret</label>
+                        <label for="binance-api-secret">API Secret</label>
                         <input
+                            id="binance-api-secret"
                             type={showKeys["binance_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.secret}
                             class="api-input"
@@ -147,24 +151,27 @@
 
         <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div class="api-card compact">
-                <label>OpenAI (sk-...)</label>
+                <label for="openai-api-key">OpenAI (sk-...)</label>
                 <input
+                    id="openai-api-key"
                     type="password"
                     bind:value={settingsState.openaiApiKey}
                     class="api-input"
                 />
             </div>
             <div class="api-card compact">
-                <label>Google Gemini</label>
+                <label for="gemini-api-key">Google Gemini</label>
                 <input
+                    id="gemini-api-key"
                     type="password"
                     bind:value={settingsState.geminiApiKey}
                     class="api-input"
                 />
             </div>
             <div class="api-card compact">
-                <label>Anthropic (Claude)</label>
+                <label for="anthropic-api-key">Anthropic (Claude)</label>
                 <input
+                    id="anthropic-api-key"
                     type="password"
                     bind:value={settingsState.anthropicApiKey}
                     class="api-input"
@@ -211,8 +218,9 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label>API Key</label>
+                        <label for="cryptopanic-api-key">API Key</label>
                         <input
+                            id="cryptopanic-api-key"
                             type="password"
                             bind:value={settingsState.cryptoPanicApiKey}
                             class="api-input"
@@ -220,8 +228,9 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-3">
                         <div class="field-group">
-                            <label>Filter</label>
+                            <label for="cryptopanic-filter">Filter</label>
                             <select
+                                id="cryptopanic-filter"
                                 bind:value={settingsState.cryptoPanicFilter}
                                 class="api-input py-1 text-xs"
                             >
@@ -232,8 +241,9 @@
                             </select>
                         </div>
                         <div class="field-group">
-                            <label>Plan</label>
+                            <label for="cryptopanic-plan">Plan</label>
                             <select
+                                id="cryptopanic-plan"
                                 bind:value={settingsState.cryptoPanicPlan}
                                 class="api-input py-1 text-xs"
                             >
@@ -248,16 +258,18 @@
             <!-- CMC / NewsAPI -->
             <div class="flex flex-col gap-4">
                 <div class="api-card compact">
-                    <label>CoinMarketCap API</label>
+                    <label for="cmc-api-key">CoinMarketCap API</label>
                     <input
+                        id="cmc-api-key"
                         type="password"
                         bind:value={settingsState.cmcApiKey}
                         class="api-input"
                     />
                 </div>
                 <div class="api-card compact">
-                    <label>NewsAPI.org Key</label>
+                    <label for="newsapi-key">NewsAPI.org Key</label>
                     <input
+                        id="newsapi-key"
                         type="password"
                         bind:value={settingsState.newsApiKey}
                         class="api-input"
@@ -307,16 +319,20 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label>API Key</label>
+                        <label for="imgbb-api-key">API Key</label>
                         <input
+                            id="imgbb-api-key"
                             type="password"
                             bind:value={settingsState.imgbbApiKey}
                             class="api-input"
                         />
                     </div>
                     <div class="field-group mt-3">
-                        <label>Auto-Expiration (Sec)</label>
+                        <label for="imgbb-expiration"
+                            >Auto-Expiration (Sec)</label
+                        >
                         <input
+                            id="imgbb-expiration"
                             type="number"
                             bind:value={settingsState.imgbbExpiration}
                             class="api-input"
@@ -331,8 +347,9 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label>Imgur Client ID</label>
+                        <label for="imgur-client-id">Imgur Client ID</label>
                         <input
+                            id="imgur-client-id"
                             type="password"
                             bind:value={settingsState.imgurClientId}
                             class="api-input"

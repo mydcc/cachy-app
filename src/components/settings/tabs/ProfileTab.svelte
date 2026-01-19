@@ -203,7 +203,7 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
             <!-- Fee Preference -->
             <div class="field-group">
-                <label>{$_("settings.feePreference")}</label>
+                <div class="field-label">{$_("settings.feePreference")}</div>
                 <div class="segmented-control">
                     {#each ["maker", "taker"] as fee}
                         <button
@@ -232,7 +232,7 @@
 
             <!-- Spin Buttons Visibility -->
             <div class="field-group">
-                <label>{$_("settings.showSpinButtons")}</label>
+                <div class="field-label">{$_("settings.showSpinButtons")}</div>
                 <div class="segmented-control three-way">
                     {#each [{ v: true, l: $_("settings.spinButtonsAlways") || "Always" }, { v: "hover", l: $_("settings.spinButtonsHover") || "Hover" }, { v: false, l: $_("settings.spinButtonsHidden") || "None" }] as opt}
                         <button
@@ -303,17 +303,15 @@
                         </button>
                     </div>
 
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-2 text-xs">
+                    <div
+                        class="max-h-64 overflow-y-auto space-y-1 text-xs text-[var(--text-secondary)]"
+                    >
                         {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
-                            <div
-                                class="flex justify-between items-center p-2 rounded bg-[var(--bg-primary)] border border-[var(--border-color)]"
-                            >
-                                <span class="text-[var(--text-secondary)]"
-                                    >{label}</span
-                                >
-                                <kbd
-                                    class="px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] font-mono text-[10px]"
-                                    >{key}</kbd
+                            <div class="flex justify-between py-1">
+                                <span>{label}</span>
+                                <span
+                                    class="font-mono text-[var(--text-primary)]"
+                                    >{key}</span
                                 >
                             </div>
                         {/each}

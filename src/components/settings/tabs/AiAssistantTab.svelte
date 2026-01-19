@@ -194,20 +194,15 @@
                 >{$_("settings.aiTradeHistoryLimit") ||
                     "Trade History Context"}</label
             >
-            <div class="flex items-center gap-4">
-                <input
-                    id="trade-limit"
-                    type="range"
-                    min="5"
-                    max="100"
-                    step="5"
-                    bind:value={settingsState.aiTradeHistoryLimit}
-                    class="flex-1 accent-[var(--accent-color)]"
-                />
-                <span class="text-xs font-mono w-8 text-right"
-                    >{settingsState.aiTradeHistoryLimit}</span
-                >
-            </div>
+            <input
+                id="trade-limit"
+                type="number"
+                min="0"
+                max="200"
+                step="1"
+                bind:value={settingsState.aiTradeHistoryLimit}
+                class="input-field"
+            />
             <p class="text-[10px] text-[var(--text-secondary)]">
                 {$_("settings.aiHistoryDesc") ||
                     "Number of recent trades sent to AI for context"}
