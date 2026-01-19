@@ -37,7 +37,7 @@
 <ModalFrame
   isOpen={mState.isOpen}
   title={mState.title}
-  on:close={() => handleConfirm(false)}
+  onclose={() => handleConfirm(false)}
   extraClasses={mState.extraClasses || "modal-size-sm"}
 >
   <div class="prose dark:prose-invert w-full max-w-none">

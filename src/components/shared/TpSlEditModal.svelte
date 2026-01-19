@@ -16,17 +16,16 @@
 -->
 
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
     order: any;
+    onclose?: () => void;
+    onsuccess?: () => void;
   }
 
-  let { order }: Props = $props();
-
-  const dispatch = createEventDispatcher();
+  let { order, onclose, onsuccess }: Props = $props();
 
   let triggerPrice = $state("");
   let amount = $state("");
@@ -75,7 +74,7 @@
       if (res.error) {
         error = res.error;
       } else {
-        dispatch("success");
+        onsuccess?.();
       }
     } catch (e) {
       error = "Failed to modify order";
@@ -87,7 +86,8 @@
 
 <ModalFrame
   title="Edit {order?.planType === 'PROFIT' ? 'Take Profit' : 'Stop Loss'}"
-  on:close
+  {onclose}
+  isOpen={true}
 >
   <div class="flex flex-col gap-4 p-4 min-w-[300px]">
     <div class="text-sm text-[var(--text-secondary)] mb-2">
@@ -135,7 +135,7 @@
     <div class="flex justify-end gap-2 mt-2">
       <button
         class="px-3 py-1.5 rounded text-xs font-bold text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]"
-        onclick={() => dispatch("close")}
+        onclick={() => onclose?.()}
         disabled={loading}
       >
         Cancel

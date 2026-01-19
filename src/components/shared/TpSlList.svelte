@@ -348,7 +348,7 @@
 {#if showEditModal}
   <TpSlEditModal
     order={editingOrder}
-    on:close={() => (showEditModal = false)}
-    on:success={handleEditSuccess}
+    onclose={() => (showEditModal = false)}
+    onsuccess={handleEditSuccess}
   />
 {/if}

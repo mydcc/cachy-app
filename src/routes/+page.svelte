@@ -940,7 +940,7 @@
 <ModalFrame
   isOpen={uiState.showChangelogModal}
   title={$_("app.changelogTitle")}
-  on:close={() => uiState.toggleChangelogModal(false)}
+  onclose={() => uiState.toggleChangelogModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="changelog-content" class="prose dark:prose-invert">
@@ -951,7 +951,7 @@
 <ModalFrame
   isOpen={uiState.showGuideModal}
   title={$_("app.guideTitle")}
-  on:close={() => uiState.toggleGuideModal(false)}
+  onclose={() => uiState.toggleGuideModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="guide-content" class="prose dark:prose-invert">
@@ -962,7 +962,7 @@
 <ModalFrame
   isOpen={uiState.showPrivacyModal}
   title={$_("app.privacyLegal")}
-  on:close={() => uiState.togglePrivacyModal(false)}
+  onclose={() => uiState.togglePrivacyModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="privacy-content" class="prose dark:prose-invert">
@@ -973,7 +973,7 @@
 <ModalFrame
   isOpen={uiState.showWhitepaperModal}
   title={$_("app.whitepaper")}
-  on:close={() => uiState.toggleWhitepaperModal(false)}
+  onclose={() => uiState.toggleWhitepaperModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="whitepaper-content" class="prose dark:prose-invert">

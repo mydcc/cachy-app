@@ -265,10 +265,10 @@
 <ModalFrame
     {isOpen}
     title="Symbol auswählen"
-    on:close={handleClose}
+    onclose={handleClose}
     extraClasses="modal-size-lg"
 >
-    <svelte:fragment slot="header-extra">
+    {#snippet headerExtra()}
         <div class="flex gap-2">
             <button
                 class="header-btn"
@@ -303,7 +303,7 @@
                 <span class="label">ALL</span>
             </button>
         </div>
-    </svelte:fragment>
+    {/snippet}
 
     <div class="symbol-picker-container">
         <div

@@ -413,11 +413,10 @@
 <ModalFrame
   isOpen={uiState.showJournalModal}
   title={$_("journal.title")}
-  on:close={() => uiState.toggleJournalModal(false)}
+  onclose={() => uiState.toggleJournalModal(false)}
   extraClasses="modal-size-journal"
 >
-  <!-- @migration-task: migrate this slot by hand, `header-extra` is an invalid identifier -->
-  <div slot="header-extra">
+  {#snippet headerExtra()}
     {#if settingsState.isPro}
       <JournalStatistics
         {performanceData}
@@ -426,7 +425,7 @@
         minimal={true}
       />
     {/if}
-  </div>
+  {/snippet}
   <!-- Dashboard Section -->
   {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
     <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />

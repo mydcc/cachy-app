@@ -222,7 +222,7 @@
 <ModalFrame
   isOpen={uiState.showSettingsModal}
   title={$_("settings.title") || "Settings"}
-  on:close={close}
+  onclose={close}
   extraClasses="!w-[1000px] !max-w-[95vw] !max-h-[90vh] flex flex-col overflow-hidden"
   alignment="top"
 >

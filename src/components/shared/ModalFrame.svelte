@@ -15,25 +15,36 @@
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
 
-<!-- @migration-task Error while migrating Svelte code: This migration would change the name of a slot (header-extra to header_extra) making the component unusable -->
 <script lang="ts">
-  import { createEventDispatcher } from "svelte";
   import { fly } from "svelte/transition";
 
-  export let isOpen = false;
-  export let title = "";
-  export let extraClasses = "";
-  export let alignment: "center" | "top" = "center";
+  interface Props {
+    isOpen?: boolean;
+    title?: string;
+    extraClasses?: string;
+    alignment?: "center" | "top";
+    onclose?: () => void;
+    children?: import("svelte").Snippet;
+    headerExtra?: import("svelte").Snippet;
+  }
 
-  const dispatch = createEventDispatcher();
+  let {
+    isOpen = false,
+    title = "",
+    extraClasses = "",
+    alignment = "center",
+    onclose,
+    children,
+    headerExtra,
+  }: Props = $props();
 
   function handleClose() {
-    dispatch("close");
+    onclose?.();
   }
 </script>
 
 {#if isOpen}
-  <!-- svelte-ignore a11y-no-noninteractive-element-interactions -->
+  <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
   <div
     class="modal-overlay visible {alignment === 'top'
       ? 'items-start pt-20'
@@ -41,8 +52,8 @@
     style={alignment === "top"
       ? "align-items: flex-start; padding-top: 10vh;"
       : ""}
-    on:click|self={handleClose}
-    on:keydown={(e) => {
+    onclick={(e) => e.currentTarget === e.target && handleClose()}
+    onkeydown={(e) => {
       if (e.key === "Escape") handleClose();
     }}
     role="dialog"
@@ -57,16 +68,20 @@
       <div class="modal-header">
         <h2 id="modal-title" class="modal-title">{title}</h2>
         <div class="header-extra">
-          <slot name="header-extra" />
+          {#if headerExtra}
+            {@render headerExtra()}
+          {/if}
         </div>
         <button
           class="modal-close-btn"
           aria-label="Schließen"
-          on:click={handleClose}>&times;</button
+          onclick={handleClose}>&times;</button
         >
       </div>
       <div class="modal-body">
-        <slot />
+        {#if children}
+          {@render children()}
+        {/if}
       </div>
     </div>
   </div>
