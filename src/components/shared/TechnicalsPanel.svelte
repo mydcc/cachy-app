@@ -285,6 +285,7 @@
         <!-- Timeframe Badge with Hover Dropdown -->
         <div
           class="relative timeframe-selector-container"
+          role="group"
           onmouseenter={handleDropdownEnter}
           onmouseleave={handleDropdownLeave}
         >
