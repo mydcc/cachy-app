@@ -798,13 +798,13 @@
           <TechnicalsPanel isVisible={isTechnicalsVisible} />
         {/if}
 
-        {#if $favoritesStore.length > 0}
+        {#if favoritesState.items.length > 0}
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1"
           >
             {$_("dashboard.favorites") || "Favorites"}
           </div>
-          {#each $favoritesStore as fav (fav)}
+          {#each favoritesState.items as fav (fav)}
             {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
               <MarketOverview customSymbol={fav} isFavoriteTile={true} />
             {/if}
@@ -839,14 +839,14 @@
       {/if}
 
       <!-- Favorites list -->
-      {#if $favoritesStore.length > 0}
+      {#if favoritesState.items.length > 0}
         <div
           class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
         >
           {$_("dashboard.favorites") || "Favorites"}
         </div>
       {/if}
-      {#each $favoritesStore as fav (fav)}
+      {#each favoritesState.items as fav (fav)}
         {#if fav.toUpperCase() !== ($tradeStore.symbol || "").toUpperCase()}
           <MarketOverview customSymbol={fav} isFavoriteTile={true} />
         {/if}
