@@ -87,6 +87,32 @@ export interface IndicatorSettings {
         length: number;
         stdDev: number;
     };
+    // Pro Indicators
+    superTrend: {
+        factor: number;
+        period: number;
+    };
+    atrTrailingStop: {
+        period: number;
+        multiplier: number;
+    };
+    obv: {
+        // No params usually, maybe smoothing?
+        smoothingLength: number;
+    };
+    mfi: {
+        length: number;
+    };
+    vwap: {
+        // usually start of day resets, or session based. 
+        // For now simple infinite or period based? 
+        // Standard VWAP is strictly time-based, anchor is important.
+        // We'll stick to a simple anchor (e.g. Session or fixed period if rolling)
+        // Let's assume rolling for this simple impl or just simple period
+        length: number; // For rolling VWAP if that's what we did, or anchor logic?
+        // Checking indicators.ts, our vwap impl was: vwap(klines). 
+        // It likely does a cumulative calculation.
+    };
 }
 
 const defaultSettings: IndicatorSettings = {
@@ -152,6 +178,23 @@ const defaultSettings: IndicatorSettings = {
         length: 20,
         stdDev: 2,
     },
+    superTrend: {
+        factor: 3,
+        period: 10,
+    },
+    atrTrailingStop: {
+        period: 14,
+        multiplier: 3.5,
+    },
+    obv: {
+        smoothingLength: 0, // 0 = disabled smoothing
+    },
+    mfi: {
+        length: 14,
+    },
+    vwap: {
+        length: 0, // 0 usually means session/full history in many contexts, but our impl might vary.
+    },
 };
 
 const STORE_KEY = "cachy_indicator_settings";
@@ -173,6 +216,11 @@ class IndicatorManager {
     pivots = $state(defaultSettings.pivots);
     atr = $state(defaultSettings.atr);
     bb = $state(defaultSettings.bb);
+    superTrend = $state(defaultSettings.superTrend);
+    atrTrailingStop = $state(defaultSettings.atrTrailingStop);
+    obv = $state(defaultSettings.obv);
+    mfi = $state(defaultSettings.mfi);
+    vwap = $state(defaultSettings.vwap);
 
     private listeners: Set<(value: IndicatorSettings) => void> = new Set();
 
@@ -214,6 +262,11 @@ class IndicatorManager {
             this.ao = { ...defaultSettings.ao, ...parsed.ao };
             this.momentum = { ...defaultSettings.momentum, ...parsed.momentum };
             this.pivots = { ...defaultSettings.pivots, ...parsed.pivots };
+            this.superTrend = { ...defaultSettings.superTrend, ...parsed.superTrend };
+            this.atrTrailingStop = { ...defaultSettings.atrTrailingStop, ...parsed.atrTrailingStop };
+            this.obv = { ...defaultSettings.obv, ...parsed.obv };
+            this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
+            this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
 
             this.ema = parsed.ema
                 ? {
@@ -270,6 +323,11 @@ class IndicatorManager {
             pivots: $state.snapshot(this.pivots),
             atr: $state.snapshot(this.atr),
             bb: $state.snapshot(this.bb),
+            superTrend: $state.snapshot(this.superTrend),
+            atrTrailingStop: $state.snapshot(this.atrTrailingStop),
+            obv: $state.snapshot(this.obv),
+            mfi: $state.snapshot(this.mfi),
+            vwap: $state.snapshot(this.vwap),
         };
     }
 
@@ -299,6 +357,11 @@ class IndicatorManager {
         this.pivots = next.pivots;
         this.atr = next.atr;
         this.bb = next.bb;
+        this.superTrend = next.superTrend;
+        this.atrTrailingStop = next.atrTrailingStop;
+        this.obv = next.obv;
+        this.mfi = next.mfi;
+        this.vwap = next.vwap;
     }
 
     reset() {
@@ -319,6 +382,11 @@ class IndicatorManager {
         this.pivots = d.pivots;
         this.atr = d.atr;
         this.bb = d.bb;
+        this.superTrend = d.superTrend;
+        this.atrTrailingStop = d.atrTrailingStop;
+        this.obv = d.obv;
+        this.mfi = d.mfi;
+        this.vwap = d.vwap;
     }
 }
 
