@@ -16,13 +16,13 @@
 -->
 
 <script lang="ts">
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   import { _ } from "svelte-i18n";
 </script>
 
 <button
   class="btn-icon-accent"
-  onclick={() => uiStore.toggleSettingsModal(true)}
+  onclick={() => uiState.toggleSettingsModal(true)}
   aria-label={$_("settings.title")}
   title={$_("settings.title")}
 >

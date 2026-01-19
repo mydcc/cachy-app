@@ -23,7 +23,7 @@ import {
   resetAllInputs,
 } from "../stores/tradeStore";
 import { favoritesStore } from "../stores/favoritesStore";
-import { uiStore } from "../stores/uiStore";
+import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
 import { modalManager } from "./modalManager";
 import { CONSTANTS } from "../lib/constants";
@@ -237,14 +237,14 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     label: "Toggle Journal",
     category: "UI & Navigation",
     defaultKey: "Alt+J",
-    action: () => uiStore.toggleJournalModal(true),
+    action: () => uiState.toggleJournalModal(true),
   },
   {
     id: "TOGGLE_SETTINGS",
     label: "Open Settings",
     category: "UI & Navigation",
     defaultKey: "Alt+,",
-    action: () => uiStore.toggleSettingsModal(true),
+    action: () => uiState.toggleSettingsModal(true),
   },
   {
     id: "TOGGLE_SIDEBAR",

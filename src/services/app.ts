@@ -37,7 +37,7 @@ import {
 import { resultsStore, initialResultsState } from "../stores/resultsStore";
 import { presetStore, updatePresetStore } from "../stores/presetStore";
 import { journalStore } from "../stores/journalStore";
-import { uiStore } from "../stores/uiStore";
+import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
 import { marketStore, wsStatusStore } from "../stores/marketStore"; // Import marketStore and wsStatusStore
@@ -104,7 +104,7 @@ const calculatorService = new CalculatorService(
   calculator,
   resultsStore,
   tradeStore,
-  uiStore,
+  uiState,
   initialResultsState,
   updateTradeStore,
 );
@@ -229,7 +229,6 @@ export const app = {
 
     priceUpdateIntervalId = setInterval(() => {
       const currentSymbol = get(tradeStore).symbol;
-      const uiState = get(uiStore);
 
       if (
         currentSymbol &&
@@ -280,7 +279,7 @@ export const app = {
       return parsedData.map((trade) => normalizeJournalEntry(trade));
     } catch {
       console.warn("Could not load journal from localStorage.");
-      uiStore.showError("Journal konnte nicht geladen werden.");
+      uiState.showError("Journal konnte nicht geladen werden.");
       return [];
     }
   },
@@ -295,7 +294,7 @@ export const app = {
         error instanceof Error
           ? error.message
           : "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.";
-      uiStore.showError(message);
+      uiState.showError(message);
 
       // Log quota status for debugging
       const quota = storageUtils.checkQuota();
@@ -309,7 +308,7 @@ export const app = {
       !currentAppState.currentTradeData.positionSize ||
       currentAppState.currentTradeData.positionSize.lte(0)
     ) {
-      uiStore.showError("Kann keinen ungültigen Trade speichern.");
+      uiState.showError("Kann keinen ungültigen Trade speichern.");
       return;
     }
     const journalData = app.getJournal();
@@ -344,7 +343,7 @@ export const app = {
     );
 
     onboardingService.trackFirstJournalSave();
-    uiStore.showFeedback("save");
+    uiState.showFeedback("save");
   },
   updateTradeStatus: (id: number, newStatus: string) => {
     const journalData = app.getJournal();
@@ -374,7 +373,7 @@ export const app = {
   async clearJournal() {
     const journal = app.getJournal();
     if (journal.length === 0) {
-      uiStore.showError("Das Journal ist bereits leer.");
+      uiState.showError("Das Journal ist bereits leer.");
       return;
     }
     if (
@@ -386,7 +385,7 @@ export const app = {
     ) {
       app.saveJournal([]);
       journalStore.set([]);
-      uiStore.showFeedback("save", 2000);
+      uiState.showFeedback("save", 2000);
     }
   },
 
@@ -432,14 +431,14 @@ export const app = {
           JSON.stringify(presets),
         );
         trackCustomEvent("Presets", "Save", presetName);
-        uiStore.showFeedback("save");
+        uiState.showFeedback("save");
         app.populatePresetLoader();
         updatePresetStore((state) => ({
           ...state,
           selectedPreset: presetName,
         }));
       } catch {
-        uiStore.showError(
+        uiState.showError(
           "Preset konnte nicht gespeichert werden. Der lokale Speicher ist möglicherweise voll oder blockiert.",
         );
       }
@@ -470,7 +469,7 @@ export const app = {
       app.populatePresetLoader();
       updatePresetStore((state) => ({ ...state, selectedPreset: "" }));
     } catch {
-      uiStore.showError("Preset konnte nicht gelöscht werden.");
+      uiState.showError("Preset konnte nicht gelöscht werden.");
     }
   },
   loadPreset: (presetName: string) => {
@@ -513,7 +512,7 @@ export const app = {
       }
     } catch (error) {
       console.error("Fehler beim Laden des Presets:", error);
-      uiStore.showError("Preset konnte nicht geladen werden.");
+      uiState.showError("Preset konnte nicht geladen werden.");
     }
   },
   populatePresetLoader: () => {
@@ -536,7 +535,7 @@ export const app = {
     if (!browser) return;
     const journalData = get(journalStore);
     if (journalData.length === 0) {
-      uiStore.showError("Journal ist leer.");
+      uiState.showError("Journal ist leer.");
       return;
     }
 
@@ -552,7 +551,7 @@ export const app = {
 
       trackCustomEvent("Journal", "Export", "CSV", journalData.length);
     } catch (e) {
-      uiStore.showError("Fehler beim Erstellen der CSV-Datei.");
+      uiState.showError("Fehler beim Erstellen der CSV-Datei.");
       console.error(e);
     }
   },
@@ -565,7 +564,7 @@ export const app = {
     // P0 Fix: File size validation
     const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5MB
     if (file.size > MAX_FILE_SIZE) {
-      uiStore.showError(
+      uiState.showError(
         `Die CSV-Datei ist zu groß (${(file.size / 1024 / 1024).toFixed(
           1,
         )}MB). ` + `Maximum: 5MB. Bitte teilen Sie die Datei auf.`,
@@ -596,16 +595,16 @@ export const app = {
           ) {
             journalStore.set(unique);
             trackCustomEvent("Journal", "Import", "CSV", entries.length);
-            uiStore.showFeedback("save", 2000);
+            uiState.showFeedback("save", 2000);
           }
         } else {
-          uiStore.showError(
+          uiState.showError(
             "Keine gültigen Einträge in der CSV-Datei gefunden.",
           );
         }
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
-        uiStore.showError(message);
+        uiState.showError(message);
         console.error("CSV Import Error:", error);
       }
     };
@@ -617,12 +616,12 @@ export const app = {
     const settings = settingsState;
     const symbol = currentTradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) {
-      if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
+      if (!isAuto) uiState.showError("Bitte geben Sie ein Symbol ein.");
       return;
     }
 
     if (!isAuto)
-      uiStore.update((state) => ({ ...state, isPriceFetching: true }));
+      uiState.update((state) => ({ ...state, isPriceFetching: true }));
 
     try {
       let price: Decimal;
@@ -641,18 +640,18 @@ export const app = {
 
       if (!isAuto) {
         trackCustomEvent("API", "FetchPrice", symbol);
-        uiStore.showFeedback("save", 700);
+        uiState.showFeedback("save", 700);
       }
 
       app.calculateAndDisplay();
     } catch (error) {
       if (!isAuto) {
         const message = error instanceof Error ? error.message : String(error);
-        uiStore.showError(message);
+        uiState.showError(message);
       }
     } finally {
       if (!isAuto)
-        uiStore.update((state) => ({ ...state, isPriceFetching: false }));
+        uiState.update((state) => ({ ...state, isPriceFetching: false }));
     }
   },
 
@@ -683,11 +682,11 @@ export const app = {
     const settings = settingsState;
     const symbol = currentTradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) {
-      if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
+      if (!isAuto) uiState.showError("Bitte geben Sie ein Symbol ein.");
       return;
     }
 
-    if (!isAuto) uiStore.update((state) => ({ ...state, isAtrFetching: true }));
+    if (!isAuto) uiState.update((state) => ({ ...state, isAtrFetching: true }));
 
     try {
       let klines;
@@ -727,22 +726,22 @@ export const app = {
           "FetchATR",
           `${symbol}/${currentTradeState.atrTimeframe}`,
         );
-        uiStore.showFeedback("save", 700);
+        uiState.showFeedback("save", 700);
       }
     } catch (error) {
       if (!isAuto) {
         const message = error instanceof Error ? error.message : String(error);
-        uiStore.showError(message);
+        uiState.showError(message);
       }
     } finally {
       if (!isAuto)
-        uiStore.update((state) => ({ ...state, isAtrFetching: false }));
+        uiState.update((state) => ({ ...state, isAtrFetching: false }));
     }
   },
 
   selectSymbolSuggestion: (symbol: string) => {
     updateTradeStore((s) => ({ ...s, symbol: symbol }));
-    uiStore.update((s) => ({
+    uiState.update((s) => ({
       ...s,
       showSymbolSuggestions: false,
       symbolSuggestions: [],
@@ -762,7 +761,7 @@ export const app = {
         s.startsWith(upperQuery),
       );
     }
-    uiStore.update((s) => ({
+    uiState.update((s) => ({
       ...s,
       symbolSuggestions: filtered,
       showSymbolSuggestions: filtered.length > 0,
@@ -781,7 +780,7 @@ export const app = {
       (!currentResultsState.positionSize ||
         parseDecimal(currentResultsState.positionSize).lte(0))
     ) {
-      uiStore.showError(
+      uiState.showError(
         "Positionsgröße kann nicht gesperrt werden, solange sie ungültig ist.",
       );
       return;
@@ -807,7 +806,7 @@ export const app = {
         : !currentTradeState.isRiskAmountLocked;
 
     if (shouldBeLocked && parseDecimal(currentTradeState.riskAmount).lte(0)) {
-      uiStore.showError(
+      uiState.showError(
         "Risikobetrag kann nicht gesperrt werden, solange er ungültig ist.",
       );
       return;
@@ -872,7 +871,7 @@ export const app = {
           app.calculateAndDisplay();
         }
       }
-      if (!isAuto) uiStore.showFeedback("save", 700);
+      if (!isAuto) uiState.showFeedback("save", 700);
     } catch (e: any) {
       if (e.message !== "apiErrors.symbolNotFound") {
         console.warn(`Failed to load Current ATR ${currentTf}`, e);

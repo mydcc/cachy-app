@@ -20,7 +20,7 @@
   import ModalFrame from "../shared/ModalFrame.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
   import {
     createBackup,
@@ -57,10 +57,10 @@
 
   // Use the store as the unique source of truth for the active tab
   // This prevents unintended resets when the store updates for other reasons
-  const activeTab = $derived(($uiStore.settingsTab as TabType) || "general");
+  const activeTab = $derived((uiState.settingsTab as TabType) || "general");
 
   function selectTab(tab: TabType) {
-    uiStore.update((s) => ({ ...s, settingsTab: tab }));
+    uiState.settingsTab = tab;
   }
 
   const availableTimeframes = [
@@ -111,7 +111,7 @@
   ];
 
   function close() {
-    uiStore.toggleSettingsModal(false);
+    uiState.toggleSettingsModal(false);
   }
 
   // System Tab Functions
@@ -217,7 +217,7 @@
 </script>
 
 <ModalFrame
-  isOpen={$uiStore.showSettingsModal}
+  isOpen={uiState.showSettingsModal}
   title={$_("settings.title") || "Settings"}
   on:close={close}
   extraClasses="!w-[1000px] !max-w-[95vw] !max-h-[90vh] flex flex-col overflow-hidden"

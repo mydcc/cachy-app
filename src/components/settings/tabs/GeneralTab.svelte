@@ -18,7 +18,7 @@
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
   import { settingsState } from "../../../stores/settings.svelte";
-  import { uiStore } from "../../../stores/uiStore";
+  import { uiState } from "../../../stores/ui.svelte";
   import { locale, setLocale } from "../../../locales/i18n";
 
   interface Props {
@@ -74,8 +74,8 @@
       <select
         id="settings-theme"
         name="theme"
-        value={$uiStore.currentTheme}
-        onchange={(e) => uiStore.setTheme(e.currentTarget.value)}
+        value={uiState.currentTheme}
+        onchange={(e) => uiState.setTheme(e.currentTarget.value)}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
       >
         {#each themes as theme, index}

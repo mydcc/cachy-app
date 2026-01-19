@@ -26,8 +26,7 @@
   import { icons } from "../../lib/constants";
   import { updateTradeStore } from "../../stores/tradeStore";
   import { settingsState } from "../../stores/settings.svelte";
-  import { uiStore } from "../../stores/uiStore";
-  import { get } from "svelte/store";
+  import { uiState } from "../../stores/ui.svelte";
 
   interface Props {
     accountSize: number | null;
@@ -90,8 +89,8 @@
 
     if (!keys.key || !keys.secret) {
       if (!silent) {
-        uiStore.showError("settings.missingApiKeys");
-        uiStore.toggleSettingsModal(true);
+        uiState.showError("settings.missingApiKeys");
+        uiState.toggleSettingsModal(true);
       }
       return;
     }
@@ -119,14 +118,14 @@
       if (typeof data.balance === "number") {
         updateTradeStore((s) => ({ ...s, accountSize: data.balance }));
         if (!silent) {
-          uiStore.showFeedback("save"); // Show success feedback
+          uiState.showFeedback("save"); // Show success feedback
         }
       } else {
         throw new Error("Invalid balance data received");
       }
     } catch (e: any) {
       if (!silent) {
-        uiStore.showError(e.message || "Error fetching balance");
+        uiState.showError(e.message || "Error fetching balance");
       } else {
         console.warn("Auto-fetch balance failed:", e);
       }

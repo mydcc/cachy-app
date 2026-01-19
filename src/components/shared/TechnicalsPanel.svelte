@@ -22,7 +22,7 @@
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   import { marketStore } from "../../stores/marketStore";
   import { bitunixWs } from "../../services/bitunixWs";
   import { apiService } from "../../services/apiService";
@@ -338,7 +338,7 @@
         <button
           type="button"
           class="font-bold text-[var(--text-primary)] cursor-pointer hover:text-[var(--accent-color)] bg-transparent border-none p-0"
-          onclick={() => uiStore.openSettings("indicators")}
+          onclick={() => uiState.openSettings("indicators")}
           title="Open Technicals Settings"
         >
           Technicals

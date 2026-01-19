@@ -19,7 +19,7 @@ import { writable, get } from "svelte/store";
 import { CONSTANTS } from "../lib/constants";
 import type { AppState } from "./types";
 import { resultsStore, initialResultsState } from "./resultsStore";
-import { uiStore } from "./uiStore";
+import { uiState } from "./ui.svelte";
 import { settingsState } from "./settings.svelte";
 import { browser } from "$app/environment";
 import { normalizeSymbol } from "../utils/symbolUtils";
@@ -179,7 +179,7 @@ export const resetAllInputs = () => {
   // Turn off Auto-Price-Update
   settingsState.autoUpdatePriceInput = false;
 
-  uiStore.showError("dashboard.promptForData");
+  uiState.showError("dashboard.promptForData");
 };
 
 // Helper function to set symbol with automatic normalization (Single Source of Truth)

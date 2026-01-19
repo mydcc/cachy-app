@@ -23,7 +23,7 @@
     performanceMetrics,
     qualityMetrics,
   } from "../../stores/journalStore";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   import { app } from "../../services/app";
   import { imgbbService } from "../../services/imgbbService";
   import { calculator } from "../../lib/calculator";
@@ -87,7 +87,7 @@
 
       // VIPENTE2026: Pro Active + VIP Theme Active => Unlock Charts
       if (bufferStr.endsWith(CODE_UNLOCK)) {
-        if (settingsState.isPro && $uiStore.currentTheme === "VIP") {
+        if (settingsState.isPro && uiState.currentTheme === "VIP") {
           unlockDeepDive();
         }
       }
@@ -97,7 +97,7 @@
       }
       // VIPSPACE2026: Pro Active + VIP Theme Active => Space Dialog + Link
       else if (bufferStr.endsWith(CODE_SPACE)) {
-        if (settingsState.isPro && $uiStore.currentTheme === "VIP") {
+        if (settingsState.isPro && uiState.currentTheme === "VIP") {
           activateVipSpace();
         }
       }
@@ -182,7 +182,7 @@
 
   $effect(() => {
     // Synchronize theme colors ONLY when the theme name changes
-    const currentTheme = $uiStore.currentTheme;
+    const currentTheme = uiState.currentTheme;
     if (currentTheme !== lastTheme) {
       lastTheme = currentTheme;
       updateThemeColors();
@@ -395,34 +395,29 @@
 
   async function handleScreenshotUpload(id: number, file: File) {
     try {
-      uiStore.update((s) => ({
-        ...s,
-        isLoading: true,
-        loadingMessage: $_("journal.messages.uploading"),
-      }));
+      uiState.isLoading = true;
+      uiState.loadingMessage = $_("journal.messages.uploading");
+
       const url = await imgbbService.uploadToImgbb(file);
       // Update trade in store
       const trade = $journalStore.find((t) => t.id === id);
       if (trade) {
         app.updateTrade(id, { screenshot: url });
-        uiStore.showFeedback("save");
+        uiState.showFeedback("save");
       }
     } catch (e: any) {
-      uiStore.update((s) => ({
-        ...s,
-        errorMessage: e.message || $_("journal.messages.uploadFailed"),
-        showErrorMessage: true,
-      }));
+      uiState.errorMessage = e.message || $_("journal.messages.uploadFailed");
+      uiState.showErrorMessage = true;
     } finally {
-      uiStore.update((s) => ({ ...s, isLoading: false }));
+      uiState.isLoading = false;
     }
   }
 </script>
 
 <ModalFrame
-  isOpen={$uiStore.showJournalModal}
+  isOpen={uiState.showJournalModal}
   title={$_("journal.title")}
-  on:close={() => uiStore.toggleJournalModal(false)}
+  on:close={() => uiState.toggleJournalModal(false)}
   extraClasses="modal-size-journal"
 >
   <!-- @migration-task: migrate this slot by hand, `header-extra` is an invalid identifier -->
@@ -464,7 +459,7 @@
   >
     {#snippet actions()}
       {#if settingsState.isPro}
-        {#if $uiStore.syncProgress}
+        {#if uiState.syncProgress}
           <div
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
             title="Synchronizing History..."
@@ -472,15 +467,15 @@
             <span
               class="font-mono text-[10px] text-[var(--text-primary)] font-bold"
             >
-              {$uiStore.syncProgress.current}/{$uiStore.syncProgress.total}
+              {uiState.syncProgress.current}/{uiState.syncProgress.total}
             </span>
             <div
               class="w-16 h-1.5 bg-[var(--bg-tertiary)] rounded-full overflow-hidden"
             >
               <div
                 class="h-full bg-[var(--accent-color)] transition-all duration-500 ease-out"
-                style="width: {($uiStore.syncProgress.current /
-                  Math.max($uiStore.syncProgress.total, 1)) *
+                style="width: {(uiState.syncProgress.current /
+                  Math.max(uiState.syncProgress.total, 1)) *
                   100}%"
               ></div>
             </div>
@@ -491,9 +486,9 @@
             class="text-[11px] font-bold py-1.5 px-3 rounded-md flex items-center gap-1.5 bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] text-[var(--text-primary)] border border-[var(--border-color)] transition-colors disabled:opacity-50"
             title={$_("journal.syncBitunix")}
             onclick={app.syncBitunixHistory}
-            disabled={$uiStore.isPriceFetching || $uiStore.isLoading}
+            disabled={uiState.isPriceFetching || uiState.isLoading}
           >
-            {#if $uiStore.isPriceFetching}
+            {#if uiState.isPriceFetching}
               <div
                 class="animate-spin h-3.5 w-3.5 border-2 border-current border-t-transparent rounded-full"
               ></div>
@@ -501,7 +496,7 @@
               <span class="opacity-70">{@html icons.refresh}</span>
             {/if}
             <span>
-              {$uiStore.isPriceFetching
+              {uiState.isPriceFetching
                 ? $_("journal.messages.syncing")
                 : "Bitunix Sync"}
             </span>

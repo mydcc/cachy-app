@@ -19,7 +19,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   // import PositionTooltip from "./PositionTooltip.svelte"; // Global handled
   import Button from "./Button.svelte";
 
@@ -44,11 +44,11 @@
 
   function handleMouseEnter(event: MouseEvent, pos: any) {
     const coords = getTooltipPosition(event);
-    uiStore.showTooltip("position", pos, coords.x, coords.y);
+    uiState.showTooltip("position", pos, coords.x, coords.y);
   }
 
   function handleMouseLeave() {
-    uiStore.hideTooltip();
+    uiState.hideTooltip();
   }
 
   function getTooltipPosition(event: MouseEvent) {

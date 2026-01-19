@@ -36,16 +36,11 @@ vi.mock("../stores/tradeStore", () => ({
   },
 }));
 
-vi.mock("../stores/uiStore", () => ({
-  uiStore: {
-    subscribe: (fn: any) => {
-      fn({
-        currentTheme: "dark",
-        showJournalModal: false,
-        showSettingsModal: false,
-      });
-      return () => { };
-    },
+vi.mock("../stores/ui.svelte", () => ({
+  uiState: {
+    currentTheme: "dark",
+    showJournalModal: false,
+    showSettingsModal: false,
   },
 }));
 

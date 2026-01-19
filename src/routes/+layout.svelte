@@ -18,7 +18,7 @@
 <script lang="ts">
   import favicon from "../assets/favicon.svg";
   import { tradeStore } from "../stores/tradeStore";
-  import { uiStore } from "../stores/uiStore";
+  import { uiState } from "../stores/ui.svelte";
   import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import JournalView from "../components/shared/JournalView.svelte";
@@ -52,7 +52,7 @@
     // Global Error Handling
     const handleGlobalError = (event: ErrorEvent) => {
       console.error("Caught global error:", event.error);
-      uiStore.showError(event.message || "An unexpected error occurred.");
+      uiState.showError(event.message || "An unexpected error occurred.");
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
@@ -61,7 +61,7 @@
         event.reason instanceof Error
           ? event.reason.message
           : String(event.reason);
-      uiStore.showError(message);
+      uiState.showError(message);
     };
 
     window.addEventListener("error", handleGlobalError);
@@ -149,7 +149,7 @@
   }
   // Dynamic theme color for PWA/Android status bar
   $effect(() => {
-    if (typeof document !== "undefined" && $uiStore.currentTheme) {
+    if (typeof document !== "undefined" && uiState.currentTheme) {
       updateThemeColor();
     }
   });
@@ -292,18 +292,18 @@
   <DisclaimerModal />
 {/if}
 
-{#if $uiStore.tooltip.visible}
+{#if uiState.tooltip.visible}
   <div
     class="fixed z-[10000] pointer-events-auto"
-    style="top: {$uiStore.tooltip.y}px; left: {$uiStore.tooltip.x}px;"
+    style="top: {uiState.tooltip.y}px; left: {uiState.tooltip.x}px;"
     onmouseenter={() => {}}
-    onmouseleave={() => uiStore.hideTooltip()}
+    onmouseleave={() => uiState.hideTooltip()}
     role="tooltip"
   >
-    {#if $uiStore.tooltip.type === "position"}
-      <PositionTooltip position={$uiStore.tooltip.data} />
-    {:else if $uiStore.tooltip.type === "order"}
-      <OrderDetailsTooltip order={$uiStore.tooltip.data} />
+    {#if uiState.tooltip.type === "position"}
+      <PositionTooltip position={uiState.tooltip.data} />
+    {:else if uiState.tooltip.type === "order"}
+      <OrderDetailsTooltip order={uiState.tooltip.data} />
     {/if}
   </div>
 {/if}

@@ -18,7 +18,7 @@
 <script lang="ts">
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   // import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte"; // No longer needed here
 
   interface Props {
@@ -33,11 +33,11 @@
 
   function handleMouseEnter(event: MouseEvent, order: any) {
     const pos = getTooltipPosition(event);
-    uiStore.showTooltip("order", order, pos.x, pos.y);
+    uiState.showTooltip("order", order, pos.x, pos.y);
   }
 
   function handleMouseLeave() {
-    uiStore.hideTooltip();
+    uiState.hideTooltip();
   }
 
   function getTooltipPosition(event: MouseEvent) {

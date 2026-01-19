@@ -34,13 +34,14 @@ import { apiService } from "./apiService";
 import type { Kline } from "./apiService";
 import type { AppState } from "../stores/types";
 
-// Mock the uiStore to prevent errors during tests
-vi.mock("../stores/uiStore", () => ({
-  uiStore: {
+// Mock the uiState to prevent errors during tests
+vi.mock("../stores/ui.svelte", () => ({
+  uiState: {
     showError: vi.fn(),
     showFeedback: vi.fn(),
     update: vi.fn(),
     hideError: vi.fn(),
+    setSyncProgress: vi.fn(),
   },
 }));
 

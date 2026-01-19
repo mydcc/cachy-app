@@ -34,8 +34,8 @@
   } from "../stores/tradeStore";
   import { resultsStore } from "../stores/resultsStore";
   import { presetStore } from "../stores/presetStore";
-  import { uiStore } from "../stores/uiStore";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
+  import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { favoritesStore } from "../stores/favoritesStore"; // Import favorites store
   import { modalManager } from "../services/modalManager";
   import { onMount, untrack } from "svelte";
@@ -101,7 +101,7 @@
 
   // Load modal contents when opened
   $effect(() => {
-    if ($uiStore.showChangelogModal && changelogContent === "") {
+    if (uiState.showChangelogModal && changelogContent === "") {
       loadInstruction("changelog").then((content) => {
         changelogContent = content.html;
       });
@@ -109,7 +109,7 @@
   });
 
   $effect(() => {
-    if ($uiStore.showGuideModal && guideContent === "") {
+    if (uiState.showGuideModal && guideContent === "") {
       loadInstruction("guide").then((content) => {
         guideContent = content.html;
       });
@@ -117,7 +117,7 @@
   });
 
   $effect(() => {
-    if ($uiStore.showPrivacyModal && privacyContent === "") {
+    if (uiState.showPrivacyModal && privacyContent === "") {
       loadInstruction("privacy").then((content) => {
         privacyContent = content.html;
       });
@@ -125,7 +125,7 @@
   });
 
   $effect(() => {
-    if ($uiStore.showWhitepaperModal && whitepaperContent === "") {
+    if (uiState.showWhitepaperModal && whitepaperContent === "") {
       loadInstruction("whitepaper").then((content) => {
         whitepaperContent = content.html;
       });
@@ -197,7 +197,7 @@
   });
 
   function handleTradeSetupError(e: CustomEvent<string>) {
-    uiStore.showError(e.detail);
+    uiState.showError(e.detail);
   }
 
   function handleTargetsChange(
@@ -220,7 +220,7 @@
   }
 
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
-    const currentIndex = themes.indexOf($uiStore.currentTheme);
+    const currentIndex = themes.indexOf(uiState.currentTheme);
     const limit = settingsState.isPro ? themes.length : 5;
     let nextIndex;
 
@@ -230,20 +230,20 @@
       nextIndex = (currentIndex - 1 + limit) % limit;
     }
 
-    uiStore.setTheme(themes[nextIndex]);
+    uiState.setTheme(themes[nextIndex]);
   }
 
   // Diese reaktive Variable formatiert den Theme-Namen benutzerfreundlich.
   // z.B. 'solarized-light' wird zu 'Solarized Light'
   let themeTitle = $derived(
-    $uiStore.currentTheme
+    uiState.currentTheme
       .split("-")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" "),
   );
 
   let currentThemeIcon = $derived(
-    themeIcons[$uiStore.currentTheme as keyof typeof themeIcons],
+    themeIcons[uiState.currentTheme as keyof typeof themeIcons],
   );
 
   function handlePresetLoad(event: Event) {
@@ -254,11 +254,11 @@
   function handleKeydown(event: KeyboardEvent) {
     if (event && event.key && event.key.toLowerCase() === "escape") {
       event.preventDefault();
-      if ($uiStore.showJournalModal) uiStore.toggleJournalModal(false);
-      if ($uiStore.showGuideModal) uiStore.toggleGuideModal(false);
-      if ($uiStore.showPrivacyModal) uiStore.togglePrivacyModal(false);
-      if ($uiStore.showWhitepaperModal) uiStore.toggleWhitepaperModal(false);
-      if ($uiStore.showChangelogModal) uiStore.toggleChangelogModal(false);
+      if (uiState.showJournalModal) uiState.toggleJournalModal(false);
+      if (uiState.showGuideModal) uiState.toggleGuideModal(false);
+      if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
+      if (uiState.showWhitepaperModal) uiState.toggleWhitepaperModal(false);
+      if (uiState.showChangelogModal) uiState.toggleChangelogModal(false);
       if (get(modalManager).isOpen) modalManager._handleModalConfirm(false);
       return;
     }
@@ -313,12 +313,12 @@
             }
 
             if (result.success) {
-              uiStore.showFeedback("save"); // Re-use save feedback for now
+              uiState.showFeedback("save"); // Re-use save feedback for now
               setTimeout(() => {
                 window.location.reload();
               }, 1000);
             } else {
-              uiStore.showError(result.message);
+              uiState.showError(result.message);
             }
           }
           // Reset file input so the same file can be selected again
@@ -326,7 +326,7 @@
         });
     };
     reader.onerror = () => {
-      uiStore.showError("app.fileReadError");
+      uiState.showError("app.fileReadError");
     };
     reader.readAsText(file);
 
@@ -401,7 +401,7 @@
           id="view-journal-btn-mobile"
           class="text-sm md:hidden bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg"
           title={$_("app.journalButtonTitle")}
-          onclick={() => uiStore.toggleJournalModal(true)}
+          onclick={() => uiState.toggleJournalModal(true)}
           use:trackClick={{
             category: "Navigation",
             action: "Click",
@@ -477,7 +477,7 @@
           id="view-journal-btn-desktop"
           class="hidden md:inline-block text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-4 rounded-lg md:order-2"
           title={$_("app.journalButtonTitle")}
-          onclick={() => uiStore.toggleJournalModal(true)}
+          onclick={() => uiState.toggleJournalModal(true)}
           use:trackClick={{
             category: "Navigation",
             action: "Click",
@@ -525,10 +525,10 @@
         on:fetchAtr={() => app.fetchAtr()}
         atrFormulaDisplay={$resultsStore.atrFormulaText}
         showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
-        isPriceFetching={$uiStore.isPriceFetching}
-        isAtrFetching={$uiStore.isAtrFetching}
-        symbolSuggestions={$uiStore.symbolSuggestions}
-        showSymbolSuggestions={$uiStore.showSymbolSuggestions}
+        isPriceFetching={uiState.isPriceFetching}
+        isAtrFetching={uiState.isAtrFetching}
+        symbolSuggestions={uiState.symbolSuggestions}
+        showSymbolSuggestions={uiState.showSymbolSuggestions}
       />
     </div>
 
@@ -539,13 +539,13 @@
       calculatedTpDetails={$resultsStore.calculatedTpDetails}
     />
 
-    {#if $uiStore.showErrorMessage}
+    {#if uiState.showErrorMessage}
       <div
         id="error-message"
         class="text-center text-sm font-medium mt-4 md:col-span-2"
         style:color="var(--danger-color)"
       >
-        {$_($uiStore.errorMessage)}
+        {$_(uiState.errorMessage)}
       </div>
     {/if}
 
@@ -553,7 +553,7 @@
       <div>
         <SummaryResults
           isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
-          showCopyFeedback={$uiStore.showCopyFeedback}
+          showCopyFeedback={uiState.showCopyFeedback}
           positionSize={$resultsStore.positionSize}
           netLoss={$resultsStore.netLoss}
           requiredMargin={$resultsStore.requiredMargin}
@@ -562,7 +562,7 @@
           breakEvenPrice={$resultsStore.breakEvenPrice}
           isMarginExceeded={$resultsStore.isMarginExceeded}
           on:toggleLock={() => app.togglePositionSizeLock()}
-          on:copy={() => uiStore.showFeedback("copy")}
+          on:copy={() => uiState.showFeedback("copy")}
         />
         {#if $resultsStore.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
@@ -749,10 +749,10 @@
               name: "ShowInstructions",
             }}>{@html icons.book}</button
           >
-          {#if $uiStore.showSaveFeedback}<span
+          {#if uiState.showSaveFeedback}<span
               id="save-feedback"
               class="save-feedback"
-              class:visible={$uiStore.showSaveFeedback}
+              class:visible={uiState.showSaveFeedback}
               >{$_("dashboard.savedFeedback")}</span
             >{/if}
         </div>
@@ -889,7 +889,7 @@
     </a>
     <button
       class="text-link"
-      onclick={() => uiStore.toggleGuideModal(true)}
+      onclick={() => uiState.toggleGuideModal(true)}
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -898,7 +898,7 @@
     >
     <button
       class="text-link"
-      onclick={() => uiStore.toggleChangelogModal(true)}
+      onclick={() => uiState.toggleChangelogModal(true)}
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -907,7 +907,7 @@
     >
     <button
       class="text-link"
-      onclick={() => uiStore.togglePrivacyModal(true)}
+      onclick={() => uiState.togglePrivacyModal(true)}
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -916,7 +916,7 @@
     >
     <button
       class="text-link"
-      onclick={() => uiStore.toggleWhitepaperModal(true)}
+      onclick={() => uiState.toggleWhitepaperModal(true)}
       use:trackClick={{
         category: "Navigation",
         action: "Click",
@@ -936,9 +936,9 @@
 </footer>
 
 <ModalFrame
-  isOpen={$uiStore.showChangelogModal}
+  isOpen={uiState.showChangelogModal}
   title={$_("app.changelogTitle")}
-  on:close={() => uiStore.toggleChangelogModal(false)}
+  on:close={() => uiState.toggleChangelogModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="changelog-content" class="prose dark:prose-invert">
@@ -947,9 +947,9 @@
 </ModalFrame>
 
 <ModalFrame
-  isOpen={$uiStore.showGuideModal}
+  isOpen={uiState.showGuideModal}
   title={$_("app.guideTitle")}
-  on:close={() => uiStore.toggleGuideModal(false)}
+  on:close={() => uiState.toggleGuideModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="guide-content" class="prose dark:prose-invert">
@@ -958,9 +958,9 @@
 </ModalFrame>
 
 <ModalFrame
-  isOpen={$uiStore.showPrivacyModal}
+  isOpen={uiState.showPrivacyModal}
   title={$_("app.privacyLegal")}
-  on:close={() => uiStore.togglePrivacyModal(false)}
+  on:close={() => uiState.togglePrivacyModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="privacy-content" class="prose dark:prose-invert">
@@ -969,9 +969,9 @@
 </ModalFrame>
 
 <ModalFrame
-  isOpen={$uiStore.showWhitepaperModal}
+  isOpen={uiState.showWhitepaperModal}
   title={$_("app.whitepaper")}
-  on:close={() => uiStore.toggleWhitepaperModal(false)}
+  on:close={() => uiState.toggleWhitepaperModal(false)}
   extraClasses="modal-size-instructions"
 >
   <div id="whitepaper-content" class="prose dark:prose-invert">

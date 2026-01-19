@@ -26,7 +26,7 @@
   import { onboardingService } from "../../services/onboardingService";
   import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
   import { settingsState } from "../../stores/settings.svelte";
-  import { uiStore } from "../../stores/uiStore";
+  import { uiState } from "../../stores/ui.svelte";
   import { modalManager } from "../../services/modalManager";
   import { app } from "../../services/app";
 
@@ -248,7 +248,7 @@
         showSmiley = false;
       }, 1000);
     } catch (err) {
-      uiStore.showError("Failed to copy to clipboard");
+      uiState.showError("Failed to copy to clipboard");
     }
   }
 </script>

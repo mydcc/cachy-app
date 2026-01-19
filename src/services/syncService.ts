@@ -19,7 +19,7 @@ import { get } from "svelte/store";
 import { parseTimestamp } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { journalStore } from "../stores/journalStore";
-import { uiStore } from "../stores/uiStore";
+import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
@@ -32,15 +32,15 @@ export const syncService = {
     const settings = settingsState;
     if (!settings.isPro) return;
     if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
-      uiStore.showError("settings.apiKeysRequired");
+      uiState.showError("settings.apiKeysRequired");
       return;
     }
 
     // Protection against concurrent syncs at service level
-    if (get(uiStore).isPriceFetching) return;
+    if (uiState.isPriceFetching) return;
 
-    uiStore.update((s) => ({ ...s, isPriceFetching: true }));
-    uiStore.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
+    uiState.update((s) => ({ ...s, isPriceFetching: true }));
+    uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
 
     try {
       // 1. Fetch History Positions
@@ -180,7 +180,7 @@ export const syncService = {
 
       const totalItems = filteredHistory.length;
       let processedItems = 0;
-      uiStore.setSyncProgress({
+      uiState.setSyncProgress({
         total: totalItems,
         current: 0,
         step: "Processing History",
@@ -193,7 +193,7 @@ export const syncService = {
         const batchPromises = batch.map(async (p: any, batchIndex: number) => {
           // Update progress before processing each trade
           const currentIndex = i + batchIndex;
-          uiStore.setSyncProgress({
+          uiState.setSyncProgress({
             total: totalItems,
             current: currentIndex,
             step: `Loading ${currentIndex + 1}/${totalItems}`,
@@ -304,7 +304,7 @@ export const syncService = {
           addedCount++;
 
           // Update progress after processing
-          uiStore.setSyncProgress({
+          uiState.setSyncProgress({
             total: totalItems,
             current: currentIndex + 1,
             step: `Loaded ${currentIndex + 1}/${totalItems}`,
@@ -378,11 +378,11 @@ export const syncService = {
       // Final feedback - trades already added incrementally
       if (addedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
-        if (isPartialSync) uiStore.showError("Sync unvollständig (Timeout).");
-        else uiStore.showFeedback("save", 2000);
+        if (isPartialSync) uiState.showError("Sync unvollständig (Timeout).");
+        else uiState.showFeedback("save", 2000);
       } else {
         trackCustomEvent("Sync", "BitunixHistory", "NoNewData");
-        uiStore.showError(
+        uiState.showError(
           isPartialSync
             ? "Sync unvollständig. Keine neuen Positionen."
             : "Keine neuen Positionen gefunden.",
@@ -391,10 +391,10 @@ export const syncService = {
     } catch (e: any) {
       console.error("Sync error:", e);
       trackCustomEvent("Sync", "BitunixHistory", "Error");
-      uiStore.showError("Sync failed: " + e.message);
+      uiState.showError("Sync failed: " + e.message);
     } finally {
-      uiStore.update((s) => ({ ...s, isPriceFetching: false }));
-      uiStore.setSyncProgress(null);
+      uiState.update((s) => ({ ...s, isPriceFetching: false }));
+      uiState.setSyncProgress(null);
     }
   },
 
@@ -406,7 +406,7 @@ export const syncService = {
         JSON.stringify(d),
       );
     } catch {
-      uiStore.showError(
+      uiState.showError(
         "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
       );
     }

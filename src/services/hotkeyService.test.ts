@@ -19,7 +19,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
 import { settingsState } from "../stores/settings.svelte";
 import { tradeStore } from "../stores/tradeStore";
-import { uiStore } from "../stores/uiStore";
+import { uiState } from "../stores/ui.svelte";
 import { get } from "svelte/store";
 import { CONSTANTS } from "../lib/constants";
 
@@ -39,14 +39,16 @@ vi.mock("../stores/tradeStore", () => {
   };
 });
 
-vi.mock("../stores/uiStore", () => {
-  const { writable } = require("svelte/store");
+vi.mock("../stores/ui.svelte", () => {
   return {
-    uiStore: writable({
+    uiState: {
       showSettingsModal: false,
       settingsTab: "general",
-      // activeInputId not in UI store, removed
-    }),
+      toggleJournalModal: vi.fn(),
+      toggleSettingsModal: vi.fn(),
+      toggleChangelogModal: vi.fn(),
+      // Add other methods used in hotkeyService
+    },
   };
 });
 
@@ -165,15 +167,14 @@ describe("HotkeyService", () => {
       remoteTakerFee: undefined,
     });
 
-    uiStore.set({
+    Object.assign(uiState, {
       showSettingsModal: false,
-      // activeInputId: null // Removed
       currentTheme: "dark",
       showJournalModal: false,
       showChangelogModal: false,
       showGuideModal: false,
       showPrivacyModal: false,
-      showWhitepaperModal: false, // Fixed: Added missing property
+      showWhitepaperModal: false,
       showCopyFeedback: false,
       showSaveFeedback: false,
       errorMessage: "",
@@ -185,7 +186,7 @@ describe("HotkeyService", () => {
       isLoading: false,
       loadingMessage: "",
       syncProgress: null,
-      isAtrFetching: false, // Added missing property
+      isAtrFetching: false,
       tooltip: {
         visible: false,
         type: null,
