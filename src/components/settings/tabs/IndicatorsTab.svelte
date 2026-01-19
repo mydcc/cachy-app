@@ -14,6 +14,10 @@
   import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
   import { settingsState } from "../../../stores/settings.svelte";
   import { indicatorState } from "../../../stores/indicator.svelte";
+  import ProBadge from "./ProBadge.svelte";
+  import ProOverlay from "./ProOverlay.svelte";
+  import Field from "./IndicatorField.svelte";
+  import Select from "./IndicatorSelect.svelte";
 
   interface Props {
     availableTimeframes: string[];
@@ -169,8 +173,8 @@
                 id="rsi-len"
                 type="number"
                 bind:value={indicatorState.rsi.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Select
                 label="Source"
@@ -200,8 +204,8 @@
                   id="rsi-sig-len"
                   type="number"
                   bind:value={indicatorState.rsi.signalLength}
-                  min="2"
-                  max="100"
+                  min={2}
+                  max={100}
                 />
               </div>
             {/if}
@@ -222,16 +226,16 @@
                 id="srsi-len"
                 type="number"
                 bind:value={indicatorState.stochRsi.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="RSI Len"
                 id="srsi-rlen"
                 type="number"
                 bind:value={indicatorState.stochRsi.rsiLength}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
             <div class="row">
@@ -240,16 +244,16 @@
                 id="srsi-k"
                 type="number"
                 bind:value={indicatorState.stochRsi.kPeriod}
-                min="1"
-                max="100"
+                min={1}
+                max={100}
               />
               <Field
                 label="%D"
                 id="srsi-d"
                 type="number"
                 bind:value={indicatorState.stochRsi.dPeriod}
-                min="1"
-                max="100"
+                min={1}
+                max={100}
               />
             </div>
           </div>
@@ -269,16 +273,16 @@
                 id="stoch-k"
                 type="number"
                 bind:value={indicatorState.stochastic.kPeriod}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="%K Smth"
                 id="stoch-ks"
                 type="number"
                 bind:value={indicatorState.stochastic.kSmoothing}
-                min="1"
-                max="50"
+                min={1}
+                max={50}
               />
             </div>
             <div class="row">
@@ -287,8 +291,8 @@
                 id="stoch-ds"
                 type="number"
                 bind:value={indicatorState.stochastic.dPeriod}
-                min="1"
-                max="50"
+                min={1}
+                max={50}
               />
             </div>
           </div>
@@ -308,8 +312,8 @@
                 id="cci-len"
                 type="number"
                 bind:value={indicatorState.cci.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Select
                 label="Source"
@@ -331,8 +335,8 @@
                 id="cci-sl"
                 type="number"
                 bind:value={indicatorState.cci.smoothingLength}
-                min="1"
-                max="50"
+                min={1}
+                max={50}
               />
             </div>
           </div>
@@ -352,8 +356,8 @@
                 id="wr-len"
                 type="number"
                 bind:value={indicatorState.williamsR.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
           </div>
@@ -373,8 +377,8 @@
                 id="mfi-len"
                 type="number"
                 bind:value={indicatorState.mfi.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
           </div>
@@ -394,8 +398,8 @@
                 id="mom-len"
                 type="number"
                 bind:value={indicatorState.momentum.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Select
                 label="Source"
@@ -421,16 +425,16 @@
                 id="ao-fast"
                 type="number"
                 bind:value={indicatorState.ao.fastLength}
-                min="1"
-                max="100"
+                min={1}
+                max={100}
               />
               <Field
                 label="Slow Len"
                 id="ao-slow"
                 type="number"
                 bind:value={indicatorState.ao.slowLength}
-                min="1"
-                max="100"
+                min={1}
+                max={100}
               />
             </div>
           </div>
@@ -455,24 +459,24 @@
                 id="macd-f"
                 type="number"
                 bind:value={indicatorState.macd.fastLength}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="Slow"
                 id="macd-s"
                 type="number"
                 bind:value={indicatorState.macd.slowLength}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="Sig"
                 id="macd-sig"
                 type="number"
                 bind:value={indicatorState.macd.signalLength}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
             <div class="row mt-2">
@@ -529,16 +533,16 @@
                   id="ema1-l"
                   type="number"
                   bind:value={indicatorState.ema.ema1.length}
-                  min="2"
-                  max="500"
+                  min={2}
+                  max={500}
                 />
                 <Field
                   label="Offset"
                   id="ema1-o"
                   type="number"
                   bind:value={indicatorState.ema.ema1.offset}
-                  min="-100"
-                  max="100"
+                  min={-100}
+                  max={100}
                 />
                 <Select
                   label="Smth Type"
@@ -552,8 +556,8 @@
                     id="ema1-sl"
                     type="number"
                     bind:value={indicatorState.ema.ema1.smoothingLength}
-                    min="1"
-                    max="100"
+                    min={1}
+                    max={100}
                   />
                 {/if}
               </div>
@@ -570,16 +574,16 @@
                   id="ema2-l"
                   type="number"
                   bind:value={indicatorState.ema.ema2.length}
-                  min="2"
-                  max="500"
+                  min={2}
+                  max={500}
                 />
                 <Field
                   label="Offset"
                   id="ema2-o"
                   type="number"
                   bind:value={indicatorState.ema.ema2.offset}
-                  min="-100"
-                  max="100"
+                  min={-100}
+                  max={100}
                 />
                 <Select
                   label="Smth Type"
@@ -593,8 +597,8 @@
                     id="ema2-sl"
                     type="number"
                     bind:value={indicatorState.ema.ema2.smoothingLength}
-                    min="1"
-                    max="100"
+                    min={1}
+                    max={100}
                   />
                 {/if}
               </div>
@@ -611,16 +615,16 @@
                   id="ema3-l"
                   type="number"
                   bind:value={indicatorState.ema.ema3.length}
-                  min="2"
-                  max="500"
+                  min={2}
+                  max={500}
                 />
                 <Field
                   label="Offset"
                   id="ema3-o"
                   type="number"
                   bind:value={indicatorState.ema.ema3.offset}
-                  min="-100"
-                  max="100"
+                  min={-100}
+                  max={100}
                 />
                 <Select
                   label="Smth Type"
@@ -634,8 +638,8 @@
                     id="ema3-sl"
                     type="number"
                     bind:value={indicatorState.ema.ema3.smoothingLength}
-                    min="1"
-                    max="100"
+                    min={1}
+                    max={100}
                   />
                 {/if}
               </div>
@@ -657,16 +661,16 @@
                 id="adx-s"
                 type="number"
                 bind:value={indicatorState.adx.adxSmoothing}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="DI Len"
                 id="adx-di"
                 type="number"
                 bind:value={indicatorState.adx.diLength}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
             <div class="row mt-2">
@@ -675,8 +679,8 @@
                 id="adx-th"
                 type="number"
                 bind:value={indicatorState.adx.threshold}
-                min="0"
-                max="100"
+                min={0}
+                max={100}
               />
             </div>
           </div>
@@ -696,17 +700,17 @@
                 id="st-fac"
                 type="number"
                 bind:value={indicatorState.superTrend.factor}
-                step="0.1"
-                min="0.1"
-                max="20"
+                step={0.1}
+                min={0.1}
+                max={20}
               />
               <Field
                 label="Period"
                 id="st-per"
                 type="number"
                 bind:value={indicatorState.superTrend.period}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
           </div>
@@ -726,28 +730,28 @@
                 id="ichi-conv"
                 type="number"
                 bind:value={indicatorState.ichimoku.conversionPeriod}
-                min="1"
+                min={1}
               />
               <Field
                 label="Base"
                 id="ichi-base"
                 type="number"
                 bind:value={indicatorState.ichimoku.basePeriod}
-                min="1"
+                min={1}
               />
               <Field
                 label="Span B"
                 id="ichi-spanb"
                 type="number"
                 bind:value={indicatorState.ichimoku.spanBPeriod}
-                min="1"
+                min={1}
               />
               <Field
                 label="Displace"
                 id="ichi-disp"
                 type="number"
                 bind:value={indicatorState.ichimoku.displacement}
-                min="1"
+                min={1}
               />
             </div>
           </div>
@@ -786,7 +790,10 @@
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 animate-fade-in">
         <!-- ATR -->
         <div class="indicator-card">
-          <div class="indicator-header"><h4>ATR</h4></div>
+          <div class="indicator-header">
+            <h4>ATR</h4>
+            <ProBadge />
+          </div>
           <div class="indicator-body">
             <div class="row">
               <Field
@@ -794,16 +801,20 @@
                 id="atr-len"
                 type="number"
                 bind:value={indicatorState.atr.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
           </div>
+          <ProOverlay />
         </div>
 
         <!-- Bollinger Bands -->
         <div class="indicator-card">
-          <div class="indicator-header"><h4>Bollinger Bands</h4></div>
+          <div class="indicator-header">
+            <h4>Bollinger Bands</h4>
+            <ProBadge />
+          </div>
           <div class="indicator-body">
             <div class="row">
               <Field
@@ -811,20 +822,21 @@
                 id="bb-len"
                 type="number"
                 bind:value={indicatorState.bb.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="StdDev"
                 id="bb-std"
                 type="number"
                 bind:value={indicatorState.bb.stdDev}
-                min="0.1"
-                step="0.1"
-                max="10"
+                min={0.1}
+                step={0.1}
+                max={10}
               />
             </div>
           </div>
+          <ProOverlay />
         </div>
 
         <!-- Choppiness Index -->
@@ -840,8 +852,8 @@
                 id="chop-len"
                 type="number"
                 bind:value={indicatorState.choppiness.length}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
             </div>
           </div>
@@ -861,17 +873,17 @@
                 id="atrt-per"
                 type="number"
                 bind:value={indicatorState.atrTrailingStop.period}
-                min="2"
-                max="100"
+                min={2}
+                max={100}
               />
               <Field
                 label="Multiplier"
                 id="atrt-mult"
                 type="number"
                 bind:value={indicatorState.atrTrailingStop.multiplier}
-                step="0.1"
-                min="0.1"
-                max="20"
+                step={0.1}
+                min={0.1}
+                max={20}
               />
             </div>
           </div>
@@ -896,8 +908,8 @@
                 id="obv-sm"
                 type="number"
                 bind:value={indicatorState.obv.smoothingLength}
-                min="0"
-                max="100"
+                min={0}
+                max={100}
               />
               <span
                 class="text-[10px] text-[var(--text-secondary)] self-end mb-2 ml-2"
@@ -921,8 +933,8 @@
                 id="vwap-len"
                 type="number"
                 bind:value={indicatorState.vwap.length}
-                min="0"
-                max="1000"
+                min={0}
+                max={1000}
               />
               <span
                 class="text-[10px] text-[var(--text-secondary)] self-end mb-2 ml-2"
@@ -946,8 +958,8 @@
                 id="vp-rows"
                 type="number"
                 bind:value={indicatorState.volumeProfile.rows}
-                min="5"
-                max="200"
+                min={5}
+                max={200}
               />
             </div>
           </div>
@@ -957,63 +969,6 @@
     {/if}
   </div>
 </div>
-
-<!-- Helper Components (Localized) -->
-{#snippet ProBadge()}
-  {#if !settingsState.isPro}
-    <span
-      class="text-[10px] font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] px-1.5 py-0.5 rounded"
-      >PRO</span
-    >
-  {/if}
-{/snippet}
-
-{#snippet ProOverlay()}
-  {#if !settingsState.isPro}
-    <div
-      class="absolute inset-0 bg-black/10 backdrop-blur-[0.5px] rounded z-10"
-    ></div>
-  {/if}
-{/snippet}
-
-{#snippet Field(props: any)}
-  <!-- { label, id, type, bind:value, min, max, step, disabled } -->
-  <div class="flex flex-col gap-1 flex-1">
-    <label for={props.id} class="text-xs text-[var(--text-secondary)]"
-      >{props.label}</label
-    >
-    <input
-      id={props.id}
-      type={props.type || "number"}
-      bind:value={props.value}
-      min={props.min}
-      max={props.max}
-      step={props.step}
-      class="input-field rounded settings-number-input text-xs w-full"
-      disabled={!settingsState.isPro && !props.alwaysEnabled}
-      use:enhancedInput={{ min: props.min, max: props.max }}
-    />
-  </div>
-{/snippet}
-
-{#snippet Select(props: any)}
-  <!-- { label, id, bind:value, options } -->
-  <div class="flex flex-col gap-1 flex-1">
-    <label for={props.id} class="text-xs text-[var(--text-secondary)]"
-      >{props.label}</label
-    >
-    <select
-      id={props.id}
-      bind:value={props.value}
-      class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)] w-full"
-      disabled={!settingsState.isPro}
-    >
-      {#each props.options as opt}
-        <option value={opt}>{opt.toUpperCase()}</option>
-      {/each}
-    </select>
-  </div>
-{/snippet}
 
 <style>
   .indicator-card {

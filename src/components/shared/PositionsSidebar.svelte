@@ -331,7 +331,9 @@
     aria-expanded={isOpen}
   >
     <h3 class="font-bold text-sm text-[var(--text-primary)]">
-      {$_("dashboard.marketActivity") || "Market Activity"}
+      {typeof $_ === "function"
+        ? $_("dashboard.marketActivity")
+        : "Market Activity"}
     </h3>
     <div
       class="text-[var(--text-secondary)] transform transition-transform duration-200"
@@ -382,8 +384,8 @@
         onclick={() => (activeTab = "positions")}
         oncontextmenu={handleContextMenu}
       >
-        {$_("dashboard.positions") || "Positions"} ({accountState.positions
-          .length})
+        {typeof $_ === "function" ? $_("dashboard.positions") : "Positions"} ({accountState
+          .positions.length})
       </button>
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -393,7 +395,7 @@
         class:border-transparent={activeTab !== "orders"}
         onclick={() => (activeTab = "orders")}
       >
-        {$_("dashboard.orders") || "Orders"} ({openOrders.length})
+        {typeof $_ === "function" ? $_("dashboard.orders") : "Orders"} ({openOrders.length})
       </button>
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -413,7 +415,7 @@
         class:border-transparent={activeTab !== "history"}
         onclick={() => (activeTab = "history")}
       >
-        {$_("dashboard.history") || "History"}
+        {typeof $_ === "function" ? $_("dashboard.history") : "History"}
       </button>
     </div>
 

@@ -142,9 +142,15 @@
     }, 300);
   }
 
-  function translateAction(action: string): string {
-    const key = action.toLowerCase().replace(" ", "");
-    return $_(`settings.technicals.${key}`) || action;
+  function translateAction(action: string | undefined): string {
+    if (!action) return "-";
+    const key = action.toLowerCase().replace(/\s+/g, "");
+    const translation = $_(`settings.technicals.${key}`);
+    // If translation key is not found, it returns the key string in some svelte-i18n configs
+    // or undefined. We want the original action if not found.
+    return translation && !translation.includes("settings.technicals")
+      ? translation
+      : action;
   }
 
   function getActionColor(action: string) {
@@ -279,7 +285,9 @@
           class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-colors border-none outline-none bg-transparent cursor-pointer p-0"
           onclick={() => uiState.openSettings("indicators")}
         >
-          {$_("settings.technicals.title")}
+          {typeof $_ === "function"
+            ? $_("settings.technicals.title")
+            : "Technicals"}
         </button>
 
         <!-- Timeframe Badge with Hover Dropdown -->
@@ -359,13 +367,12 @@
             >
               <span
                 class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                >{$_("settings.technicals.summaryAction")}</span
+                >{typeof $_ === "function"
+                  ? $_("settings.technicals.summaryAction")
+                  : "Summary"}</span
               >
               <span class="font-bold {getActionColor(data.summary.action)}"
-                >{$_(
-                  "settings.technicals." +
-                    data.summary.action.toLowerCase().replace(" ", ""),
-                )}</span
+                >{translateAction(data.summary.action)}</span
               >
             </div>
 
@@ -376,7 +383,9 @@
               >
                 <span
                   class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{$_("settings.technicals.marketConfluence")}</span
+                  >{typeof $_ === "function"
+                    ? $_("settings.technicals.marketConfluence")
+                    : "Confluence"}</span
                 >
                 <div class="flex items-center gap-2">
                   <span
@@ -386,11 +395,7 @@
                   <span
                     class="text-[10px] font-bold {getActionColor(
                       data.confluence.level,
-                    )}"
-                    >{$_(
-                      "settings.technicals." +
-                        data.confluence.level.toLowerCase().replace(" ", ""),
-                    )}</span
+                    )}">{translateAction(data.confluence.level)}</span
                   >
                 </div>
               </div>

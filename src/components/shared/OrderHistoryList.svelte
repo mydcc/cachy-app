@@ -102,7 +102,9 @@
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
-      {$_("dashboard.noHistory") || "No history found."}
+      {typeof $_ === "function"
+        ? $_("dashboard.noHistory")
+        : "No history found."}
     </div>
   {:else}
     <div class="flex flex-col gap-2">
