@@ -21,6 +21,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiStore } from "../../stores/uiStore";
+  import { modalManager } from "../../services/modalManager";
   import { _ } from "../../locales/i18n";
   import {
     createBackup,
@@ -116,21 +117,26 @@
 
   // System Tab Functions
   async function handleBackup() {
-    const useEncryption = confirm(
-      $_("app.backupEncryptQuestion") ||
-        "Do you want to encrypt this backup with a password?",
+    const useEncryption = await modalManager.show(
+      $_("app.backupEncryptQuestion") || "Backup verschlüsseln?",
+      $_("app.backupEncryptDetails") ||
+        "Möchten Sie dieses Backup mit einem Passwort verschlüsseln?",
+      "confirm",
     );
     let password = "";
 
     if (useEncryption) {
-      password =
-        prompt(
-          $_("app.backupPasswordPrompt") || "Enter a password for encryption:",
-        ) || "";
+      const res = await modalManager.show(
+        $_("app.backupPasswordPrompt") || "Passwort eingeben",
+        "",
+        "prompt",
+      );
+      password = typeof res === "string" ? res : "";
+
       if (!password) {
-        alert(
+        uiStore.showError(
           $_("app.backupPasswordRequired") ||
-            "Password is required for encryption.",
+            "Passwort ist für Verschlüsselung erforderlich.",
         );
         return;
       }
@@ -149,15 +155,24 @@
 
     reader.onload = async (event) => {
       const content = event.target?.result as string;
-      if (confirm($_("app.restoreConfirmMessage"))) {
+      if (
+        await modalManager.show(
+          $_("settings.tabs.system") || "System",
+          $_("app.restoreConfirmMessage") || "Backup wiederherstellen?",
+          "confirm",
+        )
+      ) {
         let result = await restoreFromBackup(content);
 
         // Handle encrypted backup that needs a password
         if (result.needsPassword) {
-          const password = prompt(
-            $_("app.backupPasswordEntryPrompt") ||
-              "This backup is encrypted. Please enter the password:",
+          const passRes = await modalManager.show(
+            $_("app.backupPasswordEntryPrompt") || "Passwort erforderlich",
+            "Dieses Backup ist verschlüsselt. Bitte geben Sie das Passwort ein:",
+            "prompt",
           );
+          const password = typeof passRes === "string" ? passRes : "";
+
           if (password) {
             result = await restoreFromBackup(content, password);
           } else {
@@ -167,14 +182,18 @@
         }
 
         if (result.success) {
-          alert(result.message);
+          await modalManager.show(
+            "Erfolg",
+            result.message,
+            "alert"
+          );
           window.location.reload();
         } else {
           // Translate common error keys if they are returned as keys
           const message = result.message.startsWith("app.")
             ? $_(result.message)
             : result.message;
-          alert(message);
+          uiStore.showError(message);
         }
       }
       // Reset input
@@ -182,15 +201,21 @@
     };
 
     reader.onerror = () => {
-      alert($_("app.fileReadError"));
+      uiStore.showError($_("app.fileReadError"));
       input.value = "";
     };
 
     reader.readAsText(file);
   }
 
-  function handleReset() {
-    if (confirm($_("settings.resetConfirm"))) {
+  async function handleReset() {
+    if (
+      await modalManager.show(
+        $_("settings.resetConfirm") || "Reset",
+        "Wirklich alles zurücksetzen? Dies löscht alle lokalen Daten.",
+        "confirm",
+      )
+    ) {
       localStorage.clear();
       window.location.reload();
     }

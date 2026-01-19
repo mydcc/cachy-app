@@ -20,6 +20,8 @@
   import { _ } from "../../locales/i18n";
   import { trackClick } from "../../lib/actions";
   import ModalFrame from "./ModalFrame.svelte";
+  // @ts-ignore
+  import DOMPurify from "dompurify";
 
   let modalState: ModalState = $state({
     title: "",
@@ -42,6 +44,14 @@
   function handleInput(event: Event) {
     modalState.defaultValue = (event.target as HTMLInputElement).value;
   }
+
+  function getSanitizedMessage(msg: string | undefined | null): string {
+    if (!msg) return "";
+    if (typeof window !== "undefined") {
+      return DOMPurify.sanitize(msg);
+    }
+    return msg; // SSR fallback, though modals usually run on client
+  }
 </script>
 
 <ModalFrame
@@ -51,7 +61,7 @@
   extraClasses={modalState.extraClasses || "modal-size-sm"}
 >
   <div class="prose dark:prose-invert w-full max-w-none">
-    {@html modalState.message}
+    {@html getSanitizedMessage(modalState.message)}
   </div>
 
   {#if modalState.type === "prompt"}

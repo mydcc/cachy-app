@@ -20,6 +20,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeStore } from "../../stores/tradeStore";
   import { accountStore } from "../../stores/accountStore";
+  import { uiStore } from "../../stores/uiStore";
   import { _ } from "../../locales/i18n";
 
   // Sub-components
@@ -290,12 +291,12 @@
 
       const res = await response.json();
       if (res.error) {
-        alert(`Error closing position: ${res.error}`);
+        uiStore.showError(`Error closing position: ${res.error}`);
       } else {
         // Trigger refresh or wait for WS
       }
     } catch (e) {
-      alert("Failed to send close order.");
+      uiStore.showError("Failed to send close order.");
     }
   }
 
@@ -310,9 +311,7 @@
       quantity: Number(pos.size),
       leverage: Number(pos.leverage),
     }));
-    alert(
-      `Loaded ${pos.symbol} into trade inputs. Configure TP/SL there and submit.`,
-    );
+    uiStore.showFeedback("save"); // Visual feedback
   }
 </script>
 

@@ -98,19 +98,19 @@
 
             // "CL: [LEVEL] Message"
             // Note: console.log supports format specifiers like %c
-            console.log(
-              `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
-              clStyle,
-              levelStyle,
-              logEntry.data ? logEntry.data : "",
-            );
+            // console.log(
+            //   `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+            //   clStyle,
+            //   levelStyle,
+            //   logEntry.data ? logEntry.data : "",
+            // );
           } catch (e) {
-            console.log(
-              "%cCL:%c [RAW]",
-              "background: #333; color: #00ff9d;",
-              "",
-              event.data,
-            );
+            // console.log(
+            //   "%cCL:%c [RAW]",
+            //   "background: #333; color: #00ff9d;",
+            //   "",
+            //   event.data,
+            // );
           }
         };
 

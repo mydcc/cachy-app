@@ -47,11 +47,11 @@ class BitunixWebSocketService {
   private wsPublic: WebSocket | null = null;
   private wsPrivate: WebSocket | null = null;
 
-  private pingTimerPublic: any = null;
-  private pingTimerPrivate: any = null;
+  private pingTimerPublic: ReturnType<typeof setInterval> | null = null;
+  private pingTimerPrivate: ReturnType<typeof setInterval> | null = null;
 
-  private watchdogTimerPublic: any = null;
-  private watchdogTimerPrivate: any = null;
+  private watchdogTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private watchdogTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private lastWatchdogResetPublic = 0;
   private lastWatchdogResetPrivate = 0;
@@ -59,8 +59,8 @@ class BitunixWebSocketService {
 
   public publicSubscriptions: Set<string> = new Set();
 
-  private reconnectTimerPublic: any = null;
-  private reconnectTimerPrivate: any = null;
+  private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
@@ -71,15 +71,14 @@ class BitunixWebSocketService {
   private lastMessageTimePublic = Date.now();
   private lastMessageTimePrivate = Date.now();
 
-  private connectionTimeoutPublic: any = null;
-  private connectionTimeoutPrivate: any = null;
+  private connectionTimeoutPublic: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimeoutPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isAuthenticated = false;
   private isDestroyed = false;
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
-    console.log("Bitunix WS: Browser reported online. Forcing reconnect.");
     this.cleanup("public");
     this.cleanup("private");
     wsStatusStore.set("connecting");

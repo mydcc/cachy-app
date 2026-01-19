@@ -117,6 +117,22 @@ export const POST: RequestHandler = async ({ request }) => {
             );
           }
         }
+
+        // Validate Trigger Price for Conditional Market Orders
+        if (
+          orderType === "STOP_MARKET" ||
+          orderType === "TAKE_PROFIT_MARKET"
+        ) {
+          const triggerPrice = parseFloat(
+            String(body.triggerPrice || body.stopPrice),
+          );
+          if (isNaN(triggerPrice) || triggerPrice <= 0) {
+            return json(
+              { error: "Trigger price is required for conditional market orders." },
+              { status: 400 },
+            );
+          }
+        }
       }
     }
   }
@@ -198,7 +214,7 @@ async function placeBitunixOrder(
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: formatApiNum(orderData.qty)!,
+    qty: formatApiNum(orderData.qty) || "0", // Fallback, though validation ensures qty > 0
     reduceOnly: orderData.reduceOnly || false,
   };
 
