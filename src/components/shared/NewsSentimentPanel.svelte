@@ -83,6 +83,17 @@
     }
   });
 
+  $effect(() => {
+    // React to symbol changes automatically
+    if (symbol && settingsState.enableNewsAnalysis) {
+      // Debounce slightly or just check if it's a real change to avoid double loading
+      // loadData handles internal checks, but we want to trigger it when symbol changes.
+      // We use untrack for settingsState to avoid re-triggering on unrelated settings changes if not desired,
+      // but enabling news analysis should trigger it.
+      loadData();
+    }
+  });
+
   function toggleExpand() {
     isExpanded = !isExpanded;
   }
@@ -92,6 +103,11 @@
       event.preventDefault();
       toggleExpand();
     }
+  }
+
+  function handleRefresh(e: Event) {
+    e.stopPropagation();
+    loadData();
   }
 </script>
 
@@ -115,7 +131,21 @@
         </h3>
       </div>
       <div class="flex items-center gap-2">
-        {#if analysis && !isExpanded}
+        {#if isLoading}
+          <div class="animate-spin text-[var(--text-secondary)] w-3 h-3">
+            {@html icons.refresh}
+          </div>
+        {:else}
+          <button
+            class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-primary)] transition-colors"
+            title="Refresh Sentiment"
+            onclick={handleRefresh}
+          >
+            {@html icons.refresh}
+          </button>
+        {/if}
+
+        {#if analysis && !isExpanded && !isLoading}
           <span
             class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-[var(--bg-primary)]"
             style:color={sentimentColor}
