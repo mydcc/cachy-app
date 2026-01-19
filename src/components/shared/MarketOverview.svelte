@@ -38,6 +38,7 @@
   import { app } from "../../services/app";
   import DepthBar from "./DepthBar.svelte"; // Import the new DepthBar
   import Tooltip from "./Tooltip.svelte";
+  import NewsSentimentPanel from "./NewsSentimentPanel.svelte";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -676,6 +677,12 @@
       {@html icons.starEmpty}
     {/if}
   </button>
+
+  {#if !isFavoriteTile && symbol}
+    <div onclick={(e) => e.stopPropagation()} class="cursor-default">
+         <NewsSentimentPanel {symbol} />
+    </div>
+  {/if}
 </div>
 
 <style>

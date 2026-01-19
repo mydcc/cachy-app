@@ -85,6 +85,8 @@ export interface Settings {
     panelIsExpanded: boolean;
     minChatProfitFactor: number;
     fontFamily: string;
+    cryptoPanicApiKey?: string;
+    newsApiKey?: string;
 }
 
 const defaultSettings: Settings = {
@@ -146,6 +148,8 @@ const defaultSettings: Settings = {
     aiConfirmClear: true,
     minChatProfitFactor: 0.0,
     fontFamily: "Inter",
+    cryptoPanicApiKey: "",
+    newsApiKey: "",
 };
 
 class SettingsManager {
@@ -209,6 +213,8 @@ class SettingsManager {
     panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
     minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
     fontFamily = $state<string>(defaultSettings.fontFamily);
+    cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
+    newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
 
     // Subscriptions for legacy compatibility
     private listeners: Set<(value: Settings) => void> = new Set();
@@ -290,6 +296,8 @@ class SettingsManager {
             this.panelIsExpanded = merged.panelIsExpanded;
             this.minChatProfitFactor = merged.minChatProfitFactor;
             this.fontFamily = merged.fontFamily;
+            this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
+            this.newsApiKey = merged.newsApiKey;
 
             // Cleanup / Migration Logic matching old store
             if (parsed.marketDataInterval === "manual") {
@@ -374,6 +382,8 @@ class SettingsManager {
             panelIsExpanded: this.panelIsExpanded,
             minChatProfitFactor: this.minChatProfitFactor,
             fontFamily: this.fontFamily,
+            cryptoPanicApiKey: this.cryptoPanicApiKey,
+            newsApiKey: this.newsApiKey,
         };
     }
 
