@@ -175,8 +175,6 @@ class SettingsManager {
     feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
     hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
 
-    // Objects need deep reactivity or be replaced entirely. 
-    // For deep objects like apiKeys, we can just use $state too but replacing sub-keys might require care if strict equality checks exist.
     apiKeys = $state(defaultSettings.apiKeys);
     customHotkeys = $state(defaultSettings.customHotkeys);
     favoriteTimeframes = $state(defaultSettings.favoriteTimeframes);
@@ -225,27 +223,29 @@ class SettingsManager {
     cryptoPanicPlan = $state<"developer" | "growth" | "enterprise">(defaultSettings.cryptoPanicPlan);
     cryptoPanicFilter = $state<"all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved">(defaultSettings.cryptoPanicFilter);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
-    isInitializing = true;
 
-    // Subscriptions for legacy compatibility
+    // Private state for initialization
+    private isInitializing = true;
     private listeners: Set<(value: Settings) => void> = new Set();
     private notifyTimer: any = null;
 
     constructor() {
         if (browser) {
+            this.isInitializing = true;
             this.load();
+
             $effect.root(() => {
                 $effect(() => {
                     if (this.isInitializing) return;
 
-                    // Accessing properties to track them for auto-save
-                    // We can also just serialize everything, but accessing some 
-                    // ensures the effect re-runs when they change.
+                    // Trigger reactivity
                     this.apiProvider;
                     this.apiKeys;
                     this.isPro;
                     this.chatStyle;
-                    this.fontFamily;
+                    this.cryptoPanicPlan;
+                    this.cryptoPanicFilter;
+                    this.enableNewsAnalysis;
 
                     const data = this.toJSON();
                     untrack(() => {
@@ -254,11 +254,14 @@ class SettingsManager {
                     });
                 });
             });
+
+            setTimeout(() => {
+                this.isInitializing = false;
+                console.log("[Settings] Store initialized. Provider:", this.apiProvider);
+            }, 500);
         }
     }
 
-
-    // Load from LocalStorage
     private load() {
         try {
             const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
@@ -266,95 +269,81 @@ class SettingsManager {
 
             const parsed = JSON.parse(d);
 
-            // Deep merge apiKeys to ensure both bitunix and binance have key/secret even if partial in storage
+            // Deep merge apiKeys
             const mergedApiKeys = {
                 bitunix: { ...defaultSettings.apiKeys.bitunix, ...(parsed.apiKeys?.bitunix || {}) },
                 binance: { ...defaultSettings.apiKeys.binance, ...(parsed.apiKeys?.binance || {}) }
             };
 
-            // Merge with defaults to ensure all fields exist
             const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
 
-            // Apply to state
-            this.apiProvider = merged.apiProvider;
-            this.marketDataInterval = merged.marketDataInterval;
-            this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
-            this.autoFetchBalance = merged.autoFetchBalance;
-            this.showSidebars = merged.showSidebars;
-            this.showTechnicals = merged.showTechnicals;
-            this.showIndicatorParams = merged.showIndicatorParams;
-            this.hideUnfilledOrders = merged.hideUnfilledOrders;
-            this.positionViewMode = merged.positionViewMode;
-            this.pnlViewMode = merged.pnlViewMode;
-            this.isPro = merged.isPro;
-            this.feePreference = merged.feePreference;
-            this.hotkeyMode = merged.hotkeyMode;
-            this.apiKeys = merged.apiKeys;
-            this.customHotkeys = merged.customHotkeys || {};
-            this.favoriteTimeframes = merged.favoriteTimeframes;
-            this.favoriteSymbols = merged.favoriteSymbols;
-            this.syncRsiTimeframe = merged.syncRsiTimeframe;
-            this.imgbbApiKey = merged.imgbbApiKey;
-            this.imgbbExpiration = merged.imgbbExpiration;
-            this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
-            this.imgurClientId = merged.imgurClientId;
-            this.enableSidePanel = merged.enableSidePanel;
-            this.sidePanelMode = merged.sidePanelMode;
-            this.sidePanelLayout = merged.sidePanelLayout;
-            this.chatStyle = merged.chatStyle;
-            this.panelState = merged.panelState;
-            this.maxPrivateNotes = merged.maxPrivateNotes;
-            this.customSystemPrompt = merged.customSystemPrompt;
-            this.aiProvider = merged.aiProvider;
-            this.openaiApiKey = merged.openaiApiKey;
-            this.openaiModel = merged.openaiModel;
-            this.geminiApiKey = merged.geminiApiKey;
-            this.geminiModel = merged.geminiModel;
-            this.anthropicApiKey = merged.anthropicApiKey;
-            this.anthropicModel = merged.anthropicModel;
-            this.aiConfirmActions = merged.aiConfirmActions;
-            this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
-            this.aiConfirmClear = merged.aiConfirmClear;
-            this.showSpinButtons = merged.showSpinButtons;
-            this.disclaimerAccepted = merged.disclaimerAccepted;
-            this.useUtcDateParsing = merged.useUtcDateParsing;
-            this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
-            this.debugMode = merged.debugMode;
-            this.syncFavorites = merged.syncFavorites;
-            this.confirmTradeDeletion = merged.confirmTradeDeletion;
-            this.confirmBulkDeletion = merged.confirmBulkDeletion;
-            this.enableGlassmorphism = merged.enableGlassmorphism;
-            this.chatFontSize = merged.chatFontSize;
-            this.panelIsExpanded = merged.panelIsExpanded;
-            this.minChatProfitFactor = merged.minChatProfitFactor;
-            this.fontFamily = merged.fontFamily;
-            this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
-            this.newsApiKey = merged.newsApiKey;
-            this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
-            this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
-            this.enableNewsAnalysis = merged.enableNewsAnalysis;
+            untrack(() => {
+                this.apiProvider = merged.apiProvider === "binance" ? "binance" : "bitunix";
+                this.marketDataInterval = merged.marketDataInterval;
+                this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
+                this.autoFetchBalance = merged.autoFetchBalance;
+                this.showSidebars = merged.showSidebars;
+                this.showTechnicals = merged.showTechnicals;
+                this.showIndicatorParams = merged.showIndicatorParams;
+                this.hideUnfilledOrders = merged.hideUnfilledOrders;
+                this.positionViewMode = merged.positionViewMode;
+                this.pnlViewMode = merged.pnlViewMode;
+                this.isPro = merged.isPro;
+                this.feePreference = merged.feePreference;
+                this.hotkeyMode = merged.hotkeyMode;
+                this.apiKeys = merged.apiKeys;
+                this.customHotkeys = merged.customHotkeys || {};
+                this.favoriteTimeframes = merged.favoriteTimeframes;
+                this.favoriteSymbols = merged.favoriteSymbols;
+                this.syncRsiTimeframe = merged.syncRsiTimeframe;
+                this.imgbbApiKey = merged.imgbbApiKey;
+                this.imgbbExpiration = merged.imgbbExpiration;
+                this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
+                this.imgurClientId = merged.imgurClientId;
+                this.enableSidePanel = merged.enableSidePanel;
+                this.sidePanelMode = merged.sidePanelMode;
+                this.sidePanelLayout = merged.sidePanelLayout;
+                this.chatStyle = merged.chatStyle;
+                this.panelState = merged.panelState;
+                this.maxPrivateNotes = merged.maxPrivateNotes;
+                this.customSystemPrompt = merged.customSystemPrompt;
+                this.aiProvider = merged.aiProvider;
+                this.openaiApiKey = merged.openaiApiKey;
+                this.openaiModel = merged.openaiModel;
+                this.geminiApiKey = merged.geminiApiKey;
+                this.geminiModel = merged.geminiModel;
+                this.anthropicApiKey = merged.anthropicApiKey;
+                this.anthropicModel = merged.anthropicModel;
+                this.aiConfirmActions = merged.aiConfirmActions;
+                this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
+                this.aiConfirmClear = merged.aiConfirmClear;
+                this.showSpinButtons = merged.showSpinButtons;
+                this.disclaimerAccepted = merged.disclaimerAccepted;
+                this.useUtcDateParsing = merged.useUtcDateParsing;
+                this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
+                this.debugMode = merged.debugMode;
+                this.syncFavorites = merged.syncFavorites;
+                this.confirmTradeDeletion = merged.confirmTradeDeletion;
+                this.confirmBulkDeletion = merged.confirmBulkDeletion;
+                this.enableGlassmorphism = merged.enableGlassmorphism;
+                this.chatFontSize = merged.chatFontSize;
+                this.panelIsExpanded = merged.panelIsExpanded;
+                this.minChatProfitFactor = merged.minChatProfitFactor;
+                this.fontFamily = merged.fontFamily;
+                this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
+                this.newsApiKey = merged.newsApiKey;
+                this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
+                this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
+                this.enableNewsAnalysis = merged.enableNewsAnalysis;
 
-            // Cleanup / Migration Logic matching old store
-            if (parsed.marketDataInterval === "manual") {
-                this.autoUpdatePriceInput = false;
-                this.marketDataInterval = 60; // Fallback since "manual" is invalid type now
-            }
-            if (parsed.priceUpdateMode === "auto") {
-                this.autoUpdatePriceInput = true;
-            }
-            if (!this.imgbbApiKey) this.imgbbApiKey = defaultSettings.imgbbApiKey;
-            if (!this.aiProvider) this.aiProvider = defaultSettings.aiProvider;
-            if (this.geminiModel === "flash") this.geminiModel = "gemini-2.5-flash";
-            if (this.geminiModel === "pro") this.geminiModel = "gemini-2.0-flash-exp";
-
-            // Done initializing, allow effects to fire
-            setTimeout(() => {
-                this.isInitializing = false;
-            }, 100);
-
+                // Migration
+                if (parsed.marketDataInterval === "manual") {
+                    this.autoUpdatePriceInput = false;
+                    this.marketDataInterval = 60;
+                }
+            });
         } catch (e) {
-            console.warn("SettingsManager: Failed to load from localStorage", e);
-            this.isInitializing = false; // If an error occurs, set to false
+            console.warn("SettingsManager: Load error", e);
         }
     }
 
@@ -364,11 +353,10 @@ class SettingsManager {
             const data = this.toJSON();
             localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(data));
         } catch (e) {
-            console.warn("SettingsManager: Failed to save to localStorage", e);
+            console.warn("SettingsManager: Save error", e);
         }
     }
 
-    // Export current state as a plain object (for compatibility and JSON stringify)
     toJSON(): Settings {
         return {
             apiProvider: this.apiProvider,
@@ -431,9 +419,8 @@ class SettingsManager {
         };
     }
 
-    // Legacy Subscription Support
     subscribe(fn: (value: Settings) => void): () => void {
-        fn(this.toJSON()); // Immediate call
+        fn(this.toJSON());
         this.listeners.add(fn);
         return () => {
             this.listeners.delete(fn);
@@ -442,22 +429,18 @@ class SettingsManager {
 
     private notifyListeners() {
         if (this.notifyTimer) clearTimeout(this.notifyTimer);
-
         this.notifyTimer = setTimeout(() => {
             const snapshot = this.toJSON();
             this.listeners.forEach(fn => fn(snapshot));
             this.notifyTimer = null;
-        }, 50); // Small debounce to prevent "flush" loops and flood updates
+        }, 50);
     }
 
-    // Method to support update((s) => ...) pattern for partial migration
     update(fn: (s: Settings) => Partial<Settings>) {
         const current = this.toJSON();
         const updates = fn(current);
-        Object.assign(this, updates); // This triggers reactivity via setters
+        Object.assign(this, updates);
     }
-
-    // Set method for full compatibility? usually .set() isn't used much if update is present
 }
 
 export const settingsState = new SettingsManager();

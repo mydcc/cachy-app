@@ -9,6 +9,7 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+// @ts-ignore
 import OpenAI from "openai";
 
 export interface NewsItem {
@@ -78,7 +79,7 @@ export const newsService = {
           newsItems = data.results.map((item: any) => ({
             title: item.title,
             url: item.url,
-            source: item.source.title,
+            source: item.source?.title || "Unknown",
             published_at: item.published_at,
             currencies: item.currencies
           }));

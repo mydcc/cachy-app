@@ -385,9 +385,124 @@ export const app = {
     await syncService.syncBitunixPositions();
   },
 
-  fetchAllAnalysisData: async (symbol?: string) => {
-    if (symbol) tradeState.update(s => ({ ...s, symbol }));
-    app.handleFetchPrice();
-    app.fetchAtr(true);
+  toggleRiskAmountLock() {
+    const isLocked = !tradeState.isRiskAmountLocked;
+    tradeState.update(s => ({
+      ...s,
+      isRiskAmountLocked: isLocked,
+      isPositionSizeLocked: isLocked ? false : s.isPositionSizeLocked,
+      lockedPositionSize: isLocked ? null : s.lockedPositionSize
+    }));
+  },
+
+  togglePositionSizeLock() {
+    const isLocked = !tradeState.isPositionSizeLocked;
+    const currentSize = resultsState.positionSize && resultsState.positionSize !== "-"
+      ? new Decimal(resultsState.positionSize.replace(/,/g, ""))
+      : null;
+
+    tradeState.update(s => ({
+      ...s,
+      isPositionSizeLocked: isLocked,
+      lockedPositionSize: isLocked ? currentSize : null,
+      isRiskAmountLocked: isLocked ? false : s.isRiskAmountLocked
+    }));
+  },
+
+  addTakeProfitRow() {
+    const currentTargets = tradeState.targets;
+    if (currentTargets.length >= 10) return;
+
+    const newTargets = [
+      ...currentTargets,
+      { price: null, percent: 0, isLocked: false }
+    ];
+    tradeState.update(s => ({ ...s, targets: newTargets }));
+    app.adjustTpPercentages(null);
+  },
+
+  removeTakeProfitRow(index: number) {
+    const currentTargets = [...tradeState.targets];
+    if (currentTargets.length <= 1) return;
+
+    currentTargets.splice(index, 1);
+    tradeState.update(s => ({ ...s, targets: currentTargets }));
+    app.adjustTpPercentages(index);
+  },
+
+  adjustTpPercentages(changedIndex: number | null) {
+    const targets = [...tradeState.targets];
+    if (targets.length === 0) return;
+
+    const total = targets.reduce((sum, t) => sum + (t.percent || 0), 0);
+    const diff = 100 - total;
+
+    if (Math.abs(diff) < 0.0001) return;
+
+    // If only one target, it must be 100%
+    if (targets.length === 1) {
+      targets[0].percent = 100;
+      tradeState.update(s => ({ ...s, targets }));
+      return;
+    }
+
+    const unlockedIndices = targets
+      .map((t, i) => (!t.isLocked && i !== changedIndex ? i : -1))
+      .filter(i => i !== -1);
+
+    if (unlockedIndices.length === 0) {
+      // Revert change if no other unlocked targets
+      if (changedIndex !== null) {
+        const oldTotalExceptChanged = targets.reduce((sum, t, i) => i !== changedIndex ? sum + (t.percent || 0) : sum, 0);
+        targets[changedIndex].percent = 100 - oldTotalExceptChanged;
+        tradeState.update(s => ({ ...s, targets }));
+      }
+      return;
+    }
+
+    if (diff > 0) {
+      // Surplus: distribute to all unlocked
+      const share = diff / unlockedIndices.length;
+      unlockedIndices.forEach(i => {
+        targets[i].percent = (targets[i].percent || 0) + share;
+      });
+    } else {
+      // Deficit: take from unlocked targets starting from last
+      let remainingDeficit = Math.abs(diff);
+      for (let i = targets.length - 1; i >= 0; i--) {
+        if (unlockedIndices.includes(i)) {
+          const current = targets[i].percent || 0;
+          const take = Math.min(current, remainingDeficit);
+          targets[i].percent = current - take;
+          remainingDeficit -= take;
+          if (remainingDeficit <= 0) break;
+        }
+      }
+    }
+
+    tradeState.update(s => ({ ...s, targets }));
+    app.calculateAndDisplay();
+  },
+
+  updateSymbolSuggestions: (input: string) => {
+    if (!input || input.length < 1) {
+      uiState.symbolSuggestions = [];
+      uiState.showSymbolSuggestions = false;
+      return;
+    }
+    // Simple filter of favorite symbols or common ones
+    const suggestions = settingsState.favoriteSymbols.filter(s =>
+      s.toLowerCase().includes(input.toLowerCase())
+    );
+    uiState.symbolSuggestions = suggestions;
+    uiState.showSymbolSuggestions = suggestions.length > 0;
+  },
+
+  fetchAllAnalysisData: async (symbol?: string, isAuto = false) => {
+    if (symbol && symbol !== tradeState.symbol) {
+      tradeState.update(s => ({ ...s, symbol }));
+    }
+    await app.handleFetchPrice(isAuto);
+    await app.fetchAtr(isAuto);
   }
 };

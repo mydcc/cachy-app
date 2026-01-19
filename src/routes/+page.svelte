@@ -433,7 +433,7 @@
             class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed"
             title={$_("dashboard.deletePresetTitle")}
             disabled={!presetState.selectedPreset}
-            onclick={app.deletePreset}
+            onclick={() => app.deletePreset(presetState.selectedPreset)}
             use:trackClick={{
               category: "Presets",
               action: "Click",
