@@ -105,6 +105,16 @@ export interface TechnicalsData {
       action: string
     };
     parabolicSar?: Decimal;
+    // Phase 5: Pro Indicators
+    superTrend?: { value: Decimal; trend: "bull" | "bear" };
+    atrTrailingStop?: { buy: Decimal; sell: Decimal };
+    obv?: Decimal;
+    volumeProfile?: {
+      poc: Decimal;
+      vaHigh: Decimal;
+      vaLow: Decimal;
+      rows: { priceStart: Decimal; priceEnd: Decimal; volume: Decimal }[];
+    };
   };
 }
 
@@ -168,6 +178,15 @@ export interface SerializedTechnicalsData {
       action: string
     };
     parabolicSar?: string;
+    superTrend?: { value: string; trend: "bull" | "bear" };
+    atrTrailingStop?: { buy: string; sell: string };
+    obv?: string;
+    volumeProfile?: {
+      poc: string;
+      vaHigh: string;
+      vaLow: string;
+      rows: { priceStart: string; priceEnd: string; volume: string }[];
+    };
   };
 }
 

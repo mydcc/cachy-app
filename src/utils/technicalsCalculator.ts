@@ -253,6 +253,12 @@ export function calculateAllIndicators(
     // --- Advanced / New Indicators ---
     let advancedInfo: TechnicalsData["advanced"] = {};
     try {
+        // Phase 5: Pro Indicators Calculations
+        const stResult = JSIndicators.superTrend(highsNum, lowsNum, closesNum, 10, 3);
+        const atrTsResult = JSIndicators.atrTrailingStop(highsNum, lowsNum, closesNum, 22, 3);
+        const obvResult = JSIndicators.obv(closesNum, volumesNum);
+        const vpResult = JSIndicators.volumeProfile(highsNum, lowsNum, closesNum, volumesNum, 24);
+
         // VWAP
         const vwapSeries = JSIndicators.vwap(highsNum, lowsNum, closesNum, volumesNum);
         advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
@@ -299,6 +305,30 @@ export function calculateAllIndicators(
             spanB: spanB,
             action: ichiAction
         };
+
+        // Phase 5 Assignments
+        advancedInfo.superTrend = {
+            value: new Decimal(stResult.value[stResult.value.length - 1]),
+            trend: stResult.trend[stResult.trend.length - 1] === 1 ? "bull" : "bear"
+        };
+        advancedInfo.atrTrailingStop = {
+            buy: new Decimal(atrTsResult.buyStop[atrTsResult.buyStop.length - 1]),
+            sell: new Decimal(atrTsResult.sellStop[atrTsResult.sellStop.length - 1])
+        };
+        advancedInfo.obv = new Decimal(obvResult[obvResult.length - 1]);
+
+        if (vpResult) {
+            advancedInfo.volumeProfile = {
+                poc: new Decimal(vpResult.poc),
+                vaHigh: new Decimal(vpResult.vaHigh),
+                vaLow: new Decimal(vpResult.vaLow),
+                rows: vpResult.rows.map(r => ({
+                    priceStart: new Decimal(r.priceStart),
+                    priceEnd: new Decimal(r.priceEnd),
+                    volume: new Decimal(r.volume)
+                }))
+            };
+        }
 
     } catch (e) {
         console.error("Advanced Indicators Error:", e);

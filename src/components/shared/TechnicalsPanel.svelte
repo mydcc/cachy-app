@@ -161,7 +161,7 @@
   }
 
   function formatVal(val: Decimal | undefined, precOverride?: number) {
-    if (!val) return "-";
+    if (!val || !val.toDecimalPlaces) return "-";
     const prec = precOverride ?? indicatorSettings?.precision ?? 4;
     return val.toDecimalPlaces(prec).toString();
   }

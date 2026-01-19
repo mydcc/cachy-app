@@ -424,6 +424,204 @@ export const JSIndicators = {
       lagging: [] // Not needed for current signal check usually, visual only
     };
   },
+
+  // --- Pro Indicators ---
+
+  superTrend(
+    high: number[],
+    low: number[],
+    close: number[],
+    period: number = 10,
+    multiplier: number = 3
+  ) {
+    // 1. ATR
+    const atr = this.atr(high, low, close, period);
+    const len = close.length;
+    const basicUpper = new Array(len).fill(0);
+    const basicLower = new Array(len).fill(0);
+    const finalUpper = new Array(len).fill(0);
+    const finalLower = new Array(len).fill(0);
+    const trend = new Array(len).fill(0); // 1 = Bull, -1 = Bear
+    // Initialize trend
+    trend[0] = 1;
+
+    // Calculation loop
+    for (let i = 1; i < len; i++) {
+      const hl2 = (high[i] + low[i]) / 2;
+      basicUpper[i] = hl2 + (multiplier * atr[i]);
+      basicLower[i] = hl2 - (multiplier * atr[i]);
+
+      // Final Upper Band Rule
+      // If Basic Upper < Prev Final Upper OR Prev Close > Prev Final Upper: use Basic Upper
+      // Else use Prev Final Upper
+      if (basicUpper[i] < finalUpper[i - 1] || close[i - 1] > finalUpper[i - 1]) {
+        finalUpper[i] = basicUpper[i];
+      } else {
+        finalUpper[i] = finalUpper[i - 1];
+      }
+
+      // Final Lower Band Rule
+      // If Basic Lower > Prev Final Lower OR Prev Close < Prev Final Lower: use Basic Lower
+      // Else use Prev Final Lower
+      if (basicLower[i] > finalLower[i - 1] || close[i - 1] < finalLower[i - 1]) {
+        finalLower[i] = basicLower[i];
+      } else {
+        finalLower[i] = finalLower[i - 1];
+      }
+
+      // Trend Rule
+      let currentTrend = trend[i - 1];
+      if (currentTrend === 1) { // Was Bullish
+        if (close[i] < finalLower[i - 1]) currentTrend = -1; // Turned Bearish
+      } else { // Was Bearish
+        if (close[i] > finalUpper[i - 1]) currentTrend = 1; // Turned Bullish
+      }
+      trend[i] = currentTrend;
+    }
+
+    return {
+      trend, // 1 or -1
+      value: trend.map((t, i) => t === 1 ? finalLower[i] : finalUpper[i]) // The active line
+    };
+  },
+
+  atrTrailingStop(high: number[], low: number[], close: number[], period: number = 22, multiplier: number = 3) {
+    // Chandelier Exit Logic essentially
+    // Long Exit = Highest High (period) - ATR * mult
+    // Short Exit = Lowest Low (period) + ATR * mult
+    const atr = this.atr(high, low, close, period);
+    const len = close.length;
+    const buyStop = new Array(len).fill(0);
+    const sellStop = new Array(len).fill(0);
+
+    for (let i = period; i < len; i++) {
+      const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
+      const lowestLow = Math.min(...low.slice(i - period + 1, i + 1));
+
+      buyStop[i] = highestHigh - atr[i] * multiplier;
+      sellStop[i] = lowestLow + atr[i] * multiplier;
+    }
+    return { buyStop, sellStop };
+  },
+
+  obv(close: number[], volume: number[]) {
+    const result = new Array(close.length).fill(0);
+    let cumVol = 0;
+    result[0] = cumVol;
+
+    for (let i = 1; i < close.length; i++) {
+      if (close[i] > close[i - 1]) {
+        cumVol += volume[i];
+      } else if (close[i] < close[i - 1]) {
+        cumVol -= volume[i];
+      }
+      result[i] = cumVol;
+    }
+    return result;
+  },
+
+  volumeProfile(
+    high: number[],
+    low: number[],
+    close: number[],
+    volume: number[],
+    rowCount: number = 24
+  ) {
+    if (close.length === 0) return null;
+
+    // 1. Find Range
+    const minPrice = Math.min(...low);
+    const maxPrice = Math.max(...high);
+    if (minPrice === maxPrice) return null;
+
+    const range = maxPrice - minPrice;
+    const rowSize = range / rowCount;
+
+    // Initialize Buckets
+    const rows = new Array(rowCount).fill(0).map((_, i) => ({
+      priceStart: minPrice + (i * rowSize),
+      priceEnd: minPrice + ((i + 1) * rowSize),
+      volume: 0
+    }));
+
+    // 2. Distribute Volume
+    for (let i = 0; i < close.length; i++) {
+      const cHigh = high[i];
+      const cLow = low[i];
+      const cVol = volume[i];
+
+      if (cHigh === cLow) {
+        // Single point, easier
+        const rowIdx = Math.min(Math.floor((cHigh - minPrice) / rowSize), rowCount - 1);
+        if (rowIdx >= 0) rows[rowIdx].volume += cVol;
+      } else {
+        // Distribute across overlapped rows
+        // Find start row and end row
+        const startRowIdx = Math.max(0, Math.floor((cLow - minPrice) / rowSize));
+        const endRowIdx = Math.min(rowCount - 1, Math.floor((cHigh - minPrice) / rowSize));
+
+        const candleRange = cHigh - cLow;
+
+        for (let r = startRowIdx; r <= endRowIdx; r++) {
+          // Calculate overlap
+          const rStart = rows[r].priceStart;
+          const rEnd = rows[r].priceEnd;
+          const overlapStart = Math.max(cLow, rStart);
+          const overlapEnd = Math.min(cHigh, rEnd);
+          const overlap = Math.max(0, overlapEnd - overlapStart);
+
+          // Proportional Volume
+          const share = overlap / candleRange;
+          rows[r].volume += cVol * share;
+        }
+      }
+    }
+
+    // 3. Find POC
+    let maxVol = -1;
+    let pocRowIdx = -1;
+    let totalVol = 0;
+
+    rows.forEach((r, i) => {
+      totalVol += r.volume;
+      if (r.volume > maxVol) {
+        maxVol = r.volume;
+        pocRowIdx = i;
+      }
+    });
+
+    // 4. Value Area (70%)
+    const targetVaVol = totalVol * 0.70;
+    let currentVaVol = maxVol;
+    let upIdx = pocRowIdx;
+    let downIdx = pocRowIdx;
+    const vaRows = new Set<number>();
+    vaRows.add(pocRowIdx);
+
+    while (currentVaVol < targetVaVol) {
+      const upVol = (upIdx < rowCount - 1) ? rows[upIdx + 1].volume : 0;
+      const downVol = (downIdx > 0) ? rows[downIdx - 1].volume : 0;
+
+      if (upVol === 0 && downVol === 0) break; // Should not happen if data exists
+
+      if (upVol >= downVol) {
+        currentVaVol += upVol;
+        upIdx++;
+        vaRows.add(upIdx);
+      } else {
+        currentVaVol += downVol;
+        downIdx--;
+        vaRows.add(downIdx);
+      }
+    }
+
+    return {
+      rows,
+      poc: (rows[pocRowIdx].priceStart + rows[pocRowIdx].priceEnd) / 2,
+      vaHigh: rows[Math.max(...vaRows)].priceEnd,
+      vaLow: rows[Math.min(...vaRows)].priceStart
+    };
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---

@@ -92,7 +92,27 @@ function serializeResult(data: TechnicalsData): SerializedTechnicalsData {
                 spanB: data.advanced.ichimoku.spanB.toString(),
                 action: data.advanced.ichimoku.action
             } : undefined,
-            parabolicSar: data.advanced.parabolicSar?.toString()
+            parabolicSar: data.advanced.parabolicSar?.toString(),
+            // Phase 5: Pro Serialization
+            superTrend: data.advanced.superTrend ? {
+                value: data.advanced.superTrend.value.toString(),
+                trend: data.advanced.superTrend.trend
+            } : undefined,
+            atrTrailingStop: data.advanced.atrTrailingStop ? {
+                buy: data.advanced.atrTrailingStop.buy.toString(),
+                sell: data.advanced.atrTrailingStop.sell.toString()
+            } : undefined,
+            obv: data.advanced.obv?.toString(),
+            volumeProfile: data.advanced.volumeProfile ? {
+                poc: data.advanced.volumeProfile.poc.toString(),
+                vaHigh: data.advanced.volumeProfile.vaHigh.toString(),
+                vaLow: data.advanced.volumeProfile.vaLow.toString(),
+                rows: data.advanced.volumeProfile.rows.map(r => ({
+                    priceStart: r.priceStart.toString(),
+                    priceEnd: r.priceEnd.toString(),
+                    volume: r.volume.toString()
+                }))
+            } : undefined
         } : undefined
     };
 }

@@ -480,25 +480,42 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                             confluence: data.confluence ? {
                                 score: data.confluence.score,
                                 level: data.confluence.level,
-                                timeframe: data.confluence.timeframe
+                                contributing: data.confluence.contributing // added 'contributing' instead of 'timeframe'
                             } : "N/A",
                             divergences: data.divergences && data.divergences.length > 0 ? data.divergences.map(d => ({
                                 type: d.type,
                                 indicator: d.indicator,
-                                intensity: d.intensity,
-                                description: d.description
+                                side: d.side,
+                                priceStart: d.priceStart.toString(),
+                                priceEnd: d.priceEnd.toString()
                             })) : "None",
                             oscillators: data.oscillators.map(o => ({ name: o.name, value: o.value.toString(), action: o.action })),
                             movingAverages: data.movingAverages.map(m => ({ name: m.name, value: m.value.toString(), action: m.action })),
                             advanced: data.advanced ? {
                                 ichimoku: data.advanced.ichimoku ? {
                                     action: data.advanced.ichimoku.action,
-                                    tkCross: data.advanced.ichimoku.tkCross,
-                                    cloudPosition: data.advanced.ichimoku.cloudPosition
+                                    conversion: data.advanced.ichimoku.conversion.toString(),
+                                    base: data.advanced.ichimoku.base.toString(),
+                                    spanA: data.advanced.ichimoku.spanA.toString(),
+                                    spanB: data.advanced.ichimoku.spanB.toString()
                                 } : undefined,
-                                vwap: data.advanced.vwap ? data.advanced.vwap.value.toString() : undefined,
+                                superTrend: data.advanced.superTrend ? {
+                                    value: data.advanced.superTrend.value.toString(),
+                                    trend: data.advanced.superTrend.trend
+                                } : undefined,
+                                atrTrailingStop: data.advanced.atrTrailingStop ? {
+                                    buy: data.advanced.atrTrailingStop.buy.toString(),
+                                    sell: data.advanced.atrTrailingStop.sell.toString()
+                                } : undefined,
+                                obv: data.advanced.obv?.toString(),
+                                volumeProfile: data.advanced.volumeProfile ? {
+                                    poc: data.advanced.volumeProfile.poc.toString(),
+                                    vaHigh: data.advanced.volumeProfile.vaHigh.toString(),
+                                    vaLow: data.advanced.volumeProfile.vaLow.toString()
+                                } : undefined,
+                                vwap: data.advanced.vwap ? data.advanced.vwap.toString() : undefined, // Fixed: vwap is Decimal
                                 mfi: data.advanced.mfi ? data.advanced.mfi.value.toString() : undefined,
-                                chop: data.advanced.chop ? data.advanced.chop.value.toString() : undefined
+                                choppiness: data.advanced.choppiness ? data.advanced.choppiness.value.toString() : undefined // Fixed: name 'choppiness' not 'chop'
                             } : undefined,
                             pivots: {
                                 type: indicatorState.pivots.type,

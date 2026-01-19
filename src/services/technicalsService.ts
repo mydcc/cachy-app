@@ -130,6 +130,66 @@ class TechnicalsWorkerManager {
       data.pivotBasis.open = new Decimal(data.pivotBasis.open);
       data.pivotBasis.close = new Decimal(data.pivotBasis.close);
     }
+
+    // Rehydrate Volatility
+    if (data.volatility) {
+      data.volatility.atr = new Decimal(data.volatility.atr);
+      data.volatility.bb.upper = new Decimal(data.volatility.bb.upper);
+      data.volatility.bb.middle = new Decimal(data.volatility.bb.middle);
+      data.volatility.bb.lower = new Decimal(data.volatility.bb.lower);
+      data.volatility.bb.percentP = new Decimal(data.volatility.bb.percentP);
+    }
+
+    // Rehydrate Divergences
+    if (data.divergences) {
+      data.divergences = data.divergences.map((d: any) => ({
+        ...d,
+        priceStart: new Decimal(d.priceStart),
+        priceEnd: new Decimal(d.priceEnd),
+        indStart: new Decimal(d.indStart || 0), // Handle potential missing fields gracefully
+        indEnd: new Decimal(d.indEnd || 0)
+      }));
+    }
+
+    // Rehydrate Advanced
+    if (data.advanced) {
+      if (data.advanced.vwap) data.advanced.vwap = new Decimal(data.advanced.vwap);
+      if (data.advanced.mfi) data.advanced.mfi.value = new Decimal(data.advanced.mfi.value);
+      if (data.advanced.stochRsi) {
+        data.advanced.stochRsi.k = new Decimal(data.advanced.stochRsi.k);
+        data.advanced.stochRsi.d = new Decimal(data.advanced.stochRsi.d);
+      }
+      if (data.advanced.williamsR) data.advanced.williamsR.value = new Decimal(data.advanced.williamsR.value);
+      if (data.advanced.choppiness) data.advanced.choppiness.value = new Decimal(data.advanced.choppiness.value);
+      if (data.advanced.ichimoku) {
+        data.advanced.ichimoku.conversion = new Decimal(data.advanced.ichimoku.conversion);
+        data.advanced.ichimoku.base = new Decimal(data.advanced.ichimoku.base);
+        data.advanced.ichimoku.spanA = new Decimal(data.advanced.ichimoku.spanA);
+        data.advanced.ichimoku.spanB = new Decimal(data.advanced.ichimoku.spanB);
+      }
+      if (data.advanced.parabolicSar) data.advanced.parabolicSar = new Decimal(data.advanced.parabolicSar);
+
+      // Phase 5: Pro Rehydration
+      if (data.advanced.superTrend) {
+        data.advanced.superTrend.value = new Decimal(data.advanced.superTrend.value);
+      }
+      if (data.advanced.atrTrailingStop) {
+        data.advanced.atrTrailingStop.buy = new Decimal(data.advanced.atrTrailingStop.buy);
+        data.advanced.atrTrailingStop.sell = new Decimal(data.advanced.atrTrailingStop.sell);
+      }
+      if (data.advanced.obv) data.advanced.obv = new Decimal(data.advanced.obv);
+      if (data.advanced.volumeProfile) {
+        data.advanced.volumeProfile.poc = new Decimal(data.advanced.volumeProfile.poc);
+        data.advanced.volumeProfile.vaHigh = new Decimal(data.advanced.volumeProfile.vaHigh);
+        data.advanced.volumeProfile.vaLow = new Decimal(data.advanced.volumeProfile.vaLow);
+        data.advanced.volumeProfile.rows = data.advanced.volumeProfile.rows.map((r: any) => ({
+          priceStart: new Decimal(r.priceStart),
+          priceEnd: new Decimal(r.priceEnd),
+          volume: new Decimal(r.volume)
+        }));
+      }
+    }
+
     return data as TechnicalsData;
   }
 
