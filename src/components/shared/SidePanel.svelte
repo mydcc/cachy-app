@@ -87,9 +87,18 @@
     return "Side Panel";
   }
 
+  function cleanStreamingContent(text: string): string {
+    // Hide JSON blocks that likely contain actions, even while streaming
+    // This looks for the start of a json block and hides everything until it sees a closing block or just stops
+    return text
+      .replace(/```json\s*[\s\S]*?("action"|$)[\s\S]*?(?:```|$)/g, "")
+      .trim();
+  }
+
   function renderMarkdown(text: string): string {
     try {
-      const raw = marked.parse(text) as string;
+      const cleaned = cleanStreamingContent(text);
+      const raw = marked.parse(cleaned) as string;
       if (typeof window !== "undefined") {
         return DOMPurify.sanitize(raw);
       }
