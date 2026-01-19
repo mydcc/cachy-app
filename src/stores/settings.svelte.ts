@@ -88,6 +88,8 @@ export interface Settings {
     fontFamily: string;
     cryptoPanicApiKey?: string;
     newsApiKey?: string;
+    cryptoPanicPlan: "developer" | "growth" | "enterprise";
+    cryptoPanicFilter: "all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved";
     enableNewsAnalysis: boolean;
 }
 
@@ -152,6 +154,8 @@ const defaultSettings: Settings = {
     fontFamily: "Inter",
     cryptoPanicApiKey: "",
     newsApiKey: "",
+    cryptoPanicPlan: "developer",
+    cryptoPanicFilter: "important",
     enableNewsAnalysis: false,
 };
 
@@ -218,6 +222,8 @@ class SettingsManager {
     fontFamily = $state<string>(defaultSettings.fontFamily);
     cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
     newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
+    cryptoPanicPlan = $state<"developer" | "growth" | "enterprise">(defaultSettings.cryptoPanicPlan);
+    cryptoPanicFilter = $state<"all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved">(defaultSettings.cryptoPanicFilter);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
     isInitializing = true;
 
@@ -324,6 +330,8 @@ class SettingsManager {
             this.fontFamily = merged.fontFamily;
             this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
             this.newsApiKey = merged.newsApiKey;
+            this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
+            this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
             this.enableNewsAnalysis = merged.enableNewsAnalysis;
 
             // Cleanup / Migration Logic matching old store
@@ -417,6 +425,8 @@ class SettingsManager {
             fontFamily: this.fontFamily,
             cryptoPanicApiKey: this.cryptoPanicApiKey,
             newsApiKey: this.newsApiKey,
+            cryptoPanicPlan: this.cryptoPanicPlan,
+            cryptoPanicFilter: this.cryptoPanicFilter,
             enableNewsAnalysis: this.enableNewsAnalysis,
         };
     }

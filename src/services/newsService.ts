@@ -52,14 +52,14 @@ export const newsService = {
     if (cryptoPanicApiKey) {
       try {
         const params: any = {
-          filter: "important",
+          filter: settingsState.cryptoPanicFilter || "important",
           public: "true",
         };
         if (symbol) {
-            // CryptoPanic uses "currencies" param, e.g. "BTC"
-            // We need to strip "USDT" suffix usually
-            const cleanSymbol = symbol.replace("USDT", "").replace("USDC", "");
-            params.currencies = cleanSymbol;
+          // CryptoPanic uses "currencies" param, e.g. "BTC"
+          // We need to strip "USDT" suffix usually
+          const cleanSymbol = symbol.replace("USDT", "").replace("USDC", "");
+          params.currencies = cleanSymbol;
         }
 
         const res = await fetch("/api/external/news", {
@@ -68,19 +68,20 @@ export const newsService = {
             source: "cryptopanic",
             apiKey: cryptoPanicApiKey,
             params,
+            plan: settingsState.cryptoPanicPlan || "developer"
           }),
         });
 
         if (res.ok) {
-            const data = await res.json();
-            // Map CryptoPanic format
-            newsItems = data.results.map((item: any) => ({
-                title: item.title,
-                url: item.url,
-                source: item.source.title,
-                published_at: item.published_at,
-                currencies: item.currencies
-            }));
+          const data = await res.json();
+          // Map CryptoPanic format
+          newsItems = data.results.map((item: any) => ({
+            title: item.title,
+            url: item.url,
+            source: item.source.title,
+            published_at: item.published_at,
+            currencies: item.currencies
+          }));
         }
       } catch (e) {
         console.error("Failed to fetch CryptoPanic:", e);
@@ -89,38 +90,38 @@ export const newsService = {
 
     // Fallback or Addition: NewsAPI (only if CryptoPanic didn't yield enough or is missing)
     if (newsItems.length < 5 && newsApiKey) {
-         try {
-            const q = symbol ? symbol : "crypto bitcoin ethereum";
-            const params = {
-                q,
-                sortBy: "publishedAt",
-                language: "en",
-                pageSize: "10"
-            };
+      try {
+        const q = symbol ? symbol : "crypto bitcoin ethereum";
+        const params = {
+          q,
+          sortBy: "publishedAt",
+          language: "en",
+          pageSize: "10"
+        };
 
-            const res = await fetch("/api/external/news", {
-                method: "POST",
-                body: JSON.stringify({
-                    source: "newsapi",
-                    apiKey: newsApiKey,
-                    params
-                })
-            });
+        const res = await fetch("/api/external/news", {
+          method: "POST",
+          body: JSON.stringify({
+            source: "newsapi",
+            apiKey: newsApiKey,
+            params
+          })
+        });
 
-            if (res.ok) {
-                const data = await res.json();
-                const mapped = data.articles.map((item: any) => ({
-                    title: item.title,
-                    url: item.url,
-                    source: item.source.name,
-                    published_at: item.publishedAt,
-                    currencies: []
-                }));
-                newsItems = [...newsItems, ...mapped];
-            }
-         } catch (e) {
-             console.error("Failed to fetch NewsAPI:", e);
-         }
+        if (res.ok) {
+          const data = await res.json();
+          const mapped = data.articles.map((item: any) => ({
+            title: item.title,
+            url: item.url,
+            source: item.source.name,
+            published_at: item.publishedAt,
+            currencies: []
+          }));
+          newsItems = [...newsItems, ...mapped];
+        }
+      } catch (e) {
+        console.error("Failed to fetch NewsAPI:", e);
+      }
     }
 
     // Sort by date desc
@@ -128,9 +129,9 @@ export const newsService = {
 
     // Cache
     localStorage.setItem(CACHE_KEY_NEWS, JSON.stringify({
-        data: newsItems,
-        timestamp: Date.now(),
-        cachedSymbol: symbol
+      data: newsItems,
+      timestamp: Date.now(),
+      cachedSymbol: symbol
     }));
 
     return newsItems;
@@ -142,12 +143,12 @@ export const newsService = {
     // Check Cache
     const cached = localStorage.getItem(CACHE_KEY_SENTIMENT);
     if (cached) {
-        const { data, timestamp, newsHash } = JSON.parse(cached);
-        // Simple hash check: if first news title is same, assume same news set (heuristic)
-        const currentHash = news[0].title;
-        if (Date.now() - timestamp < CACHE_TTL_SENTIMENT && newsHash === currentHash) {
-            return data;
-        }
+      const { data, timestamp, newsHash } = JSON.parse(cached);
+      // Simple hash check: if first news title is same, assume same news set (heuristic)
+      const currentHash = news[0].title;
+      if (Date.now() - timestamp < CACHE_TTL_SENTIMENT && newsHash === currentHash) {
+        return data;
+      }
     }
 
     const { aiProvider, geminiApiKey, openaiApiKey, anthropicApiKey } = settingsState;
@@ -180,47 +181,47 @@ OUTPUT FORMAT (JSON ONLY):
 `;
 
     try {
-        let resultText = "";
+      let resultText = "";
 
-        if (aiProvider === "gemini" && geminiApiKey) {
-            const genAI = new GoogleGenerativeAI(geminiApiKey);
-            const model = genAI.getGenerativeModel({ model: settingsState.geminiModel || "gemini-2.5-flash" });
-            const result = await model.generateContent(prompt);
-            resultText = result.response.text();
-        } else if (aiProvider === "openai" && openaiApiKey) {
-             const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
-             const completion = await openai.chat.completions.create({
-                 messages: [{ role: "system", content: "You are a financial analyst." }, { role: "user", content: prompt }],
-                 model: settingsState.openaiModel || "gpt-4o",
-                 response_format: { type: "json_object" }
-             });
-             resultText = completion.choices[0].message.content || "{}";
-        }
-        // Anthropic could be added here similar to others
+      if (aiProvider === "gemini" && geminiApiKey) {
+        const genAI = new GoogleGenerativeAI(geminiApiKey);
+        const model = genAI.getGenerativeModel({ model: settingsState.geminiModel || "gemini-2.5-flash" });
+        const result = await model.generateContent(prompt);
+        resultText = result.response.text();
+      } else if (aiProvider === "openai" && openaiApiKey) {
+        const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
+        const completion = await openai.chat.completions.create({
+          messages: [{ role: "system", content: "You are a financial analyst." }, { role: "user", content: prompt }],
+          model: settingsState.openaiModel || "gpt-4o",
+          response_format: { type: "json_object" }
+        });
+        resultText = completion.choices[0].message.content || "{}";
+      }
+      // Anthropic could be added here similar to others
 
-        if (!resultText) throw new Error("No response from AI");
+      if (!resultText) throw new Error("No response from AI");
 
-        // Clean markdown code blocks if present
-        resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
-        const analysis: SentimentAnalysis = JSON.parse(resultText);
+      // Clean markdown code blocks if present
+      resultText = resultText.replace(/```json/g, "").replace(/```/g, "").trim();
+      const analysis: SentimentAnalysis = JSON.parse(resultText);
 
-        // Cache
-        localStorage.setItem(CACHE_KEY_SENTIMENT, JSON.stringify({
-            data: analysis,
-            timestamp: Date.now(),
-            newsHash: news[0].title
-        }));
+      // Cache
+      localStorage.setItem(CACHE_KEY_SENTIMENT, JSON.stringify({
+        data: analysis,
+        timestamp: Date.now(),
+        newsHash: news[0].title
+      }));
 
-        return analysis;
+      return analysis;
 
     } catch (e) {
-        console.error("Sentiment Analysis Failed:", e);
-        return {
-            score: 0,
-            regime: "UNCERTAIN",
-            summary: "Failed to analyze sentiment due to AI error.",
-            keyFactors: []
-        };
+      console.error("Sentiment Analysis Failed:", e);
+      return {
+        score: 0,
+        regime: "UNCERTAIN",
+        summary: "Failed to analyze sentiment due to AI error.",
+        keyFactors: []
+      };
     }
   }
 };

@@ -220,6 +220,48 @@
           </div>
         </div>
 
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label
+              for="cp-plan"
+              class="text-[10px] font-medium text-[var(--text-tertiary)] uppercase"
+            >
+              API Plan
+            </label>
+            <select
+              id="cp-plan"
+              bind:value={settingsState.cryptoPanicPlan}
+              class="input-field p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs"
+            >
+              <option value="developer">Developer (Free)</option>
+              <option value="growth">Growth</option>
+              <option value="enterprise">Enterprise</option>
+            </select>
+          </div>
+
+          <div class="flex flex-col gap-1">
+            <label
+              for="cp-filter"
+              class="text-[10px] font-medium text-[var(--text-tertiary)] uppercase"
+            >
+              News Filter
+            </label>
+            <select
+              id="cp-filter"
+              bind:value={settingsState.cryptoPanicFilter}
+              class="input-field p-1.5 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-xs"
+            >
+              <option value="all">All News</option>
+              <option value="rising">Rising</option>
+              <option value="hot">Hot</option>
+              <option value="bullish">Bullish</option>
+              <option value="bearish">Bearish</option>
+              <option value="important">Important (Default)</option>
+              <option value="saved">Saved</option>
+            </select>
+          </div>
+        </div>
+
         <div class="flex flex-col gap-1">
           <label
             for="newsapi-key"
