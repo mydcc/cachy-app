@@ -93,6 +93,16 @@ export interface Settings {
     enableNewsAnalysis: boolean;
     cmcApiKey?: string;
     enableCmcContext: boolean;
+    showMarketOverviewLinks: boolean;
+    showMarketActivity: boolean;
+    showMarketSentiment: boolean;
+    showTechnicalsSummary: boolean;
+    showTechnicalsConfluence: boolean;
+    showTechnicalsVolatility: boolean;
+    showTechnicalsOscillators: boolean;
+    showTechnicalsMAs: boolean;
+    showTechnicalsAdvanced: boolean;
+    showTechnicalsSignals: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -161,6 +171,16 @@ const defaultSettings: Settings = {
     enableNewsAnalysis: false,
     cmcApiKey: "",
     enableCmcContext: false,
+    showMarketOverviewLinks: true,
+    showMarketActivity: true,
+    showMarketSentiment: true,
+    showTechnicalsSummary: true,
+    showTechnicalsConfluence: true,
+    showTechnicalsVolatility: true,
+    showTechnicalsOscillators: true,
+    showTechnicalsMAs: true,
+    showTechnicalsAdvanced: true,
+    showTechnicalsSignals: true,
 };
 
 class SettingsManager {
@@ -237,6 +257,16 @@ class SettingsManager {
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
     cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
     enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
+    showMarketOverviewLinks = $state<boolean>(defaultSettings.showMarketOverviewLinks);
+    showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
+    showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
+    showTechnicalsSummary = $state<boolean>(defaultSettings.showTechnicalsSummary);
+    showTechnicalsConfluence = $state<boolean>(defaultSettings.showTechnicalsConfluence);
+    showTechnicalsVolatility = $state<boolean>(defaultSettings.showTechnicalsVolatility);
+    showTechnicalsOscillators = $state<boolean>(defaultSettings.showTechnicalsOscillators);
+    showTechnicalsMAs = $state<boolean>(defaultSettings.showTechnicalsMAs);
+    showTechnicalsAdvanced = $state<boolean>(defaultSettings.showTechnicalsAdvanced);
+    showTechnicalsSignals = $state<boolean>(defaultSettings.showTechnicalsSignals);
 
     // Private state
     private effectActive = false; // Controls whether $effect should trigger saves
@@ -395,6 +425,16 @@ class SettingsManager {
             this.enableNewsAnalysis = merged.enableNewsAnalysis;
             this.cmcApiKey = merged.cmcApiKey;
             this.enableCmcContext = merged.enableCmcContext;
+            this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
+            this.showMarketActivity = merged.showMarketActivity;
+            this.showMarketSentiment = merged.showMarketSentiment;
+            this.showTechnicalsSummary = merged.showTechnicalsSummary;
+            this.showTechnicalsConfluence = merged.showTechnicalsConfluence;
+            this.showTechnicalsVolatility = merged.showTechnicalsVolatility;
+            this.showTechnicalsOscillators = merged.showTechnicalsOscillators;
+            this.showTechnicalsMAs = merged.showTechnicalsMAs;
+            this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
+            this.showTechnicalsSignals = merged.showTechnicalsSignals;
 
             // Migration
             if (parsed.marketDataInterval === "manual") {
@@ -486,6 +526,16 @@ class SettingsManager {
             enableNewsAnalysis: this.enableNewsAnalysis,
             cmcApiKey: this.cmcApiKey,
             enableCmcContext: this.enableCmcContext,
+            showMarketOverviewLinks: this.showMarketOverviewLinks,
+            showMarketActivity: this.showMarketActivity,
+            showMarketSentiment: this.showMarketSentiment,
+            showTechnicalsSummary: this.showTechnicalsSummary,
+            showTechnicalsConfluence: this.showTechnicalsConfluence,
+            showTechnicalsVolatility: this.showTechnicalsVolatility,
+            showTechnicalsOscillators: this.showTechnicalsOscillators,
+            showTechnicalsMAs: this.showTechnicalsMAs,
+            showTechnicalsAdvanced: this.showTechnicalsAdvanced,
+            showTechnicalsSignals: this.showTechnicalsSignals,
         };
     }
 

@@ -36,32 +36,25 @@
   } from "../../services/hotkeyService";
 
   // Tab Components
-  import SystemTab from "./tabs/SystemTab.svelte";
-  import GeneralTab from "./tabs/GeneralTab.svelte";
-  import ApiTab from "./tabs/ApiTab.svelte";
-  import AiTab from "./tabs/AiTab.svelte";
-  import BehaviorTab from "./tabs/BehaviorTab.svelte";
-  import HotkeysTab from "./tabs/HotkeysTab.svelte";
-  import SidebarTab from "./tabs/SidebarTab.svelte";
-  import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
-  import DataMaintenance from "./DataMaintenance.svelte";
+  import ProfileTab from "./tabs/ProfileTab.svelte";
+  import WorkspaceTab from "./tabs/WorkspaceTab.svelte";
+  import AnalysisTab from "./tabs/AnalysisTab.svelte";
+  import AiAssistantTab from "./tabs/AiAssistantTab.svelte";
+  import IntegrationsTab from "./tabs/IntegrationsTab.svelte";
+  import MaintenanceTab from "./tabs/MaintenanceTab.svelte";
 
   // Tab State
   type TabType =
-    | "general"
-    | "api"
-    | "ai"
-    | "behavior"
-    | "system"
-    | "sidebar"
-    | "indicators"
-    | "indicators"
-    | "hotkeys"
-    | "data";
+    | "profile"
+    | "workspace"
+    | "analysis"
+    | "ai_assistant"
+    | "integrations"
+    | "maintenance";
 
   // Use the store as the unique source of truth for the active tab
   // This prevents unintended resets when the store updates for other reasons
-  const activeTab = $derived((uiState.settingsTab as TabType) || "general");
+  const activeTab = $derived((uiState.settingsTab as TabType) || "profile");
 
   function selectTab(tab: TabType) {
     uiState.settingsTab = tab;
@@ -121,7 +114,7 @@
   // System Tab Functions
   async function handleBackup() {
     const useEncryption = await modalState.show(
-      $_("settings.tabs.system"),
+      $_("settings.tabs.maintenance") || "Maintenance",
       $_("app.backupEncryptQuestion") ||
         "Do you want to encrypt this backup with a password?",
       "confirm",
@@ -130,7 +123,7 @@
 
     if (useEncryption) {
       const result = await modalState.show(
-        $_("settings.tabs.system"),
+        $_("settings.tabs.maintenance") || "Maintenance",
         $_("app.backupPasswordPrompt") || "Enter a password for encryption:",
         "prompt",
       );
@@ -159,7 +152,7 @@
     reader.onload = async (event) => {
       const content = event.target?.result as string;
       const confirmed = await modalState.show(
-        $_("settings.tabs.system"),
+        $_("settings.tabs.maintenance") || "Maintenance",
         $_("app.restoreConfirmMessage"),
         "confirm",
       );
@@ -170,7 +163,7 @@
         // Handle encrypted backup that needs a password
         if (result.needsPassword) {
           const pwResult = await modalState.show(
-            $_("settings.tabs.system"),
+            $_("settings.tabs.maintenance") || "Maintenance",
             $_("app.backupPasswordEntryPrompt") ||
               "This backup is encrypted. Please enter the password:",
             "prompt",
@@ -187,7 +180,7 @@
 
         if (result.success) {
           await modalState.show(
-            $_("settings.tabs.system"),
+            $_("settings.tabs.maintenance") || "Maintenance",
             result.message,
             "alert",
           );
@@ -214,7 +207,7 @@
 
   async function handleReset() {
     const confirmed = await modalState.show(
-      $_("settings.tabs.system"),
+      $_("settings.tabs.maintenance") || "Maintenance",
       $_("settings.resetConfirm"),
       "confirm",
     );
@@ -242,168 +235,153 @@
   let activeDescriptions = $derived(
     getHotkeyDescriptions(settingsState.hotkeyMode),
   );
+
+  const tabs = [
+    {
+      id: "profile",
+      icon: `<path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>`,
+      label: $_("settings.tabs.profile") || "Profile & Design",
+    },
+    {
+      id: "workspace",
+      icon: `<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/><path d="M3 9h6"/><path d="M3 15h6"/>`,
+      label: $_("settings.tabs.workspace") || "Workspace & Sidebar",
+    },
+    {
+      id: "analysis",
+      icon: `<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>`,
+      label: $_("settings.tabs.analysis") || "Analysis Logic",
+    },
+    {
+      id: "ai_assistant",
+      icon: `<path d="M12 2v8"/><path d="m4.93 4.93 5.66 5.66"/><path d="M2 12h8"/><path d="m4.93 19.07 5.66-5.66"/><path d="M12 22v-8"/><path d="m19.07 19.07-5.66-5.66"/><path d="M22 12h-8"/><path d="m19.07 4.93-5.66 5.66"/>`,
+      label: $_("settings.tabs.ai_assistant") || "AI Assistant",
+    },
+    {
+      id: "integrations",
+      icon: `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
+      label: $_("settings.tabs.integrations") || "Integrations",
+    },
+    {
+      id: "maintenance",
+      icon: `<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>`,
+      label: $_("settings.tabs.maintenance") || "Data & Maintenance",
+    },
+  ];
 </script>
 
 <ModalFrame
   isOpen={uiState.showSettingsModal}
   title={$_("settings.title") || "Settings"}
   onclose={close}
-  extraClasses="!w-[1000px] !max-w-[95vw] !max-h-[90vh] flex flex-col overflow-hidden"
-  alignment="top"
+  extraClasses="!w-[1100px] !max-w-[95vw] !max-h-[85vh] flex flex-col overflow-hidden"
+  alignment="center"
 >
   <!-- Main Content Container (Split View) -->
-  <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+  <div
+    class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden bg-[var(--bg-primary)]"
+  >
     <!-- Sidebar Navigation -->
     <div
-      class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-56 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)]"
+      class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
       role="tablist"
     >
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'general'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={(e) => {
-          e.stopPropagation(); // prevent modal close
-          selectTab("general");
-        }}
-        role="tab"
-        aria-selected={activeTab === "general"}
-      >
-        {$_("settings.tabs.general")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'api'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={(e) => {
-          e.stopPropagation();
-          selectTab("api");
-        }}
-        role="tab"
-        aria-selected={activeTab === "api"}
-      >
-        {$_("settings.tabs.api")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'ai'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("ai")}
-        role="tab"
-        aria-selected={activeTab === "ai"}
-      >
-        {$_("settings.tabs.ai")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'behavior'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("behavior")}
-        role="tab"
-        aria-selected={activeTab === "behavior"}
-      >
-        {$_("settings.tabs.behavior")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'hotkeys'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("hotkeys")}
-        role="tab"
-        aria-selected={activeTab === "hotkeys"}
-      >
-        {$_("settings.tabs.hotkeys")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'sidebar'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("sidebar")}
-        role="tab"
-        aria-selected={activeTab === "sidebar"}
-      >
-        {$_("settings.tabs.sidebar")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'indicators'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("indicators")}
-        role="tab"
-        aria-selected={activeTab === "indicators"}
-      >
-        {$_("settings.tabs.indicators")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'system'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("system")}
-        role="tab"
-        aria-selected={activeTab === "system"}
-      >
-        {$_("settings.tabs.system")}
-      </button>
-      <button
-        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
-        'data'
-          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
-          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
-        onclick={() => selectTab("data")}
-        role="tab"
-        aria-selected={activeTab === "data"}
-      >
-        {$_("settings.tabs.data")}
-      </button>
+      {#each tabs as tab}
+        <button
+          class="flex items-center gap-3 px-6 py-3.5 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
+                 {activeTab === tab.id
+            ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-l-2 border-[var(--accent-color)] shadow-inner'
+            : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)]/50 border-l-2 border-transparent'}"
+          onclick={() => selectTab(tab.id as TabType)}
+          role="tab"
+          aria-selected={activeTab === tab.id}
+        >
+          <div
+            class="tab-icon transition-transform group-hover:scale-110 {activeTab ===
+            tab.id
+              ? 'text-[var(--accent-color)]'
+              : 'text-[var(--text-secondary)]'}"
+          >
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              width="18"
+              height="18"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              stroke-width="2.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+            >
+              {@html tab.icon}
+            </svg>
+          </div>
+          {tab.label}
+        </button>
+      {/each}
     </div>
 
     <!-- Tab Content Area -->
-    <div
-      class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-[var(--bg-primary)]"
-    >
-      {#if activeTab === "general"}
-        <GeneralTab {themes} />
-      {:else if activeTab === "api"}
-        <ApiTab />
-      {:else if activeTab === "ai"}
-        <AiTab />
-      {:else if activeTab === "behavior"}
-        <BehaviorTab {activeDescriptions} />
-      {:else if activeTab === "hotkeys"}
-        <HotkeysTab />
-      {:else if activeTab === "sidebar"}
-        <SidebarTab />
-      {:else if activeTab === "indicators"}
-        <IndicatorsTab {availableTimeframes} />
-      {:else if activeTab === "system"}
-        <SystemTab
+    <div class="flex-1 overflow-y-auto p-6 md:p-8 custom-scrollbar">
+      {#if activeTab === "profile"}
+        <ProfileTab {themes} />
+      {:else if activeTab === "workspace"}
+        <WorkspaceTab />
+      {:else if activeTab === "analysis"}
+        <AnalysisTab {availableTimeframes} />
+      {:else if activeTab === "ai_assistant"}
+        <AiAssistantTab />
+      {:else if activeTab === "integrations"}
+        <IntegrationsTab />
+      {:else if activeTab === "maintenance"}
+        <MaintenanceTab
           onBackup={handleBackup}
           onRestore={handleRestore}
           onReset={handleReset}
         />
-      {:else if activeTab === "data"}
-        <DataMaintenance />
       {/if}
     </div>
   </div>
 
   <!-- Footer Actions -->
   <div
-    class="flex justify-end gap-3 pt-4 border-t border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] px-4 pb-4"
+    class="flex justify-between items-center p-4 border-t border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)]"
   >
+    <div
+      class="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest pl-2"
+    >
+      <div
+        class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-pulse"
+      ></div>
+      CachyApp v3.0 // Professional Workspace
+    </div>
     <button
-      class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity"
+      class="px-8 py-2.5 text-xs font-black uppercase tracking-widest bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded-lg hover:brightness-110 transition-all shadow-lg active:scale-95"
       onclick={close}
     >
       {$_("common.close") || "Close"}
     </button>
   </div>
 </ModalFrame>
+
+<style>
+  .tab-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+  }
+
+  .custom-scrollbar::-webkit-scrollbar {
+    width: 4px;
+  }
+  .custom-scrollbar::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+  }
+
+  :global(.setting-card:hover) {
+    border-color: var(--accent-color) !important;
+    background: var(--bg-tertiary) !important;
+  }
+</style>

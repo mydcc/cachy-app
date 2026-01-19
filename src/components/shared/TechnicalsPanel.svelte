@@ -362,22 +362,24 @@
           <!-- DASHBOARD SECTION (Minimalist List) -->
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
-            <div
-              class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
-            >
-              <span
-                class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                >{typeof $_ === "function"
-                  ? $_("settings.technicals.summaryAction")
-                  : "Summary"}</span
+            {#if settingsState.showTechnicalsSummary}
+              <div
+                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
-              <span class="font-bold {getActionColor(data.summary.action)}"
-                >{translateAction(data.summary.action)}</span
-              >
-            </div>
+                <span
+                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
+                  >{typeof $_ === "function"
+                    ? $_("settings.technicals.summaryAction")
+                    : "Summary"}</span
+                >
+                <span class="font-bold {getActionColor(data.summary.action)}"
+                  >{translateAction(data.summary.action)}</span
+                >
+              </div>
+            {/if}
 
             <!-- Market Confluence -->
-            {#if data.confluence}
+            {#if settingsState.showTechnicalsConfluence && data.confluence}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -402,7 +404,7 @@
             {/if}
 
             <!-- Volatility -->
-            {#if data.volatility}
+            {#if settingsState.showTechnicalsVolatility && data.volatility}
               <div
                 class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
               >
@@ -435,49 +437,56 @@
           </div>
 
           <!-- Oscillators -->
-          <div class="flex flex-col gap-1">
-            <div
-              class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
-            >
-              Oscillators
-            </div>
-            {#each data.oscillators as osc}
+          {#if settingsState.showTechnicalsOscillators}
+            <div class="flex flex-col gap-1">
               <div
-                class="grid grid-cols-[1fr_auto_auto] gap-x-2 text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                <span class="truncate" title={osc.params}>{osc.name}</span>
-                <span class="font-mono text-right">{formatVal(osc.value)}</span>
-                <span class="font-bold text-right {getActionColor(osc.action)}"
-                  >{osc.action}</span
-                >
+                Oscillators
               </div>
-            {/each}
-          </div>
-
-          <!-- Moving Averages -->
-          <div class="flex flex-col gap-1">
-            <div
-              class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
-            >
-              Moving Averages
-            </div>
-            {#each data.movingAverages as ma}
-              <div
-                class="flex justify-between text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
-              >
-                <span>{ma.name} ({ma.params})</span>
-                <div class="flex gap-2">
-                  <span class="font-mono">{formatVal(ma.value)}</span>
-                  <span class="font-bold {getActionColor(ma.action)}"
-                    >{ma.action}</span
+              {#each data.oscillators as osc}
+                <div
+                  class="grid grid-cols-[1fr_auto_auto] gap-x-2 text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
+                >
+                  <span class="truncate" title={osc.params}>{osc.name}</span>
+                  <span class="font-mono text-right"
+                    >{formatVal(osc.value)}</span
+                  >
+                  <span
+                    class="font-bold text-right {getActionColor(osc.action)}"
+                    >{osc.action}</span
                   >
                 </div>
+              {/each}
+            </div>
+          {/if}
+
+          <!-- Moving Averages -->
+          {#if settingsState.showTechnicalsMAs}
+            <div class="flex flex-col gap-1">
+              <div
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                Moving Averages
               </div>
-            {/each}
-          </div>
+              {#each data.movingAverages as ma}
+                <div
+                  class="flex justify-between text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
+                >
+                  <span>{ma.name} ({ma.params})</span>
+                  <div class="flex gap-2">
+                    <span class="font-mono">{formatVal(ma.value)}</span>
+                    <span class="font-bold {getActionColor(ma.action)}"
+                      >{ma.action}</span
+                    >
+                  </div>
+                </div>
+              {/each}
+            </div>
+          {/if}
 
           <!-- Advanced / Pro -->
-          {#if data.advanced}
+          {#if settingsState.showTechnicalsAdvanced && data.advanced}
             <div class="flex flex-col gap-1">
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
@@ -498,7 +507,7 @@
               <!-- MFI -->
               {#if data.advanced.mfi}
                 <div
-                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
+                  class="flex justify-between text-xs py-1 px-1 border-b border(--border-color)"
                 >
                   <span>MFI</span>
                   <div class="flex gap-2">
@@ -584,7 +593,7 @@
           {/if}
 
           <!-- SIGNALS SECTION (Restyled) -->
-          {#if data.divergences && data.divergences.length > 0}
+          {#if settingsState.showTechnicalsSignals && data.divergences && data.divergences.length > 0}
             <div
               class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
             >

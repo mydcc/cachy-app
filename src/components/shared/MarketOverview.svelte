@@ -511,7 +511,7 @@
         {/if}
       </div>
 
-      {#if depthData}
+      {#if settingsState.showMarketActivity && depthData}
         <DepthBar bids={depthData.bids} asks={depthData.asks} />
       {/if}
 
@@ -526,108 +526,171 @@
         </div>
       {/if}
 
-      {#if highPrice || tickerData}
-        <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
-          <div class="flex flex-col">
-            <span class="text-[var(--text-secondary)]"
-              >{$_("marketOverview.24hHigh")}</span
-            >
-            <span class="font-medium text-[var(--text-primary)]"
-              >{formatValue(highPrice, 4)}</span
-            >
-          </div>
-          <div class="flex flex-col text-right">
-            <span class="text-[var(--text-secondary)]"
-              >{$_("marketOverview.24hLow")}</span
-            >
-            <span class="font-medium text-[var(--text-primary)]"
-              >{formatValue(lowPrice, 4)}</span
-            >
-          </div>
-          <div class="flex flex-col mt-1">
-            <span class="text-[var(--text-secondary)]"
-              >{$_("marketOverview.vol")} ({displaySymbol
-                .replace(/USDT.?$/, "")
-                .replace(/P$/, "")})</span
-            >
-            <span class="font-medium text-[var(--text-primary)]"
-              >{formatValue(volume, 0)}</span
-            >
-          </div>
-          <div class="flex flex-col mt-1 text-right relative group">
-            <span class="text-[var(--text-secondary)]"
-              >RSI ({effectiveRsiTimeframe})</span
-            >
-            <span
-              class="font-medium transition-colors duration-300 cursor-help"
-              class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
-              class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
-              class:text-[var(--text-primary)]={!rsiValue ||
-                (rsiValue.gt(30) && rsiValue.lt(70))}
-            >
-              {formatValue(rsiValue, 2)}
-            </span>
-            <div
-              class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
-            >
-              <Tooltip>
-                <div
-                  class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]"
+      {#if settingsState.showMarketActivity}
+        {#if highPrice || tickerData}
+          <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
+            <div class="flex flex-col">
+              <span class="text-[var(--text-secondary)]"
+                >{$_("marketOverview.24hHigh")}</span
+              >
+              <span class="font-medium text-[var(--text-primary)]"
+                >{formatValue(highPrice, 4)}</span
+              >
+            </div>
+            <div class="flex flex-col text-right">
+              <span class="text-[var(--text-secondary)]"
+                >{$_("marketOverview.24hLow")}</span
+              >
+              <span class="font-medium text-[var(--text-primary)]"
+                >{formatValue(lowPrice, 4)}</span
+              >
+            </div>
+            <div class="flex flex-col mt-1">
+              <span class="text-[var(--text-secondary)]"
+                >{$_("marketOverview.vol")} ({displaySymbol
+                  .replace(/USDT.?$/, "")
+                  .replace(/P$/, "")})</span
+              >
+              <span class="font-medium text-[var(--text-primary)]"
+                >{formatValue(volume, 0)}</span
+              >
+            </div>
+            {#if settingsState.showMarketSentiment}
+              <div class="flex flex-col mt-1 text-right relative group">
+                <span class="text-[var(--text-secondary)]"
+                  >RSI ({effectiveRsiTimeframe})</span
                 >
-                  <div
-                    class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
-                  >
-                    RSI Settings
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <span>{$_("marketOverview.length")}:</span>
-                    <span class="font-mono">{indicatorState.rsi.length}</span>
-                  </div>
-                  <div class="flex justify-between gap-4">
-                    <span>{$_("marketOverview.source")}:</span>
-                    <span class="font-mono capitalize"
-                      >{indicatorState.rsi.source}</span
-                    >
-                  </div>
-                  {#if indicatorState.rsi.showSignal && signalValue}
+                <span
+                  class="font-medium transition-colors duration-300 cursor-help"
+                  class:text-[var(--danger-color)]={rsiValue &&
+                    rsiValue.gte(70)}
+                  class:text-[var(--success-color)]={rsiValue &&
+                    rsiValue.lte(30)}
+                  class:text-[var(--text-primary)]={!rsiValue ||
+                    (rsiValue.gt(30) && rsiValue.lt(70))}
+                >
+                  {formatValue(rsiValue, 2)}
+                </span>
+                <div
+                  class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
+                >
+                  <Tooltip>
                     <div
-                      class="flex justify-between gap-4 text-[var(--accent-color)]"
+                      class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]"
                     >
-                      <span
-                        >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
+                      <div
+                        class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
                       >
-                      <span class="font-mono"
-                        >{formatValue(signalValue, 2)}</span
-                      >
+                        RSI Settings
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span>{$_("marketOverview.length")}:</span>
+                        <span class="font-mono"
+                          >{indicatorState.rsi.length}</span
+                        >
+                      </div>
+                      <div class="flex justify-between gap-4">
+                        <span>{$_("marketOverview.source")}:</span>
+                        <span class="font-mono capitalize"
+                          >{indicatorState.rsi.source}</span
+                        >
+                      </div>
+                      {#if indicatorState.rsi.showSignal && signalValue}
+                        <div
+                          class="flex justify-between gap-4 text-[var(--accent-color)]"
+                        >
+                          <span
+                            >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
+                          >
+                          <span class="font-mono"
+                            >{formatValue(signalValue, 2)}</span
+                          >
+                        </div>
+                      {/if}
                     </div>
-                  {/if}
+                  </Tooltip>
                 </div>
-              </Tooltip>
+              </div>
+            {/if}
+          </div>
+        {/if}
+
+        {#if fundingRate}
+          <div
+            class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
+          >
+            <div class="flex flex-col">
+              <span class="text-[var(--text-secondary)]">Funding Rate</span>
+              <span
+                class="font-medium"
+                class:text-[var(--success-color)]={fundingRate.gt(0)}
+                class:text-[var(--danger-color)]={fundingRate.lt(0)}
+              >
+                {formatValue(fundingRate.times(100), 4)}%
+              </span>
+            </div>
+            <div class="flex flex-col text-right">
+              <span class="text-[var(--text-secondary)]">Countdown</span>
+              <span class="font-mono text-[var(--text-primary)]"
+                >{countdownText}</span
+              >
             </div>
           </div>
-        </div>
+        {/if}
       {/if}
 
-      {#if fundingRate}
+      {#if settingsState.showMarketOverviewLinks && symbol}
         <div
-          class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
+          class="flex items-center gap-3 mt-3 pt-2 border-t border-[var(--border-color)]"
         >
-          <div class="flex flex-col">
-            <span class="text-[var(--text-secondary)]">Funding Rate</span>
-            <span
-              class="font-medium"
-              class:text-[var(--success-color)]={fundingRate.gt(0)}
-              class:text-[var(--danger-color)]={fundingRate.lt(0)}
+          <a
+            href="https://www.tradingview.com/symbols/{symbol.replace(
+              'USDT',
+              '',
+            )}USDT/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+            title="TradingView"
+          >
+            TV
+          </a>
+          {#if settingsState.cmcApiKey}
+            <a
+              href="https://coinmarketcap.com/currencies/{symbol
+                .replace('USDT', '')
+                .toLowerCase()}/"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+              title="CoinMarketCap"
             >
-              {formatValue(fundingRate.times(100), 4)}%
-            </span>
-          </div>
-          <div class="flex flex-col text-right">
-            <span class="text-[var(--text-secondary)]">Countdown</span>
-            <span class="font-mono text-[var(--text-primary)]"
-              >{countdownText}</span
-            >
-          </div>
+              CMC
+            </a>
+          {/if}
+          <a
+            href="https://cryptopanic.com/news/{symbol
+              .replace('USDT', '')
+              .toLowerCase()}/"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+            title="CryptoPanic"
+          >
+            CP
+          </a>
+          <a
+            href="https://www.coinglass.com/currencies/{symbol.replace(
+              'USDT',
+              '',
+            )}"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+            title="Coinglass"
+          >
+            CG
+          </a>
         </div>
       {/if}
     </div>
