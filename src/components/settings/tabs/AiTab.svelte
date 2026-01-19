@@ -276,5 +276,78 @@
         >
       </div>
     {/if}
+
+    <!-- News Analysis Toggle -->
+    <div
+      class="flex items-center justify-between py-2 border-t border-[var(--border-color)]"
+    >
+      <div class="flex flex-col">
+        <span class="text-xs font-bold">News Analysis</span>
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Fetch recent news (CryptoPanic / NewsAPI) for context.</span
+        >
+      </div>
+      <input
+        type="checkbox"
+        bind:checked={settingsState.enableNewsAnalysis}
+        class="toggle-checkbox"
+      />
+    </div>
+
+    <!-- News API Keys -->
+    {#if settingsState.enableNewsAnalysis}
+      <div class="flex flex-col gap-3">
+        <div class="flex flex-col gap-2">
+          <label
+            for="cryptopanic-key"
+            class="text-xs font-bold flex items-center gap-2"
+          >
+            <span>CryptoPanic API Key</span>
+          </label>
+          <input
+            id="cryptopanic-key"
+            name="cryptoPanicKey"
+            type="password"
+            bind:value={settingsState.cryptoPanicApiKey}
+            class="input-field p-1 px-2 rounded text-sm mb-1"
+            placeholder="Auth Token..."
+          />
+          <div class="flex items-center justify-between">
+            <span class="text-[10px] text-[var(--text-secondary)]">Filter:</span>
+            <select
+              bind:value={settingsState.cryptoPanicFilter}
+              class="input-field p-1 px-2 rounded text-[10px] w-24 bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+            >
+              <option value="important">Important</option>
+              <option value="hot">Hot</option>
+              <option value="rising">Rising</option>
+              <option value="bullish">Bullish</option>
+              <option value="bearish">Bearish</option>
+              <option value="all">All</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-2 border-t border-[var(--border-color)] pt-2">
+          <label
+            for="newsapi-key"
+            class="text-xs font-bold flex items-center gap-2"
+          >
+            <span>NewsAPI.org Key</span>
+          </label>
+          <input
+            id="newsapi-key"
+            name="newsApiKey"
+            type="password"
+            bind:value={settingsState.newsApiKey}
+            class="input-field p-1 px-2 rounded text-sm mb-1"
+            placeholder="API Key..."
+          />
+          <span class="text-[10px] text-[var(--text-secondary)]"
+            >Secondary source for general crypto news.</span
+          >
+        </div>
+      </div>
+    {/if}
   </div>
 </div>

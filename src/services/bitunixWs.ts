@@ -486,10 +486,9 @@ class BitunixWebSocketService {
 
   private validateTickerData(data: Partial<BitunixTickerData>): boolean {
     if (!data) return false;
-    const critical = ["la", "o"] as const;
-    for (const field of critical) {
-      if (!data[field]) return false;
-      const val = parseFloat(String(data[field]));
+    // Relaxed validation: Allow partial updates, but if 'la' is present it must be valid
+    if (data.la) {
+      const val = parseFloat(String(data.la));
       if (isNaN(val) || val <= 0) return false;
     }
     return true;
@@ -530,15 +529,19 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixTickerData>;
         if (symbol && data && this.validateTickerData(data)) {
-          marketState.updateTicker(symbol, {
-            lastPrice: data.la || "0",
-            high: data.h || "0",
-            low: data.l || "0",
-            vol: data.b || "0",
-            quoteVol: data.q || "0",
-            change: data.r || "0",
-            open: data.o || "0",
-          });
+          // Construct partial update to avoid overwriting existing data with "0"
+          const update: any = {};
+          if (data.la) update.lastPrice = data.la;
+          if (data.h) update.high = data.h;
+          if (data.l) update.low = data.l;
+          if (data.b) update.vol = data.b;
+          if (data.q) update.quoteVol = data.q;
+          if (data.r) update.change = data.r;
+          if (data.o) update.open = data.o;
+
+          if (Object.keys(update).length > 0) {
+            marketState.updateTicker(symbol, update);
+          }
         }
       } else if (message.ch === "depth_book5") {
         const rawSymbol = message.symbol;

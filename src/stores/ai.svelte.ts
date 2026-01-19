@@ -617,6 +617,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         // Update message to show confirmed status
         this.updateActionMessage(actionId, "confirmed");
+        this.save();
     }
 
     /**
@@ -631,6 +632,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
         // Update message to show rejected status
         this.updateActionMessage(actionId, "rejected");
+        this.save();
     }
 
     /**
