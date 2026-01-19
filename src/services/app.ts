@@ -8,6 +8,7 @@
  */
 
 // Stores
+import { untrack } from "svelte";
 import { get } from "svelte/store";
 import { tradeState } from "../stores/trade.svelte";
 import { resultsState } from "../stores/results.svelte";
@@ -110,33 +111,35 @@ export const app = {
     let lastProvider = "";
 
     settingsState.subscribe((s: any) => {
-      // Safety check for apiKeys structure
-      if (!s || !s.apiKeys || !s.apiKeys.bitunix) return;
+      untrack(() => {
+        // Safety check for apiKeys structure
+        if (!s || !s.apiKeys || !s.apiKeys.bitunix) return;
 
-      const currentKeys = `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}`;
-      const providerChanged = s.apiProvider !== lastProvider;
-      const keysChanged = currentKeys !== lastKeys;
+        const currentKeys = `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}`;
+        const providerChanged = s.apiProvider !== lastProvider;
+        const keysChanged = currentKeys !== lastKeys;
 
-      if (
-        (keysChanged || (providerChanged && s.apiProvider === "bitunix")) &&
-        s.apiKeys.bitunix.key &&
-        s.apiKeys.bitunix.secret &&
-        s.apiProvider === "bitunix"
-      ) {
-        lastKeys = currentKeys;
-        lastProvider = s.apiProvider;
+        if (
+          (keysChanged || (providerChanged && s.apiProvider === "bitunix")) &&
+          s.apiKeys.bitunix.key &&
+          s.apiKeys.bitunix.secret &&
+          s.apiProvider === "bitunix"
+        ) {
+          lastKeys = currentKeys;
+          lastProvider = s.apiProvider;
 
-        if (browser) {
-          // If we are switching back, make sure instance is not 'destroyed' 
-          // (bitunixWs is a singleton, we need to ensure it can reconnect)
-          (bitunixWs as any).isDestroyed = false;
-          bitunixWs.connect();
+          if (browser) {
+            // If we are switching back, make sure instance is not 'destroyed' 
+            // (bitunixWs is a singleton, we need to ensure it can reconnect)
+            (bitunixWs as any).isDestroyed = false;
+            bitunixWs.connect();
+          }
+        } else if (s.apiProvider !== "bitunix" && lastProvider === "bitunix") {
+          lastProvider = s.apiProvider;
+          // If switched away from bitunix, disconnect
+          bitunixWs.destroy();
         }
-      } else if (s.apiProvider !== "bitunix" && lastProvider === "bitunix") {
-        lastProvider = s.apiProvider;
-        // If switched away from bitunix, disconnect
-        bitunixWs.destroy();
-      }
+      });
     });
 
     // Cleanup existing subscription to prevent leaks/duplicates
@@ -208,8 +211,8 @@ export const app = {
     if (!browser) return;
 
     // Watch settings, status and symbol changes to adjust interval
-    settingsState.subscribe(() => app.refreshPriceUpdateInterval());
-    marketState.subscribeStatus(() => app.refreshPriceUpdateInterval());
+    settingsState.subscribe(() => untrack(() => app.refreshPriceUpdateInterval()));
+    marketState.subscribeStatus(() => untrack(() => app.refreshPriceUpdateInterval()));
 
     // Initial setup
     app.refreshPriceUpdateInterval();

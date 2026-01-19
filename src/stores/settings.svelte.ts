@@ -222,6 +222,7 @@ class SettingsManager {
 
     // Subscriptions for legacy compatibility
     private listeners: Set<(value: Settings) => void> = new Set();
+    private notifyTimer: any = null;
 
     constructor() {
         if (browser) {
@@ -415,8 +416,13 @@ class SettingsManager {
     }
 
     private notifyListeners() {
-        const snapshot = this.toJSON();
-        this.listeners.forEach(fn => fn(snapshot));
+        if (this.notifyTimer) clearTimeout(this.notifyTimer);
+
+        this.notifyTimer = setTimeout(() => {
+            const snapshot = this.toJSON();
+            this.listeners.forEach(fn => fn(snapshot));
+            this.notifyTimer = null;
+        }, 50); // Small debounce to prevent "flush" loops and flood updates
     }
 
     // Method to support update((s) => ...) pattern for partial migration
