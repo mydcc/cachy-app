@@ -77,7 +77,11 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
     const duration = Date.now() - start;
 
     // Log Response mit Status und Dauer
-    if (response.status >= 400) {
+    if (response.status === 429) {
+      logger.warn(
+        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
+      );
+    } else if (response.status >= 400) {
       logger.error(
         `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
       );
