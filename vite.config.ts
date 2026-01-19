@@ -22,7 +22,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
-      external: ["openai"],
+      external: ["openai"], // Dynamic import in newsService.ts
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {

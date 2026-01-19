@@ -9,8 +9,6 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
-// @ts-ignore
-import OpenAI from "openai";
 
 export interface NewsItem {
   title: string;
@@ -217,6 +215,9 @@ OUTPUT FORMAT (JSON ONLY):
       if (aiProvider === "gemini" && geminiApiKey) {
         resultText = await fetchWithRetry(prompt, geminiApiKey, settingsState.geminiModel || "gemini-1.5-flash");
       } else if (aiProvider === "openai" && openaiApiKey) {
+        // Dynamic import to avoid loading openai in browser bundle
+        // @ts-expect-error - openai is dynamically imported
+        const { default: OpenAI } = await import("openai");
         const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
         const completion = await openai.chat.completions.create({
           messages: [{ role: "system", content: "You are a financial analyst." }, { role: "user", content: prompt }],
