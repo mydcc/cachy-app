@@ -42,6 +42,8 @@
   );
 
   async function loadData() {
+    if (!settingsState.enableNewsAnalysis) return;
+
     if (!settingsState.cryptoPanicApiKey && !settingsState.newsApiKey) {
       error = "no_api_key";
       return;
@@ -51,8 +53,8 @@
     error = null;
 
     try {
-      news = await newsService.fetchNews(symbol);
-      if (news.length > 0) {
+      news = await newsService.fetchNews(symbol) || []; // Robust fallback
+      if (news && news.length > 0) {
         analysis = await newsService.analyzeSentiment(news);
       }
     } catch (e) {
@@ -64,8 +66,8 @@
   }
 
   onMount(() => {
-    // Only load if keys are present to avoid error spam on initial load
-    if (settingsState.cryptoPanicApiKey || settingsState.newsApiKey) {
+    // Only load if enabled and keys are present
+    if (settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)) {
         loadData();
     }
   });
@@ -76,7 +78,11 @@
 </script>
 
 <div class="news-sentiment-panel glass-panel rounded-xl p-4 mt-4 border border-[var(--border-color)]">
-  <div class="flex items-center justify-between cursor-pointer" onclick={toggleExpand}>
+  <button
+    type="button"
+    class="w-full flex items-center justify-between cursor-pointer bg-transparent border-0 p-0 text-left"
+    onclick={toggleExpand}
+  >
     <div class="flex items-center gap-3">
         <div class="icon-wrapper text-2xl">
            📰
@@ -112,11 +118,11 @@
                 <div class="absolute left-1/2 top-0 w-0.5 h-full bg-[var(--text-primary)] opacity-30"></div>
             </div>
          {/if}
-         <button class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
+         <div class="p-1 hover:bg-[var(--bg-secondary)] rounded transition-colors">
             {@html isExpanded ? icons.chevronUp : icons.chevronDown}
-         </button>
+         </div>
     </div>
-  </div>
+  </button>
 
   {#if isExpanded}
     <div transition:slide class="mt-4 border-t border-[var(--border-color)] pt-4">
@@ -135,7 +141,7 @@
             {#if analysis}
                 <div class="mb-4 bg-[var(--bg-secondary)] p-3 rounded-lg border-l-4" style:border-color={sentimentColor}>
                     <p class="text-sm italic text-[var(--text-primary)]">"{analysis.summary}"</p>
-                    {#if analysis.keyFactors.length > 0}
+                    {#if analysis.keyFactors && analysis.keyFactors.length > 0}
                         <div class="mt-2 flex flex-wrap gap-2">
                             {#each analysis.keyFactors as factor}
                                 <span class="text-[10px] uppercase font-bold px-2 py-1 rounded bg-[var(--bg-primary)] opacity-80">
