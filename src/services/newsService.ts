@@ -190,7 +190,15 @@ OUTPUT FORMAT (JSON ONLY):
           const result = await model.generateContent(prompt);
           return result.response.text();
         } catch (e: any) {
-          const isOverloaded = e?.message?.includes("503") || e?.message?.includes("overloaded");
+          const errMsg = e?.message || "";
+          const isOverloaded = errMsg.includes("503") || errMsg.includes("overloaded");
+          const isQuota = errMsg.includes("429") || errMsg.toLowerCase().includes("quota");
+
+          if (isQuota) {
+            console.warn(`[newsService] Gemini Quota Exceeded (429). Stopping retries.`);
+            throw new Error("GEMINI_QUOTA_EXCEEDED"); // Custom error to catch below
+          }
+
           if (isOverloaded && i < retries - 1) {
             console.warn(`[newsService] Gemini overloaded, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
             await new Promise(resolve => setTimeout(resolve, delay));
@@ -233,12 +241,19 @@ OUTPUT FORMAT (JSON ONLY):
 
       return analysis;
 
-    } catch (e) {
-      console.error("Sentiment Analysis Failed:", e);
+    } catch (e: any) {
+      // Graceful error logging
+      const msg = e?.message || "";
+      if (msg.includes("GEMINI_QUOTA_EXCEEDED") || msg.includes("429") || msg.toLowerCase().includes("quota")) {
+        console.warn("Sentiment Analysis: AI Quota Exceeded (Warning only).");
+      } else {
+        console.error("Sentiment Analysis Failed:", e);
+      }
+
       return {
         score: 0,
         regime: "UNCERTAIN",
-        summary: "Failed to analyze sentiment due to AI error.",
+        summary: msg.includes("QUOTA") ? "Analysis unavailable (AI Quota Exceeded)." : "Failed to analyze sentiment.",
         keyFactors: []
       };
     }

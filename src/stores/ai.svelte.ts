@@ -92,7 +92,7 @@ class AiManager {
             // 3. Prepare Messages (History + System + User)
             const systemPrompt = `You are a professional trading assistant in the Cachy app.
 
-CURRENT MARKET CONTEXT:
+CURRENT MARKET CONTEXT (NOTE: 'marketIntelligence' contains LIVE DATA fetched from CoinMarketCap API):
 ${JSON.stringify(context, null, 2)}
 
 ROLE:
@@ -377,6 +377,30 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
             }
         }
 
+        // News Data (New Addition)
+        let newsContext = null;
+        if (settings.enableNewsAnalysis && (settings.cryptoPanicApiKey || settings.newsApiKey)) {
+            try {
+                // Import newsService here (lazy) or assume it's available via module scope if we imported it top-level
+                // We imported it as: import { newsService } from "../services/newsService"; (checked via view_file)
+                // Use imported newsService
+
+                // Fetch recent news for active symbol or general crypto if none
+                const newsItems = await import("../services/newsService").then(m => m.newsService.fetchNews(trade.symbol || "crypto"));
+
+                if (newsItems && newsItems.length > 0) {
+                    // Limit to top 5 headlines to save tokens
+                    newsContext = newsItems.slice(0, 5).map(n => ({
+                        title: n.title,
+                        source: n.source,
+                        ago: n.published_at // or compute relative time
+                    }));
+                }
+            } catch (e) {
+                console.warn("Failed to gather News context:", e);
+            }
+        }
+
         // Calculate Portfolio Stats
         const totalTrades = journal.length;
         const wins = journal.filter(
@@ -435,7 +459,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                 atrMultiplier: trade.atrMultiplier,
                 useAtrSl: trade.useAtrSl,
             },
-            marketIntelligence: cmcContext
+            marketIntelligence: cmcContext,
+            latestNews: newsContext
         };
     }
 

@@ -80,7 +80,13 @@ export const POST: RequestHandler = async ({ request }) => {
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error(`Gemini API Error (${response.status}):`, errText);
+      // Log 429 as warning to avoid console spam, others as error
+      if (response.status === 429) {
+        console.warn(`Gemini API Warning (${response.status}):`, errText);
+      } else {
+        console.error(`Gemini API Error (${response.status}):`, errText);
+      }
+
       let errMsg = "Gemini API Error";
       try {
         const errJson = JSON.parse(errText);

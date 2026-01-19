@@ -936,10 +936,27 @@
             >
           </div>
           {#if errorMessage}
+            {@const isRateLimit =
+              errorMessage.toLowerCase().includes("quota") ||
+              errorMessage.includes("429")}
             <div
-              class="text-xs text-[var(--danger-color)] mb-2 animate-pulse px-2"
+              class="text-xs mb-2 px-2 transition-colors"
+              class:text-[var(--danger-color)]={!isRateLimit}
+              class:animate-pulse={!isRateLimit}
+              class:text-orange-400={isRateLimit}
+              class:font-medium={isRateLimit}
             >
-              {$_(errorMessage) || errorMessage || aiState.error}
+              {#if isRateLimit}
+                <div class="flex items-center gap-1.5 opacity-90">
+                  <span>⚠️</span>
+                  <span
+                    >Generative AI Quota exceeded. Please try again later or
+                    check API settings.</span
+                  >
+                </div>
+              {:else}
+                {$_(errorMessage) || errorMessage || aiState.error}
+              {/if}
             </div>
           {/if}
           <div class="relative w-full">
