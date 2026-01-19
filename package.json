@@ -59,6 +59,7 @@
     "katex": "^0.16.27",
     "marked": "^17.0.1",
     "marked-katex-extension": "^5.1.6",
+    "openai": "^6.16.0",
     "svelte-i18n": "^4.0.0",
     "undici": "^7.18.2"
   }

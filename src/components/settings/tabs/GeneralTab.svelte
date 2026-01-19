@@ -154,4 +154,39 @@
       {$_("settings.feePreferenceDesc")}
     </p>
   </div>
+
+  <div class="h-px bg-[var(--border-color)] my-2"></div>
+
+  <div class="flex flex-col gap-3">
+    <span class="text-sm font-bold uppercase tracking-wider text-[var(--text-secondary)]">External News APIs</span>
+
+    <div class="flex flex-col gap-1">
+      <label for="cryptopanic-key" class="text-xs font-medium text-[var(--text-secondary)]">
+        CryptoPanic API Key
+      </label>
+      <input
+        id="cryptopanic-key"
+        type="password"
+        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+        placeholder="Optional: Enter key"
+        bind:value={settingsState.cryptoPanicApiKey}
+      />
+    </div>
+
+    <div class="flex flex-col gap-1">
+      <label for="newsapi-key" class="text-xs font-medium text-[var(--text-secondary)]">
+        NewsAPI.org Key
+      </label>
+      <input
+        id="newsapi-key"
+        type="password"
+        class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
+        placeholder="Optional: Enter key"
+        bind:value={settingsState.newsApiKey}
+      />
+    </div>
+    <p class="text-xs text-[var(--text-tertiary)]">
+      Required for "Market Sentiment" analysis. Keys are stored locally in your browser.
+    </p>
+  </div>
 </div>
