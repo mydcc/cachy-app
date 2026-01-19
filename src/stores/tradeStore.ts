@@ -20,7 +20,7 @@ import { CONSTANTS } from "../lib/constants";
 import type { AppState } from "./types";
 import { resultsStore, initialResultsState } from "./resultsStore";
 import { uiStore } from "./uiStore";
-import { settingsStore } from "./settingsStore";
+import { settingsState } from "./settings.svelte";
 import { browser } from "$app/environment";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
@@ -177,7 +177,7 @@ export const resetAllInputs = () => {
   resultsStore.set(initialResultsState);
 
   // Turn off Auto-Price-Update
-  settingsStore.update(s => ({ ...s, autoUpdatePriceInput: false }));
+  settingsState.autoUpdatePriceInput = false;
 
   uiStore.showError("dashboard.promptForData");
 };

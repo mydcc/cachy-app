@@ -24,7 +24,7 @@
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
     import { marketStore } from "../../stores/marketStore";
-    import { settingsStore } from "../../stores/settingsStore";
+    import { settingsState } from "../../stores/settings.svelte";
     import { apiService } from "../../services/apiService";
     import { Decimal } from "decimal.js";
 
@@ -97,7 +97,7 @@
         // 4. View Mode
         if (!searchQuery) {
             if (viewMode === "favorites") {
-                const favs = $settingsStore.favoriteSymbols || [];
+                const favs = settingsState.favoriteSymbols || [];
                 result = result.filter((s) => favs.includes(s));
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
@@ -205,21 +205,16 @@
 
     function toggleFavorite(e: MouseEvent, symbol: string) {
         e.stopPropagation();
-        settingsStore.update((s) => {
-            const favs = s.favoriteSymbols || [];
-            if (favs.includes(symbol)) {
-                return {
-                    ...s,
-                    favoriteSymbols: favs.filter((f) => f !== symbol),
-                };
-            } else {
-                return { ...s, favoriteSymbols: [...favs, symbol] };
-            }
-        });
+        const favs = settingsState.favoriteSymbols || [];
+        if (favs.includes(symbol)) {
+            settingsState.favoriteSymbols = favs.filter((f) => f !== symbol);
+        } else {
+            settingsState.favoriteSymbols = [...favs, symbol];
+        }
     }
 
     function isFavorite(symbol: string) {
-        return ($settingsStore.favoriteSymbols || []).includes(symbol);
+        return (settingsState.favoriteSymbols || []).includes(symbol);
     }
 
     function handleGlobalKeydown(e: KeyboardEvent) {

@@ -16,7 +16,7 @@
  */
 
 import { get } from "svelte/store";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { _ } from "../locales/i18n";
 import {
   parseDecimal,
@@ -206,7 +206,7 @@ export const csvService = {
       const translate = get(_);
       throw new Error(
         (translate("csvEmpty") as string) ||
-          "CSV is empty or has only a header.",
+        "CSV is empty or has only a header.",
       );
     }
 
@@ -296,7 +296,7 @@ export const csvService = {
       throw new Error(msg);
     }
 
-    const { useUtcDateParsing } = get(settingsStore);
+    const { useUtcDateParsing } = settingsState;
 
     const entries = lines
       .slice(1)
@@ -395,8 +395,8 @@ export const csvService = {
             notes: entry.Notizen || "",
             tags: entry.Tags
               ? entry.Tags.split(";")
-                  .map((t) => t.trim())
-                  .filter(Boolean)
+                .map((t) => t.trim())
+                .filter(Boolean)
               : [],
             screenshot: entry.Screenshot || undefined,
             targets: targets,

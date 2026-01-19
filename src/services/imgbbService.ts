@@ -16,11 +16,11 @@
  */
 
 import { get } from "svelte/store";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 
 export const imgbbService = {
   async uploadToImgbb(file: File): Promise<string> {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const apiKey = settings.imgbbApiKey;
     const expiration = settings.imgbbExpiration;
 
@@ -52,7 +52,7 @@ export const imgbbService = {
         console.error("ImgBB API Error:", errorData);
         throw new Error(
           errorData?.error?.message ||
-            `Upload failed with status ${response.status}`,
+          `Upload failed with status ${response.status}`,
         );
       }
 

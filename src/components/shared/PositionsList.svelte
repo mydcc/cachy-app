@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { uiStore } from "../../stores/uiStore";
@@ -78,15 +78,13 @@
   }
 
   function togglePnlMode() {
-    settingsStore.update((s) => {
-      const nextMode =
-        s.pnlViewMode === "value"
-          ? "percent"
-          : s.pnlViewMode === "percent"
-            ? "bar"
-            : "value";
-      return { ...s, pnlViewMode: nextMode };
-    });
+    const nextMode =
+      settingsState.pnlViewMode === "value"
+        ? "percent"
+        : settingsState.pnlViewMode === "percent"
+          ? "bar"
+          : "value";
+    settingsState.pnlViewMode = nextMode;
   }
 
   function handleClose(pos: any) {
@@ -103,8 +101,8 @@
   }
 
   // View Modes
-  let viewMode = $derived($settingsStore.positionViewMode || "detailed");
-  let pnlMode = $derived($settingsStore.pnlViewMode || "value");
+  let viewMode = $derived(settingsState.positionViewMode || "detailed");
+  let pnlMode = $derived(settingsState.pnlViewMode || "value");
 
   // Safe access to positions
   let safePositions = $derived(Array.isArray(positions) ? positions : []);

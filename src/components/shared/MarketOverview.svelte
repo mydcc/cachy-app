@@ -18,8 +18,8 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
-  import { indicatorStore } from "../../stores/indicatorStore";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { indicatorState } from "../../stores/indicator.svelte";
   import { favoritesStore } from "../../stores/favoritesStore";
   import {
     marketStore,
@@ -154,7 +154,7 @@
     try {
       // Need enough history for RSI + Signal
       const limit = Math.max(
-        $indicatorStore.rsi.length + $indicatorStore.rsi.signalLength + 10,
+        indicatorState.rsi.length + indicatorState.rsi.signalLength + 10,
         50,
       );
       const klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
@@ -194,7 +194,7 @@
 
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
-    const interval = $settingsStore.marketDataInterval * 1000;
+    const interval = settingsState.marketDataInterval * 1000;
     restIntervalId = setInterval(() => fetchRestData(true), interval);
   }
 
@@ -275,7 +275,7 @@
   }
   // Use custom symbol if provided, otherwise fall back to store symbol
   let symbol = $derived(customSymbol || $tradeStore.symbol || "");
-  let provider = $derived($settingsStore.apiProvider);
+  let provider = $derived(settingsState.apiProvider);
   let displaySymbol = $derived(getDisplaySymbol(symbol));
   // WS Data
   let wsData = $derived.by(() => {
@@ -319,9 +319,9 @@
   let depthData = $derived(wsData?.depth);
   // RSI Timeframe
   let effectiveRsiTimeframe = $derived(
-    $settingsStore.syncRsiTimeframe
-      ? $tradeStore.atrTimeframe || $indicatorStore.rsi.defaultTimeframe || "1d"
-      : $indicatorStore.rsi.defaultTimeframe || "1d",
+    settingsState.syncRsiTimeframe
+      ? $tradeStore.atrTimeframe || indicatorState.rsi.defaultTimeframe || "1d"
+      : indicatorState.rsi.defaultTimeframe || "1d",
   );
   $effect(() => {
     if (
@@ -344,15 +344,15 @@
   });
   $effect(() => {
     if (historyKlines.length > 0) {
-      const _triggers = [$indicatorStore.rsi, currentPrice];
+      const _triggers = [indicatorState.rsi, currentPrice];
 
       untrack(() => {
         const now = Date.now();
         const timeSinceLast = now - lastRsiCalcTime;
 
         const performCalc = () => {
-          const sourceMode = $indicatorStore.rsi.source || "close";
-          const length = $indicatorStore.rsi.length || 14;
+          const sourceMode = indicatorState.rsi.source || "close";
+          const length = indicatorState.rsi.length || 14;
 
           let values = historyKlines.map((k) => {
             if (sourceMode === "open") return k.open;
@@ -400,9 +400,9 @@
 
           if (rsiSeries.length > 0) {
             rsiValue = rsiSeries[rsiSeries.length - 1];
-            if ($indicatorStore.rsi.showSignal) {
-              const sigType = $indicatorStore.rsi.signalType || "sma";
-              const sigLen = $indicatorStore.rsi.signalLength || 14;
+            if (indicatorState.rsi.showSignal) {
+              const sigType = indicatorState.rsi.signalType || "sma";
+              const sigLen = indicatorState.rsi.signalLength || 14;
               if (sigType === "ema") {
                 signalValue = indicators.calculateEMA(rsiSeries, sigLen);
               } else {
@@ -465,7 +465,7 @@
   tabindex={isFavoriteTile ? 0 : -1}
 >
   <div class="absolute top-2 right-2 flex gap-1 z-50">
-    {#if $settingsStore.showTechnicals && !isFavoriteTile && onToggleTechnicals}
+    {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}
       <button
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
@@ -604,20 +604,20 @@
                   </div>
                   <div class="flex justify-between gap-4">
                     <span>{$_("marketOverview.length")}:</span>
-                    <span class="font-mono">{$indicatorStore.rsi.length}</span>
+                    <span class="font-mono">{indicatorState.rsi.length}</span>
                   </div>
                   <div class="flex justify-between gap-4">
                     <span>{$_("marketOverview.source")}:</span>
                     <span class="font-mono capitalize"
-                      >{$indicatorStore.rsi.source}</span
+                      >{indicatorState.rsi.source}</span
                     >
                   </div>
-                  {#if $indicatorStore.rsi.showSignal && signalValue}
+                  {#if indicatorState.rsi.showSignal && signalValue}
                     <div
                       class="flex justify-between gap-4 text-[var(--accent-color)]"
                     >
                       <span
-                        >{$_("marketOverview.signal")} ({$indicatorStore.rsi.signalType.toUpperCase()}):</span
+                        >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
                       >
                       <span class="font-mono"
                         >{formatValue(signalValue, 2)}</span

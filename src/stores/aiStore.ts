@@ -17,7 +17,7 @@
 
 import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
-import { settingsStore, type AiProvider } from "./settingsStore";
+import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeStore } from "./tradeStore";
 import { marketStore } from "./marketStore";
 import { accountStore } from "./accountStore";
@@ -74,7 +74,7 @@ function createAiStore() {
 
     sendMessage: async (text: string) => {
       const state = get({ subscribe });
-      const settings = get(settingsStore);
+      const settings = settingsState;
 
       // 1. Add User Message
       const userMsg: AiMessage = {
@@ -360,7 +360,7 @@ function gatherContext() {
   const market = get(marketStore) || {};
   const account = get(accountStore) || { positions: [], assets: [] }; // Improved default
   const journal = get(journalStore) || [];
-  const settings = get(settingsStore);
+  const settings = settingsState;
 
   // Calculate Portfolio Stats
   const totalTrades = journal.length;
@@ -387,12 +387,12 @@ function gatherContext() {
   // Get last N trades from Journal
   const recentTrades = Array.isArray(journal)
     ? journal.slice(0, limit).map((t) => ({
-        symbol: t.symbol,
-        entry: t.entryDate,
-        exit: t.exitDate,
-        pnl: t.totalNetProfit?.toNumber() || 0,
-        won: (t.totalNetProfit?.toNumber() || 0) > 0,
-      }))
+      symbol: t.symbol,
+      entry: t.entryDate,
+      exit: t.exitDate,
+      pnl: t.totalNetProfit?.toNumber() || 0,
+      won: (t.totalNetProfit?.toNumber() || 0) > 0,
+    }))
     : [];
 
   return {
@@ -408,19 +408,19 @@ function gatherContext() {
       marketData?.priceChangePercent?.toString() + "%" || "Unknown",
     openPositions: Array.isArray(account.positions)
       ? account.positions.map((p) => ({
-          symbol: p.symbol,
-          side: p.side,
-          size: p.size.toString(),
-          entry: p.entryPrice.toString(),
-          pnl: p.unrealizedPnl.toString(),
-          roi:
-            !p.entryPrice.isZero() && !p.size.isZero()
-              ? p.unrealizedPnl
-                  .div(p.entryPrice.times(p.size).div(p.leverage))
-                  .times(100)
-                  .toFixed(2) + "%"
-              : "N/A",
-        }))
+        symbol: p.symbol,
+        side: p.side,
+        size: p.size.toString(),
+        entry: p.entryPrice.toString(),
+        pnl: p.unrealizedPnl.toString(),
+        roi:
+          !p.entryPrice.isZero() && !p.size.isZero()
+            ? p.unrealizedPnl
+              .div(p.entryPrice.times(p.size).div(p.leverage))
+              .times(100)
+              .toFixed(2) + "%"
+            : "N/A",
+      }))
       : [],
     recentHistory: recentTrades,
     tradeSetup: {

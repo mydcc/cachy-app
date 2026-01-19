@@ -21,7 +21,7 @@
   import { chatStore } from "../../stores/chatStore";
   import { notesStore } from "../../stores/notesStore";
   import { aiStore } from "../../stores/aiStore";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
@@ -51,7 +51,7 @@
 
     isSending = true;
     errorMessage = "";
-    const mode = $settingsStore.sidePanelMode;
+    const mode = settingsState.sidePanelMode;
 
     try {
       if (mode === "ai") {
@@ -103,18 +103,18 @@
   }
 
   // Reactive layout variables
-  let layout = $derived($settingsStore.sidePanelLayout || "floating");
+  let layout = $derived(settingsState.sidePanelLayout || "floating");
   let isFloating = $derived(layout === "floating");
   let isSidebar = $derived(!isFloating); // Standard
 
-  let styleMode = $derived($settingsStore.chatStyle || "minimal"); // minimal, bubble, terminal
+  let styleMode = $derived(settingsState.chatStyle || "minimal"); // minimal, bubble, terminal
 
   let isTerminal = $derived(styleMode === "terminal");
   let isBubble = $derived(styleMode === "bubble");
   let isMinimal = $derived(styleMode === "minimal");
 
   // Panel State (Position & Size)
-  let panelState = $state($settingsStore.panelState);
+  let panelState = $state(settingsState.panelState);
   let isDragging = $state(false);
   let dragType:
     | "move"
@@ -201,17 +201,14 @@
     document.body.style.userSelect = "";
 
     // Save to store
-    settingsStore.update((s) => ({
-      ...s,
-      panelState: { ...panelState },
-    }));
+    settingsState.panelState = { ...panelState };
   }
 
   function changeFontSize(delta: number) {
-    settingsStore.update((s) => ({
-      ...s,
-      chatFontSize: Math.max(8, Math.min(24, (s.chatFontSize || 13) + delta)),
-    }));
+    settingsState.chatFontSize = Math.max(
+      8,
+      Math.min(24, (settingsState.chatFontSize || 13) + delta),
+    );
   }
 
   function copyToClipboard(text: string) {
@@ -223,14 +220,14 @@
 
   function exportChat() {
     let content = "";
-    if ($settingsStore.sidePanelMode === "ai") {
+    if (settingsState.sidePanelMode === "ai") {
       content = $aiStore.messages
         .map(
           (m) =>
             `${m.role === "user" ? "YOU" : "AI"} (${new Date(m.timestamp).toLocaleString()}):\n${m.content}\n`,
         )
         .join("\n---\n\n");
-    } else if ($settingsStore.sidePanelMode === "notes") {
+    } else if (settingsState.sidePanelMode === "notes") {
       content = $notesStore.messages
         .map((m) => `${new Date(m.timestamp).toLocaleString()}:\n${m.text}\n`)
         .join("\n---\n\n");
@@ -254,31 +251,22 @@
 
   function cycleMode() {
     const modes: ("ai" | "notes" | "chat")[] = ["ai", "notes", "chat"];
-    const currentIdx = modes.indexOf($settingsStore.sidePanelMode);
+    const currentIdx = modes.indexOf(settingsState.sidePanelMode);
     const nextIdx = (currentIdx + 1) % modes.length;
-    settingsStore.update((s) => ({
-      ...s,
-      sidePanelMode: modes[nextIdx],
-    }));
+    settingsState.sidePanelMode = modes[nextIdx];
   }
 
   function toggleLayout() {
-    settingsStore.update((s) => ({
-      ...s,
-      sidePanelLayout:
-        $settingsStore.sidePanelLayout === "floating" ? "standard" : "floating",
-    }));
+    settingsState.sidePanelLayout =
+      settingsState.sidePanelLayout === "floating" ? "standard" : "floating";
   }
 
   function toggleExpand() {
-    settingsStore.update((s) => ({
-      ...s,
-      panelIsExpanded: !s.panelIsExpanded,
-    }));
+    settingsState.panelIsExpanded = !settingsState.panelIsExpanded;
   }
 </script>
 
-{#if $settingsStore.enableSidePanel}
+{#if settingsState.enableSidePanel}
   <div
     class="fixed z-[60] pointer-events-none transition-all duration-300 flex"
     class:bottom-4={isFloating}
@@ -303,10 +291,10 @@
         <!-- Configurable Sidebar Strip -->
         <div
           class="h-full w-10 bg-[var(--bg-tertiary)] border-r border-[var(--border-color)] flex flex-col items-center py-4 cursor-pointer hover:bg-[var(--bg-secondary)] transition-colors outline-none focus:bg-[var(--bg-secondary)] shadow-lg"
-          title={getPanelTitle($settingsStore.sidePanelMode)}
+          title={getPanelTitle(settingsState.sidePanelMode)}
         >
           <div class="mb-4 text-[var(--text-primary)]">
-            {#if $settingsStore.sidePanelMode === "ai"}
+            {#if settingsState.sidePanelMode === "ai"}
               <svg
                 width="20"
                 height="20"
@@ -331,7 +319,7 @@
           <div
             class="writing-vertical-lr text-xs font-bold text-[var(--text-secondary)] uppercase tracking-widest mt-2 transform rotate-180"
           >
-            {$settingsStore.sidePanelMode}
+            {settingsState.sidePanelMode}
           </div>
         </div>
       {:else}
@@ -349,7 +337,7 @@
             class:border-[var(--border-color)]={!isTerminal}
             class:hover:bg-[var(--bg-secondary)]={!isTerminal}
           >
-            {#if $settingsStore.sidePanelMode === "ai"}
+            {#if settingsState.sidePanelMode === "ai"}
               <svg
                 width="20"
                 height="20"
@@ -384,15 +372,15 @@
           x: isSidebar ? -30 : 0,
           duration: 250,
         }}
-        style={$settingsStore.panelIsExpanded
+        style={settingsState.panelIsExpanded
           ? "width: 100vw; height: 100vh; left: 0; top: 0; border-radius: 0;"
           : isSidebar
             ? `width: ${panelState?.width || 320}px;`
             : panelState
               ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
               : ""}
-        class:mb-4={isFloating && !$settingsStore.panelIsExpanded}
-        class:rounded-lg={isFloating && !$settingsStore.panelIsExpanded}
+        class:mb-4={isFloating && !settingsState.panelIsExpanded}
+        class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
         class:bg-[var(--bg-secondary)]={isTerminal}
@@ -509,7 +497,7 @@
               onclick={cycleMode}
               ondblclick={(e) => e.stopPropagation()}
             >
-              {getPanelTitle($settingsStore.sidePanelMode)}
+              {getPanelTitle(settingsState.sidePanelMode)}
             </button>
           </h3>
 
@@ -536,7 +524,7 @@
                 >
               </button>
               <span class="text-[9px] font-mono opacity-50 w-4 text-center"
-                >{$settingsStore.chatFontSize || 13}</span
+                >{settingsState.chatFontSize || 13}</span
               >
               <button
                 class="hover:text-[var(--text-primary)] transition-colors p-0.5"
@@ -590,11 +578,11 @@
               class:hover:text-green-300={isTerminal}
               onclick={toggleExpand}
               ondblclick={(e) => e.stopPropagation()}
-              title={$settingsStore.panelIsExpanded
+              title={settingsState.panelIsExpanded
                 ? "Collapse Panel"
                 : "Expand Panel"}
             >
-              {#if $settingsStore.panelIsExpanded}
+              {#if settingsState.panelIsExpanded}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="h-4 w-4"
@@ -636,8 +624,8 @@
               class:text-green-700={isTerminal}
               class:text-[var(--text-secondary)]={!isTerminal}
               onclick={() => {
-                const mode = $settingsStore.sidePanelMode;
-                const confirmClear = $settingsStore.aiConfirmClear; // We reuse this setting for simplicity or add a general one
+                const mode = settingsState.sidePanelMode;
+                const confirmClear = settingsState.aiConfirmClear; // We reuse this setting for simplicity or add a general one
 
                 const clearFn = () => {
                   if (mode === "ai") aiStore.clearHistory();
@@ -711,7 +699,7 @@
           class:bg-black={isTerminal}
           class:bg-[var(--chat-messages-bg)]={!isTerminal}
         >
-          {#if $settingsStore.sidePanelMode === "ai"}
+          {#if settingsState.sidePanelMode === "ai"}
             <!-- AI Messages -->
             {#each $aiStore.messages as msg (msg.id)}
               <div
@@ -730,7 +718,7 @@
 
                 <div
                   class="leading-relaxed transition-all relative group"
-                  style="font-size: {$settingsStore.chatFontSize || 13}px"
+                  style="font-size: {settingsState.chatFontSize || 13}px"
                   class:text-green-400={isTerminal && msg.role === "user"}
                   class:text-green-600={isTerminal && msg.role === "assistant"}
                   class:w-full={isTerminal}
@@ -852,7 +840,7 @@
                 {/if}
               </div>
             {/if}
-          {:else if $settingsStore.sidePanelMode === "notes"}
+          {:else if settingsState.sidePanelMode === "notes"}
             <!-- Private Notes -->
             {#each $notesStore.messages as msg (msg.id)}
               <div
@@ -860,7 +848,7 @@
               >
                 <div
                   class="whitespace-pre-wrap text-[var(--text-primary)] font-medium"
-                  style="font-size: {$settingsStore.chatFontSize || 13}px"
+                  style="font-size: {settingsState.chatFontSize || 13}px"
                 >
                   {msg.text}
                 </div>
@@ -882,7 +870,7 @@
               if (m.sender === "system") return true;
               if (m.clientId === $chatStore.clientId) return true;
               if (m.profitFactor === undefined) return true;
-              return m.profitFactor >= ($settingsStore.minChatProfitFactor || 0);
+              return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
             }) as msg (msg.id)}
               <div
                 class="mb-3 text-[var(--text-primary)] pl-2 border-l-2 border-[var(--accent-color)] bg-[var(--bg-tertiary)]/30 rounded-r p-1"
@@ -917,7 +905,7 @@
                     </span>
                     <span
                       class="leading-tight text-[var(--text-primary)]"
-                      style="font-size: {$settingsStore.chatFontSize || 13}px"
+                      style="font-size: {settingsState.chatFontSize || 13}px"
                       >{msg.text}</span
                     >
                     <span class="text-[9px] opacity-30 mt-1 font-mono">
@@ -961,7 +949,7 @@
               bind:this={inputEl}
               type="text"
               class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
-              style="font-size: {$settingsStore.chatFontSize || 13}px"
+              style="font-size: {settingsState.chatFontSize || 13}px"
               class:bg-black={isTerminal}
               class:text-green-500={isTerminal}
               class:border-green-800={isTerminal}
@@ -973,16 +961,16 @@
               class:rounded-full={isBubble}
               class:focus:border-[var(--accent-color)]={!isTerminal}
               class:placeholder-[var(--text-tertiary)]={true}
-              placeholder={$settingsStore.sidePanelMode === "ai"
+              placeholder={settingsState.sidePanelMode === "ai"
                 ? isTerminal
                   ? "> ENTER COMMAND"
                   : "Message AI..."
                 : "Type here..."}
-              maxlength={$settingsStore.sidePanelMode === "ai" ? 1000 : 140}
+              maxlength={settingsState.sidePanelMode === "ai" ? 1000 : 140}
               bind:value={messageText}
               onkeydown={handleKeydown}
               disabled={isSending ||
-                ($settingsStore.sidePanelMode === "ai" && $aiStore.isStreaming)}
+                (settingsState.sidePanelMode === "ai" && $aiStore.isStreaming)}
             />
             {#if !isTerminal}
               <button

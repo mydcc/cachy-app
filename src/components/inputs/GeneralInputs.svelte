@@ -18,7 +18,7 @@
 <script lang="ts">
   import { CONSTANTS } from "../../lib/constants";
   import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
+
   import { numberInput } from "../../utils/inputUtils";
   import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import { _ } from "../../locales/i18n";

@@ -13,7 +13,7 @@ import {
     getRsiAction,
     type Kline
 } from "./indicators";
-import type { IndicatorSettings } from "../stores/indicatorStore";
+import type { IndicatorSettings } from "../stores/indicator.svelte";
 import type { TechnicalsData, IndicatorResult } from "../services/technicalsTypes";
 
 export function calculateAllIndicators(

@@ -25,7 +25,7 @@
   import { createEventDispatcher, onMount } from "svelte";
   import { icons } from "../../lib/constants";
   import { updateTradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { uiStore } from "../../stores/uiStore";
   import { get } from "svelte/store";
 
@@ -84,7 +84,7 @@
   }
 
   async function handleFetchBalance(silent = false) {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const provider = settings.apiProvider;
     const keys = settings.apiKeys[provider];
 
@@ -136,7 +136,7 @@
   }
 
   onMount(() => {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     if (settings.autoFetchBalance) {
       handleFetchBalance(true);
     }

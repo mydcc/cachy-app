@@ -20,12 +20,10 @@ import { julesService } from "./julesService";
 import { get } from "svelte/store";
 
 // Mock Stores
-vi.mock("../stores/settingsStore", () => ({
-  settingsStore: {
-    subscribe: (fn: any) => {
-      fn({ apiKeys: { bitunix: { apiKey: "123", apiSecret: "secret" } } });
-      return () => {};
-    },
+vi.mock("../stores/settings.svelte", () => ({
+  settingsState: {
+    apiKeys: { bitunix: { apiKey: "123", apiSecret: "secret" } },
+    isPro: true,
   },
 }));
 
@@ -33,7 +31,7 @@ vi.mock("../stores/tradeStore", () => ({
   tradeStore: {
     subscribe: (fn: any) => {
       fn({ symbol: "BTCUSDT", targets: [] });
-      return () => {};
+      return () => { };
     },
   },
 }));
@@ -46,7 +44,7 @@ vi.mock("../stores/uiStore", () => ({
         showJournalModal: false,
         showSettingsModal: false,
       });
-      return () => {};
+      return () => { };
     },
   },
 }));
@@ -60,7 +58,7 @@ vi.mock("../stores/accountStore", () => ({
         balance: "1000",
         availableBalance: "1000",
       });
-      return () => {};
+      return () => { };
     },
   },
 }));
@@ -69,13 +67,13 @@ vi.mock("../stores/marketStore", () => ({
   marketStore: {
     subscribe: (fn: any) => {
       fn({});
-      return () => {};
+      return () => { };
     },
   },
   wsStatusStore: {
     subscribe: (fn: any) => {
       fn("connected");
-      return () => {};
+      return () => { };
     },
   },
 }));

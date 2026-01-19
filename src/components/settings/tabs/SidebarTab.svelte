@@ -17,35 +17,7 @@
 
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
-  import type { SidePanelLayout } from "../../../stores/settingsStore";
-
-  interface Props {
-    showSidebars: boolean;
-    showTechnicals: boolean;
-    showIndicatorParams: boolean;
-    hideUnfilledOrders: boolean;
-    positionViewMode: "detailed" | "focus";
-    enableSidePanel: boolean;
-    sidePanelMode: "chat" | "notes" | "ai";
-    sidePanelLayout: SidePanelLayout;
-    chatStyle: "minimal" | "bubble" | "terminal";
-    maxPrivateNotes: number;
-    minChatProfitFactor: number;
-  }
-
-  let {
-    showSidebars = $bindable(),
-    showTechnicals = $bindable(),
-    showIndicatorParams = $bindable(),
-    hideUnfilledOrders = $bindable(),
-    positionViewMode = $bindable(),
-    enableSidePanel = $bindable(),
-    sidePanelMode = $bindable(),
-    sidePanelLayout = $bindable(),
-    chatStyle = $bindable(),
-    maxPrivateNotes = $bindable(),
-    minChatProfitFactor = $bindable(),
-  }: Props = $props();
+  import { settingsState } from "../../../stores/settings.svelte";
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-sidebar">
@@ -57,7 +29,7 @@
       id="show-sidebars"
       name="showSidebars"
       type="checkbox"
-      bind:checked={showSidebars}
+      bind:checked={settingsState.showSidebars}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
@@ -71,7 +43,7 @@
       id="show-technicals"
       name="showTechnicals"
       type="checkbox"
-      bind:checked={showTechnicals}
+      bind:checked={settingsState.showTechnicals}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
@@ -90,7 +62,7 @@
       id="show-indicator-params"
       name="showIndicatorParams"
       type="checkbox"
-      bind:checked={showIndicatorParams}
+      bind:checked={settingsState.showIndicatorParams}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
@@ -107,12 +79,12 @@
       id="enable-side-panel"
       name="enableSidePanel"
       type="checkbox"
-      bind:checked={enableSidePanel}
+      bind:checked={settingsState.enableSidePanel}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
   <div
-    class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {enableSidePanel
+    class="flex flex-col gap-3 ml-4 border-l-2 border-[var(--border-color)] pl-4 transition-opacity duration-200 {settingsState.enableSidePanel
       ? 'opacity-100'
       : 'opacity-50 pointer-events-none'}"
   >
@@ -126,7 +98,7 @@
             id="sp-mode-notes"
             name="sidePanelMode"
             type="radio"
-            bind:group={sidePanelMode}
+            bind:group={settingsState.sidePanelMode}
             value="notes"
             class="accent-[var(--accent-color)]"
           />
@@ -139,7 +111,7 @@
             id="sp-mode-chat"
             name="sidePanelMode"
             type="radio"
-            bind:group={sidePanelMode}
+            bind:group={settingsState.sidePanelMode}
             value="chat"
             class="accent-[var(--accent-color)]"
           />
@@ -152,7 +124,7 @@
             id="sp-mode-ai"
             name="sidePanelMode"
             type="radio"
-            bind:group={sidePanelMode}
+            bind:group={settingsState.sidePanelMode}
             value="ai"
             class="accent-[var(--accent-color)]"
           />
@@ -171,7 +143,7 @@
           min="10"
           max="1000"
           step="10"
-          bind:value={maxPrivateNotes}
+          bind:value={settingsState.maxPrivateNotes}
           class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-full"
         />
       </div>
@@ -182,12 +154,12 @@
         >
         <input
           type="text"
-          value={minChatProfitFactor}
+          value={settingsState.minChatProfitFactor}
           oninput={(e) => {
             const val = (e.target as HTMLInputElement).value.replace(",", ".");
             const num = parseFloat(val);
             if (!isNaN(num)) {
-              minChatProfitFactor = num;
+              settingsState.minChatProfitFactor = num;
             }
           }}
           class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] w-full"
@@ -204,7 +176,7 @@
             id="sp-layout-standard"
             name="sidePanelLayout"
             type="radio"
-            bind:group={sidePanelLayout}
+            bind:group={settingsState.sidePanelLayout}
             value="standard"
             class="accent-[var(--accent-color)]"
           />
@@ -223,7 +195,7 @@
             id="sp-layout-floating"
             name="sidePanelLayout"
             type="radio"
-            bind:group={sidePanelLayout}
+            bind:group={settingsState.sidePanelLayout}
             value="floating"
             class="accent-[var(--accent-color)]"
           />
@@ -245,7 +217,7 @@
       id="hide-unfilled"
       name="hideUnfilledOrders"
       type="checkbox"
-      bind:checked={hideUnfilledOrders}
+      bind:checked={settingsState.hideUnfilledOrders}
       class="accent-[var(--accent-color)] h-4 w-4 rounded"
     />
   </label>
@@ -256,7 +228,7 @@
     <select
       id="pos-view-mode"
       name="positionViewMode"
-      bind:value={positionViewMode}
+      bind:value={settingsState.positionViewMode}
       class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
     >
       <option value="detailed">Detailed (Default)</option>

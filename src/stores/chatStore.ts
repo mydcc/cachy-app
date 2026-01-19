@@ -17,7 +17,7 @@
 
 import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
-import { settingsStore } from "./settingsStore";
+import { settingsState } from "./settings.svelte";
 import { journalStore } from "./journalStore";
 import { calculator } from "../lib/calculator";
 
@@ -67,7 +67,7 @@ function createChatStore() {
     current: ChatMessage[],
     incoming: ChatMessage[],
   ): ChatMessage[] => {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const minPF = settings.minChatProfitFactor || 0;
 
     const existingIds = new Set(current.map((m) => m.id));
@@ -90,7 +90,7 @@ function createChatStore() {
       if (!browser) return;
 
       // Start polling if enabled and in chat mode
-      settingsStore.subscribe((settings) => {
+      settingsState.subscribe((settings: any) => {
         if (settings.enableSidePanel && settings.sidePanelMode === "chat") {
           if (!pollIntervalId) {
             pollIntervalId = setInterval(async () => {

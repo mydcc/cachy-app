@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import {
     HOTKEY_ACTIONS,
     type HotkeyAction,
@@ -25,7 +25,7 @@
   import { _ } from "../../locales/i18n";
   import { onMount, onDestroy } from "svelte";
 
-  let customHotkeys = { ...$settingsStore.customHotkeys };
+  let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);
   let conflictWarning: string | null = $state(null);
 
@@ -87,7 +87,7 @@
       // For this version: simple overwrite is fine, but let's confirm.
       if (
         !confirm(
-          `"${newCombo}" is used by "${existingAction.label}". Overwrite?`
+          `"${newCombo}" is used by "${existingAction.label}". Overwrite?`,
         )
       ) {
         return;
@@ -101,10 +101,7 @@
     customHotkeys[editingId] = newCombo;
 
     // Update store immediately
-    settingsStore.update((s) => ({
-      ...s,
-      customHotkeys: { ...customHotkeys },
-    }));
+    settingsState.customHotkeys = { ...customHotkeys };
 
     stopEditing();
   }
@@ -112,10 +109,7 @@
   function resetToDefaults() {
     if (confirm("Reset all custom hotkeys to defaults?")) {
       customHotkeys = {};
-      settingsStore.update((s) => ({
-        ...s,
-        customHotkeys: {},
-      }));
+      settingsState.customHotkeys = {};
     }
   }
 
@@ -135,8 +129,8 @@
       Click on a key combination to record a new hotkey. Use <span
         class="text-[var(--accent-color)]">Alt</span
       >
-      or <span class="text-[var(--accent-color)]">Ctrl</span> modifiers to avoid
-      conflicts with typing.
+      or <span class="text-[var(--accent-color)]">Ctrl</span> modifiers to avoid conflicts
+      with typing.
     </p>
     <button
       class="text-xs text-[var(--danger-color)] hover:underline"

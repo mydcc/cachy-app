@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { onMount, untrack } from "svelte";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { tradeStore } from "../../stores/tradeStore";
   import { accountStore } from "../../stores/accountStore";
   import { _ } from "../../locales/i18n";
@@ -77,8 +77,8 @@
   let contextMenuY = $state(0);
 
   async function fetchPositions() {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
 
     if (!keys?.key || !keys?.secret) return;
 
@@ -117,8 +117,8 @@
   }
 
   async function fetchOrders(type: "pending" | "history") {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
     if (type === "pending") {
@@ -159,8 +159,8 @@
   }
 
   async function fetchAccount() {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
     if (!keys?.key || !keys?.secret) return;
 
     loadingAccount = true;
@@ -186,8 +186,8 @@
   }
 
   function refreshAll() {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
     if (keys?.key && keys?.secret) {
       fetchAccount();
       fetchPositions();
@@ -198,8 +198,8 @@
 
   onMount(() => {
     // Initial fetch to get the current state before WS takes over
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
     if (keys?.key && keys?.secret) {
       fetchAccount();
       fetchPositions();
@@ -223,8 +223,8 @@
 
   // Watch for API key changes to re-trigger initial fetch
   $effect(() => {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
     if (keys?.key && keys?.secret) {
       untrack(() => {
         fetchAccount();
@@ -235,7 +235,7 @@
 
   // Filter History
   let filteredHistoryOrders = $derived(
-    $settingsStore.hideUnfilledOrders
+    settingsState.hideUnfilledOrders
       ? historyOrders.filter((o) => Number(o.filled || o.dealAmount || 0) > 0)
       : historyOrders,
   );
@@ -261,7 +261,7 @@
   }
 
   function setViewMode(mode: "detailed" | "focus") {
-    settingsStore.update((s) => ({ ...s, positionViewMode: mode }));
+    settingsState.positionViewMode = mode;
     showContextMenu = false;
   }
 
@@ -278,9 +278,9 @@
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          exchange: $settingsStore.apiProvider,
-          apiKey: $settingsStore.apiKeys[$settingsStore.apiProvider].key,
-          apiSecret: $settingsStore.apiKeys[$settingsStore.apiProvider].secret,
+          exchange: settingsState.apiProvider,
+          apiKey: settingsState.apiKeys[settingsState.apiProvider].key,
+          apiSecret: settingsState.apiKeys[settingsState.apiProvider].secret,
           type: "close-position", // Helper type
           symbol: pos.symbol,
           side: String(pos.side).toLowerCase() === "long" ? "sell" : "buy", // Close opposite
@@ -464,14 +464,14 @@
       onclick={() => setViewMode("detailed")}
     >
       Detailed
-      {#if $settingsStore.positionViewMode === "detailed"}✓{/if}
+      {#if settingsState.positionViewMode === "detailed"}✓{/if}
     </button>
     <button
       class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
       onclick={() => setViewMode("focus")}
     >
       Focus
-      {#if $settingsStore.positionViewMode === "focus"}✓{/if}
+      {#if settingsState.positionViewMode === "focus"}✓{/if}
     </button>
   </div>
 {/if}

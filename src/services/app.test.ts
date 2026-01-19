@@ -25,7 +25,7 @@ import {
   toggleAtrInputs,
 } from "../stores/tradeStore";
 import { resultsStore, initialResultsState } from "../stores/resultsStore";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { journalStore } from "../stores/journalStore";
 import { app } from "./app";
 import { get } from "svelte/store";
@@ -466,14 +466,13 @@ describe("app service - ATR and Locking Logic", () => {
     global.fetch = mockFetch;
 
     // Setup settings for Pro
-    settingsStore.update((s) => ({
-      ...s,
+    Object.assign(settingsState, {
       isPro: true,
       apiKeys: {
         bitunix: { key: "k", secret: "s" },
         binance: { key: "", secret: "" },
       },
-    }));
+    });
     journalStore.set([]); // Clear journal
 
     // Mock syncService instead of direct fetch inside syncBitunixHistory as it has complex store usage

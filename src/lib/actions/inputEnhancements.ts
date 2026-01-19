@@ -16,7 +16,7 @@
  */
 
 import { get } from "svelte/store";
-import { settingsStore, type Settings } from "../../stores/settingsStore";
+import { settingsState } from "../../stores/settings.svelte";
 
 export function enhancedInput(
   node: HTMLInputElement,
@@ -32,7 +32,7 @@ export function enhancedInput(
   const step = options.step || 1;
 
   // Use option if provided, otherwise fallback to global setting
-  const globalShow = (get(settingsStore) as Settings).showSpinButtons;
+  const globalShow = settingsState.showSpinButtons;
   const showSpinButtons =
     options.showSpinButtons !== undefined
       ? options.showSpinButtons

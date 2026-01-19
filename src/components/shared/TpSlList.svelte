@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { onMount } from "svelte";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { accountStore } from "../../stores/accountStore";
   import { tradeStore } from "../../stores/tradeStore";
   import { _ } from "../../locales/i18n";
@@ -42,8 +42,8 @@
   async function fetchOrders() {
     if (!isActive) return;
 
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
 
     if (!keys?.key || !keys?.secret) {
       error = "No API keys configured";
@@ -145,8 +145,8 @@
   async function handleCancel(order: any) {
     if (!confirm("Cancel this TP/SL order?")) return;
 
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
 
     try {
       const response = await fetch("/api/tpsl", {

@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { createEventDispatcher } from "svelte";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import ModalFrame from "./ModalFrame.svelte";
 
   interface Props {
@@ -42,8 +42,8 @@
   let error = $state("");
 
   async function handleSave() {
-    const provider = $settingsStore.apiProvider || "bitunix";
-    const keys = $settingsStore.apiKeys[provider];
+    const provider = settingsState.apiProvider || "bitunix";
+    const keys = settingsState.apiKeys[provider];
 
     if (!triggerPrice) {
       error = "Trigger price is required";

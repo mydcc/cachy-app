@@ -25,7 +25,7 @@
   import { trackCustomEvent } from "../../services/trackingService";
   import { onboardingService } from "../../services/onboardingService";
   import { updateTradeStore, tradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { uiStore } from "../../stores/uiStore";
   import { modalManager } from "../../services/modalManager";
   import { app } from "../../services/app";
@@ -206,10 +206,7 @@
   }
 
   function toggleAutoUpdatePrice() {
-    settingsStore.update((s) => ({
-      ...s,
-      autoUpdatePriceInput: !s.autoUpdatePriceInput,
-    }));
+    settingsState.autoUpdatePriceInput = !settingsState.autoUpdatePriceInput;
   }
 
   function handleAtrTimeframeChange(e: Event) {
@@ -378,10 +375,10 @@
       <!-- Auto Update Price Toggle -->
       <button
         class="absolute top-2 right-2 rounded-full transition-colors duration-300 z-30"
-        style="width: 0.382rem; height: 0.382rem; background-color: {$settingsStore.autoUpdatePriceInput
+        style="width: 0.382rem; height: 0.382rem; background-color: {settingsState.autoUpdatePriceInput
           ? 'var(--success-color)'
           : 'var(--danger-color)'};"
-        title={$settingsStore.autoUpdatePriceInput
+        title={settingsState.autoUpdatePriceInput
           ? "Auto-Update On"
           : "Auto-Update Off"}
         onclick={toggleAutoUpdatePrice}
@@ -508,7 +505,7 @@
                 onchange={handleAtrTimeframeChange}
                 class="input-field w-full px-2 py-2 rounded-md appearance-none bg-[var(--bg-secondary)] border border-[var(--border-color)] text-sm cursor-pointer"
               >
-                {#each ($settingsStore.favoriteTimeframes?.length ?? 0) > 0 ? $settingsStore.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
+                {#each (settingsState.favoriteTimeframes?.length ?? 0) > 0 ? settingsState.favoriteTimeframes : ["5m", "15m", "1h", "4h"] as tf}
                   <option value={tf}>{tf}</option>
                 {/each}
               </select>

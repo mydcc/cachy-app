@@ -25,7 +25,7 @@ import {
   getLocaleFromHostname,
 } from "svelte-i18n";
 import { writable, get } from "svelte/store";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 
 import * as en from "./locales/en.json";
 import * as de from "./locales/de.json";
@@ -153,7 +153,7 @@ export const locale = writable<string | null>(initialLocaleValue);
 // Logic to determine the effective locale based on user preference and settings
 function updateEffectiveLocale() {
   const currentLocale = get(locale);
-  const settings = get(settingsStore);
+  const settings = settingsState;
 
   if (currentLocale === "de" && settings.forceEnglishTechnicalTerms) {
     // If user wants German but with English tech terms, switch to our hybrid locale
@@ -177,7 +177,7 @@ locale.subscribe((value) => {
 });
 
 // Subscribe to settings to react to the toggle
-settingsStore.subscribe(() => {
+settingsState.subscribe(() => {
   updateEffectiveLocale();
 });
 

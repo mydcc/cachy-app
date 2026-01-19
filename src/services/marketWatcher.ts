@@ -18,7 +18,7 @@
 import { get, writable } from "svelte/store";
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { wsStatusStore } from "../stores/marketStore";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
@@ -36,7 +36,7 @@ class MarketWatcher {
   constructor() {
     if (browser) {
       // Watch settings for provider or interval changes
-      settingsStore.subscribe((settings) => {
+      settingsState.subscribe((settings: any) => {
         const newInterval = settings.marketDataInterval || 10;
 
         // If interval changed, restart polling
@@ -99,7 +99,7 @@ class MarketWatcher {
 
   private syncSubscriptions() {
     if (!browser) return;
-    const settings = get(settingsStore);
+    const settings = settingsState;
     if (settings.apiProvider !== "bitunix") return;
 
     // 1. Collect all intended subscriptions from requests
@@ -160,7 +160,7 @@ class MarketWatcher {
     if (this.pollingInterval) clearInterval(this.pollingInterval);
 
     this.pollingInterval = setInterval(() => {
-      const settings = get(settingsStore);
+      const settings = settingsState;
       const wsStatus = get(wsStatusStore);
 
       // Polling as Fallback or for Binance
@@ -168,7 +168,7 @@ class MarketWatcher {
         this.requests.forEach((channels, symbol) => {
           if (channels.has("price")) {
             // Fetch price via REST
-            apiService.fetchBitunixPrice(symbol, "normal").catch(() => {});
+            apiService.fetchBitunixPrice(symbol, "normal").catch(() => { });
           }
           // Note: ATR and Technicals are currently handled directly in their components
           // but could be moved here for better consolidation.

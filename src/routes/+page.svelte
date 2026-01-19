@@ -35,7 +35,7 @@
   import { resultsStore } from "../stores/resultsStore";
   import { presetStore } from "../stores/presetStore";
   import { uiStore } from "../stores/uiStore";
-  import { settingsStore } from "../stores/settingsStore"; // Import settings store
+  import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { favoritesStore } from "../stores/favoritesStore"; // Import favorites store
   import { modalManager } from "../services/modalManager";
   import { onMount, untrack } from "svelte";
@@ -221,7 +221,7 @@
 
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf($uiStore.currentTheme);
-    const limit = $settingsStore.isPro ? themes.length : 5;
+    const limit = settingsState.isPro ? themes.length : 5;
     let nextIndex;
 
     if (direction === "forward") {
@@ -376,7 +376,7 @@
 <div
   class="flex flex-col xl:flex-row items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
 >
-  {#if $settingsStore.showSidebars}
+  {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
       <PositionsSidebar />
@@ -783,7 +783,7 @@
       </footer>
     </section>
 
-    {#if $settingsStore.showSidebars}
+    {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
         <!-- Add PositionsSidebar for Mobile -->
@@ -794,7 +794,7 @@
           {isTechnicalsVisible}
         />
 
-        {#if $settingsStore.showTechnicals && isTechnicalsVisible}
+        {#if settingsState.showTechnicals && isTechnicalsVisible}
           <TechnicalsPanel isVisible={isTechnicalsVisible} />
         {/if}
 
@@ -814,7 +814,7 @@
     {/if}
   </main>
 
-  {#if $settingsStore.showSidebars}
+  {#if settingsState.showSidebars}
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div
       class="hidden xl:flex flex-col gap-3 w-56 shrink-0 sticky top-8 transition-all duration-300 z-40"
@@ -826,7 +826,7 @@
       />
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
-      {#if $settingsStore.showTechnicals}
+      {#if settingsState.showTechnicals}
         <div
           class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
           class:scale-0={!isTechnicalsVisible}
@@ -861,12 +861,12 @@
   <div class="flex items-center justify-between w-full md:w-auto gap-4">
     <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
     <button
-      class="text-link md:hidden {$settingsStore.isPro
+      class="text-link md:hidden {settingsState.isPro
         ? 'text-green-500 font-bold'
         : ''}"
-      onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
+      onclick={() => (settingsState.isPro = !settingsState.isPro)}
     >
-      {$settingsStore.isPro ? $_("app.proActive") : $_("app.pro")}
+      {settingsState.isPro ? $_("app.proActive") : $_("app.pro")}
     </button>
   </div>
 
@@ -926,12 +926,12 @@
   </div>
 
   <button
-    class="text-link hidden md:inline-block {$settingsStore.isPro
+    class="text-link hidden md:inline-block {settingsState.isPro
       ? 'text-green-500 font-bold'
       : ''}"
-    onclick={() => ($settingsStore.isPro = !$settingsStore.isPro)}
+    onclick={() => (settingsState.isPro = !settingsState.isPro)}
   >
-    {$settingsStore.isPro ? $_("app.proActive") : $_("app.pro")}
+    {settingsState.isPro ? $_("app.proActive") : $_("app.pro")}
   </button>
 </footer>
 

@@ -16,7 +16,7 @@
  */
 
 import { get } from "svelte/store";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { julesStore } from "../stores/julesStore";
 import { tradeStore } from "../stores/tradeStore";
 import { uiStore } from "../stores/uiStore";
@@ -39,7 +39,7 @@ export const julesService = {
    * Sanitizes sensitive keys (like API secrets) before returning.
    */
   getSystemSnapshot(): JulesReportContext {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const trade = get(tradeStore);
     const ui = get(uiStore);
     const account = get(accountStore);
@@ -50,11 +50,11 @@ export const julesService = {
       ...settings,
       apiKeys: settings.apiKeys
         ? Object.fromEntries(
-            Object.entries(settings.apiKeys).map(([provider, keys]) => [
-              provider,
-              { ...(keys as any), apiSecret: "***REDACTED***" },
-            ]),
-          )
+          Object.entries(settings.apiKeys).map(([provider, keys]) => [
+            provider,
+            { ...(keys as any), apiSecret: "***REDACTED***" },
+          ]),
+        )
         : {},
     };
 
@@ -112,10 +112,10 @@ export const julesService = {
           context,
           error: error
             ? {
-                message: error.message || error.toString(),
-                stack: error.stack,
-                name: error.name,
-              }
+              message: error.message || error.toString(),
+              stack: error.stack,
+              name: error.name,
+            }
             : null,
         }),
       });

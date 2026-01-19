@@ -17,23 +17,7 @@
 
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
-  import type { ApiKeys } from "../../../stores/settingsStore";
-
-  interface Props {
-    apiProvider: "bitunix" | "binance";
-    bitunixKeys: ApiKeys;
-    binanceKeys: ApiKeys;
-    imgbbApiKey: string;
-    imgbbExpiration: number;
-  }
-
-  let {
-    apiProvider = $bindable(),
-    bitunixKeys = $bindable(),
-    binanceKeys = $bindable(),
-    imgbbApiKey = $bindable(),
-    imgbbExpiration = $bindable(),
-  }: Props = $props();
+  import { settingsState } from "../../../stores/settings.svelte";
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-api">
@@ -50,10 +34,11 @@
         id="imgbb-key"
         name="imgbbApiKey"
         type="password"
-        bind:value={imgbbApiKey}
+        bind:value={settingsState.imgbbApiKey}
         class="input-field p-1 px-2 rounded text-sm"
         placeholder="Paste ImgBB Key"
-        onblur={() => (imgbbApiKey = imgbbApiKey.trim())}
+        onblur={() =>
+          (settingsState.imgbbApiKey = settingsState.imgbbApiKey.trim())}
       />
     </div>
     <div class="flex flex-col gap-1">
@@ -63,8 +48,8 @@
       <select
         id="imgbb-exp"
         name="imgbbExpiration"
-        bind:value={imgbbExpiration}
-        class="input-field p-2. 5 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+        bind:value={settingsState.imgbbExpiration}
+        class="input-field p-2.5 px-2 rounded text-sm bg-[var(--bg-secondary)] border border-[var(--border-color)]"
       >
         <option value={0}>{$_("settings.imgbbPermanent")}</option>
         <option value={600}>{$_("settings.imgbb10m")}</option>
@@ -90,14 +75,14 @@
     <select
       id="api-provider"
       name="apiProvider"
-      bind:value={apiProvider}
+      bind:value={settingsState.apiProvider}
       class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
     >
       <option value="bitunix">Bitunix</option>
       <option value="binance">Binance Futures</option>
     </select>
   </div>
-  {#if apiProvider === "bitunix"}
+  {#if settingsState.apiProvider === "bitunix"}
     <div
       class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-2"
     >
@@ -110,10 +95,12 @@
           id="bx-key"
           name="bitunixKey"
           type="password"
-          bind:value={bitunixKeys.key}
+          bind:value={settingsState.apiKeys.bitunix.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
-          onblur={() => (bitunixKeys.key = bitunixKeys.key.trim())}
+          onblur={() =>
+            (settingsState.apiKeys.bitunix.key =
+              settingsState.apiKeys.bitunix.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -122,10 +109,12 @@
           id="bx-secret"
           name="bitunixSecret"
           type="password"
-          bind:value={bitunixKeys.secret}
+          bind:value={settingsState.apiKeys.bitunix.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
-          onblur={() => (bitunixKeys.secret = bitunixKeys.secret.trim())}
+          onblur={() =>
+            (settingsState.apiKeys.bitunix.secret =
+              settingsState.apiKeys.bitunix.secret.trim())}
         />
       </div>
     </div>
@@ -142,10 +131,12 @@
           id="bn-key"
           name="binanceKey"
           type="password"
-          bind:value={binanceKeys.key}
+          bind:value={settingsState.apiKeys.binance.key}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Key"
-          onblur={() => (binanceKeys.key = binanceKeys.key.trim())}
+          onblur={() =>
+            (settingsState.apiKeys.binance.key =
+              settingsState.apiKeys.binance.key.trim())}
         />
       </div>
       <div class="flex flex-col gap-1">
@@ -154,10 +145,12 @@
           id="bn-secret"
           name="binanceSecret"
           type="password"
-          bind:value={binanceKeys.secret}
+          bind:value={settingsState.apiKeys.binance.secret}
           class="input-field p-1 px-2 rounded text-sm"
           placeholder="Paste Secret"
-          onblur={() => (binanceKeys.secret = binanceKeys.secret.trim())}
+          onblur={() =>
+            (settingsState.apiKeys.binance.secret =
+              settingsState.apiKeys.binance.secret.trim())}
         />
       </div>
     </div>

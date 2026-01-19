@@ -20,7 +20,7 @@ import { parseTimestamp } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { journalStore } from "../stores/journalStore";
 import { uiStore } from "../stores/uiStore";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
@@ -29,7 +29,7 @@ import { browser } from "$app/environment";
 
 export const syncService = {
   syncBitunixPositions: async () => {
-    const settings = get(settingsStore);
+    const settings = settingsState;
     if (!settings.isPro) return;
     if (!settings.apiKeys.bitunix.key || !settings.apiKeys.bitunix.secret) {
       uiStore.showError("settings.apiKeysRequired");
@@ -120,7 +120,7 @@ export const syncService = {
       for (const p of pendingPositions) {
         const side =
           (p.side || "").toLowerCase().includes("sell") ||
-          (p.side || "").toLowerCase().includes("short")
+            (p.side || "").toLowerCase().includes("short")
             ? "short"
             : "long";
         const uniqueId = `OPEN-${p.positionId || p.symbol + "-" + side}`;

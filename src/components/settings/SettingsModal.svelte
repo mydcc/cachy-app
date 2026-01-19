@@ -16,32 +16,16 @@
 -->
 
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
-
   import ModalFrame from "../shared/ModalFrame.svelte";
-  import {
-    settingsStore,
-    type ApiKeys,
-    type HotkeyMode,
-    type PositionViewMode,
-    type AiProvider,
-    type SidePanelLayout,
-  } from "../../stores/settingsStore";
-  import {
-    indicatorStore,
-    type IndicatorSettings,
-  } from "../../stores/indicatorStore";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { indicatorState } from "../../stores/indicator.svelte";
   import { uiStore } from "../../stores/uiStore";
-  import { _, locale, setLocale } from "../../locales/i18n";
+  import { _ } from "../../locales/i18n";
   import {
     createBackup,
     restoreFromBackup,
   } from "../../services/backupService";
   import { trackCustomEvent } from "../../services/trackingService";
-
-  import HotkeySettings from "./HotkeySettings.svelte";
-  import Toggle from "../shared/Toggle.svelte";
-  import { enhancedInput } from "../../lib/actions/inputEnhancements";
   import {
     HOTKEY_ACTIONS,
     MODE1_MAP,
@@ -59,76 +43,7 @@
   import SidebarTab from "./tabs/SidebarTab.svelte";
   import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
 
-  // Local state for the form inputs
-  let apiProvider: "bitunix" | "binance" = $state("bitunix");
-  let marketDataInterval: number = $state(10);
-  let autoUpdatePriceInput: boolean = $state(false);
-  let autoFetchBalance: boolean = $state(false);
-  let showSidebars: boolean = $state(true);
-  let showTechnicals: boolean = $state(true);
-  let showIndicatorParams: boolean = $state(false);
-  let hideUnfilledOrders: boolean = $state(false);
-  let isPro: boolean = $state(false);
-  let feePreference: "maker" | "taker" = $state("taker");
-  let hotkeyMode: HotkeyMode = $state("mode1");
-  let positionViewMode: PositionViewMode = $state("detailed");
-  let showSpinButtons: boolean | "hover" = $state("hover");
-  let syncFavorites: boolean = $state(true);
-  let confirmTradeDeletion: boolean = $state(true);
-  let confirmBulkDeletion: boolean = $state(true);
-  let debugMode: boolean = $state(false);
-  let enableGlassmorphism: boolean = $state(true);
-
-  // Timeframe & RSI Sync
-  let favoriteTimeframes: string[] = $state([]);
-  let syncRsiTimeframe: boolean = $state(true);
-
-  // Indicator Settings
-  let historyLimit = $state(2000);
-  let precision = $state(4);
-  let rsiSettings = $state({ ...$indicatorStore.rsi });
-  let macdSettings = $state({ ...$indicatorStore.macd });
-  let stochSettings = $state({ ...$indicatorStore.stochastic });
-  let cciSettings = $state({ ...$indicatorStore.cci });
-  let adxSettings = $state({ ...$indicatorStore.adx });
-  let aoSettings = $state({ ...$indicatorStore.ao });
-  let momentumSettings = $state({ ...$indicatorStore.momentum });
-  let emaSettings = $state({ ...$indicatorStore.ema });
-  let pivotSettings = $state({ ...$indicatorStore.pivots });
-
-  // Side Panel Settings
-  let enableSidePanel: boolean = $state(false);
-  let sidePanelMode: "chat" | "notes" | "ai" = $state("notes");
-  let sidePanelLayout: SidePanelLayout = $state("standard");
-  let chatStyle: "minimal" | "bubble" | "terminal" = $state("minimal");
-  let maxPrivateNotes: number = $state(50);
-  let minChatProfitFactor: number = $state(0);
-
-  // AI Settings
-  let aiProviderState: AiProvider = $state("gemini");
-  let openaiApiKey: string = $state("");
-  let openaiModel: string = $state("gpt-4o");
-  let geminiApiKey: string = $state("");
-  let geminiModel: string = $state("flash"); // "flash" or "pro"
-  let anthropicApiKey: string = $state("");
-  let anthropicModel: string = $state("claude-3-5-sonnet-20240620");
-
-  // Separate API keys per provider
-  let bitunixKeys: ApiKeys = $state({ key: "", secret: "" });
-  let binanceKeys: ApiKeys = $state({ key: "", secret: "" });
-
-  // ImgBB
-  let imgbbApiKey: string = $state("");
-  let imgbbExpiration: number = $state(604800);
-
-  // UI state
-  let currentTheme: string = $state("dark");
-  let currentLanguage: string = $state("en");
-  let forceEnglishTechnicalTerms: boolean = $state(false);
-  let aiConfirmClear: boolean = $state(true);
-  let fontFamily: string = $state("Inter");
-
-  // Track active tab
+  // Tab State
   let activeTab:
     | "general"
     | "api"
@@ -138,7 +53,15 @@
     | "sidebar"
     | "indicators"
     | "hotkeys" = $state("general");
-  let isInitialized = $state(false);
+
+  // Sync active tab from uiStore if needed, or just let it be independent
+  $effect(() => {
+    if ($uiStore.showSettingsModal) {
+      if ($uiStore.settingsTab) {
+        activeTab = $uiStore.settingsTab as any;
+      }
+    }
+  });
 
   const availableTimeframes = [
     "1m",
@@ -186,161 +109,6 @@
     { value: "everforest-dark", label: "Everforest Dark" },
     { value: "VIP", label: "VIP" },
   ];
-
-  // Subscribe to store to initialize local state
-  // We use a guard to prevent overwriting user changes if the store updates while modal is open
-  $effect(() => {
-    if ($uiStore.showSettingsModal) {
-      if (!isInitialized) {
-        apiProvider = $settingsStore.apiProvider;
-        marketDataInterval = $settingsStore.marketDataInterval;
-        autoUpdatePriceInput = $settingsStore.autoUpdatePriceInput;
-        autoFetchBalance = $settingsStore.autoFetchBalance;
-        showSidebars = $settingsStore.showSidebars;
-        showTechnicals = $settingsStore.showTechnicals ?? true;
-        showIndicatorParams = $settingsStore.showIndicatorParams;
-        hideUnfilledOrders = $settingsStore.hideUnfilledOrders;
-        positionViewMode = $settingsStore.positionViewMode || "detailed";
-        feePreference = $settingsStore.feePreference;
-        hotkeyMode = $settingsStore.hotkeyMode;
-        enableSidePanel = $settingsStore.enableSidePanel;
-        sidePanelMode = $settingsStore.sidePanelMode;
-        sidePanelLayout = $settingsStore.sidePanelLayout || "compact"; // Changed from "standard"
-        chatStyle = $settingsStore.chatStyle || "minimal";
-        maxPrivateNotes = $settingsStore.maxPrivateNotes ?? 50;
-        minChatProfitFactor = $settingsStore.minChatProfitFactor ?? 0;
-        isPro = $settingsStore.isPro;
-        showSpinButtons = $settingsStore.showSpinButtons || "hover";
-        syncFavorites = $settingsStore.syncFavorites; // Added
-        confirmTradeDeletion = $settingsStore.confirmTradeDeletion; // Added
-        confirmBulkDeletion = $settingsStore.confirmBulkDeletion; // Added
-        debugMode = $settingsStore.debugMode; // Added
-        enableGlassmorphism = $settingsStore.enableGlassmorphism ?? true;
-
-        aiProviderState = $settingsStore.aiProvider || "openai"; // Changed from "gemini"
-        openaiApiKey = $settingsStore.openaiApiKey || "";
-        openaiModel = $settingsStore.openaiModel || "gpt-4o";
-        geminiApiKey = $settingsStore.geminiApiKey || "";
-        geminiModel = $settingsStore.geminiModel || "flash"; // "flash" or "pro"
-        anthropicApiKey = $settingsStore.anthropicApiKey || "";
-        anthropicModel =
-          $settingsStore.anthropicModel || "claude-3-5-sonnet-20240620";
-
-        favoriteTimeframes = [...$settingsStore.favoriteTimeframes];
-        syncRsiTimeframe = $settingsStore.syncRsiTimeframe;
-
-        activeTab = ($uiStore.settingsTab || "general") as any;
-
-        historyLimit = $indicatorStore.historyLimit || 2000;
-        precision = $indicatorStore.precision || 4;
-        rsiSettings = { ...$indicatorStore.rsi };
-        macdSettings = { ...$indicatorStore.macd };
-        stochSettings = { ...$indicatorStore.stochastic };
-        cciSettings = { ...$indicatorStore.cci };
-        adxSettings = { ...$indicatorStore.adx };
-        aoSettings = { ...$indicatorStore.ao };
-        momentumSettings = { ...$indicatorStore.momentum };
-        emaSettings = { ...$indicatorStore.ema };
-        pivotSettings = { ...$indicatorStore.pivots };
-
-        // Deep copy keys to avoid binding issues
-        bitunixKeys = { ...$settingsStore.apiKeys.bitunix };
-        binanceKeys = { ...$settingsStore.apiKeys.binance };
-
-        imgbbApiKey = $settingsStore.imgbbApiKey;
-        imgbbExpiration = $settingsStore.imgbbExpiration || 604800; // Updated default
-
-        currentTheme = $uiStore.currentTheme;
-        currentLanguage = $locale || "en";
-        forceEnglishTechnicalTerms = $settingsStore.forceEnglishTechnicalTerms;
-        aiConfirmClear = $settingsStore.aiConfirmClear ?? true;
-        fontFamily = $settingsStore.fontFamily || "Inter";
-
-        isInitialized = true;
-      }
-    } else {
-      isInitialized = false;
-    }
-  });
-
-  // Reactive update for settings (Immediate Save)
-  $effect(() => {
-    if (isInitialized) {
-      settingsStore.update((s) => ({
-        ...s,
-        apiProvider,
-        marketDataInterval,
-        autoUpdatePriceInput,
-        autoFetchBalance,
-        showSidebars,
-        showTechnicals,
-        showIndicatorParams,
-        hideUnfilledOrders,
-        feePreference,
-        hotkeyMode,
-        enableSidePanel,
-        sidePanelMode,
-        sidePanelLayout,
-        chatStyle,
-        maxPrivateNotes,
-        minChatProfitFactor,
-        favoriteTimeframes,
-        syncRsiTimeframe,
-        imgbbApiKey,
-        imgbbExpiration,
-        aiProvider: aiProviderState,
-        openaiApiKey,
-        openaiModel,
-        geminiApiKey,
-        geminiModel,
-        anthropicApiKey,
-        anthropicModel,
-        showSpinButtons,
-        syncFavorites, // Added
-        confirmTradeDeletion, // Added
-        confirmBulkDeletion, // Added
-        forceEnglishTechnicalTerms,
-        debugMode, // Added
-        enableGlassmorphism,
-        aiConfirmClear,
-        fontFamily,
-        apiKeys: {
-          bitunix: bitunixKeys,
-          binance: binanceKeys,
-        },
-      }));
-
-      indicatorStore.update((s) => ({
-        ...s,
-        historyLimit,
-        precision,
-        rsi: rsiSettings,
-        macd: macdSettings,
-        stochastic: stochSettings,
-        cci: cciSettings,
-        adx: adxSettings,
-        ao: aoSettings,
-        momentum: momentumSettings,
-        ema: emaSettings,
-        pivots: pivotSettings,
-      }));
-    }
-  });
-
-  // Immediate Theme Update
-  $effect(() => {
-    if (isInitialized && currentTheme !== $uiStore.currentTheme) {
-      uiStore.setTheme(currentTheme);
-    }
-  });
-
-  // Immediate Language Update
-  // Immediate Language Update
-  $effect(() => {
-    if (isInitialized && currentLanguage !== $locale) {
-      setLocale(currentLanguage);
-    }
-  });
 
   function close() {
     uiStore.toggleSettingsModal(false);
@@ -435,17 +203,17 @@
     else if (mode === "mode3") map = MODE3_MAP;
     else return [];
 
-    // Group slightly for display or just list them?
-    // Listing all might be long. Let's list primary ones.
     return HOTKEY_ACTIONS.map((action) => {
       const key = map[action.id];
       if (!key) return null;
       return { keys: key, action: action.label };
-    }).filter((x) => x !== null);
+    }).filter((x) => x !== null) as Array<{ keys: string; action: string }>;
   }
 
   // Reactive descriptions based on selected mode
-  let activeDescriptions = $derived(getHotkeyDescriptions(hotkeyMode));
+  let activeDescriptions = $derived(
+    getHotkeyDescriptions(settingsState.hotkeyMode),
+  );
 </script>
 
 <ModalFrame
@@ -468,7 +236,7 @@
           ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
           : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
         onclick={(e) => {
-          e.stopPropagation();
+          e.stopPropagation(); // prevent modal close
           activeTab = "general";
         }}
         role="tab"
@@ -563,81 +331,21 @@
       class="flex-1 overflow-y-auto p-4 md:p-6 custom-scrollbar bg-[var(--bg-primary)]"
     >
       {#if activeTab === "general"}
-        <GeneralTab
-          bind:currentLanguage
-          bind:currentTheme
-          bind:feePreference
-          bind:forceEnglishTechnicalTerms
-          bind:fontFamily
-          {isPro}
-          {themes}
-        />
+        <GeneralTab {themes} />
       {:else if activeTab === "api"}
-        <ApiTab
-          bind:apiProvider
-          bind:bitunixKeys
-          bind:binanceKeys
-          bind:imgbbApiKey
-          bind:imgbbExpiration
-        />
+        <ApiTab />
       {:else if activeTab === "ai"}
-        <AiTab
-          bind:aiProvider={aiProviderState}
-          bind:openaiApiKey
-          bind:openaiModel
-          bind:geminiApiKey
-          bind:geminiModel
-          bind:anthropicApiKey
-          bind:anthropicModel
-          bind:aiConfirmClear
-        />
+        <AiTab />
       {:else if activeTab === "behavior"}
-        <BehaviorTab
-          bind:showSpinButtons
-          bind:marketDataInterval
-          bind:autoUpdatePriceInput
-          bind:autoFetchBalance
-          bind:hotkeyMode
-          bind:enableGlassmorphism
-          {activeDescriptions}
-        />
+        <BehaviorTab {activeDescriptions} />
       {:else if activeTab === "hotkeys"}
-        <HotkeysTab bind:hotkeyMode />
+        <HotkeysTab />
       {:else if activeTab === "sidebar"}
-        <SidebarTab
-          bind:showSidebars
-          bind:showTechnicals
-          bind:showIndicatorParams
-          bind:hideUnfilledOrders
-          bind:positionViewMode
-          bind:enableSidePanel
-          bind:sidePanelMode
-          bind:sidePanelLayout
-          bind:chatStyle
-          bind:maxPrivateNotes
-          bind:minChatProfitFactor
-        />
+        <SidebarTab />
       {:else if activeTab === "indicators"}
-        <IndicatorsTab
-          bind:precision
-          bind:historyLimit
-          {availableTimeframes}
-          bind:favoriteTimeframes
-          bind:syncRsiTimeframe
-          {isPro}
-          bind:rsiSettings
-          bind:macdSettings
-          bind:emaSettings
-          bind:stochSettings
-          bind:cciSettings
-          bind:adxSettings
-          bind:aoSettings
-          bind:momentumSettings
-          bind:pivotSettings
-        />
+        <IndicatorsTab {availableTimeframes} />
       {:else if activeTab === "system"}
         <SystemTab
-          {isPro}
           onBackup={handleBackup}
           onRestore={handleRestore}
           onReset={handleReset}
@@ -654,7 +362,7 @@
       class="px-6 py-2 text-sm font-bold bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded hover:opacity-90 transition-opacity"
       onclick={close}
     >
-      {$_("common.ok") || "OK"}
+      {$_("common.close") || "Close"}
     </button>
   </div>
 </ModalFrame>

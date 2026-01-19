@@ -17,19 +17,19 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as HotkeyModule from "./hotkeyService"; // Import as module to access exported function
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { tradeStore } from "../stores/tradeStore";
 import { uiStore } from "../stores/uiStore";
 import { get } from "svelte/store";
 import { CONSTANTS } from "../lib/constants";
 
 // Mock dependencies
-vi.mock("../stores/settingsStore", () => {
-  const { writable } = require("svelte/store");
-  return {
-    settingsStore: writable({}),
-  };
-});
+vi.mock("../stores/settings.svelte", () => ({
+  settingsState: {
+    hotkeyMode: "mode1",
+    update: vi.fn((fn: any) => Object.assign(settingsState, fn(settingsState))),
+  },
+}));
 
 vi.mock("../stores/tradeStore", () => {
   const { writable } = require("svelte/store");
@@ -72,7 +72,8 @@ describe("HotkeyService", () => {
     vi.clearAllMocks();
 
     // Reset stores to default state
-    settingsStore.set({
+    // Reset stores to default state
+    Object.assign(settingsState, {
       hotkeyMode: "mode1", // Default to Direct Mode for testing
       apiProvider: "bitunix",
       marketDataInterval: 1, // Changed to number as expected
@@ -213,7 +214,7 @@ describe("HotkeyService", () => {
   });
 
   it("should handle Direct Mode (Mode 1) hotkeys", () => {
-    settingsStore.update((s) => ({ ...s, hotkeyMode: "mode1" }));
+    settingsState.hotkeyMode = "mode1";
     // @ts-ignore
     global.document.activeElement = document.body;
 
@@ -228,7 +229,7 @@ describe("HotkeyService", () => {
   });
 
   it("should handle Safety Mode (Mode 2) hotkeys", () => {
-    settingsStore.update((s) => ({ ...s, hotkeyMode: "mode2" }));
+    settingsState.hotkeyMode = "mode2";
     // @ts-ignore
     global.document.activeElement = document.body;
 

@@ -19,7 +19,7 @@
   import favicon from "../assets/favicon.svg";
   import { tradeStore } from "../stores/tradeStore";
   import { uiStore } from "../stores/uiStore";
-  import { settingsStore } from "../stores/settingsStore";
+  import { settingsState } from "../stores/settings.svelte";
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import JournalView from "../components/shared/JournalView.svelte";
   import SettingsModal from "../components/settings/SettingsModal.svelte";
@@ -157,7 +157,7 @@
   // Toggle glass-enabled class based on settings
   $effect(() => {
     if (typeof document !== "undefined") {
-      if ($settingsStore.enableGlassmorphism) {
+      if (settingsState.enableGlassmorphism) {
         document.documentElement.classList.add("glass-enabled");
       } else {
         document.documentElement.classList.remove("glass-enabled");
@@ -170,7 +170,7 @@
     if (typeof document !== "undefined") {
       document.documentElement.style.setProperty(
         "--app-font-family",
-        $settingsStore.fontFamily,
+        settingsState.fontFamily,
       );
     }
   });
@@ -288,7 +288,7 @@
   {/if}
 </div>
 
-{#if !$settingsStore.disclaimerAccepted}
+{#if !settingsState.disclaimerAccepted}
   <DisclaimerModal />
 {/if}
 

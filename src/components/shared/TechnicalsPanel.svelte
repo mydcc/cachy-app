@@ -20,8 +20,8 @@
 
   import { onDestroy, untrack } from "svelte";
   import { tradeStore, updateTradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
-  import { indicatorStore } from "../../stores/indicatorStore";
+  import { settingsState } from "../../stores/settings.svelte";
+  import { indicatorState } from "../../stores/indicator.svelte";
   import { uiStore } from "../../stores/uiStore";
   import { marketStore } from "../../stores/marketStore";
   import { bitunixWs } from "../../services/bitunixWs";
@@ -243,8 +243,8 @@
   // Use analysisTimeframe for Technicals
   let symbol = $derived($tradeStore.symbol);
   let timeframe = $derived($tradeStore.analysisTimeframe || "1h");
-  let showPanel = $derived($settingsStore.showTechnicals && isVisible);
-  let indicatorSettings = $derived($indicatorStore);
+  let showPanel = $derived(settingsState.showTechnicals && isVisible);
+  let indicatorSettings = $derived(indicatorState);
   // React to Market Store updates for real-time processing (symbol already normalized in tradeStore)
   let wsData = $derived(symbol ? $marketStore[symbol] : null);
   let currentKline = $derived(wsData?.klines ? wsData.klines[timeframe] : null);
@@ -323,8 +323,8 @@
 {#if showPanel}
   <div
     class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative overflow-hidden"
-    class:md:w-64={!$settingsStore.showIndicatorParams}
-    class:md:w-[19rem]={$settingsStore.showIndicatorParams}
+    class:md:w-64={!settingsState.showIndicatorParams}
+    class:md:w-[19rem]={settingsState.showIndicatorParams}
   >
     <!-- Header -->
     <div
@@ -501,7 +501,7 @@
               title={osc.name + (osc.params ? " (" + osc.params + ")" : "")}
             >
               {osc.name}
-              {#if $settingsStore.showIndicatorParams && osc.params}
+              {#if settingsState.showIndicatorParams && osc.params}
                 <span class="text-[var(--text-secondary)] font-normal"
                   >({osc.params})</span
                 >
@@ -530,7 +530,7 @@
               title={ma.name + (ma.params ? " (" + ma.params + ")" : "")}
             >
               {ma.name}
-              {#if $settingsStore.showIndicatorParams && ma.params}
+              {#if settingsState.showIndicatorParams && ma.params}
                 <span class="text-[var(--text-secondary)] font-normal"
                   >({ma.params})</span
                 >

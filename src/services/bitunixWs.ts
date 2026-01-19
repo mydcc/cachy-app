@@ -18,7 +18,7 @@
 import { writable, get } from "svelte/store";
 import { marketStore, wsStatusStore } from "../stores/marketStore";
 import { accountStore } from "../stores/accountStore";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import CryptoJS from "crypto-js";
@@ -242,7 +242,7 @@ class BitunixWebSocketService {
   private connectPrivate() {
     if (this.isDestroyed) return;
 
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const apiKey = settings.apiKeys?.bitunix?.key;
     const apiSecret = settings.apiKeys?.bitunix?.secret;
 

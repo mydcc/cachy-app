@@ -17,7 +17,7 @@
 
 import { writable, get } from "svelte/store";
 import { browser } from "$app/environment";
-import { settingsStore } from "./settingsStore";
+import { settingsState } from "./settings.svelte";
 
 export interface NoteMessage {
     id: string;
@@ -80,7 +80,7 @@ function createNotesStore() {
         subscribe,
 
         addNote: (text: string) => {
-            const settings = get(settingsStore);
+            const settings = settingsState;
             const limit = settings.maxPrivateNotes || 50;
 
             update((s) => {

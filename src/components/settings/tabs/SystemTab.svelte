@@ -17,15 +17,15 @@
 
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
+  import { settingsState } from "../../../stores/settings.svelte";
 
   interface Props {
-    isPro: boolean;
     onBackup: () => void;
     onRestore: (e: Event) => void;
     onReset: () => void;
   }
 
-  let { isPro, onBackup, onRestore, onReset }: Props = $props();
+  let { onBackup, onRestore, onReset }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-6" role="tabpanel" id="tab-system">
@@ -56,10 +56,10 @@
     <button
       class="btn btn-secondary text-base w-full py-3"
       onclick={onBackup}
-      disabled={!isPro}
+      disabled={!settingsState.isPro}
     >
       {$_("app.backupButtonAriaLabel")}
-      {!isPro ? "(Pro only)" : ""}
+      {!settingsState.isPro ? "(Pro only)" : ""}
     </button>
   </div>
   <div

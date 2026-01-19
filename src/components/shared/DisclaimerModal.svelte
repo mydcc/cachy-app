@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import { _ } from "../../locales/i18n";
   import { fly } from "svelte/transition";
   import { onMount } from "svelte";
@@ -32,7 +32,7 @@
   });
 
   function acceptDisclaimer() {
-    settingsStore.update((s) => ({ ...s, disclaimerAccepted: true }));
+    settingsState.disclaimerAccepted = true;
   }
 </script>
 

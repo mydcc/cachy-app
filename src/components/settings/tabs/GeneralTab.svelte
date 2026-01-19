@@ -17,26 +17,15 @@
 
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
+  import { settingsState } from "../../../stores/settings.svelte";
+  import { uiStore } from "../../../stores/uiStore";
+  import { locale, setLocale } from "../../../locales/i18n";
 
   interface Props {
-    currentLanguage: string;
-    currentTheme: string;
-    feePreference: "maker" | "taker";
-    forceEnglishTechnicalTerms: boolean;
-    isPro: boolean;
     themes: Array<{ value: string; label: string }>;
-    fontFamily: string;
   }
 
-  let {
-    currentLanguage = $bindable(),
-    currentTheme = $bindable(),
-    feePreference = $bindable(),
-    forceEnglishTechnicalTerms = $bindable(),
-    isPro,
-    themes,
-    fontFamily = $bindable(),
-  }: Props = $props();
+  let { themes }: Props = $props();
 
   const fonts = [
     { value: "Inter", label: "Inter" },
@@ -68,7 +57,8 @@
       <select
         id="settings-language"
         name="language"
-        bind:value={currentLanguage}
+        value={$locale}
+        onchange={(e) => setLocale(e.currentTarget.value)}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
       >
         <option value="en">English</option>
@@ -84,13 +74,16 @@
       <select
         id="settings-theme"
         name="theme"
-        bind:value={currentTheme}
+        value={$uiStore.currentTheme}
+        onchange={(e) => uiStore.setTheme(e.currentTarget.value)}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
       >
         {#each themes as theme, index}
-          <option value={theme.value} disabled={!isPro && index >= 5}
+          <option
+            value={theme.value}
+            disabled={!settingsState.isPro && index >= 5}
             >{theme.label}
-            {!isPro && index >= 5 ? "(Pro)" : ""}</option
+            {!settingsState.isPro && index >= 5 ? "(Pro)" : ""}</option
           >
         {/each}
       </select>
@@ -104,7 +97,7 @@
       <select
         id="settings-font"
         name="fontFamily"
-        bind:value={fontFamily}
+        bind:value={settingsState.fontFamily}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-sm"
       >
         {#each fonts as font}
@@ -114,11 +107,11 @@
     </div>
   </div>
 
-  {#if currentLanguage === "de"}
+  {#if $locale === "de"}
     <label class="flex items-center gap-2 cursor-pointer mt-1">
       <input
         type="checkbox"
-        bind:checked={forceEnglishTechnicalTerms}
+        bind:checked={settingsState.forceEnglishTechnicalTerms}
         class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
       />
       <span class="text-sm text-[var(--text-primary)]"
@@ -137,7 +130,7 @@
           id="fee-maker"
           name="feePreference"
           type="radio"
-          bind:group={feePreference}
+          bind:group={settingsState.feePreference}
           value="maker"
           class="accent-[var(--accent-color)]"
         />
@@ -150,7 +143,7 @@
           id="fee-taker"
           name="feePreference"
           type="radio"
-          bind:group={feePreference}
+          bind:group={settingsState.feePreference}
           value="taker"
           class="accent-[var(--accent-color)]"
         />

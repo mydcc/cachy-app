@@ -38,7 +38,7 @@ import { resultsStore, initialResultsState } from "../stores/resultsStore";
 import { presetStore, updatePresetStore } from "../stores/presetStore";
 import { journalStore } from "../stores/journalStore";
 import { uiStore } from "../stores/uiStore";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
 import { marketStore, wsStatusStore } from "../stores/marketStore"; // Import marketStore and wsStatusStore
 import { bitunixWs } from "./bitunixWs"; // Import WS Service
@@ -129,7 +129,7 @@ export const app = {
 
     // Watch for API key changes to reconnect private WebSocket
     let lastKeys = "";
-    settingsStore.subscribe((s) => {
+    settingsState.subscribe((s: any) => {
       const currentKeys = `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
       if (currentKeys !== lastKeys && s.apiKeys.bitunix.key && s.apiKeys.bitunix.secret) {
         lastKeys = currentKeys;
@@ -174,7 +174,7 @@ export const app = {
     if (marketStoreUnsubscribe) marketStoreUnsubscribe();
     marketStoreUnsubscribe = marketStore.subscribe((data) => {
       const state = get(tradeStore);
-      const settings = get(settingsStore);
+      const settings = settingsState;
 
       if (state.symbol) {
         const normSymbol = normalizeSymbol(state.symbol, "bitunix");
@@ -196,7 +196,7 @@ export const app = {
     // Immediate fallback when WS status changes to disconnected/reconnecting
     wsStatusStore.subscribe((status) => {
       if (status === "disconnected" || status === "reconnecting") {
-        const settings = get(settingsStore);
+        const settings = settingsState;
         if (settings.autoUpdatePriceInput && settings.apiProvider === "bitunix") {
           app.handleFetchPrice(true);
         }
@@ -208,7 +208,7 @@ export const app = {
     if (!browser) return;
 
     // Watch settings, status and symbol changes to adjust interval
-    settingsStore.subscribe(() => app.refreshPriceUpdateInterval());
+    settingsState.subscribe(() => app.refreshPriceUpdateInterval());
     wsStatusStore.subscribe(() => app.refreshPriceUpdateInterval());
 
     // Initial setup
@@ -221,7 +221,7 @@ export const app = {
       priceUpdateIntervalId = null;
     }
 
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const wsStatus = get(wsStatusStore);
     // Faster fallback (3s) when WS is not connected
     const baseInterval = (settings.marketDataInterval || 10) * 1000;
@@ -614,7 +614,7 @@ export const app = {
 
   handleFetchPrice: async (isAuto = false) => {
     const currentTradeState = get(tradeStore);
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const symbol = currentTradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) {
       if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
@@ -680,7 +680,7 @@ export const app = {
 
   fetchAtr: async (isAuto = false) => {
     const currentTradeState = get(tradeStore);
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const symbol = currentTradeState.symbol.toUpperCase().replace("/", "");
     if (!symbol) {
       if (!isAuto) uiStore.showError("Bitte geben Sie ein Symbol ein.");
@@ -839,7 +839,7 @@ export const app = {
     app.handleFetchPrice(isAuto);
 
     const state = get(tradeStore);
-    const settings = get(settingsStore);
+    const settings = settingsState;
     const currentTf = state.atrTimeframe;
 
     try {

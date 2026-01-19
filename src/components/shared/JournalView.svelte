@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { tradeStore } from "../../stores/tradeStore";
-  import { settingsStore } from "../../stores/settingsStore";
+  import { settingsState } from "../../stores/settings.svelte";
   import {
     journalStore,
     performanceMetrics,
@@ -87,7 +87,7 @@
 
       // VIPENTE2026: Pro Active + VIP Theme Active => Unlock Charts
       if (bufferStr.endsWith(CODE_UNLOCK)) {
-        if ($settingsStore.isPro && $uiStore.currentTheme === "VIP") {
+        if (settingsState.isPro && $uiStore.currentTheme === "VIP") {
           unlockDeepDive();
         }
       }
@@ -97,7 +97,7 @@
       }
       // VIPSPACE2026: Pro Active + VIP Theme Active => Space Dialog + Link
       else if (bufferStr.endsWith(CODE_SPACE)) {
-        if ($settingsStore.isPro && $uiStore.currentTheme === "VIP") {
+        if (settingsState.isPro && $uiStore.currentTheme === "VIP") {
           activateVipSpace();
         }
       }
@@ -111,8 +111,8 @@
   }
 
   function unlockDeepDive() {
-    if ($settingsStore.isDeepDiveUnlocked) return;
-    $settingsStore.isDeepDiveUnlocked = true;
+    if (settingsState.isDeepDiveUnlocked) return;
+    settingsState.isDeepDiveUnlocked = true;
     unlockOverlayMessage = $_("journal.messages.unlocked");
     showUnlockOverlay = true;
     inputBuffer = []; // Reset buffer
@@ -122,8 +122,8 @@
   }
 
   function lockDeepDive() {
-    if (!$settingsStore.isDeepDiveUnlocked) return;
-    $settingsStore.isDeepDiveUnlocked = false;
+    if (!settingsState.isDeepDiveUnlocked) return;
+    settingsState.isDeepDiveUnlocked = false;
     unlockOverlayMessage = $_("journal.messages.deactivated");
     showUnlockOverlay = true;
     inputBuffer = []; // Reset buffer
@@ -427,26 +427,26 @@
 >
   <!-- @migration-task: migrate this slot by hand, `header-extra` is an invalid identifier -->
   <div slot="header-extra">
-    {#if $settingsStore.isPro}
+    {#if settingsState.isPro}
       <JournalStatistics
         {performanceData}
         {qualityData}
-        isPro={$settingsStore.isPro}
+        isPro={settingsState.isPro}
         minimal={true}
       />
     {/if}
   </div>
   <!-- Dashboard Section -->
-  {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
+  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
     <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
   {/if}
 
-  {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
+  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
     <!-- JournalCharts Component - All Chart Presets -->
     <JournalCharts
       {activePreset}
-      isPro={$settingsStore.isPro}
-      isDeepDiveUnlocked={$settingsStore.isDeepDiveUnlocked}
+      isPro={settingsState.isPro}
+      isDeepDiveUnlocked={settingsState.isDeepDiveUnlocked}
       {themeColors}
     />
   {/if}
@@ -463,7 +463,7 @@
     ontoggleSettings={() => (showColumnSettings = !showColumnSettings)}
   >
     {#snippet actions()}
-      {#if $settingsStore.isPro}
+      {#if settingsState.isPro}
         {#if $uiStore.syncProgress}
           <div
             class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--bg-secondary)] border border-[var(--border-color)]"
@@ -575,7 +575,7 @@
   </div>
 
   <!-- Deep Dive Section -->
-  {#if $settingsStore.isPro && $settingsStore.isDeepDiveUnlocked}
+  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
     <JournalDeepDive
       {themeColors}
       onfilterDateChange={(data) => handleDateFilterChange(data)}

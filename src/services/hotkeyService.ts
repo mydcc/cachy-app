@@ -16,7 +16,7 @@
  */
 
 import { get } from "svelte/store";
-import { settingsStore } from "../stores/settingsStore";
+import { settingsState } from "../stores/settings.svelte";
 import {
   tradeStore,
   updateTradeStore,
@@ -251,19 +251,18 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     label: "Toggle Sidebars",
     category: "UI & Navigation",
     defaultKey: "Alt+B",
-    action: () =>
-      settingsStore.update((s) => ({ ...s, showSidebars: !s.showSidebars })),
+    action: () => {
+      settingsState.showSidebars = !settingsState.showSidebars;
+    },
   },
   {
     id: "TOGGLE_TECHNICALS",
     label: "Toggle Technicals Panel",
     category: "UI & Navigation",
     defaultKey: "Alt+K",
-    action: () =>
-      settingsStore.update((s) => ({
-        ...s,
-        showTechnicals: !s.showTechnicals,
-      })),
+    action: () => {
+      settingsState.showTechnicals = !settingsState.showTechnicals;
+    },
   },
 
   // --- Market Data ---
@@ -386,7 +385,7 @@ function isMatch(event: KeyboardEvent, combo: string): boolean {
 export function handleGlobalKeydown(event: KeyboardEvent) {
   if (event.key === "Escape") return;
 
-  const settings = get(settingsStore);
+  const settings = settingsState;
   const mode = settings.hotkeyMode;
   const inputActive = isInputActive();
 

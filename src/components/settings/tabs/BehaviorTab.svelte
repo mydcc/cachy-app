@@ -17,28 +17,14 @@
 
 <script lang="ts">
   import { _ } from "../../../locales/i18n";
-  import type { HotkeyMode } from "../../../stores/settingsStore";
+  import { settingsState } from "../../../stores/settings.svelte";
   import { enhancedInput } from "../../../lib/actions/inputEnhancements";
 
   interface Props {
-    showSpinButtons: boolean | "hover";
-    marketDataInterval?: number;
-    autoUpdatePriceInput?: boolean;
-    autoFetchBalance?: boolean;
-    hotkeyMode?: HotkeyMode;
-    enableGlassmorphism?: boolean;
     activeDescriptions?: Array<{ keys: string; action: string }>;
   }
 
-  let {
-    showSpinButtons = $bindable(),
-    marketDataInterval = $bindable(10),
-    autoUpdatePriceInput = $bindable(false),
-    autoFetchBalance = $bindable(false),
-    hotkeyMode = $bindable("mode1"),
-    enableGlassmorphism = $bindable(true),
-    activeDescriptions = [],
-  }: Props = $props();
+  let { activeDescriptions = [] }: Props = $props();
 </script>
 
 <div class="flex flex-col gap-3" role="tabpanel" id="tab-behavior">
@@ -64,10 +50,10 @@
       {#each [{ value: true, label: $_("settings.spinButtonsAlways") }, { value: "hover", label: $_("settings.spinButtonsHover") }, { value: false, label: $_("settings.spinButtonsHidden") }] as opt}
         <button
           class="flex-1 text-[11px] font-medium transition-all duration-200 rounded-md z-10
-                 {showSpinButtons === opt.value
+                 {settingsState.showSpinButtons === opt.value
             ? 'text-[var(--btn-accent-text)]'
             : 'text-[var(--text-secondary)]'}"
-          onclick={() => (showSpinButtons = opt.value as any)}
+          onclick={() => (settingsState.showSpinButtons = opt.value as any)}
         >
           {opt.label}
         </button>
@@ -78,12 +64,14 @@
         class="bg-[var(--accent-color)] absolute top-1 bottom-1 rounded-md transition-all duration-300 ease-out"
         style="
           width: calc(33.33% - 2.66px); 
-          left: {showSpinButtons === true
+          left: {settingsState.showSpinButtons === true
           ? '4px'
-          : showSpinButtons === 'hover'
+          : settingsState.showSpinButtons === 'hover'
             ? '33.33%'
             : '66.66%'};
-          transform: translateX({showSpinButtons === true ? '0' : '0'});
+          transform: translateX({settingsState.showSpinButtons === true
+          ? '0'
+          : '0'});
         "
       ></div>
     </div>
@@ -109,7 +97,7 @@
           type="number"
           min="1"
           max="600"
-          bind:value={marketDataInterval}
+          bind:value={settingsState.marketDataInterval}
           use:enhancedInput={{ showSpinButtons: "hover" }}
           class="w-full bg-[var(--bg-primary)] border border-[var(--border-color)] rounded-lg py-1 px-2 pr-6 text-right font-mono text-sm focus:border-[var(--accent-color)] outline-none"
         />
@@ -120,7 +108,7 @@
       </div>
     </div>
 
-    {#if marketDataInterval && marketDataInterval < 5}
+    {#if settingsState.marketDataInterval && settingsState.marketDataInterval < 5}
       <div
         class="mt-2 text-[10px] text-orange-400 bg-orange-400/5 p-2 rounded-md border border-orange-400/10"
       >
@@ -136,7 +124,9 @@
     <!-- Auto Price Update -->
     <button
       class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
-      onclick={() => (autoUpdatePriceInput = !autoUpdatePriceInput)}
+      onclick={() =>
+        (settingsState.autoUpdatePriceInput =
+          !settingsState.autoUpdatePriceInput)}
     >
       <div class="flex flex-col">
         <span class="text-sm font-medium">{$_("settings.autoUpdatePrice")}</span
@@ -145,7 +135,11 @@
           >Overwrite price on tick</span
         >
       </div>
-      <div class="toggle-container {autoUpdatePriceInput ? 'active' : ''}">
+      <div
+        class="toggle-container {settingsState.autoUpdatePriceInput
+          ? 'active'
+          : ''}"
+      >
         <div class="toggle-thumb"></div>
       </div>
     </button>
@@ -155,7 +149,8 @@
     <!-- Auto Balance Fetch -->
     <button
       class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
-      onclick={() => (autoFetchBalance = !autoFetchBalance)}
+      onclick={() =>
+        (settingsState.autoFetchBalance = !settingsState.autoFetchBalance)}
     >
       <div class="flex flex-col">
         <span class="text-sm font-medium"
@@ -165,7 +160,11 @@
           >Fetch balance on startup</span
         >
       </div>
-      <div class="toggle-container {autoFetchBalance ? 'active' : ''}">
+      <div
+        class="toggle-container {settingsState.autoFetchBalance
+          ? 'active'
+          : ''}"
+      >
         <div class="toggle-thumb"></div>
       </div>
     </button>
@@ -175,7 +174,9 @@
     <!-- Glassmorphism -->
     <button
       class="flex items-center justify-between p-2 rounded-lg hover:bg-[var(--bg-tertiary)] transition-colors group text-left"
-      onclick={() => (enableGlassmorphism = !enableGlassmorphism)}
+      onclick={() =>
+        (settingsState.enableGlassmorphism =
+          !settingsState.enableGlassmorphism)}
     >
       <div class="flex flex-col">
         <span class="text-sm font-medium">Glassmorphism</span>
@@ -183,7 +184,11 @@
           >Enable translucent effects</span
         >
       </div>
-      <div class="toggle-container {enableGlassmorphism ? 'active' : ''}">
+      <div
+        class="toggle-container {settingsState.enableGlassmorphism
+          ? 'active'
+          : ''}"
+      >
         <div class="toggle-thumb"></div>
       </div>
     </button>
@@ -202,7 +207,7 @@
       <select
         id="hotkey-mode"
         name="hotkeyMode"
-        bind:value={hotkeyMode}
+        bind:value={settingsState.hotkeyMode}
         class="bg-[var(--bg-primary)] border border-[var(--border-color)] p-2 rounded-lg text-sm text-[var(--text-primary)] outline-none focus:border-[var(--accent-color)]"
       >
         <option value="custom">Custom (Configurable)</option>
@@ -212,7 +217,7 @@
       </select>
     </div>
 
-    {#if hotkeyMode !== "custom" && activeDescriptions.length > 0}
+    {#if settingsState.hotkeyMode !== "custom" && activeDescriptions.length > 0}
       <div
         class="mt-3 bg-[var(--bg-primary)]/50 rounded-lg p-3 border border-[var(--border-color)]"
       >

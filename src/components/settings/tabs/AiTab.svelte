@@ -16,32 +16,7 @@
 -->
 
 <script lang="ts">
-  import {
-    settingsStore,
-    type AiProvider,
-  } from "../../../stores/settingsStore";
-
-  interface Props {
-    aiProvider: AiProvider;
-    openaiApiKey: string;
-    openaiModel: string;
-    geminiApiKey: string;
-    geminiModel: string;
-    anthropicApiKey: string;
-    anthropicModel: string;
-    aiConfirmClear: boolean;
-  }
-
-  let {
-    aiProvider = $bindable(),
-    openaiApiKey = $bindable(),
-    openaiModel = $bindable(),
-    geminiApiKey = $bindable(),
-    geminiModel = $bindable(),
-    anthropicApiKey = $bindable(),
-    anthropicModel = $bindable(),
-    aiConfirmClear = $bindable(),
-  }: Props = $props();
+  import { settingsState } from "../../../stores/settings.svelte";
 </script>
 
 <div class="flex flex-col gap-4" role="tabpanel" id="tab-ai">
@@ -58,7 +33,7 @@
       <select
         id="ai-provider"
         name="aiProvider"
-        bind:value={aiProvider}
+        bind:value={settingsState.aiProvider}
         class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
       >
         <option value="openai">OpenAI (ChatGPT)</option>
@@ -77,7 +52,7 @@
       </div>
       <input
         type="checkbox"
-        bind:checked={$settingsStore.aiConfirmActions}
+        bind:checked={settingsState.aiConfirmActions}
         class="toggle-checkbox"
       />
     </div>
@@ -94,7 +69,7 @@
       </div>
       <input
         type="checkbox"
-        bind:checked={aiConfirmClear}
+        bind:checked={settingsState.aiConfirmClear}
         class="toggle-checkbox"
       />
     </div>
@@ -107,7 +82,7 @@
         cynical", "Focus on Scalping").
       </span>
       <textarea
-        bind:value={$settingsStore.customSystemPrompt}
+        bind:value={settingsState.customSystemPrompt}
         rows="3"
         class="input-field p-2 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full resize-none"
         placeholder="e.g. You are a risk-averse mentor. Always scold me for high leverage."
@@ -129,7 +104,7 @@
         min="5"
         max="500"
         step="5"
-        bind:value={$settingsStore.aiTradeHistoryLimit}
+        bind:value={settingsState.aiTradeHistoryLimit}
         class="input-field p-1 px-2 rounded text-xs w-16 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)]"
       />
     </div>
@@ -141,7 +116,7 @@
           class="text-xs font-bold flex items-center gap-2"
         >
           <span>OpenAI</span>
-          {#if aiProvider === "openai"}<span
+          {#if settingsState.aiProvider === "openai"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
             ></span>{/if}
         </label>
@@ -149,7 +124,7 @@
           id="openai-key"
           name="openaiKey"
           type="password"
-          bind:value={openaiApiKey}
+          bind:value={settingsState.openaiApiKey}
           class="input-field p-1 px-2 rounded text-sm mb-1"
           placeholder="API Key (sk-...)"
         />
@@ -162,7 +137,7 @@
             id="openai-model"
             name="openaiModel"
             type="text"
-            bind:value={openaiModel}
+            bind:value={settingsState.openaiModel}
             class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]"
             placeholder="gpt-4o"
           />
@@ -176,7 +151,7 @@
           class="text-xs font-bold flex items-center gap-2"
         >
           <span>Google Gemini</span>
-          {#if aiProvider === "gemini"}<span
+          {#if settingsState.aiProvider === "gemini"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
             ></span>{/if}
         </label>
@@ -184,14 +159,14 @@
           id="gemini-key"
           name="geminiKey"
           type="password"
-          bind:value={geminiApiKey}
+          bind:value={settingsState.geminiApiKey}
           class="input-field p-1 px-2 rounded text-sm mb-1"
           placeholder="API Key (AIza...)"
         />
         <div class="flex flex-col gap-1.5">
           <span class="text-[10px] text-[var(--text-secondary)]">Modell:</span>
           <select
-            bind:value={geminiModel}
+            bind:value={settingsState.geminiModel}
             class="input-field p-1.5 px-2 rounded text-xs bg-[var(--bg-secondary)] border border-[var(--border-color)] w-full"
           >
             <option value="gemini-3-flash-preview"
@@ -220,7 +195,7 @@
           class="text-xs font-bold flex items-center gap-2"
         >
           <span>Anthropic</span>
-          {#if aiProvider === "anthropic"}<span
+          {#if settingsState.aiProvider === "anthropic"}<span
               class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)]"
             ></span>{/if}
         </label>
@@ -228,7 +203,7 @@
           id="anthropic-key"
           name="anthropicKey"
           type="password"
-          bind:value={anthropicApiKey}
+          bind:value={settingsState.anthropicApiKey}
           class="input-field p-1 px-2 rounded text-sm mb-1"
           placeholder="API Key (sk-ant-...)"
         />
@@ -241,7 +216,7 @@
             id="anthropic-model"
             name="anthropicModel"
             type="text"
-            bind:value={anthropicModel}
+            bind:value={settingsState.anthropicModel}
             class="input-field p-1 px-2 rounded text-xs flex-1 bg-[var(--bg-secondary)] border border-[var(--border-color)]"
             placeholder="claude-3-5-sonnet-20240620"
           />

@@ -17,7 +17,7 @@
 
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
-import type { IndicatorSettings } from "../stores/indicatorStore";
+import type { IndicatorSettings } from "../stores/indicator.svelte";
 import type { TechnicalsData, IndicatorResult } from "./technicalsTypes";
 import { type Kline } from "../utils/indicators";
 import { calculateAllIndicators, getEmptyData } from "../utils/technicalsCalculator";
