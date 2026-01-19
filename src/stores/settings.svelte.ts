@@ -219,6 +219,7 @@ class SettingsManager {
     cryptoPanicApiKey = $state<string | undefined>(defaultSettings.cryptoPanicApiKey);
     newsApiKey = $state<string | undefined>(defaultSettings.newsApiKey);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
+    isInitializing = true;
 
     // Subscriptions for legacy compatibility
     private listeners: Set<(value: Settings) => void> = new Set();
@@ -227,11 +228,19 @@ class SettingsManager {
     constructor() {
         if (browser) {
             this.load();
-            // Auto-save effect
             $effect.root(() => {
                 $effect(() => {
-                    // Critical: Use untrack to prevent infinite loops when listeners react
-                    // and then somehow trigger another state change in SettingsManager
+                    if (this.isInitializing) return;
+
+                    // Accessing properties to track them for auto-save
+                    // We can also just serialize everything, but accessing some 
+                    // ensures the effect re-runs when they change.
+                    this.apiProvider;
+                    this.apiKeys;
+                    this.isPro;
+                    this.chatStyle;
+                    this.fontFamily;
+
                     const data = this.toJSON();
                     untrack(() => {
                         this.save();
@@ -330,8 +339,14 @@ class SettingsManager {
             if (this.geminiModel === "flash") this.geminiModel = "gemini-2.5-flash";
             if (this.geminiModel === "pro") this.geminiModel = "gemini-2.0-flash-exp";
 
+            // Done initializing, allow effects to fire
+            setTimeout(() => {
+                this.isInitializing = false;
+            }, 100);
+
         } catch (e) {
             console.warn("SettingsManager: Failed to load from localStorage", e);
+            this.isInitializing = false; // If an error occurs, set to false
         }
     }
 

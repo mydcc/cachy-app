@@ -108,36 +108,32 @@ export const app = {
 
     // Watch for API key changes to reconnect private WebSocket
     let lastKeys = "";
-    let lastProvider = "";
+    let lastProvider = settingsState.apiProvider || "";
 
     settingsState.subscribe((s: any) => {
       untrack(() => {
         // Safety check for apiKeys structure
-        if (!s || !s.apiKeys || !s.apiKeys.bitunix) return;
+        if (!s || !s.apiKeys) return;
 
-        const currentKeys = `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}`;
+        const currentKeys = s.apiKeys.bitunix ? `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}` : "";
         const providerChanged = s.apiProvider !== lastProvider;
         const keysChanged = currentKeys !== lastKeys;
 
-        if (
-          (keysChanged || (providerChanged && s.apiProvider === "bitunix")) &&
-          s.apiKeys.bitunix.key &&
-          s.apiKeys.bitunix.secret &&
-          s.apiProvider === "bitunix"
-        ) {
-          lastKeys = currentKeys;
-          lastProvider = s.apiProvider;
-
-          if (browser) {
-            // If we are switching back, make sure instance is not 'destroyed' 
-            // (bitunixWs is a singleton, we need to ensure it can reconnect)
-            (bitunixWs as any).isDestroyed = false;
-            bitunixWs.connect();
+        if (s.apiProvider === "bitunix") {
+          if ((keysChanged || providerChanged) && s.apiKeys.bitunix?.key && s.apiKeys.bitunix?.secret) {
+            lastKeys = currentKeys;
+            lastProvider = s.apiProvider;
+            if (browser) {
+              (bitunixWs as any).isDestroyed = false;
+              bitunixWs.connect();
+            }
           }
-        } else if (s.apiProvider !== "bitunix" && lastProvider === "bitunix") {
-          lastProvider = s.apiProvider;
-          // If switched away from bitunix, disconnect
-          bitunixWs.destroy();
+        } else {
+          // If NOT bitunix (e.g. binance), we must ensure WS is dead
+          if (providerChanged || lastProvider === "bitunix") {
+            lastProvider = s.apiProvider;
+            bitunixWs.destroy();
+          }
         }
       });
     });
@@ -240,11 +236,7 @@ export const app = {
       ) {
         if (settings.autoUpdatePriceInput) {
           if (settings.apiProvider === "binance") {
-            // Check if keys are theoretically present (optional check)
-            const hasBinanceKeys = settings.apiKeys?.binance?.key && settings.apiKeys?.binance?.secret;
-            if (hasBinanceKeys) {
-              app.handleFetchPrice(true);
-            }
+            app.handleFetchPrice(true);
           } else {
             const wsStatus = marketState.connectionStatus;
             if (wsStatus !== "connected") {

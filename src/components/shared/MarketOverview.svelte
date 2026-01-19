@@ -191,8 +191,18 @@
 
   function setupRestInterval() {
     if (restIntervalId) clearInterval(restIntervalId);
+    if (!symbol || symbol.length < 3) return;
+
     const interval = settingsState.marketDataInterval * 1000;
-    restIntervalId = setInterval(() => fetchRestData(true), interval);
+    // Add jitter to prevent all cards polling at the exact same millisecond
+    const jitter = Math.floor(Math.random() * 2000);
+
+    setTimeout(() => {
+      if (!restIntervalId) {
+        // Only set if not already cleared
+        restIntervalId = setInterval(() => fetchRestData(true), interval);
+      }
+    }, jitter);
   }
 
   async function fetchRestData(isBackground = false) {
@@ -682,7 +692,7 @@
     <!-- svelte-ignore a11y_click_events_have_key_events -->
     <!-- svelte-ignore a11y_no_static_element_interactions -->
     <div onclick={(e) => e.stopPropagation()} class="cursor-default">
-         <NewsSentimentPanel {symbol} />
+      <NewsSentimentPanel {symbol} />
     </div>
   {/if}
 </div>

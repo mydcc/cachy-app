@@ -258,10 +258,26 @@
       bind:value={settingsState.apiProvider}
       class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
     >
-      <option value="bitunix">Bitunix</option>
-      <option value="binance">Binance Futures</option>
+      <option value="bitunix">Bitunix (Full Sync)</option>
+      <option value="binance">Binance Futures (Public Market Data)</option>
     </select>
   </div>
+
+  {#if settingsState.apiProvider === "binance"}
+    <div
+      class="p-3 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] text-[var(--text-secondary)] text-xs font-medium"
+    >
+      <div class="flex items-center gap-2 mb-1">
+        <span class="text-lg">ℹ️</span>
+        <span class="font-bold text-[var(--text-primary)]"
+          >Public Mode Active</span
+        >
+      </div>
+      Binance currently only supports public market data (Price/ATR) via REST-API.
+      Real-time position sync and account balance are currently only available for
+      Bitunix.
+    </div>
+  {/if}
   {#if settingsState.apiProvider === "bitunix"}
     <div
       class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-2"
