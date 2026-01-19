@@ -231,4 +231,50 @@
       providers.
     </p>
   </div>
+
+  <div
+    class="p-4 border border-[var(--border-color)] rounded bg-[var(--bg-secondary)] flex flex-col gap-4"
+  >
+    <h4 class="text-xs uppercase font-bold text-[var(--text-secondary)]">
+      External Context
+    </h4>
+
+    <!-- CMC Context Toggle -->
+    <div class="flex items-center justify-between py-2">
+      <div class="flex flex-col">
+        <span class="text-xs font-bold">CoinMarketCap Smart Context</span>
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Fetch global metrics and coin metadata for AI.</span
+        >
+      </div>
+      <input
+        type="checkbox"
+        bind:checked={settingsState.enableCmcContext}
+        class="toggle-checkbox"
+      />
+    </div>
+
+    <!-- CMC API Key -->
+    {#if settingsState.enableCmcContext}
+      <div class="flex flex-col gap-2">
+        <label
+          for="cmc-key"
+          class="text-xs font-bold flex items-center gap-2"
+        >
+          <span>CMC API Key</span>
+        </label>
+        <input
+          id="cmc-key"
+          name="cmcKey"
+          type="password"
+          bind:value={settingsState.cmcApiKey}
+          class="input-field p-1 px-2 rounded text-sm mb-1"
+          placeholder="CoinMarketCap API Key..."
+        />
+        <span class="text-[10px] text-[var(--text-secondary)]"
+          >Required for sector analysis and global metrics.</span
+        >
+      </div>
+    {/if}
+  </div>
 </div>

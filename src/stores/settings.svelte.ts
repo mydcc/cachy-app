@@ -91,6 +91,8 @@ export interface Settings {
     cryptoPanicPlan: "developer" | "growth" | "enterprise";
     cryptoPanicFilter: "all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved";
     enableNewsAnalysis: boolean;
+    cmcApiKey?: string;
+    enableCmcContext: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -157,6 +159,8 @@ const defaultSettings: Settings = {
     cryptoPanicPlan: "developer",
     cryptoPanicFilter: "important",
     enableNewsAnalysis: false,
+    cmcApiKey: "",
+    enableCmcContext: false,
 };
 
 class SettingsManager {
@@ -232,6 +236,8 @@ class SettingsManager {
     cryptoPanicPlan = $state<"developer" | "growth" | "enterprise">(defaultSettings.cryptoPanicPlan);
     cryptoPanicFilter = $state<"all" | "rising" | "hot" | "bullish" | "bearish" | "important" | "saved">(defaultSettings.cryptoPanicFilter);
     enableNewsAnalysis = $state<boolean>(defaultSettings.enableNewsAnalysis);
+    cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
+    enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
 
     // Private state for initialization
     private isInitializing = true;
@@ -383,6 +389,8 @@ class SettingsManager {
                 this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
                 this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
                 this.enableNewsAnalysis = merged.enableNewsAnalysis;
+                this.cmcApiKey = merged.cmcApiKey;
+                this.enableCmcContext = merged.enableCmcContext;
 
                 // Migration
                 if (parsed.marketDataInterval === "manual") {
@@ -464,6 +472,8 @@ class SettingsManager {
             cryptoPanicPlan: this.cryptoPanicPlan,
             cryptoPanicFilter: this.cryptoPanicFilter,
             enableNewsAnalysis: this.enableNewsAnalysis,
+            cmcApiKey: this.cmcApiKey,
+            enableCmcContext: this.enableCmcContext,
         };
     }
 
