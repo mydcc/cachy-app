@@ -132,7 +132,7 @@ const defaultSettings: Settings = {
     openaiApiKey: "",
     openaiModel: "gpt-4o",
     geminiApiKey: "",
-    geminiModel: "gemini-2.5-flash",
+    geminiModel: "gemini-1.5-flash",
     anthropicApiKey: "",
     anthropicModel: "claude-3-5-sonnet-20240620",
     aiConfirmActions: false,
@@ -161,7 +161,14 @@ const defaultSettings: Settings = {
 
 class SettingsManager {
     // Using $state for all properties
-    apiProvider = $state<"bitunix" | "binance">(defaultSettings.apiProvider);
+    private _apiProvider = $state<"bitunix" | "binance">(defaultSettings.apiProvider);
+    get apiProvider() { return this._apiProvider; }
+    set apiProvider(v: "bitunix" | "binance") {
+        if (v !== this._apiProvider) {
+            console.warn(`[Settings] apiProvider changing: ${this._apiProvider} -> ${v}`, new Error().stack);
+            this._apiProvider = v;
+        }
+    }
     marketDataInterval = $state<number>(defaultSettings.marketDataInterval);
     autoUpdatePriceInput = $state<boolean>(defaultSettings.autoUpdatePriceInput);
     autoFetchBalance = $state<boolean>(defaultSettings.autoFetchBalance);
@@ -255,10 +262,20 @@ class SettingsManager {
                 });
             });
 
+            // Listen for changes from other tabs
+            window.addEventListener("storage", (e) => {
+                if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
+                    console.warn("[Settings] Syncing from other tab...");
+                    this.isInitializing = true;
+                    this.load();
+                    setTimeout(() => this.isInitializing = false, 50);
+                }
+            });
+
             setTimeout(() => {
                 this.isInitializing = false;
-                console.log("[Settings] Store initialized. Provider:", this.apiProvider);
-            }, 500);
+                console.warn("[Settings] Store ready. Current Provider:", this.apiProvider);
+            }, 100);
         }
     }
 
@@ -278,7 +295,15 @@ class SettingsManager {
             const merged = { ...defaultSettings, ...parsed, apiKeys: mergedApiKeys };
 
             untrack(() => {
-                this.apiProvider = merged.apiProvider === "binance" ? "binance" : "bitunix";
+                const loadedProvider = merged.apiProvider;
+                const finalProvider = (loadedProvider === "binance") ? "binance" : "bitunix";
+
+                // Set the private field directly during load to avoid dual logging
+                this._apiProvider = finalProvider;
+
+                if (loadedProvider && loadedProvider !== finalProvider) {
+                    console.warn(`[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`);
+                }
                 this.marketDataInterval = merged.marketDataInterval;
                 this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
                 this.autoFetchBalance = merged.autoFetchBalance;

@@ -181,14 +181,33 @@ OUTPUT FORMAT (JSON ONLY):
 }
 `;
 
+    async function fetchWithRetry(prompt: string, apiKey: string, modelName: string, retries = 3, delay = 2000): Promise<string> {
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: modelName });
+
+      for (let i = 0; i < retries; i++) {
+        try {
+          const result = await model.generateContent(prompt);
+          return result.response.text();
+        } catch (e: any) {
+          const isOverloaded = e?.message?.includes("503") || e?.message?.includes("overloaded");
+          if (isOverloaded && i < retries - 1) {
+            console.warn(`[newsService] Gemini overloaded, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+            await new Promise(resolve => setTimeout(resolve, delay));
+            delay *= 2; // Exponential backoff
+            continue;
+          }
+          throw e;
+        }
+      }
+      return "";
+    }
+
     try {
       let resultText = "";
 
       if (aiProvider === "gemini" && geminiApiKey) {
-        const genAI = new GoogleGenerativeAI(geminiApiKey);
-        const model = genAI.getGenerativeModel({ model: settingsState.geminiModel || "gemini-2.5-flash" });
-        const result = await model.generateContent(prompt);
-        resultText = result.response.text();
+        resultText = await fetchWithRetry(prompt, geminiApiKey, settingsState.geminiModel || "gemini-1.5-flash");
       } else if (aiProvider === "openai" && openaiApiKey) {
         const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
         const completion = await openai.chat.completions.create({
@@ -198,7 +217,6 @@ OUTPUT FORMAT (JSON ONLY):
         });
         resultText = completion.choices[0].message.content || "{}";
       }
-      // Anthropic could be added here similar to others
 
       if (!resultText) throw new Error("No response from AI");
 
