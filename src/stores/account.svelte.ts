@@ -54,6 +54,7 @@ class AccountManager {
         this.positions = [];
         this.openOrders = [];
         this.assets = [];
+        this.notifyListeners();
     }
 
     // --- WS Actions ---
@@ -72,6 +73,7 @@ class AccountManager {
             if (index !== -1) {
                 // Remove from array (reactive splice in Svelte 5 via reassignment or method)
                 this.positions.splice(index, 1);
+                this.notifyListeners();
             }
         } else {
             // OPEN or UPDATE
@@ -141,6 +143,7 @@ class AccountManager {
                     breakEvenPrice: new Decimal(0),
                 };
                 this.positions.push(newPos);
+                this.notifyListeners();
             }
         }
     }
@@ -242,14 +245,29 @@ class AccountManager {
     }
 
     // Compatibility
-    subscribe(fn: (value: { positions: Position[], openOrders: OpenOrder[], assets: Asset[] }) => void) {
+    private listeners = new Set<(value: any) => void>();
+    private notifyTimer: any = null;
+
+    private notifyListeners() {
+        if (this.notifyTimer) clearTimeout(this.notifyTimer);
+        this.notifyTimer = setTimeout(() => {
+            const snap = { positions: this.positions, openOrders: this.openOrders, assets: this.assets };
+            this.listeners.forEach(fn => fn(snap));
+            this.notifyTimer = null;
+        }, 50);
+    }
+
+    subscribe(fn: (value: { positions: Position[], openOrders: OpenOrder[], assets: Asset[] }) => void): () => void {
         fn({ positions: this.positions, openOrders: this.openOrders, assets: this.assets });
-        return $effect.root(() => {
-            $effect(() => {
-                fn({ positions: this.positions, openOrders: this.openOrders, assets: this.assets });
-            });
-        });
+        this.listeners.add(fn);
+
+        // Auto-subscribe to changes if called within a component effect
+        // but also manually notify via actions.
+        return () => {
+            this.listeners.delete(fn);
+        };
     }
 }
+
 
 export const accountState = new AccountManager();

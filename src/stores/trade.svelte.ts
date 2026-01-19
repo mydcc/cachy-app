@@ -179,6 +179,7 @@ class TradeManager {
             delete toSave.currentTradeData;
 
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
+            this.notifyListeners();
         } catch (e) {
             console.error("Failed to save trade state", e);
         }
@@ -303,16 +304,27 @@ class TradeManager {
         };
     }
 
-    subscribe(fn: (value: any) => void) {
-        // Track all state properties
-        const snap = () => this.getSnapshot();
-        fn(snap());
-        return $effect.root(() => {
-            $effect(() => {
-                fn(snap());
-            });
-        });
+    // Compatibility
+    private listeners = new Set<(value: any) => void>();
+    private notifyTimer: any = null;
+
+    private notifyListeners() {
+        if (this.notifyTimer) clearTimeout(this.notifyTimer);
+        this.notifyTimer = setTimeout(() => {
+            const snap = this.getSnapshot();
+            this.listeners.forEach(fn => fn(snap));
+            this.notifyTimer = null;
+        }, 50);
+    }
+
+    subscribe(fn: (value: any) => void): () => void {
+        fn(this.getSnapshot());
+        this.listeners.add(fn);
+        return () => {
+            this.listeners.delete(fn);
+        };
     }
 }
+
 
 export const tradeState = new TradeManager();

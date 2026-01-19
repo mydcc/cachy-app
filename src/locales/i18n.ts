@@ -152,6 +152,7 @@ export const locale = writable<string | null>(initialLocaleValue);
 
 // Logic to determine the effective locale based on user preference and settings
 function updateEffectiveLocale() {
+  if (typeof window === "undefined") return;
   const currentLocale = get(locale);
   const settings = settingsState;
 
@@ -176,13 +177,16 @@ locale.subscribe((value) => {
   }
 });
 
-// Subscribe to settings to react to the toggle
-settingsState.subscribe(() => {
-  updateEffectiveLocale();
-});
+// Use a simple function instead of store subscription for top-level initialization
+// to avoid $effect.root issues in module scope.
+// The SettingsManager will call this if needed, or we rely on the component mount.
+if (typeof window !== "undefined") {
+  setTimeout(updateEffectiveLocale, 0);
+}
 
 export function setLocale(newLocale: string) {
   locale.set(newLocale);
 }
 
 export { _ };
+
