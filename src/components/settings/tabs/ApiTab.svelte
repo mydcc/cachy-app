@@ -297,7 +297,11 @@
     <select
       id="api-provider"
       name="apiProvider"
-      bind:value={settingsState.apiProvider}
+      value={settingsState.apiProvider}
+      onchange={(e) =>
+        (settingsState.apiProvider = e.currentTarget.value as
+          | "bitunix"
+          | "binance")}
       class="input-field p-2 rounded border border-[var(--border-color)] bg-[var(--bg-secondary)]"
     >
       <option value="bitunix">Bitunix (Full Sync)</option>
