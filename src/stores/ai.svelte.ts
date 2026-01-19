@@ -11,8 +11,8 @@ import { browser } from "$app/environment";
 import { get } from "svelte/store";
 import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeStore } from "./tradeStore";
-import { marketStore } from "./marketStore";
-import { accountStore } from "./accountStore";
+import { marketState } from "./market.svelte";
+import { accountState } from "./account.svelte";
 import { journalStore } from "./journalStore";
 import type { JournalEntry } from "./types";
 
@@ -340,8 +340,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
 
     private gatherContext() {
         const trade = get(tradeStore) || {};
-        const market = get(marketStore) || {};
-        const account = get(accountStore) || { positions: [], assets: [] };
+        const market = marketState.data;
+        const account = accountState;
         const journal = get(journalStore) || [];
         const settings = settingsState;
 
