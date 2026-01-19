@@ -22,7 +22,7 @@ import {
   updateTradeStore,
   resetAllInputs,
 } from "../stores/tradeStore";
-import { favoritesStore } from "../stores/favoritesStore";
+import { favoritesState } from "../stores/favorites.svelte";
 import { uiState } from "../stores/ui.svelte";
 import { app } from "./app";
 import { modalManager } from "./modalManager";
@@ -78,7 +78,7 @@ function focusElement(id: string) {
 
 function loadFavorite(index: number) {
   // 1-based index
-  const favorites = get(favoritesStore);
+  const favorites = favoritesState.items;
   if (favorites.length >= index) {
     const symbol = favorites[index - 1];
     if (symbol) {
