@@ -34,7 +34,6 @@ import * as de from "./locales/de.json";
 // We use dot notation strings which we will resolve against the English dictionary.
 const TECHNICAL_KEYS = [
   // Dashboard & Trading
-  "dashboard.entry",
   "dashboard.type",
   "dashboard.price",
   "dashboard.amount",
@@ -54,6 +53,7 @@ const TECHNICAL_KEYS = [
   "dashboard.visualBar.netProfitLabel",
 
   // Journal
+  "journal.entry",
   "journal.table.entry",
   "journal.table.exit",
   "journal.table.type",
