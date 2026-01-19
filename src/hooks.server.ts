@@ -77,7 +77,8 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
     const duration = Date.now() - start;
 
     // Log Response mit Status und Dauer
-    if (response.status === 429) {
+    if (response.status === 429 || response.status === 401) {
+      // 429: Rate Limit, 401: Missing/Invalid API Key - both are warnings, not critical errors
       logger.warn(
         `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
       );
