@@ -131,7 +131,7 @@
         indicatorSettings,
       );
     } catch (e) {
-      console.error("[Technicals] Calculation error:", e);
+      // silent fail or handled by error state if we propagated it
     }
   }
 
@@ -156,9 +156,7 @@
         untrack(() => updateTechnicals());
       }
     } catch (e: any) {
-      if (e.message !== "apiErrors.symbolNotFound") {
-        console.error("Technicals fetch error:", e);
-      }
+      // API errors are handled by state
       error = e.message;
     } finally {
       loading = false;
@@ -237,8 +235,8 @@
     };
     navigator.clipboard
       .writeText(JSON.stringify(debugInfo, null, 2))
-      .then(() => alert("Debug data copied!"))
-      .catch((err) => console.error("Failed to copy", err));
+      .then(() => uiStore.showFeedback("copy"))
+      .catch(() => uiStore.showError("Failed to copy debug data"));
   }
   // Use analysisTimeframe for Technicals
   let symbol = $derived($tradeStore.symbol);

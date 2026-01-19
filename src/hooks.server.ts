@@ -20,26 +20,30 @@ import type { Handle } from "@sveltejs/kit";
 import { CONSTANTS } from "./lib/constants";
 import { logger } from "$lib/server/logger";
 
+declare global {
+  // eslint-disable-next-line no-var
+  var _isConsolePatched: boolean | undefined;
+}
+
 // --- Global Console Interceptor for CachyLog ---
 // Redirects all server-side console logs to the centralized logger and SSE stream
-if (!(global as any)._isConsolePatched) {
-  (global as any)._isConsolePatched = true;
+if (!global._isConsolePatched) {
+  global._isConsolePatched = true;
 
   const originalLog = console.log;
   const originalWarn = console.warn;
   const originalError = console.error;
 
-  console.log = (...args: any[]) => {
+  console.log = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
     // Prevent infinite loop if logger calls console.log (it shouldn't, but safety first)
-    // We use a specific prefix if we wanted to detect our own logs, but logger.ts is clean.
     logger.info(msg);
     originalLog.apply(console, args);
   };
 
-  console.warn = (...args: any[]) => {
+  console.warn = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -47,7 +51,7 @@ if (!(global as any)._isConsolePatched) {
     originalWarn.apply(console, args);
   };
 
-  console.error = (...args: any[]) => {
+  console.error = (...args: unknown[]) => {
     const msg = args
       .map((a) => (typeof a === "object" ? JSON.stringify(a) : String(a)))
       .join(" ");
@@ -88,10 +92,11 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
     }
 
     return response;
-  } catch (err: any) {
+  } catch (err: unknown) {
     const duration = Date.now() - start;
+    const errorMsg = err instanceof Error ? err.message : String(err);
     logger.error(
-      `[ERR] ${method} ${path} failed (${duration}ms): ${err.message}`,
+      `[ERR] ${method} ${path} failed (${duration}ms): ${errorMsg}`,
     );
     throw err;
   }

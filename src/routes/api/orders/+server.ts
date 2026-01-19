@@ -30,11 +30,13 @@ import type {
 } from "../../../types/bitunix";
 import { formatApiNum } from "../../../utils/utils";
 
+type OrderResult = BitunixOrder | { orders: NormalizedOrder[] };
+
 export const POST: RequestHandler = async ({ request }) => {
   let body: Record<string, any>;
   try {
     body = await request.json();
-  } catch (e) {
+  } catch {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
@@ -122,7 +124,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   try {
-    let result: any = null;
+    let result: OrderResult | null = null;
     if (exchange === "bitunix") {
       if (type === "pending") {
         const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
@@ -172,7 +174,9 @@ export const POST: RequestHandler = async ({ request }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
-    const sanitizedMsg = errorMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+    const sanitizedMsg = errorMsg
+      .replaceAll(apiKey, "***")
+      .replaceAll(apiSecret, "***");
 
     console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
