@@ -26,14 +26,9 @@
   import VisualBar from "../components/shared/VisualBar.svelte";
   import { CONSTANTS, themes, themeIcons, icons } from "../lib/constants";
   import { app } from "../services/app";
-  import {
-    tradeStore,
-    updateTradeStore,
-    resetAllInputs,
-    toggleAtrInputs,
-  } from "../stores/tradeStore";
-  import { resultsStore } from "../stores/resultsStore";
-  import { presetStore } from "../stores/presetStore";
+  import { tradeState } from "../stores/trade.svelte";
+  import { resultsState } from "../stores/results.svelte";
+  import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { favoritesState } from "../stores/favorites.svelte";
@@ -148,7 +143,7 @@
   // DECOUPLED to prevent "flush" loops
   $effect(() => {
     // 1. Establish dependencies (Accessing values tracks them)
-    const _s = $tradeStore;
+    const _s = tradeState;
 
     // Core inputs
     _s.accountSize;
@@ -209,14 +204,11 @@
       }>
     >,
   ) {
-    updateTradeStore((s) => ({ ...s, targets: event.detail }));
+    tradeState.targets = event.detail;
   }
 
   function handleTpRemove(event: CustomEvent<number>) {
-    const index = event.detail;
-    const newTargets = $tradeStore.targets.filter((_, i) => i !== index);
-    updateTradeStore((s) => ({ ...s, targets: newTargets }));
-    app.adjustTpPercentages(null); // Pass null to signify a removal
+    app.removeTakeProfitRow(event.detail);
   }
 
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
@@ -417,10 +409,10 @@
             id="preset-loader"
             class="input-field px-3 py-2 rounded-md text-sm"
             onchange={handlePresetLoad}
-            bind:value={$presetStore.selectedPreset}
+            bind:value={presetState.selectedPreset}
           >
             <option value="">{$_("dashboard.presetLoad")}</option>
-            {#each $presetStore.availablePresets as presetName}
+            {#each presetState.availablePresets as presetName}
               <option value={presetName}>{presetName}</option>
             {/each}
           </select>
@@ -440,7 +432,7 @@
             id="delete-preset-btn"
             class="text-sm bg-[var(--btn-danger-bg)] hover:bg-[var(--btn-danger-hover-bg)] text-[var(--btn-danger-text)] font-bold py-2.5 px-2.5 rounded-lg disabled:cursor-not-allowed"
             title={$_("dashboard.deletePresetTitle")}
-            disabled={!$presetStore.selectedPreset}
+            disabled={!presetState.selectedPreset}
             onclick={app.deletePreset}
             use:trackClick={{
               category: "Presets",
@@ -452,7 +444,7 @@
             id="reset-btn"
             class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg flex items-center gap-2"
             title={$_("dashboard.resetButtonTitle")}
-            onclick={resetAllInputs}
+            onclick={() => tradeState.resetInputs(true)}
             use:trackClick={{
               category: "Actions",
               action: "Click",
@@ -490,41 +482,43 @@
     <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4">
       <div>
         <GeneralInputs
-          bind:tradeType={$tradeStore.tradeType}
-          bind:leverage={$tradeStore.leverage}
-          bind:fees={$tradeStore.fees}
+          bind:tradeType={tradeState.tradeType}
+          bind:leverage={tradeState.leverage}
+          bind:fees={tradeState.fees}
         />
 
-        <TagInputs tags={$tradeStore.tags} />
+        <TagInputs tags={tradeState.tags} />
 
         <PortfolioInputs
-          bind:accountSize={$tradeStore.accountSize}
-          bind:riskPercentage={$tradeStore.riskPercentage}
-          bind:riskAmount={$tradeStore.riskAmount}
-          isRiskAmountLocked={$tradeStore.isRiskAmountLocked}
-          isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
+          bind:accountSize={tradeState.accountSize}
+          bind:riskPercentage={tradeState.riskPercentage}
+          bind:riskAmount={tradeState.riskAmount}
+          isRiskAmountLocked={tradeState.isRiskAmountLocked}
+          isPositionSizeLocked={tradeState.isPositionSizeLocked}
           on:toggleRiskAmountLock={() => app.toggleRiskAmountLock()}
         />
       </div>
 
       <TradeSetupInputs
-        bind:symbol={$tradeStore.symbol}
-        bind:entryPrice={$tradeStore.entryPrice}
-        bind:useAtrSl={$tradeStore.useAtrSl}
-        bind:atrValue={$tradeStore.atrValue}
-        bind:atrMultiplier={$tradeStore.atrMultiplier}
-        bind:stopLossPrice={$tradeStore.stopLossPrice}
-        bind:atrMode={$tradeStore.atrMode}
-        bind:atrTimeframe={$tradeStore.atrTimeframe}
+        bind:symbol={tradeState.symbol}
+        bind:entryPrice={tradeState.entryPrice}
+        bind:useAtrSl={tradeState.useAtrSl}
+        bind:atrValue={tradeState.atrValue}
+        bind:atrMultiplier={tradeState.atrMultiplier}
+        bind:stopLossPrice={tradeState.stopLossPrice}
+        bind:atrMode={tradeState.atrMode}
+        bind:atrTimeframe={tradeState.atrTimeframe}
         on:showError={handleTradeSetupError}
         on:fetchPrice={() => app.handleFetchPrice()}
-        on:toggleAtrInputs={(e) => toggleAtrInputs(e.detail)}
+        on:toggleAtrInputs={(e) => {
+          tradeState.useAtrSl = e.detail;
+        }}
         on:selectSymbolSuggestion={(e) => app.selectSymbolSuggestion(e.detail)}
         on:setAtrMode={(e) => app.setAtrMode(e.detail)}
         on:setAtrTimeframe={(e) => app.setAtrTimeframe(e.detail)}
         on:fetchAtr={() => app.fetchAtr()}
-        atrFormulaDisplay={$resultsStore.atrFormulaText}
-        showAtrFormulaDisplay={$resultsStore.showAtrFormulaDisplay}
+        atrFormulaDisplay={resultsState.atrFormulaText}
+        showAtrFormulaDisplay={resultsState.showAtrFormulaDisplay}
         isPriceFetching={uiState.isPriceFetching}
         isAtrFetching={uiState.isAtrFetching}
         symbolSuggestions={uiState.symbolSuggestions}
@@ -533,10 +527,10 @@
     </div>
 
     <TakeProfitTargets
-      bind:targets={$tradeStore.targets}
+      bind:targets={tradeState.targets}
       on:change={handleTargetsChange}
       on:remove={handleTpRemove}
-      calculatedTpDetails={$resultsStore.calculatedTpDetails}
+      calculatedTpDetails={resultsState.calculatedTpDetails}
     />
 
     {#if uiState.showErrorMessage}
@@ -552,19 +546,19 @@
     <section id="results" class="mt-6 grid grid-cols-1 md:grid-cols-2 gap-x-8">
       <div>
         <SummaryResults
-          isPositionSizeLocked={$tradeStore.isPositionSizeLocked}
+          isPositionSizeLocked={tradeState.isPositionSizeLocked}
           showCopyFeedback={uiState.showCopyFeedback}
-          positionSize={$resultsStore.positionSize}
-          netLoss={$resultsStore.netLoss}
-          requiredMargin={$resultsStore.requiredMargin}
-          entryFee={$resultsStore.entryFee}
-          liquidationPrice={$resultsStore.liquidationPrice}
-          breakEvenPrice={$resultsStore.breakEvenPrice}
-          isMarginExceeded={$resultsStore.isMarginExceeded}
+          positionSize={resultsState.positionSize}
+          netLoss={resultsState.netLoss}
+          requiredMargin={resultsState.requiredMargin}
+          entryFee={resultsState.entryFee}
+          liquidationPrice={resultsState.liquidationPrice}
+          breakEvenPrice={resultsState.breakEvenPrice}
+          isMarginExceeded={resultsState.isMarginExceeded}
           on:toggleLock={() => app.togglePositionSizeLock()}
           on:copy={() => uiState.showFeedback("copy")}
         />
-        {#if $resultsStore.showTotalMetricsGroup}
+        {#if resultsState.showTotalMetricsGroup}
           <div id="total-metrics-group" class="result-group">
             <h2 class="section-header">
               {$_("dashboard.totalTradeMetrics")}<Tooltip
@@ -580,7 +574,7 @@
                 id="riskAmountCurrency"
                 class="result-value"
                 style:color="var(--danger-color)"
-                >{$resultsStore.riskAmountCurrency}</span
+                >{resultsState.riskAmountCurrency}</span
               >
             </div>
             <div class="result-item">
@@ -589,7 +583,7 @@
                   text={$_("dashboard.totalFeesTooltip")}
                 /></span
               ><span id="totalFees" class="result-value"
-                >{$resultsStore.totalFees}</span
+                >{resultsState.totalFees}</span
               >
             </div>
             <div class="result-item">
@@ -601,7 +595,7 @@
                 id="maxPotentialProfit"
                 class="result-value"
                 style:color="var(--success-color)"
-                >{$resultsStore.maxPotentialProfit}</span
+                >{resultsState.maxPotentialProfit}</span
               >
             </div>
             <div class="result-item">
@@ -610,7 +604,7 @@
                   text={$_("dashboard.weightedRRTooltip")}
                 /></span
               ><span id="totalRR" class="result-value"
-                >{$resultsStore.totalRR}</span
+                >{resultsState.totalRR}</span
               >
             </div>
             <div class="result-item">
@@ -622,7 +616,7 @@
                 id="totalNetProfit"
                 class="result-value"
                 style:color="var(--success-color)"
-                >{$resultsStore.totalNetProfit}</span
+                >{resultsState.totalNetProfit}</span
               >
             </div>
             <div class="result-item">
@@ -631,14 +625,14 @@
                   text={$_("dashboard.soldPositionTooltip")}
                 /></span
               ><span id="totalPercentSold" class="result-value"
-                >{$resultsStore.totalPercentSold}</span
+                >{resultsState.totalPercentSold}</span
               >
             </div>
           </div>
         {/if}
       </div>
       <div id="tp-results-container">
-        {#each $resultsStore.calculatedTpDetails as tpDetail}
+        {#each resultsState.calculatedTpDetails as tpDetail}
           <div class="result-group !mt-0 md:!mt-6">
             <h2 class="section-header">
               {$_("dashboard.takeProfit")}
@@ -711,10 +705,10 @@
       </div>
       <div class="md:col-span-2">
         <VisualBar
-          entryPrice={$tradeStore.entryPrice}
-          stopLossPrice={$tradeStore.stopLossPrice}
-          targets={$tradeStore.targets}
-          calculatedTpDetails={$resultsStore.calculatedTpDetails}
+          entryPrice={tradeState.entryPrice}
+          stopLossPrice={tradeState.stopLossPrice}
+          targets={tradeState.targets}
+          calculatedTpDetails={resultsState.calculatedTpDetails}
         />
       </div>
       <footer class="md:col-span-2">
@@ -723,14 +717,14 @@
           class="input-field w-full px-4 py-2 rounded-md mb-4"
           rows="2"
           placeholder={$_("dashboard.tradeNotesPlaceholder")}
-          bind:value={$tradeStore.tradeNotes}
+          bind:value={tradeState.tradeNotes}
         ></textarea>
         <div class="flex items-center gap-4">
           <button
             id="save-journal-btn"
             class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
             onclick={app.addTrade}
-            disabled={$resultsStore.positionSize === "-"}
+            disabled={resultsState.positionSize === "-"}
             use:trackClick={{
               category: "Journal",
               action: "Click",

@@ -13,7 +13,7 @@ export interface CalculatedTpDetail {
     index: number;
     price: Decimal;
     percent: Decimal;
-    percentSold: number;
+    percentSold: Decimal;
     riskRewardRatio: Decimal;
     netProfit: Decimal;
     priceChangePercent: Decimal;
