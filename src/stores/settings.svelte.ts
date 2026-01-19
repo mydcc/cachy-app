@@ -168,11 +168,10 @@ class SettingsManager {
     private _apiProvider = $state<"bitunix" | "binance">(defaultSettings.apiProvider);
     get apiProvider() { return this._apiProvider; }
     set apiProvider(v: "bitunix" | "binance") {
-        if (this.isInitializing) return;
         if (v !== this._apiProvider) {
-            console.warn(`[Settings] apiProvider changing: ${this._apiProvider} -> ${v}`, new Error().stack);
+            console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
             this._apiProvider = v;
-            this.save();
+            // Let $effect handle saving, don't call save() directly
         }
     }
     marketDataInterval = $state<number>(defaultSettings.marketDataInterval);
@@ -239,76 +238,63 @@ class SettingsManager {
     cmcApiKey = $state<string | undefined>(defaultSettings.cmcApiKey);
     enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
 
-    // Private state for initialization
-    private isInitializing = true;
+    // Private state
+    private effectActive = false; // Controls whether $effect should trigger saves
     private listeners: Set<(value: Settings) => void> = new Set();
     private notifyTimer: any = null;
     private saveTimer: any = null;
 
     constructor() {
         if (browser) {
-            this.isInitializing = true;
+            // 1. Load settings synchronously (effectActive is false, so no saves)
+            this.load();
 
-            // CRITICAL: Wrap load() in untrack() to prevent $effect from triggering during initialization
-            untrack(() => {
-                this.load();
-            });
+            // 2. Register $effect AFTER load completes (next microtask)
+            queueMicrotask(() => {
+                this.effectActive = true;
 
-            $effect.root(() => {
-                $effect(() => {
-                    if (this.isInitializing) return;
+                $effect.root(() => {
+                    $effect(() => {
+                        if (!this.effectActive) return;
 
-                    // Trigger reactivity on all settings
-                    this.apiProvider;
-                    this.apiKeys;
-                    this.isPro;
-                    this.chatStyle;
-                    this.cryptoPanicPlan;
-                    this.cryptoPanicFilter;
-                    this.enableNewsAnalysis;
-                    this.marketDataInterval;
-                    this.autoUpdatePriceInput;
-                    this.showSidebars;
-                    this.enableGlassmorphism;
-                    this.fontFamily;
+                        // Track ALL properties by calling toJSON()
+                        // This ensures any property change triggers the effect
+                        this.toJSON();
 
-                    untrack(() => {
-                        // Debounce saves to prevent excessive writes
-                        if (this.saveTimer) clearTimeout(this.saveTimer);
-                        this.saveTimer = setTimeout(() => {
-                            this.save();
-                            this.notifyListeners();
-                        }, 200);
+                        untrack(() => {
+                            // Debounce saves to prevent excessive writes
+                            if (this.saveTimer) clearTimeout(this.saveTimer);
+                            this.saveTimer = setTimeout(() => {
+                                this.save();
+                                this.notifyListeners();
+                            }, 200);
+                        });
                     });
                 });
+
+                console.warn("[Settings] Store ready. Provider:", this.apiProvider);
             });
 
-            // Listen for changes from other tabs
+            // 3. Listen for changes from other tabs
             window.addEventListener("storage", (e) => {
                 if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
                     console.warn("[Settings] Syncing from other tab...");
-                    this.isInitializing = true;
-                    untrack(() => {
-                        this.load();
-                    });
-                    setTimeout(() => {
-                        this.isInitializing = false;
-                    }, 50);
+                    this.effectActive = false; // Disable effect temporarily
+                    this.load();
+                    this.effectActive = true; // Re-enable
                 }
             });
-
-            // Set to false after a short delay to ensure load() has completed
-            setTimeout(() => {
-                this.isInitializing = false;
-                console.warn("[Settings] Store ready. Current Provider:", this.apiProvider);
-            }, 50);
         }
     }
 
     private load() {
         try {
             const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
-            if (!d) return;
+            if (!d) {
+                // No settings found, save defaults
+                this.save();
+                return;
+            }
 
             const parsed = JSON.parse(d);
 
@@ -324,110 +310,118 @@ class SettingsManager {
             const migrationKey = "cachy_v0.94_broker_migrated_v2";
             const migrationDone = localStorage.getItem(migrationKey);
 
-            untrack(() => {
-                let loadedProvider = merged.apiProvider;
+            // No untrack needed - effectActive is false during load
+            let loadedProvider = merged.apiProvider;
 
-                if (!migrationDone) {
-                    console.warn("[Settings] First load of v0.94: Forcing Bitunix as default.");
-                    loadedProvider = "bitunix";
-                    localStorage.setItem(migrationKey, "true");
-                }
+            if (!migrationDone) {
+                console.warn("[Settings] First load of v0.94: Forcing Bitunix as default.");
+                loadedProvider = "bitunix";
+                localStorage.setItem(migrationKey, "true");
+            }
 
-                // Extra safety: Only allow binance if keys are present and not default placeholders
-                const hasBinanceKeys = merged.apiKeys?.binance?.key &&
-                    merged.apiKeys.binance.key.length > 5 &&
-                    merged.apiKeys.binance.secret;
+            // Extra safety: Only allow binance if keys are present and not default placeholders
+            const hasBinanceKeys = merged.apiKeys?.binance?.key &&
+                merged.apiKeys.binance.key.length > 5 &&
+                merged.apiKeys.binance.secret;
 
-                if (loadedProvider === "binance" && !hasBinanceKeys) {
-                    console.warn("[Settings] Binance selected but no valid keys found. Falling back to Bitunix.");
-                    loadedProvider = "bitunix";
-                }
+            if (loadedProvider === "binance" && !hasBinanceKeys) {
+                console.warn("[Settings] Binance selected but no valid keys found. Falling back to Bitunix.");
+                loadedProvider = "bitunix";
+            }
 
-                const finalProvider = (loadedProvider === "binance") ? "binance" : "bitunix";
+            const finalProvider = (loadedProvider === "binance") ? "binance" : "bitunix";
 
-                // Set the private field directly during load to avoid dual logging
-                this._apiProvider = finalProvider;
+            // Set the private field directly during load to avoid dual logging
+            this._apiProvider = finalProvider;
 
-                if (loadedProvider && loadedProvider !== finalProvider) {
-                    console.warn(`[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`);
-                }
-                this.marketDataInterval = merged.marketDataInterval;
-                this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
-                this.autoFetchBalance = merged.autoFetchBalance;
-                this.showSidebars = merged.showSidebars;
-                this.showTechnicals = merged.showTechnicals;
-                this.showIndicatorParams = merged.showIndicatorParams;
-                this.hideUnfilledOrders = merged.hideUnfilledOrders;
-                this.positionViewMode = merged.positionViewMode;
-                this.pnlViewMode = merged.pnlViewMode;
-                this.isPro = merged.isPro;
-                this.feePreference = merged.feePreference;
-                this.hotkeyMode = merged.hotkeyMode;
-                this.apiKeys = merged.apiKeys;
-                this.customHotkeys = merged.customHotkeys || {};
-                this.favoriteTimeframes = merged.favoriteTimeframes;
-                this.favoriteSymbols = merged.favoriteSymbols;
-                this.syncRsiTimeframe = merged.syncRsiTimeframe;
-                this.imgbbApiKey = merged.imgbbApiKey;
-                this.imgbbExpiration = merged.imgbbExpiration;
-                this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
-                this.imgurClientId = merged.imgurClientId;
-                this.enableSidePanel = merged.enableSidePanel;
-                this.sidePanelMode = merged.sidePanelMode;
-                this.sidePanelLayout = merged.sidePanelLayout;
-                this.chatStyle = merged.chatStyle;
-                this.panelState = merged.panelState;
-                this.maxPrivateNotes = merged.maxPrivateNotes;
-                this.customSystemPrompt = merged.customSystemPrompt;
-                this.aiProvider = merged.aiProvider;
-                this.openaiApiKey = merged.openaiApiKey;
-                this.openaiModel = merged.openaiModel;
-                this.geminiApiKey = merged.geminiApiKey;
-                this.geminiModel = merged.geminiModel;
-                this.anthropicApiKey = merged.anthropicApiKey;
-                this.anthropicModel = merged.anthropicModel;
-                this.aiConfirmActions = merged.aiConfirmActions;
-                this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
-                this.aiConfirmClear = merged.aiConfirmClear;
-                this.showSpinButtons = merged.showSpinButtons;
-                this.disclaimerAccepted = merged.disclaimerAccepted;
-                this.useUtcDateParsing = merged.useUtcDateParsing;
-                this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
-                this.debugMode = merged.debugMode;
-                this.syncFavorites = merged.syncFavorites;
-                this.confirmTradeDeletion = merged.confirmTradeDeletion;
-                this.confirmBulkDeletion = merged.confirmBulkDeletion;
-                this.enableGlassmorphism = merged.enableGlassmorphism;
-                this.chatFontSize = merged.chatFontSize;
-                this.panelIsExpanded = merged.panelIsExpanded;
-                this.minChatProfitFactor = merged.minChatProfitFactor;
-                this.fontFamily = merged.fontFamily;
-                this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
-                this.newsApiKey = merged.newsApiKey;
-                this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
-                this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
-                this.enableNewsAnalysis = merged.enableNewsAnalysis;
-                this.cmcApiKey = merged.cmcApiKey;
-                this.enableCmcContext = merged.enableCmcContext;
+            if (loadedProvider && loadedProvider !== finalProvider) {
+                console.warn(`[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`);
+            }
+            this.marketDataInterval = merged.marketDataInterval;
+            this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
+            this.autoFetchBalance = merged.autoFetchBalance;
+            this.showSidebars = merged.showSidebars;
+            this.showTechnicals = merged.showTechnicals;
+            this.showIndicatorParams = merged.showIndicatorParams;
+            this.hideUnfilledOrders = merged.hideUnfilledOrders;
+            this.positionViewMode = merged.positionViewMode;
+            this.pnlViewMode = merged.pnlViewMode;
+            this.isPro = merged.isPro;
+            this.feePreference = merged.feePreference;
+            this.hotkeyMode = merged.hotkeyMode;
+            this.apiKeys = merged.apiKeys;
+            this.customHotkeys = merged.customHotkeys || {};
+            this.favoriteTimeframes = merged.favoriteTimeframes;
+            this.favoriteSymbols = merged.favoriteSymbols;
+            this.syncRsiTimeframe = merged.syncRsiTimeframe;
+            this.imgbbApiKey = merged.imgbbApiKey;
+            this.imgbbExpiration = merged.imgbbExpiration;
+            this.isDeepDiveUnlocked = merged.isDeepDiveUnlocked;
+            this.imgurClientId = merged.imgurClientId;
+            this.enableSidePanel = merged.enableSidePanel;
+            this.sidePanelMode = merged.sidePanelMode;
+            this.sidePanelLayout = merged.sidePanelLayout;
+            this.chatStyle = merged.chatStyle;
+            this.panelState = merged.panelState;
+            this.maxPrivateNotes = merged.maxPrivateNotes;
+            this.customSystemPrompt = merged.customSystemPrompt;
+            this.aiProvider = merged.aiProvider;
+            this.openaiApiKey = merged.openaiApiKey;
+            this.openaiModel = merged.openaiModel;
+            this.geminiApiKey = merged.geminiApiKey;
+            this.geminiModel = merged.geminiModel;
+            this.anthropicApiKey = merged.anthropicApiKey;
+            this.anthropicModel = merged.anthropicModel;
+            this.aiConfirmActions = merged.aiConfirmActions;
+            this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
+            this.aiConfirmClear = merged.aiConfirmClear;
+            this.showSpinButtons = merged.showSpinButtons;
+            this.disclaimerAccepted = merged.disclaimerAccepted;
+            this.useUtcDateParsing = merged.useUtcDateParsing;
+            this.forceEnglishTechnicalTerms = merged.forceEnglishTechnicalTerms;
+            this.debugMode = merged.debugMode;
+            this.syncFavorites = merged.syncFavorites;
+            this.confirmTradeDeletion = merged.confirmTradeDeletion;
+            this.confirmBulkDeletion = merged.confirmBulkDeletion;
+            this.enableGlassmorphism = merged.enableGlassmorphism;
+            this.chatFontSize = merged.chatFontSize;
+            this.panelIsExpanded = merged.panelIsExpanded;
+            this.minChatProfitFactor = merged.minChatProfitFactor;
+            this.fontFamily = merged.fontFamily;
+            this.cryptoPanicApiKey = merged.cryptoPanicApiKey;
+            this.newsApiKey = merged.newsApiKey;
+            this.cryptoPanicPlan = merged.cryptoPanicPlan || defaultSettings.cryptoPanicPlan;
+            this.cryptoPanicFilter = merged.cryptoPanicFilter || defaultSettings.cryptoPanicFilter;
+            this.enableNewsAnalysis = merged.enableNewsAnalysis;
+            this.cmcApiKey = merged.cmcApiKey;
+            this.enableCmcContext = merged.enableCmcContext;
 
-                // Migration
-                if (parsed.marketDataInterval === "manual") {
-                    this.autoUpdatePriceInput = false;
-                    this.marketDataInterval = 60;
-                }
-            });
+            // Migration
+            if (parsed.marketDataInterval === "manual") {
+                this.autoUpdatePriceInput = false;
+                this.marketDataInterval = 60;
+            }
         } catch (e) {
-            console.warn("SettingsManager: Load error", e);
+            console.error("[Settings] Load failed, using defaults:", e);
+            // Save defaults to fix corrupted localStorage
+            this.save();
         }
     }
 
     private save() {
-        if (!browser) return;
+        if (!browser || !this.effectActive) return; // Don't save during load
         try {
             const data = this.toJSON();
-            localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, JSON.stringify(data));
+            const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
+            const newData = JSON.stringify(data);
+
+            // Only save if actually different (prevent unnecessary writes)
+            if (current !== newData) {
+                localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, newData);
+                console.log("[Settings] Saved");
+            }
         } catch (e) {
-            console.warn("SettingsManager: Save error", e);
+            console.error("[Settings] Save failed:", e);
         }
     }
 
