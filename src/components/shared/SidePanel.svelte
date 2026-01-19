@@ -783,74 +783,66 @@
                     >
                       {@html renderMarkdown(msg.content)}
                     </div>
-                  {:else}
-                    {msg.content}
-                  {/if}
-
-                  <!-- Action Confirmation UI -->
-                  {#if msg.role === "system"}
+                  {:else if msg.role === "system"}
                     {@const pendingMatch =
                       msg.content.match(/\[PENDING:([^\]]+)\]/)}
                     {#if pendingMatch}
                       {@const pendingId = pendingMatch[1]}
                       {@const pending = aiState.pendingActions.get(pendingId)}
                       {#if pending}
-                        <div class="action-confirmation-block mt-2">
-                            <div class="action-table-container">
-                              <table class="action-mini-table">
-                                <thead>
+                        <div class="action-confirmation-block">
+                          <div class="action-table-container">
+                            <table class="action-mini-table">
+                              <thead>
+                                <tr>
+                                  <th colspan="2">Vorgeschlagene Änderungen</th>
+                                </tr>
+                              </thead>
+                              <tbody>
+                                {#each pending.actions as action}
                                   <tr>
-                                    <th colspan="2"
-                                      >Vorgeschlagene Änderungen</th
+                                    <td class="action-label"
+                                      >{aiState
+                                        .describeAction(action)
+                                        .split(": ")[0]}</td
+                                    >
+                                    <td class="action-value"
+                                      >{aiState
+                                        .describeAction(action)
+                                        .split(": ")[1] || ""}</td
                                     >
                                   </tr>
-                                </thead>
-                                <tbody>
-                                  {#each pending.actions as action}
-                                    <tr>
-                                      <td class="action-label"
-                                        >{aiState
-                                          .describeAction(action)
-                                          .split(": ")[0]}</td
-                                      >
-                                      <td class="action-value"
-                                        >{aiState
-                                          .describeAction(action)
-                                          .split(": ")[1] || ""}</td
-                                      >
-                                    </tr>
-                                  {/each}
-                                </tbody>
-                              </table>
-                            </div>
-                            <div class="flex gap-2 mt-2">
-                              <button
-                                class="confirm-btn"
-                                onclick={() => aiState.confirmAction(pendingId)}
-                              >
-                                Anwenden
-                              </button>
-                              <button
-                                class="reject-btn"
-                                onclick={() => aiState.rejectAction(pendingId)}
-                              >
-                                Ignorieren
-                              </button>
-                            </div>
+                                {/each}
+                              </tbody>
+                            </table>
                           </div>
-                      {:else}
-                        <div class="text-[0.7rem] opacity-50 italic mt-1">
-                          {msg.content.replace(
-                            "[PENDING:" + pendingId + "]",
-                            "",
-                          )}
+                          <div class="flex gap-2 mt-2">
+                            <button
+                              class="confirm-btn"
+                              onclick={() => aiState.confirmAction(pendingId)}
+                            >
+                              Anwenden
+                            </button>
+                            <button
+                              class="reject-btn"
+                              onclick={() => aiState.rejectAction(pendingId)}
+                            >
+                              Ignorieren
+                            </button>
+                          </div>
                         </div>
                       {/if}
+                    {:else if msg.content.includes("[✅") || msg.content.includes("[❌")}
+                      <div class="text-[0.7rem] opacity-50 italic">
+                        {msg.content.replace(/\[|\]/g, "")}
+                      </div>
                     {:else}
                       <div class="text-[0.75rem] opacity-60">
                         {msg.content}
                       </div>
                     {/if}
+                  {:else}
+                    {msg.content}
                   {/if}
                 </div>
 
