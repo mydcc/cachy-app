@@ -15,6 +15,7 @@ import { marketState } from "./market.svelte";
 import { accountState } from "./account.svelte";
 import { journalState } from "./journal.svelte";
 import { cmcService } from "../services/cmcService";
+import { newsService } from "../services/newsService";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -386,7 +387,7 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                 // Use imported newsService
 
                 // Fetch recent news for active symbol or general crypto if none
-                const newsItems = await import("../services/newsService").then(m => m.newsService.fetchNews(trade.symbol || "crypto"));
+                const newsItems = await newsService.fetchNews(trade.symbol || "crypto");
 
                 if (newsItems && newsItems.length > 0) {
                     // Limit to top 5 headlines to save tokens

@@ -248,7 +248,11 @@ class SettingsManager {
     constructor() {
         if (browser) {
             this.isInitializing = true;
-            this.load();
+
+            // CRITICAL: Wrap load() in untrack() to prevent $effect from triggering during initialization
+            untrack(() => {
+                this.load();
+            });
 
             $effect.root(() => {
                 $effect(() => {
@@ -284,16 +288,20 @@ class SettingsManager {
                 if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
                     console.warn("[Settings] Syncing from other tab...");
                     this.isInitializing = true;
-                    this.load();
-                    setTimeout(() => this.isInitializing = false, 100);
+                    untrack(() => {
+                        this.load();
+                    });
+                    setTimeout(() => {
+                        this.isInitializing = false;
+                    }, 50);
                 }
             });
 
-            // Longer timeout to ensure DOM and all reactive dependencies are settled
+            // Set to false after a short delay to ensure load() has completed
             setTimeout(() => {
                 this.isInitializing = false;
                 console.warn("[Settings] Store ready. Current Provider:", this.apiProvider);
-            }, 500);
+            }, 50);
         }
     }
 

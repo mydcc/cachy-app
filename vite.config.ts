@@ -22,6 +22,7 @@ export default defineConfig({
   },
   build: {
     rollupOptions: {
+      external: ["openai"],
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
