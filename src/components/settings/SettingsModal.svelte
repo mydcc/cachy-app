@@ -43,6 +43,7 @@
   import HotkeysTab from "./tabs/HotkeysTab.svelte";
   import SidebarTab from "./tabs/SidebarTab.svelte";
   import IndicatorsTab from "./tabs/IndicatorsTab.svelte";
+  import DataMaintenance from "./DataMaintenance.svelte";
 
   // Tab State
   type TabType =
@@ -53,7 +54,9 @@
     | "system"
     | "sidebar"
     | "indicators"
-    | "hotkeys";
+    | "indicators"
+    | "hotkeys"
+    | "data";
 
   // Use the store as the unique source of truth for the active tab
   // This prevents unintended resets when the store updates for other reasons
@@ -324,6 +327,17 @@
       >
         {$_("settings.tabs.system")}
       </button>
+      <button
+        class="px-4 py-3 text-sm font-medium transition-colors text-left focus:outline-none focus:ring-2 focus:ring-[var(--accent-color)] focus:ring-offset-2 focus:ring-offset-[var(--bg-secondary)] whitespace-nowrap {activeTab ===
+        'data'
+          ? 'bg-[var(--bg-tertiary)] text-[var(--accent-color)] border-b-2 md:border-b-0 md:border-l-2 border-[var(--accent-color)]'
+          : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-tertiary)] border-b-2 md:border-b-0 md:border-l-2 border-transparent'}"
+        onclick={() => selectTab("data")}
+        role="tab"
+        aria-selected={activeTab === "data"}
+      >
+        Daten-Wartung
+      </button>
     </div>
 
     <!-- Tab Content Area -->
@@ -350,6 +364,8 @@
           onRestore={handleRestore}
           onReset={handleReset}
         />
+      {:else if activeTab === "data"}
+        <DataMaintenance />
       {/if}
     </div>
   </div>
