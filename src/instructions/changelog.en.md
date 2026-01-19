@@ -8,8 +8,9 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ### Table of Contents
 
-1. [Version 0.94.2](#v0.94.2)
-2. [Version 0.94.1](#v0.94.1)
+1. [Version 0.96](#v0.96)
+2. [Version 0.94.2](#v0.94.2)
+3. [Version 0.94.1](#v0.94.1)
 3. [Version 0.94.0](#v0.94.0)
 4. [Version 0.93.0](#v0.93.0)
 5. [Version 0.92.2](#v0.92.2)
@@ -17,6 +18,15 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 7. [Version 0.92.0](#v0.92.0)
 
 ---
+
+## <a name="v0.96"></a>Version 0.96 (February 2026)
+
+- **AI:** **Gemini 2.5 Flash**: Upgraded default AI model to Gemini 2.5 Flash for faster and more accurate diagnostics and analysis.
+- **Localization:** **Hybrid Locale (de-tech)**: Introduced a specialized "German (Tech)" locale that keeps technical trading terms (Buy, Sell, Long, Short) in English while translating the UI to German.
+- **Performance:** **JSIndicators Engine**: Replaced WASM-based `talib-web` with optimized pure TypeScript `JSIndicators` to eliminate startup latency and reduce bundle size without sacrificing accuracy.
+- **Security:** **CSV Injection Protection**: Enhanced CSV export with sanitization against formula injection attacks.
+- **System:** **Snowflake ID Precision**: Improved CSV handling to losslessly process 64-bit Snowflake IDs (Bitunix Order IDs) by preventing floating-point truncation.
+- **API:** **Strict Validation**: Enforced strict typing and validation for Bitunix API payloads to prevent runtime errors.
 
 ## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
 

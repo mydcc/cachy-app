@@ -1,8 +1,8 @@
 # Cachy Technisches Whitepaper
 
-**Version:** 0.94.2
-**Datum:** Januar 2026
-**Letzte Aktualisierung:** 14. Januar 2026
+**Version:** 0.96
+**Datum:** Februar 2026
+**Letzte Aktualisierung:** 14. Februar 2026
 
 ---
 
@@ -40,6 +40,7 @@ Trading-Entscheidungen fallen in Millisekunden. Die Benutzeroberfläche von Cach
 - **Zero-Latency-Interaktion**: Durch die Nutzung der Compile-Time-Reaktivität von Svelte geschehen UI-Updates (z. B. Umschalten eines Charts, Filtern einer Tabelle) sofort ohne Virtual-DOM-Overhead.
 - **Kontextsensitive Eingaben**: Das "Trade Setup"-Modul lauscht automatisch über WebSocket auf den Preis des aktiven Symbols und füllt Einstiegspreise vor und berechnet Stop-Losses basierend auf der Echtzeit-Volatilität (ATR).
 - **Progressive Web App (PWA)**: Die Anwendung lässt sich nativ auf Desktop und Mobilgeräten installieren und bietet ein "App-ähnliches" Gefühl mit Offline-Funktionen und ohne Browser-Rahmen.
+- **Hybride Lokalisierung (de-tech)**: Eine einzigartige Spracheinstellung für deutsche Nutzer, die kritische Trading-Begriffe (Buy, Sell, Long, Short) auf Englisch belässt, während die Oberfläche übersetzt wird, um Verwirrung durch umständliche Übersetzungen zu vermeiden.
 
 ### Money First: Risikomanagement als Bürger erster Klasse
 
@@ -79,7 +80,7 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Mathe**     | **Decimal.js**          | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts**    | **Chart.js**            | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können.           |
 | **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates. |
-| **Analyse**   | **TechnicalIndicators** | Modulare Bibliothek zur clientseitigen Berechnung komplexer Indikatoren (RSI, MACD, ADX).                                                                    |
+| **Analyse**   | **JSIndicators**        | Optimierte reine TypeScript-Engine zur Berechnung komplexer Indikatoren (RSI, MACD, ADX) mit Null-Latenz und ohne WASM-Overhead.                             |
 | **Testing**   | **Vitest**              | Blitzschnelles Unit-Testing-Framework, das die Konfiguration mit Vite teilt.                                                                                 |
 
 ### Client-seitiges Zustandsmanagement (Das Store-Muster)
@@ -107,7 +108,7 @@ Cachy implementiert eine intelligente Diagnoseschicht, bekannt als **Jules API**
 - **Ablauf**:
   1. Wenn ein kritischer Fehler auftritt (oder bei manueller Meldung), erfasst \`julesService.ts\` einen **System-Snapshot**.
   2. **Bereinigung**: Alle API-Geheimnisse und sensiblen Schlüssel werden auf der Client-Seite vor der Übertragung geschwärzt.
-  3. **Analyse**: Der Snapshot wird an das Backend (\`/api/jules\`) gesendet, das den Kontext an ein Large Language Model (Gemini) weiterleitet.
+  3. **Analyse**: Der Snapshot wird an das Backend (\`/api/jules\`) gesendet, das den Kontext an ein Large Language Model (Gemini 2.5 Flash) weiterleitet.
   4. **Ergebnis**: Die KI analysiert den Zustand (z. B. "WebSocket getrennt, während Order ausstehend war") und gibt eine natürlichsprachliche Diagnose an den Benutzer zurück.
 
 ### Backend-for-Frontend (BFF) & Proxy-Schicht
@@ -185,13 +186,13 @@ Cachy berechnet nicht nur einen ATR. Es führt einen **Parallelen Scan** der fav
 #### 2. Technische Analyse-Engine
 
 _Ziel: Bereitstellung von Standardindikatoren ohne externe Charting-Bibliotheken._
-Der `technicalsService.ts` nutzt die **`talib-web`-Bibliothek** (WebAssembly-Port von TA-Lib) zur Berechnung von:
+Der `technicalsService.ts` nutzt die **`JSIndicators`-Engine**, eine hochoptimierte reine TypeScript-Bibliothek, die entwickelt wurde, um schwere WASM-Abhängigkeiten zu ersetzen. Sie berechnet:
 
 - **Oszillatoren**: RSI, Stochastic, CCI, Awesome Oscillator, ADX, Momentum.
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Manuell berechnet aus den High/Low/Close-Werten des Vortages.
 
-**Upgrade (Januar 2026)**: Migration von `technicalindicators` zu `talib-web` für exakte Übereinstimmung mit TradingView. Die WebAssembly-basierte Implementierung bietet maximale Genauigkeit und verwendet die gleichen Algorithmen wie professionelle Trading-Plattformen.
+**Upgrade (Februar 2026)**: Ersatz von `talib-web` durch `JSIndicators`. Während `talib-web` Standardalgorithmen bot, verursachte der WebAssembly-Overhead Startlatenzen. Die neue Engine bietet dieselbe mathematische Genauigkeit ohne Initialisierungszeit und mit deutlich reduzierter Bundle-Größe, was perfekt zur "Gedankengeschwindigkeit"-Philosophie passt.
 
 Diese Daten werden im **Technicals Panel** visualisiert, einem dedizierten Overlay für schnelle Marktbewertungen.
 
@@ -475,6 +476,9 @@ Um das "Community First"-Prinzip zu unterstützen, stellt Cachy sicher, dass Ben
 
 - **Universeller Export**: Benutzer können ihr Journal jederzeit als CSV exportieren.
 - **Intelligenter Import**: Der \`importFromCSV\`-Service enthält eine zweisprachige Übersetzungsschicht. Er erkennt deutsche Header (z. B. \`Gewinn\`, \`Datum\`) oder englische Header (z. B. \`Profit\`, \`Date\`) und normalisiert sie in die interne Datenstruktur.
+- **Sicherheit & Präzision**:
+  - **Injection Protection**: Exporte werden bereinigt (Escaping von Sonderzeichen), um CSV-Formel-Injection-Angriffe in Tabellenkalkulationssoftware zu verhindern.
+  - **Snowflake ID Präzision**: Große IDs (wie Bitunix Order-IDs) werden als Strings bewahrt, um Gleitkomma-Rundungsfehler zu verhindern, die in Excel/Numbers üblich sind.
 - **Medienunterstützung**: Screenshot-URLs und Tags bleiben während des Import/Export-Zyklus erhalten, was sicherstellt, dass keine "weichen Daten" verloren gehen.
 
 ### API-Schlüssel-Handhabung & Proxy-Sicherheit

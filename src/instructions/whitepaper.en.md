@@ -1,8 +1,8 @@
 # Cachy Technical Whitepaper
 
-**Version:** 0.94.2
-**Date:** January 2026
-**Last Updated:** January 14, 2026
+**Version:** 0.96
+**Date:** February 2026
+**Last Updated:** February 14, 2026
 
 ---
 
@@ -40,6 +40,7 @@ Trading decisions happen in milliseconds. Cachy's UI is designed to reduce "Time
 - **Zero-Latency Interaction**: By utilizing Svelte's compile-time reactivity, UI updates (e.g., toggling a chart, filtering a table) happen instantly without Virtual DOM overhead.
 - **Context-Aware Inputs**: The "Trade Setup" module automatically listens to the active symbol's price via WebSocket, pre-filling entry prices and calculating Stop Losses based on real-time volatility (ATR).
 - **Progressive Web App (PWA)**: The application installs natively on desktop and mobile, offering an "App-like" feel with offline capabilities and removed browser chrome.
+- **Hybrid Localization (de-tech)**: A unique "Tech-Locale" for German users that keeps critical trading terminology (Buy, Sell, Long, Short) in English while translating the interface, preventing confusion caused by awkward translations.
 
 ### Money First: Risk Management as a First-Class Citizen
 
@@ -78,7 +79,7 @@ Cachy operates as a **Monolithic Frontend with a Thin Proxy Backend**.
 | **State**     | **Svelte Stores**       | Native, lightweight state management that scales well for real-time frequency data.                                                                 |
 | **Math**      | **Decimal.js**          | IEEE 754 floating-point arithmetic (standard JS numbers) is unsafe for finance (e.g., `0.1 + 0.2 !== 0.3`). Decimal.js ensures arbitrary precision. |
 | **Charts**    | **Chart.js**            | Canvas-based rendering for high-performance visualizations (Equity Curves, Scatter Plots) capable of handling thousands of data points.             |
-| **Analysis**  | **TechnicalIndicators** | Modular library for calculating complex indicators (RSI, MACD, ADX) on the client side.                                                             |
+| **Analysis**  | **JSIndicators**        | Optimized pure TypeScript engine for calculating complex indicators (RSI, MACD, ADX) with zero latency and no WASM overhead.                        |
 | **Testing**   | **Vitest**              | Blazing fast unit testing framework that shares configuration with Vite.                                                                            |
 
 ### Client-Side State Management (The Store Pattern)
@@ -106,7 +107,7 @@ Cachy implements an intelligent diagnostic layer known as **Jules API**.
 - **Workflow**:
   1. When a critical error occurs (or upon manual report), `julesService.ts` captures a **System Snapshot**.
   2. **Sanitization**: All API Secrets and sensitive keys are redacted on the client side before transmission.
-  3. **Analysis**: The snapshot is sent to the backend (`/api/jules`), which forwards the context to a Large Language Model (Gemini).
+  3. **Analysis**: The snapshot is sent to the backend (`/api/jules`), which forwards the context to a Large Language Model (Gemini 2.5 Flash).
   4. **Result**: The AI analyzes the state (e.g., "WebSocket disconnected while Order was Pending") and returns a natural-language diagnosis to the user.
 
 ### Backend-for-Frontend (BFF) & Proxy Layer
@@ -187,13 +188,13 @@ Cachy doesn't just calculate one ATR. It executes a **Parallel Scan** of the use
 #### 2. Technical Analysis Engine
 
 _Goal: Provide standard indicators without external charting libraries._
-The `technicalsService.ts` leverages the **`talib-web` library** (WebAssembly port of TA-Lib) to compute:
+The `technicalsService.ts` leverages the **`JSIndicators` engine**, a highly optimized pure TypeScript library developed to replace heavy WASM dependencies. It computes:
 
 - **Oscillators**: RSI, Stochastic, CCI, Awesome Oscillator, ADX, Momentum.
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Calculated manually from the previous day's High/Low/Close.
 
-**Upgrade (January 2026)**: Migrated from `technicalindicators` to `talib-web` for exact alignment with TradingView. The WebAssembly-based implementation offers maximum accuracy and uses the same algorithms as professional trading platforms.
+**Upgrade (February 2026)**: Replaced `talib-web` with `JSIndicators`. While `talib-web` offered standard algorithms, the WebAssembly overhead caused startup latency. The new engine provides the same mathematical accuracy with zero initialization time and significantly reduced bundle size, aligning perfectly with the "Speed of Thought" philosophy.
 
 This data is visualized in the **Technicals Panel**, a dedicated overlay for rapid market assessment.
 
@@ -479,6 +480,9 @@ To support the "Community First" principle, Cachy ensures user data is never loc
 
 - **Universal Export**: Users can export their Journal to CSV at any time.
 - **Intelligent Import**: The `importFromCSV` service includes a bilingual translation layer. It detects German headers (e.g., `Gewinn`, `Datum`) or English headers (e.g., `Profit`, `Date`) and normalizes them into the internal data structure.
+- **Security & Precision**:
+  - **Injection Protection**: Exports are sanitized (escaping special characters) to prevent CSV formula injection attacks in spreadsheet software.
+  - **Snowflake ID Precision**: Large IDs (like Bitunix Order IDs) are preserved as strings to prevent floating-point truncation errors common in Excel/Numbers.
 - **Media Support**: Screenshot URLs and Tags are preserved during the import/export cycle, ensuring no "soft data" is lost.
 
 ### API Key Handling & Proxy Security
