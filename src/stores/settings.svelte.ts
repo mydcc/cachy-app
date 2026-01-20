@@ -110,6 +110,7 @@ export interface Settings {
     rssPresets?: string[];
     customRssFeeds?: string[];
     rssFilterBySymbol?: boolean;
+    isProLicenseActive: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -194,6 +195,7 @@ const defaultSettings: Settings = {
     rssPresets: ["coindesk", "cointelegraph"],
     customRssFeeds: [],
     rssFilterBySymbol: false,
+    isProLicenseActive: false,
 };
 
 class SettingsManager {
@@ -219,6 +221,8 @@ class SettingsManager {
     isPro = $state<boolean>(defaultSettings.isPro);
     feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
     hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
+    isProLicenseActive = $state<boolean>(defaultSettings.isProLicenseActive);
+
 
     apiKeys = $state(defaultSettings.apiKeys);
     customHotkeys = $state(defaultSettings.customHotkeys);
@@ -466,6 +470,7 @@ class SettingsManager {
             this.showBrokerLink = merged.showBrokerLink ?? defaultSettings.showBrokerLink;
             this.rssPresets = merged.rssPresets || defaultSettings.rssPresets;
             this.customRssFeeds = merged.customRssFeeds || defaultSettings.customRssFeeds;
+            this.isProLicenseActive = merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
 
             // Migration
             if (parsed.marketDataInterval === "manual") {
@@ -583,6 +588,7 @@ class SettingsManager {
             showBrokerLink: this.showBrokerLink,
             rssPresets: $state.snapshot(this.rssPresets),
             customRssFeeds: $state.snapshot(this.customRssFeeds),
+            isProLicenseActive: this.isProLicenseActive,
         };
     }
 
