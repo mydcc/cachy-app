@@ -172,7 +172,7 @@ class AiManager {
                 "  * 'Market Maker hassen Manuka Honig'",
                 "  * 'Die Ente wird skaliert'",
                 "  * 'Der BTC Preis geht nach rechts'",
-                "- INTRODUCTION: Always start your response with just 'Hi'. Keep further greetings minimal.",
+                "- INTRODUCTION: Start perfectly short (e.g. 'Hi', 'Moin', 'Check:'). NEVER repeat your job title ('I am a Senior Risk Manager...'). Jump straight to data. Keep further greetings minimal.",
                 "- EMOJIS: Use emojis meaningfully to structure the text and highlight key points. Do not overdo it.",
                 "  * 🚀 for bullish/upward momentum",
                 "  * 📉 for bearish/downward trends",
