@@ -769,14 +769,6 @@
 >
   <div class="flex items-center justify-between w-full md:w-auto gap-4">
     <span>{$_("app.version")} {import.meta.env.VITE_APP_VERSION}</span>
-    <button
-      class="text-link md:hidden {settingsState.isPro
-        ? 'text-green-500 font-bold'
-        : ''}"
-      onclick={() => (settingsState.isPro = !settingsState.isPro)}
-    >
-      {settingsState.isPro ? $_("app.proActive") : $_("app.pro")}
-    </button>
   </div>
 
   <div
@@ -833,15 +825,6 @@
       }}>{$_("app.whitepaper")}</button
     >
   </div>
-
-  <button
-    class="text-link hidden md:inline-block {settingsState.isPro
-      ? 'text-green-500 font-bold'
-      : ''}"
-    onclick={() => (settingsState.isPro = !settingsState.isPro)}
-  >
-    {settingsState.isPro ? $_("app.proActive") : $_("app.pro")}
-  </button>
 </footer>
 
 <ModalFrame
