@@ -22,6 +22,7 @@
   import { notesState } from "../../stores/notes.svelte";
   import { aiState } from "../../stores/ai.svelte";
   import { settingsState } from "../../stores/settings.svelte";
+  import { tradeState } from "../../stores/trade.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
@@ -1062,7 +1063,7 @@
                     messageText =
                       "Analysiere den Markt für " +
                       (tradeState.symbol || "BTC");
-                    if (inputEl) inputEl.focus();
+                    handleSend();
                   }}
                 >
                   📊 Market Check
@@ -1071,16 +1072,16 @@
                   class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
                   onclick={() => {
                     messageText = "Prüfe mein Setup auf Fehler und Risiken.";
-                    if (inputEl) inputEl.focus();
+                    handleSend();
                   }}
                 >
-                  ⚠️ Risk Audit
+                  ⚠️ Risk
                 </button>
                 <button
                   class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
                   onclick={() => {
                     messageText = "Gibt es wichtige News?";
-                    if (inputEl) inputEl.focus();
+                    handleSend();
                   }}
                 >
                   📰 News check
@@ -1089,16 +1090,6 @@
             {/if}
           {/if}
 
-          <div class="flex justify-between items-center mb-1.5 px-1">
-            <span
-              class="text-[9px] font-bold opacity-30 uppercase tracking-tight"
-              >Verified Session</span
-            >
-            <span
-              class="text-[9px] font-bold text-[var(--accent-color)] bg-[var(--accent-color)]/10 px-1.5 py-0.5 rounded shadow-sm border border-[var(--accent-color)]/20"
-              >Reputation: PF 0.30</span
-            >
-          </div>
           {#if errorMessage}
             {@const isRateLimit =
               errorMessage.toLowerCase().includes("quota") ||
