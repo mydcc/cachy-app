@@ -189,7 +189,7 @@ class SettingsManager {
     get apiProvider() { return this._apiProvider; }
     set apiProvider(v: "bitunix" | "binance") {
         if (v !== this._apiProvider) {
-            console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
+            // console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
             this._apiProvider = v;
             // Let $effect handle saving, don't call save() directly
         }
@@ -302,13 +302,13 @@ class SettingsManager {
                     });
                 });
 
-                console.warn("[Settings] Store ready. Provider:", this.apiProvider);
+                // console.warn("[Settings] Store ready. Provider:", this.apiProvider);
             });
 
             // 3. Listen for changes from other tabs
             window.addEventListener("storage", (e) => {
                 if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
-                    console.warn("[Settings] Syncing from other tab...");
+                    // console.warn("[Settings] Syncing from other tab...");
                     this.effectActive = false; // Disable effect temporarily
                     this.load();
                     this.effectActive = true; // Re-enable
@@ -344,7 +344,7 @@ class SettingsManager {
             let loadedProvider = merged.apiProvider;
 
             if (!migrationDone) {
-                console.warn("[Settings] First load of v0.94: Forcing Bitunix as default.");
+                // console.warn("[Settings] First load of v0.94: Forcing Bitunix as default.");
                 loadedProvider = "bitunix";
                 localStorage.setItem(migrationKey, "true");
             }
@@ -355,7 +355,7 @@ class SettingsManager {
                 merged.apiKeys.binance.secret;
 
             if (loadedProvider === "binance" && !hasBinanceKeys) {
-                console.warn("[Settings] Binance selected but no valid keys found. Falling back to Bitunix.");
+                // console.warn("[Settings] Binance selected but no valid keys found. Falling back to Bitunix.");
                 loadedProvider = "bitunix";
             }
 
@@ -365,7 +365,7 @@ class SettingsManager {
             this._apiProvider = finalProvider;
 
             if (loadedProvider && loadedProvider !== finalProvider) {
-                console.warn(`[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`);
+                // console.warn(`[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`);
             }
             this.marketDataInterval = merged.marketDataInterval;
             this.autoUpdatePriceInput = merged.autoUpdatePriceInput;
@@ -442,7 +442,7 @@ class SettingsManager {
                 this.marketDataInterval = 60;
             }
         } catch (e) {
-            console.error("[Settings] Load failed, using defaults:", e);
+            // console.error("[Settings] Load failed, using defaults:", e);
             // Save defaults to fix corrupted localStorage
             this.save();
         }
@@ -458,10 +458,10 @@ class SettingsManager {
             // Only save if actually different (prevent unnecessary writes)
             if (current !== newData) {
                 localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, newData);
-                console.log("[Settings] Saved");
+                // console.log("[Settings] Saved");
             }
         } catch (e) {
-            console.error("[Settings] Save failed:", e);
+            // console.error("[Settings] Save failed:", e);
         }
     }
 

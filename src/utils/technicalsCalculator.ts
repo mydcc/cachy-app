@@ -226,7 +226,7 @@ export function calculateAllIndicators(
         });
 
     } catch (error) {
-        console.error("Error calculating oscillators:", error);
+        // console.error("Error calculating oscillators:", error);
     }
 
     // --- Divergences Scan ---
@@ -257,7 +257,7 @@ export function calculateAllIndicators(
             });
         });
     } catch (e) {
-        console.error("Divergence Scan Error:", e);
+        // console.error("Divergence Scan Error:", e);
     }
 
 
@@ -368,7 +368,7 @@ export function calculateAllIndicators(
         }
 
     } catch (e) {
-        console.error("Advanced Indicators Error:", e);
+        // console.error("Advanced Indicators Error:", e);
     }
 
     // --- Moving Averages ---
@@ -391,7 +391,7 @@ export function calculateAllIndicators(
             });
         }
     } catch (error) {
-        console.error("Error calculating moving averages:", error);
+        // console.error("Error calculating moving averages:", error);
     }
 
     // --- Pivots ---
@@ -428,7 +428,7 @@ export function calculateAllIndicators(
             }
         };
     } catch (e) {
-        console.error("Volatility calculation error:", e);
+        // console.error("Volatility calculation error:", e);
     }
 
     // --- Summary & Confluence ---

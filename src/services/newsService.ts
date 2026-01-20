@@ -83,7 +83,7 @@ export const newsService = {
           }));
         }
       } catch (e) {
-        console.error("Failed to fetch CryptoPanic:", e);
+        // console.error("Failed to fetch CryptoPanic:", e);
       }
     }
 
@@ -119,7 +119,7 @@ export const newsService = {
           newsItems = [...newsItems, ...mapped];
         }
       } catch (e) {
-        console.error("Failed to fetch NewsAPI:", e);
+        // console.error("Failed to fetch NewsAPI:", e);
       }
     }
 
@@ -193,12 +193,12 @@ OUTPUT FORMAT (JSON ONLY):
           const isQuota = errMsg.includes("429") || errMsg.toLowerCase().includes("quota");
 
           if (isQuota) {
-            console.warn(`[newsService] Gemini Quota Exceeded (429). Stopping retries.`);
+            // console.warn(`[newsService] Gemini Quota Exceeded (429). Stopping retries.`);
             throw new Error("GEMINI_QUOTA_EXCEEDED"); // Custom error to catch below
           }
 
           if (isOverloaded && i < retries - 1) {
-            console.warn(`[newsService] Gemini overloaded, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
+            // console.warn(`[newsService] Gemini overloaded, retrying in ${delay}ms... (Attempt ${i + 1}/${retries})`);
             await new Promise(resolve => setTimeout(resolve, delay));
             delay *= 2; // Exponential backoff
             continue;
@@ -216,7 +216,6 @@ OUTPUT FORMAT (JSON ONLY):
         resultText = await fetchWithRetry(prompt, geminiApiKey, settingsState.geminiModel || "gemini-1.5-flash");
       } else if (aiProvider === "openai" && openaiApiKey) {
         // Dynamic import to avoid loading openai in browser bundle
-        // @ts-expect-error - openai is dynamically imported
         const { default: OpenAI } = await import("openai");
         const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
         const completion = await openai.chat.completions.create({
@@ -246,9 +245,9 @@ OUTPUT FORMAT (JSON ONLY):
       // Graceful error logging
       const msg = e?.message || "";
       if (msg.includes("GEMINI_QUOTA_EXCEEDED") || msg.includes("429") || msg.toLowerCase().includes("quota")) {
-        console.warn("Sentiment Analysis: AI Quota Exceeded (Warning only).");
+        // console.warn("Sentiment Analysis: AI Quota Exceeded (Warning only).");
       } else {
-        console.error("Sentiment Analysis Failed:", e);
+        // console.error("Sentiment Analysis Failed:", e);
       }
 
       return {

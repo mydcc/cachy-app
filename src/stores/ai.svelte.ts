@@ -37,8 +37,21 @@ export interface PendingAction {
     timestamp: number;
 }
 
+// Partial interface for Type Safety during updates
+interface TradeState {
+    entryPrice: number | null;
+    stopLossPrice: number | null;
+    targets: { price: number | null; percent: number | null; isLocked: boolean }[];
+    leverage: number;
+    riskPercentage: number;
+    symbol: string;
+    atrMultiplier: number;
+    useAtrSl: boolean;
+}
+
 const LOCAL_STORAGE_KEY = "cachy_ai_history";
 const MAX_MESSAGES = 50;
+const CONTEXT_TIMEOUT_MS = 5000;
 
 class AiManager {
     messages = $state<AiMessage[]>([]);
@@ -63,7 +76,7 @@ class AiManager {
                 }
             }
         } catch (e) {
-            console.error("Failed to load AI history", e);
+            // Silent failure
         }
     }
 
@@ -72,7 +85,7 @@ class AiManager {
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ messages: this.messages, isStreaming: false, error: null }));
         } catch (e) {
-            console.error("Failed to save AI history", e);
+            // Silent failure
         }
     }
 
@@ -244,30 +257,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 4. Verify all numbers match the context exactly
 5. Check that you cited sources for all key data points`;
 
-            const apiMessages = [
-                { role: "system", content: systemPrompt },
-                ...this.messages.map((m) => ({ role: m.role, content: m.content })),
-                // The user message is already in this.messages, but if we strictly follow the previous logic we might duplicate if not careful.
-                // Wait, I appended to this.messages above. So I should filter out the system prompt logic if I was adding it dynamically, but here I am reconstructing the prompt for the API call.
-                // The API call expects history. I already added userMsg to this.messages.
-                // But the previous implementation did:
-                // APIMessages = System + State.Messages (which INCLUDED User) + User (wait, previous implementation pushed User to state first? Yes.)
-                // Actually previous implementation:
-                // 1. Update State with User Msg.
-                // 2. apiMessages = System + state.messages.map(...) + userMsg (Wait, previous code said: `...state.messages.map...`, then `{ role: "user", content: text }`.
-                // Let's look closely at previous code:
-                // update(s => messages + userMsg)
-                // apiMessages = [system, ...state.messages.map..., { role: "user", content: text }] ?? 
-                // If state.messages already has userMsg, then we are duplicating it.
-                // Previous code: `const newMsgs = [...s.messages, userMsg].slice(-MAX_MESSAGES);` -> update S.
-                // Then `const apiMessages = [system, ...state.messages.map(...), { role: 'user', content: text }]`
-                // YES, IT WAS DUPLICATING THE LAST MESSAGE. That might have been a bug or intentional to ensure it's 'fresh'. 
-                // I will fix it to NOT duplicate.
-            ];
-
-            // Let's reconstruct apiMessages correctly:
-            // It should be System + All History (which includes the latest User Msg)
-            // However, for the very specific call structure:
+            // Prepare messages strictly for API: System + History (User/Assistant)
             const payloadMessages = [
                 { role: "system", content: systemPrompt },
                 ...this.messages.map(m => ({ role: m.role, content: m.content }))
@@ -336,8 +326,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     if (res.status === 429) {
                         attempt++;
                         const delay = Math.pow(2, attempt) * 1000;
-                        console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
-                        this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
                         await new Promise((r) => setTimeout(r, delay));
                         continue;
                     }
@@ -347,7 +335,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 } catch (e: any) {
                     if (attempt === MAX_RETRIES - 1) throw e; // Final failure
                     attempt++;
-                    console.warn(`API Error: ${e.message}. Retrying...`);
                     await new Promise((r) => setTimeout(r, 1000));
                 }
             }
@@ -438,13 +425,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                             try {
                                 this.executeAction(action, false);
                             } catch (err) {
-                                console.error("Single action failed", err);
+                                // Silent fail
                             }
                         });
                     }
                 }
             } catch (actionErr) {
-                console.error("Action parsing error:", actionErr);
+                // Silent fail
             }
 
             this.isStreaming = false;
@@ -463,15 +450,28 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         const journal = journalState.entries || [];
         const settings = settingsState;
 
+        // Helper for timeouts
+        const withTimeout = async <T>(promise: Promise<T>, fallback: T): Promise<T> => {
+            let timer: any;
+            const timeoutPromise = new Promise<T>((resolve) => {
+                timer = setTimeout(() => resolve(fallback), CONTEXT_TIMEOUT_MS);
+            });
+            return Promise.race([
+                promise.then(val => { clearTimeout(timer); return val; }),
+                timeoutPromise
+            ]);
+        };
+
         // CMC Data
         let cmcContext = null;
         if (settings.enableCmcContext && settings.cmcApiKey) {
             try {
-                // Fetch in parallel for speed
-                const [globalMetrics, coinMeta] = await Promise.all([
+                const fetchCmc = Promise.all([
                     cmcService.getGlobalMetrics(),
                     trade.symbol ? cmcService.getCoinMetadata(trade.symbol) : Promise.resolve(null)
                 ]);
+
+                const [globalMetrics, coinMeta] = await withTimeout(fetchCmc, [null, null]);
 
                 if (globalMetrics || coinMeta) {
                     cmcContext = {
@@ -490,7 +490,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     };
                 }
             } catch (e) {
-                console.warn("Failed to gather CMC context:", e);
+                // Ignore
             }
         }
 
@@ -498,28 +498,26 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         let newsContext = null;
         if (settings.enableNewsAnalysis && (settings.cryptoPanicApiKey || settings.newsApiKey)) {
             try {
-                // Import locale from i18n to get current language
                 const { locale } = await import("../locales/i18n");
                 const { get } = await import("svelte/store");
                 const currentLocale = get(locale) || "en";
-
-                // Determine language for time strings (de or en)
                 const lang = currentLocale.startsWith("de") ? "de" : "en";
 
-                // Fetch recent news for active symbol or general crypto if none
-                const newsItems = await newsService.fetchNews(trade.symbol || "crypto");
+                const newsItems = await withTimeout(
+                    newsService.fetchNews(trade.symbol || "crypto"),
+                    []
+                );
 
                 if (newsItems && newsItems.length > 0) {
-                    // Limit to top 5 headlines to save tokens
                     newsContext = newsItems.slice(0, 5).map(n => ({
                         title: n.title,
                         source: n.source,
-                        publishedAt: n.published_at, // ISO timestamp for reference
-                        ago: getRelativeTimeString(n.published_at, lang) // Correctly calculated relative time
+                        publishedAt: n.published_at,
+                        ago: getRelativeTimeString(n.published_at, lang)
                     }));
                 }
             } catch (e) {
-                console.warn("Failed to gather News context:", e);
+                // Ignore
             }
         }
 
@@ -539,7 +537,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         const limit = settings.aiTradeHistoryLimit || 50;
         const symbol = trade.symbol;
-        // Ensure consistent lookup (try existing, then uppercase, then lowercase)
         const marketData = symbol ? (market[symbol] || market[symbol.toUpperCase()] || market[symbol.toLowerCase()]) : null;
 
         const recentTrades = Array.isArray(journal)
@@ -558,48 +555,55 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             try {
                 const timeframe = trade.analysisTimeframe || "1h";
                 const limit = indicatorState.historyLimit || 750;
-                const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
-                if (klines && klines.length > 0) {
-                    const data = await technicalsService.calculateTechnicals(klines, indicatorState);
-                    if (data) {
-                        technicalsContext = {
-                            timeframe,
-                            summary: data.summary,
-                            confluence: data.confluence ? {
-                                score: Number(data.confluence.score.toFixed(2)),
-                                level: data.confluence.level,
-                                contributing: data.confluence.contributing
-                            } : "N/A",
-                            divergences: data.divergences && data.divergences.length > 0 ? data.divergences.map(d => ({
-                                type: d.type,
-                                indicator: d.indicator,
-                                side: d.side,
-                                priceStart: Number(d.priceStart).toFixed(4),
-                                priceEnd: Number(d.priceEnd).toFixed(4)
-                            })) : [],
-                            oscillators: Object.fromEntries(
-                                Object.entries(data.oscillators).map(([k, v]) => [k, Number(Number(v).toFixed(2))])
-                            ),
-                            movingAverages: data.movingAverages.map(m => ({
-                                name: m.name,
-                                value: Number(Number(m.value).toFixed(4)),
-                                action: m.action
-                            })),
-                            pivots: {
-                                type: indicatorState.pivots.type,
-                                classic: Object.fromEntries(
-                                    Object.entries(data.pivots.classic).map(([k, v]) => [k, Number(v).toFixed(4)])
-                                )
-                            },
-                            volatility: data.volatility ? {
-                                atr: Number(Number(data.volatility.atr).toFixed(4)),
-                                bbPercentP: Number(Number(data.volatility.bb.percentP).toFixed(2))
-                            } : "N/A"
-                        };
-                    }
+
+                const fetchTechnicals = async () => {
+                     const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
+                     if (klines && klines.length > 0) {
+                         return technicalsService.calculateTechnicals(klines, indicatorState);
+                     }
+                     return null;
+                };
+
+                const data = await withTimeout(fetchTechnicals(), null);
+
+                if (data) {
+                    technicalsContext = {
+                        timeframe,
+                        summary: data.summary,
+                        confluence: data.confluence ? {
+                            score: Number(data.confluence.score.toFixed(2)),
+                            level: data.confluence.level,
+                            contributing: data.confluence.contributing
+                        } : "N/A",
+                        divergences: data.divergences && data.divergences.length > 0 ? data.divergences.map(d => ({
+                            type: d.type,
+                            indicator: d.indicator,
+                            side: d.side,
+                            priceStart: Number(d.priceStart).toFixed(4),
+                            priceEnd: Number(d.priceEnd).toFixed(4)
+                        })) : [],
+                        oscillators: Object.fromEntries(
+                            Object.entries(data.oscillators).map(([k, v]) => [k, Number(Number(v).toFixed(2))])
+                        ),
+                        movingAverages: data.movingAverages.map(m => ({
+                            name: m.name,
+                            value: Number(Number(m.value).toFixed(4)),
+                            action: m.action
+                        })),
+                        pivots: {
+                            type: indicatorState.pivots.type,
+                            classic: Object.fromEntries(
+                                Object.entries(data.pivots.classic).map(([k, v]) => [k, Number(v).toFixed(4)])
+                            )
+                        },
+                        volatility: data.volatility ? {
+                            atr: Number(Number(data.volatility.atr).toFixed(4)),
+                            bbPercentP: Number(Number(data.volatility.bb.percentP).toFixed(2))
+                        } : "N/A"
+                    };
                 }
             } catch (e) {
-                console.warn("Failed to gather Technicals context:", e);
+                // Ignore
             }
         }
 
@@ -619,7 +623,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             }
 
             marketDetails = {
-                currentPrice: marketData.lastPrice ? parseFloat(marketData.lastPrice.toFixed(4)) : "Unknown", // Added explicitly here too
+                currentPrice: marketData.lastPrice ? parseFloat(marketData.lastPrice.toFixed(4)) : "Unknown",
                 high24h: marketData.highPrice ? parseFloat(marketData.highPrice.toFixed(4)) : undefined,
                 low24h: marketData.lowPrice ? parseFloat(marketData.lowPrice.toFixed(4)) : undefined,
                 volume24h: marketData.volume ? Math.round(Number(marketData.volume)).toLocaleString() : undefined,
@@ -638,7 +642,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             currentTime: new Date().toISOString(),
             portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
             activeSymbol: symbol,
-            REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
+            REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown",
             priceChange24h: marketData?.priceChangePercent?.toString() + "%" || "Unknown",
             marketDetails,
             technicals: technicalsContext,
@@ -697,66 +701,86 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     }
 
     private executeAction(action: any, confirmNeeded: boolean): boolean {
-        // confirmNeeded is now handled at the batch level in processResponse
         if (confirmNeeded) return false;
 
         try {
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(action.value) }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, entryPrice: parseFloat(action.value) };
+                        });
                     }
                     break;
                 case "setStopLoss":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, stopLossPrice: parseFloat(action.value) };
+                        });
                     }
                     break;
                 case "setTakeProfit":
                     if (typeof action.index === "number") {
                         tradeState.update((s: any) => {
-                            const newTargets = [...s.targets];
+                            const state = s as TradeState;
+                            const newTargets = [...state.targets];
                             if (newTargets[action.index]) {
                                 let updatedTarget = { ...newTargets[action.index] };
                                 if (action.value) updatedTarget.price = parseFloat(action.value);
                                 if (action.percent) updatedTarget.percent = parseFloat(action.percent);
                                 newTargets[action.index] = updatedTarget;
                             }
-                            return { ...s, targets: newTargets };
+                            return { ...state, targets: newTargets };
                         });
                     }
                     break;
                 case "setLeverage":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(action.value) }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, leverage: parseFloat(action.value) };
+                        });
                     }
                     break;
                 case "setRisk":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+                         tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, riskPercentage: parseFloat(action.value) };
+                        });
                     }
                     break;
                 case "setSymbol":
                     if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, symbol: action.value }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, symbol: action.value };
+                        });
                     }
                     break;
                 case "setAtrMultiplier":
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
                     if (mult) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, atrMultiplier: parseFloat(mult), useAtrSl: true };
+                        });
                     }
                     break;
                 case "setUseAtrSl":
                     if (typeof action.value === "boolean") {
-                        tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
+                        tradeState.update((s: any) => {
+                            const state = s as TradeState;
+                            return { ...state, useAtrSl: action.value };
+                        });
                     }
                     break;
             }
             return true;
         } catch (e) {
-            console.error("AI Action Execution Failed", e);
             return false;
         }
     }

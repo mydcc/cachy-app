@@ -68,7 +68,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
   } catch (err: any) {
-    console.error("[NewsProxy] Error:", err);
-    return json({ error: err.message || "Internal Proxy Error" }, { status: 500 });
+    // Silent failure to protect secrets in URL
+    return json({ error: "Internal Proxy Error" }, { status: 500 });
   }
 };

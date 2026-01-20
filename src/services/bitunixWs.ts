@@ -46,11 +46,11 @@ class BitunixWebSocketService {
   private wsPublic: WebSocket | null = null;
   private wsPrivate: WebSocket | null = null;
 
-  private pingTimerPublic: any = null;
-  private pingTimerPrivate: any = null;
+  private pingTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private pingTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
-  private watchdogTimerPublic: any = null;
-  private watchdogTimerPrivate: any = null;
+  private watchdogTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private watchdogTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private lastWatchdogResetPublic = 0;
   private lastWatchdogResetPrivate = 0;
@@ -58,13 +58,13 @@ class BitunixWebSocketService {
 
   public publicSubscriptions: Set<string> = new Set();
 
-  private reconnectTimerPublic: any = null;
-  private reconnectTimerPrivate: any = null;
+  private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
 
-  private globalMonitorInterval: any = null;
+  private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
@@ -72,8 +72,8 @@ class BitunixWebSocketService {
   private lastMessageTimePublic = Date.now();
   private lastMessageTimePrivate = Date.now();
 
-  private connectionTimeoutPublic: any = null;
-  private connectionTimeoutPrivate: any = null;
+  private connectionTimeoutPublic: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimeoutPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isAuthenticated = false;
   private isDestroyed = false;
@@ -150,6 +150,13 @@ class BitunixWebSocketService {
 
   private connectPublic(force = false) {
     if (this.isDestroyed) return;
+
+    // Race Condition Fix: Clear any pending reconnects immediately
+    if (this.reconnectTimerPublic) {
+        clearTimeout(this.reconnectTimerPublic);
+        this.reconnectTimerPublic = null;
+    }
+    this.isReconnectingPublic = false;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
@@ -475,24 +482,26 @@ class BitunixWebSocketService {
 
   private validatePriceData(data: Partial<BitunixPriceData>): boolean {
     if (!data) return false;
-    const fields = ["mp", "ip", "fr", "nft"] as const;
-    for (const field of fields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        if (isNaN(parseFloat(String(data[field])))) return false;
-      }
-    }
-    return true;
+    // Price data is less critical to have *all* fields, but usually comes together.
+    // We check if at least MP is there if it's a price update.
+    if (data.mp) return !isNaN(parseFloat(String(data.mp)));
+    return true; // Accept other fields if present
   }
 
   private validateTickerData(data: Partial<BitunixTickerData>): boolean {
     if (!data) return false;
-    const critical = ["la", "o"] as const;
-    for (const field of critical) {
-      if (!data[field]) return false;
-      const val = parseFloat(String(data[field]));
-      if (isNaN(val) || val <= 0) return false;
+    // Relaxed validation: Accept if either Last Price OR Open Price is present
+    if (data.la) {
+        const val = parseFloat(String(data.la));
+        if (!isNaN(val) && val > 0) return true;
     }
-    return true;
+    if (data.o) {
+        const val = parseFloat(String(data.o));
+        if (!isNaN(val) && val > 0) return true;
+    }
+    // If neither is present, it might be a partial update with just volume?
+    // Bitunix ticker usually has 'la'. If 'la' is missing, it's not a price update.
+    return false;
   }
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {

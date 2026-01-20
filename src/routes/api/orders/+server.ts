@@ -174,7 +174,7 @@ export const POST: RequestHandler = async ({ request }) => {
     // Check for sensitive patterns (simple check)
     const sanitizedMsg = errorMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
 
-    console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
+    // console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
     // Return a generic error if it's a 500, or specific if it's safe
     // We assume e.message from our internal helpers is reasonably safe, but we wrap it just in case
