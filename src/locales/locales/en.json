@@ -538,7 +538,13 @@
       "imgbbPrimary": "ImgBB (Primary)",
       "autoExpiration": "Auto-Expiration (Sec)",
       "imgurOther": "Imgur / Other",
-      "imgurClientId": "Imgur Client ID"
+      "imgurClientId": "Imgur Client ID",
+      "rssPresets": "RSS News Sources",
+      "rssPresetsDesc": "Select curated news sources for AI context",
+      "customRssFeeds": "Custom RSS Feeds",
+      "customRssFeedsDesc": "Add up to 5 custom RSS feeds (Advanced)",
+      "addFeed": "Add Feed",
+      "removeFeed": "Remove"
     },
     "ai": {
       "intelligenceTitle": "Intelligence Core",

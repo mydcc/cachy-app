@@ -60,6 +60,7 @@
     "marked": "^17.0.1",
     "marked-katex-extension": "^5.1.6",
     "openai": "^6.16.0",
+    "rss-parser": "^3.13.0",
     "svelte-i18n": "^4.0.0",
     "undici": "^7.18.2",
     "zod": "^4.3.5"

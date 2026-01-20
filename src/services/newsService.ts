@@ -9,6 +9,8 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { rssParserService } from "./rssParserService";
+import { getPresetUrls } from "../config/rssPresets";
 
 export interface NewsItem {
   title: string;
@@ -120,6 +122,21 @@ export const newsService = {
         }
       } catch (e) {
         console.error("Failed to fetch NewsAPI:", e);
+      }
+    }
+
+    // RSS Feeds Integration
+    const rssUrls = [
+      ...getPresetUrls(settingsState.rssPresets || []),
+      ...(settingsState.customRssFeeds || []).filter(u => u && u.trim().length > 0)
+    ];
+
+    if (rssUrls.length > 0) {
+      try {
+        const rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
+        newsItems = [...newsItems, ...rssItems];
+      } catch (e) {
+        console.error("Failed to fetch RSS feeds:", e);
       }
     }
 

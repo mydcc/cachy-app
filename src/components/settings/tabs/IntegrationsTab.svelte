@@ -14,6 +14,38 @@
     function toggleKeyVisibility(id: string) {
         showKeys[id] = !showKeys[id];
     }
+
+    import { RSS_PRESETS } from "../../../config/rssPresets";
+
+    function addCustomFeed() {
+        if (!settingsState.customRssFeeds) settingsState.customRssFeeds = [];
+        if (settingsState.customRssFeeds.length < 5) {
+            settingsState.customRssFeeds = [
+                ...settingsState.customRssFeeds,
+                "",
+            ];
+        }
+    }
+
+    function removeCustomFeed(index: number) {
+        if (!settingsState.customRssFeeds) return;
+        const newFeeds = [...settingsState.customRssFeeds];
+        newFeeds.splice(index, 1);
+        settingsState.customRssFeeds = newFeeds;
+    }
+
+    function isPresetActive(id: string): boolean {
+        return settingsState.rssPresets?.includes(id) || false;
+    }
+
+    function togglePreset(id: string) {
+        const current = settingsState.rssPresets || [];
+        if (current.includes(id)) {
+            settingsState.rssPresets = current.filter((p) => p !== id);
+        } else {
+            settingsState.rssPresets = [...current, id];
+        }
+    }
 </script>
 
 <div
@@ -69,7 +101,9 @@
                             type={showKeys["bitunix_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.key}
                             class="api-input"
-                            placeholder="{$_('settings.integrations.enterKey')} (Bitunix)"
+                            placeholder="{$_(
+                                'settings.integrations.enterKey',
+                            )} (Bitunix)"
                         />
                     </div>
                     <div class="field-group mt-3">
@@ -81,7 +115,9 @@
                             type={showKeys["bitunix_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.secret}
                             class="api-input"
-                            placeholder={$_("settings.integrations.enterSecret")}
+                            placeholder={$_(
+                                "settings.integrations.enterSecret",
+                            )}
                         />
                     </div>
                 </div>
@@ -107,7 +143,9 @@
                             type={showKeys["binance_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.key}
                             class="api-input"
-                            placeholder="{$_('settings.integrations.enterKey')} (Binance)"
+                            placeholder="{$_(
+                                'settings.integrations.enterKey',
+                            )} (Binance)"
                         />
                     </div>
                     <div class="field-group mt-3">
@@ -119,7 +157,9 @@
                             type={showKeys["binance_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.secret}
                             class="api-input"
-                            placeholder={$_("settings.integrations.enterSecret")}
+                            placeholder={$_(
+                                "settings.integrations.enterSecret",
+                            )}
                         />
                     </div>
                 </div>
@@ -293,6 +333,117 @@
                         class="api-input"
                     />
                 </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- RSS Feeds Section -->
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-8"
+    >
+        <div class="flex items-center gap-2 mb-4">
+            <div class="icon-box bg-orange-500/10 text-orange-500">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><path d="M4 11a9 9 0 0 1 9 9" /><path
+                        d="M4 4a16 16 0 0 1 16 16"
+                    /><circle cx="5" cy="19" r="1" /></svg
+                >
+            </div>
+            <h3 class="section-title mb-0">
+                {$_("settings.integrations.rssPresets") || "RSS News Sources"}
+            </h3>
+        </div>
+
+        <p class="text-xs text-[var(--text-secondary)] mb-4">
+            {$_("settings.integrations.rssPresetsDesc")}
+        </p>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+            {#each RSS_PRESETS as preset}
+                <div
+                    class="api-card compact flex-row items-center justify-between cursor-pointer"
+                    onclick={() => togglePreset(preset.id)}
+                    class:border-[var(--accent-color)]={isPresetActive(
+                        preset.id,
+                    )}
+                >
+                    <div class="flex flex-col">
+                        <span class="font-bold text-sm">{preset.name}</span>
+                        <span class="text-[10px] text-[var(--text-secondary)]"
+                            >{preset.description || preset.url}</span
+                        >
+                    </div>
+                    <Toggle
+                        value={isPresetActive(preset.id)}
+                        onToggle={() => togglePreset(preset.id)}
+                        size="sm"
+                    />
+                </div>
+            {/each}
+        </div>
+
+        <!-- Custom Feeds -->
+        <div class="mt-6">
+            <div class="flex items-center justify-between mb-2">
+                <h4
+                    class="text-xs font-bold text-[var(--text-secondary)] uppercase"
+                >
+                    {$_("settings.integrations.customRssFeeds")}
+                </h4>
+                <button
+                    class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] transition-colors"
+                    onclick={addCustomFeed}
+                    disabled={(settingsState.customRssFeeds?.length || 0) >= 5}
+                >
+                    + {$_("settings.integrations.addFeed")}
+                </button>
+            </div>
+            <p class="text-xs text-[var(--text-secondary)] mb-3">
+                {$_("settings.integrations.customRssFeedsDesc")}
+            </p>
+
+            <div class="flex flex-col gap-2">
+                {#if settingsState.customRssFeeds}
+                    {#each settingsState.customRssFeeds as feed, i}
+                        <div class="flex items-center gap-2">
+                            <input
+                                type="url"
+                                bind:value={settingsState.customRssFeeds[i]}
+                                class="api-input"
+                                placeholder="https://example.com/feed.xml"
+                            />
+                            <button
+                                class="text-red-500 hover:text-red-400 p-2"
+                                onclick={() => removeCustomFeed(i)}
+                                title={$_("settings.integrations.removeFeed")}
+                            >
+                                <svg
+                                    xmlns="http://www.w3.org/2000/svg"
+                                    width="16"
+                                    height="16"
+                                    viewBox="0 0 24 24"
+                                    fill="none"
+                                    stroke="currentColor"
+                                    stroke-width="2"
+                                    stroke-linecap="round"
+                                    stroke-linejoin="round"
+                                    ><path d="M18 6 6 18" /><path
+                                        d="m6 6 12 12"
+                                    /></svg
+                                >
+                            </button>
+                        </div>
+                    {/each}
+                {/if}
             </div>
         </div>
     </section>

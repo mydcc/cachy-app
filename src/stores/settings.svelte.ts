@@ -107,6 +107,8 @@ export interface Settings {
     showTvLink: boolean;
     showCgHeatLink: boolean;
     showBrokerLink: boolean;
+    rssPresets?: string[];
+    customRssFeeds?: string[];
 }
 
 const defaultSettings: Settings = {
@@ -188,6 +190,8 @@ const defaultSettings: Settings = {
     showTvLink: true,
     showCgHeatLink: true,
     showBrokerLink: true,
+    rssPresets: ["coindesk", "cointelegraph"],
+    customRssFeeds: [],
 };
 
 class SettingsManager {
@@ -277,6 +281,8 @@ class SettingsManager {
     showTvLink = $state<boolean>(defaultSettings.showTvLink);
     showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
     showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
+    rssPresets = $state<string[]>(defaultSettings.rssPresets || []);
+    customRssFeeds = $state<string[]>(defaultSettings.customRssFeeds || []);
 
     // Private state
     private effectActive = false; // Controls whether $effect should trigger saves
@@ -454,6 +460,8 @@ class SettingsManager {
             this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
             this.showCgHeatLink = merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
             this.showBrokerLink = merged.showBrokerLink ?? defaultSettings.showBrokerLink;
+            this.rssPresets = merged.rssPresets || defaultSettings.rssPresets;
+            this.customRssFeeds = merged.customRssFeeds || defaultSettings.customRssFeeds;
 
             // Migration
             if (parsed.marketDataInterval === "manual") {
@@ -569,6 +577,8 @@ class SettingsManager {
             showTvLink: this.showTvLink,
             showCgHeatLink: this.showCgHeatLink,
             showBrokerLink: this.showBrokerLink,
+            rssPresets: $state.snapshot(this.rssPresets),
+            customRssFeeds: $state.snapshot(this.customRssFeeds),
         };
     }
 

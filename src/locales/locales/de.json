@@ -545,7 +545,13 @@
       "imgbbPrimary": "ImgBB (Primär)",
       "autoExpiration": "Auto-Löschung (Sek)",
       "imgurOther": "Imgur / Andere",
-      "imgurClientId": "Imgur Client ID"
+      "imgurClientId": "Imgur Client ID",
+      "rssPresets": "RSS-Nachrichtenquellen",
+      "rssPresetsDesc": "Wähle kuratierte Nachrichtenquellen für den KI-Kontext",
+      "customRssFeeds": "Benutzerdefinierte RSS-Feeds",
+      "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
+      "addFeed": "Feed hinzufügen",
+      "removeFeed": "Entfernen"
     },
     "ai": {
       "intelligenceTitle": "KI-Core",
@@ -568,7 +574,10 @@
       "geminiStable": "Gemini 2.0 Flash (Stabil)",
       "geminiPreview": "Gemini 3 Flash (Vorschau 🚀)",
       "geminiPro": "Gemini 3 Pro (Vorschau 🧠)",
-      "gemmaOpen": "Gemma 3 27b (Offenes Modell ✨)"
+      "gemmaOpen": "Gemma 3 27b (Offenes Modell ✨)",
+      "confirmActionsDesc": "Fordert Bestätigung vor KI-Aktionen",
+      "confirmClearHistory": "Verlauf löschen bestätigen",
+      "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs"
     },
     "technicals": {
       "oscillators": "Oszillatoren",
@@ -621,24 +630,6 @@
       "customize": "Anpassen",
       "presetInfo": "Du verwendest ein Hotkey-Preset. Wechsle zu 'Custom', um einzelne Hotkeys neu zu belegen.",
       "switchToCustom": "Hotkeys anpassen"
-    },
-    "ai": {
-      "intelligenceTitle": "KI-Anbieter",
-      "providerDesc": "Wähle deinen bevorzugten KI-Anbieter",
-      "modelTitle": "Modell & Prompting",
-      "customSystemPrompt": "Eigener System-Prompt",
-      "customSystemPromptDesc": "Definiere das Verhalten der KI",
-      "openaiModel": "OpenAI Modell",
-      "geminiModel": "Gemini Modell",
-      "contextTitle": "Kontext & Datenzugriff",
-      "newsDesc": "KI berücksichtigt aktuelle News-Schlagzeilen",
-      "cmcDesc": "Marktstatistiken für Symbole abrufen",
-      "historyDesc": "Anzahl der letzten Trades im KI-Kontext",
-      "safetyTitle": "Sicherheit & Bestätigungen",
-      "confirmActions": "Aktionen bestätigen",
-      "confirmActionsDesc": "Fordert Bestätigung vor KI-Aktionen",
-      "confirmClearHistory": "Verlauf löschen bestätigen",
-      "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs"
     },
     "indicators": {
       "title": "Indikator Einstellungen",
