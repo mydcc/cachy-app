@@ -26,6 +26,13 @@ import type {
   BitunixPriceData,
   BitunixTickerData,
 } from "../types/bitunix";
+import {
+  BitunixWSMessageSchema,
+  BitunixPriceDataSchema,
+  BitunixTickerDataSchema,
+  isAllowedChannel,
+  validateSymbol,
+} from "../types/bitunixValidation";
 
 const WS_PUBLIC_URL =
   CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";

@@ -10,6 +10,7 @@
 import { untrack } from "svelte";
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { StorageHelper } from "../utils/storageHelper";
 
 export type MarketDataInterval = number; // Seconds
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
@@ -273,6 +274,7 @@ class SettingsManager {
     private listeners: Set<(value: Settings) => void> = new Set();
     private notifyTimer: any = null;
     private saveTimer: any = null;
+    private saveLock = false; // Prevents concurrent saves
 
     constructor() {
         if (browser) {
@@ -297,7 +299,7 @@ class SettingsManager {
                             this.saveTimer = setTimeout(() => {
                                 this.save();
                                 this.notifyListeners();
-                            }, 200);
+                            }, 500); // Increased from 200ms to 500ms
                         });
                     });
                 });
@@ -308,10 +310,15 @@ class SettingsManager {
             // 3. Listen for changes from other tabs
             window.addEventListener("storage", (e) => {
                 if (e.key === CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY && e.newValue) {
-                    console.warn("[Settings] Syncing from other tab...");
-                    this.effectActive = false; // Disable effect temporarily
-                    this.load();
-                    this.effectActive = true; // Re-enable
+                    // Only sync if not currently saving (prevents overwriting)
+                    if (!this.saveLock) {
+                        console.warn("[Settings] Syncing from other tab...");
+                        this.effectActive = false; // Disable effect temporarily
+                        this.load();
+                        this.effectActive = true; // Re-enable
+                    } else {
+                        console.warn("[Settings] Ignoring storage event during save");
+                    }
                 }
             });
         }
@@ -449,7 +456,10 @@ class SettingsManager {
     }
 
     private save() {
-        if (!browser || !this.effectActive) return; // Don't save during load
+        if (!browser || !this.effectActive || this.saveLock) return;
+
+        this.saveLock = true;
+
         try {
             const data = this.toJSON();
             const current = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
@@ -457,10 +467,19 @@ class SettingsManager {
 
             // Only save if actually different (prevent unnecessary writes)
             if (current !== newData) {
-                localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, newData);
+                const success = StorageHelper.safeSave(
+                    CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY,
+                    newData
+                );
+
+                if (!success) {
+                    console.error("[Settings] Failed to save after retry");
+                }
             }
         } catch (e) {
             console.error("[Settings] Save failed:", e);
+        } finally {
+            this.saveLock = false;
         }
     }
 
