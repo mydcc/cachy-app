@@ -4,6 +4,20 @@ import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
+export interface RepairError {
+    tradeId: string | number;
+    symbol: string;
+    error: string;
+    timestamp: number;
+}
+
+export interface RepairResult {
+    total: number;
+    successful: number;
+    failed: number;
+    errors: RepairError[];
+}
+
 export const dataRepairService = {
     /**
      * Scans the journal for trades that are "Won" or "Lost" but missing 'atrValue'.

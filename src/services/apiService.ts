@@ -20,6 +20,14 @@ import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import type { Kline } from "./technicalsTypes";
+import {
+  BitunixTickerResponseSchema,
+  BitunixKlineResponseSchema,
+  BinanceTickerSchema,
+  BinanceKlineResponseSchema,
+  validateResponseSize,
+  sanitizeErrorMessage,
+} from "../types/apiSchemas";
 export type { Kline };
 
 export interface Ticker24h {
@@ -203,14 +211,29 @@ export const apiService = {
     return normalizeSymbol(symbol, provider);
   },
 
-  async safeJson(response: Response) {
+  async safeJson(response: Response, maxSizeMB: number = 10) {
     const contentType = response.headers.get("content-type");
     if (!contentType || !contentType.includes("application/json")) {
       const text = await response.text();
-      console.error("Expected JSON but received:", text.slice(0, 100));
+      // Sanitize error message (max 100 chars, no sensitive data)
+      const sanitized = sanitizeErrorMessage(text, 100);
+      console.error("[API] Expected JSON, got:", sanitized);
       throw new Error("apiErrors.invalidResponseFormat");
     }
-    return response.json();
+
+    const text = await response.text();
+
+    // Validate size
+    if (!validateResponseSize(text, maxSizeMB)) {
+      throw new Error("apiErrors.responseTooLarge");
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (e) {
+      console.error("[API] JSON parse error");
+      throw new Error("apiErrors.invalidJson");
+    }
   },
 
   async fetchBitunixPrice(
@@ -240,17 +263,27 @@ export const apiService = {
           }
           if (!response.ok) throw new Error("apiErrors.symbolNotFound");
           const res = await apiService.safeJson(response);
-          if (res.code !== undefined && res.code !== 0) {
-            const error = new Error(getBitunixErrorKey(res.code));
-            if (res.code === 2 || res.code === "2") (error as any).status = 404;
+
+          // Validate response structure with Zod
+          const validation = BitunixTickerResponseSchema.safeParse(res);
+          if (!validation.success) {
+            console.error("[API] Invalid ticker response:", validation.error.issues);
+            throw new Error("apiErrors.invalidResponse");
+          }
+
+          const validatedRes = validation.data;
+
+          if (validatedRes.code !== undefined && validatedRes.code !== 0) {
+            const error = new Error(getBitunixErrorKey(validatedRes.code));
+            if (validatedRes.code === 2 || validatedRes.code === "2") (error as any).status = 404;
             throw error;
           }
-          if (!res.data || res.data.length === 0) {
+          if (!validatedRes.data || validatedRes.data.length === 0) {
             const error = new Error("apiErrors.invalidResponse");
-            (error as any).status = 404; // Empty data for a ticker often means symbol not found
+            (error as any).status = 404;
             throw error;
           }
-          const data = res.data[0];
+          const data = validatedRes.data[0];
           const lastPrice = Number(data.lastPrice);
           if (isNaN(lastPrice) || !isFinite(lastPrice)) {
             throw new Error("apiErrors.invalidResponse");
