@@ -496,7 +496,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         // News Data (New Addition)
         let newsContext = null;
-        if (settings.enableNewsAnalysis && (settings.cryptoPanicApiKey || settings.newsApiKey)) {
+        const hasRss = (settings.rssPresets && settings.rssPresets.length > 0) || (settings.customRssFeeds && settings.customRssFeeds.length > 0);
+
+        if (settings.enableNewsAnalysis && (settings.cryptoPanicApiKey || settings.newsApiKey || hasRss)) {
             try {
                 // Import locale from i18n to get current language
                 const { locale } = await import("../locales/i18n");
