@@ -164,7 +164,6 @@ const defaultSettings: Settings = {
     syncFavorites: true,
     confirmTradeDeletion: true,
     confirmBulkDeletion: true,
-    confirmBulkDeletion: true,
     chatFontSize: 13,
     panelIsExpanded: false,
     maxPrivateNotes: 50,
