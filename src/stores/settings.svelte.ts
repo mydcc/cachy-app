@@ -458,7 +458,6 @@ class SettingsManager {
             // Only save if actually different (prevent unnecessary writes)
             if (current !== newData) {
                 localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, newData);
-                console.log("[Settings] Saved");
             }
         } catch (e) {
             console.error("[Settings] Save failed:", e);
