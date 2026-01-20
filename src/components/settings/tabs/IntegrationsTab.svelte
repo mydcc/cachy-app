@@ -39,7 +39,9 @@
     }
 
     function togglePreset(id: string) {
-        const current = settingsState.rssPresets || [];
+        if (!settingsState.rssPresets) settingsState.rssPresets = [];
+        const current = settingsState.rssPresets;
+        console.log("Toggling RSS:", id, current);
         if (current.includes(id)) {
             settingsState.rssPresets = current.filter((p) => p !== id);
         } else {
@@ -369,27 +371,41 @@
 
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
             {#each RSS_PRESETS as preset}
-                <div
-                    class="api-card compact flex-row items-center justify-between cursor-pointer"
+                <button
+                    type="button"
+                    class="api-card compact flex-row items-center justify-between cursor-pointer w-full text-left transition-colors duration-200"
                     onclick={() => togglePreset(preset.id)}
                     class:border-[var(--accent-color)]={isPresetActive(
                         preset.id,
                     )}
+                    class:bg-[var(--bg-secondary)]={isPresetActive(preset.id)}
                 >
                     <div class="flex flex-col">
-                        <span class="font-bold text-sm">{preset.name}</span>
+                        <span
+                            class="font-bold text-sm"
+                            class:text-[var(--accent-color)]={isPresetActive(
+                                preset.id,
+                            )}>{preset.name}</span
+                        >
                         <span class="text-[10px] text-[var(--text-secondary)]"
                             >{preset.description || preset.url}</span
                         >
                     </div>
-                    <Toggle
-                        value={isPresetActive(preset.id)}
-                        onToggle={() => togglePreset(preset.id)}
-                        size="sm"
-                    />
-                </div>
+                    <!-- Make sure Toggle receives the checked state strictly and doesn't capture clicks -->
+                    <div class="pointer-events-none">
+                        <Toggle checked={isPresetActive(preset.id)} />
+                    </div>
+                </button>
             {/each}
         </div>
+
+        {#if settingsState.debugMode}
+            <div
+                class="text-[10px] text-[var(--text-tertiary)] font-mono mt-2 p-2 bg-black/20 rounded"
+            >
+                DEBUG: RSS Active: {JSON.stringify(settingsState.rssPresets)}
+            </div>
+        {/if}
 
         <!-- Custom Feeds -->
         <div class="mt-6">
