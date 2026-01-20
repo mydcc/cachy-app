@@ -101,7 +101,11 @@ class AiManager {
 
         try {
             // 2. Gather Context (Async)
-            const context = await this.gatherContext();
+            // Timeout wrapper for gathering context to prevent hanging
+            const contextPromise = this.gatherContext();
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+
+            const context = await Promise.race([contextPromise, timeoutPromise]) || { error: "Context gathering timed out, proceeding with minimal data." };
             this.lastContext = context; // Update exposed context
 
             // 3. Prepare Messages (History + System + User)
@@ -829,6 +833,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         // Update message to show confirmed status
         this.updateActionMessage(actionId, "confirmed");
+        this.save();
     }
 
     /**
@@ -843,6 +848,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         // Update message to show rejected status
         this.updateActionMessage(actionId, "rejected");
+        this.save();
     }
 
     /**
