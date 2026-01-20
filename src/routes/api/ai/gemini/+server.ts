@@ -82,7 +82,7 @@ export const POST: RequestHandler = async ({ request }) => {
       const errText = await response.text();
       // Log 429 as warning to avoid console spam, others as error
       if (response.status === 429) {
-        console.warn(`Gemini API Warning (${response.status}):`, errText);
+        console.warn(`Gemini API Warning (${response.status}): Rate limit exceeded.`);
       } else {
         console.error(`Gemini API Error (${response.status}):`, errText);
       }

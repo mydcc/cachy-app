@@ -1071,11 +1071,22 @@
                 <button
                   class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
                   onclick={() => {
+                    messageText =
+                      "Erstelle eine technische Analyse für " +
+                      (tradeState.symbol || "BTC");
+                    handleSend();
+                  }}
+                >
+                  🧪 Tech Analysis
+                </button>
+                <button
+                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                  onclick={() => {
                     messageText = "Prüfe mein Setup auf Fehler und Risiken.";
                     handleSend();
                   }}
                 >
-                  ⚠️ Risk
+                  ⚠️ Risk Audit
                 </button>
                 <button
                   class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"

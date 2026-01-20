@@ -170,6 +170,8 @@
                     onclick={() =>
                         (settingsState.enableGlassmorphism =
                             !settingsState.enableGlassmorphism)}
+                    aria-label={$_("settings.enableGlassmorphism") ||
+                        "Toggle Glassmorphism"}
                 >
                     <div class="toggle-thumb"></div>
                 </button>
@@ -440,23 +442,6 @@
 
     .active .toggle-thumb {
         transform: translateX(16px);
-    }
-
-    .action-btn {
-        background: var(--accent-color);
-        color: var(--btn-accent-text);
-        padding: 0.5rem 1rem;
-        border-radius: 0.5rem;
-        font-size: 0.75rem;
-        font-weight: 700;
-        transition: all 0.2s ease;
-        border: none;
-        cursor: pointer;
-    }
-
-    .action-btn:hover {
-        filter: brightness(1.1);
-        transform: translateY(-1px);
     }
 
     .hotkey-settings-wrapper {
