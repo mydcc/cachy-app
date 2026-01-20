@@ -22,6 +22,7 @@ class UiManager {
     errorMessage = $state("");
     showErrorMessage = $state(false);
     isPriceFetching = $state(false);
+    isSyncing = $state(false); // Prevents concurrent sync operations
     isAtrFetching = $state(false);
     symbolSuggestions = $state<string[]>([]);
     showSymbolSuggestions = $state(false);
@@ -76,6 +77,7 @@ class UiManager {
                 errorMessage: this.errorMessage,
                 showErrorMessage: this.showErrorMessage,
                 isPriceFetching: this.isPriceFetching,
+                isSyncing: this.isSyncing,
                 isAtrFetching: this.isAtrFetching,
                 symbolSuggestions: this.symbolSuggestions,
                 showSymbolSuggestions: this.showSymbolSuggestions,
@@ -109,6 +111,7 @@ class UiManager {
             errorMessage: this.errorMessage,
             showErrorMessage: this.showErrorMessage,
             isPriceFetching: this.isPriceFetching,
+            isSyncing: this.isSyncing,
             isAtrFetching: this.isAtrFetching,
             symbolSuggestions: this.symbolSuggestions,
             showSymbolSuggestions: this.showSymbolSuggestions,

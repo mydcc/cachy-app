@@ -376,7 +376,11 @@ class BitunixWebSocketService {
         else this.awaitingPongPrivate = true;
 
         const pingPayload = { op: "ping", ping: Math.floor(Date.now() / 1000) };
-        try { ws.send(JSON.stringify(pingPayload)); } catch (e) { }
+        try {
+          ws.send(JSON.stringify(pingPayload));
+        } catch (e) {
+          console.warn('[WebSocket] Ping send failed, connection may be closed:', e);
+        }
       }
     }, PING_INTERVAL);
 
@@ -429,7 +433,11 @@ class BitunixWebSocketService {
         this.wsPublic.onmessage = null;
         this.wsPublic.onerror = null;
         this.wsPublic.onclose = null;
-        try { this.wsPublic.close(); } catch (e) { }
+        try {
+          this.wsPublic.close();
+        } catch (e) {
+          console.warn('[WebSocket] Error closing public connection:', e);
+        }
       }
       this.wsPublic = null;
       this.isReconnectingPublic = false;
@@ -441,7 +449,11 @@ class BitunixWebSocketService {
         this.wsPrivate.onmessage = null;
         this.wsPrivate.onerror = null;
         this.wsPrivate.onclose = null;
-        try { this.wsPrivate.close(); } catch (e) { }
+        try {
+          this.wsPrivate.close();
+        } catch (e) {
+          console.warn('[WebSocket] Error closing private connection:', e);
+        }
       }
       this.wsPrivate = null;
       this.isReconnectingPrivate = false;
@@ -540,19 +552,19 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixTickerData>;
         if (symbol && data && this.validateTickerData(data)) {
-           // Partial update safety
-           const update: any = {};
-           if (data.la !== undefined) update.lastPrice = data.la;
-           if (data.h !== undefined) update.high = data.h;
-           if (data.l !== undefined) update.low = data.l;
-           if (data.b !== undefined) update.vol = data.b;
-           if (data.q !== undefined) update.quoteVol = data.q;
-           if (data.r !== undefined) update.change = data.r;
-           if (data.o !== undefined) update.open = data.o;
+          // Partial update safety
+          const update: any = {};
+          if (data.la !== undefined) update.lastPrice = data.la;
+          if (data.h !== undefined) update.high = data.h;
+          if (data.l !== undefined) update.low = data.l;
+          if (data.b !== undefined) update.vol = data.b;
+          if (data.q !== undefined) update.quoteVol = data.q;
+          if (data.r !== undefined) update.change = data.r;
+          if (data.o !== undefined) update.open = data.o;
 
-           if (Object.keys(update).length > 0) {
-             marketState.updateTicker(symbol, update);
-           }
+          if (Object.keys(update).length > 0) {
+            marketState.updateTicker(symbol, update);
+          }
         }
       } else if (message.ch === "depth_book5") {
         const rawSymbol = message.symbol;
@@ -631,17 +643,29 @@ class BitunixWebSocketService {
     const channels = ["position", "order", "wallet"];
     const args = channels.map((ch) => ({ ch }));
     const payload = { op: "subscribe", args: args };
-    try { this.wsPrivate.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      this.wsPrivate.send(JSON.stringify(payload));
+    } catch (e) {
+      console.warn('[WebSocket] Failed to send private subscribe:', e);
+    }
   }
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
     const payload = { op: "subscribe", args: [{ symbol, ch: channel }] };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch (e) {
+      console.warn(`[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`, e);
+    }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
     const payload = { op: "unsubscribe", args: [{ symbol, ch: channel }] };
-    try { ws.send(JSON.stringify(payload)); } catch (e) { }
+    try {
+      ws.send(JSON.stringify(payload));
+    } catch (e) {
+      console.warn(`[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`, e);
+    }
   }
 
   private resubscribePublic() {

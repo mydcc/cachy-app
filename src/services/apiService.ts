@@ -529,10 +529,19 @@ export const apiService = {
           }
 
           return res.data.map((ticker: any) => {
-            const openRaw = Number(ticker.open);
-            const lastRaw = Number(ticker.lastPrice);
-            const baseVolRaw = Number(ticker.baseVol);
-            const quoteVolRaw = Number(ticker.quoteVol);
+            // Defensive checks before Number conversion
+            const openRaw = ticker.open !== undefined && ticker.open !== null
+              ? Number(ticker.open)
+              : 0;
+            const lastRaw = ticker.lastPrice !== undefined && ticker.lastPrice !== null
+              ? Number(ticker.lastPrice)
+              : 0;
+            const baseVolRaw = ticker.baseVol !== undefined && ticker.baseVol !== null
+              ? Number(ticker.baseVol)
+              : 0;
+            const quoteVolRaw = ticker.quoteVol !== undefined && ticker.quoteVol !== null
+              ? Number(ticker.quoteVol)
+              : 0;
 
             const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
             const last = new Decimal(isNaN(lastRaw) ? 0 : lastRaw);
@@ -598,12 +607,25 @@ export const apiService = {
               throw new Error("apiErrors.invalidResponse");
             }
             const ticker = data.data[0];
-            const openRaw = Number(ticker.open);
-            const lastRaw = Number(ticker.lastPrice);
-            const highRaw = Number(ticker.high);
-            const lowRaw = Number(ticker.low);
-            const baseVolRaw = Number(ticker.baseVol);
-            const quoteVolRaw = Number(ticker.quoteVol);
+            // Defensive checks before Number conversion
+            const openRaw = ticker.open !== undefined && ticker.open !== null
+              ? Number(ticker.open)
+              : 0;
+            const lastRaw = ticker.lastPrice !== undefined && ticker.lastPrice !== null
+              ? Number(ticker.lastPrice)
+              : NaN; // Keep NaN for validation below
+            const highRaw = ticker.high !== undefined && ticker.high !== null
+              ? Number(ticker.high)
+              : NaN;
+            const lowRaw = ticker.low !== undefined && ticker.low !== null
+              ? Number(ticker.low)
+              : NaN;
+            const baseVolRaw = ticker.baseVol !== undefined && ticker.baseVol !== null
+              ? Number(ticker.baseVol)
+              : 0;
+            const quoteVolRaw = ticker.quoteVol !== undefined && ticker.quoteVol !== null
+              ? Number(ticker.quoteVol)
+              : 0;
 
             if (isNaN(lastRaw) || !isFinite(lastRaw)) {
               throw new Error("apiErrors.invalidResponse");

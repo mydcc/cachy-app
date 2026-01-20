@@ -38,9 +38,12 @@ export const syncService = {
     }
 
     // Protection against concurrent syncs at service level
-    if (uiState.isPriceFetching) return;
+    if (uiState.isSyncing) {
+      console.warn('[Sync] Sync already in progress, skipping...');
+      return;
+    }
 
-    uiState.update((s) => ({ ...s, isPriceFetching: true }));
+    uiState.update((s) => ({ ...s, isPriceFetching: true, isSyncing: true }));
     uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
 
     try {
@@ -396,7 +399,7 @@ export const syncService = {
       trackCustomEvent("Sync", "BitunixHistory", "Error");
       uiState.showError("Sync failed: " + e.message);
     } finally {
-      uiState.update((s) => ({ ...s, isPriceFetching: false }));
+      uiState.update((s) => ({ ...s, isPriceFetching: false, isSyncing: false }));
       uiState.setSyncProgress(null);
     }
   },

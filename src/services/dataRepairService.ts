@@ -44,6 +44,7 @@ export const dataRepairService = {
         }
 
         let processed = 0;
+        let failed = 0;
 
         for (const trade of targets) {
             processed++;
@@ -57,6 +58,7 @@ export const dataRepairService = {
 
                 if (isNaN(timestamp)) {
                     console.warn(`[DataRepair] Invalid date for trade ${trade.id}, skipping.`);
+                    failed++;
                     continue;
                 }
 
@@ -103,11 +105,16 @@ export const dataRepairService = {
                             atrValue: atr
                         });
 
+                    } else {
+                        failed++;
                     }
+                } else {
+                    failed++;
                 }
 
             } catch (e) {
                 console.error(`[DataRepair] Failed to repair ${trade.symbol}:`, e);
+                failed++;
                 // Continue with next trade
             }
 
@@ -117,7 +124,14 @@ export const dataRepairService = {
             await new Promise(r => setTimeout(r, 500));
         }
 
-        onProgress(total, total, "Reparatur abgeschlossen.");
+        const successCount = total - failed;
+        onProgress(
+            total,
+            total,
+            failed > 0
+                ? `Reparatur abgeschlossen. ${successCount} erfolgreich, ${failed} fehlgeschlagen.`
+                : "Reparatur abgeschlossen."
+        );
     },
 
     /**
@@ -152,6 +166,7 @@ export const dataRepairService = {
         }
 
         let processed = 0;
+        let failed = 0;
         const Decimal = (await import("decimal.js")).default; // Dynamic import or assume global if cleaner
 
         for (const trade of targets) {
@@ -161,6 +176,7 @@ export const dataRepairService = {
             try {
                 if (!trade.entryDate || !trade.exitDate) {
                     // Cannot calc without window
+                    failed++;
                     continue;
                 }
 
@@ -168,6 +184,7 @@ export const dataRepairService = {
                 const endTs = new Date(trade.exitDate).getTime();
 
                 if (isNaN(startTs) || isNaN(endTs) || endTs <= startTs) {
+                    failed++;
                     continue;
                 }
 
@@ -225,16 +242,26 @@ export const dataRepairService = {
                         mfe: mfe,
                         mae: mae
                     });
+                } else {
+                    failed++;
                 }
 
             } catch (e) {
                 console.error(`[DataRepair] MFE/MAE Err ${trade.symbol}:`, e);
+                failed++;
             }
 
             await new Promise(r => setTimeout(r, 500));
         }
 
-        onProgress(total, total, "MFE/MAE Berechnungen fertig.");
+        const successCount = total - failed;
+        onProgress(
+            total,
+            total,
+            failed > 0
+                ? `MFE/MAE Berechnungen fertig. ${successCount} erfolgreich, ${failed} fehlgeschlagen.`
+                : "MFE/MAE Berechnungen fertig."
+        );
     },
 
     /**
