@@ -572,14 +572,14 @@
       "gemmaOpen": "Gemma 3 27b (Open Model ✨)"
     },
     "technicals": {
-      "oscillators": "Oscillators",
-      "movingAverages": "Moving Averages",
-      "pivots": "Pivot Points",
-      "buy": "Buy",
-      "sell": "Sell",
-      "neutral": "Neutral",
       "strongBuy": "Strong Buy",
-      "strongSell": "Strong Sell"
+      "strongSell": "Strong Sell",
+      "title": "Technicals Analysis",
+      "summaryAction": "Summary",
+      "marketConfluence": "Market Confluence",
+      "oscillatorsTitle": "Oscillators",
+      "movingAveragesTitle": "Moving Averages",
+      "advancedTitle": "Advanced Analysis"
     },
     "imgbbPermanent": "Permanent (No Auto-Delete)",
     "imgbb10m": "10 Minutes",

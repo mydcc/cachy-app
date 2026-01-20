@@ -153,17 +153,6 @@
     }
   });
 
-  // Toggle glass-enabled class based on settings
-  $effect(() => {
-    if (typeof document !== "undefined") {
-      if (settingsState.enableGlassmorphism) {
-        document.documentElement.classList.add("glass-enabled");
-      } else {
-        document.documentElement.classList.remove("glass-enabled");
-      }
-    }
-  });
-
   // Update Font Family
   $effect(() => {
     if (typeof document !== "undefined") {

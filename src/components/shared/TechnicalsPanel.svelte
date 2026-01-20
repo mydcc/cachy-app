@@ -442,7 +442,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                Oscillators
+                {$_("settings.technicals.oscillatorsTitle") || "Oscillators"}
               </div>
               {#each data.oscillators as osc}
                 <div
@@ -467,7 +467,8 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                Moving Averages
+                {$_("settings.technicals.movingAveragesTitle") ||
+                  "Moving Averages"}
               </div>
               {#each data.movingAverages as ma}
                 <div
@@ -491,7 +492,7 @@
               <div
                 class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
               >
-                Advanced
+                {$_("settings.technicals.advancedTitle") || "Advanced"}
               </div>
 
               <!-- VWAP -->

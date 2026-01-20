@@ -67,7 +67,7 @@
   }: Props = $props();
 
   // Local state for input to prevent immediate store updates
-  let localSymbol = $state("");
+  let localSymbol = $state(symbol || "");
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
@@ -80,9 +80,10 @@
   });
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
-  // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues
+  // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
+  // Exception: If localSymbol is empty, always sync to ensure default shows up.
   $effect(() => {
-    if (!isSymbolFocused && symbol !== localSymbol) {
+    if ((!isSymbolFocused || localSymbol === "") && symbol !== localSymbol) {
       localSymbol = symbol || "";
     }
   });
@@ -283,7 +284,11 @@
           type="button"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
           onclick={() =>
-            modalState.show($_("dashboard.tradeSetupInputs.selectSymbol"), "", "symbolPicker")}
+            modalState.show(
+              $_("dashboard.tradeSetupInputs.selectSymbol"),
+              "",
+              "symbolPicker",
+            )}
           title={$_("dashboard.tradeSetupInputs.selectSymbol")}
         >
           <svg
@@ -368,7 +373,9 @@
         <div
           class="absolute -top-6 left-0 text-[10px] text-orange-500 font-bold animate-pulse"
         >
-          ⚠️ {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(1)}%
+          ⚠️ {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(
+            1,
+          )}%
         </div>
       {/if}
 
