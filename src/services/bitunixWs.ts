@@ -525,70 +525,112 @@ class BitunixWebSocketService {
       if (type === "public") this.awaitingPongPublic = false;
       else this.awaitingPongPrivate = false;
 
-      if (message && message.event === "login") {
-        if (message.code === 0 || message.code === "0" || message.msg === "success") {
+      // 1. Validate message structure with Zod
+      const validationResult = BitunixWSMessageSchema.safeParse(message);
+      if (!validationResult.success) {
+        console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
+        return;
+      }
+
+      const validatedMessage = validationResult.data;
+
+      // 2. Handle special messages
+      if (validatedMessage && validatedMessage.event === "login") {
+        if (validatedMessage.code === 0 || validatedMessage.code === "0" || validatedMessage.msg === "success") {
           this.isAuthenticated = true;
           this.subscribePrivate();
         }
         return;
       }
 
-      if (!message) return;
-      if (message.op === "pong" || message.pong || message.op === "ping") return;
+      if (!validatedMessage) return;
+      if (validatedMessage.op === "pong" || validatedMessage.pong || validatedMessage.op === "ping") return;
 
-      if (message.ch === "price") {
-        const rawSymbol = message.symbol;
-        if (!rawSymbol) return;
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = message.data as Partial<BitunixPriceData>;
-        if (symbol && data && this.validatePriceData(data)) {
-          // Partial update safety: Only update fields that exist
-          const update: any = {};
-          if (data.mp !== undefined) update.price = data.mp;
-          if (data.ip !== undefined) update.indexPrice = data.ip;
-          if (data.fr !== undefined) update.fundingRate = data.fr;
-          if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
+      // 3. Validate channel if present
+      if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
+        console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
+        return;
+      }
 
-          if (Object.keys(update).length > 0) {
-            marketState.updatePrice(symbol, update);
-          }
+      // 4. Handle price updates
+      if (validatedMessage.ch === "price") {
+        const rawSymbol = validatedMessage.symbol;
+
+        // Validate symbol
+        if (!validateSymbol(rawSymbol)) {
+          console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
+          return;
         }
-      } else if (message.ch === "ticker") {
-        const rawSymbol = message.symbol;
-        if (!rawSymbol) return;
-        const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = message.data as Partial<BitunixTickerData>;
-        if (symbol && data && this.validateTickerData(data)) {
-          // Partial update safety
-          const update: any = {};
-          if (data.la !== undefined) update.lastPrice = data.la;
-          if (data.h !== undefined) update.high = data.h;
-          if (data.l !== undefined) update.low = data.l;
-          if (data.b !== undefined) update.vol = data.b;
-          if (data.q !== undefined) update.quoteVol = data.q;
-          if (data.r !== undefined) update.change = data.r;
-          if (data.o !== undefined) update.open = data.o;
 
-          if (Object.keys(update).length > 0) {
-            marketState.updateTicker(symbol, update);
-          }
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
+
+        // Validate price data with Zod
+        const priceValidation = BitunixPriceDataSchema.safeParse(validatedMessage.data);
+        if (!priceValidation.success) {
+          console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
+          return;
         }
-      } else if (message.ch === "depth_book5") {
-        const rawSymbol = message.symbol;
+
+        const data = priceValidation.data;
+
+        // Build update object
+        const update: any = {};
+        if (data.mp !== undefined) update.price = data.mp;
+        if (data.ip !== undefined) update.indexPrice = data.ip;
+        if (data.fr !== undefined) update.fundingRate = data.fr;
+        if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
+
+        if (Object.keys(update).length > 0) {
+          marketState.updatePrice(symbol, update);
+        }
+      } else if (validatedMessage.ch === "ticker") {
+        const rawSymbol = validatedMessage.symbol;
+
+        if (!validateSymbol(rawSymbol)) {
+          console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
+          return;
+        }
+
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
+
+        // Validate ticker data with Zod
+        const tickerValidation = BitunixTickerDataSchema.safeParse(validatedMessage.data);
+        if (!tickerValidation.success) {
+          console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
+          return;
+        }
+
+        const data = tickerValidation.data;
+
+        // Build update object
+        const update: any = {};
+        if (data.la !== undefined) update.lastPrice = data.la;
+        if (data.h !== undefined) update.high = data.h;
+        if (data.l !== undefined) update.low = data.l;
+        if (data.b !== undefined) update.vol = data.b;
+        if (data.q !== undefined) update.quoteVol = data.q;
+        if (data.r !== undefined) update.change = data.r;
+        if (data.o !== undefined) update.open = data.o;
+
+        if (Object.keys(update).length > 0) {
+          marketState.updateTicker(symbol, update);
+        }
+      } else if (validatedMessage.ch === "depth_book5") {
+        const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = message.data;
+        const data = validatedMessage.data;
         if (symbol && data) marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
-      } else if (message.ch && (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day")) {
-        const rawSymbol = message.symbol;
+      } else if (validatedMessage.ch && (validatedMessage.ch.startsWith("market_kline_") || validatedMessage.ch === "mark_kline_1day")) {
+        const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
-        const data = message.data;
+        const data = validatedMessage.data;
         if (symbol && data) {
           let timeframe = "1h";
-          if (message.ch === "mark_kline_1day") timeframe = "1d";
+          if (validatedMessage.ch === "mark_kline_1day") timeframe = "1d";
           else {
-            const match = message.ch.match(/market_kline_(.+)/);
+            const match = validatedMessage.ch.match(/market_kline_(.+)/);
             if (match) {
               const bitunixTf = match[1];
               const revMap: Record<string, string> = { "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m", "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M" };
@@ -597,26 +639,28 @@ class BitunixWebSocketService {
           }
           marketState.updateKline(symbol, timeframe, { o: data.o, h: data.h, l: data.l, c: data.c, b: data.b || data.v, t: data.t || data.id || data.ts || Date.now() });
         }
-      } else if (message.ch === "position") {
-        const data = message.data;
+      } else if (validatedMessage.ch === "position") {
+        const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data)) data.forEach((item: any) => accountState.updatePositionFromWs(item));
           else accountState.updatePositionFromWs(data);
         }
-      } else if (message.ch === "order") {
-        const data = message.data;
+      } else if (validatedMessage.ch === "order") {
+        const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data)) data.forEach((item: any) => accountState.updateOrderFromWs(item));
           else accountState.updateOrderFromWs(data);
         }
-      } else if (message.ch === "wallet") {
-        const data = message.data;
+      } else if (validatedMessage.ch === "wallet") {
+        const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data)) data.forEach((item: any) => accountState.updateBalanceFromWs(item));
           else accountState.updateBalanceFromWs(data);
         }
       }
     } catch (err) {
+      console.error('[WebSocket] Message handling error:', err);
+      console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
     }
   }
 
