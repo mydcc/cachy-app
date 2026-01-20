@@ -9,8 +9,6 @@
     import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
-    import ProBadge from "./ProBadge.svelte";
-    import ProOverlay from "./ProOverlay.svelte";
     import Field from "./IndicatorField.svelte";
     import Select from "./IndicatorSelect.svelte";
 
@@ -191,7 +189,7 @@
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>RSI</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -219,7 +217,7 @@
                             <div class="row-between mt-2">
                                 <span class="text-xs">Signal Line</span><Toggle
                                     bind:checked={indicatorState.rsi.showSignal}
-                                    disabled={!settingsState.isPro}
+                                    
                                 />
                             </div>
                             {#if indicatorState.rsi.showSignal}<div
@@ -244,13 +242,13 @@
                                     />
                                 </div>{/if}
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                     <!-- Weitere Oszillatoren: Stoch RSI, Stochastic, CCI, Williams %R, MFI, Momentum, AO (Vom Original übernommen) -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Stoch RSI</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -284,12 +282,12 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Stochastic</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -320,12 +318,12 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>CCI</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -349,14 +347,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- Williams %R -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Williams %R</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -370,14 +368,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- MFI -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Money Flow Index</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -391,14 +389,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- Momentum -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Momentum</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -424,14 +422,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- Awesome Oscillator -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Awesome Osc</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -452,7 +450,7 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                 {/if}
 
@@ -460,7 +458,7 @@
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>MACD</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -484,13 +482,13 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                     <!-- EMA Triple (Wide Card) -->
                     <div class="indicator-card col-span-1 md:col-span-2">
                         <div class="indicator-header">
                             <h4>EMA Triple</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body flex flex-col gap-3">
                             <Select
@@ -543,12 +541,12 @@
                                 {/each}
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Ichimoku</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="grid grid-cols-2 gap-2">
@@ -570,14 +568,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- ADX -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>ADX</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -608,14 +606,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- SuperTrend -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>SuperTrend</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -641,14 +639,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- Pivots -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Pivots</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -674,7 +672,7 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                 {/if}
 
@@ -684,7 +682,7 @@
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>ATR</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -698,14 +696,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- Bollinger Bands -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Bollinger Bands</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -748,7 +746,7 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                 {/if}
 
@@ -758,7 +756,7 @@
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>Volume MA</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <div class="row">
@@ -777,14 +775,14 @@
                                 />
                             </div>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
 
                     <!-- OBV -->
                     <div class="indicator-card">
                         <div class="indicator-header">
                             <h4>OBV (On-Balance Volume)</h4>
-                            <ProBadge />
+                            
                         </div>
                         <div class="indicator-body">
                             <p class="text-xs text-[var(--text-secondary)]">
@@ -792,7 +790,7 @@
                                 automatically.
                             </p>
                         </div>
-                        <ProOverlay />
+                        
                     </div>
                 {/if}
 

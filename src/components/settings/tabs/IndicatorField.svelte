@@ -37,7 +37,6 @@
         {max}
         {step}
         class="input-field rounded settings-number-input text-xs w-full"
-        disabled={!settingsState.isPro && !alwaysEnabled}
         use:enhancedInput={{ min, max }}
     />
 </div>

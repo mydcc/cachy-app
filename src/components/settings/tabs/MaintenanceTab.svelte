@@ -112,13 +112,8 @@
                         >Export all journal data and settings to JSON.</span
                     >
                 </div>
-                <button
-                    class="card-btn"
-                    onclick={onBackup}
-                    disabled={!settingsState.isPro}
-                >
+                <button class="card-btn" onclick={onBackup}>
                     {$_("app.backupButtonAriaLabel") || "Backup Now"}
-                    {!settingsState.isPro ? " (Pro)" : ""}
                 </button>
             </div>
 

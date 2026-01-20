@@ -19,7 +19,6 @@
         {id}
         bind:value
         class="input-field p-1 rounded text-xs bg-[var(--bg-secondary)] w-full"
-        disabled={!settingsState.isPro}
     >
         {#each options as opt}
             <option value={opt}>{opt.toUpperCase()}</option>

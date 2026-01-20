@@ -439,29 +439,23 @@
   extraClasses="modal-size-journal"
 >
   {#snippet headerExtra()}
-    {#if settingsState.isPro}
-      <JournalStatistics
-        {performanceData}
-        {qualityData}
-        isPro={settingsState.isPro}
-        minimal={true}
-      />
-    {/if}
+    <JournalStatistics
+      {performanceData}
+      {qualityData}
+      isPro={true}
+      minimal={true}
+    />
   {/snippet}
   <!-- Dashboard Section -->
-  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
-    <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
-  {/if}
+  <DashboardNav {activePreset} onselect={(id) => (activePreset = id)} />
 
-  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
-    <!-- JournalCharts Component - All Chart Presets -->
-    <JournalCharts
-      {activePreset}
-      isPro={settingsState.isPro}
-      isDeepDiveUnlocked={settingsState.isDeepDiveUnlocked}
-      {themeColors}
-    />
-  {/if}
+  <!-- JournalCharts Component - All Chart Presets -->
+  <JournalCharts
+    {activePreset}
+    isPro={true}
+    isDeepDiveUnlocked={true}
+    {themeColors}
+  />
 
   <!-- Journal Filters Component - MOVED ABOVE TABLE -->
   <JournalFilters
@@ -613,12 +607,10 @@
   </div>
 
   <!-- Deep Dive Section -->
-  {#if settingsState.isPro && settingsState.isDeepDiveUnlocked}
-    <JournalDeepDive
-      {themeColors}
-      onfilterDateChange={(data) => handleDateFilterChange(data)}
-    />
-  {/if}
+  <JournalDeepDive
+    {themeColors}
+    onfilterDateChange={(data) => handleDateFilterChange(data)}
+  />
 
   {#if showUnlockOverlay}
     <div

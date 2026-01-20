@@ -321,362 +321,345 @@
     });
 </script>
 
-{#if isPro && isDeepDiveUnlocked}
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-        {#if activePreset === "performance"}
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <LineChart
-                    data={equityData}
-                    title={$_("journal.deepDive.charts.titles.equityCurve")}
-                    yLabel={$_("journal.deepDive.charts.labels.pnl")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.equityCurve",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <LineChart
-                    data={drawdownData}
-                    title={$_("journal.deepDive.charts.titles.drawdown")}
-                    yLabel={$_("journal.deepDive.charts.units.currency")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.drawdown",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={monthlyData}
-                    title={$_("journal.deepDive.charts.titles.monthlyPnl")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.monthlyPnl",
-                    )}
-                />
-            </div>
-        {:else if activePreset === "quality"}
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <DoughnutChart
-                    data={winLossChartData}
-                    title={$_("journal.deepDive.charts.titles.winRate")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.winLoss",
-                    )}
-                    options={{
-                        plugins: {
-                            legend: {
-                                display: true,
-                                position: "right",
-                                labels: {
-                                    boxWidth: 10,
-                                    padding: 10,
-                                    color: "#94a3b8",
-                                    font: { size: 10 },
-                                },
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+    {#if activePreset === "performance"}
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <LineChart
+                data={equityData}
+                title={$_("journal.deepDive.charts.titles.equityCurve")}
+                yLabel={$_("journal.deepDive.charts.labels.pnl")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.equityCurve",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <LineChart
+                data={drawdownData}
+                title={$_("journal.deepDive.charts.titles.drawdown")}
+                yLabel={$_("journal.deepDive.charts.units.currency")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.drawdown",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={monthlyData}
+                title={$_("journal.deepDive.charts.titles.monthlyPnl")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.monthlyPnl",
+                )}
+            />
+        </div>
+    {:else if activePreset === "quality"}
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <DoughnutChart
+                data={winLossChartData}
+                title={$_("journal.deepDive.charts.titles.winRate")}
+                description={$_("journal.deepDive.charts.descriptions.winLoss")}
+                options={{
+                    plugins: {
+                        legend: {
+                            display: true,
+                            position: "right",
+                            labels: {
+                                boxWidth: 10,
+                                padding: 10,
+                                color: "#94a3b8",
+                                font: { size: 10 },
                             },
                         },
-                    }}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={rDistData}
-                    title={$_("journal.deepDive.charts.titles.rMultipleDist")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.rMultipleDist",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <LineChart
-                    data={cumRData}
-                    title={$_("journal.deepDive.charts.titles.cumulativeR")}
-                    yLabel="R"
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.cumulativeR",
-                    )}
-                />
-            </div>
-        {:else if activePreset === "direction"}
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={topSymbolData}
-                    title={$_("journal.deepDive.charts.titles.topSymbols")}
-                    horizontal={true}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.topSymbols",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={bottomSymbolData}
-                    title={$_("journal.deepDive.charts.titles.bottomSymbols")}
-                    horizontal={true}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.bottomSymbols",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={longShortData}
-                    title={$_("journal.deepDive.charts.titles.longVsShort")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.longVsShort",
-                    )}
-                />
-            </div>
+                    },
+                }}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={rDistData}
+                title={$_("journal.deepDive.charts.titles.rMultipleDist")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.rMultipleDist",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <LineChart
+                data={cumRData}
+                title={$_("journal.deepDive.charts.titles.cumulativeR")}
+                yLabel="R"
+                description={$_(
+                    "journal.deepDive.charts.descriptions.cumulativeR",
+                )}
+            />
+        </div>
+    {:else if activePreset === "direction"}
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={topSymbolData}
+                title={$_("journal.deepDive.charts.titles.topSymbols")}
+                horizontal={true}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.topSymbols",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={bottomSymbolData}
+                title={$_("journal.deepDive.charts.titles.bottomSymbols")}
+                horizontal={true}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.bottomSymbols",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={longShortData}
+                title={$_("journal.deepDive.charts.titles.longVsShort")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.longVsShort",
+                )}
+            />
+        </div>
 
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px]"
-            >
-                <LineChart
-                    data={directionEvolutionData}
-                    title={$_(
-                        "journal.deepDive.charts.titles.longVsShortEvolution",
-                    )}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.directionEvolution",
-                    )}
-                />
-            </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] col-span-2 h-[250px]"
+        >
+            <LineChart
+                data={directionEvolutionData}
+                title={$_(
+                    "journal.deepDive.charts.titles.longVsShortEvolution",
+                )}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.directionEvolution",
+                )}
+            />
+        </div>
 
-            <!-- Stats Tile (1/3 width) -->
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px] flex flex-col justify-center"
-            >
-                <div class="text-center mb-4">
+        <!-- Stats Tile (1/3 width) -->
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px] flex flex-col justify-center"
+        >
+            <div class="text-center mb-4">
+                <span
+                    class="text-xs font-bold text-[#94a3b8] uppercase tracking-wider"
+                    >{$_("journal.deepDive.charts.labels.tradingStats")}</span
+                >
+            </div>
+            <div class="flex flex-col gap-3 text-sm">
+                <div class="flex justify-between items-center">
                     <span
-                        class="text-xs font-bold text-[#94a3b8] uppercase tracking-wider"
+                        class="text-[var(--text-secondary)] text-[10px] uppercase"
+                        >{$_("journal.deepDive.charts.titles.winRate")}</span
+                    >
+                    <span
+                        class="font-mono font-bold {qualData?.stats?.winRate?.greaterThanOrEqualTo(
+                            50,
+                        )
+                            ? 'text-[var(--success-color)]'
+                            : 'text-[var(--danger-color)]'}"
+                    >
+                        {qualData?.stats?.winRate
+                            ? formatDynamicDecimal(qualData.stats.winRate, 2)
+                            : "0"}%
+                    </span>
+                </div>
+                <div class="flex justify-between items-center">
+                    <span
+                        class="text-[var(--text-secondary)] text-[10px] uppercase"
                         >{$_(
-                            "journal.deepDive.charts.labels.tradingStats",
+                            "journal.deepDive.charts.labels.profitFactor",
                         )}</span
                     >
+                    <span
+                        class="font-mono font-bold {qualData?.detailedStats
+                            ?.profitFactor >= 1.5
+                            ? 'text-[var(--success-color)]'
+                            : qualData?.detailedStats?.profitFactor >= 1
+                              ? 'text-[var(--warning-color)]'
+                              : 'text-[var(--danger-color)]'}"
+                    >
+                        {qualData?.detailedStats?.profitFactor
+                            ? formatDynamicDecimal(
+                                  qualData.detailedStats.profitFactor,
+                                  2,
+                              )
+                            : "0"}
+                    </span>
                 </div>
-                <div class="flex flex-col gap-3 text-sm">
-                    <div class="flex justify-between items-center">
-                        <span
-                            class="text-[var(--text-secondary)] text-[10px] uppercase"
-                            >{$_(
-                                "journal.deepDive.charts.titles.winRate",
-                            )}</span
-                        >
-                        <span
-                            class="font-mono font-bold {qualData?.stats?.winRate?.greaterThanOrEqualTo(
-                                50,
-                            )
-                                ? 'text-[var(--success-color)]'
-                                : 'text-[var(--danger-color)]'}"
-                        >
-                            {qualData?.stats?.winRate
+                <div class="flex justify-between items-center">
+                    <span
+                        class="text-[var(--text-secondary)] text-[10px] uppercase"
+                        >{$_("journal.deepDive.charts.labels.expectancy")}</span
+                    >
+                    <span
+                        class="font-mono font-bold {(qualData?.detailedStats
+                            ?.expectancy || 0) > 0
+                            ? 'text-[var(--success-color)]'
+                            : 'text-[var(--danger-color)]'}"
+                    >
+                        ${qualData?.detailedStats?.expectancy
+                            ? formatDynamicDecimal(
+                                  qualData.detailedStats.expectancy,
+                                  2,
+                              )
+                            : "0"}
+                    </span>
+                </div>
+                <div class="flex justify-between items-center text-[11px]">
+                    <span class="text-[var(--text-secondary)] uppercase"
+                        >{$_("journal.deepDive.charts.labels.avgWinLoss")}</span
+                    >
+                    <div class="flex gap-1">
+                        <span class="text-[var(--success-color)]"
+                            >${qualData?.detailedStats?.avgWin
                                 ? formatDynamicDecimal(
-                                      qualData.stats.winRate,
+                                      qualData.detailedStats.avgWin,
                                       2,
                                   )
-                                : "0"}%
-                        </span>
-                    </div>
-                    <div class="flex justify-between items-center">
-                        <span
-                            class="text-[var(--text-secondary)] text-[10px] uppercase"
-                            >{$_(
-                                "journal.deepDive.charts.labels.profitFactor",
-                            )}</span
+                                : "0"}</span
                         >
-                        <span
-                            class="font-mono font-bold {qualData?.detailedStats
-                                ?.profitFactor >= 1.5
-                                ? 'text-[var(--success-color)]'
-                                : qualData?.detailedStats?.profitFactor >= 1
-                                  ? 'text-[var(--warning-color)]'
-                                  : 'text-[var(--danger-color)]'}"
-                        >
-                            {qualData?.detailedStats?.profitFactor
+                        <span class="text-[var(--text-secondary)]">/</span>
+                        <span class="text-[var(--danger-color)]"
+                            >${qualData?.detailedStats?.avgLoss
                                 ? formatDynamicDecimal(
-                                      qualData.detailedStats.profitFactor,
+                                      qualData.detailedStats.avgLoss,
                                       2,
                                   )
-                                : "0"}
-                        </span>
+                                : "0"}</span
+                        >
                     </div>
-                    <div class="flex justify-between items-center">
+                </div>
+                <div class="flex justify-between items-center text-[10px]">
+                    <span class="text-[var(--text-secondary)] uppercase"
+                        >{$_("journal.deepDive.charts.labels.winRateLS")}</span
+                    >
+                    <div class="flex gap-2">
                         <span
-                            class="text-[var(--text-secondary)] text-[10px] uppercase"
-                            >{$_(
-                                "journal.deepDive.charts.labels.expectancy",
-                            )}</span
-                        >
-                        <span
-                            class="font-mono font-bold {(qualData?.detailedStats
-                                ?.expectancy || 0) > 0
-                                ? 'text-[var(--success-color)]'
-                                : 'text-[var(--danger-color)]'}"
-                        >
-                            ${qualData?.detailedStats?.expectancy
+                            style="color: {themeColors
+                                ? hexToRgba(themeColors.success, 1)
+                                : '#10b981'}"
+                            >{$_("journal.labels.long")}: {qualData
+                                ?.detailedStats?.winRateLong
                                 ? formatDynamicDecimal(
-                                      qualData.detailedStats.expectancy,
-                                      2,
+                                      qualData.detailedStats.winRateLong,
+                                      1,
                                   )
-                                : "0"}
-                        </span>
-                    </div>
-                    <div class="flex justify-between items-center text-[11px]">
-                        <span class="text-[var(--text-secondary)] uppercase"
-                            >{$_(
-                                "journal.deepDive.charts.labels.avgWinLoss",
-                            )}</span
+                                : "0"}%</span
                         >
-                        <div class="flex gap-1">
-                            <span class="text-[var(--success-color)]"
-                                >${qualData?.detailedStats?.avgWin
-                                    ? formatDynamicDecimal(
-                                          qualData.detailedStats.avgWin,
-                                          2,
-                                      )
-                                    : "0"}</span
-                            >
-                            <span class="text-[var(--text-secondary)]">/</span>
-                            <span class="text-[var(--danger-color)]"
-                                >${qualData?.detailedStats?.avgLoss
-                                    ? formatDynamicDecimal(
-                                          qualData.detailedStats.avgLoss,
-                                          2,
-                                      )
-                                    : "0"}</span
-                            >
-                        </div>
-                    </div>
-                    <div class="flex justify-between items-center text-[10px]">
-                        <span class="text-[var(--text-secondary)] uppercase"
-                            >{$_(
-                                "journal.deepDive.charts.labels.winRateLS",
-                            )}</span
+                        <span
+                            style="color: {themeColors
+                                ? hexToRgba(themeColors.success, 0.6)
+                                : '#10b981'}"
+                            >{$_("journal.labels.short")}: {qualData
+                                ?.detailedStats?.winRateShort
+                                ? formatDynamicDecimal(
+                                      qualData.detailedStats.winRateShort,
+                                      1,
+                                  )
+                                : "0"}%</span
                         >
-                        <div class="flex gap-2">
-                            <span
-                                style="color: {themeColors
-                                    ? hexToRgba(themeColors.success, 1)
-                                    : '#10b981'}"
-                                >{$_("journal.labels.long")}: {qualData
-                                    ?.detailedStats?.winRateLong
-                                    ? formatDynamicDecimal(
-                                          qualData.detailedStats.winRateLong,
-                                          1,
-                                      )
-                                    : "0"}%</span
-                            >
-                            <span
-                                style="color: {themeColors
-                                    ? hexToRgba(themeColors.success, 0.6)
-                                    : '#10b981'}"
-                                >{$_("journal.labels.short")}: {qualData
-                                    ?.detailedStats?.winRateShort
-                                    ? formatDynamicDecimal(
-                                          qualData.detailedStats.winRateShort,
-                                          1,
-                                      )
-                                    : "0"}%</span
-                            >
-                        </div>
                     </div>
                 </div>
             </div>
-        {:else if activePreset === "discipline"}
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
-            >
-                <BarChart
-                    data={hourlyData}
-                    title={$_("journal.deepDive.charts.titles.hourlyPnl")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.hourlyPnl",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
-            >
-                <BarChart
-                    data={riskData}
-                    title={$_("journal.deepDive.charts.titles.riskConsistency")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.riskConsistency",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center gap-4"
-            >
-                <div class="text-center">
-                    <div class="text-xs uppercase text-[var(--text-secondary)]">
-                        {$_("journal.deepDive.charts.labels.longestWinStreak")}
-                    </div>
-                    <div class="text-3xl font-bold text-[var(--success-color)]">
-                        {discData?.streak?.win || 0}
-                    </div>
+        </div>
+    {:else if activePreset === "discipline"}
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+        >
+            <BarChart
+                data={hourlyData}
+                title={$_("journal.deepDive.charts.titles.hourlyPnl")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.hourlyPnl",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)]"
+        >
+            <BarChart
+                data={riskData}
+                title={$_("journal.deepDive.charts.titles.riskConsistency")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.riskConsistency",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] flex flex-col justify-center gap-4"
+        >
+            <div class="text-center">
+                <div class="text-xs uppercase text-[var(--text-secondary)]">
+                    {$_("journal.deepDive.charts.labels.longestWinStreak")}
                 </div>
-                <div class="text-center">
-                    <div class="text-xs uppercase text-[var(--text-secondary)]">
-                        {$_("journal.deepDive.charts.labels.longestLossStreak")}
-                    </div>
-                    <div class="text-3xl font-bold text-[var(--danger-color)]">
-                        {discData?.streak?.loss || 0}
-                    </div>
+                <div class="text-3xl font-bold text-[var(--success-color)]">
+                    {discData?.streak?.win || 0}
                 </div>
             </div>
-        {:else if activePreset === "costs"}
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <BarChart
-                    data={grossNetData}
-                    title={$_("journal.deepDive.charts.titles.grossVsNet")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.grossVsNet",
-                    )}
-                />
+            <div class="text-center">
+                <div class="text-xs uppercase text-[var(--text-secondary)]">
+                    {$_("journal.deepDive.charts.labels.longestLossStreak")}
+                </div>
+                <div class="text-3xl font-bold text-[var(--danger-color)]">
+                    {discData?.streak?.loss || 0}
+                </div>
             </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <LineChart
-                    data={feeCurveData}
-                    title={$_("journal.deepDive.charts.titles.cumulativeFees")}
-                    yLabel={$_("journal.deepDive.charts.units.currency")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.cumulativeFees",
-                    )}
-                />
-            </div>
-            <div
-                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
-            >
-                <DoughnutChart
-                    data={feeStructureData}
-                    title={$_("journal.deepDive.charts.titles.feeBreakdown")}
-                    description={$_(
-                        "journal.deepDive.charts.descriptions.feeBreakdown",
-                    )}
-                />
-            </div>
-        {/if}
-    </div>
-{/if}
+        </div>
+    {:else if activePreset === "costs"}
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <BarChart
+                data={grossNetData}
+                title={$_("journal.deepDive.charts.titles.grossVsNet")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.grossVsNet",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <LineChart
+                data={feeCurveData}
+                title={$_("journal.deepDive.charts.titles.cumulativeFees")}
+                yLabel={$_("journal.deepDive.charts.units.currency")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.cumulativeFees",
+                )}
+            />
+        </div>
+        <div
+            class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+        >
+            <DoughnutChart
+                data={feeStructureData}
+                title={$_("journal.deepDive.charts.titles.feeBreakdown")}
+                description={$_(
+                    "journal.deepDive.charts.descriptions.feeBreakdown",
+                )}
+            />
+        </div>
+    {/if}
+</div>

@@ -4,11 +4,30 @@
     import { trackCustomEvent } from "../../services/trackingService";
     import { onMount } from "svelte";
 
-    const CHEAT_CODE = "VIPTÜMPEL";
+    // SHA-256 Hash of the cheat code (not stored in plaintext)
+    const CHEAT_CODE_HASH =
+        "6c7de706af22343c9919ce5addec8b8341cfbcf82e5854f30fa98a3990bbc556";
+    const CHEAT_CODE_LENGTH = 9;
+
     let typedBuffer = $state("");
 
+    async function hashString(input: string): Promise<string> {
+        const encoded = new TextEncoder().encode(input);
+        const hashBuffer = await crypto.subtle.digest("SHA-256", encoded);
+        return Array.from(new Uint8Array(hashBuffer))
+            .map((b) => b.toString(16).padStart(2, "0"))
+            .join("");
+    }
+
+    async function checkCheatCode(buffer: string): Promise<boolean> {
+        if (buffer.length < CHEAT_CODE_LENGTH) return false;
+        const candidate = buffer.slice(-CHEAT_CODE_LENGTH);
+        const hash = await hashString(candidate);
+        return hash === CHEAT_CODE_HASH;
+    }
+
     onMount(() => {
-        const handleGlobalKeydown = (e: KeyboardEvent) => {
+        const handleGlobalKeydown = async (e: KeyboardEvent) => {
             // Don't capture when typing in inputs/textareas
             if (
                 e.target instanceof HTMLInputElement ||
@@ -24,7 +43,8 @@
                 typedBuffer = typedBuffer.slice(-20);
             }
 
-            if (typedBuffer.endsWith(CHEAT_CODE)) {
+            const isMatch = await checkCheatCode(typedBuffer);
+            if (isMatch) {
                 // Toggle the entire license
                 settingsState.isProLicenseActive =
                     !settingsState.isProLicenseActive;
