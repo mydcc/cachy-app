@@ -312,6 +312,44 @@
       });
     }
   });
+
+  // Base Asset (e.g. XRP) for external links
+  let baseAsset = $derived(
+    symbol
+      .replace(/USDT.?$/, "")
+      .replace(/P$/, "")
+      .toUpperCase(),
+  );
+
+  // Dynamic TradingView Link
+  let tvLink = $derived.by(() => {
+    const providerPrefix =
+      provider.toUpperCase() === "BINANCE" ? "BINANCE" : "BITUNIX";
+    const formattedSymbol = symbol.endsWith(".P")
+      ? symbol.replace(".P", "")
+      : symbol;
+    return `https://www.tradingview.com/chart/?symbol=${providerPrefix}:${formattedSymbol.toUpperCase()}`;
+  });
+
+  // Coinglass Heatmap Link
+  let cgHeatmapLink = $derived(
+    `https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${baseAsset}`,
+  );
+
+  // Direct Broker Link
+  let brokerLink = $derived.by(() => {
+    const s = symbol.toUpperCase();
+    if (provider.toLowerCase() === "binance") {
+      // Binance Futures URL structure
+      const formatted = s.endsWith("USDT") ? s : s + "USDT";
+      return `https://www.binance.com/en/futures/${formatted}`;
+    } else {
+      // Bitunix Contract Trade URL structure
+      const formatted = s.endsWith("USDT") ? s : s + "USDT";
+      return `https://www.bitunix.com/contract-trade/${formatted}`;
+    }
+  });
+
   $effect(() => {
     if (historyKlines.length > 0) {
       const _triggers = [indicatorState.rsi, currentPrice];
@@ -645,56 +683,43 @@
 
       {#if settingsState.showMarketOverviewLinks && symbol}
         <div
-          class="flex items-center gap-3 mt-3 pt-2 border-t border-[var(--border-color)]"
+          class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]"
         >
-          <a
-            href="https://www.tradingview.com/symbols/{symbol.replace(
-              'USDT',
-              '',
-            )}USDT/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-            title="TradingView"
-          >
-            TV
-          </a>
-          {#if settingsState.cmcApiKey}
+          {#if settingsState.showTvLink}
             <a
-              href="https://coinmarketcap.com/currencies/{symbol
-                .replace('USDT', '')
-                .toLowerCase()}/"
+              href={tvLink}
               target="_blank"
               rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-              title="CoinMarketCap"
+              title="TradingView Chart"
             >
-              CMC
+              TV
             </a>
           {/if}
-          <a
-            href="https://cryptopanic.com/news/{symbol
-              .replace('USDT', '')
-              .toLowerCase()}/"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-            title="CryptoPanic"
-          >
-            CP
-          </a>
-          <a
-            href="https://www.coinglass.com/currencies/{symbol.replace(
-              'USDT',
-              '',
-            )}"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
-            title="Coinglass"
-          >
-            CG
-          </a>
+
+          {#if settingsState.showCgHeatLink}
+            <a
+              href={cgHeatmapLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
+              title="Liquidation Heatmap"
+            >
+              CG Heat
+            </a>
+          {/if}
+
+          {#if settingsState.showBrokerLink}
+            <a
+              href={brokerLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
+              title="Open on {provider}"
+            >
+              {provider.toUpperCase()}
+            </a>
+          {/if}
         </div>
       {/if}
     </div>

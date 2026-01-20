@@ -104,6 +104,9 @@ export interface Settings {
     showTechnicalsMAs: boolean;
     showTechnicalsAdvanced: boolean;
     showTechnicalsSignals: boolean;
+    showTvLink: boolean;
+    showCgHeatLink: boolean;
+    showBrokerLink: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -182,6 +185,9 @@ const defaultSettings: Settings = {
     showTechnicalsMAs: true,
     showTechnicalsAdvanced: true,
     showTechnicalsSignals: true,
+    showTvLink: true,
+    showCgHeatLink: true,
+    showBrokerLink: true,
 };
 
 class SettingsManager {
@@ -268,6 +274,9 @@ class SettingsManager {
     showTechnicalsMAs = $state<boolean>(defaultSettings.showTechnicalsMAs);
     showTechnicalsAdvanced = $state<boolean>(defaultSettings.showTechnicalsAdvanced);
     showTechnicalsSignals = $state<boolean>(defaultSettings.showTechnicalsSignals);
+    showTvLink = $state<boolean>(defaultSettings.showTvLink);
+    showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
+    showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
 
     // Private state
     private effectActive = false; // Controls whether $effect should trigger saves
@@ -442,6 +451,9 @@ class SettingsManager {
             this.showTechnicalsMAs = merged.showTechnicalsMAs;
             this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
             this.showTechnicalsSignals = merged.showTechnicalsSignals;
+            this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
+            this.showCgHeatLink = merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
+            this.showBrokerLink = merged.showBrokerLink ?? defaultSettings.showBrokerLink;
 
             // Migration
             if (parsed.marketDataInterval === "manual") {
@@ -554,6 +566,9 @@ class SettingsManager {
             showTechnicalsMAs: this.showTechnicalsMAs,
             showTechnicalsAdvanced: this.showTechnicalsAdvanced,
             showTechnicalsSignals: this.showTechnicalsSignals,
+            showTvLink: this.showTvLink,
+            showCgHeatLink: this.showCgHeatLink,
+            showBrokerLink: this.showBrokerLink,
         };
     }
 
