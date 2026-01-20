@@ -1,134 +1,168 @@
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
-    import { modalState } from "../../stores/modal.svelte";
-    import { _ } from "../../locales/i18n";
+    import { uiState } from "../../stores/ui.svelte";
     import { trackCustomEvent } from "../../services/trackingService";
+    import { onMount } from "svelte";
 
     const CHEAT_CODE = "VIPTÜMPEL";
+    let typedBuffer = $state("");
+    let isUnlocked = $state(false);
 
-    async function handleToggle(event: MouseEvent) {
-        event.preventDefault();
-        const target = event.target as HTMLInputElement;
-
-        // If currently PRO (checked), we are turning it OFF
+    onMount(() => {
+        // If already Pro, it stays unlocked for this session
         if (settingsState.isPro) {
-            settingsState.isPro = false;
-            trackCustomEvent("ProStatus", "Toggle", "Deactivated");
+            isUnlocked = true;
+        }
+
+        const handleGlobalKeydown = (e: KeyboardEvent) => {
+            // Basic safeguard for focus on inputs
+            if (
+                e.target instanceof HTMLInputElement ||
+                e.target instanceof HTMLTextAreaElement
+            ) {
+                // If it's a text input, we might not want to capture cheatcodes
+                // OR we do. User said "egal wo oder wann".
+            }
+
+            if (e.key.length !== 1) return;
+
+            typedBuffer += e.key.toUpperCase();
+            if (typedBuffer.length > 20) {
+                typedBuffer = typedBuffer.slice(-20);
+            }
+
+            if (typedBuffer.endsWith(CHEAT_CODE)) {
+                isUnlocked = true;
+                trackCustomEvent("Security", "CheatCode", "Unlocked");
+            }
+        };
+
+        window.addEventListener("keydown", handleGlobalKeydown);
+        return () => window.removeEventListener("keydown", handleGlobalKeydown);
+    });
+
+    function handleToggle(event: Event) {
+        if (!isUnlocked) {
+            event.preventDefault();
             return;
         }
 
-        // If currently NOT PRO, we are trying to turn it ON
-        const input = await modalState.show(
-            $_("app.proRequiredTitle") || "Pro Status Locked",
-            $_("app.enterCheatCode") || "Please enter the activation code:",
-            "prompt",
+        // settingsState.isPro is updated here
+        const input = event.target as HTMLInputElement;
+        settingsState.isPro = input.checked;
+        trackCustomEvent(
+            "ProStatus",
+            "Toggle",
+            settingsState.isPro ? "Activated" : "Deactivated",
         );
 
-        if (input === CHEAT_CODE) {
-            settingsState.isPro = true;
-            trackCustomEvent("ProStatus", "Toggle", "Activated");
-            uiState.showFeedback("save"); // Assuming this exists or generic feedback
-        } else if (input) {
-            modalState.show(
-                $_("app.error") || "Error",
-                $_("app.invalidCode") || "Invalid activation code.",
-                "alert",
-            );
+        if (settingsState.isPro) {
+            uiState.showFeedback("save");
         }
     }
-
-    // Helper to access uiState for feedback if possible, or we just rely on the toggle visual
-    import { uiState } from "../../stores/ui.svelte";
 </script>
 
-<div class="pro-toggle-container">
-    <label class="switch">
-        <input
-            type="checkbox"
-            checked={settingsState.isPro}
-            onclick={handleToggle}
-        />
-        <span class="slider"></span>
-    </label>
-    <span class="label-text">{settingsState.isPro ? "PRO" : "FREE"}</span>
+<div class="checkbox-wrapper-25">
+    <input
+        type="checkbox"
+        checked={settingsState.isPro}
+        onchange={handleToggle}
+        disabled={!isUnlocked}
+    />
 </div>
 
 <style>
-    .pro-toggle-container {
-        display: flex;
+    .checkbox-wrapper-25 {
+        display: inline-flex;
         align-items: center;
-        gap: 12px;
-        font-family: var(--font-family, sans-serif);
     }
 
-    .label-text {
-        font-weight: 700;
-        font-size: 0.9rem;
-        color: var(--text-primary);
-        min-width: 40px;
-    }
-
-    /* The switch - the box around the slider */
-    .switch {
-        font-size: 17px;
-        position: relative;
-        display: inline-block;
-        width: 3.5em;
-        height: 2em;
-    }
-
-    /* Hide default HTML checkbox */
-    .switch input {
-        opacity: 0;
-        width: 0;
-        height: 0;
-    }
-
-    /* The slider */
-    .slider {
-        position: absolute;
+    .checkbox-wrapper-25 input[type="checkbox"] {
+        background-image:
+            -webkit-linear-gradient(
+                hsla(0, 0%, 0%, 0.1),
+                hsla(0, 0%, 100%, 0.1)
+            ),
+            -webkit-linear-gradient(
+                    left,
+                    var(--danger-color, #f66) 50%,
+                    var(--btn-accent-bg, #6cf) 50%
+                );
+        background-image:
+            linear-gradient(hsla(0, 0%, 0%, 0.1), hsla(0, 0%, 100%, 0.1)),
+            linear-gradient(
+                to right,
+                var(--danger-color, #f66) 50%,
+                var(--btn-accent-bg, #6cf) 50%
+            );
+        background-size:
+            100% 100%,
+            200% 100%;
+        background-position:
+            0 0,
+            15px 0;
+        border-radius: 25px;
+        box-shadow:
+            inset 0 1px 4px hsla(0, 0%, 0%, 0.5),
+            inset 0 0 10px hsla(0, 0%, 0%, 0.5),
+            0 0 0 1px hsla(0, 0%, 0%, 0.1),
+            0 -1px 2px 2px hsla(0, 0%, 0%, 0.25),
+            0 2px 2px 2px hsla(0, 0%, 100%, 0.15); /* Subtle bottom glow */
         cursor: pointer;
-        top: 0;
-        left: 0;
-        right: 0;
-        bottom: 0;
-        background-color: var(--input-bg, #2c3e50);
-        border: 1px solid var(--border-color, #4a5568);
-        transition: 0.4s;
-        border-radius: 30px;
-        box-shadow: inset 2px 5px 10px rgba(0, 0, 0, 0.3);
+        height: 25px;
+        padding-right: 25px;
+        width: 75px;
+        -webkit-appearance: none;
+        appearance: none;
+        -webkit-transition: 0.25s;
+        transition: 0.25s;
+        border: none;
+        outline: none;
+        position: relative;
+        box-sizing: border-box; /* Crucial for padding/width math */
     }
 
-    .slider:before {
-        position: absolute;
+    /* The actual slider "knob" using :after */
+    .checkbox-wrapper-25 input[type="checkbox"]:after {
+        background-color: #eee;
+        background-image: -webkit-linear-gradient(
+            hsla(0, 0%, 100%, 0.1),
+            hsla(0, 0%, 0%, 0.1)
+        );
+        background-image: linear-gradient(
+            hsla(0, 0%, 100%, 0.1),
+            hsla(0, 0%, 0%, 0.1)
+        );
+        border-radius: 25px;
+        box-shadow:
+            inset 0 1px 1px 1px hsla(0, 0%, 100%, 1),
+            inset 0 -1px 1px 1px hsla(0, 0%, 0%, 0.25),
+            0 1px 3px 1px hsla(0, 0%, 0%, 0.5),
+            0 0 2px hsla(0, 0%, 0%, 0.25);
         content: "";
-        height: 1.4em;
-        width: 1.4em;
-        left: 0.3em;
-        bottom: 0.25em;
-        background-color: var(--text-secondary, #a0aec0);
-        transition: 0.4s;
-        border-radius: 50%;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        display: block;
+        height: 25px;
+        width: 50px;
+        transition: transform 0.25s linear;
     }
 
-    input:checked + .slider {
-        background-color: var(--btn-accent-bg, #17c964);
-        border-color: var(--btn-accent-bg, #17c964);
+    /* Checked State */
+    .checkbox-wrapper-25 input[type="checkbox"]:checked {
+        background-position:
+            0 0,
+            35px 0;
+        padding-left: 25px;
+        padding-right: 0;
     }
 
-    input:checked + .slider:before {
-        transform: translateX(1.5em);
-        background-color: #fff;
-        box-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+    /* Locked / Disabled State */
+    .checkbox-wrapper-25 input[type="checkbox"]:disabled {
+        cursor: default;
+        filter: grayscale(1) opacity(0.5);
     }
 
-    /* Hover effects */
-    .slider:hover {
-        border-color: var(--text-secondary);
-    }
-
-    input:checked + .slider:hover {
-        box-shadow: 0 0 15px var(--btn-accent-bg, #17c964);
+    /* Dezent: remove focused ring */
+    .checkbox-wrapper-25 input[type="checkbox"]:focus {
+        outline: none;
     }
 </style>
