@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { onMount, onDestroy, untrack } from "svelte";
+  import { fade } from "svelte/transition";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
@@ -477,8 +478,28 @@
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
       {$_("apiErrors.noMarketData") || "No market data available"}
     </div>
-  {:else if currentPrice || tickerData}
-    <div class="flex flex-col gap-1 mt-1">
+  {:else if !currentPrice || currentPrice.isZero()}
+    <!-- Skeleton / Loading State -->
+    <div class="flex flex-col gap-4 py-2 animate-pulse">
+      <div class="flex justify-between items-baseline">
+        <div class="h-8 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/4 shimmer"></div>
+      </div>
+      <div class="h-2 bg-[var(--bg-tertiary)] rounded w-full shimmer"></div>
+      <div class="grid grid-cols-2 gap-4 mt-2">
+        <div class="space-y-2">
+          <div class="h-3 bg-[var(--bg-tertiary)] rounded w-3/4 shimmer"></div>
+          <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        </div>
+        <div class="space-y-2 flex flex-col items-end">
+          <div class="h-3 bg-[var(--bg-tertiary)] rounded w-3/4 shimmer"></div>
+          <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        </div>
+      </div>
+    </div>
+  {:else}
+    <!-- Real Data State -->
+    <div in:fade={{ duration: 400 }} class="flex flex-col gap-1 mt-1">
       <div class="flex justify-between items-baseline">
         <div class="text-2xl font-bold tracking-tight flex">
           {#key animationKey}
@@ -515,105 +536,88 @@
         <DepthBar bids={depthData.bids} asks={depthData.asks} />
       {/if}
 
-      {#if tickerData}
-        <div class="stat-group">
-          <div class="stat-item">
-            <span class="stat-label">{tickerData.highPrice || 0}</span>
-          </div>
-          <div class="stat-item">
-            <span class="stat-label">{tickerData.lowPrice || 0}</span>
-          </div>
-        </div>
-      {/if}
-
       {#if settingsState.showMarketActivity}
-        {#if highPrice || tickerData}
-          <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
-            <div class="flex flex-col">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.24hHigh")}</span
-              >
-              <span class="font-medium text-[var(--text-primary)]"
-                >{formatValue(highPrice, 4)}</span
-              >
-            </div>
-            <div class="flex flex-col text-right">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.24hLow")}</span
-              >
-              <span class="font-medium text-[var(--text-primary)]"
-                >{formatValue(lowPrice, 4)}</span
-              >
-            </div>
-            <div class="flex flex-col mt-1">
-              <span class="text-[var(--text-secondary)]"
-                >{$_("marketOverview.vol")} ({displaySymbol
-                  .replace(/USDT.?$/, "")
-                  .replace(/P$/, "")})</span
-              >
-              <span class="font-medium text-[var(--text-primary)]"
-                >{formatValue(volume, 0)}</span
-              >
-            </div>
-            {#if settingsState.showMarketSentiment}
-              <div class="flex flex-col mt-1 text-right relative group">
-                <span class="text-[var(--text-secondary)]"
-                  >RSI ({effectiveRsiTimeframe})</span
-                >
-                <span
-                  class="font-medium transition-colors duration-300 cursor-help"
-                  class:text-[var(--danger-color)]={rsiValue &&
-                    rsiValue.gte(70)}
-                  class:text-[var(--success-color)]={rsiValue &&
-                    rsiValue.lte(30)}
-                  class:text-[var(--text-primary)]={!rsiValue ||
-                    (rsiValue.gt(30) && rsiValue.lt(70))}
-                >
-                  {formatValue(rsiValue, 2)}
-                </span>
-                <div
-                  class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
-                >
-                  <Tooltip>
-                    <div
-                      class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]"
-                    >
-                      <div
-                        class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
-                      >
-                        RSI Settings
-                      </div>
-                      <div class="flex justify-between gap-4">
-                        <span>{$_("marketOverview.length")}:</span>
-                        <span class="font-mono"
-                          >{indicatorState.rsi.length}</span
-                        >
-                      </div>
-                      <div class="flex justify-between gap-4">
-                        <span>{$_("marketOverview.source")}:</span>
-                        <span class="font-mono capitalize"
-                          >{indicatorState.rsi.source}</span
-                        >
-                      </div>
-                      {#if indicatorState.rsi.showSignal && signalValue}
-                        <div
-                          class="flex justify-between gap-4 text-[var(--accent-color)]"
-                        >
-                          <span
-                            >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
-                          >
-                          <span class="font-mono"
-                            >{formatValue(signalValue, 2)}</span
-                          >
-                        </div>
-                      {/if}
-                    </div>
-                  </Tooltip>
-                </div>
-              </div>
-            {/if}
+        <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
+          <div class="flex flex-col">
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.24hLow")}</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(lowPrice, 4)}</span
+            >
           </div>
-        {/if}
+          <div class="flex flex-col text-right">
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.24hHigh")}</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(highPrice, 4)}</span
+            >
+          </div>
+          <div class="flex flex-col mt-1">
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.vol")} ({displaySymbol
+                .replace(/USDT.?$/, "")
+                .replace(/P$/, "")})</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(volume, 0)}</span
+            >
+          </div>
+          {#if settingsState.showMarketSentiment}
+            <div class="flex flex-col mt-1 text-right relative group">
+              <span class="text-[var(--text-secondary)]"
+                >RSI ({effectiveRsiTimeframe})</span
+              >
+              <span
+                class="font-medium transition-colors duration-300 cursor-help"
+                class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
+                class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
+                class:text-[var(--text-primary)]={!rsiValue ||
+                  (rsiValue.gt(30) && rsiValue.lt(70))}
+              >
+                {formatValue(rsiValue, 2)}
+              </span>
+              <div
+                class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
+              >
+                <Tooltip>
+                  <div
+                    class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]"
+                  >
+                    <div
+                      class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
+                    >
+                      RSI Settings
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span>{$_("marketOverview.length")}:</span>
+                      <span class="font-mono">{indicatorState.rsi.length}</span>
+                    </div>
+                    <div class="flex justify-between gap-4">
+                      <span>{$_("marketOverview.source")}:</span>
+                      <span class="font-mono capitalize"
+                        >{indicatorState.rsi.source}</span
+                      >
+                    </div>
+                    {#if indicatorState.rsi.showSignal && signalValue}
+                      <div
+                        class="flex justify-between gap-4 text-[var(--accent-color)]"
+                      >
+                        <span
+                          >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
+                        >
+                        <span class="font-mono"
+                          >{formatValue(signalValue, 2)}</span
+                        >
+                      </div>
+                    {/if}
+                  </div>
+                </Tooltip>
+              </div>
+            </div>
+          {/if}
+        </div>
 
         {#if fundingRate}
           <div
@@ -693,14 +697,6 @@
           </a>
         </div>
       {/if}
-    </div>
-  {:else}
-    <div class="flex justify-center py-4">
-      <div class="flex flex-col w-full gap-2">
-        <div class="h-8 shimmer rounded w-3/4"></div>
-        <div class="h-4 shimmer rounded w-1/2"></div>
-        <div class="h-12 shimmer rounded w-full mt-2"></div>
-      </div>
     </div>
   {/if}
 
