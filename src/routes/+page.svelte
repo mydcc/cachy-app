@@ -293,10 +293,12 @@
 <div
   class="flex flex-col xl:flex-row items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
 >
-  {#if settingsState.showSidebars && settingsState.isPro}
+  {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
-      <PositionsSidebar />
+      {#if settingsState.isPro}
+        <PositionsSidebar />
+      {/if}
       {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
         <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
       {/if}
@@ -688,11 +690,13 @@
       </footer>
     </section>
 
-    {#if settingsState.showSidebars && settingsState.isPro}
+    {#if settingsState.showSidebars}
       <!-- Mobile MarketOverview position -->
       <div class="xl:hidden mt-8 flex flex-col gap-4">
-        <!-- Add PositionsSidebar for Mobile -->
-        <PositionsSidebar />
+        {#if settingsState.isPro}
+          <!-- Add PositionsSidebar for Mobile -->
+          <PositionsSidebar />
+        {/if}
 
         {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
