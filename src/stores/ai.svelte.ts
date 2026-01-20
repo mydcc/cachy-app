@@ -179,6 +179,12 @@ class AiManager {
                 "   - If speculating (e.g., market psychology), prefix with: 'Speculation: ...'",
                 "   - NEVER present guesses as facts",
                 "",
+                "- MARKET NOISE & VOLATILITY (CRITICAL):",
+                "  * **SNAPSHOT DATA**: Treat 'spread' and 'imbalance' as high-frequency noise. These values change every millisecond and have ZERO predictive power in isolation.",
+                "  * **IGNORE BY DEFAULT**: Do NOT mention the spread or orderbook imbalance if the status is 'Normal/Liquid' or 'Balanced'.",
+                "  * **ANOMALY DETECTION**: Only address these metrics if they show extreme values (e.g., Status: 'Extreme Gap' or 'Extreme Pressure').",
+                "  * **HISTORICAL PRIORITY**: Always prioritize Technical Indicators (RSI, EMA) and Market Structure (HH/HL) over local orderbook snapshots.",
+                "",
                 "TONE & STYLE:",
                 "- Professional, objective, and data-driven.",
                 "- Be skeptical of 'easy' trades; challenge the user's assumptions if data suggests otherwise.",
@@ -602,18 +608,36 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         if (marketData) {
             let imbalance = "Unknown";
             let spread = "Unknown";
+            let spreadStatus = "Unknown";
+            let imbalanceStatus = "Balanced";
+
             if (marketData.depth && marketData.depth.bids.length > 0 && marketData.depth.asks.length > 0) {
                 const bestBid = new Decimal(marketData.depth.bids[0][0]);
                 const bestAsk = new Decimal(marketData.depth.asks[0][0]);
-                spread = bestAsk.minus(bestBid).toFixed(5);
+                const spreadVal = bestAsk.minus(bestBid);
+                spread = spreadVal.toFixed(5);
+
+                // Calculate spread relative to price
+                const spreadPercent = spreadVal.div(bestBid).times(100).toNumber();
+                if (spreadPercent < 0.02) spreadStatus = "Ultra Tight (Highly Liquid)";
+                else if (spreadPercent < 0.05) spreadStatus = "Normal/Liquid";
+                else if (spreadPercent < 0.15) spreadStatus = "Wide (Wait for better fills)";
+                else spreadStatus = "Extreme Gap (Illiquid/Volatility Spikes)";
 
                 const totalBidVol = marketData.depth.bids.slice(0, 5).reduce((sum, b) => sum + Number(b[1]), 0);
                 const totalAskVol = marketData.depth.asks.slice(0, 5).reduce((sum, a) => sum + Number(a[1]), 0);
-                imbalance = ((totalBidVol / (totalBidVol + totalAskVol)) * 100).toFixed(1) + "% Bids";
+                const bidRatio = totalBidVol / (totalBidVol + totalAskVol);
+                imbalance = (bidRatio * 100).toFixed(1) + "% Bids";
+
+                if (bidRatio > 0.8) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
+                else if (bidRatio > 0.6) imbalanceStatus = "Bullish Skew (Snapshot)";
+                else if (bidRatio < 0.2) imbalanceStatus = "Extreme Sell Pressure (Snapshot)";
+                else if (bidRatio < 0.4) imbalanceStatus = "Bearish Skew (Snapshot)";
+                else imbalanceStatus = "Balanced (No immediate directional edge)";
             }
 
             marketDetails = {
-                currentPrice: marketData.lastPrice ? parseFloat(marketData.lastPrice.toFixed(4)) : "Unknown", // Added explicitly here too
+                currentPrice: marketData.lastPrice ? parseFloat(marketData.lastPrice.toFixed(4)) : "Unknown",
                 high24h: marketData.highPrice ? parseFloat(marketData.highPrice.toFixed(4)) : undefined,
                 low24h: marketData.lowPrice ? parseFloat(marketData.lowPrice.toFixed(4)) : undefined,
                 volume24h: marketData.volume ? Math.round(Number(marketData.volume)).toLocaleString() : undefined,
@@ -621,7 +645,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 nextFunding: marketData.nextFundingTime ? new Date(marketData.nextFundingTime).toISOString() : "N/A",
                 orderbook: marketData.depth ? {
                     imbalance,
+                    imbalanceStatus,
                     spread,
+                    spreadStatus,
                     topBids: marketData.depth.bids.slice(0, 3).map(b => parseFloat(Number(b[0]).toFixed(4))),
                     topAsks: marketData.depth.asks.slice(0, 3).map(a => parseFloat(Number(a[0]).toFixed(4)))
                 } : "Unavailable"
