@@ -29,7 +29,7 @@
   import DOMPurify from "dompurify";
 
   let isOpen = $state(false);
-  let inputEl: HTMLInputElement | undefined = $state();
+  let inputEl: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
   let messagesContainer: HTMLDivElement | undefined = $state();
   let messageText = $state("");
   let isSending = $state(false);
@@ -73,6 +73,14 @@
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
       handleSend();
+    }
+    // Auto-resize on keydown is handled by bind:value and effect or input event
+    // But we adding it here just in case ensures responsiveness
+    if (e.target instanceof HTMLTextAreaElement) {
+      setTimeout(
+        () => adjustTextareaHeight(e.target as HTMLTextAreaElement),
+        0,
+      );
     }
   }
 
@@ -119,6 +127,19 @@
   let isTerminal = $derived(styleMode === "terminal");
   let isBubble = $derived(styleMode === "bubble");
   let isMinimal = $derived(styleMode === "minimal");
+  let isAiMode = $derived(settingsState.sidePanelMode === "ai");
+  let contextData = $derived(aiState.lastContext);
+
+  function adjustTextareaHeight(el: HTMLTextAreaElement) {
+    el.style.height = "auto";
+    el.style.height = Math.min(el.scrollHeight, 200) + "px";
+  }
+
+  $effect(() => {
+    if (inputEl && messageText === "") {
+      inputEl.style.height = "auto";
+    }
+  });
 
   // Panel State (Position & Size)
   let panelState = $state(settingsState.panelState);
@@ -655,6 +676,7 @@
                 } else {
                   clearFn();
                 }
+                inputEl?.focus();
               }}
               ondblclick={(e) => e.stopPropagation()}
               title="Clear History"
@@ -1003,6 +1025,70 @@
           class:border-green-900={isTerminal}
           class:border-[var(--border-color)]={!isTerminal}
         >
+          <!-- Context Status Bar (Phase 1) -->
+          {#if isAiMode}
+            <div
+              class="flex items-center gap-3 px-1 mb-2 text-[10px] opacity-60 overflow-hidden"
+            >
+              <div
+                class="flex items-center gap-1"
+                title="Market Data Available"
+                class:text-green-500={contextData?.cmc?.global ||
+                  contextData?.technicals}
+              >
+                <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+              </div>
+              <div
+                class="flex items-center gap-1"
+                title="News Data Available"
+                class:text-green-500={contextData?.news &&
+                  contextData.news.length > 0}
+              >
+                <span
+                  >{contextData?.news && contextData.news.length > 0
+                    ? "🟢"
+                    : "⚪"}</span
+                > News
+              </div>
+              <!-- Add more indicators as needed -->
+            </div>
+
+            <!-- Quick Actions (Phase 1) -->
+            {#if !messageText}
+              <div class="flex gap-2 overflow-x-auto mb-2 pb-1 no-scrollbar">
+                <button
+                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                  onclick={() => {
+                    messageText =
+                      "Analysiere den Markt für " +
+                      (tradeState.symbol || "BTC");
+                    if (inputEl) inputEl.focus();
+                  }}
+                >
+                  📊 Market Check
+                </button>
+                <button
+                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                  onclick={() => {
+                    messageText = "Prüfe mein Setup auf Fehler und Risiken.";
+                    if (inputEl) inputEl.focus();
+                  }}
+                >
+                  ⚠️ Risk Audit
+                </button>
+                <button
+                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                  onclick={() => {
+                    messageText = "Gibt es wichtige News?";
+                    if (inputEl) inputEl.focus();
+                  }}
+                >
+                  📰 News check
+                </button>
+              </div>
+            {/if}
+          {/if}
+
           <div class="flex justify-between items-center mb-1.5 px-1">
             <span
               class="text-[9px] font-bold opacity-30 uppercase tracking-tight"
@@ -1038,33 +1124,60 @@
             </div>
           {/if}
           <div class="relative w-full">
-            <input
-              bind:this={inputEl}
-              type="text"
-              class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
-              style="font-size: {settingsState.chatFontSize || 13}px"
-              class:bg-black={isTerminal}
-              class:text-green-500={isTerminal}
-              class:border-green-800={isTerminal}
-              class:focus:border-green-500={isTerminal}
-              class:font-mono={isTerminal}
-              class:bg-[var(--bg-primary)]={!isTerminal}
-              class:text-[var(--text-primary)]={!isTerminal}
-              class:border-[var(--border-color)]={!isTerminal}
-              class:rounded-full={isBubble}
-              class:focus:border-[var(--accent-color)]={!isTerminal}
-              class:placeholder-[var(--text-tertiary)]={true}
-              placeholder={settingsState.sidePanelMode === "ai"
-                ? isTerminal
-                  ? "> ENTER COMMAND"
-                  : "Message AI..."
-                : "Type here..."}
-              maxlength={settingsState.sidePanelMode === "ai" ? 1000 : 140}
-              bind:value={messageText}
-              onkeydown={handleKeydown}
-              disabled={isSending ||
-                (settingsState.sidePanelMode === "ai" && aiState.isStreaming)}
-            />
+            {#if isAiMode || settingsState.sidePanelMode === "notes"}
+              <textarea
+                bind:this={inputEl}
+                rows="1"
+                class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none flex items-center min-h-[40px] max-h-[200px]"
+                style="font-size: {settingsState.chatFontSize || 13}px"
+                class:bg-black={isTerminal}
+                class:text-green-500={isTerminal}
+                class:border-green-800={isTerminal}
+                class:focus:border-green-500={isTerminal}
+                class:font-mono={isTerminal}
+                class:bg-[var(--bg-primary)]={!isTerminal}
+                class:text-[var(--text-primary)]={!isTerminal}
+                class:border-[var(--border-color)]={!isTerminal}
+                class:rounded-xl={!isTerminal}
+                class:focus:border-[var(--accent-color)]={!isTerminal}
+                class:placeholder-[var(--text-tertiary)]={true}
+                placeholder={settingsState.sidePanelMode === "ai"
+                  ? isTerminal
+                    ? "> ENTER COMMAND"
+                    : "Message AI... (Shift+Enter for new line)"
+                  : "Type note..."}
+                maxlength={settingsState.sidePanelMode === "ai" ? 2000 : 2000}
+                bind:value={messageText}
+                onkeydown={handleKeydown}
+                oninput={(e) =>
+                  adjustTextareaHeight(e.target as HTMLTextAreaElement)}
+                disabled={isSending ||
+                  (settingsState.sidePanelMode === "ai" && aiState.isStreaming)}
+              ></textarea>
+            {:else}
+              <input
+                bind:this={inputEl}
+                type="text"
+                class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
+                style="font-size: {settingsState.chatFontSize || 13}px"
+                class:bg-black={isTerminal}
+                class:text-green-500={isTerminal}
+                class:border-green-800={isTerminal}
+                class:focus:border-green-500={isTerminal}
+                class:font-mono={isTerminal}
+                class:bg-[var(--bg-primary)]={!isTerminal}
+                class:text-[var(--text-primary)]={!isTerminal}
+                class:border-[var(--border-color)]={!isTerminal}
+                class:rounded-full={isBubble}
+                class:focus:border-[var(--accent-color)]={!isTerminal}
+                class:placeholder-[var(--text-tertiary)]={true}
+                placeholder="Type here..."
+                maxlength={140}
+                bind:value={messageText}
+                onkeydown={handleKeydown}
+                disabled={isSending}
+              />
+            {/if}
             {#if !isTerminal}
               <button
                 class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-2"
