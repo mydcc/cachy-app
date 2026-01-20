@@ -8,22 +8,32 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ### Inhaltsverzeichnis
 
-1. [Version 0.94.2](#v0.94.2)
-2. [Version 0.94.1](#v0.94.1)
-3. [Version 0.94.0](#v0.94.0)
-4. [Version 0.93.0](#v0.93.0)
-5. [Version 0.92.2](#v0.92.2)
-6. [Version 0.92.1](#v0.92.1)
-7. [Version 0.92.0](#v0.92.0)
+1. [Version 0.94.3](#v0.94.3)
+2. [Version 0.94.2](#v0.94.2)
+3. [Version 0.94.1](#v0.94.1)
+4. [Version 0.94.0](#v0.94.0)
+5. [Version 0.93.0](#v0.93.0)
+6. [Version 0.92.2](#v0.92.2)
+7. [Version 0.92.1](#v0.92.1)
+8. [Version 0.92.0](#v0.92.0)
+
+---
+
+## <a name="v0.94.3"></a>Version 0.94.3 (Januar 2026)
+
+- **RSS-Feed-Integration**: Benutzer können nun bis zu 5 eigene RSS-URLs hinzufügen und aus kuratierten Krypto-News-Quellen (CoinDesk, Cointelegraph, etc.) wählen, um den KI-Kontext zu erweitern.
+- **Strikte Symbol-Filterung**: Neue Einstellung zum Filtern von RSS-News basierend auf dem aktiven Chart-Symbol (z.B. nur XRP/Ripple-News anzeigen, wenn XRP ausgewählt ist).
+- **Automatische Cache-Leerung**: Änderungen an den RSS-Einstellungen löschen automatisch den News-Cache für sofortige Aktualisierungen.
+- **Barrierefreiheit**: Verbesserte Interaktion und Beschriftung im Reiter "Integrationen".
 
 ---
 
 ## <a name="v0.94.2"></a>Version 0.94.2 (Januar 2026)
 
 - **Kontext-Aware KI**: Der KI-Assistent hat jetzt Zugriff auf Echtzeit-Marktkontext:
-    - **News Integration**: Ruft Sentiment von CryptoPanic und NewsAPI über einen sicheren Proxy ab.
-    - **CoinMarketCap**: Greift auf fundamentale Daten (Marktkapitalisierung, Volumen) für bessere Analysen zu.
-    - **Trade Historie**: Kann deine letzten Trades überprüfen, um Verhaltens-Coaching zu geben.
+  - **News Integration**: Ruft Sentiment von CryptoPanic und NewsAPI über einen sicheren Proxy ab.
+  - **CoinMarketCap**: Greift auf fundamentale Daten (Marktkapitalisierung, Volumen) für bessere Analysen zu.
+  - **Trade Historie**: Kann deine letzten Trades überprüfen, um Verhaltens-Coaching zu geben.
 - **Gemini 2.5**: Unterstützung für Googles neuestes Gemini 2.5 Flash Modell für schnellere und genauere Antworten hinzugefügt.
 - **UI/Lokalisierung**: Fehlende Übersetzungsschlüssel für Backup-Passwortabfragen und Integrationseinstellungen behoben.
 - **Performance**: Blockierende WASM-Initialisierung für technische Indikatoren entfernt und auf eine leichtgewichtige JS-Implementierung umgestellt.

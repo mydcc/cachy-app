@@ -406,6 +406,22 @@
             {/each}
         </div>
 
+        <!-- Filter Options -->
+        <div
+            class="api-card compact flex-row items-center justify-between mb-8 p-3 bg-[var(--bg-secondary)]/50 rounded-lg border border-[var(--border-color)]"
+        >
+            <div class="flex flex-col">
+                <span class="font-bold text-sm"
+                    >{$_("settings.integrations.rssFilterBySymbol") ||
+                        "Filter by active Symbol"}</span
+                >
+                <span class="text-[10px] text-[var(--text-secondary)]"
+                    >{$_("settings.integrations.rssFilterBySymbolDesc") ||
+                        "Only show news matching the current chart symbol"}</span
+                >
+            </div>
+            <Toggle bind:checked={settingsState.rssFilterBySymbol} />
+        </div>
         <!-- Custom Feeds -->
         <div class="mt-6">
             <div class="flex items-center justify-between mb-2">

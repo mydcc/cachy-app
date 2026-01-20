@@ -8,14 +8,10 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
-  import {
-    newsService,
-    type NewsItem,
-    type SentimentAnalysis,
-  } from "../../services/newsService";
+  import { onMount, untrack } from "svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { newsStore } from "../../stores/news.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import CachyIcon from "./CachyIcon.svelte";
@@ -28,11 +24,13 @@
 
   let { symbol, variant = "default" }: Props = $props();
 
-  let news = $state<NewsItem[]>([]);
-  let analysis = $state<SentimentAnalysis | null>(null);
-  let isLoading = $state(false);
+  // Map store properties for convenience/readability
+  let news = $derived(newsStore.news);
+  let analysis = $derived(newsStore.sentiment);
+  let isLoading = $derived(newsStore.isLoading);
+  let error = $derived(newsStore.error ? "fetch_error" : null);
+
   let isExpanded = $state(false);
-  let error = $state<string | null>(null);
 
   // Computed visual properties
   let sentimentColor = $derived(
@@ -49,48 +47,21 @@
     !analysis ? 50 : ((analysis.score + 1) / 2) * 100,
   );
 
-  async function loadData() {
-    if (!settingsState.enableNewsAnalysis) return;
-
-    if (!settingsState.cryptoPanicApiKey && !settingsState.newsApiKey) {
-      error = "no_api_key";
-      return;
-    }
-
-    isLoading = true;
-    error = null;
-
-    try {
-      news = (await newsService.fetchNews(symbol)) || []; // Robust fallback
-      if (news && news.length > 0) {
-        analysis = await newsService.analyzeSentiment(news);
-      }
-    } catch (e) {
-      console.error("News load error:", e);
-      error = "fetch_error";
-    } finally {
-      isLoading = false;
-    }
-  }
-
   onMount(() => {
     // Only load if enabled and keys are present
     if (
       settingsState.enableNewsAnalysis &&
       (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)
     ) {
-      loadData();
+      newsStore.refresh(symbol);
     }
   });
 
   $effect(() => {
     // React to symbol changes automatically
-    if (symbol && settingsState.enableNewsAnalysis) {
-      // Debounce slightly or just check if it's a real change to avoid double loading
-      // loadData handles internal checks, but we want to trigger it when symbol changes.
-      // We use untrack for settingsState to avoid re-triggering on unrelated settings changes if not desired,
-      // but enabling news analysis should trigger it.
-      loadData();
+    if (settingsState.enableNewsAnalysis) {
+      // Trigger refresh when symbol changes. newsStore handles deduplication.
+      newsStore.refresh(symbol);
     }
   });
 
@@ -107,7 +78,7 @@
 
   function handleRefresh(e: Event) {
     e.stopPropagation();
-    loadData();
+    newsStore.refresh(symbol, true);
   }
 </script>
 

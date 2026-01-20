@@ -544,7 +544,9 @@
       "customRssFeeds": "Custom RSS Feeds",
       "customRssFeedsDesc": "Add up to 5 custom RSS feeds (Advanced)",
       "addFeed": "Add Feed",
-      "removeFeed": "Remove"
+      "removeFeed": "Remove",
+      "rssFilterBySymbol": "Filter by Active Symbol",
+      "rssFilterBySymbolDesc": "Only show RSS news matching the current chart symbol"
     },
     "ai": {
       "intelligenceTitle": "Intelligence Core",

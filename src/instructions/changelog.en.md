@@ -8,22 +8,32 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ### Table of Contents
 
-1. [Version 0.94.2](#v0.94.2)
-2. [Version 0.94.1](#v0.94.1)
-3. [Version 0.94.0](#v0.94.0)
-4. [Version 0.93.0](#v0.93.0)
-5. [Version 0.92.2](#v0.92.2)
-6. [Version 0.92.1](#v0.92.1)
-7. [Version 0.92.0](#v0.92.0)
+1. [Version 0.94.3](#v0.94.3)
+2. [Version 0.94.2](#v0.94.2)
+3. [Version 0.94.1](#v0.94.1)
+4. [Version 0.94.0](#v0.94.0)
+5. [Version 0.93.0](#v0.93.0)
+6. [Version 0.92.2](#v0.92.2)
+7. [Version 0.92.1](#v0.92.1)
+8. [Version 0.92.0](#v0.92.0)
+
+---
+
+## <a name="v0.94.3"></a>Version 0.94.3 (January 2026)
+
+- **RSS Feed Integration**: Users can now add up to 5 custom RSS feed URLs and select from curated crypto news sources (CoinDesk, Cointelegraph, etc.) to enhance AI context.
+- **Strict Symbol Filtering**: Added a new setting to filter RSS news by the currently active chart symbol (e.g., only show XRP/Ripple news when XRP is selected).
+- **Auto-Cache Invalidation**: Changing RSS settings now automatically clears the news cache for immediate updates.
+- **Accessibility**: Improved interaction and labeling for the Integrations settings tab.
 
 ---
 
 ## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
 
 - **Context-Aware AI**: The AI Assistant now has access to real-time market context:
-    - **News Integration**: Fetches sentiment from CryptoPanic and NewsAPI via a secure proxy.
-    - **CoinMarketCap**: Accesses fundamental data (Market Cap, Volume) for better analysis.
-    - **Trade History**: Can review your recent trades to provide behavioral coaching.
+  - **News Integration**: Fetches sentiment from CryptoPanic and NewsAPI via a secure proxy.
+  - **CoinMarketCap**: Accesses fundamental data (Market Cap, Volume) for better analysis.
+  - **Trade History**: Can review your recent trades to provide behavioral coaching.
 - **Gemini 2.5**: Added support for Google's latest Gemini 2.5 Flash model for faster and more accurate responses.
 - **Localization**: Fixed missing translation keys for backup password prompts and integration settings.
 - **Performance**: Removed blocking WASM initialization for technical indicators, switching to a lightweight JS implementation.

@@ -109,6 +109,7 @@ export interface Settings {
     showBrokerLink: boolean;
     rssPresets?: string[];
     customRssFeeds?: string[];
+    rssFilterBySymbol?: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -192,6 +193,7 @@ const defaultSettings: Settings = {
     showBrokerLink: true,
     rssPresets: ["coindesk", "cointelegraph"],
     customRssFeeds: [],
+    rssFilterBySymbol: false,
 };
 
 class SettingsManager {
@@ -247,6 +249,8 @@ class SettingsManager {
     aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
     aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
     aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
+
+    rssFilterBySymbol = $state<boolean | undefined>(defaultSettings.rssFilterBySymbol);
 
     showSpinButtons = $state<boolean | "hover">(defaultSettings.showSpinButtons);
     disclaimerAccepted = $state<boolean>(defaultSettings.disclaimerAccepted);

@@ -551,7 +551,9 @@
       "customRssFeeds": "Benutzerdefinierte RSS-Feeds",
       "customRssFeedsDesc": "Füge bis zu 5 eigene RSS-Feeds hinzu (Erweitert)",
       "addFeed": "Feed hinzufügen",
-      "removeFeed": "Entfernen"
+      "removeFeed": "Entfernen",
+      "rssFilterBySymbol": "Nach aktivem Symbol filtern",
+      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
     },
     "ai": {
       "intelligenceTitle": "KI-Core",
