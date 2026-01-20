@@ -26,7 +26,7 @@ class UiManager {
     symbolSuggestions = $state<string[]>([]);
     showSymbolSuggestions = $state(false);
     showSettingsModal = $state(false);
-    settingsTab = $state("general");
+    settingsTab = $state("profile");
 
     // Loading State
     isLoading = $state(false);
@@ -237,7 +237,7 @@ class UiManager {
         this.showSettingsModal = show;
     }
 
-    openSettings(tab = "general") {
+    openSettings(tab = "profile") {
         this.showSettingsModal = true;
         this.settingsTab = tab;
     }

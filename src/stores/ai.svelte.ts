@@ -20,6 +20,7 @@ import { indicatorState } from "./indicator.svelte";
 import { technicalsService } from "../services/technicalsService";
 import { apiService } from "../services/apiService";
 import { newsService } from "../services/newsService";
+import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -147,6 +148,9 @@ CORE CAPABILITIES:
 - MARKET OVERVIEW: Full access to 24h High/Low, Funding Rates, Volume, and real-time Orderbook depth.
 - TECHNICALS: Full access to technical indicators (RSI, EMAs, Pivots) and trend summaries.
 - LATEST NEWS: Headlines from CryptoPanic and NewsAPI.org.
+  * IMPORTANT: The 'ago' field in news items contains the CORRECT relative time calculated from the actual publication date (publishedAt).
+  * ALWAYS use the 'ago' value directly when mentioning news timing. Do NOT recalculate or estimate.
+  * Example: If 'ago' says "vor 2 Tagen" or "2 days ago", the article was published 2 days ago, regardless of what the source timestamp might suggest.
 - PORTFOLIO DATA: Real-time access to user's stats and positions.
 - INTERFACE ACCESS: You see exactly what the user enters in 'tradeSetup'.
 - ACTION EXECUTION: You can DIRECTLY set values in the user's trading interface. 
@@ -417,9 +421,13 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
         let newsContext = null;
         if (settings.enableNewsAnalysis && (settings.cryptoPanicApiKey || settings.newsApiKey)) {
             try {
-                // Import newsService here (lazy) or assume it's available via module scope if we imported it top-level
-                // We imported it as: import { newsService } from "../services/newsService"; (checked via view_file)
-                // Use imported newsService
+                // Import locale from i18n to get current language
+                const { locale } = await import("../locales/i18n");
+                const { get } = await import("svelte/store");
+                const currentLocale = get(locale) || "en";
+
+                // Determine language for time strings (de or en)
+                const lang = currentLocale.startsWith("de") ? "de" : "en";
 
                 // Fetch recent news for active symbol or general crypto if none
                 const newsItems = await newsService.fetchNews(trade.symbol || "crypto");
@@ -429,7 +437,8 @@ Supported Actions: setSymbol, setEntryPrice, setStopLoss, setTakeProfit, setRisk
                     newsContext = newsItems.slice(0, 5).map(n => ({
                         title: n.title,
                         source: n.source,
-                        ago: n.published_at // or compute relative time
+                        publishedAt: n.published_at, // ISO timestamp for reference
+                        ago: getRelativeTimeString(n.published_at, lang) // Correctly calculated relative time
                     }));
                 }
             } catch (e) {
