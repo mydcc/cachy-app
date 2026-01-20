@@ -40,7 +40,6 @@
   import { formatDynamicDecimal } from "../utils/utils";
   import { trackClick } from "../lib/actions";
   import { trackCustomEvent } from "../services/trackingService";
-  import { createBackup, restoreFromBackup } from "../services/backupService";
 
   import type { IndividualTpResult } from "../stores/types";
   import SummaryResults from "../components/results/SummaryResults.svelte";
@@ -55,9 +54,9 @@
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
   import SidePanel from "../components/shared/SidePanel.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
+  import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
-  let fileInput: HTMLInputElement | undefined = $state();
   let changelogContent = $state("");
   let guideContent = $state("");
   let privacyContent = $state("");
@@ -259,73 +258,6 @@
     handleGlobalKeydown(event);
   }
 
-  function handleBackupClick() {
-    createBackup();
-    trackCustomEvent("Backup", "Click", "CreateBackup");
-  }
-
-  function handleRestoreClick() {
-    if (fileInput) {
-      fileInput.click();
-    }
-  }
-
-  function handleFileSelected(event: Event) {
-    const input = event.target as HTMLInputElement;
-    const file = input.files?.[0];
-    if (!file) return;
-
-    const reader = new FileReader();
-    reader.onload = (e) => {
-      const content = e.target?.result as string;
-
-      modalState
-        .show(
-          $_("app.restoreConfirmTitle"),
-          $_("app.restoreConfirmMessage"),
-          "confirm",
-        )
-        .then(async (confirmed) => {
-          if (confirmed) {
-            let result = await restoreFromBackup(content);
-
-            if (result.needsPassword) {
-              const password = await modalState.show(
-                $_("app.passwordRequiredTitle") || "Password Required",
-                $_("app.enterBackupPassword") ||
-                  "Please enter the password for this backup:",
-                "prompt",
-              );
-
-              if (password && typeof password === "string") {
-                result = await restoreFromBackup(content, password);
-              } else {
-                input.value = "";
-                return;
-              }
-            }
-
-            if (result.success) {
-              uiState.showFeedback("save"); // Re-use save feedback for now
-              setTimeout(() => {
-                window.location.reload();
-              }, 1000);
-            } else {
-              uiState.showError(result.message);
-            }
-          }
-          // Reset file input so the same file can be selected again
-          input.value = "";
-        });
-    };
-    reader.onerror = () => {
-      uiState.showError("app.fileReadError");
-    };
-    reader.readAsText(file);
-
-    trackCustomEvent("Backup", "Click", "RestoreBackup");
-  }
-
   let isTechnicalsVisible = $state(true);
 
   // Load Technicals visibility state from localStorage
@@ -354,14 +286,6 @@
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
-
-<input
-  type="file"
-  class="hidden"
-  bind:this={fileInput}
-  onchange={handleFileSelected}
-  accept=".json,application/json"
-/>
 
 <SidePanel />
 
@@ -758,24 +682,7 @@
           <LanguageSwitcher />
           <SettingsButton />
           <div class="flex items-center gap-2">
-            <button
-              id="backup-btn"
-              class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
-              title={$_("app.backupButtonTitle")}
-              aria-label={$_("app.backupButtonAriaLabel")}
-              onclick={handleBackupClick}
-            >
-              {@html icons.export}
-            </button>
-            <button
-              id="restore-btn"
-              class="text-sm bg-[var(--btn-default-bg)] hover:bg-[var(--btn-default-hover-bg)] text-[var(--btn-default-text)] font-bold py-2.5 px-2.5 rounded-lg"
-              title={$_("app.restoreButtonTitle")}
-              aria-label={$_("app.restoreButtonAriaLabel")}
-              onclick={handleRestoreClick}
-            >
-              {@html icons.import}
-            </button>
+            <PowerToggle />
           </div>
         </div>
       </footer>
