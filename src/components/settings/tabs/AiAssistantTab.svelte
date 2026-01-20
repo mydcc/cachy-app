@@ -29,7 +29,7 @@
         <div class="field-group">
             <span
                 class="text-xs font-semibold color-[var(--text-secondary)] mb-1"
-                >{$_("settings.aiProvider")}</span
+                >{$_("settings.apiProvider")}</span
             >
             <div class="segmented-control">
                 {#each aiProviders as provider}
@@ -73,23 +73,26 @@
             <!-- Custom System Prompt -->
             <div class="field-group">
                 <label for="system-prompt"
-                    >{$_("settings.customSystemPrompt")}</label
+                    >{$_("settings.ai.customSystemPrompt")}</label
                 >
                 <textarea
                     id="system-prompt"
                     bind:value={settingsState.customSystemPrompt}
-                    placeholder="You are a professional crypto trading assistant..."
+                    placeholder={$_("settings.ai.systemPromptPlaceholder") ||
+                        "You are a professional crypto trading assistant..."}
                     class="textarea-field h-32"
                 ></textarea>
                 <p class="text-[10px] text-[var(--text-secondary)]">
-                    {$_("settings.customSystemPromptDesc")}
+                    {$_("settings.ai.customSystemPromptDesc")}
                 </p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <!-- OpenAI Model Name -->
                 <div class="field-group">
-                    <label for="openai-model">OpenAI Model</label>
+                    <label for="openai-model"
+                        >{$_("settings.ai.openaiModel")}</label
+                    >
                     <input
                         id="openai-model"
                         bind:value={settingsState.openaiModel}
@@ -100,26 +103,28 @@
 
                 <!-- Gemini Model Selector (Curated) -->
                 <div class="field-group">
-                    <label for="gemini-model">Gemini Model</label>
+                    <label for="gemini-model"
+                        >{$_("settings.ai.geminiModel")}</label
+                    >
                     <select
                         id="gemini-model"
                         bind:value={settingsState.geminiModel}
                         class="input-field"
                     >
                         <option value="gemini-2.5-flash"
-                            >Gemini 2.5 Flash (Recommended ⭐)</option
+                            >{$_("settings.ai.geminiRecommended")}</option
                         >
                         <option value="gemini-2.0-flash"
-                            >Gemini 2.0 Flash (Stable)</option
+                            >{$_("settings.ai.geminiStable")}</option
                         >
                         <option value="gemini-3-flash-preview"
-                            >Gemini 3 Flash (Preview 🚀)</option
+                            >{$_("settings.ai.geminiPreview")}</option
                         >
                         <option value="gemini-3-pro-preview"
-                            >Gemini 3 Pro (Preview 🧠)</option
+                            >{$_("settings.ai.geminiPro")}</option
                         >
                         <option value="gemma-3-27b-it"
-                            >Gemma 3 27b (Open Model ✨)</option
+                            >{$_("settings.ai.gemmaOpen")}</option
                         >
                     </select>
                     <p class="text-[10px] text-[var(--text-secondary)] mt-1">
@@ -191,7 +196,7 @@
 
         <div class="field-group mt-6">
             <label for="trade-limit"
-                >{$_("settings.aiTradeHistoryLimit") ||
+                >{$_("settings.ai.historyDesc") ||
                     "Trade History Context"}</label
             >
             <input
@@ -204,7 +209,7 @@
                 class="input-field"
             />
             <p class="text-[10px] text-[var(--text-secondary)]">
-                {$_("settings.aiHistoryDesc") ||
+                {$_("settings.ai.historyDesc") ||
                     "Number of recent trades sent to AI for context"}
             </p>
         </div>
@@ -221,13 +226,13 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="safety-toggle">
                 <span class="text-xs font-semibold"
-                    >{$_("settings.aiConfirmActions")}</span
+                    >{$_("settings.ai.confirmActions")}</span
                 >
                 <Toggle bind:checked={settingsState.aiConfirmActions} />
             </div>
             <div class="safety-toggle">
                 <span class="text-xs font-semibold"
-                    >{$_("settings.aiConfirmClear")}</span
+                    >{$_("settings.ai.confirmClear")}</span
                 >
                 <Toggle bind:checked={settingsState.aiConfirmClear} />
             </div>

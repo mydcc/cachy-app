@@ -24,7 +24,9 @@
     "backupPasswordPrompt": "Gib ein Passwort für die Verschlüsselung ein:",
     "backupPasswordRequired": "Ein Passwort ist für die Verschlüsselung erforderlich.",
     "backupPasswordEntryPrompt": "Dieses Backup ist verschlüsselt. Bitte gib das Passwort ein:",
-    "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen."
+    "backupWrongPassword": "Falsches Passwort. Wiederherstellung fehlgeschlagen.",
+    "passwordRequiredTitle": "Passwort erforderlich",
+    "enterBackupPassword": "Bitte geben Sie das Passwort für dieses Backup ein:"
   },
   "legal": {
     "disclaimerTitle": "Rechtlicher Hinweis",
@@ -527,6 +529,47 @@
     "imgbbHeader": "ImgBB Bild-Hosting",
     "imgbbApiKey": "API Key",
     "imgbbExpiration": "Ablaufzeit",
+    "integrations": {
+      "exchanges": "Börsen Anbindung",
+      "intelligence": "KI Anbieter Keys",
+      "analytics": "News & Marktdaten",
+      "utilities": "Medien Speicher",
+      "apiKey": "API Key",
+      "apiSecret": "API Secret",
+      "enterKey": "API Key eingeben",
+      "enterSecret": "Secret eingeben",
+      "filter": "Filter",
+      "plan": "Plan",
+      "cmcApi": "CoinMarketCap API",
+      "newsApi": "NewsAPI.org Key",
+      "imgbbPrimary": "ImgBB (Primär)",
+      "autoExpiration": "Auto-Löschung (Sek)",
+      "imgurOther": "Imgur / Andere",
+      "imgurClientId": "Imgur Client ID"
+    },
+    "ai": {
+      "intelligenceTitle": "KI-Core",
+      "providerDesc": "Wähle deine primäre KI-Engine für Marktanalysen und Aktionen.",
+      "modelTitle": "Modell & Prompting",
+      "customSystemPrompt": "Eigener System-Prompt",
+      "customSystemPromptDesc": "Definiere die Persona der KI",
+      "systemPromptPlaceholder": "Du bist ein professioneller Krypto-Trading-Assistent...",
+      "openaiModel": "OpenAI Modell",
+      "geminiModel": "Gemini Modell",
+      "geminiModelDesc": "Gemini 2.5 Flash bietet die beste Balance. Gemma 3 hat hohe Limits.",
+      "contextTitle": "Kontext & Datenzugriff",
+      "newsDesc": "KI berücksichtigt aktuelle News-Schlagzeilen",
+      "cmcDesc": "Marktstatistiken für Symbole abrufen",
+      "historyDesc": "Anzahl der letzten Trades im KI-Kontext",
+      "safetyTitle": "Sicherheit & Bestätigungen",
+      "confirmActions": "Aktionen bestätigen",
+      "confirmClear": "Verlauf löschen bestätigen",
+      "geminiRecommended": "Gemini 2.5 Flash (Empfohlen ⭐)",
+      "geminiStable": "Gemini 2.0 Flash (Stabil)",
+      "geminiPreview": "Gemini 3 Flash (Vorschau 🚀)",
+      "geminiPro": "Gemini 3 Pro (Vorschau 🧠)",
+      "gemmaOpen": "Gemma 3 27b (Offenes Modell ✨)"
+    },
     "technicals": {
       "oscillators": "Oszillatoren",
       "movingAverages": "Gleitende Durchschnitte",
@@ -571,6 +614,8 @@
       "data": "Daten-Wartung"
     },
     "profile": {
+      "appearanceTitle": "Erscheinungsbild & Identität",
+      "controlTitle": "Steuerung & Interaktion",
       "hotkeysTitle": "Hotkeys",
       "activeHotkeys": "Aktive Hotkeys",
       "customize": "Anpassen",
