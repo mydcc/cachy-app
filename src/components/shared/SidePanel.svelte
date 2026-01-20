@@ -229,6 +229,9 @@
     window.removeEventListener("mouseup", handleMouseUp);
     document.body.style.userSelect = "";
 
+    // Clamp position to be safe
+    clampPanelPosition();
+
     // Save to store
     settingsState.panelState = { ...panelState };
   }
@@ -290,8 +293,49 @@
       settingsState.sidePanelLayout === "floating" ? "standard" : "floating";
   }
 
+  function clampPanelPosition() {
+    if (typeof window === "undefined" || !panelState || !isFloating) return;
+
+    const { innerWidth, innerHeight } = window;
+    let { x, y, width, height } = panelState;
+
+    // Safety bounds: Ensure panel is fully reachable
+    // x: between 0 and window width - panel width
+    // y: between 0 and window height - panel height
+    const maxX = Math.max(0, innerWidth - width);
+    const maxY = Math.max(0, innerHeight - height);
+
+    let newX = Math.max(0, Math.min(x, maxX));
+    let newY = Math.max(0, Math.min(y, maxY));
+
+    if (newX !== x || newY !== y) {
+      panelState.x = newX;
+      panelState.y = newY;
+      settingsState.panelState = { ...panelState };
+    }
+  }
+
+  onMount(() => {
+    // Check bounds on init
+    clampPanelPosition();
+
+    // Check bounds on resize
+    const handleResize = () => clampPanelPosition();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  });
+
+  $effect(() => {
+    // Check bounds when switching layouts
+    if (isFloating) {
+      clampPanelPosition();
+    }
+  });
+
   function toggleExpand() {
     settingsState.panelIsExpanded = !settingsState.panelIsExpanded;
+    // Slight delay to allow transition then check bounds
+    setTimeout(clampPanelPosition, 350);
   }
 </script>
 
