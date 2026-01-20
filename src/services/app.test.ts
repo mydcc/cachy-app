@@ -311,9 +311,6 @@ describe("app service - ATR and Locking Logic", () => {
       "BTCUSDT",
       "1h",
       15,
-      undefined,
-      undefined,
-      "high",
     );
     expect(store.atrValue).not.toBe(null);
     expect(new Decimal(store.atrValue!).isFinite()).toBe(true);
