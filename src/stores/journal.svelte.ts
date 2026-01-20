@@ -12,6 +12,8 @@ import { CONSTANTS } from "../lib/constants";
 import { normalizeJournalEntry } from "../utils/utils";
 import type { JournalEntry } from "./types";
 import { calculator } from "../lib/calculator";
+import { StorageHelper } from "../utils/storageHelper";
+import { uiState } from "./ui.svelte";
 
 class JournalManager {
     entries = $state<JournalEntry[]>([]);
@@ -74,12 +76,19 @@ class JournalManager {
     private save() {
         if (!browser) return;
         try {
-            localStorage.setItem(
+            const data = JSON.stringify(this.entries);
+            const success = StorageHelper.safeSave(
                 CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-                JSON.stringify(this.entries)
+                data
             );
+
+            if (!success) {
+                console.error("[Journal] Failed to save after retry");
+                uiState.showError("journal.saveFailed");
+            }
         } catch (e) {
-            console.warn("Could not save journal to localStorage.", e);
+            console.error("[Journal] Save error:", e);
+            uiState.showError("journal.saveError");
         }
     }
 

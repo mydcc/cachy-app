@@ -27,8 +27,12 @@ import { Decimal } from "decimal.js";
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
+import { StorageHelper } from "../utils/storageHelper";
 
 export const syncService = {
+  // Private static lock to prevent concurrent sync operations
+  _syncLock: false,
+
   syncBitunixPositions: async () => {
     const settings = settingsState;
     if (!settings.isPro) return;
@@ -37,11 +41,13 @@ export const syncService = {
       return;
     }
 
-    // Protection against concurrent syncs at service level
-    if (uiState.isSyncing) {
-      console.warn('[Sync] Sync already in progress, skipping...');
+    // Atomic lock check and set - prevents race conditions
+    if (syncService._syncLock) {
+      console.warn('[Sync] Sync already in progress (locked), skipping...');
       return;
     }
+    syncService._syncLock = true;
+
 
     uiState.update((s) => ({ ...s, isPriceFetching: true, isSyncing: true }));
     uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
@@ -399,6 +405,7 @@ export const syncService = {
       trackCustomEvent("Sync", "BitunixHistory", "Error");
       uiState.showError("Sync failed: " + e.message);
     } finally {
+      syncService._syncLock = false; // Release lock
       uiState.update((s) => ({ ...s, isPriceFetching: false, isSyncing: false }));
       uiState.setSyncProgress(null);
     }
@@ -407,11 +414,16 @@ export const syncService = {
   saveJournal: (d: JournalEntry[]) => {
     if (!browser) return;
     try {
-      localStorage.setItem(
+      const data = JSON.stringify(d);
+      const success = StorageHelper.safeSave(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        JSON.stringify(d),
+        data
       );
-    } catch {
+
+      if (!success) {
+        uiState.showError("storage.journalSaveFailed");
+      }
+    } catch (e) {
       uiState.showError(
         "Fehler beim Speichern des Journals. Der lokale Speicher ist möglicherweise voll oder blockiert.",
       );
