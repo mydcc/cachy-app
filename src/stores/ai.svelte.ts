@@ -114,6 +114,11 @@ class AiManager {
                 "- Volatility: Use ATR (Average True Range) to define SL distance and avoid market noise.",
                 "- Risk Math: Understand Expectancy, Kelly Criterion, and Drawdown management.",
                 "",
+                "NEGATIVE CONSTRAINTS (CRITICAL):",
+                "- NO INTRODUCTIONS: Do NOT start with 'As a Senior Risk Manager...' or 'Here is my analysis'.",
+                "- NO REPETITION: Do NOT repeat the user's question.",
+                "- START IMMEDIATELY: Start with 'Hi' or 'Moin' and the first data point.",
+                "",
                 "STRICT OPERATING RULES:",
                 "1. CAPITAL PROTECTION: If a trade setup has a Risk/Reward (R:R) ratio below 1:2, warn the user explicitly.",
                 "2. NO CHASING: Do not suggest entries at the top/bottom of a move. Wait for pullbacks to OTE (Optimal Trade Entry - 0.618/0.786 Fibonacci).",
@@ -639,7 +644,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
             activeSymbol: symbol,
             REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
-            priceChange24h: marketData?.priceChangePercent?.toString() + "%" || "Unknown",
+            priceChange24h: marketData?.priceChangePercent ? (Number(marketData.priceChangePercent).toFixed(2) + "%") : "Unknown",
             marketDetails,
             technicals: technicalsContext,
             openPositions: Array.isArray(account.positions)
