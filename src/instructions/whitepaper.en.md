@@ -193,11 +193,23 @@ The `technicalsService.ts` leverages the **`talib-web` library** (WebAssembly po
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Calculated manually from the previous day's High/Low/Close.
 
-**Upgrade (January 2026)**: Migrated from `technicalindicators` to `talib-web` for exact alignment with TradingView. The WebAssembly-based implementation offers maximum accuracy and uses the same algorithms as professional trading platforms.
+**Upgrade (January 2026)**: Migrated from `technicalindicators` to `talib-web` for exact alignment with TradingView. The WebAssembly-based implementation offers maximum accuracy and uses the same algorithms as professional trading platforms. In the latest iteration, we have further optimized this by transitioning to pure TypeScript implementations where possible to remove WASM dependencies and improve load times on mobile devices.
 
 This data is visualized in the **Technicals Panel**, a dedicated overlay for rapid market assessment.
 
-#### 3. Chronobiological Analysis (Timing)
+#### 3. Context-Aware Intelligence (The AI Core)
+
+_Goal: A trading assistant that knows the market, not just the chart._
+
+Cachy integrates a **Context-Aware Chatbot** (powered by OpenAI or Google Gemini 2.5) that goes beyond simple text generation. It has read-access to real-time market data layers:
+
+1.  **News Context**: Via a privacy-preserving proxy, the AI fetches top headlines from CryptoPanic and NewsAPI to understand current sentiment (Bullish/Bearish).
+2.  **Fundamental Context**: It accesses CoinMarketCap (CMC) data to understand market cap dominance, volume trends, and project rankings.
+3.  **Trade History Context**: The AI can analyze the user's last 20 trades to identify behavioral patterns (e.g., "You are over-trading after losses").
+
+**Privacy Note**: All external data fetching is proxied. The AI provider never sees the user's IP address when fetching news, and API keys for news services are stored locally.
+
+#### 4. Chronobiological Analysis (Timing)
 
 _Goal: Do you trade better before lunch?_
 The system iterates through every closed trade and buckets the PnL by Hour of Day (0-23) and Day of Week (0-6).

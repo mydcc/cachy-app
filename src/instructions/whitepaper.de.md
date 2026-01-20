@@ -191,11 +191,23 @@ Der `technicalsService.ts` nutzt die **`talib-web`-Bibliothek** (WebAssembly-Por
 - **Trend**: SMA, EMA, MACD.
 - **Pivot Points**: Manuell berechnet aus den High/Low/Close-Werten des Vortages.
 
-**Upgrade (Januar 2026)**: Migration von `technicalindicators` zu `talib-web` für exakte Übereinstimmung mit TradingView. Die WebAssembly-basierte Implementierung bietet maximale Genauigkeit und verwendet die gleichen Algorithmen wie professionelle Trading-Plattformen.
+**Upgrade (Januar 2026)**: Migration von `technicalindicators` auf `talib-web` für exakte Übereinstimmung mit TradingView. In der neuesten Iteration wurde dies weiter optimiert, indem wir wo möglich auf reine TypeScript-Implementierungen umgestiegen sind, um WASM-Abhängigkeiten zu entfernen und die Ladezeiten auf mobilen Geräten zu verbessern.
 
 Diese Daten werden im **Technicals Panel** visualisiert, einem dedizierten Overlay für schnelle Marktbewertungen.
 
-#### 3. Chronobiologische Analyse (Timing)
+#### 3. Kontext-Aware Intelligenz (Der KI-Kern)
+
+_Ziel: Ein Trading-Assistent, der den Markt kennt, nicht nur den Chart._
+
+Cachy integriert einen **Kontext-Sensitiven Chatbot** (angetrieben von OpenAI oder Google Gemini 2.5), der über einfache Texterstellung hinausgeht. Er hat Lesezugriff auf Echtzeit-Marktdatenebenen:
+
+1.  **News-Kontext**: Über einen datenschutzfreundlichen Proxy ruft die KI Top-Schlagzeilen von CryptoPanic und NewsAPI ab, um das aktuelle Sentiment (Bullish/Bearish) zu verstehen.
+2.  **Fundamentaler Kontext**: Zugriff auf CoinMarketCap (CMC) Daten, um Marktkapitalisierungs-Dominanz, Volumentrends und Projektrankings zu verstehen.
+3.  **Trade-Historien-Kontext**: Die KI kann die letzten 20 Trades des Benutzers analysieren, um Verhaltensmuster zu erkennen (z.B. "Du handelst zu viel nach Verlusten").
+
+**Datenschutz-Hinweis**: Alle externen Datenabrufe werden geproxyed. Der KI-Anbieter sieht beim Abrufen von Nachrichten niemals die IP-Adresse des Benutzers, und API-Schlüssel für Nachrichtendienste werden lokal gespeichert.
+
+#### 4. Chronobiologische Analyse (Timing)
 
 _Ziel: Tradest du besser vor dem Mittagessen?_
 Das System iteriert durch jeden geschlossenen Trade und gruppiert die PnL nach Tageszeit (Stunde 0-23) und Wochentag (0-6).

@@ -20,6 +20,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ## <a name="v0.94.2"></a>Version 0.94.2 (Januar 2026)
 
+- **Kontext-Aware KI**: Der KI-Assistent hat jetzt Zugriff auf Echtzeit-Marktkontext:
+    - **News Integration**: Ruft Sentiment von CryptoPanic und NewsAPI über einen sicheren Proxy ab.
+    - **CoinMarketCap**: Greift auf fundamentale Daten (Marktkapitalisierung, Volumen) für bessere Analysen zu.
+    - **Trade Historie**: Kann deine letzten Trades überprüfen, um Verhaltens-Coaching zu geben.
+- **Gemini 2.5**: Unterstützung für Googles neuestes Gemini 2.5 Flash Modell für schnellere und genauere Antworten hinzugefügt.
+- **UI/Lokalisierung**: Fehlende Übersetzungsschlüssel für Backup-Passwortabfragen und Integrationseinstellungen behoben.
+- **Performance**: Blockierende WASM-Initialisierung für technische Indikatoren entfernt und auf eine leichtgewichtige JS-Implementierung umgestellt.
 - **Architektur:** **Globales Subscription-Management**: Einführung des `MarketWatcher` Dienstes zur Zentralisierung aller WebSocket-Abonnements.
 - **System:** **Reference Counting**: Intelligente Zählung von Daten-Anfragen zur Vermeidung von Verbindungsabbrüchen bei mehreren gleichzeitig geöffneten Panels.
 - **Robustheit:** **Symbol-Normalisierung**: Konsistente Handhabung von Symbol-Suffixen (`.P`, `:USDT`) für stabilere Datenzuordnung zwischen API und UI.
@@ -58,7 +65,9 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **Verbesserung:** Allgemeine Stabilitätsverbesserungen.
 - **Neu:** Favoriten-Funktion: Speichere bis zu 4 Symbole durch Klick auf das Stern-Symbol in der Marktübersicht. Favoriten werden in der Sidebar (Desktop) oder mobil unter der Hauptkarte angezeigt.
 - **Neu:** Automatisches Abrufen des Kontostands beim Start (aktivierbar in den Einstellungen, erfordert API-Keys).
-- **Neu:** Automatische Preisaktualisierung im Eingabefeld (optional).
+- **Neu:** Automatisches Abrufen des Preises beim Start (aktivierbar in den Einstellungen).
+- **Neu:** Automatisches Abrufen der ATR beim Start (aktivierbar in den Einstellungen).
+- **Neu:** Automatisches Update des Preises bei Eingabe (optional).
 - **Fix:** Behebung von Deployment-Problemen (502 Fehler) und verbesserte Stabilität.
 
 ---

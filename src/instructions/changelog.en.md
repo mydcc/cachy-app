@@ -20,6 +20,13 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ## <a name="v0.94.2"></a>Version 0.94.2 (January 2026)
 
+- **Context-Aware AI**: The AI Assistant now has access to real-time market context:
+    - **News Integration**: Fetches sentiment from CryptoPanic and NewsAPI via a secure proxy.
+    - **CoinMarketCap**: Accesses fundamental data (Market Cap, Volume) for better analysis.
+    - **Trade History**: Can review your recent trades to provide behavioral coaching.
+- **Gemini 2.5**: Added support for Google's latest Gemini 2.5 Flash model for faster and more accurate responses.
+- **Localization**: Fixed missing translation keys for backup password prompts and integration settings.
+- **Performance**: Removed blocking WASM initialization for technical indicators, switching to a lightweight JS implementation.
 - **Architecture:** **Global Subscription Management**: Introduced the `MarketWatcher` service to centralize all WebSocket subscriptions.
 - **System:** **Reference Counting**: Intelligent tracking of data requests to prevent connection drops when multiple panels are open simultaneously.
 - **Robustness:** **Symbol Normalization**: Consistent handling of symbol suffixes (`.P`, `:USDT`) for stable data mapping between API and UI.

@@ -61,23 +61,27 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label for="bitunix-api-key">API Key</label>
+                        <label for="bitunix-api-key"
+                            >{$_("settings.integrations.apiKey")}</label
+                        >
                         <input
                             id="bitunix-api-key"
                             type={showKeys["bitunix_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.key}
                             class="api-input"
-                            placeholder="Enter Bitunix API Key"
+                            placeholder="{$_('settings.integrations.enterKey')} (Bitunix)"
                         />
                     </div>
                     <div class="field-group mt-3">
-                        <label for="bitunix-api-secret">API Secret</label>
+                        <label for="bitunix-api-secret"
+                            >{$_("settings.integrations.apiSecret")}</label
+                        >
                         <input
                             id="bitunix-api-secret"
                             type={showKeys["bitunix_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.bitunix.secret}
                             class="api-input"
-                            placeholder="Enter Bitunix Secret"
+                            placeholder={$_("settings.integrations.enterSecret")}
                         />
                     </div>
                 </div>
@@ -95,23 +99,27 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label for="binance-api-key">API Key</label>
+                        <label for="binance-api-key"
+                            >{$_("settings.integrations.apiKey")}</label
+                        >
                         <input
                             id="binance-api-key"
                             type={showKeys["binance_k"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.key}
                             class="api-input"
-                            placeholder="Enter Binance API Key"
+                            placeholder="{$_('settings.integrations.enterKey')} (Binance)"
                         />
                     </div>
                     <div class="field-group mt-3">
-                        <label for="binance-api-secret">API Secret</label>
+                        <label for="binance-api-secret"
+                            >{$_("settings.integrations.apiSecret")}</label
+                        >
                         <input
                             id="binance-api-secret"
                             type={showKeys["binance_s"] ? "text" : "password"}
                             bind:value={settingsState.apiKeys.binance.secret}
                             class="api-input"
-                            placeholder="Enter Binance Secret"
+                            placeholder={$_("settings.integrations.enterSecret")}
                         />
                     </div>
                 </div>
@@ -218,7 +226,9 @@
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label for="cryptopanic-api-key">API Key</label>
+                        <label for="cryptopanic-api-key"
+                            >{$_("settings.integrations.apiKey")}</label
+                        >
                         <input
                             id="cryptopanic-api-key"
                             type="password"
@@ -228,7 +238,9 @@
                     </div>
                     <div class="grid grid-cols-2 gap-2 mt-3">
                         <div class="field-group">
-                            <label for="cryptopanic-filter">Filter</label>
+                            <label for="cryptopanic-filter"
+                                >{$_("settings.integrations.filter")}</label
+                            >
                             <select
                                 id="cryptopanic-filter"
                                 bind:value={settingsState.cryptoPanicFilter}
@@ -241,7 +253,9 @@
                             </select>
                         </div>
                         <div class="field-group">
-                            <label for="cryptopanic-plan">Plan</label>
+                            <label for="cryptopanic-plan"
+                                >{$_("settings.integrations.plan")}</label
+                            >
                             <select
                                 id="cryptopanic-plan"
                                 bind:value={settingsState.cryptoPanicPlan}
@@ -258,7 +272,9 @@
             <!-- CMC / NewsAPI -->
             <div class="flex flex-col gap-4">
                 <div class="api-card compact">
-                    <label for="cmc-api-key">CoinMarketCap API</label>
+                    <label for="cmc-api-key"
+                        >{$_("settings.integrations.cmcApi")}</label
+                    >
                     <input
                         id="cmc-api-key"
                         type="password"
@@ -267,7 +283,9 @@
                     />
                 </div>
                 <div class="api-card compact">
-                    <label for="newsapi-key">NewsAPI.org Key</label>
+                    <label for="newsapi-key"
+                        >{$_("settings.integrations.newsApi")}</label
+                    >
                     <input
                         id="newsapi-key"
                         type="password"
@@ -315,11 +333,15 @@
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="api-card">
                 <div class="header">
-                    <span class="font-bold text-sm">ImgBB (Primary)</span>
+                    <span class="font-bold text-sm"
+                        >{$_("settings.integrations.imgbbPrimary")}</span
+                    >
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label for="imgbb-api-key">API Key</label>
+                        <label for="imgbb-api-key"
+                            >{$_("settings.integrations.apiKey")}</label
+                        >
                         <input
                             id="imgbb-api-key"
                             type="password"
@@ -329,7 +351,7 @@
                     </div>
                     <div class="field-group mt-3">
                         <label for="imgbb-expiration"
-                            >Auto-Expiration (Sec)</label
+                            >{$_("settings.integrations.autoExpiration")}</label
                         >
                         <input
                             id="imgbb-expiration"
@@ -343,11 +365,15 @@
             </div>
             <div class="api-card">
                 <div class="header">
-                    <span class="font-bold text-sm">Imgur / Other</span>
+                    <span class="font-bold text-sm"
+                        >{$_("settings.integrations.imgurOther")}</span
+                    >
                 </div>
                 <div class="body">
                     <div class="field-group">
-                        <label for="imgur-client-id">Imgur Client ID</label>
+                        <label for="imgur-client-id"
+                            >{$_("settings.integrations.imgurClientId")}</label
+                        >
                         <input
                             id="imgur-client-id"
                             type="password"
