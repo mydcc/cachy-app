@@ -162,32 +162,49 @@ class MarketManager {
 
     // Legacy update methods refactored to use updateSymbol
     updatePrice(symbol: string, data: any) {
-        let nft = 0;
-        if (data.nextFundingTime) {
-            nft = /^\d+$/.test(data.nextFundingTime) ? parseInt(data.nextFundingTime, 10) : new Date(data.nextFundingTime).getTime();
+        const partial: Partial<MarketData> = {};
+
+        if (data.price !== undefined) partial.lastPrice = new Decimal(data.price);
+        if (data.indexPrice !== undefined) partial.indexPrice = new Decimal(data.indexPrice);
+        if (data.fundingRate !== undefined) partial.fundingRate = new Decimal(data.fundingRate);
+
+        if (data.nextFundingTime !== undefined) {
+            let nft = 0;
+            const val = String(data.nextFundingTime);
+            if (/^\d+$/.test(val)) {
+                nft = parseInt(val, 10);
+            } else {
+                nft = new Date(val).getTime();
+            }
+            if (!isNaN(nft)) {
+                partial.nextFundingTime = nft;
+            }
         }
-        this.updateSymbol(symbol, {
-            lastPrice: new Decimal(data.price),
-            indexPrice: new Decimal(data.indexPrice),
-            fundingRate: new Decimal(data.fundingRate),
-            nextFundingTime: nft
-        });
+
+        this.updateSymbol(symbol, partial);
     }
 
     updateTicker(symbol: string, data: any) {
-        const last = new Decimal(data.lastPrice);
-        const open = new Decimal(data.open);
-        let pct = new Decimal(0);
-        if (!open.isZero()) pct = last.minus(open).div(open).times(100);
+        const partial: Partial<MarketData> = {};
 
-        this.updateSymbol(symbol, {
-            lastPrice: last,
-            highPrice: new Decimal(data.high),
-            lowPrice: new Decimal(data.low),
-            volume: new Decimal(data.vol),
-            quoteVolume: new Decimal(data.quoteVol),
-            priceChangePercent: pct
-        });
+        if (data.lastPrice !== undefined) partial.lastPrice = new Decimal(data.lastPrice);
+        if (data.high !== undefined) partial.highPrice = new Decimal(data.high);
+        if (data.low !== undefined) partial.lowPrice = new Decimal(data.low);
+        if (data.vol !== undefined) partial.volume = new Decimal(data.vol);
+        if (data.quoteVol !== undefined) partial.quoteVolume = new Decimal(data.quoteVol);
+
+        // Use provided change or calculate if possible
+        if (data.change !== undefined) {
+            partial.priceChangePercent = new Decimal(data.change).times(100);
+        } else if (data.lastPrice !== undefined && data.open !== undefined) {
+            const last = new Decimal(data.lastPrice);
+            const open = new Decimal(data.open);
+            if (!open.isZero()) {
+                partial.priceChangePercent = last.minus(open).div(open).times(100);
+            }
+        }
+
+        this.updateSymbol(symbol, partial);
     }
 
     updateDepth(symbol: string, data: any) {

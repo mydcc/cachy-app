@@ -154,16 +154,16 @@ export const POST: RequestHandler = async ({ request }) => {
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
         const orderPayload: BitunixOrderPayload = {
-          symbol: body.symbol as string,
-          side: body.side as string,
-          type: body.type as string,
-          qty: String(body.qty), // Ensure string
-          price: body.price ? String(body.price) : undefined,
-          reduceOnly: !!body.reduceOnly,
-          triggerPrice: body.triggerPrice
+          symbol: String(body.symbol),
+          side: String(body.side),
+          type: String(body.type),
+          qty: String(body.qty),
+          price: body.price !== undefined ? String(body.price) : undefined,
+          reduceOnly: body.reduceOnly === true,
+          triggerPrice: body.triggerPrice !== undefined
             ? String(body.triggerPrice)
             : undefined,
-          stopPrice: body.stopPrice ? String(body.stopPrice) : undefined,
+          stopPrice: body.stopPrice !== undefined ? String(body.stopPrice) : undefined,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
@@ -175,8 +175,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // To close a position, we place a MARKET order in the opposite direction
         const closeOrder: BitunixOrderPayload = {
-          symbol: body.symbol as string,
-          side: body.side as string, // Must be opposite of position
+          symbol: String(body.symbol),
+          side: String(body.side), // Must be opposite of position
           type: "MARKET",
           qty: String(body.amount),
           reduceOnly: true,

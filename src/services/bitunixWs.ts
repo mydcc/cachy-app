@@ -528,7 +528,6 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
         return;
       }
 
@@ -548,7 +547,6 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
         return;
       }
 
@@ -558,7 +556,6 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
           return;
         }
 
@@ -567,14 +564,13 @@ class BitunixWebSocketService {
         // Validate price data with Zod
         const priceValidation = BitunixPriceDataSchema.safeParse(validatedMessage.data);
         if (!priceValidation.success) {
-          console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
           return;
         }
 
         const data = priceValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Record<string, string | number> = {};
         if (data.mp !== undefined) update.price = data.mp;
         if (data.ip !== undefined) update.indexPrice = data.ip;
         if (data.fr !== undefined) update.fundingRate = data.fr;
@@ -587,7 +583,6 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
           return;
         }
 
@@ -596,14 +591,13 @@ class BitunixWebSocketService {
         // Validate ticker data with Zod
         const tickerValidation = BitunixTickerDataSchema.safeParse(validatedMessage.data);
         if (!tickerValidation.success) {
-          console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
           return;
         }
 
         const data = tickerValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Record<string, string | number> = {};
         if (data.la !== undefined) update.lastPrice = data.la;
         if (data.h !== undefined) update.high = data.h;
         if (data.l !== undefined) update.low = data.l;
@@ -659,8 +653,7 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      console.error('[WebSocket] Message handling error:', err);
-      console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
+      // Silent failure for message handling errors to avoid console spam
     }
   }
 
