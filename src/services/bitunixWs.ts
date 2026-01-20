@@ -18,6 +18,7 @@
 import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { uiState } from "../stores/ui.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import CryptoJS from "crypto-js";
@@ -242,6 +243,7 @@ class BitunixWebSocketService {
       ws.onerror = (error) => {
       };
     } catch (e) {
+      console.warn('[WebSocket] Public connection setup failed:', e);
       this.scheduleReconnect("public");
     }
   }
@@ -325,6 +327,7 @@ class BitunixWebSocketService {
       ws.onerror = (error) => {
       };
     } catch (e) {
+      console.warn('[WebSocket] Private connection setup failed:', e);
       this.scheduleReconnect("private");
     }
   }
@@ -488,7 +491,10 @@ class BitunixWebSocketService {
 
       const payload = { op: "login", args: [{ apiKey, timestamp, nonce, sign }] };
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) {
+    } catch (error: any) {
+        console.error('[WebSocket] Login failed:', error);
+        marketState.connectionStatus = "error";
+        uiState.showError(`Connection Error: ${error?.message || "Login Failed"}`);
     }
   }
 

@@ -63,7 +63,16 @@ export const POST: RequestHandler = async ({ request }) => {
       // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
       const rawQty = type === "close-position" ? body.amount : body.qty;
       // Strict check: must be string or number convertible to positive number
-      const qty = parseFloat(String(rawQty));
+      // Reject non-numeric strings that simple parseFloat might accept (e.g. "12abc", "1,200")
+      // We allow standard decimals "1.5" or integers "100"
+      const rawQtyStr = String(rawQty).replace(/,/g, ''); // Allow commas by removing them
+      if (!/^-?\d*(\.\d+)?$/.test(rawQtyStr)) {
+         return json(
+          { error: "Invalid quantity format. Numbers only (e.g. 0.5)" },
+          { status: 400 },
+        );
+      }
+      const qty = parseFloat(rawQtyStr);
 
       if (isNaN(qty) || qty <= 0) {
         return json(
@@ -112,7 +121,15 @@ export const POST: RequestHandler = async ({ request }) => {
           orderType === "TAKE_PROFIT_LIMIT"
         ) {
           // Price validation
-          const price = parseFloat(String(body.price));
+          const priceStr = String(body.price).replace(/,/g, '');
+          if (!/^-?\d*(\.\d+)?$/.test(priceStr)) {
+            return json(
+              { error: "Invalid price format." },
+              { status: 400 },
+            );
+          }
+          const price = parseFloat(priceStr);
+
           if (isNaN(price) || price <= 0) {
             return json(
               { error: "Invalid price for LIMIT/STOP order." },

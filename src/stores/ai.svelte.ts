@@ -722,16 +722,22 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         // confirmNeeded is now handled at the batch level in processResponse
         if (confirmNeeded) return false;
 
+        const parseVal = (v: any) => {
+            if (typeof v === 'number') return v;
+            if (typeof v === 'string') return parseFloat(v.replace(/,/g, ''));
+            return 0;
+        };
+
         try {
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(String(action.value)) }));
+                        tradeState.update((s: any) => ({ ...s, entryPrice: parseVal(action.value) }));
                     }
                     break;
                 case "setStopLoss":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(String(action.value)) }));
+                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseVal(action.value) }));
                     }
                     break;
                 case "setTakeProfit":
@@ -741,8 +747,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                             const newTargets = [...s.targets];
                             if (newTargets[idx]) {
                                 let updatedTarget = { ...newTargets[idx] };
-                                if (action.value !== undefined) updatedTarget.price = parseFloat(String(action.value));
-                                if (action.percent !== undefined) updatedTarget.percent = parseFloat(String(action.percent));
+                                if (action.value !== undefined) updatedTarget.price = parseVal(action.value);
+                                if (action.percent !== undefined) updatedTarget.percent = parseVal(action.percent);
                                 newTargets[idx] = updatedTarget;
                             }
                             return { ...s, targets: newTargets };
@@ -751,12 +757,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     break;
                 case "setLeverage":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(String(action.value)) }));
+                        tradeState.update((s: any) => ({ ...s, leverage: parseVal(action.value) }));
                     }
                     break;
                 case "setRisk":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(String(action.value)) }));
+                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseVal(action.value) }));
                     }
                     break;
                 case "setSymbol":
@@ -768,7 +774,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
                     if (mult !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(String(mult)), useAtrSl: true }));
+                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseVal(mult), useAtrSl: true }));
                     }
                     break;
                 case "setUseAtrSl":
@@ -878,11 +884,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     // Compatibility
     subscribe(fn: (value: { messages: AiMessage[], isStreaming: boolean, error: string | null }) => void) {
         fn({ messages: this.messages, isStreaming: this.isStreaming, error: this.error });
-        return $effect.root(() => {
+        const cleanup = $effect.root(() => {
             $effect(() => {
                 fn({ messages: this.messages, isStreaming: this.isStreaming, error: this.error });
             });
         });
+        return cleanup;
     }
 }
 
