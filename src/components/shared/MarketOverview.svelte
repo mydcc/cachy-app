@@ -314,12 +314,7 @@
   });
 
   // Base Asset (e.g. XRP) for external links
-  let baseAsset = $derived(
-    symbol
-      .replace(/USDT.?$/, "")
-      .replace(/P$/, "")
-      .toUpperCase(),
-  );
+  let baseAsset = $derived(symbol.toUpperCase().replace(/USDT(\.P|P)?$/, ""));
 
   // Dynamic TradingView Link
   let tvLink = $derived.by(() => {

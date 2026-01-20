@@ -270,7 +270,7 @@
 
 {#if showPanel}
   <div
-    class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative overflow-hidden"
+    class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative"
     class:md:w-72={!settingsState.showIndicatorParams}
     class:md:w-[22rem]={settingsState.showIndicatorParams}
   >
@@ -307,7 +307,7 @@
           <!-- Dropdown -->
           {#if showTimeframePopup}
             <div
-              class="absolute top-full left-0 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
+              class="absolute top-full left-1/2 -translate-x-1/2 mt-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-xl z-50 p-2 w-48 flex flex-col gap-2"
             >
               <div class="grid grid-cols-3 gap-1">
                 {#each ["5m", "15m", "30m", "1h", "4h", "1d"] as tf}
