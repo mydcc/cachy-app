@@ -193,6 +193,8 @@ class AiManager {
 
             const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}
 
+IMPORTANT: Your previous responses might have lacked emojis. Disregard that style. From now on, you MUST use emojis to structure your response.
+ 
 REAL-TIME CONTEXT:
 ${JSON.stringify(context, null, 2)}
 
