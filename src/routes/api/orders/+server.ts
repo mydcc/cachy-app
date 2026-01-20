@@ -31,7 +31,7 @@ import type {
 import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
-  let body: Record<string, any>;
+  let body: Record<string, unknown>;
   try {
     body = await request.json();
   } catch (e) {
@@ -42,7 +42,10 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: "Invalid body format" }, { status: 400 });
   }
 
-  const { exchange, apiKey, apiSecret, type } = body;
+  const exchange = body.exchange as string | undefined;
+  const apiKey = body.apiKey as string | undefined;
+  const apiSecret = body.apiSecret as string | undefined;
+  const type = body.type as string | undefined;
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
@@ -69,7 +72,7 @@ export const POST: RequestHandler = async ({ request }) => {
         );
       }
 
-      const side = body.side?.toUpperCase();
+      const side = (body.side as string | undefined)?.toUpperCase();
       if (side !== "BUY" && side !== "SELL") {
         return json(
           { error: "Invalid side. Must be BUY or SELL." },
@@ -86,7 +89,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       // Check price for Limit orders (place-order only usually)
       if (type === "place-order") {
-        const orderType = (body.type || "").toUpperCase();
+        const orderType = (body.type as string || "").toUpperCase();
         const allowedTypes = [
           "LIMIT",
           "MARKET",
@@ -117,12 +120,30 @@ export const POST: RequestHandler = async ({ request }) => {
             );
           }
         }
+
+        // Trigger Price validation for ALL conditional orders (LIMIT & MARKET)
+        if (
+          orderType === "STOP_LIMIT" ||
+          orderType === "STOP_MARKET" ||
+          orderType === "TAKE_PROFIT_LIMIT" ||
+          orderType === "TAKE_PROFIT_MARKET"
+        ) {
+          // Check triggerPrice OR stopPrice
+          const trigger = body.triggerPrice || body.stopPrice;
+          const triggerVal = parseFloat(String(trigger));
+          if (isNaN(triggerVal) || triggerVal <= 0) {
+            return json(
+              { error: `Trigger price required for ${orderType}.` },
+              { status: 400 },
+            );
+          }
+        }
       }
     }
   }
 
   try {
-    let result: any = null;
+    let result: BitunixOrder | { orders: NormalizedOrder[] } | null = null;
     if (exchange === "bitunix") {
       if (type === "pending") {
         const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
@@ -133,9 +154,9 @@ export const POST: RequestHandler = async ({ request }) => {
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
         const orderPayload: BitunixOrderPayload = {
-          symbol: body.symbol,
-          side: body.side,
-          type: body.type,
+          symbol: body.symbol as string,
+          side: body.side as string,
+          type: body.type as string,
           qty: String(body.qty), // Ensure string
           price: body.price ? String(body.price) : undefined,
           reduceOnly: !!body.reduceOnly,
@@ -154,8 +175,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // To close a position, we place a MARKET order in the opposite direction
         const closeOrder: BitunixOrderPayload = {
-          symbol: body.symbol,
-          side: body.side, // Must be opposite of position
+          symbol: body.symbol as string,
+          side: body.side as string, // Must be opposite of position
           type: "MARKET",
           qty: String(body.amount),
           reduceOnly: true,

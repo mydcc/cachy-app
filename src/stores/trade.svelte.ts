@@ -306,15 +306,12 @@ class TradeManager {
 
     // Compatibility
     private listeners = new Set<(value: any) => void>();
-    private notifyTimer: any = null;
+    // private notifyTimer: any = null; // Removed debounce for sync updates
 
     private notifyListeners() {
-        if (this.notifyTimer) clearTimeout(this.notifyTimer);
-        this.notifyTimer = setTimeout(() => {
-            const snap = this.getSnapshot();
-            this.listeners.forEach(fn => fn(snap));
-            this.notifyTimer = null;
-        }, 50);
+        // Synchronous notification to prevent race conditions
+        const snap = this.getSnapshot();
+        this.listeners.forEach(fn => fn(snap));
     }
 
     subscribe(fn: (value: any) => void): () => void {

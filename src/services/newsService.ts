@@ -216,7 +216,6 @@ OUTPUT FORMAT (JSON ONLY):
         resultText = await fetchWithRetry(prompt, geminiApiKey, settingsState.geminiModel || "gemini-1.5-flash");
       } else if (aiProvider === "openai" && openaiApiKey) {
         // Dynamic import to avoid loading openai in browser bundle
-        // @ts-expect-error - openai is dynamically imported
         const { default: OpenAI } = await import("openai");
         const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
         const completion = await openai.chat.completions.create({

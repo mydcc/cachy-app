@@ -46,11 +46,11 @@ class BitunixWebSocketService {
   private wsPublic: WebSocket | null = null;
   private wsPrivate: WebSocket | null = null;
 
-  private pingTimerPublic: any = null;
-  private pingTimerPrivate: any = null;
+  private pingTimerPublic: ReturnType<typeof setInterval> | null = null;
+  private pingTimerPrivate: ReturnType<typeof setInterval> | null = null;
 
-  private watchdogTimerPublic: any = null;
-  private watchdogTimerPrivate: any = null;
+  private watchdogTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private watchdogTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private lastWatchdogResetPublic = 0;
   private lastWatchdogResetPrivate = 0;
@@ -58,13 +58,13 @@ class BitunixWebSocketService {
 
   public publicSubscriptions: Set<string> = new Set();
 
-  private reconnectTimerPublic: any = null;
-  private reconnectTimerPrivate: any = null;
+  private reconnectTimerPublic: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimerPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isReconnectingPublic = false;
   private isReconnectingPrivate = false;
 
-  private globalMonitorInterval: any = null;
+  private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
@@ -72,8 +72,8 @@ class BitunixWebSocketService {
   private lastMessageTimePublic = Date.now();
   private lastMessageTimePrivate = Date.now();
 
-  private connectionTimeoutPublic: any = null;
-  private connectionTimeoutPrivate: any = null;
+  private connectionTimeoutPublic: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimeoutPrivate: ReturnType<typeof setTimeout> | null = null;
 
   private isAuthenticated = false;
   private isDestroyed = false;
@@ -486,13 +486,19 @@ class BitunixWebSocketService {
 
   private validateTickerData(data: Partial<BitunixTickerData>): boolean {
     if (!data) return false;
-    const critical = ["la", "o"] as const;
-    for (const field of critical) {
-      if (!data[field]) return false;
-      const val = parseFloat(String(data[field]));
-      if (isNaN(val) || val <= 0) return false;
+    // Allow partial updates (deltas). We just need at least one valid numeric field.
+    const fields = ["la", "o", "h", "l", "b", "q", "r"] as const;
+    let hasValidField = false;
+
+    for (const field of fields) {
+      if (data[field] !== undefined && data[field] !== null) {
+        const val = parseFloat(String(data[field]));
+        if (!isNaN(val)) {
+          hasValidField = true;
+        }
+      }
     }
-    return true;
+    return hasValidField;
   }
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
@@ -517,12 +523,16 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixPriceData>;
         if (symbol && data && this.validatePriceData(data)) {
-          marketState.updatePrice(symbol, {
-            price: data.mp || "0",
-            indexPrice: data.ip || "0",
-            fundingRate: data.fr || "0",
-            nextFundingTime: String(data.nft || 0),
-          });
+          // Partial update safety: Only update fields that exist
+          const update: any = {};
+          if (data.mp !== undefined) update.price = data.mp;
+          if (data.ip !== undefined) update.indexPrice = data.ip;
+          if (data.fr !== undefined) update.fundingRate = data.fr;
+          if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
+
+          if (Object.keys(update).length > 0) {
+            marketState.updatePrice(symbol, update);
+          }
         }
       } else if (message.ch === "ticker") {
         const rawSymbol = message.symbol;
@@ -530,15 +540,19 @@ class BitunixWebSocketService {
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = message.data as Partial<BitunixTickerData>;
         if (symbol && data && this.validateTickerData(data)) {
-          marketState.updateTicker(symbol, {
-            lastPrice: data.la || "0",
-            high: data.h || "0",
-            low: data.l || "0",
-            vol: data.b || "0",
-            quoteVol: data.q || "0",
-            change: data.r || "0",
-            open: data.o || "0",
-          });
+           // Partial update safety
+           const update: any = {};
+           if (data.la !== undefined) update.lastPrice = data.la;
+           if (data.h !== undefined) update.high = data.h;
+           if (data.l !== undefined) update.low = data.l;
+           if (data.b !== undefined) update.vol = data.b;
+           if (data.q !== undefined) update.quoteVol = data.q;
+           if (data.r !== undefined) update.change = data.r;
+           if (data.o !== undefined) update.open = data.o;
+
+           if (Object.keys(update).length > 0) {
+             marketState.updateTicker(symbol, update);
+           }
         }
       } else if (message.ch === "depth_book5") {
         const rawSymbol = message.symbol;

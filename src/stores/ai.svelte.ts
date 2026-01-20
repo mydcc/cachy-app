@@ -31,9 +31,17 @@ export interface AiMessage {
     provider?: AiProvider;
 }
 
+export interface AiAction {
+    action: string;
+    value?: string | number | boolean;
+    index?: number;
+    percent?: number | string;
+    atrMultiplier?: number | string;
+}
+
 export interface PendingAction {
     id: string;
-    actions: any[];
+    actions: AiAction[];
     timestamp: number;
 }
 
@@ -101,7 +109,11 @@ class AiManager {
 
         try {
             // 2. Gather Context (Async)
-            const context = await this.gatherContext();
+            // Timeout wrapper for gathering context to prevent hanging
+            const contextPromise = this.gatherContext();
+            const timeoutPromise = new Promise((resolve) => setTimeout(() => resolve(null), 5000));
+
+            const context = await Promise.race([contextPromise, timeoutPromise]) || { error: "Context gathering timed out, proceeding with minimal data." };
             this.lastContext = context; // Update exposed context
 
             // 3. Prepare Messages (History + System + User)
@@ -249,30 +261,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 4. Verify all numbers match the context exactly
 5. Check that you cited sources for all key data points`;
 
-            const apiMessages = [
-                { role: "system", content: systemPrompt },
-                ...this.messages.map((m) => ({ role: m.role, content: m.content })),
-                // The user message is already in this.messages, but if we strictly follow the previous logic we might duplicate if not careful.
-                // Wait, I appended to this.messages above. So I should filter out the system prompt logic if I was adding it dynamically, but here I am reconstructing the prompt for the API call.
-                // The API call expects history. I already added userMsg to this.messages.
-                // But the previous implementation did:
-                // APIMessages = System + State.Messages (which INCLUDED User) + User (wait, previous implementation pushed User to state first? Yes.)
-                // Actually previous implementation:
-                // 1. Update State with User Msg.
-                // 2. apiMessages = System + state.messages.map(...) + userMsg (Wait, previous code said: `...state.messages.map...`, then `{ role: "user", content: text }`.
-                // Let's look closely at previous code:
-                // update(s => messages + userMsg)
-                // apiMessages = [system, ...state.messages.map..., { role: "user", content: text }] ?? 
-                // If state.messages already has userMsg, then we are duplicating it.
-                // Previous code: `const newMsgs = [...s.messages, userMsg].slice(-MAX_MESSAGES);` -> update S.
-                // Then `const apiMessages = [system, ...state.messages.map(...), { role: 'user', content: text }]`
-                // YES, IT WAS DUPLICATING THE LAST MESSAGE. That might have been a bug or intentional to ensure it's 'fresh'. 
-                // I will fix it to NOT duplicate.
-            ];
-
-            // Let's reconstruct apiMessages correctly:
-            // It should be System + All History (which includes the latest User Msg)
-            // However, for the very specific call structure:
+            // Construct Payload Messages
             const payloadMessages = [
                 { role: "system", content: systemPrompt },
                 ...this.messages.map(m => ({ role: m.role, content: m.content }))
@@ -677,15 +666,15 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         };
     }
 
-    private parseActions(text: string): any[] {
-        const actions: any[] = [];
+    private parseActions(text: string): AiAction[] {
+        const actions: AiAction[] = [];
         const regex = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
         const match = text.match(regex);
 
         if (match && match[1]) {
             try {
                 const parsed = JSON.parse(match[1]);
-                if (Array.isArray(parsed)) return parsed;
+                if (Array.isArray(parsed)) return parsed as AiAction[];
             } catch (e) { /* ignore */ }
         }
 
@@ -694,63 +683,64 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         if (singleMatch && singleMatch[1]) {
             try {
                 const parsed = JSON.parse(singleMatch[1]);
-                return [parsed];
+                return [parsed as AiAction];
             } catch (e) { /* ignore */ }
         }
 
         return actions;
     }
 
-    private executeAction(action: any, confirmNeeded: boolean): boolean {
+    private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
         // confirmNeeded is now handled at the batch level in processResponse
         if (confirmNeeded) return false;
 
         try {
             switch (action.action) {
                 case "setEntryPrice":
-                    if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(action.value) }));
+                    if (action.value !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(String(action.value)) }));
                     }
                     break;
                 case "setStopLoss":
-                    if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(action.value) }));
+                    if (action.value !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(String(action.value)) }));
                     }
                     break;
                 case "setTakeProfit":
                     if (typeof action.index === "number") {
+                        const idx = action.index;
                         tradeState.update((s: any) => {
                             const newTargets = [...s.targets];
-                            if (newTargets[action.index]) {
-                                let updatedTarget = { ...newTargets[action.index] };
-                                if (action.value) updatedTarget.price = parseFloat(action.value);
-                                if (action.percent) updatedTarget.percent = parseFloat(action.percent);
-                                newTargets[action.index] = updatedTarget;
+                            if (newTargets[idx]) {
+                                let updatedTarget = { ...newTargets[idx] };
+                                if (action.value !== undefined) updatedTarget.price = parseFloat(String(action.value));
+                                if (action.percent !== undefined) updatedTarget.percent = parseFloat(String(action.percent));
+                                newTargets[idx] = updatedTarget;
                             }
                             return { ...s, targets: newTargets };
                         });
                     }
                     break;
                 case "setLeverage":
-                    if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(action.value) }));
+                    if (action.value !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(String(action.value)) }));
                     }
                     break;
                 case "setRisk":
-                    if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(action.value) }));
+                    if (action.value !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(String(action.value)) }));
                     }
                     break;
                 case "setSymbol":
-                    if (action.value) {
-                        tradeState.update((s: any) => ({ ...s, symbol: action.value }));
+                    if (action.value !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, symbol: String(action.value) }));
                     }
                     break;
                 case "setAtrMultiplier":
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
-                    if (mult) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(mult), useAtrSl: true }));
+                    if (mult !== undefined) {
+                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(String(mult)), useAtrSl: true }));
                     }
                     break;
                 case "setUseAtrSl":
@@ -769,14 +759,14 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     /**
      * Describe an action in compact human-readable format
      */
-    public describeAction(action: any): string {
+    public describeAction(action: AiAction): string {
         switch (action.action) {
             case "setEntryPrice":
                 return `Entry: ${action.value}`;
             case "setStopLoss":
                 return `Stop Loss: ${action.value}`;
             case "setTakeProfit":
-                return `TP${action.index + 1}: ${action.value}`;
+                return `TP${(action.index ?? 0) + 1}: ${action.value}`;
             case "setLeverage":
                 return `Leverage: ${action.value}x`;
             case "setRisk":
@@ -824,6 +814,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         // Update message to show confirmed status
         this.updateActionMessage(actionId, "confirmed");
+        this.save();
     }
 
     /**
@@ -838,6 +829,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
         // Update message to show rejected status
         this.updateActionMessage(actionId, "rejected");
+        this.save();
     }
 
     /**

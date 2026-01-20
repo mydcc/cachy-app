@@ -111,33 +111,36 @@ class TechnicalsWorkerManager {
 
   // Helper to hydrate serialized data back to Decimal
   private rehydrate(data: any): TechnicalsData {
+    if (!data) return getEmptyData();
+
     if (data.oscillators) data.oscillators.forEach((o: any) => o.value = new Decimal(o.value || 0));
     if (data.movingAverages) data.movingAverages.forEach((m: any) => m.value = new Decimal(m.value || 0));
 
     const rehydratePivots = (p: any) => {
+      if (!p || !p.classic) return null;
       const c = p.classic;
       return {
         classic: {
-          p: new Decimal(c.p), r1: new Decimal(c.r1), r2: new Decimal(c.r2), r3: new Decimal(c.r3),
-          s1: new Decimal(c.s1), s2: new Decimal(c.s2), s3: new Decimal(c.s3)
+          p: new Decimal(c.p || 0), r1: new Decimal(c.r1 || 0), r2: new Decimal(c.r2 || 0), r3: new Decimal(c.r3 || 0),
+          s1: new Decimal(c.s1 || 0), s2: new Decimal(c.s2 || 0), s3: new Decimal(c.s3 || 0)
         }
       };
     };
     if (data.pivots) data.pivots = rehydratePivots(data.pivots);
     if (data.pivotBasis) {
-      data.pivotBasis.high = new Decimal(data.pivotBasis.high);
-      data.pivotBasis.low = new Decimal(data.pivotBasis.low);
-      data.pivotBasis.open = new Decimal(data.pivotBasis.open);
-      data.pivotBasis.close = new Decimal(data.pivotBasis.close);
+      data.pivotBasis.high = new Decimal(data.pivotBasis.high || 0);
+      data.pivotBasis.low = new Decimal(data.pivotBasis.low || 0);
+      data.pivotBasis.open = new Decimal(data.pivotBasis.open || 0);
+      data.pivotBasis.close = new Decimal(data.pivotBasis.close || 0);
     }
 
     // Rehydrate Volatility
     if (data.volatility) {
-      data.volatility.atr = new Decimal(data.volatility.atr);
-      data.volatility.bb.upper = new Decimal(data.volatility.bb.upper);
-      data.volatility.bb.middle = new Decimal(data.volatility.bb.middle);
-      data.volatility.bb.lower = new Decimal(data.volatility.bb.lower);
-      data.volatility.bb.percentP = new Decimal(data.volatility.bb.percentP);
+      data.volatility.atr = new Decimal(data.volatility.atr || 0);
+      data.volatility.bb.upper = new Decimal(data.volatility.bb.upper || 0);
+      data.volatility.bb.middle = new Decimal(data.volatility.bb.middle || 0);
+      data.volatility.bb.lower = new Decimal(data.volatility.bb.lower || 0);
+      data.volatility.bb.percentP = new Decimal(data.volatility.bb.percentP || 0);
     }
 
     // Rehydrate Divergences
