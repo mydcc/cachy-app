@@ -82,7 +82,6 @@ export interface Settings {
     syncFavorites: boolean;
     confirmTradeDeletion: boolean;
     confirmBulkDeletion: boolean;
-    enableGlassmorphism: boolean;
     chatFontSize: number;
     panelIsExpanded: boolean;
     minChatProfitFactor: number;
@@ -116,14 +115,14 @@ export interface Settings {
 const defaultSettings: Settings = {
     apiProvider: "bitunix",
     marketDataInterval: 10,
-    autoUpdatePriceInput: false,
+    autoUpdatePriceInput: true,
     autoFetchBalance: false,
     showSidebars: true,
-    showTechnicals: true,
+    showTechnicals: false,
     showIndicatorParams: false,
     hideUnfilledOrders: false,
     positionViewMode: "detailed",
-    isPro: true,
+    isPro: false,
     feePreference: "taker",
     hotkeyMode: "mode2",
     customHotkeys: {},
@@ -132,7 +131,7 @@ const defaultSettings: Settings = {
         binance: { key: "", secret: "" },
     },
     favoriteTimeframes: ["5m", "15m", "1h", "4h"],
-    favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT"],
+    favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
     syncRsiTimeframe: true,
     imgbbApiKey: "71a5689343bb63d5c85a76e4375f1d0b",
     imgbbExpiration: 0,
@@ -152,7 +151,7 @@ const defaultSettings: Settings = {
     openaiApiKey: "",
     openaiModel: "gpt-4o",
     geminiApiKey: "",
-    geminiModel: "gemini-1.5-flash",
+    geminiModel: "gemma",
     anthropicApiKey: "",
     anthropicModel: "claude-3-5-sonnet-20240620",
     aiConfirmActions: false,
@@ -165,7 +164,7 @@ const defaultSettings: Settings = {
     syncFavorites: true,
     confirmTradeDeletion: true,
     confirmBulkDeletion: true,
-    enableGlassmorphism: true,
+    confirmBulkDeletion: true,
     chatFontSize: 13,
     panelIsExpanded: false,
     maxPrivateNotes: 50,
@@ -264,7 +263,6 @@ class SettingsManager {
     syncFavorites = $state<boolean>(defaultSettings.syncFavorites);
     confirmTradeDeletion = $state<boolean>(defaultSettings.confirmTradeDeletion);
     confirmBulkDeletion = $state<boolean>(defaultSettings.confirmBulkDeletion);
-    enableGlassmorphism = $state<boolean>(defaultSettings.enableGlassmorphism);
     chatFontSize = $state<number>(defaultSettings.chatFontSize);
     panelIsExpanded = $state<boolean>(defaultSettings.panelIsExpanded);
     minChatProfitFactor = $state<number>(defaultSettings.minChatProfitFactor);
@@ -443,7 +441,6 @@ class SettingsManager {
             this.syncFavorites = merged.syncFavorites;
             this.confirmTradeDeletion = merged.confirmTradeDeletion;
             this.confirmBulkDeletion = merged.confirmBulkDeletion;
-            this.enableGlassmorphism = merged.enableGlassmorphism;
             this.chatFontSize = merged.chatFontSize;
             this.panelIsExpanded = merged.panelIsExpanded;
             this.minChatProfitFactor = merged.minChatProfitFactor;
@@ -561,7 +558,6 @@ class SettingsManager {
             syncFavorites: this.syncFavorites,
             confirmTradeDeletion: this.confirmTradeDeletion,
             confirmBulkDeletion: this.confirmBulkDeletion,
-            enableGlassmorphism: this.enableGlassmorphism,
             chatFontSize: this.chatFontSize,
             panelIsExpanded: this.panelIsExpanded,
             minChatProfitFactor: this.minChatProfitFactor,

@@ -32,7 +32,7 @@ export const INITIAL_TRADE_STATE = {
     stopLossPrice: null as number | null,
     leverage: parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
     fees: parseFloat(CONSTANTS.DEFAULT_FEES),
-    symbol: "",
+    symbol: "BTCUSDT",
     atrValue: null as number | null,
     atrMultiplier: parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
     useAtrSl: true,
