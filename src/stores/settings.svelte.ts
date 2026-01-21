@@ -281,6 +281,12 @@ class SettingsManager {
     showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
     showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
     get effectiveShowSidebarActivity() { return this.isPro && this.showSidebarActivity; }
+
+    get capabilities() {
+        return {
+            marketData: this.isPro && this.showMarketActivity
+        };
+    }
     showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
     showTechnicalsSummary = $state<boolean>(defaultSettings.showTechnicalsSummary);
     showTechnicalsConfluence = $state<boolean>(defaultSettings.showTechnicalsConfluence);

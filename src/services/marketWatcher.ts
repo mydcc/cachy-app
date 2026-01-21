@@ -181,6 +181,7 @@ class MarketWatcher {
   private isPollingPaused() {
     if (!browser) return true;
     const settings = settingsState;
+    if (!settings.capabilities.marketData) return true;
     const wsStatus = marketState.connectionStatus;
     // We only poll if Binance is selected OR Bitunix WS is down
     return settings.apiProvider !== "binance" && wsStatus === "connected";
@@ -204,6 +205,7 @@ class MarketWatcher {
   }
 
   private async pollSymbolChannel(symbol: string, channel: string, provider: "bitunix" | "binance") {
+    if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
     this.fetchLocks.add(lockKey);
 

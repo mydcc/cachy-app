@@ -117,8 +117,15 @@ class BitunixWebSocketService {
           return;
         }
 
-        // Only monitor if we are actually supposed to be using bitunix
-        if (settingsState.apiProvider !== "bitunix") return;
+        // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
+        if (settingsState.apiProvider !== "bitunix" || !settingsState.capabilities.marketData) {
+          if (status !== "disconnected") {
+            marketState.connectionStatus = "disconnected";
+            this.cleanup("public");
+            this.cleanup("private");
+          }
+          return;
+        }
 
         if (status === "connected" && timeSincePublic > 2000) {
           marketState.connectionStatus = "reconnecting";
@@ -156,7 +163,7 @@ class BitunixWebSocketService {
   }
 
   private connectPublic(force = false) {
-    if (this.isDestroyed) return;
+    if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
@@ -253,7 +260,7 @@ class BitunixWebSocketService {
     const apiKey = settings.apiKeys?.bitunix?.key;
     const apiSecret = settings.apiKeys?.bitunix?.secret;
 
-    if (!apiKey || !apiSecret) return;
+    if (!apiKey || !apiSecret || !settingsState.capabilities.marketData) return;
 
     if (this.wsPrivate) {
       if (
