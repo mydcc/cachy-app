@@ -71,7 +71,7 @@ class AiManager {
                 }
             }
         } catch (e) {
-            console.error("Failed to load AI history", e);
+            // Silent failure
         }
     }
 
@@ -80,7 +80,7 @@ class AiManager {
         try {
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify({ messages: this.messages, isStreaming: false, error: null }));
         } catch (e) {
-            console.error("Failed to save AI history", e);
+            // Silent failure
         }
     }
 
@@ -336,7 +336,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     if (res.status === 429) {
                         attempt++;
                         const delay = Math.pow(2, attempt) * 1000;
-                        console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
                         this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
                         await new Promise((r) => setTimeout(r, delay));
                         continue;
@@ -347,7 +346,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 } catch (e: any) {
                     if (attempt === MAX_RETRIES - 1) throw e; // Final failure
                     attempt++;
-                    console.warn(`API Error: ${e.message}. Retrying...`);
                     await new Promise((r) => setTimeout(r, 1000));
                 }
             }
@@ -438,13 +436,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                             try {
                                 this.executeAction(action, false);
                             } catch (err) {
-                                console.error("Single action failed", err);
+                                // Silent failure
                             }
                         });
                     }
                 }
             } catch (actionErr) {
-                console.error("Action parsing error:", actionErr);
+                // Silent failure
             }
 
             this.isStreaming = false;
@@ -490,7 +488,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     };
                 }
             } catch (e) {
-                console.warn("Failed to gather CMC context:", e);
+                // Silent failure
             }
         }
 
@@ -521,7 +519,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     }));
                 }
             } catch (e) {
-                console.warn("Failed to gather News context:", e);
+                // Silent failure
             }
         }
 
@@ -601,7 +599,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     }
                 }
             } catch (e) {
-                console.warn("Failed to gather Technicals context:", e);
+                // Silent failure
             }
         }
 
@@ -779,7 +777,6 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             }
             return true;
         } catch (e) {
-            console.error("AI Action Execution Failed", e);
             return false;
         }
     }

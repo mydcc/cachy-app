@@ -142,7 +142,7 @@ class MarketManager {
         this.enforceCacheLimit();
     }
 
-    updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {
+    updateSymbolKlines(symbol: string, timeframe: string, klines: { open: Decimal, high: Decimal, low: Decimal, close: Decimal, volume: Decimal, time: number }[]) {
         this.touchSymbol(symbol);
         const current = this.getOrCreateSymbol(symbol);
 
@@ -160,43 +160,53 @@ class MarketManager {
         this.enforceCacheLimit();
     }
 
-    // Legacy update methods refactored to use updateSymbol
-    updatePrice(symbol: string, data: any) {
-        let nft = 0;
-        if (data.nextFundingTime) {
-            nft = /^\d+$/.test(data.nextFundingTime) ? parseInt(data.nextFundingTime, 10) : new Date(data.nextFundingTime).getTime();
+    updatePrice(symbol: string, data: { price?: string|number, indexPrice?: string|number, fundingRate?: string|number, nextFundingTime?: string|number }) {
+        const partial: Partial<MarketData> = {};
+        if (data.price !== undefined) partial.lastPrice = new Decimal(data.price);
+        if (data.indexPrice !== undefined) partial.indexPrice = new Decimal(data.indexPrice);
+        if (data.fundingRate !== undefined) partial.fundingRate = new Decimal(data.fundingRate);
+        if (data.nextFundingTime !== undefined) {
+             const val = String(data.nextFundingTime);
+             partial.nextFundingTime = /^\d+$/.test(val) ? parseInt(val, 10) : new Date(val).getTime();
         }
-        this.updateSymbol(symbol, {
-            lastPrice: new Decimal(data.price),
-            indexPrice: new Decimal(data.indexPrice),
-            fundingRate: new Decimal(data.fundingRate),
-            nextFundingTime: nft
-        });
+        if (Object.keys(partial).length > 0) {
+            this.updateSymbol(symbol, partial);
+        }
     }
 
-    updateTicker(symbol: string, data: any) {
-        const last = new Decimal(data.lastPrice);
-        const open = new Decimal(data.open);
-        let pct = new Decimal(0);
-        if (!open.isZero()) pct = last.minus(open).div(open).times(100);
+    updateTicker(symbol: string, data: { lastPrice?: string|number, high?: string|number, low?: string|number, vol?: string|number, quoteVol?: string|number, change?: string|number, open?: string|number }) {
+        const partial: Partial<MarketData> = {};
 
-        this.updateSymbol(symbol, {
-            lastPrice: last,
-            highPrice: new Decimal(data.high),
-            lowPrice: new Decimal(data.low),
-            volume: new Decimal(data.vol),
-            quoteVolume: new Decimal(data.quoteVol),
-            priceChangePercent: pct
-        });
+        if (data.lastPrice !== undefined) partial.lastPrice = new Decimal(data.lastPrice);
+        if (data.high !== undefined) partial.highPrice = new Decimal(data.high);
+        if (data.low !== undefined) partial.lowPrice = new Decimal(data.low);
+        if (data.vol !== undefined) partial.volume = new Decimal(data.vol);
+        if (data.quoteVol !== undefined) partial.quoteVolume = new Decimal(data.quoteVol);
+
+        // Calculate pct if possible
+        if (data.change !== undefined) {
+             partial.priceChangePercent = new Decimal(data.change).times(100);
+        } else if (partial.lastPrice && data.open !== undefined) {
+             const open = new Decimal(data.open);
+             if (!open.isZero()) {
+                 partial.priceChangePercent = partial.lastPrice.minus(open).div(open).times(100);
+             }
+        }
+
+        if (Object.keys(partial).length > 0) {
+            this.updateSymbol(symbol, partial);
+        }
     }
 
-    updateDepth(symbol: string, data: any) {
-        this.updateSymbol(symbol, {
-            depth: { bids: data.bids, asks: data.asks }
-        });
+    updateDepth(symbol: string, data: { bids: [string, string][], asks: [string, string][] }) {
+        if (data.bids && data.asks) {
+            this.updateSymbol(symbol, {
+                depth: { bids: data.bids, asks: data.asks }
+            });
+        }
     }
 
-    updateKline(symbol: string, timeframe: string, data: any) {
+    updateKline(symbol: string, timeframe: string, data: { o: string|number, h: string|number, l: string|number, c: string|number, b: string|number, t: number }) {
         this.updateSymbolKlines(symbol, timeframe, [{
             open: new Decimal(data.o),
             high: new Decimal(data.h),

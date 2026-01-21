@@ -39,7 +39,7 @@ describe("marketStore", () => {
       low: "49000",
       vol: "1000",
       quoteVol: "52000000",
-      change: "4",
+      change: "0.04", // Bitunix 'r' is a rate (e.g. 0.04 for 4%)
       open: "50000",
     });
 

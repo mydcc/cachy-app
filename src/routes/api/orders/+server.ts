@@ -152,6 +152,9 @@ export const POST: RequestHandler = async ({ request }) => {
         const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret);
         result = { orders };
       } else if (type === "place-order") {
+        // Strict reduceOnly check
+        const reduceOnly = body.reduceOnly === true || String(body.reduceOnly) === "true";
+
         // Safe Construction of Payload after validation above
         const orderPayload: BitunixOrderPayload = {
           symbol: body.symbol as string,
@@ -159,7 +162,7 @@ export const POST: RequestHandler = async ({ request }) => {
           type: body.type as string,
           qty: String(body.qty), // Ensure string
           price: body.price ? String(body.price) : undefined,
-          reduceOnly: !!body.reduceOnly,
+          reduceOnly: reduceOnly,
           triggerPrice: body.triggerPrice
             ? String(body.triggerPrice)
             : undefined,
