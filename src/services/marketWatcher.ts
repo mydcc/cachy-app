@@ -16,6 +16,7 @@
  */
 
 
+import { untrack } from "svelte";
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
 import { settingsState } from "../stores/settings.svelte";
@@ -74,6 +75,13 @@ class MarketWatcher {
     // Only sync if this is the first requester for this channel
     if (count === 0) {
       this.syncSubscriptions();
+
+      // Also trigger an immediate REST fetch to avoid "no data" message
+      // Use the current provider and high priority for price/ticker
+      untrack(() => {
+        const provider = settingsState.apiProvider;
+        this.pollSymbolChannel(normSymbol, channel, provider);
+      });
     }
   }
 

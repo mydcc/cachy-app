@@ -294,12 +294,12 @@
   class="flex flex-col xl:flex-row items-start justify-center gap-0 md:gap-6 px-0 py-4 md:px-4 md:py-8 min-h-screen w-full box-border"
 >
   {#if settingsState.showSidebars}
-    <!-- Left Sidebar: Positions Table (Sticky) -->
+    <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
-      {#if settingsState.isPro}
+      {#if settingsState.showMarketActivity}
         <PositionsSidebar />
       {/if}
-      {#if settingsState.enableNewsAnalysis && (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)}
+      {#if settingsState.showMarketSentiment}
         <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
       {/if}
     </div>
