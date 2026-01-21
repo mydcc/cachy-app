@@ -26,6 +26,7 @@
     onclose?: () => void;
     children?: import("svelte").Snippet;
     headerExtra?: import("svelte").Snippet;
+    bodyClass?: string;
   }
 
   let {
@@ -36,6 +37,7 @@
     onclose,
     children,
     headerExtra,
+    bodyClass = "",
   }: Props = $props();
 
   function handleClose() {
@@ -78,7 +80,7 @@
           onclick={handleClose}>&times;</button
         >
       </div>
-      <div class="modal-body">
+      <div class="modal-body {bodyClass}">
         {#if children}
           {@render children()}
         {/if}
@@ -140,6 +142,8 @@
     color: var(--text-secondary);
   }
   .modal-body {
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
     min-height: 0;
     flex: 1;

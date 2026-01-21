@@ -277,6 +277,7 @@
   title={$_("settings.title") || "Settings"}
   onclose={close}
   extraClasses="modal-size-instructions flex flex-col overflow-hidden"
+  bodyClass="!overflow-hidden"
   alignment="center"
 >
   <!-- Main Content Container (Split View) -->
