@@ -15,11 +15,12 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { marketState } from "../stores/market.svelte";
+import { marketState, type MarketData } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { Decimal } from "decimal.js";
 import CryptoJS from "crypto-js";
 import type {
   BitunixWSMessage,
@@ -386,7 +387,7 @@ class BitunixWebSocketService {
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
-          console.warn('[WebSocket] Ping send failed, connection may be closed:', e);
+          // console.warn('[WebSocket] Ping send failed, connection may be closed:', e);
         }
       }
     }, PING_INTERVAL);
@@ -443,7 +444,7 @@ class BitunixWebSocketService {
         try {
           this.wsPublic.close();
         } catch (e) {
-          console.warn('[WebSocket] Error closing public connection:', e);
+          // console.warn('[WebSocket] Error closing public connection:', e);
         }
       }
       this.wsPublic = null;
@@ -459,7 +460,7 @@ class BitunixWebSocketService {
         try {
           this.wsPrivate.close();
         } catch (e) {
-          console.warn('[WebSocket] Error closing private connection:', e);
+          // console.warn('[WebSocket] Error closing private connection:', e);
         }
       }
       this.wsPrivate = null;
@@ -528,7 +529,7 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
+        // console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
         return;
       }
 
@@ -548,7 +549,7 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
+        // console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
         return;
       }
 
@@ -558,7 +559,7 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
+          // console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
           return;
         }
 
@@ -567,27 +568,27 @@ class BitunixWebSocketService {
         // Validate price data with Zod
         const priceValidation = BitunixPriceDataSchema.safeParse(validatedMessage.data);
         if (!priceValidation.success) {
-          console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
+          // console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
           return;
         }
 
         const data = priceValidation.data;
 
         // Build update object
-        const update: any = {};
-        if (data.mp !== undefined) update.price = data.mp;
-        if (data.ip !== undefined) update.indexPrice = data.ip;
-        if (data.fr !== undefined) update.fundingRate = data.fr;
-        if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
+        const update: Partial<MarketData> = {};
+        if (data.mp !== undefined) update.lastPrice = new Decimal(data.mp);
+        if (data.ip !== undefined) update.indexPrice = new Decimal(data.ip);
+        if (data.fr !== undefined) update.fundingRate = new Decimal(data.fr);
+        if (data.nft !== undefined) update.nextFundingTime = Number(data.nft);
 
         if (Object.keys(update).length > 0) {
-          marketState.updatePrice(symbol, update);
+          marketState.updateSymbol(symbol, update);
         }
       } else if (validatedMessage.ch === "ticker") {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
+          // console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
           return;
         }
 
@@ -596,31 +597,36 @@ class BitunixWebSocketService {
         // Validate ticker data with Zod
         const tickerValidation = BitunixTickerDataSchema.safeParse(validatedMessage.data);
         if (!tickerValidation.success) {
-          console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
+          // console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
           return;
         }
 
         const data = tickerValidation.data;
 
         // Build update object
-        const update: any = {};
-        if (data.la !== undefined) update.lastPrice = data.la;
-        if (data.h !== undefined) update.high = data.h;
-        if (data.l !== undefined) update.low = data.l;
-        if (data.b !== undefined) update.vol = data.b;
-        if (data.q !== undefined) update.quoteVol = data.q;
-        if (data.r !== undefined) update.change = data.r;
-        if (data.o !== undefined) update.open = data.o;
+        const update: Partial<MarketData> = {};
+        if (data.la !== undefined) update.lastPrice = new Decimal(data.la);
+        if (data.h !== undefined) update.highPrice = new Decimal(data.h);
+        if (data.l !== undefined) update.lowPrice = new Decimal(data.l);
+        if (data.b !== undefined) update.volume = new Decimal(data.b);
+        if (data.q !== undefined) update.quoteVolume = new Decimal(data.q);
+        // Bitunix 'r' is price change percent (e.g. 0.05 for 5%)? Or raw change?
+        // Usually documentation says rate. Let's assume rate.
+        if (data.r !== undefined) update.priceChangePercent = new Decimal(data.r).times(100);
 
         if (Object.keys(update).length > 0) {
-          marketState.updateTicker(symbol, update);
+          marketState.updateSymbol(symbol, update);
         }
       } else if (validatedMessage.ch === "depth_book5") {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
-        if (symbol && data) marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+        if (symbol && data) {
+            marketState.updateSymbol(symbol, {
+                depth: { bids: data.b, asks: data.a }
+            });
+        }
       } else if (validatedMessage.ch && (validatedMessage.ch.startsWith("market_kline_") || validatedMessage.ch === "mark_kline_1day")) {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
@@ -637,7 +643,15 @@ class BitunixWebSocketService {
               timeframe = revMap[bitunixTf] || bitunixTf;
             }
           }
-          marketState.updateKline(symbol, timeframe, { o: data.o, h: data.h, l: data.l, c: data.c, b: data.b || data.v, t: data.t || data.id || data.ts || Date.now() });
+
+          marketState.updateSymbolKlines(symbol, timeframe, [{
+             open: new Decimal(data.o),
+             high: new Decimal(data.h),
+             low: new Decimal(data.l),
+             close: new Decimal(data.c),
+             volume: new Decimal(data.b || data.v || 0),
+             time: data.t || data.id || data.ts || Date.now()
+          }]);
         }
       } else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
@@ -659,8 +673,8 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      console.error('[WebSocket] Message handling error:', err);
-      console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
+      // console.error('[WebSocket] Message handling error:', err);
+      // console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
     }
   }
 
@@ -697,7 +711,7 @@ class BitunixWebSocketService {
     try {
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn('[WebSocket] Failed to send private subscribe:', e);
+      // console.warn('[WebSocket] Failed to send private subscribe:', e);
     }
   }
 
@@ -706,7 +720,7 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(`[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`, e);
+      // console.warn(`[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`, e);
     }
   }
 
@@ -715,7 +729,7 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(`[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`, e);
+      // console.warn(`[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`, e);
     }
   }
 

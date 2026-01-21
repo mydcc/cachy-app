@@ -190,10 +190,13 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(result);
   } catch (e: unknown) {
     // Sanitize error log to prevent leaking API keys/headers (which might be in the error object properties)
-    const errorMsg = e instanceof Error ? e.message : String(e);
+    let errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
-    const sanitizedMsg = errorMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+    if (apiKey) errorMsg = errorMsg.replaceAll(apiKey, "***");
+    if (apiSecret) errorMsg = errorMsg.replaceAll(apiSecret, "***");
+
+    const sanitizedMsg = errorMsg;
 
     console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 

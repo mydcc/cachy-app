@@ -68,7 +68,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
   } catch (err: any) {
-    console.error("[NewsProxy] Error:", err);
-    return json({ error: err.message || "Internal Proxy Error" }, { status: 500 });
+    // Log only the message to avoid leaking URL/params in the error object structure
+    const safeError = err instanceof Error ? err.message : String(err);
+    console.error("[NewsProxy] Error:", safeError);
+    return json({ error: safeError || "Internal Proxy Error" }, { status: 500 });
   }
 };

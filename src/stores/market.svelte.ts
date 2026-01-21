@@ -160,52 +160,6 @@ class MarketManager {
         this.enforceCacheLimit();
     }
 
-    // Legacy update methods refactored to use updateSymbol
-    updatePrice(symbol: string, data: any) {
-        let nft = 0;
-        if (data.nextFundingTime) {
-            nft = /^\d+$/.test(data.nextFundingTime) ? parseInt(data.nextFundingTime, 10) : new Date(data.nextFundingTime).getTime();
-        }
-        this.updateSymbol(symbol, {
-            lastPrice: new Decimal(data.price),
-            indexPrice: new Decimal(data.indexPrice),
-            fundingRate: new Decimal(data.fundingRate),
-            nextFundingTime: nft
-        });
-    }
-
-    updateTicker(symbol: string, data: any) {
-        const last = new Decimal(data.lastPrice);
-        const open = new Decimal(data.open);
-        let pct = new Decimal(0);
-        if (!open.isZero()) pct = last.minus(open).div(open).times(100);
-
-        this.updateSymbol(symbol, {
-            lastPrice: last,
-            highPrice: new Decimal(data.high),
-            lowPrice: new Decimal(data.low),
-            volume: new Decimal(data.vol),
-            quoteVolume: new Decimal(data.quoteVol),
-            priceChangePercent: pct
-        });
-    }
-
-    updateDepth(symbol: string, data: any) {
-        this.updateSymbol(symbol, {
-            depth: { bids: data.bids, asks: data.asks }
-        });
-    }
-
-    updateKline(symbol: string, timeframe: string, data: any) {
-        this.updateSymbolKlines(symbol, timeframe, [{
-            open: new Decimal(data.o),
-            high: new Decimal(data.h),
-            low: new Decimal(data.l),
-            close: new Decimal(data.c),
-            volume: new Decimal(data.b),
-            time: data.t
-        }]);
-    }
 
     reset() {
         this.cacheMetadata.clear();
