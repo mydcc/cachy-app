@@ -58,6 +58,7 @@ export interface Settings {
     isDeepDiveUnlocked?: boolean;
     imgurClientId?: string;
     enableSidePanel: boolean;
+    enableGlassmorphism: boolean;
     showSidebarActivity: boolean;
     sidePanelMode: "chat" | "notes" | "ai";
     sidePanelLayout: SidePanelLayout;
@@ -139,6 +140,7 @@ const defaultSettings: Settings = {
     imgbbExpiration: 0,
     isDeepDiveUnlocked: false,
     enableSidePanel: false,
+    enableGlassmorphism: false,
     sidePanelMode: "ai",
     sidePanelLayout: "floating",
     chatStyle: "minimal",
@@ -238,6 +240,7 @@ class SettingsManager {
     imgurClientId = $state<string | undefined>(defaultSettings.imgurClientId);
 
     enableSidePanel = $state<boolean>(defaultSettings.enableSidePanel);
+    enableGlassmorphism = $state<boolean>(defaultSettings.enableGlassmorphism);
     sidePanelMode = $state<"chat" | "notes" | "ai">(defaultSettings.sidePanelMode);
     sidePanelLayout = $state<SidePanelLayout>(defaultSettings.sidePanelLayout);
     chatStyle = $state<"minimal" | "bubble" | "terminal">(defaultSettings.chatStyle);
@@ -542,6 +545,7 @@ class SettingsManager {
             isDeepDiveUnlocked: this.isDeepDiveUnlocked,
             imgurClientId: this.imgurClientId,
             enableSidePanel: this.enableSidePanel,
+            enableGlassmorphism: this.enableGlassmorphism,
             sidePanelMode: this.sidePanelMode,
             sidePanelLayout: this.sidePanelLayout,
             chatStyle: this.chatStyle,

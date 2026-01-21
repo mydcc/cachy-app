@@ -153,7 +153,7 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
-        const safeQty = formatApiNum(body.qty);
+        const safeQty = formatApiNum(String(body.qty));
         if (!safeQty) throw new Error("Invalid quantity");
 
         const orderPayload: BitunixOrderPayload = {
@@ -161,12 +161,12 @@ export const POST: RequestHandler = async ({ request }) => {
           side: body.side as string,
           type: body.type as string,
           qty: safeQty,
-          price: body.price ? formatApiNum(body.price) : undefined,
+          price: body.price ? formatApiNum(String(body.price)) : undefined,
           reduceOnly: !!body.reduceOnly,
           triggerPrice: body.triggerPrice
-            ? formatApiNum(body.triggerPrice)
+            ? formatApiNum(String(body.triggerPrice))
             : undefined,
-          stopPrice: body.stopPrice ? formatApiNum(body.stopPrice) : undefined,
+          stopPrice: body.stopPrice ? formatApiNum(String(body.stopPrice)) : undefined,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
@@ -176,7 +176,7 @@ export const POST: RequestHandler = async ({ request }) => {
           throw new Error("Invalid amount for closing position");
         }
 
-        const safeQty = formatApiNum(body.amount);
+        const safeQty = formatApiNum(String(body.amount));
         if (!safeQty) throw new Error("Invalid amount for closing position");
 
         // To close a position, we place a MARKET order in the opposite direction
@@ -199,8 +199,8 @@ export const POST: RequestHandler = async ({ request }) => {
     let errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
-    if (apiKey) errorMsg = errorMsg.replaceAll(apiKey, "***");
-    if (apiSecret) errorMsg = errorMsg.replaceAll(apiSecret, "***");
+    if (apiKey && typeof apiKey === 'string') errorMsg = errorMsg.replaceAll(apiKey, "***");
+    if (apiSecret && typeof apiSecret === 'string') errorMsg = errorMsg.replaceAll(apiSecret, "***");
 
     const sanitizedMsg = errorMsg;
 

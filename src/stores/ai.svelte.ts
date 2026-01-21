@@ -208,6 +208,7 @@ class AiManager {
                 "  * 🦆 for absurd/market manipulation hints",
                 "- FORMATTING RULES (STRICT):",
                 "  * **NUMBERS**: ALWAYS round numbers. Max 2 decimal places for percentages (e.g. 1.54%). Max 4 decimal places for prices. Do NOT show raw long floats.",
+                "  * **JSON DATA**: When generating JSON for actions (e.g. setEntryPrice), NEVER use thousands separators (e.g. '1,200.00' or '1.200,00'). ALWAYS use standard US float format (e.g. 1200.00).",
                 "  * **STRUCTURE**: Use Markdown bullet points, standard lists, and bold text for keys.",
                 "  * **READABILITY**: Use short paragraphs. Avoid 'wall of text'.",
                 "  * **SEPARATORS**: Use '---' to separate major sections if the response is long.",

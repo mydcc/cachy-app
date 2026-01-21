@@ -490,34 +490,6 @@ class BitunixWebSocketService {
     }
   }
 
-  private validatePriceData(data: Partial<BitunixPriceData>): boolean {
-    if (!data) return false;
-    const fields = ["mp", "ip", "fr", "nft"] as const;
-    for (const field of fields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        if (isNaN(parseFloat(String(data[field])))) return false;
-      }
-    }
-    return true;
-  }
-
-  private validateTickerData(data: Partial<BitunixTickerData>): boolean {
-    if (!data) return false;
-    // Allow partial updates (deltas). We just need at least one valid numeric field.
-    const fields = ["la", "o", "h", "l", "b", "q", "r"] as const;
-    let hasValidField = false;
-
-    for (const field of fields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        const val = parseFloat(String(data[field]));
-        if (!isNaN(val)) {
-          hasValidField = true;
-        }
-      }
-    }
-    return hasValidField;
-  }
-
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
       if (type === "public") this.awaitingPongPublic = false;
