@@ -810,6 +810,43 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     return actions;
   }
 
+  private parseAiValue(
+    input: string | number | boolean | undefined,
+  ): number | undefined {
+    if (input === undefined || input === null) return undefined;
+    if (typeof input === "number") return input;
+    if (typeof input === "boolean") return input ? 1 : 0;
+
+    let str = String(input).trim();
+    if (!str) return undefined;
+
+    // Check for "k" or "m" suffixes
+    const multipliers: Record<string, number> = { k: 1000, m: 1000000 };
+    const lastChar = str.slice(-1).toLowerCase();
+    let multiplier = 1;
+    if (multipliers[lastChar]) {
+      multiplier = multipliers[lastChar];
+      str = str.slice(0, -1);
+    }
+
+    // Heuristic for separators
+    // Case 1: "1.234,56" (DE) -> Last sep is comma
+    // Case 2: "1,234.56" (EN) -> Last sep is dot
+    const lastComma = str.lastIndexOf(",");
+    const lastDot = str.lastIndexOf(".");
+
+    if (lastComma > lastDot) {
+      // German format likely (comma is decimal separator)
+      str = str.replace(/\./g, "").replace(",", ".");
+    } else {
+      // English format likely (dot is decimal separator)
+      str = str.replace(/,/g, "");
+    }
+
+    const val = parseFloat(str);
+    return isNaN(val) ? undefined : val * multiplier;
+  }
+
   private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
     // confirmNeeded is now handled at the batch level in processResponse
     if (confirmNeeded) return false;
@@ -818,75 +855,63 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       switch (action.action) {
         case "setEntryPrice":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              entryPrice: parseFloat(String(action.value)),
-            }));
+            const val = this.parseAiValue(action.value);
+            if (val !== undefined) tradeState.entryPrice = val;
           }
           break;
         case "setStopLoss":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              stopLossPrice: parseFloat(String(action.value)),
-            }));
+            const val = this.parseAiValue(action.value);
+            if (val !== undefined) tradeState.stopLossPrice = val;
           }
           break;
         case "setTakeProfit":
           if (typeof action.index === "number") {
             const idx = action.index;
-            tradeState.update((s: any) => {
-              const newTargets = [...s.targets];
-              if (newTargets[idx]) {
-                let updatedTarget = { ...newTargets[idx] };
-                if (action.value !== undefined)
-                  updatedTarget.price = parseFloat(String(action.value));
-                if (action.percent !== undefined)
-                  updatedTarget.percent = parseFloat(String(action.percent));
-                newTargets[idx] = updatedTarget;
-              }
-              return { ...s, targets: newTargets };
-            });
+            const currentTargets = [...tradeState.targets];
+            if (currentTargets[idx]) {
+              const val = this.parseAiValue(action.value);
+              const pct = this.parseAiValue(action.percent);
+
+              if (val !== undefined) currentTargets[idx].price = val;
+              if (pct !== undefined) currentTargets[idx].percent = pct;
+
+              // Assign the whole array back to trigger reactivity
+              tradeState.targets = currentTargets;
+            }
           }
           break;
         case "setLeverage":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              leverage: parseFloat(String(action.value)),
-            }));
+            const val = this.parseAiValue(action.value);
+            if (val !== undefined) tradeState.leverage = val;
           }
           break;
         case "setRisk":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              riskPercentage: parseFloat(String(action.value)),
-            }));
+            const val = this.parseAiValue(action.value);
+            if (val !== undefined) tradeState.riskPercentage = val;
           }
           break;
         case "setSymbol":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              symbol: String(action.value),
-            }));
+            tradeState.symbol = String(action.value);
           }
           break;
         case "setAtrMultiplier":
         case "setStopLossATR":
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              atrMultiplier: parseFloat(String(mult)),
-              useAtrSl: true,
-            }));
+            const val = this.parseAiValue(mult);
+            if (val !== undefined) {
+              tradeState.atrMultiplier = val;
+              tradeState.useAtrSl = true;
+            }
           }
           break;
         case "setUseAtrSl":
           if (typeof action.value === "boolean") {
-            tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
+            tradeState.useAtrSl = action.value;
           }
           break;
       }

@@ -159,7 +159,8 @@ export const POST: RequestHandler = async ({ request }) => {
           type: body.type as string,
           qty: String(body.qty), // Ensure string
           price: body.price ? String(body.price) : undefined,
-          reduceOnly: !!body.reduceOnly,
+          reduceOnly:
+            body.reduceOnly === true || String(body.reduceOnly) === "true",
           triggerPrice: body.triggerPrice
             ? String(body.triggerPrice)
             : undefined,

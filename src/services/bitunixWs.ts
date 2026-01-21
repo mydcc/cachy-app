@@ -543,7 +543,9 @@ class BitunixWebSocketService {
         args: [{ apiKey, timestamp, nonce, sign }],
       };
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) {}
+    } catch (error) {
+      console.warn("[WebSocket] Login failed:", error);
+    }
   }
 
   private validatePriceData(data: Partial<BitunixPriceData>): boolean {
