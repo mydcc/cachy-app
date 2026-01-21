@@ -456,7 +456,8 @@
           "percent": "(%)",
           "trades": "Trades"
         }
-      }
+      },
+      "assets": "Assets"
     },
     "days": {
       "mon": "Mo",
@@ -591,8 +592,7 @@
       "sell": "Verkaufen",
       "neutral": "Neutral",
       "strongSell": "Stark Verkaufen",
-      "strongbuy": "Stark Kaufen",
-      "strongsell": "Stark Verkaufen",
+      "strongBuy": "Stark Kaufen",
       "title": "Technische Analyse",
       "summaryAction": "Zusammenfassung",
       "marketConfluence": "Markt Konfluenz",
@@ -696,7 +696,32 @@
       "focusExecutedOrdersDesc": "Zeigt nur vollständig ausgeführte Orders",
       "positionViewMode": "Positions-Ansichtsmodus",
       "positionViewModeDesc": "Wie Positionen im Sidebar angezeigt werden",
-      "marketDataRate": "Marktdaten-Aktualisierungsrate"
+      "marketDataRate": "Marktdaten-Aktualisierungsrate",
+      "expertDesc": "Erweiterte Optionen für erfahrene Benutzer",
+      "focusDesc": "Fokus-Modus blendet ablenkende Elemente aus",
+      "paramsDesc": "Zeigt detaillierte Indikator-Parameter",
+      "sidebarTitle": "Sidebar-Konfiguration"
+    },
+    "data": {
+      "title": "Daten-Wartung"
+    },
+    "enableCmcContext": "CMC-Kontext aktivieren",
+    "enableGlassmorphism": "Glassmorphismus aktivieren",
+    "enableNewsAnalysis": "News-Analyse aktivieren",
+    "glassmorphismDesc": "Glaseffekt für Karten und Panels aktivieren",
+    "maxPrivateNotes": "Max. private Notizen",
+    "minChatProfitFactor": "Min. Chat Profit Factor",
+    "minChatProfitFactorDesc": "Mindest-Profit-Faktor für Chat-Anzeige",
+    "pnlViewMode": "PnL-Anzeigemodus",
+    "positionViewMode": "Positions-Ansichtsmodus",
+    "showMarketActivity": "Marktaktivität anzeigen",
+    "showMarketLinks": "Markt-Links anzeigen",
+    "showMarketSentiment": "Marktstimmung anzeigen",
+    "showSidebarActivity": "Sidebar-Aktivität anzeigen",
+    "maintenance": {
+      "backupTitle": "Backup & Wiederherstellung",
+      "dangerTitle": "Gefahrenzone",
+      "healthTitle": "Daten-Gesundheit"
     }
   },
   "common": {
@@ -709,7 +734,8 @@
     "symbolNotFound": "Symbol nicht gefunden (Bitunix Code 2)",
     "invalidResponse": "Ungültige Antwort von der API.",
     "klineError": "Kerzendaten konnten nicht geladen werden.",
-    "generic": "Ein unbekannter API-Fehler ist aufgetreten."
+    "generic": "Ein unbekannter API-Fehler ist aufgetreten.",
+    "noMarketData": "Keine Marktdaten verfügbar."
   },
   "bitunixErrors": {
     "10001": "Netzwerkfehler",

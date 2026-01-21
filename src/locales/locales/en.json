@@ -101,7 +101,8 @@
       "riskPerTradeLabel": "Risk per Trade (%)",
       "riskPerTradePlaceholder": "e.g. 1.5",
       "riskAmountLabel": "Risk Amount",
-      "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount"
+      "toggleRiskAmountLockTitle": "Lock/Unlock Risk Amount",
+      "fetchBalanceTitle": "Fetch Balance"
     },
     "tradeSetupInputs": {
       "header": "Trade Setup",
@@ -387,7 +388,13 @@
           "assetBubble": "Bubble size = Trade count. Top right = High Winrate & Profit.",
           "winStreak": "Frequency of consecutive wins.",
           "lossStreak": "Frequency of consecutive losses.",
-          "tagEvolution": "Performance of strategies over time."
+          "tagEvolution": "Performance of strategies over time.",
+          "winLoss": "Detailed distribution of trades (Long/Short, Win/Loss/BE).",
+          "dayOfWeekPnl": "Gross profits and losses per day of the week.",
+          "durationVsPnl": "Relationship between hold time and profit/loss. Do you recognize patterns in short vs. long trades?",
+          "hourlyPnl": "Gross profits (green) and gross losses (red) per time of day. Helps identify when you are profitable and when you lose money.",
+          "longShortWinRate": "Comparison of win rates between Long and Short trades.",
+          "recovery": "Progression of your drawdowns. Shows how quickly you recover from losses."
         },
         "labels": {
           "forecast": "Forecast",
@@ -449,7 +456,8 @@
           "percent": "(%)",
           "trades": "Trades"
         }
-      }
+      },
+      "assets": "Assets"
     },
     "days": {
       "mon": "Mon",
@@ -569,7 +577,10 @@
       "geminiStable": "Gemini 2.0 Flash (Stable)",
       "geminiPreview": "Gemini 3 Flash (Preview 🚀)",
       "geminiPro": "Gemini 3 Pro (Preview 🧠)",
-      "gemmaOpen": "Gemma 3 27b (Open Model ✨)"
+      "gemmaOpen": "Gemma 3 27b (Open Model ✨)",
+      "confirmActionsDesc": "Requires confirmation before AI actions",
+      "confirmClearHistory": "Confirm Clear History",
+      "confirmClearHistoryDesc": "Requires confirmation before clearing chat history"
     },
     "technicals": {
       "strongBuy": "Strong Buy",
@@ -580,7 +591,13 @@
       "oscillatorsTitle": "Oscillators",
       "movingAveragesTitle": "Moving Averages",
       "pivotsTitle": "Pivot Points",
-      "advancedTitle": "Advanced Analysis"
+      "advancedTitle": "Advanced Analysis",
+      "oscillators": "Oscillators",
+      "movingAverages": "Moving Averages",
+      "pivots": "Pivots",
+      "buy": "Buy",
+      "sell": "Sell",
+      "neutral": "Neutral"
     },
     "imgbbPermanent": "Permanent (No Auto-Delete)",
     "imgbb10m": "10 Minutes",
@@ -602,7 +619,13 @@
       "sidebar": "Sidebar",
       "indicators": "Technicals",
       "system": "System",
-      "data": "Data Maintenance"
+      "data": "Data Maintenance",
+      "ai_assistant": "AI Assistant",
+      "analysis": "Analysis Logic",
+      "integrations": "Integrations",
+      "maintenance": "Maintenance",
+      "profile": "Profile & Design",
+      "workspace": "Workspace & Sidebar"
     },
     "indicators": {
       "title": "Indicator Settings",
@@ -612,7 +635,93 @@
       "favoriteTimeframes": "Favorite Timeframes",
       "addTimeframe": "Add timeframe...",
       "maxTimeframesSelected": "Max {max} timeframes selected.",
-      "syncRsiTimeframe": "Sync RSI Timeframe"
+      "syncRsiTimeframe": "Sync RSI Timeframe",
+      "historyDesc": "Maximum number of candles for calculations",
+      "precisionDesc": "Number of decimal places for indicator values",
+      "syncRsiDesc": "RSI automatically uses the same timeframe as the chart",
+      "absoluteValue": "Absolute Value",
+      "defaultTimeframe": "Default Timeframe",
+      "generalSetup": "General & Setup",
+      "length": "Length",
+      "oscillators": "Oscillators",
+      "overbought": "Overbought",
+      "oversold": "Oversold",
+      "percentage": "Percentage",
+      "pnlViewMode": "PnL Display Mode",
+      "signalLine": "Signal Line",
+      "source": "Source",
+      "trend": "Trend & Direction",
+      "trendDirection": "Trend & Direction",
+      "type": "Type",
+      "visualBar": "Visual Bar",
+      "volatility": "Volatility",
+      "volume": "Volume & Signals",
+      "volumeSignals": "Volume & Signals"
+    },
+    "data": {
+      "title": "Data Maintenance"
+    },
+    "enableCmcContext": "Enable CMC Context",
+    "enableGlassmorphism": "Enable Glassmorphism",
+    "enableNewsAnalysis": "Enable News Analysis",
+    "glassmorphismDesc": "Enable glass effect for cards and panels",
+    "maxPrivateNotes": "Max Private Notes",
+    "minChatProfitFactor": "Min Chat Profit Factor",
+    "minChatProfitFactorDesc": "Minimum profit factor to display in chat",
+    "pnlViewMode": "PnL Display Mode",
+    "positionViewMode": "Position View Mode",
+    "showMarketActivity": "Show Market Activity",
+    "showMarketLinks": "Show Market Links",
+    "showMarketSentiment": "Show Market Sentiment",
+    "showSidebarActivity": "Show Sidebar Activity",
+    "maintenance": {
+      "backupTitle": "Backup & Restore",
+      "dangerTitle": "Danger Zone",
+      "healthTitle": "Data Health"
+    },
+    "workspace": {
+      "expertDesc": "Advanced options for experienced users",
+      "focusDesc": "Focus mode hides distracting elements",
+      "paramsDesc": "Show detailed indicator parameters",
+      "sidebarTitle": "Sidebar Configuration",
+      "granularTechnicals": "Granular Technicals",
+      "marketOverview": "Market Overview",
+      "panelLayout": "Panel Layout",
+      "panelMode": "Panel Mode",
+      "panelTitle": "Panel Title",
+      "technicalsDesc": "Show technical indicators in sidebar",
+      "advanced": "Advanced",
+      "aiAssistant": "AI Assistant",
+      "confluence": "Confluence",
+      "floating": "Floating",
+      "focusExecutedOrders": "Show Only Executed Orders",
+      "focusExecutedOrdersDesc": "Shows only fully executed orders",
+      "indicatorParams": "Show Indicator Parameters",
+      "indicatorParamsDesc": "Shows detailed parameters for each indicator",
+      "marketChat": "Market Chat",
+      "marketDataRate": "Market Data Update Rate",
+      "mas": "Moving Averages",
+      "positionViewMode": "Position View Mode",
+      "positionViewModeDesc": "How positions are displayed in the sidebar",
+      "privateNotes": "Private Notes",
+      "showMarketActivity": "Show Market Activity",
+      "showMarketLinks": "Show Market Links",
+      "showMarketSentiment": "Show Market Sentiment",
+      "sidebartitle": "Sidebar Title",
+      "signals": "Signals",
+      "standard": "Standard (Aside)",
+      "summary": "Summary",
+      "technicals": "Show Technicals Panel"
+    },
+    "missingApiKeys": "Please configure your API keys in settings.",
+    "profile": {
+      "activeHotkeys": "Active Hotkeys",
+      "appearanceTitle": "Appearance & Identity",
+      "controlTitle": "Control & Interaction",
+      "customize": "Customize",
+      "hotkeysTitle": "Hotkeys",
+      "presetInfo": "You are using a hotkey preset. Switch to 'Custom' to rebind individual hotkeys.",
+      "switchToCustom": "Customize Hotkeys"
     }
   },
   "common": {
@@ -625,7 +734,8 @@
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
     "invalidResponse": "Invalid response from API.",
     "klineError": "Could not load candle data.",
-    "generic": "An unknown API error occurred."
+    "generic": "An unknown API error occurred.",
+    "noMarketData": "No market data available."
   },
   "bitunixErrors": {
     "10001": "Network Error",
