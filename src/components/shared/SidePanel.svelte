@@ -217,8 +217,6 @@
         })
         .resizable({
           edges: { left: true, right: true, bottom: true, top: false },
-          margin: 10,
-          invert: "none",
           listeners: {
             start() {
               isInteracting = true;
@@ -467,13 +465,13 @@
           x: isSidebar ? -30 : 0,
           duration: 250,
         }}
-        style={settingsState.panelIsExpanded
-          ? "width: 100vw; height: 100vh; left: 0; top: 0; border-radius: 0;"
+        style="{settingsState.panelIsExpanded
+          ? 'width: 100vw; height: 100vh; left: 0; top: 0; border-radius: 0;'
           : isSidebar
             ? `width: ${panelState?.width || 320}px;`
             : panelState
               ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
-              : ""}
+              : ''} min-width: 300px; min-height: 200px; touch-action: none;"
         class:mb-4={isFloating && !settingsState.panelIsExpanded}
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
@@ -483,8 +481,6 @@
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
-        style:min-width="300px"
-        style:min-height="200px"
       >
         <!-- Main Panel Content -->
         <div bind:this={panelEl} class="flex-1 flex flex-col min-h-0">
@@ -1386,16 +1382,10 @@
 
   /* Panel Border */
   .panel-border {
-    border: 2px solid var(--border-color);
-    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.1);
-  }
-
-  .panel-border:hover {
-    border-color: rgba(var(--accent-rgb), 0.3);
+    border: 1px solid var(--border-color);
   }
 
   .is-interacting.panel-border {
     border-color: var(--accent-color);
-    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
   }
 </style>
