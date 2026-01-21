@@ -387,7 +387,6 @@ class BitunixWebSocketService {
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
-          // console.warn('[WebSocket] Ping send failed, connection may be closed:', e);
         }
       }
     }, PING_INTERVAL);
@@ -444,7 +443,6 @@ class BitunixWebSocketService {
         try {
           this.wsPublic.close();
         } catch (e) {
-          // console.warn('[WebSocket] Error closing public connection:', e);
         }
       }
       this.wsPublic = null;
@@ -460,7 +458,6 @@ class BitunixWebSocketService {
         try {
           this.wsPrivate.close();
         } catch (e) {
-          // console.warn('[WebSocket] Error closing private connection:', e);
         }
       }
       this.wsPrivate = null;
@@ -529,7 +526,6 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        // console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
         return;
       }
 
@@ -549,7 +545,6 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        // console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
         return;
       }
 
@@ -559,7 +554,6 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
-          // console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
           return;
         }
 
@@ -568,7 +562,6 @@ class BitunixWebSocketService {
         // Validate price data with Zod
         const priceValidation = BitunixPriceDataSchema.safeParse(validatedMessage.data);
         if (!priceValidation.success) {
-          // console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
           return;
         }
 
@@ -588,7 +581,6 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          // console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
           return;
         }
 
@@ -597,7 +589,6 @@ class BitunixWebSocketService {
         // Validate ticker data with Zod
         const tickerValidation = BitunixTickerDataSchema.safeParse(validatedMessage.data);
         if (!tickerValidation.success) {
-          // console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
           return;
         }
 
@@ -673,8 +664,6 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      // console.error('[WebSocket] Message handling error:', err);
-      // console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
     }
   }
 
@@ -720,7 +709,6 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      // console.warn(`[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`, e);
     }
   }
 
@@ -729,7 +717,6 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      // console.warn(`[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`, e);
     }
   }
 

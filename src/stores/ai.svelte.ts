@@ -718,6 +718,31 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         return actions;
     }
 
+    private parseAiValue(value: string | number | boolean | undefined): number {
+        if (value === undefined || value === null) return NaN;
+        if (typeof value === "number") return value;
+        let s = String(value).trim();
+
+        // Handle German 1.200,50 format
+        if (s.includes(".") && s.includes(",")) {
+            const lastDot = s.lastIndexOf(".");
+            const lastComma = s.lastIndexOf(",");
+            if (lastComma > lastDot) {
+                // German: 1.200,50 -> remove dots, replace comma with dot
+                s = s.replace(/\./g, "").replace(",", ".");
+            } else {
+                // US: 1,200.50 -> remove commas
+                s = s.replace(/,/g, "");
+            }
+        } else if (s.includes(",")) {
+            // Ambiguous "1,5" vs "1,000"
+            // If we assume AI adheres to "no formatting", "1,5" is more likely intended as 1.5
+            s = s.replace(",", ".");
+        }
+
+        return parseFloat(s);
+    }
+
     private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
         // confirmNeeded is now handled at the batch level in processResponse
         if (confirmNeeded) return false;
@@ -726,13 +751,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value !== undefined) {
-                        const val = parseFloat(String(action.value));
+                        const val = this.parseAiValue(action.value);
                         if (!isNaN(val)) tradeState.update((s: any) => ({ ...s, entryPrice: val }));
                     }
                     break;
                 case "setStopLoss":
                     if (action.value !== undefined) {
-                        const val = parseFloat(String(action.value));
+                        const val = this.parseAiValue(action.value);
                         if (!isNaN(val)) tradeState.update((s: any) => ({ ...s, stopLossPrice: val }));
                     }
                     break;
@@ -744,11 +769,11 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                             if (newTargets[idx]) {
                                 let updatedTarget = { ...newTargets[idx] };
                                 if (action.value !== undefined) {
-                                    const val = parseFloat(String(action.value));
+                                    const val = this.parseAiValue(action.value);
                                     if (!isNaN(val)) updatedTarget.price = val;
                                 }
                                 if (action.percent !== undefined) {
-                                    const val = parseFloat(String(action.percent));
+                                    const val = this.parseAiValue(action.percent);
                                     if (!isNaN(val)) updatedTarget.percent = val;
                                 }
                                 newTargets[idx] = updatedTarget;
@@ -759,13 +784,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     break;
                 case "setLeverage":
                     if (action.value !== undefined) {
-                        const val = parseFloat(String(action.value));
+                        const val = this.parseAiValue(action.value);
                         if (!isNaN(val)) tradeState.update((s: any) => ({ ...s, leverage: val }));
                     }
                     break;
                 case "setRisk":
                     if (action.value !== undefined) {
-                        const val = parseFloat(String(action.value));
+                        const val = this.parseAiValue(action.value);
                         if (!isNaN(val)) tradeState.update((s: any) => ({ ...s, riskPercentage: val }));
                     }
                     break;
@@ -778,7 +803,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                 case "setStopLossATR":
                     const mult = action.value || action.atrMultiplier;
                     if (mult !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(String(mult)), useAtrSl: true }));
+                        const val = this.parseAiValue(mult);
+                        if (!isNaN(val)) tradeState.update((s: any) => ({ ...s, atrMultiplier: val, useAtrSl: true }));
                     }
                     break;
                 case "setUseAtrSl":
