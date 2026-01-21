@@ -280,6 +280,7 @@ class SettingsManager {
     showMarketOverviewLinks = $state<boolean>(defaultSettings.showMarketOverviewLinks);
     showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
     showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
+    get effectiveShowSidebarActivity() { return this.isPro && this.showSidebarActivity; }
     showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
     showTechnicalsSummary = $state<boolean>(defaultSettings.showTechnicalsSummary);
     showTechnicalsConfluence = $state<boolean>(defaultSettings.showTechnicalsConfluence);
