@@ -158,15 +158,22 @@
     if (isSidebar) {
       interaction.resizable({
         edges: { right: true },
+        margin: 8,
         listeners: {
           start() {
             isInteracting = true;
+            if (panelEl) {
+              panelEl.style.userSelect = "none";
+            }
           },
           move(event) {
             panelState.width = event.rect.width;
           },
           end() {
             isInteracting = false;
+            if (panelEl) {
+              panelEl.style.userSelect = "";
+            }
             settingsState.panelState = { ...panelState };
           },
         },
@@ -184,6 +191,9 @@
           listeners: {
             start() {
               isInteracting = true;
+              if (panelEl) {
+                panelEl.style.userSelect = "none";
+              }
             },
             move(event) {
               panelState.x += event.dx;
@@ -191,6 +201,9 @@
             },
             end() {
               isInteracting = false;
+              if (panelEl) {
+                panelEl.style.userSelect = "";
+              }
               clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
@@ -203,10 +216,15 @@
           ],
         })
         .resizable({
-          edges: { left: true, right: true, bottom: true, top: false }, // Top disabled to prevent conflict with header drag
+          edges: { left: true, right: true, bottom: true, top: false },
+          margin: 10,
+          invert: "none",
           listeners: {
             start() {
               isInteracting = true;
+              if (panelEl) {
+                panelEl.style.userSelect = "none";
+              }
             },
             move(event) {
               panelState.width = event.rect.width;
@@ -216,6 +234,9 @@
             },
             end() {
               isInteracting = false;
+              if (panelEl) {
+                panelEl.style.userSelect = "";
+              }
               clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
@@ -439,7 +460,7 @@
     <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
-        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel"
+        class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel panel-border"
         class:is-interacting={isInteracting}
         transition:fly={{
           y: isFloating ? 20 : 0,
@@ -465,18 +486,6 @@
         style:min-width="300px"
         style:min-height="200px"
       >
-        <!-- Resize Handles (Floating Mode) -->
-        {#if isFloating && !settingsState.panelIsExpanded}
-          <div class="resize-handle resizer-right"></div>
-          <div class="resize-handle resizer-left"></div>
-          <div class="resize-handle resizer-bottom"></div>
-          <div class="resizer-corner">
-            <svg viewBox="0 0 10 10">
-              <path d="M 0 10 L 10 10 L 10 0 Z" fill="currentColor" />
-            </svg>
-          </div>
-        {/if}
-
         <!-- Main Panel Content -->
         <div bind:this={panelEl} class="flex-1 flex flex-col min-h-0">
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -1375,7 +1384,18 @@
     transition: opacity 0.2s ease;
   }
 
-  .glass-panel:hover .resizer-corner {
-    opacity: 0.8;
+  /* Panel Border */
+  .panel-border {
+    border: 2px solid var(--border-color);
+    box-shadow: 0 0 0 1px rgba(var(--accent-rgb), 0.1);
+  }
+
+  .panel-border:hover {
+    border-color: rgba(var(--accent-rgb), 0.3);
+  }
+
+  .is-interacting.panel-border {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 2px rgba(var(--accent-rgb), 0.2);
   }
 </style>
