@@ -58,6 +58,7 @@ export interface Settings {
     isDeepDiveUnlocked?: boolean;
     imgurClientId?: string;
     enableSidePanel: boolean;
+    showSidebarActivity: boolean;
     sidePanelMode: "chat" | "notes" | "ai";
     sidePanelLayout: SidePanelLayout;
     chatStyle: "minimal" | "bubble" | "terminal";
@@ -103,6 +104,7 @@ export interface Settings {
     showTechnicalsMAs: boolean;
     showTechnicalsAdvanced: boolean;
     showTechnicalsSignals: boolean;
+    showTechnicalsPivots: boolean;
     showTvLink: boolean;
     showCgHeatLink: boolean;
     showBrokerLink: boolean;
@@ -178,8 +180,9 @@ const defaultSettings: Settings = {
     cmcApiKey: "",
     enableCmcContext: false,
     showMarketOverviewLinks: true,
-    showMarketActivity: false,
+    showMarketActivity: true,
     showMarketSentiment: true,
+    showSidebarActivity: false,
     showTechnicalsSummary: true,
     showTechnicalsConfluence: true,
     showTechnicalsVolatility: true,
@@ -187,6 +190,7 @@ const defaultSettings: Settings = {
     showTechnicalsMAs: true,
     showTechnicalsAdvanced: true,
     showTechnicalsSignals: true,
+    showTechnicalsPivots: true,
     showTvLink: true,
     showCgHeatLink: true,
     showBrokerLink: true,
@@ -275,6 +279,7 @@ class SettingsManager {
     enableCmcContext = $state<boolean>(defaultSettings.enableCmcContext);
     showMarketOverviewLinks = $state<boolean>(defaultSettings.showMarketOverviewLinks);
     showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
+    showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
     showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
     showTechnicalsSummary = $state<boolean>(defaultSettings.showTechnicalsSummary);
     showTechnicalsConfluence = $state<boolean>(defaultSettings.showTechnicalsConfluence);
@@ -283,6 +288,7 @@ class SettingsManager {
     showTechnicalsMAs = $state<boolean>(defaultSettings.showTechnicalsMAs);
     showTechnicalsAdvanced = $state<boolean>(defaultSettings.showTechnicalsAdvanced);
     showTechnicalsSignals = $state<boolean>(defaultSettings.showTechnicalsSignals);
+    showTechnicalsPivots = $state<boolean>(defaultSettings.showTechnicalsPivots);
     showTvLink = $state<boolean>(defaultSettings.showTvLink);
     showCgHeatLink = $state<boolean>(defaultSettings.showCgHeatLink);
     showBrokerLink = $state<boolean>(defaultSettings.showBrokerLink);
@@ -453,6 +459,7 @@ class SettingsManager {
             this.enableCmcContext = merged.enableCmcContext;
             this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
             this.showMarketActivity = merged.showMarketActivity;
+            this.showSidebarActivity = merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
             this.showMarketSentiment = merged.showMarketSentiment;
             this.showTechnicalsSummary = merged.showTechnicalsSummary;
             this.showTechnicalsConfluence = merged.showTechnicalsConfluence;
@@ -461,6 +468,7 @@ class SettingsManager {
             this.showTechnicalsMAs = merged.showTechnicalsMAs;
             this.showTechnicalsAdvanced = merged.showTechnicalsAdvanced;
             this.showTechnicalsSignals = merged.showTechnicalsSignals;
+            this.showTechnicalsPivots = merged.showTechnicalsPivots ?? defaultSettings.showTechnicalsPivots;
             this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
             this.showCgHeatLink = merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
             this.showBrokerLink = merged.showBrokerLink ?? defaultSettings.showBrokerLink;
@@ -570,6 +578,7 @@ class SettingsManager {
             enableCmcContext: this.enableCmcContext,
             showMarketOverviewLinks: this.showMarketOverviewLinks,
             showMarketActivity: this.showMarketActivity,
+            showSidebarActivity: this.showSidebarActivity,
             showMarketSentiment: this.showMarketSentiment,
             showTechnicalsSummary: this.showTechnicalsSummary,
             showTechnicalsConfluence: this.showTechnicalsConfluence,
@@ -578,6 +587,7 @@ class SettingsManager {
             showTechnicalsMAs: this.showTechnicalsMAs,
             showTechnicalsAdvanced: this.showTechnicalsAdvanced,
             showTechnicalsSignals: this.showTechnicalsSignals,
+            showTechnicalsPivots: this.showTechnicalsPivots,
             showTvLink: this.showTvLink,
             showCgHeatLink: this.showCgHeatLink,
             showBrokerLink: this.showBrokerLink,

@@ -102,7 +102,7 @@
                     "Technicals Modules"}
             </h3>
             <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
-                {#each [{ id: "showTechnicalsSummary", label: "Summary" }, { id: "showTechnicalsConfluence", label: "Confluence" }, { id: "showTechnicalsVolatility", label: "Volatility" }, { id: "showTechnicalsOscillators", label: "Oscillators" }, { id: "showTechnicalsMAs", label: "MAs" }, { id: "showTechnicalsAdvanced", label: "Advanced" }, { id: "showTechnicalsSignals", label: "Signals" }] as module}
+                {#each [{ id: "showTechnicalsSummary", label: "Summary" }, { id: "showTechnicalsConfluence", label: "Confluence" }, { id: "showTechnicalsVolatility", label: "Volatility" }, { id: "showTechnicalsOscillators", label: "Oscillators" }, { id: "showTechnicalsMAs", label: "MAs" }, { id: "showTechnicalsAdvanced", label: "Advanced" }, { id: "showTechnicalsSignals", label: "Signals" }, { id: "showTechnicalsPivots", label: "Pivots" }] as module}
                     <label class="module-toggle">
                         <input
                             type="checkbox"
@@ -125,7 +125,7 @@
         <h3 class="section-title">
             {$_("settings.workspace.marketOverview") || "Market Overview"}
         </h3>
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             <label class="module-toggle">
                 <input
                     type="checkbox"
@@ -143,7 +143,17 @@
                 />
                 <span
                     >{$_("settings.showMarketActivity") ||
-                        "Market Activity"}</span
+                        "Market Details"}</span
+                >
+            </label>
+            <label class="module-toggle">
+                <input
+                    type="checkbox"
+                    bind:checked={settingsState.showSidebarActivity}
+                />
+                <span
+                    >{$_("settings.showSidebarActivity") ||
+                        "Activity Sidebar"}</span
                 >
             </label>
             <label class="module-toggle">

@@ -73,7 +73,7 @@ export const app = {
 
   setupFirstStart: () => {
     if (!browser) return;
-    const INIT_KEY = "cachy_init_v500";
+    const INIT_KEY = "cachy_init_v501";
     if (!localStorage.getItem(INIT_KEY)) {
       // Set favorites
       favoritesState.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
@@ -95,7 +95,8 @@ export const app = {
       }));
 
       // Settings for visibility
-      settingsState.showMarketActivity = false;
+      settingsState.showMarketActivity = true; // Show details in tiles
+      settingsState.showSidebarActivity = false; // Hide sidebar
       settingsState.showMarketSentiment = true;
       settingsState.enableNewsAnalysis = true;
 

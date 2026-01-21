@@ -585,7 +585,8 @@
     "technicals": {
       "oscillators": "Oszillatoren",
       "movingAverages": "Gleitende Durchschnitte",
-      "pivots": "Pivot Punkte",
+      "pivots": "Pivots",
+      "pivotsTitle": "Pivot Punkte",
       "buy": "Kaufen",
       "sell": "Verkaufen",
       "neutral": "Neutral",

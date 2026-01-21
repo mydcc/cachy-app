@@ -486,6 +486,27 @@
             </div>
           {/if}
 
+          <!-- Pivot Points -->
+          {#if settingsState.showTechnicalsPivots && data.pivots}
+            <div class="flex flex-col gap-1">
+              <div
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
+                {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
+              </div>
+              <div class="grid grid-cols-1 gap-y-0.5">
+                {#each [{ label: "R3", val: data.pivots.classic.r3, color: "text-[var(--danger-color)]" }, { label: "R2", val: data.pivots.classic.r2, color: "text-[var(--danger-color)]" }, { label: "R1", val: data.pivots.classic.r1, color: "text-[var(--danger-color)]" }, { label: "P", val: data.pivots.classic.p, color: "text-[var(--text-primary)]" }, { label: "S1", val: data.pivots.classic.s1, color: "text-[var(--success-color)]" }, { label: "S2", val: data.pivots.classic.s2, color: "text-[var(--success-color)]" }, { label: "S3", val: data.pivots.classic.s3, color: "text-[var(--success-color)]" }] as pivot}
+                  <div
+                    class="flex justify-between text-xs py-0.5 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
+                  >
+                    <span class="font-bold {pivot.color}">{pivot.label}</span>
+                    <span class="font-mono">{formatVal(pivot.val)}</span>
+                  </div>
+                {/each}
+              </div>
+            </div>
+          {/if}
+
           <!-- Advanced / Pro -->
           {#if settingsState.showTechnicalsAdvanced && data.advanced}
             <div class="flex flex-col gap-1">
