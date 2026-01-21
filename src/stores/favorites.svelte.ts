@@ -18,6 +18,11 @@ class FavoritesManager {
     constructor() {
         if (browser) {
             this.load();
+            // If we have no favorites at all, or it's the first time (initially null/empty), set defaults.
+            if (!this.items || this.items.length === 0) {
+                this.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
+                this.save();
+            }
         }
     }
 

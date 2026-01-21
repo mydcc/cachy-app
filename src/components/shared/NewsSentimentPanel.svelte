@@ -30,7 +30,7 @@
   let isLoading = $derived(newsStore.isLoading);
   let error = $derived(newsStore.error ? "fetch_error" : null);
 
-  let isExpanded = $state(false);
+  let isExpanded = $state(true);
 
   // Computed visual properties
   let sentimentColor = $derived(

@@ -19,6 +19,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
 import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs"; // Import WS Service
+import { favoritesState } from "../stores/favorites.svelte";
 import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
@@ -60,6 +61,50 @@ export const app = {
       app.setupMarketSync();
       app.setupRealtimeUpdates();
       bitunixWs.connect();
+
+      // Force initial state on first start or after update
+      app.setupFirstStart();
+
+      // Fetch initial data immediately
+      app.handleFetchPrice();
+      app.fetchAtr(true);
+    }
+  },
+
+  setupFirstStart: () => {
+    if (!browser) return;
+    const INIT_KEY = "cachy_init_v500";
+    if (!localStorage.getItem(INIT_KEY)) {
+      // Set favorites
+      favoritesState.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
+
+      // Update trade state for full action
+      tradeState.update(s => ({
+        ...s,
+        symbol: "BTCUSDT",
+        entryPrice: 88480.2, // User screenshot value
+        atrValue: 45.5,
+        atrMultiplier: 1.2,
+        useAtrSl: true,
+        atrMode: "auto",
+        targets: [
+          { price: 120000, percent: 50, isLocked: false },
+          { price: 122000, percent: 25, isLocked: false },
+          { price: 124000, percent: 25, isLocked: false },
+        ]
+      }));
+
+      // Settings for visibility
+      settingsState.showMarketActivity = false;
+      settingsState.showMarketSentiment = true;
+      settingsState.enableNewsAnalysis = true;
+
+      localStorage.setItem(INIT_KEY, "true");
+
+      // Give some time for state to settle then calculate
+      setTimeout(() => {
+        app.calculateAndDisplay();
+      }, 100);
     }
   },
 

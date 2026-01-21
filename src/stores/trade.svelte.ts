@@ -28,13 +28,13 @@ export const INITIAL_TRADE_STATE = {
     tradeType: CONSTANTS.TRADE_TYPE_LONG,
     accountSize: 1000,
     riskPercentage: 1,
-    entryPrice: null as number | null,
+    entryPrice: 88480.2 as number | null,
     stopLossPrice: null as number | null,
     leverage: parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
     fees: parseFloat(CONSTANTS.DEFAULT_FEES),
     symbol: "BTCUSDT",
-    atrValue: null as number | null,
-    atrMultiplier: parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
+    atrValue: 45.5 as number | null,
+    atrMultiplier: 1.2,
     useAtrSl: true,
     atrMode: "auto" as "auto" | "manual",
     atrTimeframe: "5m",
@@ -42,9 +42,9 @@ export const INITIAL_TRADE_STATE = {
     tradeNotes: "",
     tags: [] as string[],
     targets: [
-        { price: null, percent: 50, isLocked: false },
-        { price: null, percent: 25, isLocked: false },
-        { price: null, percent: 25, isLocked: false },
+        { price: 120000, percent: 50, isLocked: false },
+        { price: 122000, percent: 25, isLocked: false },
+        { price: 124000, percent: 25, isLocked: false },
     ] as TradeTarget[],
     isPositionSizeLocked: false,
     lockedPositionSize: null as Decimal | null,
@@ -139,45 +139,43 @@ class TradeManager {
                 this.tradeNotes = merged.tradeNotes;
                 this.tags = merged.tags || [];
 
-                // Fix targets issue
-                if (!merged.targets || merged.targets.length === 0) {
+                // Fix targets issue - force defaults if all prices are null (likely old version or reset)
+                const hasAnyPrice = merged.targets?.some((t: any) => t.price !== null && t.price !== 0);
+                if (!merged.targets || merged.targets.length === 0 || !hasAnyPrice) {
                     this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
                 } else {
                     this.targets = merged.targets;
                 }
 
                 this.isPositionSizeLocked = merged.isPositionSizeLocked;
-                // lockedPositionSize is Decimal usually, but JSON makes it string/object.
-                // If it's stored as plain value, need to handle reconstruction if used as Decimal?
-                // In tradeStore.ts it says: "currentTradeData contains Decimal objects... but we re-calculate on load anyway."
-                // lockedPositionSize might be Decimal. Let's check usages. 
-                // Usually it's safer to store as string/number in JSON and revive.
-                // For now, let's assume standard behavior.
                 if (merged.lockedPositionSize) {
-                    this.lockedPositionSize = new Decimal(merged.lockedPositionSize);
+                    try {
+                        this.lockedPositionSize = new Decimal(merged.lockedPositionSize);
+                    } catch (e) {
+                        this.lockedPositionSize = null;
+                    }
                 } else {
                     this.lockedPositionSize = null;
                 }
-
                 this.isRiskAmountLocked = merged.isRiskAmountLocked;
                 this.riskAmount = merged.riskAmount;
-                this.journalSearchQuery = merged.journalSearchQuery;
-                this.journalFilterStatus = merged.journalFilterStatus;
+                this.journalSearchQuery = merged.journalSearchQuery || "";
+                this.journalFilterStatus = merged.journalFilterStatus || "all";
+            } else {
+                this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
             }
         } catch (e) {
             console.error("Failed to load trade state", e);
+            this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
         }
     }
 
     private save() {
         if (!browser) return;
         try {
-            // Snapshot
             const s = this.getSnapshot();
-            // Exclude transient
             const toSave = { ...s };
             delete toSave.currentTradeData;
-
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
             this.notifyListeners();
         } catch (e) {
