@@ -175,19 +175,29 @@ class MarketManager {
     }
 
     updateTicker(symbol: string, data: any) {
-        const last = new Decimal(data.lastPrice);
-        const open = new Decimal(data.open);
-        let pct = new Decimal(0);
-        if (!open.isZero()) pct = last.minus(open).div(open).times(100);
+        const update: Partial<MarketData> = {};
 
-        this.updateSymbol(symbol, {
-            lastPrice: last,
-            highPrice: new Decimal(data.high),
-            lowPrice: new Decimal(data.low),
-            volume: new Decimal(data.vol),
-            quoteVolume: new Decimal(data.quoteVol),
-            priceChangePercent: pct
-        });
+        if (data.lastPrice !== undefined) update.lastPrice = new Decimal(data.lastPrice);
+        if (data.high !== undefined) update.highPrice = new Decimal(data.high);
+        if (data.low !== undefined) update.lowPrice = new Decimal(data.low);
+        if (data.vol !== undefined) update.volume = new Decimal(data.vol);
+        if (data.quoteVol !== undefined) update.quoteVolume = new Decimal(data.quoteVol);
+
+        // Prioritize explicit change rate from API (data.change = field 'r')
+        if (data.change !== undefined) {
+            update.priceChangePercent = new Decimal(data.change).times(100);
+        } else if (data.lastPrice !== undefined && data.open !== undefined) {
+            // Fallback: Calculate if we have both last and open in this update
+            const last = new Decimal(data.lastPrice);
+            const open = new Decimal(data.open);
+            if (!open.isZero()) {
+                update.priceChangePercent = last.minus(open).div(open).times(100);
+            }
+        }
+
+        if (Object.keys(update).length > 0) {
+            this.updateSymbol(symbol, update);
+        }
     }
 
     updateDepth(symbol: string, data: any) {

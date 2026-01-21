@@ -726,12 +726,18 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             switch (action.action) {
                 case "setEntryPrice":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(String(action.value)) }));
+                        const val = parseFloat(String(action.value));
+                        if (!isNaN(val)) {
+                            tradeState.update((s: any) => ({ ...s, entryPrice: val }));
+                        }
                     }
                     break;
                 case "setStopLoss":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(String(action.value)) }));
+                        const val = parseFloat(String(action.value));
+                        if (!isNaN(val)) {
+                            tradeState.update((s: any) => ({ ...s, stopLossPrice: val }));
+                        }
                     }
                     break;
                 case "setTakeProfit":
@@ -741,8 +747,14 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                             const newTargets = [...s.targets];
                             if (newTargets[idx]) {
                                 let updatedTarget = { ...newTargets[idx] };
-                                if (action.value !== undefined) updatedTarget.price = parseFloat(String(action.value));
-                                if (action.percent !== undefined) updatedTarget.percent = parseFloat(String(action.percent));
+                                if (action.value !== undefined) {
+                                    const val = parseFloat(String(action.value));
+                                    if (!isNaN(val)) updatedTarget.price = val;
+                                }
+                                if (action.percent !== undefined) {
+                                    const val = parseFloat(String(action.percent));
+                                    if (!isNaN(val)) updatedTarget.percent = val;
+                                }
                                 newTargets[idx] = updatedTarget;
                             }
                             return { ...s, targets: newTargets };
@@ -751,12 +763,18 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
                     break;
                 case "setLeverage":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(String(action.value)) }));
+                        const val = parseFloat(String(action.value));
+                        if (!isNaN(val)) {
+                            tradeState.update((s: any) => ({ ...s, leverage: val }));
+                        }
                     }
                     break;
                 case "setRisk":
                     if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(String(action.value)) }));
+                        const val = parseFloat(String(action.value));
+                        if (!isNaN(val)) {
+                            tradeState.update((s: any) => ({ ...s, riskPercentage: val }));
+                        }
                     }
                     break;
                 case "setSymbol":

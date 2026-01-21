@@ -60,8 +60,20 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Security: Validate Order Parameters
     if (type === "place-order" || type === "close-position") {
+      const isStrictNumber = (val: any) => {
+        if (val === undefined || val === null) return false;
+        // Allow integers and floats, but no trailing chars (like '12abc')
+        // Regex: Optional negative sign, one or more digits, optional decimal part
+        return /^-?\d+(\.\d+)?$/.test(String(val));
+      };
+
       // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
       const rawQty = type === "close-position" ? body.amount : body.qty;
+
+      if (!isStrictNumber(rawQty)) {
+        return json({ error: "Invalid quantity format." }, { status: 400 });
+      }
+
       // Strict check: must be string or number convertible to positive number
       const qty = parseFloat(String(rawQty));
 
@@ -89,7 +101,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       // Check price for Limit orders (place-order only usually)
       if (type === "place-order") {
-        const orderType = (body.type as string || "").toUpperCase();
+        const orderType = (body.orderType as string || "").toUpperCase();
         const allowedTypes = [
           "LIMIT",
           "MARKET",
@@ -112,6 +124,9 @@ export const POST: RequestHandler = async ({ request }) => {
           orderType === "TAKE_PROFIT_LIMIT"
         ) {
           // Price validation
+          if (!isStrictNumber(body.price)) {
+            return json({ error: "Invalid price format." }, { status: 400 });
+          }
           const price = parseFloat(String(body.price));
           if (isNaN(price) || price <= 0) {
             return json(
@@ -130,6 +145,11 @@ export const POST: RequestHandler = async ({ request }) => {
         ) {
           // Check triggerPrice OR stopPrice
           const trigger = body.triggerPrice || body.stopPrice;
+
+          if (!isStrictNumber(trigger)) {
+            return json({ error: "Invalid trigger price format." }, { status: 400 });
+          }
+
           const triggerVal = parseFloat(String(trigger));
           if (isNaN(triggerVal) || triggerVal <= 0) {
             return json(
@@ -156,7 +176,7 @@ export const POST: RequestHandler = async ({ request }) => {
         const orderPayload: BitunixOrderPayload = {
           symbol: body.symbol as string,
           side: body.side as string,
-          type: body.type as string,
+          type: body.orderType as string,
           qty: String(body.qty), // Ensure string
           price: body.price ? String(body.price) : undefined,
           reduceOnly: !!body.reduceOnly,
