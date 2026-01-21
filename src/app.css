@@ -2169,15 +2169,47 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
   background-color: var(--btn-accent-hover-bg);
 }
 
-/* Custom classes for theme-aware buttons */
+/* Custom classes for theme-aware Buttons */
 .btn-primary-action {
-  background-color: var(--btn-accent-bg);
+  background: var(--btn-accent-bg);
   color: var(--btn-accent-text);
-  transition: background-color 0.2s;
+  transition: all 0.3s ease;
 }
 
 .btn-primary-action:hover {
-  background-color: var(--btn-accent-hover-bg);
+  background: var(--btn-accent-hover-bg);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 0 10px rgba(102, 126, 234, 0.1);
+}
+
+/* Pro Execute Button: Special styling for trade execution */
+.btn-primary-action.pro-execute {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary-action.pro-execute::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.15), transparent);
+  transition: left 0.6s ease;
+}
+
+.btn-primary-action.pro-execute:hover::before {
+  left: 100%;
+}
+
+.btn-primary-action.pro-execute:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
 }
 
 .btn-secondary-action {

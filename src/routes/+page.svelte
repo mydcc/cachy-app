@@ -653,13 +653,31 @@
           <button
             id="save-journal-btn"
             class="w-full font-bold py-3 px-4 rounded-lg btn-primary-action"
-            onclick={app.addTrade}
+            class:pro-execute={settingsState.capabilities.tradeExecution}
+            onclick={async () => {
+              if (settingsState.capabilities.tradeExecution) {
+                // Pro: Execute Trade
+                uiState.showError(
+                  "🚧 Trade-Ausführung in Entwicklung | Trade execution in development",
+                );
+              } else {
+                // Community: Add to Journal
+                await app.addTrade();
+              }
+            }}
             disabled={resultsState.positionSize === "-"}
             use:trackClick={{
-              category: "Journal",
+              category: settingsState.capabilities.tradeExecution
+                ? "Trading"
+                : "Journal",
               action: "Click",
-              name: "SaveTrade",
-            }}>{$_("dashboard.addTradeToJournal")}</button
+              name: settingsState.capabilities.tradeExecution
+                ? "ExecuteTrade"
+                : "SaveTrade",
+            }}
+            >{settingsState.capabilities.tradeExecution
+              ? $_("dashboard.executeTrade")
+              : $_("dashboard.addTradeToJournal")}</button
           >
           <button
             id="show-dashboard-readme-btn"

@@ -34,7 +34,6 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
   - **News Integration**: Ruft Sentiment von CryptoPanic und NewsAPI über einen sicheren Proxy ab.
   - **CoinMarketCap**: Greift auf fundamentale Daten (Marktkapitalisierung, Volumen) für bessere Analysen zu.
   - **Trade Historie**: Kann deine letzten Trades überprüfen, um Verhaltens-Coaching zu geben.
-- **Gemini 2.5**: Unterstützung für Googles neuestes Gemini 2.5 Flash Modell für schnellere und genauere Antworten hinzugefügt.
 - **UI/Lokalisierung**: Fehlende Übersetzungsschlüssel für Backup-Passwortabfragen und Integrationseinstellungen behoben.
 - **Performance**: Blockierende WASM-Initialisierung für technische Indikatoren entfernt und auf eine leichtgewichtige JS-Implementierung umgestellt.
 - **Architektur:** **Globales Subscription-Management**: Einführung des `MarketWatcher` Dienstes zur Zentralisierung aller WebSocket-Abonnements.
@@ -46,18 +45,15 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ## <a name="v0.94.1"></a>Version 0.94.1 (Januar 2026)
 
-- **Neu:** **Jules API**: Intelligentes KI-gestütztes Fehleranalyse- und Berichtssystem für sofortige Diagnosen.
 - **Neu:** **Technicals Panel**: Erweitertes Chart-Overlay mit RSI, MACD, Stochastic und Auto-Pivots.
-- **Upgrade:** **Präzisere Indikatorberechnungen**: Migration zu `talib-web` (WebAssembly) für exakte Übereinstimmung mit TradingView. Alle technischen Indikatoren (RSI, Stochastic, CCI, ADX, MACD, Momentum, EMA) verwenden jetzt die gleichen Algorithmen wie professionelle Trading-Plattformen.
-- **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat (erfordert experimentelle API).
-- **Architektur:** Verbesserter "Jules Service" für sichere System-Snapshots und Telemetrie ohne Beeinträchtigung der Privatsphäre.
+- **Neu:** **Chat / Side Panel**: Einklappbare Seitenleiste für private Notizen oder globalen Chat (erfordert API).
 
 ---
 
 ## <a name="v0.94.0"></a>Version 0.94.0 (Januar 2026)
 
 - **Neu:** Websocket-Integration für Bitunix (Echtzeit-Preise, Orderbuch, Ticker).
-- **Neu:** Performance Tracking (Pro): Erweiterte Diagramme und Deep Dive Analysen im Journal.
+- **Neu:** Performance Tracking: Erweiterte Diagramme und Deep Dive Analysen im Journal.
 - **Neu:** Marktübersicht & Sidebar: Verbessertes Layout mit Echtzeitdaten und Favoriten.
 - **Neu:** Einstellung "Side Panel" unter Einstellungen -> Sidebar. Wähle zwischen "Privaten Notizen" (nur lokaler Speicher) oder "Globaler Chat".
 - **Verbesserungen:** Allgemeine Stabilitätsupdates und Anpassungen der Benutzeroberfläche.
@@ -74,7 +70,6 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 - **Verbesserung:** Eingabe für "Risiko/Trade" unterstützt jetzt bis zu 2 Nachkommastellen.
 - **Verbesserung:** Allgemeine Stabilitätsverbesserungen.
 - **Neu:** Favoriten-Funktion: Speichere bis zu 4 Symbole durch Klick auf das Stern-Symbol in der Marktübersicht. Favoriten werden in der Sidebar (Desktop) oder mobil unter der Hauptkarte angezeigt.
-- **Neu:** Automatisches Abrufen des Kontostands beim Start (aktivierbar in den Einstellungen, erfordert API-Keys).
 - **Neu:** Automatisches Abrufen des Preises beim Start (aktivierbar in den Einstellungen).
 - **Neu:** Automatisches Abrufen der ATR beim Start (aktivierbar in den Einstellungen).
 - **Neu:** Automatisches Update des Preises bei Eingabe (optional).

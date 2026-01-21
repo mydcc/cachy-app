@@ -34,9 +34,7 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
   - **News Integration**: Fetches sentiment from CryptoPanic and NewsAPI via a secure proxy.
   - **CoinMarketCap**: Accesses fundamental data (Market Cap, Volume) for better analysis.
   - **Trade History**: Can review your recent trades to provide behavioral coaching.
-- **Gemini 2.5**: Added support for Google's latest Gemini 2.5 Flash model for faster and more accurate responses.
 - **Localization**: Fixed missing translation keys for backup password prompts and integration settings.
-- **Performance**: Removed blocking WASM initialization for technical indicators, switching to a lightweight JS implementation.
 - **Architecture:** **Global Subscription Management**: Introduced the `MarketWatcher` service to centralize all WebSocket subscriptions.
 - **System:** **Reference Counting**: Intelligent tracking of data requests to prevent connection drops when multiple panels are open simultaneously.
 - **Robustness:** **Symbol Normalization**: Consistent handling of symbol suffixes (`.P`, `:USDT`) for stable data mapping between API and UI.
@@ -46,11 +44,9 @@ bc1qgrm2kvs27rfkpwtgp5u7w0rlzkgwrxqtls2q4f
 
 ## <a name="v0.94.1"></a>Version 0.94.1 (January 2026)
 
-- **New:** **Jules API**: Intelligent AI-driven error analysis and reporting system for instant diagnostics.
 - **New:** **Technicals Panel**: Advanced charting overlay with RSI, MACD, Stochastic, and Auto-Pivots.
 - **Upgrade:** **More Accurate Indicator Calculations**: Migrated to `talib-web` (WebAssembly) for exact alignment with TradingView. All technical indicators (RSI, Stochastic, CCI, ADX, MACD, Momentum, EMA) now use the same algorithms as professional trading platforms.
-- **New:** **Chat / Side Panel**: Collapsible side panel for private notes or global chat (requires experimental API).
-- **Architecture:** Enhanced "Jules Service" for secure system snapshots and telemetry without compromising privacy.
+- **New:** **Chat / Side Panel**: Collapsible side panel for private notes or global chat (requires API).
 
 ---
 

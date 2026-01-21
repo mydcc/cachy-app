@@ -99,17 +99,6 @@ Cachy verzichtet auf komplexen Redux/Context-Boilerplate zugunsten von Sveltes r
    - _Verfolgt_: Array von \`JournalEntry\`-Objekten (geschlossene Trades).
    - _Analytik_: Dient als Rohdatensatz für die \`calculator.ts\` Analyse-Engine.
 
-### KI-gestützte Telemetrie (Jules Service)
-
-Cachy implementiert eine intelligente Diagnoseschicht, bekannt als **Jules API**.
-
-- **Zweck**: Bereitstellung von kontextbezogener Fehleranalyse in Echtzeit, ohne die Privatsphäre der Benutzer zu gefährden.
-- **Ablauf**:
-  1. Wenn ein kritischer Fehler auftritt (oder bei manueller Meldung), erfasst \`julesService.ts\` einen **System-Snapshot**.
-  2. **Bereinigung**: Alle API-Geheimnisse und sensiblen Schlüssel werden auf der Client-Seite vor der Übertragung geschwärzt.
-  3. **Analyse**: Der Snapshot wird an das Backend (\`/api/jules\`) gesendet, das den Kontext an ein Large Language Model (Gemini) weiterleitet.
-  4. **Ergebnis**: Die KI analysiert den Zustand (z. B. "WebSocket getrennt, während Order ausstehend war") und gibt eine natürlichsprachliche Diagnose an den Benutzer zurück.
-
 ### Backend-for-Frontend (BFF) & Proxy-Schicht
 
 Diese Schicht befindet sich in \`src/routes/api/\` und fungiert als Sicherheits-Gateway.

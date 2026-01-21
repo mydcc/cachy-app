@@ -84,6 +84,7 @@
     "exitFeeLabel": "Exit Fee",
     "tradeNotesPlaceholder": "Trade notes...",
     "addTradeToJournal": "Add Trade to Journal",
+    "executeTrade": "Execute Trade",
     "showInstructionsTitle": "Show Instructions",
     "showInstructionsAriaLabel": "Show Instructions",
     "savedFeedback": "Saved!",

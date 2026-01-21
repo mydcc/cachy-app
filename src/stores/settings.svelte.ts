@@ -283,8 +283,42 @@ class SettingsManager {
     get effectiveShowSidebarActivity() { return this.isPro && this.showSidebarActivity; }
 
     get capabilities() {
+        // Check if user has API credentials (key + secret)
+        const hasApiKeys = Boolean(
+            this.apiKeys?.bitunix?.key &&
+            this.apiKeys?.bitunix?.secret
+        );
+
         return {
-            marketData: this.showMarketActivity  // Market Data is available for all users
+            // ========== PUBLIC FEATURES (Community + Pro) ==========
+            // Market data via WebSocket/API - available for all users
+            marketData: this.showMarketActivity,
+
+            // Position calculator - always available (core feature)
+            positionCalculator: true,
+
+            // Technical indicators (RSI, Bollinger, etc.) - free for all
+            technicals: true,
+
+            // News sentiment analysis - free for all
+            newsSentiment: true,
+
+            // ========== PRO FEATURES (PowerToggle + API Secret) ==========
+            // Trade execution - requires Pro license AND API credentials
+            tradeExecution: this.isPro && hasApiKeys,
+
+            // Live account data from private WebSocket
+            livePositions: this.isPro && hasApiKeys,
+            liveOrders: this.isPro && hasApiKeys,
+            liveBalance: this.isPro && hasApiKeys,
+
+            // Pro-only settings (require live data access)
+            pnlSettings: this.isPro && hasApiKeys,
+            feeSettings: this.isPro && hasApiKeys,
+
+            // Future features (prepared for expansion)
+            autoTrading: false,  // Coming soon
+            multiAccount: false,  // Coming soon
         };
     }
     showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
