@@ -17,6 +17,7 @@
 
 import { sequence } from "@sveltejs/kit/hooks";
 import type { Handle } from "@sveltejs/kit";
+import { building } from "$app/environment";
 import { CONSTANTS } from "./lib/constants";
 import { logger } from "$lib/server/logger";
 
@@ -62,7 +63,7 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
   const start = Date.now();
   const { method } = event.request;
   const path = event.url.pathname;
-  const fullUrl = event.url.pathname + event.url.search;
+  const fullUrl = event.url.pathname + (building ? "" : event.url.search);
 
   // Ignoriere den Log-Stream selbst, um Endlos-Schleifen zu vermeiden
   if (path.includes("/api/stream-logs")) {
