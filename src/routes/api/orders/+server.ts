@@ -153,17 +153,20 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
+        const safeQty = formatApiNum(body.qty);
+        if (!safeQty) throw new Error("Invalid quantity");
+
         const orderPayload: BitunixOrderPayload = {
           symbol: body.symbol as string,
           side: body.side as string,
           type: body.type as string,
-          qty: String(body.qty), // Ensure string
-          price: body.price ? String(body.price) : undefined,
+          qty: safeQty,
+          price: body.price ? formatApiNum(body.price) : undefined,
           reduceOnly: !!body.reduceOnly,
           triggerPrice: body.triggerPrice
-            ? String(body.triggerPrice)
+            ? formatApiNum(body.triggerPrice)
             : undefined,
-          stopPrice: body.stopPrice ? String(body.stopPrice) : undefined,
+          stopPrice: body.stopPrice ? formatApiNum(body.stopPrice) : undefined,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
@@ -173,12 +176,15 @@ export const POST: RequestHandler = async ({ request }) => {
           throw new Error("Invalid amount for closing position");
         }
 
+        const safeQty = formatApiNum(body.amount);
+        if (!safeQty) throw new Error("Invalid amount for closing position");
+
         // To close a position, we place a MARKET order in the opposite direction
         const closeOrder: BitunixOrderPayload = {
           symbol: body.symbol as string,
           side: body.side as string, // Must be opposite of position
           type: "MARKET",
-          qty: String(body.amount),
+          qty: safeQty,
           reduceOnly: true,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
@@ -198,7 +204,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
     const sanitizedMsg = errorMsg;
 
-    console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
+    // console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
     // Return a generic error if it's a 500, or specific if it's safe
     // We assume e.message from our internal helpers is reasonably safe, but we wrap it just in case
