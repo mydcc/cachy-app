@@ -703,7 +703,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             try {
                 const parsed = JSON.parse(match[1]);
                 if (Array.isArray(parsed)) return parsed as AiAction[];
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+                console.warn("AI Action Parsing Error (Array):", e);
+            }
         }
 
         const singleRegex = /```json\s*(\{.*?\})\s*```/s;
@@ -712,10 +714,54 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             try {
                 const parsed = JSON.parse(singleMatch[1]);
                 return [parsed as AiAction];
-            } catch (e) { /* ignore */ }
+            } catch (e) {
+                console.warn("AI Action Parsing Error (Single):", e);
+            }
         }
 
         return actions;
+    }
+
+    private parseAiValue(value: string | number | boolean | undefined): number | null {
+        if (value === undefined || value === null) return null;
+        if (typeof value === "number") return isNaN(value) ? null : value;
+        if (typeof value === "boolean") return null;
+
+        const str = String(value).trim();
+        if (!str) return null;
+
+        // Clean up common currency symbols just in case
+        const cleanStr = str.replace(/[^\d.,-]/g, "");
+
+        // Handle Locale (German vs US)
+        // Heuristic: If comma exists and dot exists, look at position.
+        // 1.200,50 (DE) vs 1,200.50 (US)
+        if (cleanStr.includes(",") && cleanStr.includes(".")) {
+            if (cleanStr.lastIndexOf(",") > cleanStr.lastIndexOf(".")) {
+                // German format: convert to US
+                return parseFloat(cleanStr.replace(/\./g, "").replace(",", "."));
+            } else {
+                // US Format: remove commas
+                return parseFloat(cleanStr.replace(/,/g, ""));
+            }
+        }
+
+        // If only comma: 1,5 (DE decimal?) or 10,000 (US thousands?)
+        // AI strictly instructed to use US format. But safety first.
+        // If comma is followed by 1 or 2 digits at end? e.g. "50,5" -> 50.5
+        // If comma is followed by 3 digits? e.g. "50,000" -> 50000
+        if (cleanStr.includes(",")) {
+            const parts = cleanStr.split(",");
+            const lastPart = parts[parts.length - 1];
+            if (parts.length === 2 && lastPart.length < 3) {
+                 // Likely decimal "50,50" -> 50.5
+                 return parseFloat(cleanStr.replace(",", "."));
+            }
+            // Assume thousands separator otherwise
+            return parseFloat(cleanStr.replace(/,/g, ""));
+        }
+
+        return parseFloat(cleanStr);
     }
 
     private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
@@ -725,55 +771,58 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         try {
             switch (action.action) {
                 case "setEntryPrice":
-                    if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, entryPrice: parseFloat(String(action.value)) }));
-                    }
+                    const entry = this.parseAiValue(action.value);
+                    if (entry !== null) tradeState.entryPrice = entry;
                     break;
+
                 case "setStopLoss":
-                    if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, stopLossPrice: parseFloat(String(action.value)) }));
-                    }
+                    const sl = this.parseAiValue(action.value);
+                    if (sl !== null) tradeState.stopLossPrice = sl;
                     break;
+
                 case "setTakeProfit":
                     if (typeof action.index === "number") {
                         const idx = action.index;
-                        tradeState.update((s: any) => {
-                            const newTargets = [...s.targets];
-                            if (newTargets[idx]) {
-                                let updatedTarget = { ...newTargets[idx] };
-                                if (action.value !== undefined) updatedTarget.price = parseFloat(String(action.value));
-                                if (action.percent !== undefined) updatedTarget.percent = parseFloat(String(action.percent));
-                                newTargets[idx] = updatedTarget;
-                            }
-                            return { ...s, targets: newTargets };
-                        });
+                        // Validate index exists
+                        if (idx >= 0 && idx < tradeState.targets.length) {
+                             const price = this.parseAiValue(action.value);
+                             const percent = this.parseAiValue(action.percent);
+
+                             if (price !== null) tradeState.targets[idx].price = price;
+                             if (percent !== null) tradeState.targets[idx].percent = percent;
+                        }
                     }
                     break;
+
                 case "setLeverage":
-                    if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, leverage: parseFloat(String(action.value)) }));
-                    }
+                    const lev = this.parseAiValue(action.value);
+                    if (lev !== null) tradeState.leverage = lev;
                     break;
+
                 case "setRisk":
-                    if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, riskPercentage: parseFloat(String(action.value)) }));
-                    }
+                    const risk = this.parseAiValue(action.value);
+                    if (risk !== null) tradeState.riskPercentage = risk;
                     break;
+
                 case "setSymbol":
-                    if (action.value !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, symbol: String(action.value) }));
+                    if (action.value) {
+                        tradeState.setSymbol(String(action.value));
                     }
                     break;
+
                 case "setAtrMultiplier":
                 case "setStopLossATR":
-                    const mult = action.value || action.atrMultiplier;
-                    if (mult !== undefined) {
-                        tradeState.update((s: any) => ({ ...s, atrMultiplier: parseFloat(String(mult)), useAtrSl: true }));
+                    const multVal = action.value || action.atrMultiplier;
+                    const mult = this.parseAiValue(multVal);
+                    if (mult !== null) {
+                        tradeState.atrMultiplier = mult;
+                        tradeState.useAtrSl = true;
                     }
                     break;
+
                 case "setUseAtrSl":
                     if (typeof action.value === "boolean") {
-                        tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
+                        tradeState.useAtrSl = action.value;
                     }
                     break;
             }

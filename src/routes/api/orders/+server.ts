@@ -122,15 +122,16 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // Trigger Price validation for ALL conditional orders (LIMIT & MARKET)
+        // Bitunix uses 'triggerPrice' mostly, but some adapters send 'stopPrice'
         if (
           orderType === "STOP_LIMIT" ||
           orderType === "STOP_MARKET" ||
           orderType === "TAKE_PROFIT_LIMIT" ||
           orderType === "TAKE_PROFIT_MARKET"
         ) {
-          // Check triggerPrice OR stopPrice
           const trigger = body.triggerPrice || body.stopPrice;
           const triggerVal = parseFloat(String(trigger));
+
           if (isNaN(triggerVal) || triggerVal <= 0) {
             return json(
               { error: `Trigger price required for ${orderType}.` },

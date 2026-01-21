@@ -39,7 +39,7 @@ class SafeLocalStorage {
         try {
             return localStorage.getItem(key);
         } catch (e) {
-            if (!options.silent) {
+            if (!options.silent && import.meta.env.DEV) {
                 console.error('[Storage] Failed to read:', key, e);
             }
             return null;
@@ -61,8 +61,10 @@ class SafeLocalStorage {
             return true;
         } catch (e) {
             if (e instanceof DOMException && e.name === 'QuotaExceededError') {
-                console.error('[Storage] Quota exceeded for key:', key);
-                console.error('[Storage] Current usage:', this.getUsageInfo());
+                if (import.meta.env.DEV) {
+                    console.error('[Storage] Quota exceeded for key:', key);
+                    console.error('[Storage] Current usage:', this.getUsageInfo());
+                }
 
                 if (options.showError) {
                     // Dynamically import to avoid circular dependency
@@ -73,7 +75,7 @@ class SafeLocalStorage {
                     });
                 }
             } else {
-                if (!options.silent) {
+                if (!options.silent && import.meta.env.DEV) {
                     console.error('[Storage] Failed to write:', key, e);
                 }
             }
@@ -94,7 +96,7 @@ class SafeLocalStorage {
             localStorage.removeItem(key);
             return true;
         } catch (e) {
-            if (!options.silent) {
+            if (!options.silent && import.meta.env.DEV) {
                 console.error('[Storage] Failed to remove:', key, e);
             }
             return false;
@@ -113,7 +115,7 @@ class SafeLocalStorage {
             localStorage.clear();
             return true;
         } catch (e) {
-            if (!options.silent) {
+            if (!options.silent && import.meta.env.DEV) {
                 console.error('[Storage] Failed to clear:', e);
             }
             return false;
@@ -147,7 +149,7 @@ class SafeLocalStorage {
                 keys
             };
         } catch (e) {
-            console.error('[Storage] Failed to get usage info:', e);
+            if (import.meta.env.DEV) console.error('[Storage] Failed to get usage info:', e);
             return { totalKeys: 0, estimatedSize: 0, keys: [] };
         }
     }

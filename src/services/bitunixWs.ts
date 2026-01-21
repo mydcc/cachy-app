@@ -478,7 +478,10 @@ class BitunixWebSocketService {
   private login(apiKey: string, apiSecret: string) {
     try {
       if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN) return;
-      if (!CryptoJS || !CryptoJS.SHA256) return;
+      if (!CryptoJS || !CryptoJS.SHA256) {
+        console.error("[WebSocket] CryptoJS missing, cannot login");
+        return;
+      }
 
       let nonce: string;
       if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
@@ -496,6 +499,7 @@ class BitunixWebSocketService {
       const payload = { op: "login", args: [{ apiKey, timestamp, nonce, sign }] };
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (error) {
+      console.error("[WebSocket] Login request failed:", error);
     }
   }
 
@@ -581,7 +585,7 @@ class BitunixWebSocketService {
         const data = priceValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Record<string, any> = {};
         if (data.mp !== undefined) update.price = data.mp;
         if (data.ip !== undefined) update.indexPrice = data.ip;
         if (data.fr !== undefined) update.fundingRate = data.fr;
@@ -610,7 +614,7 @@ class BitunixWebSocketService {
         const data = tickerValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Record<string, any> = {};
         if (data.la !== undefined) update.lastPrice = data.la;
         if (data.h !== undefined) update.high = data.h;
         if (data.l !== undefined) update.low = data.l;

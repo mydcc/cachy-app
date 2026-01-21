@@ -31,7 +31,7 @@ export class StorageHelper {
             return true;
         } catch (e: any) {
             if (e.name === 'QuotaExceededError') {
-                console.error('[Storage] Quota exceeded for key:', key);
+                if (import.meta.env.DEV) console.error('[Storage] Quota exceeded for key:', key);
 
                 // 1. Notify user
                 uiState.showError('storage.quotaExceeded');
@@ -42,14 +42,14 @@ export class StorageHelper {
                 // 3. Retry after cleanup
                 try {
                     localStorage.setItem(key, data);
-                    console.warn('[Storage] Retry successful after cleanup');
+                    if (import.meta.env.DEV) console.warn('[Storage] Retry successful after cleanup');
                     return true;
                 } catch (retryError) {
-                    console.error('[Storage] Retry failed after cleanup:', retryError);
+                    if (import.meta.env.DEV) console.error('[Storage] Retry failed after cleanup:', retryError);
                     return false;
                 }
             } else {
-                console.error('[Storage] Save failed with unexpected error:', e);
+                if (import.meta.env.DEV) console.error('[Storage] Save failed with unexpected error:', e);
                 throw e;
             }
         }
@@ -74,15 +74,15 @@ export class StorageHelper {
                     const size = new Blob([value]).size;
                     localStorage.removeItem(key);
                     freedSpace += size;
-                    console.warn(`[Storage] Removed cache: ${key} (${(size / 1024).toFixed(2)}KB)`);
+                    if (import.meta.env.DEV) console.warn(`[Storage] Removed cache: ${key} (${(size / 1024).toFixed(2)}KB)`);
                 }
             } catch (e) {
-                console.warn(`[Storage] Failed to remove ${key}:`, e);
+                if (import.meta.env.DEV) console.warn(`[Storage] Failed to remove ${key}:`, e);
             }
         }
 
         if (freedSpace > 0) {
-            console.warn(`[Storage] Total freed: ${(freedSpace / 1024).toFixed(2)}KB`);
+            if (import.meta.env.DEV) console.warn(`[Storage] Total freed: ${(freedSpace / 1024).toFixed(2)}KB`);
         }
     }
 
