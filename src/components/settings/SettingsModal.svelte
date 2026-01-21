@@ -353,7 +353,7 @@
       <div
         class="w-1.5 h-1.5 rounded-full bg-[var(--accent-color)] animate-pulse"
       ></div>
-      CachyApp v3.0 // Professional Workspace
+      CachyApp v{import.meta.env.VITE_APP_VERSION || "0.0.0"} // Professional Workspace
     </div>
     <button
       class="px-8 py-2.5 text-xs font-black uppercase tracking-widest bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded-lg hover:brightness-110 transition-all shadow-lg active:scale-95"
