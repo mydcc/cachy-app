@@ -643,6 +643,13 @@
         "appearance": "Darstellung",
         "controls": "Steuerung"
       },
+      "workspace": {
+        "subtabs": {
+          "sidebar": "Sidebar",
+          "market": "Markt",
+          "system": "System"
+        }
+      },
       "glass": {
         "blur": "Glas Unschärfe",
         "saturate": "Sättigung",

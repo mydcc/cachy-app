@@ -3,11 +3,9 @@
     import { _ } from "../../locales/i18n";
 
     function toggle() {
-        // Falls das Modal bereits offen ist, schließen wir es
         if (uiState.iframeModal.visible) {
             uiState.toggleIframeModal(false);
         } else {
-            // Beispiel-URL: Ein entspannter Lofi-Stream oder Trading-Content
             uiState.toggleIframeModal(
                 true,
                 "https://space.cachy.app/index.php?plot_id=genesis",

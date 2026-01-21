@@ -93,7 +93,11 @@
         F: "Symbol Picker",
     };
 
-    let activeSubTab = $state<"general" | "appearance" | "controls">("general");
+    let activeSubTab = $derived(uiState.settingsProfileTab);
+
+    function setSubTab(tab: typeof uiState.settingsProfileTab) {
+        uiState.settingsProfileTab = tab;
+    }
 </script>
 
 <div class="profile-tab flex flex-col gap-6" role="tabpanel" id="tab-profile">
@@ -101,19 +105,19 @@
     <div class="subtab-nav">
         <button
             class:active={activeSubTab === "general"}
-            onclick={() => (activeSubTab = "general")}
+            onclick={() => setSubTab("general")}
         >
             {$_("settings.profile.subtabs.general") || "Allgemein"}
         </button>
         <button
             class:active={activeSubTab === "appearance"}
-            onclick={() => (activeSubTab = "appearance")}
+            onclick={() => setSubTab("appearance")}
         >
             {$_("settings.profile.subtabs.appearance") || "Darstellung"}
         </button>
         <button
             class:active={activeSubTab === "controls"}
-            onclick={() => (activeSubTab = "controls")}
+            onclick={() => setSubTab("controls")}
         >
             {$_("settings.profile.subtabs.controls") || "Steuerung"}
         </button>
@@ -252,7 +256,7 @@
                                     type="range"
                                     bind:value={settingsState.glassBlur}
                                     min="0"
-                                    max="40"
+                                    max="120"
                                     step="1"
                                     class="w-full"
                                 />
@@ -490,7 +494,7 @@
                                 id="bg-video-speed"
                                 type="range"
                                 bind:value={settingsState.videoPlaybackSpeed}
-                                min="0.5"
+                                min="0.1"
                                 max="2"
                                 step="0.1"
                                 class="w-full"
@@ -498,7 +502,7 @@
                             <div
                                 class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1"
                             >
-                                <span>0.5x</span>
+                                <span>0.1x</span>
                                 <span>2.0x</span>
                             </div>
                         </div>
@@ -547,7 +551,7 @@
                                 type="range"
                                 bind:value={settingsState.backgroundBlur}
                                 min="0"
-                                max="20"
+                                max="120"
                                 step="1"
                                 class="w-full"
                             />
@@ -555,7 +559,7 @@
                                 class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1"
                             >
                                 <span>0px</span>
-                                <span>20px</span>
+                                <span>120px</span>
                             </div>
                         </div>
                     {/if}

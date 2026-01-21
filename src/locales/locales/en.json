@@ -732,6 +732,13 @@
         "appearance": "Appearance",
         "controls": "Controls"
       },
+      "workspace": {
+        "subtabs": {
+          "sidebar": "Sidebar",
+          "market": "Market",
+          "system": "System"
+        }
+      },
       "glass": {
         "blur": "Glass Blur",
         "saturate": "Saturation",

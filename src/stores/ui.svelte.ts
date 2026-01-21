@@ -28,6 +28,8 @@ class UiManager {
   showSymbolSuggestions = $state(false);
   showSettingsModal = $state(false);
   settingsTab = $state("profile");
+  settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
+  settingsWorkspaceTab = $state("sidebar");
 
   // Floating Iframe Modal State
   iframeModal = $state({
@@ -94,13 +96,15 @@ class UiManager {
         showSymbolSuggestions: this.showSymbolSuggestions,
         showSettingsModal: this.showSettingsModal,
         settingsTab: this.settingsTab,
+        settingsProfileTab: this.settingsProfileTab,
+        settingsWorkspaceTab: this.settingsWorkspaceTab,
         isLoading: this.isLoading,
         loadingMessage: this.loadingMessage,
         syncProgress: this.syncProgress,
         tooltip: this.tooltip,
       };
       fn(stateSnapshot);
-      return () => {};
+      return () => { };
     });
   }
 
@@ -128,6 +132,8 @@ class UiManager {
       showSymbolSuggestions: this.showSymbolSuggestions,
       showSettingsModal: this.showSettingsModal,
       settingsTab: this.settingsTab,
+      settingsProfileTab: this.settingsProfileTab,
+      settingsWorkspaceTab: this.settingsWorkspaceTab,
       isLoading: this.isLoading,
       loadingMessage: this.loadingMessage,
       syncProgress: this.syncProgress,

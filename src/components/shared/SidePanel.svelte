@@ -462,7 +462,21 @@
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
+        style:min-width="300px"
+        style:min-height="200px"
       >
+        <!-- Resize Handles (Floating Mode) -->
+        {#if isFloating && !settingsState.panelIsExpanded}
+          <div class="resize-handle resizer-right"></div>
+          <div class="resize-handle resizer-left"></div>
+          <div class="resize-handle resizer-bottom"></div>
+          <div class="resizer-corner">
+            <svg viewBox="0 0 10 10">
+              <path d="M 0 10 L 10 10 L 10 0 Z" fill="currentColor" />
+            </svg>
+          </div>
+        {/if}
+
         <!-- Main Panel Content -->
         <div bind:this={panelEl} class="flex-1 flex flex-col min-h-0">
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
@@ -1311,5 +1325,57 @@
 
   .reject-btn:hover {
     background: rgba(125, 125, 125, 0.2);
+  }
+
+  /* Resize Handles */
+  .resize-handle {
+    position: absolute;
+    z-index: 10;
+    transition: background 0.2s ease;
+  }
+
+  .resize-handle:hover {
+    background: rgba(var(--accent-rgb), 0.1);
+  }
+
+  .resizer-right {
+    top: 0;
+    right: -2px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+  }
+
+  .resizer-left {
+    top: 0;
+    left: -2px;
+    width: 6px;
+    height: 100%;
+    cursor: col-resize;
+  }
+
+  .resizer-bottom {
+    bottom: -2px;
+    left: 0;
+    width: 100%;
+    height: 6px;
+    cursor: row-resize;
+  }
+
+  .resizer-corner {
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    width: 12px;
+    height: 12px;
+    z-index: 11;
+    color: var(--accent-color);
+    opacity: 0.4;
+    pointer-events: none;
+    transition: opacity 0.2s ease;
+  }
+
+  .glass-panel:hover .resizer-corner {
+    opacity: 0.8;
   }
 </style>
