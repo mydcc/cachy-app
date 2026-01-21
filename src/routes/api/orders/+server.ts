@@ -89,7 +89,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       // Check price for Limit orders (place-order only usually)
       if (type === "place-order") {
-        const orderType = (body.type as string || "").toUpperCase();
+        const orderType = ((body.type as string) || "").toUpperCase();
         const allowedTypes = [
           "LIMIT",
           "MARKET",
@@ -193,7 +193,9 @@ export const POST: RequestHandler = async ({ request }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
-    const sanitizedMsg = errorMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***");
+    const sanitizedMsg = errorMsg
+      .replaceAll(apiKey, "***")
+      .replaceAll(apiSecret, "***");
 
     console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 

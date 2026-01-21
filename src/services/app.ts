@@ -42,10 +42,7 @@ import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
-const calculatorService = new CalculatorService(
-  calculator,
-  uiState,
-);
+const calculatorService = new CalculatorService(calculator, uiState);
 
 let marketStoreUnsubscribe: (() => void) | null = null;
 let tradeStoreUnsubscribe: (() => void) | null = null;
@@ -79,7 +76,7 @@ export const app = {
       favoritesState.items = ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"];
 
       // Update trade state for full action
-      tradeState.update(s => ({
+      tradeState.update((s) => ({
         ...s,
         symbol: "BTCUSDT",
         entryPrice: 88480.2, // User screenshot value
@@ -91,7 +88,7 @@ export const app = {
           { price: 120000, percent: 50, isLocked: false },
           { price: 122000, percent: 25, isLocked: false },
           { price: 124000, percent: 25, isLocked: false },
-        ]
+        ],
       }));
 
       // Settings for visibility
@@ -119,12 +116,18 @@ export const app = {
       untrack(() => {
         if (!s || !s.apiKeys) return;
 
-        const currentKeys = s.apiKeys.bitunix ? `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}` : "";
+        const currentKeys = s.apiKeys.bitunix
+          ? `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}`
+          : "";
         const providerChanged = s.apiProvider !== lastProvider;
         const keysChanged = currentKeys !== lastKeys;
 
         if (s.apiProvider === "bitunix") {
-          if ((keysChanged || providerChanged) && s.apiKeys.bitunix?.key && s.apiKeys.bitunix?.secret) {
+          if (
+            (keysChanged || providerChanged) &&
+            s.apiKeys.bitunix?.key &&
+            s.apiKeys.bitunix?.secret
+          ) {
             lastKeys = currentKeys;
             lastProvider = s.apiProvider;
             if (browser) {
@@ -150,13 +153,16 @@ export const app = {
     let symbolDebounceTimer: any = null;
 
     tradeStoreUnsubscribe = tradeState.subscribe((state) => {
-      const newSymbol = state.symbol ? normalizeSymbol(state.symbol, "bitunix") : "";
+      const newSymbol = state.symbol
+        ? normalizeSymbol(state.symbol, "bitunix")
+        : "";
 
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
 
       symbolDebounceTimer = setTimeout(() => {
         if (newSymbol && newSymbol !== currentWatchedSymbol) {
-          if (currentWatchedSymbol) marketWatcher.unregister(currentWatchedSymbol, "price");
+          if (currentWatchedSymbol)
+            marketWatcher.unregister(currentWatchedSymbol, "price");
           marketWatcher.register(newSymbol, "price");
           currentWatchedSymbol = newSymbol;
         } else if (!newSymbol && currentWatchedSymbol) {
@@ -181,7 +187,7 @@ export const app = {
           if (settings.autoUpdatePriceInput) {
             const newPrice = marketData.lastPrice.toNumber();
             if (state.entryPrice !== newPrice) {
-              tradeState.update(s => ({ ...s, entryPrice: newPrice }));
+              tradeState.update((s) => ({ ...s, entryPrice: newPrice }));
             }
           }
         }
@@ -191,7 +197,10 @@ export const app = {
     marketState.subscribeStatus((status) => {
       if (status === "disconnected" || status === "reconnecting") {
         const settings = settingsState;
-        if (settings.autoUpdatePriceInput && settings.apiProvider === "bitunix") {
+        if (
+          settings.autoUpdatePriceInput &&
+          settings.apiProvider === "bitunix"
+        ) {
           // We could trigger a manual fetch here if WS is down
           // But MarketWatcher handles general polling now.
         }
@@ -221,9 +230,12 @@ export const app = {
     if (fromStore && fromStore.length > 0) return fromStore;
 
     try {
-      const d = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
+      const d =
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY) || "[]";
       const parsedData = JSON.parse(d);
-      return Array.isArray(parsedData) ? parsedData.map(normalizeJournalEntry) : [];
+      return Array.isArray(parsedData)
+        ? parsedData.map(normalizeJournalEntry)
+        : [];
     } catch {
       return [];
     }
@@ -232,7 +244,10 @@ export const app = {
   saveJournal: (d: JournalEntry[]) => {
     if (!browser) return;
     try {
-      storageUtils.safeSetItem(CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY, JSON.stringify(d));
+      storageUtils.safeSetItem(
+        CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
+        JSON.stringify(d),
+      );
     } catch (error) {
       uiState.showError("Speichern fehlgeschlagen.");
     }
@@ -262,7 +277,7 @@ export const app = {
 
   updateTradeStatus: (id: number, newStatus: string) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex(t => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex].status = newStatus;
       app.saveJournal(journalData);
@@ -272,7 +287,7 @@ export const app = {
 
   updateTrade: (id: number, updates: Partial<JournalEntry>) => {
     const journalData = app.getJournal();
-    const tradeIndex = journalData.findIndex(t => t.id == id);
+    const tradeIndex = journalData.findIndex((t) => t.id == id);
     if (tradeIndex !== -1) {
       journalData[tradeIndex] = { ...journalData[tradeIndex], ...updates };
       app.saveJournal(journalData);
@@ -281,13 +296,17 @@ export const app = {
   },
 
   deleteTrade: (id: number) => {
-    const d = app.getJournal().filter(t => t.id != id);
+    const d = app.getJournal().filter((t) => t.id != id);
     app.saveJournal(d);
     journalState.set(d);
   },
 
   async clearJournal() {
-    const confirmed = await modalState.show("Reset bestätigen", "Journal löschen?", "confirm");
+    const confirmed = await modalState.show(
+      "Reset bestätigen",
+      "Journal löschen?",
+      "confirm",
+    );
     if (confirmed) {
       app.saveJournal([]);
       journalState.set([]);
@@ -312,24 +331,35 @@ export const app = {
 
   savePreset: async () => {
     if (!browser) return;
-    const name = await modalState.show("Preset speichern", "Name eingeben:", "prompt");
+    const name = await modalState.show(
+      "Preset speichern",
+      "Name eingeben:",
+      "prompt",
+    );
     if (typeof name === "string" && name) {
-      const presets = JSON.parse(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}");
+      const presets = JSON.parse(
+        localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+      );
       presets[name] = app.getInputsAsObject();
-      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, JSON.stringify(presets));
+      localStorage.setItem(
+        CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
+        JSON.stringify(presets),
+      );
       app.populatePresetLoader();
       uiState.showFeedback("save");
     }
   },
 
   loadPreset: (name: string) => {
-    const presets = JSON.parse(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}");
+    const presets = JSON.parse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    );
     const p = presets[name];
     if (p) {
-      tradeState.update(s => ({
+      tradeState.update((s) => ({
         ...s,
         ...p,
-        entryPrice: app.currentMarketPrice?.toNumber() || s.entryPrice
+        entryPrice: app.currentMarketPrice?.toNumber() || s.entryPrice,
       }));
       if (p.useAtrSl) tradeState.atrMode = "auto";
       app.calculateAndDisplay();
@@ -337,14 +367,21 @@ export const app = {
   },
 
   deletePreset: async (name: string) => {
-    const presets = JSON.parse(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}");
+    const presets = JSON.parse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    );
     delete presets[name];
-    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY, JSON.stringify(presets));
+    localStorage.setItem(
+      CONSTANTS.LOCAL_STORAGE_PRESETS_KEY,
+      JSON.stringify(presets),
+    );
     app.populatePresetLoader();
   },
 
   populatePresetLoader: () => {
-    const presets = JSON.parse(localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}");
+    const presets = JSON.parse(
+      localStorage.getItem(CONSTANTS.LOCAL_STORAGE_PRESETS_KEY) || "{}",
+    );
     presetState.availablePresets = Object.keys(presets);
   },
 
@@ -364,10 +401,16 @@ export const app = {
       const text = e.target?.result as string;
       const entries = csvService.parseCSVContent(text);
       if (entries.length > 0) {
-        const confirmed = await modalState.show("Import", `${entries.length} Trades importieren?`, "confirm");
+        const confirmed = await modalState.show(
+          "Import",
+          `${entries.length} Trades importieren?`,
+          "confirm",
+        );
         if (confirmed) {
           const combined = [...journalState.entries, ...entries];
-          const unique = Array.from(new Map(combined.map(t => [t.id, t])).values());
+          const unique = Array.from(
+            new Map(combined.map((t) => [t.id, t])).values(),
+          );
           app.saveJournal(unique);
           journalState.set(unique);
         }
@@ -381,9 +424,12 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
-      const price = settingsState.apiProvider === "binance" ? await apiService.fetchBinancePrice(symbol) : await apiService.fetchBitunixPrice(symbol);
+      const price =
+        settingsState.apiProvider === "binance"
+          ? await apiService.fetchBinancePrice(symbol)
+          : await apiService.fetchBitunixPrice(symbol);
       app.currentMarketPrice = price;
-      tradeState.update(s => ({ ...s, entryPrice: price.toNumber() }));
+      tradeState.update((s) => ({ ...s, entryPrice: price.toNumber() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("Preis-Fetch fehlgeschlagen.");
@@ -393,13 +439,13 @@ export const app = {
   },
 
   setAtrMode: (mode: "manual" | "auto") => {
-    tradeState.update(s => ({ ...s, atrMode: mode }));
+    tradeState.update((s) => ({ ...s, atrMode: mode }));
     if (mode === "auto") app.fetchAtr();
     app.calculateAndDisplay();
   },
 
   setAtrTimeframe: (timeframe: string) => {
-    tradeState.update(s => ({ ...s, atrTimeframe: timeframe }));
+    tradeState.update((s) => ({ ...s, atrTimeframe: timeframe }));
     if (tradeState.atrMode === "auto") app.fetchAtr();
   },
 
@@ -408,11 +454,20 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isAtrFetching = true;
     try {
-      const klines = settingsState.apiProvider === "binance"
-        ? await apiService.fetchBinanceKlines(symbol, tradeState.atrTimeframe, 15)
-        : await apiService.fetchBitunixKlines(symbol, tradeState.atrTimeframe, 15);
+      const klines =
+        settingsState.apiProvider === "binance"
+          ? await apiService.fetchBinanceKlines(
+              symbol,
+              tradeState.atrTimeframe,
+              15,
+            )
+          : await apiService.fetchBitunixKlines(
+              symbol,
+              tradeState.atrTimeframe,
+              15,
+            );
       const atr = calculator.calculateATR(klines);
-      tradeState.update(s => ({ ...s, atrValue: atr.toDP(4).toNumber() }));
+      tradeState.update((s) => ({ ...s, atrValue: atr.toDP(4).toNumber() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("ATR-Fetch fehlgeschlagen.");
@@ -422,7 +477,7 @@ export const app = {
   },
 
   selectSymbolSuggestion: (symbol: string) => {
-    tradeState.update(s => ({ ...s, symbol }));
+    tradeState.update((s) => ({ ...s, symbol }));
     app.handleFetchPrice();
     app.fetchAtr(true);
   },
@@ -433,25 +488,26 @@ export const app = {
 
   toggleRiskAmountLock() {
     const isLocked = !tradeState.isRiskAmountLocked;
-    tradeState.update(s => ({
+    tradeState.update((s) => ({
       ...s,
       isRiskAmountLocked: isLocked,
       isPositionSizeLocked: isLocked ? false : s.isPositionSizeLocked,
-      lockedPositionSize: isLocked ? null : s.lockedPositionSize
+      lockedPositionSize: isLocked ? null : s.lockedPositionSize,
     }));
   },
 
   togglePositionSizeLock() {
     const isLocked = !tradeState.isPositionSizeLocked;
-    const currentSize = resultsState.positionSize && resultsState.positionSize !== "-"
-      ? new Decimal(resultsState.positionSize.replace(/,/g, ""))
-      : null;
+    const currentSize =
+      resultsState.positionSize && resultsState.positionSize !== "-"
+        ? new Decimal(resultsState.positionSize.replace(/,/g, ""))
+        : null;
 
-    tradeState.update(s => ({
+    tradeState.update((s) => ({
       ...s,
       isPositionSizeLocked: isLocked,
       lockedPositionSize: isLocked ? currentSize : null,
-      isRiskAmountLocked: isLocked ? false : s.isRiskAmountLocked
+      isRiskAmountLocked: isLocked ? false : s.isRiskAmountLocked,
     }));
   },
 
@@ -461,9 +517,9 @@ export const app = {
 
     const newTargets = [
       ...currentTargets,
-      { price: null, percent: 0, isLocked: false }
+      { price: null, percent: 0, isLocked: false },
     ];
-    tradeState.update(s => ({ ...s, targets: newTargets }));
+    tradeState.update((s) => ({ ...s, targets: newTargets }));
     app.adjustTpPercentages(null);
   },
 
@@ -472,7 +528,7 @@ export const app = {
     if (currentTargets.length <= 1) return;
 
     currentTargets.splice(index, 1);
-    tradeState.update(s => ({ ...s, targets: currentTargets }));
+    tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(index);
   },
 
@@ -488,20 +544,23 @@ export const app = {
     // If only one target, it must be 100%
     if (targets.length === 1) {
       targets[0].percent = 100;
-      tradeState.update(s => ({ ...s, targets }));
+      tradeState.update((s) => ({ ...s, targets }));
       return;
     }
 
     const unlockedIndices = targets
       .map((t, i) => (!t.isLocked && i !== changedIndex ? i : -1))
-      .filter(i => i !== -1);
+      .filter((i) => i !== -1);
 
     if (unlockedIndices.length === 0) {
       // Revert change if no other unlocked targets
       if (changedIndex !== null) {
-        const oldTotalExceptChanged = targets.reduce((sum, t, i) => i !== changedIndex ? sum + (t.percent || 0) : sum, 0);
+        const oldTotalExceptChanged = targets.reduce(
+          (sum, t, i) => (i !== changedIndex ? sum + (t.percent || 0) : sum),
+          0,
+        );
         targets[changedIndex].percent = 100 - oldTotalExceptChanged;
-        tradeState.update(s => ({ ...s, targets }));
+        tradeState.update((s) => ({ ...s, targets }));
       }
       return;
     }
@@ -509,7 +568,7 @@ export const app = {
     if (diff > 0) {
       // Surplus: distribute to all unlocked
       const share = diff / unlockedIndices.length;
-      unlockedIndices.forEach(i => {
+      unlockedIndices.forEach((i) => {
         targets[i].percent = (targets[i].percent || 0) + share;
       });
     } else {
@@ -526,7 +585,7 @@ export const app = {
       }
     }
 
-    tradeState.update(s => ({ ...s, targets }));
+    tradeState.update((s) => ({ ...s, targets }));
     app.calculateAndDisplay();
   },
 
@@ -537,8 +596,8 @@ export const app = {
       return;
     }
     // Simple filter of favorite symbols or common ones
-    const suggestions = settingsState.favoriteSymbols.filter(s =>
-      s.toLowerCase().includes(input.toLowerCase())
+    const suggestions = settingsState.favoriteSymbols.filter((s) =>
+      s.toLowerCase().includes(input.toLowerCase()),
     );
     uiState.symbolSuggestions = suggestions;
     uiState.showSymbolSuggestions = suggestions.length > 0;
@@ -546,9 +605,9 @@ export const app = {
 
   fetchAllAnalysisData: async (symbol?: string, isAuto = false) => {
     if (symbol && symbol !== tradeState.symbol) {
-      tradeState.update(s => ({ ...s, symbol }));
+      tradeState.update((s) => ({ ...s, symbol }));
     }
     await app.handleFetchPrice(isAuto);
     await app.fetchAtr(isAuto);
-  }
+  },
 };

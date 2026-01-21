@@ -67,7 +67,9 @@ export async function createBackup(password?: string) {
       JSON.parse(raw); // Check if valid JSON
       return raw;
     } catch (e) {
-      console.error(`Backup Logic: Detected corrupt JSON for key ${key}. Skipping.`);
+      console.error(
+        `Backup Logic: Detected corrupt JSON for key ${key}. Skipping.`,
+      );
       // Optional: We could throw interrupt here, but skipping corrupt keys might be safer for user data retrieval
       return null;
     }
@@ -182,7 +184,8 @@ export async function restoreFromBackup(
           if (!backup.encryptedData || !backup.salt || !backup.iv) {
             return {
               success: false,
-              message: "Invalid encrypted backup file format (Missing Salt/IV).",
+              message:
+                "Invalid encrypted backup file format (Missing Salt/IV).",
             };
           }
           decryptedJson = await decrypt(

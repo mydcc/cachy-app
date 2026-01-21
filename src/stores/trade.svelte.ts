@@ -17,309 +17,323 @@ import { Decimal } from "decimal.js";
 // For now, I will mirror the structure.
 
 export interface TradeTarget {
-    price: number | null;
-    percent: number | null;
-    isLocked: boolean;
+  price: number | null;
+  percent: number | null;
+  isLocked: boolean;
 }
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
 export const INITIAL_TRADE_STATE = {
-    tradeType: CONSTANTS.TRADE_TYPE_LONG,
-    accountSize: 1000,
-    riskPercentage: 1,
-    entryPrice: 88480.2 as number | null,
-    stopLossPrice: null as number | null,
-    leverage: parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
-    fees: parseFloat(CONSTANTS.DEFAULT_FEES),
-    symbol: "BTCUSDT",
-    atrValue: 45.5 as number | null,
-    atrMultiplier: 1.2,
-    useAtrSl: true,
-    atrMode: "auto" as "auto" | "manual",
-    atrTimeframe: "5m",
-    analysisTimeframe: "1h",
-    tradeNotes: "",
-    tags: [] as string[],
-    targets: [
-        { price: 120000, percent: 50, isLocked: false },
-        { price: 122000, percent: 25, isLocked: false },
-        { price: 124000, percent: 25, isLocked: false },
-    ] as TradeTarget[],
-    isPositionSizeLocked: false,
-    lockedPositionSize: null as Decimal | null,
-    isRiskAmountLocked: false,
-    riskAmount: null as number | null,
-    journalSearchQuery: "",
-    journalFilterStatus: "all",
-    // Transient / Remote data placeholders
-    currentTradeData: null as any,
-    remoteLeverage: undefined as number | undefined,
-    remoteMarginMode: undefined as string | undefined,
-    remoteMakerFee: undefined as number | undefined,
-    remoteTakerFee: undefined as number | undefined,
-    feeMode: "maker_taker" as "maker_taker" | "flat",
-    exitFees: undefined as number | undefined,
+  tradeType: CONSTANTS.TRADE_TYPE_LONG,
+  accountSize: 1000,
+  riskPercentage: 1,
+  entryPrice: 88480.2 as number | null,
+  stopLossPrice: null as number | null,
+  leverage: parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
+  fees: parseFloat(CONSTANTS.DEFAULT_FEES),
+  symbol: "BTCUSDT",
+  atrValue: 45.5 as number | null,
+  atrMultiplier: 1.2,
+  useAtrSl: true,
+  atrMode: "auto" as "auto" | "manual",
+  atrTimeframe: "5m",
+  analysisTimeframe: "1h",
+  tradeNotes: "",
+  tags: [] as string[],
+  targets: [
+    { price: 120000, percent: 50, isLocked: false },
+    { price: 122000, percent: 25, isLocked: false },
+    { price: 124000, percent: 25, isLocked: false },
+  ] as TradeTarget[],
+  isPositionSizeLocked: false,
+  lockedPositionSize: null as Decimal | null,
+  isRiskAmountLocked: false,
+  riskAmount: null as number | null,
+  journalSearchQuery: "",
+  journalFilterStatus: "all",
+  // Transient / Remote data placeholders
+  currentTradeData: null as any,
+  remoteLeverage: undefined as number | undefined,
+  remoteMarginMode: undefined as string | undefined,
+  remoteMakerFee: undefined as number | undefined,
+  remoteTakerFee: undefined as number | undefined,
+  feeMode: "maker_taker" as "maker_taker" | "flat",
+  exitFees: undefined as number | undefined,
 };
 
 class TradeManager {
-    tradeType = $state(INITIAL_TRADE_STATE.tradeType);
-    accountSize = $state(INITIAL_TRADE_STATE.accountSize);
-    riskPercentage = $state(INITIAL_TRADE_STATE.riskPercentage);
-    entryPrice = $state(INITIAL_TRADE_STATE.entryPrice);
-    stopLossPrice = $state(INITIAL_TRADE_STATE.stopLossPrice);
-    leverage = $state(INITIAL_TRADE_STATE.leverage);
-    fees = $state(INITIAL_TRADE_STATE.fees);
-    symbol = $state(INITIAL_TRADE_STATE.symbol);
-    atrValue = $state(INITIAL_TRADE_STATE.atrValue);
-    atrMultiplier = $state(INITIAL_TRADE_STATE.atrMultiplier);
-    useAtrSl = $state(INITIAL_TRADE_STATE.useAtrSl);
-    atrMode = $state(INITIAL_TRADE_STATE.atrMode);
-    atrTimeframe = $state(INITIAL_TRADE_STATE.atrTimeframe);
-    analysisTimeframe = $state(INITIAL_TRADE_STATE.analysisTimeframe);
-    tradeNotes = $state(INITIAL_TRADE_STATE.tradeNotes);
-    tags = $state(INITIAL_TRADE_STATE.tags);
-    targets = $state(INITIAL_TRADE_STATE.targets);
-    isPositionSizeLocked = $state(INITIAL_TRADE_STATE.isPositionSizeLocked);
-    lockedPositionSize = $state(INITIAL_TRADE_STATE.lockedPositionSize);
-    isRiskAmountLocked = $state(INITIAL_TRADE_STATE.isRiskAmountLocked);
-    riskAmount = $state(INITIAL_TRADE_STATE.riskAmount);
-    journalSearchQuery = $state(INITIAL_TRADE_STATE.journalSearchQuery);
-    journalFilterStatus = $state(INITIAL_TRADE_STATE.journalFilterStatus);
+  tradeType = $state(INITIAL_TRADE_STATE.tradeType);
+  accountSize = $state(INITIAL_TRADE_STATE.accountSize);
+  riskPercentage = $state(INITIAL_TRADE_STATE.riskPercentage);
+  entryPrice = $state(INITIAL_TRADE_STATE.entryPrice);
+  stopLossPrice = $state(INITIAL_TRADE_STATE.stopLossPrice);
+  leverage = $state(INITIAL_TRADE_STATE.leverage);
+  fees = $state(INITIAL_TRADE_STATE.fees);
+  symbol = $state(INITIAL_TRADE_STATE.symbol);
+  atrValue = $state(INITIAL_TRADE_STATE.atrValue);
+  atrMultiplier = $state(INITIAL_TRADE_STATE.atrMultiplier);
+  useAtrSl = $state(INITIAL_TRADE_STATE.useAtrSl);
+  atrMode = $state(INITIAL_TRADE_STATE.atrMode);
+  atrTimeframe = $state(INITIAL_TRADE_STATE.atrTimeframe);
+  analysisTimeframe = $state(INITIAL_TRADE_STATE.analysisTimeframe);
+  tradeNotes = $state(INITIAL_TRADE_STATE.tradeNotes);
+  tags = $state(INITIAL_TRADE_STATE.tags);
+  targets = $state(INITIAL_TRADE_STATE.targets);
+  isPositionSizeLocked = $state(INITIAL_TRADE_STATE.isPositionSizeLocked);
+  lockedPositionSize = $state(INITIAL_TRADE_STATE.lockedPositionSize);
+  isRiskAmountLocked = $state(INITIAL_TRADE_STATE.isRiskAmountLocked);
+  riskAmount = $state(INITIAL_TRADE_STATE.riskAmount);
+  journalSearchQuery = $state(INITIAL_TRADE_STATE.journalSearchQuery);
+  journalFilterStatus = $state(INITIAL_TRADE_STATE.journalFilterStatus);
 
-    // Transient
-    currentTradeData = $state(INITIAL_TRADE_STATE.currentTradeData);
-    remoteLeverage = $state(INITIAL_TRADE_STATE.remoteLeverage);
-    remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
-    remoteMakerFee = $state(INITIAL_TRADE_STATE.remoteMakerFee);
-    remoteTakerFee = $state(INITIAL_TRADE_STATE.remoteTakerFee);
-    feeMode = $state(INITIAL_TRADE_STATE.feeMode);
-    exitFees = $state(INITIAL_TRADE_STATE.exitFees);
+  // Transient
+  currentTradeData = $state(INITIAL_TRADE_STATE.currentTradeData);
+  remoteLeverage = $state(INITIAL_TRADE_STATE.remoteLeverage);
+  remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
+  remoteMakerFee = $state(INITIAL_TRADE_STATE.remoteMakerFee);
+  remoteTakerFee = $state(INITIAL_TRADE_STATE.remoteTakerFee);
+  feeMode = $state(INITIAL_TRADE_STATE.feeMode);
+  exitFees = $state(INITIAL_TRADE_STATE.exitFees);
 
-    constructor() {
-        if (browser) {
-            this.load();
+  constructor() {
+    if (browser) {
+      this.load();
 
-            // Auto-save effect
-            $effect.root(() => {
-                $effect(() => {
-                    this.save();
-                });
-            });
-        }
+      // Auto-save effect
+      $effect.root(() => {
+        $effect(() => {
+          this.save();
+        });
+      });
     }
+  }
 
-    private load() {
-        try {
-            const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
-            if (stored) {
-                const parsed = JSON.parse(stored);
-                // Bulk assign safe properties
-                // We trust the keys from local storage but ensure defaults for missing ones
-                const merged = { ...INITIAL_TRADE_STATE, ...parsed };
+  private load() {
+    try {
+      const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        // Bulk assign safe properties
+        // We trust the keys from local storage but ensure defaults for missing ones
+        const merged = { ...INITIAL_TRADE_STATE, ...parsed };
 
-                // Assign each property specifically to trigger reactivity? 
-                // Object.assign(this, merged) works for classes if properties are on instance.
-                // With Runes, direct assignment to properties is best.
+        // Assign each property specifically to trigger reactivity?
+        // Object.assign(this, merged) works for classes if properties are on instance.
+        // With Runes, direct assignment to properties is best.
 
-                this.tradeType = merged.tradeType;
-                this.accountSize = merged.accountSize;
-                this.riskPercentage = merged.riskPercentage;
-                this.entryPrice = merged.entryPrice;
-                this.stopLossPrice = merged.stopLossPrice;
-                this.leverage = merged.leverage;
-                this.fees = merged.fees;
-                this.symbol = merged.symbol;
-                this.atrValue = merged.atrValue;
-                this.atrMultiplier = merged.atrMultiplier;
-                this.useAtrSl = merged.useAtrSl;
-                this.atrMode = merged.atrMode;
-                this.atrTimeframe = merged.atrTimeframe;
-                this.analysisTimeframe = merged.analysisTimeframe;
-                this.tradeNotes = merged.tradeNotes;
-                this.tags = merged.tags || [];
+        this.tradeType = merged.tradeType;
+        this.accountSize = merged.accountSize;
+        this.riskPercentage = merged.riskPercentage;
+        this.entryPrice = merged.entryPrice;
+        this.stopLossPrice = merged.stopLossPrice;
+        this.leverage = merged.leverage;
+        this.fees = merged.fees;
+        this.symbol = merged.symbol;
+        this.atrValue = merged.atrValue;
+        this.atrMultiplier = merged.atrMultiplier;
+        this.useAtrSl = merged.useAtrSl;
+        this.atrMode = merged.atrMode;
+        this.atrTimeframe = merged.atrTimeframe;
+        this.analysisTimeframe = merged.analysisTimeframe;
+        this.tradeNotes = merged.tradeNotes;
+        this.tags = merged.tags || [];
 
-                // Fix targets issue - force defaults if all prices are null (likely old version or reset)
-                const hasAnyPrice = merged.targets?.some((t: any) => t.price !== null && t.price !== 0);
-                if (!merged.targets || merged.targets.length === 0 || !hasAnyPrice) {
-                    this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-                } else {
-                    this.targets = merged.targets;
-                }
-
-                this.isPositionSizeLocked = merged.isPositionSizeLocked;
-                if (merged.lockedPositionSize) {
-                    try {
-                        this.lockedPositionSize = new Decimal(merged.lockedPositionSize);
-                    } catch (e) {
-                        this.lockedPositionSize = null;
-                    }
-                } else {
-                    this.lockedPositionSize = null;
-                }
-                this.isRiskAmountLocked = merged.isRiskAmountLocked;
-                this.riskAmount = merged.riskAmount;
-                this.journalSearchQuery = merged.journalSearchQuery || "";
-                this.journalFilterStatus = merged.journalFilterStatus || "all";
-            } else {
-                this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-            }
-        } catch (e) {
-            console.error("Failed to load trade state", e);
-            this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-        }
-    }
-
-    private save() {
-        if (!browser) return;
-        try {
-            const s = this.getSnapshot();
-            const toSave = { ...s };
-            delete toSave.currentTradeData;
-            localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
-            this.notifyListeners();
-        } catch (e) {
-            console.error("Failed to save trade state", e);
-        }
-    }
-
-    setSymbol(symbol: string, provider: "bitunix" | "binance" = "bitunix"): boolean {
-        if (!symbol) {
-            this.symbol = "";
-            return true;
-        }
-        const normalized = normalizeSymbol(symbol, provider);
-        if (!normalized) {
-            console.warn("[tradeState] Invalid symbol:", symbol);
-            return false;
-        }
-        this.symbol = normalized;
-        return true;
-    }
-
-    toggleAtrInputs(enable: boolean) {
-        this.useAtrSl = enable;
-        if (enable) {
-            this.atrMode = "auto";
-        }
-    }
-
-    // resetAllInputs needs access to resultsState and uiState generally to coordinate.
-    // We can define a Reset method here that ONLY resets trade state, 
-    // and let the Service orchestrate the rest. 
-    // However, to replace `resetAllInputs` from tradeStore, we need to return to defaults.
-
-    resetInputs(preserveSymbol = true) {
-        const currentSymbol = this.symbol;
-
-        // Reset fields
-        this.tradeType = INITIAL_TRADE_STATE.tradeType;
-        // Keep account settings? Usually reset keeps account size/risk?
-        // tradeStore.ts uses JSON.parse(initialTradeState), so it resets EVERYTHING except symbol.
-        this.accountSize = INITIAL_TRADE_STATE.accountSize;
-        this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
-        this.entryPrice = null;
-        this.stopLossPrice = null;
-        this.leverage = INITIAL_TRADE_STATE.leverage;
-        this.fees = INITIAL_TRADE_STATE.fees;
-        this.atrValue = null;
-        this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
-        this.useAtrSl = false; // "User requested Auto-ATR off" logic from tradeStore
-        this.atrMode = INITIAL_TRADE_STATE.atrMode;
-        this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
-        this.tradeNotes = "";
-        this.tags = [];
-        this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-        this.isPositionSizeLocked = false;
-        this.lockedPositionSize = null;
-        this.isRiskAmountLocked = false;
-        this.riskAmount = null;
-
-        if (preserveSymbol) {
-            this.symbol = currentSymbol;
+        // Fix targets issue - force defaults if all prices are null (likely old version or reset)
+        const hasAnyPrice = merged.targets?.some(
+          (t: any) => t.price !== null && t.price !== 0,
+        );
+        if (!merged.targets || merged.targets.length === 0 || !hasAnyPrice) {
+          this.targets = JSON.parse(
+            JSON.stringify(INITIAL_TRADE_STATE.targets),
+          );
         } else {
-            this.symbol = "";
+          this.targets = merged.targets;
         }
-    }
 
-    // Helper for legacy 'update' pattern
-    update(fn: (curr: any) => any) {
-        // Create a snapshot object
-        const snap = this.getSnapshot();
-        const next = fn(snap);
-
-        // Apply back
-        Object.assign(this, next);
-
-        // Handle nested Decimal if replaced? (lockedPositionSize)
-        if (next.lockedPositionSize && !(next.lockedPositionSize instanceof Decimal)) {
-            this.lockedPositionSize = new Decimal(next.lockedPositionSize);
+        this.isPositionSizeLocked = merged.isPositionSizeLocked;
+        if (merged.lockedPositionSize) {
+          try {
+            this.lockedPositionSize = new Decimal(merged.lockedPositionSize);
+          } catch (e) {
+            this.lockedPositionSize = null;
+          }
+        } else {
+          this.lockedPositionSize = null;
         }
+        this.isRiskAmountLocked = merged.isRiskAmountLocked;
+        this.riskAmount = merged.riskAmount;
+        this.journalSearchQuery = merged.journalSearchQuery || "";
+        this.journalFilterStatus = merged.journalFilterStatus || "all";
+      } else {
+        this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+      }
+    } catch (e) {
+      console.error("Failed to load trade state", e);
+      this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
     }
+  }
 
-    // Helper for legacy 'set' pattern (useful for tests)
-    set(newState: any) {
-        Object.assign(this, newState);
-        if (newState.lockedPositionSize && !(newState.lockedPositionSize instanceof Decimal)) {
-            try {
-                this.lockedPositionSize = new Decimal(newState.lockedPositionSize);
-            } catch (e) { /* ignore */ }
-        }
+  private save() {
+    if (!browser) return;
+    try {
+      const s = this.getSnapshot();
+      const toSave = { ...s };
+      delete toSave.currentTradeData;
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
+      this.notifyListeners();
+    } catch (e) {
+      console.error("Failed to save trade state", e);
     }
+  }
 
-    getSnapshot() {
-        return {
-            tradeType: this.tradeType,
-            accountSize: this.accountSize,
-            riskPercentage: this.riskPercentage,
-            entryPrice: this.entryPrice,
-            stopLossPrice: this.stopLossPrice,
-            leverage: this.leverage,
-            fees: this.fees,
-            symbol: this.symbol,
-            atrValue: this.atrValue,
-            atrMultiplier: this.atrMultiplier,
-            useAtrSl: this.useAtrSl,
-            atrMode: this.atrMode,
-            atrTimeframe: this.atrTimeframe,
-            analysisTimeframe: this.analysisTimeframe,
-            tradeNotes: this.tradeNotes,
-            tags: this.tags,
-            targets: this.targets,
-            isPositionSizeLocked: this.isPositionSizeLocked,
-            lockedPositionSize: this.lockedPositionSize,
-            isRiskAmountLocked: this.isRiskAmountLocked,
-            riskAmount: this.riskAmount,
-            journalSearchQuery: this.journalSearchQuery,
-            journalFilterStatus: this.journalFilterStatus,
-            currentTradeData: this.currentTradeData,
-            remoteLeverage: this.remoteLeverage,
-            remoteMarginMode: this.remoteMarginMode,
-            remoteMakerFee: this.remoteMakerFee,
-            remoteTakerFee: this.remoteTakerFee,
-            feeMode: this.feeMode,
-            exitFees: this.exitFees,
-        };
+  setSymbol(
+    symbol: string,
+    provider: "bitunix" | "binance" = "bitunix",
+  ): boolean {
+    if (!symbol) {
+      this.symbol = "";
+      return true;
     }
-
-    // Compatibility
-    private listeners = new Set<(value: any) => void>();
-    // private notifyTimer: any = null; // Removed debounce for sync updates
-
-    private notifyListeners() {
-        // Synchronous notification to prevent race conditions
-        const snap = this.getSnapshot();
-        this.listeners.forEach(fn => fn(snap));
+    const normalized = normalizeSymbol(symbol, provider);
+    if (!normalized) {
+      console.warn("[tradeState] Invalid symbol:", symbol);
+      return false;
     }
+    this.symbol = normalized;
+    return true;
+  }
 
-    subscribe(fn: (value: any) => void): () => void {
-        fn(this.getSnapshot());
-        this.listeners.add(fn);
-        return () => {
-            this.listeners.delete(fn);
-        };
+  toggleAtrInputs(enable: boolean) {
+    this.useAtrSl = enable;
+    if (enable) {
+      this.atrMode = "auto";
     }
+  }
+
+  // resetAllInputs needs access to resultsState and uiState generally to coordinate.
+  // We can define a Reset method here that ONLY resets trade state,
+  // and let the Service orchestrate the rest.
+  // However, to replace `resetAllInputs` from tradeStore, we need to return to defaults.
+
+  resetInputs(preserveSymbol = true) {
+    const currentSymbol = this.symbol;
+
+    // Reset fields
+    this.tradeType = INITIAL_TRADE_STATE.tradeType;
+    // Keep account settings? Usually reset keeps account size/risk?
+    // tradeStore.ts uses JSON.parse(initialTradeState), so it resets EVERYTHING except symbol.
+    this.accountSize = INITIAL_TRADE_STATE.accountSize;
+    this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
+    this.entryPrice = null;
+    this.stopLossPrice = null;
+    this.leverage = INITIAL_TRADE_STATE.leverage;
+    this.fees = INITIAL_TRADE_STATE.fees;
+    this.atrValue = null;
+    this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
+    this.useAtrSl = false; // "User requested Auto-ATR off" logic from tradeStore
+    this.atrMode = INITIAL_TRADE_STATE.atrMode;
+    this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
+    this.tradeNotes = "";
+    this.tags = [];
+    this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+    this.isPositionSizeLocked = false;
+    this.lockedPositionSize = null;
+    this.isRiskAmountLocked = false;
+    this.riskAmount = null;
+
+    if (preserveSymbol) {
+      this.symbol = currentSymbol;
+    } else {
+      this.symbol = "";
+    }
+  }
+
+  // Helper for legacy 'update' pattern
+  update(fn: (curr: any) => any) {
+    // Create a snapshot object
+    const snap = this.getSnapshot();
+    const next = fn(snap);
+
+    // Apply back
+    Object.assign(this, next);
+
+    // Handle nested Decimal if replaced? (lockedPositionSize)
+    if (
+      next.lockedPositionSize &&
+      !(next.lockedPositionSize instanceof Decimal)
+    ) {
+      this.lockedPositionSize = new Decimal(next.lockedPositionSize);
+    }
+  }
+
+  // Helper for legacy 'set' pattern (useful for tests)
+  set(newState: any) {
+    Object.assign(this, newState);
+    if (
+      newState.lockedPositionSize &&
+      !(newState.lockedPositionSize instanceof Decimal)
+    ) {
+      try {
+        this.lockedPositionSize = new Decimal(newState.lockedPositionSize);
+      } catch (e) {
+        /* ignore */
+      }
+    }
+  }
+
+  getSnapshot() {
+    return {
+      tradeType: this.tradeType,
+      accountSize: this.accountSize,
+      riskPercentage: this.riskPercentage,
+      entryPrice: this.entryPrice,
+      stopLossPrice: this.stopLossPrice,
+      leverage: this.leverage,
+      fees: this.fees,
+      symbol: this.symbol,
+      atrValue: this.atrValue,
+      atrMultiplier: this.atrMultiplier,
+      useAtrSl: this.useAtrSl,
+      atrMode: this.atrMode,
+      atrTimeframe: this.atrTimeframe,
+      analysisTimeframe: this.analysisTimeframe,
+      tradeNotes: this.tradeNotes,
+      tags: this.tags,
+      targets: this.targets,
+      isPositionSizeLocked: this.isPositionSizeLocked,
+      lockedPositionSize: this.lockedPositionSize,
+      isRiskAmountLocked: this.isRiskAmountLocked,
+      riskAmount: this.riskAmount,
+      journalSearchQuery: this.journalSearchQuery,
+      journalFilterStatus: this.journalFilterStatus,
+      currentTradeData: this.currentTradeData,
+      remoteLeverage: this.remoteLeverage,
+      remoteMarginMode: this.remoteMarginMode,
+      remoteMakerFee: this.remoteMakerFee,
+      remoteTakerFee: this.remoteTakerFee,
+      feeMode: this.feeMode,
+      exitFees: this.exitFees,
+    };
+  }
+
+  // Compatibility
+  private listeners = new Set<(value: any) => void>();
+  // private notifyTimer: any = null; // Removed debounce for sync updates
+
+  private notifyListeners() {
+    // Synchronous notification to prevent race conditions
+    const snap = this.getSnapshot();
+    this.listeners.forEach((fn) => fn(snap));
+  }
+
+  subscribe(fn: (value: any) => void): () => void {
+    fn(this.getSnapshot());
+    this.listeners.add(fn);
+    return () => {
+      this.listeners.delete(fn);
+    };
+  }
 }
-
 
 export const tradeState = new TradeManager();

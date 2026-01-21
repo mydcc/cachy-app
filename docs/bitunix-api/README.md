@@ -42,36 +42,46 @@ All private API requests MUST include the following headers:
 **Step 2: Generate Digest**
 
 ```javascript
-digest = SHA256(nonce + timestamp + api-key + sorted_query_params + body_string)
+digest = SHA256(
+  nonce + timestamp + api - key + sorted_query_params + body_string,
+);
 ```
 
 **Step 3: Final Signature**
 
 ```javascript
-sign = SHA256(digest + secretKey)
+sign = SHA256(digest + secretKey);
 ```
 
 ### Example (Node.js)
 
 ```javascript
-const crypto = require('crypto');
+const crypto = require("crypto");
 
-function generateSignature(apiKey, secretKey, nonce, timestamp, method, path, body = '') {
+function generateSignature(
+  apiKey,
+  secretKey,
+  nonce,
+  timestamp,
+  method,
+  path,
+  body = "",
+) {
   // Step 1: Prepare body string
-  const bodyString = body ? JSON.stringify(body).replace(/\s/g, '') : '';
-  
+  const bodyString = body ? JSON.stringify(body).replace(/\s/g, "") : "";
+
   // Step 2: Generate digest
   const digest = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(nonce + timestamp + apiKey + bodyString)
-    .digest('hex');
-  
+    .digest("hex");
+
   // Step 3: Final signature
   const signature = crypto
-    .createHash('sha256')
+    .createHash("sha256")
     .update(digest + secretKey)
-    .digest('hex');
-  
+    .digest("hex");
+
   return signature;
 }
 ```
@@ -101,13 +111,13 @@ function generateSignature(apiKey, secretKey, nonce, timestamp, method, path, bo
   effect?: "IOC" | "FOK" | "GTC" | "POST_ONLY";  // For LIMIT orders
   clientId?: string;      // Custom order ID
   reduceOnly?: boolean;   // Only reduce position
-  
+
   // Take Profit (optional)
   tpPrice?: number;
   tpStopType?: "PRICE" | "MARK";
   tpOrderType?: "LIMIT" | "MARKET";
   tpOrderPrice?: number;
-  
+
   // Stop Loss (optional)
   slPrice?: number;
   slStopType?: "PRICE" | "MARK";

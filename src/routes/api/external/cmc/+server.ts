@@ -21,11 +21,11 @@ export const GET: RequestHandler = async ({ url, request }) => {
     "/v1/cryptocurrency/quotes/latest",
     "/v1/cryptocurrency/map",
     "/v1/cryptocurrency/categories",
-    "/v1/cryptocurrency/category"
+    "/v1/cryptocurrency/category",
   ];
 
-  if (!ALLOWED_ENDPOINTS.some(ep => endpoint.startsWith(ep))) {
-      return json({ error: "Endpoint not allowed" }, { status: 403 });
+  if (!ALLOWED_ENDPOINTS.some((ep) => endpoint.startsWith(ep))) {
+    return json({ error: "Endpoint not allowed" }, { status: 403 });
   }
 
   // Reconstruct query parameters (forwarding everything except 'endpoint')
@@ -43,21 +43,26 @@ export const GET: RequestHandler = async ({ url, request }) => {
       method: "GET",
       headers: {
         "X-CMC_PRO_API_KEY": cmcApiKey,
-        "Accept": "application/json"
-      }
+        Accept: "application/json",
+      },
     });
 
     if (!response.ok) {
-        const errorBody = await response.text();
-        console.warn(`[CMC Proxy] Error ${response.status}:`, errorBody);
-        return json({ error: `CMC API Error: ${response.status}`, details: errorBody }, { status: response.status });
+      const errorBody = await response.text();
+      console.warn(`[CMC Proxy] Error ${response.status}:`, errorBody);
+      return json(
+        { error: `CMC API Error: ${response.status}`, details: errorBody },
+        { status: response.status },
+      );
     }
 
     const data = await response.json();
     return json(data);
-
   } catch (error: any) {
     console.error("[CMC Proxy] Exception:", error);
-    return json({ error: "Internal Server Error", message: error.message }, { status: 500 });
+    return json(
+      { error: "Internal Server Error", message: error.message },
+      { status: 500 },
+    );
   }
 };

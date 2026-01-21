@@ -33,15 +33,15 @@ const sign = SHA256(digest + secretKey);
 
 ## Core Endpoints
 
-| Action | Method | Endpoint |
-|--------|--------|----------|
-| Place Order | POST | `/api/v1/futures/trade/place_order` |
-| Cancel Order | POST | `/api/v1/futures/trade/cancel_orders` |
-| Cancel All | POST | `/api/v1/futures/trade/cancel_all_orders` |
-| Modify Order | POST | `/api/v1/futures/trade/modify_order` |
-| Get Pending | GET | `/api/v1/futures/trade/get_pending_orders` |
-| Order Detail | GET | `/api/v1/futures/trade/get_order_detail` |
-| Batch Order | POST | `/api/v1/futures/trade/batch_order` |
+| Action       | Method | Endpoint                                   |
+| ------------ | ------ | ------------------------------------------ |
+| Place Order  | POST   | `/api/v1/futures/trade/place_order`        |
+| Cancel Order | POST   | `/api/v1/futures/trade/cancel_orders`      |
+| Cancel All   | POST   | `/api/v1/futures/trade/cancel_all_orders`  |
+| Modify Order | POST   | `/api/v1/futures/trade/modify_order`       |
+| Get Pending  | GET    | `/api/v1/futures/trade/get_pending_orders` |
+| Order Detail | GET    | `/api/v1/futures/trade/get_order_detail`   |
+| Batch Order  | POST   | `/api/v1/futures/trade/batch_order`        |
 
 ---
 

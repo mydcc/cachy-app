@@ -8,37 +8,37 @@
  */
 
 export interface PresetState {
-    availablePresets: string[];
-    selectedPreset: string;
+  availablePresets: string[];
+  selectedPreset: string;
 }
 
 class PresetManager {
-    availablePresets = $state<string[]>([]);
-    selectedPreset = $state<string>("");
+  availablePresets = $state<string[]>([]);
+  selectedPreset = $state<string>("");
 
-    // Helper compatibility
-    update(fn: (curr: PresetState) => PresetState) {
-        const current: PresetState = {
-            availablePresets: this.availablePresets,
-            selectedPreset: this.selectedPreset
-        };
-        const next = fn(current);
-        this.availablePresets = next.availablePresets;
-        this.selectedPreset = next.selectedPreset;
-    }
+  // Helper compatibility
+  update(fn: (curr: PresetState) => PresetState) {
+    const current: PresetState = {
+      availablePresets: this.availablePresets,
+      selectedPreset: this.selectedPreset,
+    };
+    const next = fn(current);
+    this.availablePresets = next.availablePresets;
+    this.selectedPreset = next.selectedPreset;
+  }
 
-    subscribe(fn: (value: PresetState) => void) {
-        const getSnapshot = () => ({
-            availablePresets: this.availablePresets,
-            selectedPreset: this.selectedPreset
-        });
+  subscribe(fn: (value: PresetState) => void) {
+    const getSnapshot = () => ({
+      availablePresets: this.availablePresets,
+      selectedPreset: this.selectedPreset,
+    });
+    fn(getSnapshot());
+    return $effect.root(() => {
+      $effect(() => {
         fn(getSnapshot());
-        return $effect.root(() => {
-            $effect(() => {
-                fn(getSnapshot());
-            });
-        });
-    }
+      });
+    });
+  }
 }
 
 export const presetState = new PresetManager();

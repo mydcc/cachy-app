@@ -23,8 +23,10 @@ export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
   const interval = url.searchParams.get("interval") || "1d";
   const limitParam = url.searchParams.get("limit");
-  const startParam = url.searchParams.get("startTime") || url.searchParams.get("start");
-  const endParam = url.searchParams.get("endTime") || url.searchParams.get("end");
+  const startParam =
+    url.searchParams.get("startTime") || url.searchParams.get("start");
+  const endParam =
+    url.searchParams.get("endTime") || url.searchParams.get("end");
   const provider = url.searchParams.get("provider") || "bitunix";
   const limit = limitParam ? parseInt(limitParam) : 50;
   const start = startParam ? parseInt(startParam) : undefined;
@@ -105,7 +107,9 @@ async function fetchBitunixKlines(
       data &&
       (data.code === 2 ||
         data.code === "2" ||
-        (data.msg && typeof data.msg === "string" && data.msg.toLowerCase().includes("system error")))
+        (data.msg &&
+          typeof data.msg === "string" &&
+          data.msg.toLowerCase().includes("system error")))
     ) {
       const error = new Error("Symbol not found");
       (error as any).status = 404;

@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import { parseTimestamp } from "../utils/utils";
 import { CONSTANTS } from "../lib/constants";
 import { journalState } from "../stores/journal.svelte";
@@ -43,11 +42,10 @@ export const syncService = {
 
     // Atomic lock check and set - prevents race conditions
     if (syncService._syncLock) {
-      console.warn('[Sync] Sync already in progress (locked), skipping...');
+      console.warn("[Sync] Sync already in progress (locked), skipping...");
       return;
     }
     syncService._syncLock = true;
-
 
     uiState.update((s) => ({ ...s, isPriceFetching: true, isSyncing: true }));
     uiState.setSyncProgress({ total: 0, current: 0, step: "Initializing..." });
@@ -130,7 +128,7 @@ export const syncService = {
       for (const p of pendingPositions) {
         const side =
           (p.side || "").toLowerCase().includes("sell") ||
-            (p.side || "").toLowerCase().includes("short")
+          (p.side || "").toLowerCase().includes("short")
             ? "short"
             : "long";
         const uniqueId = `OPEN-${p.positionId || p.symbol + "-" + side}`;
@@ -297,7 +295,6 @@ export const syncService = {
                   } else if (qty.gt(0)) {
                     efficiency = netPnl.gt(0) ? new Decimal(1) : new Decimal(0);
                   }
-
                 }
               }
             }
@@ -406,7 +403,11 @@ export const syncService = {
       uiState.showError("Sync failed: " + e.message);
     } finally {
       syncService._syncLock = false; // Release lock
-      uiState.update((s) => ({ ...s, isPriceFetching: false, isSyncing: false }));
+      uiState.update((s) => ({
+        ...s,
+        isPriceFetching: false,
+        isSyncing: false,
+      }));
       uiState.setSyncProgress(null);
     }
   },
@@ -417,7 +418,7 @@ export const syncService = {
       const data = JSON.stringify(d);
       const success = StorageHelper.safeSave(
         CONSTANTS.LOCAL_STORAGE_JOURNAL_KEY,
-        data
+        data,
       );
 
       if (!success) {

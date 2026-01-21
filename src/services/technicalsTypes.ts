@@ -102,7 +102,7 @@ export interface TechnicalsData {
       base: Decimal;
       spanA: Decimal;
       spanB: Decimal;
-      action: string
+      action: string;
     };
     parabolicSar?: Decimal;
     // Phase 5: Pro Indicators
@@ -117,7 +117,6 @@ export interface TechnicalsData {
     };
   };
 }
-
 
 export interface SerializedIndicatorResult {
   name: string;
@@ -145,14 +144,22 @@ export interface SerializedTechnicalsData {
   movingAverages: SerializedIndicatorResult[];
   pivots: {
     classic: {
-      p: string; r1: string; r2: string; r3: string;
-      s1: string; s2: string; s3: string;
-    }
+      p: string;
+      r1: string;
+      r2: string;
+      r3: string;
+      s1: string;
+      s2: string;
+      s3: string;
+    };
   };
   pivotBasis?: {
-    high: string; low: string; open: string; close: string;
+    high: string;
+    low: string;
+    open: string;
+    close: string;
   };
-  summary: TechnicalsData['summary'];
+  summary: TechnicalsData["summary"];
   volatility?: {
     atr: string;
     bb: {
@@ -175,7 +182,7 @@ export interface SerializedTechnicalsData {
       base: string;
       spanA: string;
       spanB: string;
-      action: string
+      action: string;
     };
     parabolicSar?: string;
     superTrend?: { value: string; trend: "bull" | "bear" };

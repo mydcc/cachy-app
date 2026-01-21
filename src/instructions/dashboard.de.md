@@ -314,7 +314,7 @@ Nachdem du Entry, Stop-Loss und Take-Profits eingegeben hast, zeigt die **Visual
 [SL] ──|━━━━━━━━━━━━━━━|──────────────────────────────────|
        ↑ (rot)          ↑               (grün)             ↑
      SL-Punkt        Entry                               TP3
-                     
+
 ```
 
 **Elemente:**

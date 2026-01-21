@@ -20,7 +20,10 @@ import { browser } from "$app/environment";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
 import type { TechnicalsData, IndicatorResult } from "./technicalsTypes";
 import { type Kline } from "../utils/indicators";
-import { calculateAllIndicators, getEmptyData } from "../utils/technicalsCalculator";
+import {
+  calculateAllIndicators,
+  getEmptyData,
+} from "../utils/technicalsCalculator";
 
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
@@ -37,7 +40,8 @@ interface TechnicalsResultCacheEntry {
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: TechnicalsData) => void> = new Map();
+  private pendingResolves: Map<string, (value: TechnicalsData) => void> =
+    new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private checkInterval: any = null;
   private lastActive: number = Date.now();
@@ -54,10 +58,13 @@ class TechnicalsWorkerManager {
   }
 
   private initWorker() {
-    if (!browser || typeof Worker === 'undefined') return;
+    if (!browser || typeof Worker === "undefined") return;
 
     try {
-      this.worker = new Worker(new URL('../workers/technicals.worker.ts', import.meta.url), { type: 'module' });
+      this.worker = new Worker(
+        new URL("../workers/technicals.worker.ts", import.meta.url),
+        { type: "module" },
+      );
       this.worker.onmessage = this.handleMessage.bind(this);
       this.worker.onerror = this.handleError.bind(this);
       this.lastActive = Date.now();
@@ -66,12 +73,15 @@ class TechnicalsWorkerManager {
       if (!this.checkInterval) {
         this.checkInterval = setInterval(() => this.checkIdle(), 10000);
       }
-    } catch (e) {
-    }
+    } catch (e) {}
   }
 
   private checkIdle() {
-    if (this.worker && this.pendingResolves.size === 0 && Date.now() - this.lastActive > this.IDLE_TIMEOUT) {
+    if (
+      this.worker &&
+      this.pendingResolves.size === 0 &&
+      Date.now() - this.lastActive > this.IDLE_TIMEOUT
+    ) {
       this.terminate();
     }
   }
@@ -113,17 +123,28 @@ class TechnicalsWorkerManager {
   private rehydrate(data: any): TechnicalsData {
     if (!data) return getEmptyData();
 
-    if (data.oscillators) data.oscillators.forEach((o: any) => o.value = new Decimal(o.value || 0));
-    if (data.movingAverages) data.movingAverages.forEach((m: any) => m.value = new Decimal(m.value || 0));
+    if (data.oscillators)
+      data.oscillators.forEach(
+        (o: any) => (o.value = new Decimal(o.value || 0)),
+      );
+    if (data.movingAverages)
+      data.movingAverages.forEach(
+        (m: any) => (m.value = new Decimal(m.value || 0)),
+      );
 
     const rehydratePivots = (p: any) => {
       if (!p || !p.classic) return null;
       const c = p.classic;
       return {
         classic: {
-          p: new Decimal(c.p || 0), r1: new Decimal(c.r1 || 0), r2: new Decimal(c.r2 || 0), r3: new Decimal(c.r3 || 0),
-          s1: new Decimal(c.s1 || 0), s2: new Decimal(c.s2 || 0), s3: new Decimal(c.s3 || 0)
-        }
+          p: new Decimal(c.p || 0),
+          r1: new Decimal(c.r1 || 0),
+          r2: new Decimal(c.r2 || 0),
+          r3: new Decimal(c.r3 || 0),
+          s1: new Decimal(c.s1 || 0),
+          s2: new Decimal(c.s2 || 0),
+          s3: new Decimal(c.s3 || 0),
+        },
       };
     };
     if (data.pivots) data.pivots = rehydratePivots(data.pivots);
@@ -140,7 +161,9 @@ class TechnicalsWorkerManager {
       data.volatility.bb.upper = new Decimal(data.volatility.bb.upper || 0);
       data.volatility.bb.middle = new Decimal(data.volatility.bb.middle || 0);
       data.volatility.bb.lower = new Decimal(data.volatility.bb.lower || 0);
-      data.volatility.bb.percentP = new Decimal(data.volatility.bb.percentP || 0);
+      data.volatility.bb.percentP = new Decimal(
+        data.volatility.bb.percentP || 0,
+      );
     }
 
     // Rehydrate Divergences
@@ -150,46 +173,75 @@ class TechnicalsWorkerManager {
         priceStart: new Decimal(d.priceStart),
         priceEnd: new Decimal(d.priceEnd),
         indStart: new Decimal(d.indStart || 0), // Handle potential missing fields gracefully
-        indEnd: new Decimal(d.indEnd || 0)
+        indEnd: new Decimal(d.indEnd || 0),
       }));
     }
 
     // Rehydrate Advanced
     if (data.advanced) {
-      if (data.advanced.vwap) data.advanced.vwap = new Decimal(data.advanced.vwap);
-      if (data.advanced.mfi) data.advanced.mfi.value = new Decimal(data.advanced.mfi.value);
+      if (data.advanced.vwap)
+        data.advanced.vwap = new Decimal(data.advanced.vwap);
+      if (data.advanced.mfi)
+        data.advanced.mfi.value = new Decimal(data.advanced.mfi.value);
       if (data.advanced.stochRsi) {
         data.advanced.stochRsi.k = new Decimal(data.advanced.stochRsi.k);
         data.advanced.stochRsi.d = new Decimal(data.advanced.stochRsi.d);
       }
-      if (data.advanced.williamsR) data.advanced.williamsR.value = new Decimal(data.advanced.williamsR.value);
-      if (data.advanced.choppiness) data.advanced.choppiness.value = new Decimal(data.advanced.choppiness.value);
+      if (data.advanced.williamsR)
+        data.advanced.williamsR.value = new Decimal(
+          data.advanced.williamsR.value,
+        );
+      if (data.advanced.choppiness)
+        data.advanced.choppiness.value = new Decimal(
+          data.advanced.choppiness.value,
+        );
       if (data.advanced.ichimoku) {
-        data.advanced.ichimoku.conversion = new Decimal(data.advanced.ichimoku.conversion);
+        data.advanced.ichimoku.conversion = new Decimal(
+          data.advanced.ichimoku.conversion,
+        );
         data.advanced.ichimoku.base = new Decimal(data.advanced.ichimoku.base);
-        data.advanced.ichimoku.spanA = new Decimal(data.advanced.ichimoku.spanA);
-        data.advanced.ichimoku.spanB = new Decimal(data.advanced.ichimoku.spanB);
+        data.advanced.ichimoku.spanA = new Decimal(
+          data.advanced.ichimoku.spanA,
+        );
+        data.advanced.ichimoku.spanB = new Decimal(
+          data.advanced.ichimoku.spanB,
+        );
       }
-      if (data.advanced.parabolicSar) data.advanced.parabolicSar = new Decimal(data.advanced.parabolicSar);
+      if (data.advanced.parabolicSar)
+        data.advanced.parabolicSar = new Decimal(data.advanced.parabolicSar);
 
       // Phase 5: Pro Rehydration
       if (data.advanced.superTrend) {
-        data.advanced.superTrend.value = new Decimal(data.advanced.superTrend.value);
+        data.advanced.superTrend.value = new Decimal(
+          data.advanced.superTrend.value,
+        );
       }
       if (data.advanced.atrTrailingStop) {
-        data.advanced.atrTrailingStop.buy = new Decimal(data.advanced.atrTrailingStop.buy);
-        data.advanced.atrTrailingStop.sell = new Decimal(data.advanced.atrTrailingStop.sell);
+        data.advanced.atrTrailingStop.buy = new Decimal(
+          data.advanced.atrTrailingStop.buy,
+        );
+        data.advanced.atrTrailingStop.sell = new Decimal(
+          data.advanced.atrTrailingStop.sell,
+        );
       }
       if (data.advanced.obv) data.advanced.obv = new Decimal(data.advanced.obv);
       if (data.advanced.volumeProfile) {
-        data.advanced.volumeProfile.poc = new Decimal(data.advanced.volumeProfile.poc);
-        data.advanced.volumeProfile.vaHigh = new Decimal(data.advanced.volumeProfile.vaHigh);
-        data.advanced.volumeProfile.vaLow = new Decimal(data.advanced.volumeProfile.vaLow);
-        data.advanced.volumeProfile.rows = data.advanced.volumeProfile.rows.map((r: any) => ({
-          priceStart: new Decimal(r.priceStart),
-          priceEnd: new Decimal(r.priceEnd),
-          volume: new Decimal(r.volume)
-        }));
+        data.advanced.volumeProfile.poc = new Decimal(
+          data.advanced.volumeProfile.poc,
+        );
+        data.advanced.volumeProfile.vaHigh = new Decimal(
+          data.advanced.volumeProfile.vaHigh,
+        );
+        data.advanced.volumeProfile.vaLow = new Decimal(
+          data.advanced.volumeProfile.vaLow,
+        );
+        data.advanced.volumeProfile.rows = data.advanced.volumeProfile.rows.map(
+          (r: any) => ({
+            priceStart: new Decimal(r.priceStart),
+            priceEnd: new Decimal(r.priceEnd),
+            volume: new Decimal(r.volume),
+          }),
+        );
       }
     }
 
@@ -198,7 +250,7 @@ class TechnicalsWorkerManager {
 
   private handleError(e: ErrorEvent) {
     // Reject all pending
-    this.pendingRejects.forEach(reject => reject(e.message));
+    this.pendingRejects.forEach((reject) => reject(e.message));
     this.pendingResolves.clear();
     this.pendingRejects.clear();
     // Restart worker next time
@@ -240,9 +292,7 @@ class TechnicalsWorkerManager {
 
 const workerManager = new TechnicalsWorkerManager();
 
-
 export const technicalsService = {
-
   async calculateTechnicals(
     klinesInput: {
       time: number;
@@ -268,20 +318,23 @@ export const technicalsService = {
     }
 
     // Prepare Serializable Data
-    const klinesSerializable = klinesInput.map(k => ({
+    const klinesSerializable = klinesInput.map((k) => ({
       time: k.time,
       open: k.open.toString(),
       high: k.high.toString(),
       low: k.low.toString(),
       close: k.close.toString(),
-      volume: (k.volume || 0).toString()
+      volume: (k.volume || 0).toString(),
     }));
     const cleanSettings = JSON.parse(JSON.stringify(settings || {}));
 
     // --- Worker Offloading ---
     if (browser && window.Worker) {
       try {
-        const result = await workerManager.calculate({ klines: klinesSerializable, settings: cleanSettings });
+        const result = await workerManager.calculate({
+          klines: klinesSerializable,
+          settings: cleanSettings,
+        });
         calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
         return result;
       } catch (e) {
@@ -357,6 +410,5 @@ export const technicalsService = {
 
   getEmptyData(): TechnicalsData {
     return getEmptyData();
-  }
+  },
 };
-

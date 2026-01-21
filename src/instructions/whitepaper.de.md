@@ -78,7 +78,7 @@ Cachy operiert als **Monolithisches Frontend mit einem dünnen Proxy-Backend**.
 | **Zustand**   | **Svelte Stores**       | Natives, leichtgewichtiges Zustandsmanagement, das gut für Echtzeit-Frequenzdaten skaliert.                                                                  |
 | **Mathe**     | **Decimal.js**          | IEEE 754 Gleitkomma-Arithmetik (Standard-JS-Zahlen) ist für Finanzen unsicher (z. B. \`0.1 + 0.2 !== 0.3\`). Decimal.js gewährleistet beliebige Genauigkeit. |
 | **Charts**    | **Chart.js**            | Canvas-basiertes Rendering für hochperformante Visualisierungen (Equity-Kurven, Streudiagramme), die Tausende von Datenpunkten verarbeiten können.           |
-| **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates. |
+| **UI/UX**     | **VisualBar Component** | Proprietäre Svelte-Komponente für grafische Risk/Reward-Visualisierung im Calculator. Verwendet CSS-basierte Position Calculations für Echtzeit-Updates.     |
 | **Analyse**   | **TechnicalIndicators** | Modulare Bibliothek zur clientseitigen Berechnung komplexer Indikatoren (RSI, MACD, ADX).                                                                    |
 | **Testing**   | **Vitest**              | Blitzschnelles Unit-Testing-Framework, das die Konfiguration mit Vite teilt.                                                                                 |
 
@@ -507,7 +507,7 @@ Cachy bietet optionale Backup-Verschlüsselung über den `CryptoService`:
 **Verwendung:**
 
 ```typescript
-import { encrypt, decrypt } from './cryptoService';
+import { encrypt, decrypt } from "./cryptoService";
 
 // Verschlüsselung
 const { ciphertext, salt, iv } = await encrypt(jsonData, userPassword);

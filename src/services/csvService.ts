@@ -206,7 +206,7 @@ export const csvService = {
       const translate = get(_);
       throw new Error(
         (translate("csvEmpty") as string) ||
-        "CSV is empty or has only a header.",
+          "CSV is empty or has only a header.",
       );
     }
 
@@ -395,8 +395,8 @@ export const csvService = {
             notes: entry.Notizen || "",
             tags: entry.Tags
               ? entry.Tags.split(";")
-                .map((t) => t.trim())
-                .filter(Boolean)
+                  .map((t) => t.trim())
+                  .filter(Boolean)
               : [],
             screenshot: entry.Screenshot || undefined,
             targets: targets,

@@ -120,7 +120,7 @@ export const JSIndicators = {
       const slice = data.slice(i - period + 1, i + 1);
 
       // Calculate SMA using Decimal for precision in Sum if needed, or keeping it fast with numbers?
-      // TechnicalsService used Decimal for sum. Let's stick to number for raw speed if consistent, 
+      // TechnicalsService used Decimal for sum. Let's stick to number for raw speed if consistent,
       // BUT duplicate implementation used Decimal. Let's use Number for performance unless precision is critical here.
       // Actually, CCI is often sensitive. Let's use Number for JSIndicators as it is meant to be "Fast JS".
       // ...wait, the previous worker implementation used Decimal in cci.
@@ -187,7 +187,12 @@ export const JSIndicators = {
     return this.ema(dx, period);
   },
 
-  atr(high: number[], low: number[], close: number[], period: number): number[] {
+  atr(
+    high: number[],
+    low: number[],
+    close: number[],
+    period: number,
+  ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < period) return result;
     const tr = new Array(close.length).fill(0);
@@ -229,9 +234,9 @@ export const JSIndicators = {
   ): number[] {
     const result = new Array(close.length).fill(0);
     // VWAP is typically Intraday, resetting at start of day.
-    // However, for general timeframe usage (like TradingView's sessionless VWAP), 
+    // However, for general timeframe usage (like TradingView's sessionless VWAP),
     // we often need a rolling window or a full accumulation if "anchored".
-    // For this generic implementation, we'll do a simple cumulative VWAP 
+    // For this generic implementation, we'll do a simple cumulative VWAP
     // but ideally, this should accept an "anchor" or reset periodicity.
     // For simplicity in this context (and consistency with similar libs):
     // We will implement a "Rolling VWAP" if period is provided, or Cumulative if not?
@@ -255,7 +260,7 @@ export const JSIndicators = {
     low: number[],
     close: number[],
     volume: number[],
-    period: number
+    period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < period + 1) return result;
@@ -284,17 +289,23 @@ export const JSIndicators = {
         sumNeg += negFlow[i - j];
       }
       const mfr = sumNeg === 0 ? 100 : sumPos / sumNeg;
-      result[i] = 100 - (100 / (1 + mfr));
+      result[i] = 100 - 100 / (1 + mfr);
     }
 
     return result;
   },
 
-  stochRsi(data: number[], period: number, kPeriod: number, dPeriod: number, smoothK: number) {
+  stochRsi(
+    data: number[],
+    period: number,
+    kPeriod: number,
+    dPeriod: number,
+    smoothK: number,
+  ) {
     const rsiRaw = this.rsi(data, period);
     // Stoch of RSI
     // Use the stoch function but on RSI data
-    // JSIndicators.stoch expects High, Low, Close. 
+    // JSIndicators.stoch expects High, Low, Close.
     // For StochRSI, High=RSI, Low=RSI, Close=RSI
 
     // We need a helper for simple stochastic on a single array
@@ -321,7 +332,12 @@ export const JSIndicators = {
     return { k: kPoints, d: dPoints };
   },
 
-  williamsR(high: number[], low: number[], close: number[], period: number): number[] {
+  williamsR(
+    high: number[],
+    low: number[],
+    close: number[],
+    period: number,
+  ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < period) return result;
 
@@ -334,7 +350,12 @@ export const JSIndicators = {
     return result;
   },
 
-  choppiness(high: number[], low: number[], close: number[], period: number): number[] {
+  choppiness(
+    high: number[],
+    low: number[],
+    close: number[],
+    period: number,
+  ): number[] {
     const result = new Array(close.length).fill(0);
     if (close.length < period) return result;
     // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
@@ -342,7 +363,11 @@ export const JSIndicators = {
     // First calculate TR for each candle
     const tr = new Array(close.length).fill(0);
     for (let i = 1; i < close.length; i++) {
-      tr[i] = Math.max(high[i] - low[i], Math.abs(high[i] - close[i - 1]), Math.abs(low[i] - close[i - 1]));
+      tr[i] = Math.max(
+        high[i] - low[i],
+        Math.abs(high[i] - close[i - 1]),
+        Math.abs(low[i] - close[i - 1]),
+      );
     }
 
     const log10n = Math.log10(period);
@@ -357,7 +382,7 @@ export const JSIndicators = {
 
       if (range === 0) result[i] = 0;
       else {
-        result[i] = 100 * Math.log10(sumTr / range) / log10n;
+        result[i] = (100 * Math.log10(sumTr / range)) / log10n;
       }
     }
     return result;
@@ -369,7 +394,7 @@ export const JSIndicators = {
     conversionPeriod: number,
     basePeriod: number,
     spanBPeriod: number,
-    laggingSpan2: number
+    laggingSpan2: number,
   ) {
     // Tenkan-sen (Conversion Line): (9-period high + 9-period low)/2
     // Kijun-sen (Base Line): (26-period high + 26-period low)/2
@@ -399,7 +424,7 @@ export const JSIndicators = {
     }
 
     // Span A and B are shifted FORWARD by displacement (usually 26)
-    // We will return the raw arrays aligned to current time, 
+    // We will return the raw arrays aligned to current time,
     // the consumer must handle the "future" plotting or we shift array here?
     // Standard: Span A/B value at index `i` is plotted at `i + displacement`.
     // To make it easy for "Current Status" checks:
@@ -421,7 +446,7 @@ export const JSIndicators = {
       base,
       spanA: currentSpanA, // This is the cloud value "active" at time i
       spanB: currentSpanB, // This is the cloud value "active" at time i
-      lagging: [] // Not needed for current signal check usually, visual only
+      lagging: [], // Not needed for current signal check usually, visual only
     };
   },
 
@@ -432,7 +457,7 @@ export const JSIndicators = {
     low: number[],
     close: number[],
     period: number = 10,
-    multiplier: number = 3
+    multiplier: number = 3,
   ) {
     // 1. ATR
     const atr = this.atr(high, low, close, period);
@@ -448,13 +473,16 @@ export const JSIndicators = {
     // Calculation loop
     for (let i = 1; i < len; i++) {
       const hl2 = (high[i] + low[i]) / 2;
-      basicUpper[i] = hl2 + (multiplier * atr[i]);
-      basicLower[i] = hl2 - (multiplier * atr[i]);
+      basicUpper[i] = hl2 + multiplier * atr[i];
+      basicLower[i] = hl2 - multiplier * atr[i];
 
       // Final Upper Band Rule
       // If Basic Upper < Prev Final Upper OR Prev Close > Prev Final Upper: use Basic Upper
       // Else use Prev Final Upper
-      if (basicUpper[i] < finalUpper[i - 1] || close[i - 1] > finalUpper[i - 1]) {
+      if (
+        basicUpper[i] < finalUpper[i - 1] ||
+        close[i - 1] > finalUpper[i - 1]
+      ) {
         finalUpper[i] = basicUpper[i];
       } else {
         finalUpper[i] = finalUpper[i - 1];
@@ -463,7 +491,10 @@ export const JSIndicators = {
       // Final Lower Band Rule
       // If Basic Lower > Prev Final Lower OR Prev Close < Prev Final Lower: use Basic Lower
       // Else use Prev Final Lower
-      if (basicLower[i] > finalLower[i - 1] || close[i - 1] < finalLower[i - 1]) {
+      if (
+        basicLower[i] > finalLower[i - 1] ||
+        close[i - 1] < finalLower[i - 1]
+      ) {
         finalLower[i] = basicLower[i];
       } else {
         finalLower[i] = finalLower[i - 1];
@@ -471,9 +502,11 @@ export const JSIndicators = {
 
       // Trend Rule
       let currentTrend = trend[i - 1];
-      if (currentTrend === 1) { // Was Bullish
+      if (currentTrend === 1) {
+        // Was Bullish
         if (close[i] < finalLower[i - 1]) currentTrend = -1; // Turned Bearish
-      } else { // Was Bearish
+      } else {
+        // Was Bearish
         if (close[i] > finalUpper[i - 1]) currentTrend = 1; // Turned Bullish
       }
       trend[i] = currentTrend;
@@ -481,11 +514,17 @@ export const JSIndicators = {
 
     return {
       trend, // 1 or -1
-      value: trend.map((t, i) => t === 1 ? finalLower[i] : finalUpper[i]) // The active line
+      value: trend.map((t, i) => (t === 1 ? finalLower[i] : finalUpper[i])), // The active line
     };
   },
 
-  atrTrailingStop(high: number[], low: number[], close: number[], period: number = 22, multiplier: number = 3) {
+  atrTrailingStop(
+    high: number[],
+    low: number[],
+    close: number[],
+    period: number = 22,
+    multiplier: number = 3,
+  ) {
     // Chandelier Exit Logic essentially
     // Long Exit = Highest High (period) - ATR * mult
     // Short Exit = Lowest Low (period) + ATR * mult
@@ -525,7 +564,7 @@ export const JSIndicators = {
     low: number[],
     close: number[],
     volume: number[],
-    rowCount: number = 24
+    rowCount: number = 24,
   ) {
     if (close.length === 0) return null;
 
@@ -539,9 +578,9 @@ export const JSIndicators = {
 
     // Initialize Buckets
     const rows = new Array(rowCount).fill(0).map((_, i) => ({
-      priceStart: minPrice + (i * rowSize),
-      priceEnd: minPrice + ((i + 1) * rowSize),
-      volume: 0
+      priceStart: minPrice + i * rowSize,
+      priceEnd: minPrice + (i + 1) * rowSize,
+      volume: 0,
     }));
 
     // 2. Distribute Volume
@@ -552,13 +591,22 @@ export const JSIndicators = {
 
       if (cHigh === cLow) {
         // Single point, easier
-        const rowIdx = Math.min(Math.floor((cHigh - minPrice) / rowSize), rowCount - 1);
+        const rowIdx = Math.min(
+          Math.floor((cHigh - minPrice) / rowSize),
+          rowCount - 1,
+        );
         if (rowIdx >= 0) rows[rowIdx].volume += cVol;
       } else {
         // Distribute across overlapped rows
         // Find start row and end row
-        const startRowIdx = Math.max(0, Math.floor((cLow - minPrice) / rowSize));
-        const endRowIdx = Math.min(rowCount - 1, Math.floor((cHigh - minPrice) / rowSize));
+        const startRowIdx = Math.max(
+          0,
+          Math.floor((cLow - minPrice) / rowSize),
+        );
+        const endRowIdx = Math.min(
+          rowCount - 1,
+          Math.floor((cHigh - minPrice) / rowSize),
+        );
 
         const candleRange = cHigh - cLow;
 
@@ -591,7 +639,7 @@ export const JSIndicators = {
     });
 
     // 4. Value Area (70%)
-    const targetVaVol = totalVol * 0.70;
+    const targetVaVol = totalVol * 0.7;
     let currentVaVol = maxVol;
     let upIdx = pocRowIdx;
     let downIdx = pocRowIdx;
@@ -599,8 +647,8 @@ export const JSIndicators = {
     vaRows.add(pocRowIdx);
 
     while (currentVaVol < targetVaVol) {
-      const upVol = (upIdx < rowCount - 1) ? rows[upIdx + 1].volume : 0;
-      const downVol = (downIdx > 0) ? rows[downIdx - 1].volume : 0;
+      const upVol = upIdx < rowCount - 1 ? rows[upIdx + 1].volume : 0;
+      const downVol = downIdx > 0 ? rows[downIdx - 1].volume : 0;
 
       if (upVol === 0 && downVol === 0) break; // Should not happen if data exists
 
@@ -619,7 +667,7 @@ export const JSIndicators = {
       rows,
       poc: (rows[pocRowIdx].priceStart + rows[pocRowIdx].priceEnd) / 2,
       vaHigh: rows[Math.max(...vaRows)].priceEnd,
-      vaLow: rows[Math.min(...vaRows)].priceStart
+      vaLow: rows[Math.min(...vaRows)].priceStart,
     };
   },
 };
@@ -666,8 +714,8 @@ export function calculatePivots(klines: Kline[], type: string) {
       high: new Decimal(0),
       low: new Decimal(0),
       close: new Decimal(0),
-      open: new Decimal(0)
-    }
+      open: new Decimal(0),
+    },
   };
 
   if (klines.length < 2) return emptyResult;
@@ -681,8 +729,12 @@ export function calculatePivots(klines: Kline[], type: string) {
   const open = new Decimal(prev.open);
 
   let p = new Decimal(0);
-  let r1 = new Decimal(0), r2 = new Decimal(0), r3 = new Decimal(0);
-  let s1 = new Decimal(0), s2 = new Decimal(0), s3 = new Decimal(0);
+  let r1 = new Decimal(0),
+    r2 = new Decimal(0),
+    r3 = new Decimal(0);
+  let s1 = new Decimal(0),
+    s2 = new Decimal(0),
+    s3 = new Decimal(0);
 
   if (type === "woodie") {
     p = high.plus(low).plus(close.times(2)).div(4);
@@ -723,16 +775,29 @@ export function calculatePivots(klines: Kline[], type: string) {
   return {
     pivots: {
       classic: {
-        p, r1, r2, r3, s1, s2, s3
+        p,
+        r1,
+        r2,
+        r3,
+        s1,
+        s2,
+        s3,
       },
     },
     basis: {
-      high, low, close, open
+      high,
+      low,
+      close,
+      open,
     },
   };
 }
 
-export function getRsiAction(val: number | Decimal | null, overbought: number, oversold: number) {
+export function getRsiAction(
+  val: number | Decimal | null,
+  overbought: number,
+  oversold: number,
+) {
   if (!val) return "Neutral";
   const v = val instanceof Decimal ? val.toNumber() : val;
   if (v >= overbought) return "Sell";
@@ -747,7 +812,9 @@ export const indicators = {
     period: number = 14,
   ): Decimal | null {
     if (prices.length < period + 1) return null;
-    const nums = prices.map(p => (typeof p === 'object' ? p.toNumber() : Number(p)));
+    const nums = prices.map((p) =>
+      typeof p === "object" ? p.toNumber() : Number(p),
+    );
     const rsiArr = JSIndicators.rsi(nums, period);
     const last = rsiArr[rsiArr.length - 1];
     return new Decimal(last);
@@ -758,7 +825,9 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map(p => (typeof p === 'object' ? p.toNumber() : Number(p)));
+    const nums = data.map((p) =>
+      typeof p === "object" ? p.toNumber() : Number(p),
+    );
     const res = JSIndicators.sma(nums, period);
     return new Decimal(res[res.length - 1]);
   },
@@ -768,7 +837,9 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map(p => (typeof p === 'object' ? p.toNumber() : Number(p)));
+    const nums = data.map((p) =>
+      typeof p === "object" ? p.toNumber() : Number(p),
+    );
     const res = JSIndicators.ema(nums, period);
     return new Decimal(res[res.length - 1]);
   },

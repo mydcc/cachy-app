@@ -52,7 +52,7 @@ export const imgbbService = {
         console.error("ImgBB API Error:", errorData);
         throw new Error(
           errorData?.error?.message ||
-          `Upload failed with status ${response.status}`,
+            `Upload failed with status ${response.status}`,
         );
       }
 

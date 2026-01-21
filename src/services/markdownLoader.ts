@@ -22,17 +22,19 @@ import { get } from "svelte/store";
 
 // Helper to slugify text for heading IDs
 const slugify = (text: string) => {
-  return text
-    .toLowerCase()
-    .trim()
-    .replace(/^#+\s+/, "")
-    // Remove symbols but keep letters (including Unicode), numbers, and spaces
-    .replace(/[^\p{L}\p{N}\s-]/gu, "")
-    // Replace spaces with a single hyphen
-    .replace(/\s+/g, "-")
-    // Collapse multiple hyphens
-    .replace(/-+/g, "-")
-    .replace(/^-+|-+$/g, "");
+  return (
+    text
+      .toLowerCase()
+      .trim()
+      .replace(/^#+\s+/, "")
+      // Remove symbols but keep letters (including Unicode), numbers, and spaces
+      .replace(/[^\p{L}\p{N}\s-]/gu, "")
+      // Replace spaces with a single hyphen
+      .replace(/\s+/g, "-")
+      // Collapse multiple hyphens
+      .replace(/-+/g, "-")
+      .replace(/^-+|-+$/g, "")
+  );
 };
 
 // Register KaTeX extension and Heading ID logic

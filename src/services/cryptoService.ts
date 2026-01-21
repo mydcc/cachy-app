@@ -81,7 +81,12 @@ export async function encrypt(
     const passwordKey = await getPasswordKey(password);
 
     // Always upgrade to SHA-256 for new encryptions
-    const key = await deriveKey(passwordKey, salt, STRONG_ITERATIONS, "SHA-256");
+    const key = await deriveKey(
+      passwordKey,
+      salt,
+      STRONG_ITERATIONS,
+      "SHA-256",
+    );
 
     const enc = new TextEncoder();
     const encoded = enc.encode(text);
@@ -120,7 +125,7 @@ export async function decrypt(
       const ciphertextBuffer = base64ToBuffer(ciphertext);
       const passwordKey = await getPasswordKey(password);
 
-      // Strategy: 
+      // Strategy:
       // 1. Try Strong Iterations + SHA-256 (New Standard)
       // 2. Try Strong Iterations + SHA-1 (Old CryptoJS default)
       // 3. Try Legacy Iterations + SHA-1 (Very old CryptoJS default potentially?) -> Actually logic says Legacy was 10000 iter.
@@ -133,7 +138,12 @@ export async function decrypt(
 
       for (const attempt of attempts) {
         try {
-          const key = await deriveKey(passwordKey, salt as any, attempt.iter, attempt.hash);
+          const key = await deriveKey(
+            passwordKey,
+            salt as any,
+            attempt.iter,
+            attempt.hash,
+          );
           const decryptedBuffer = await window.crypto.subtle.decrypt(
             { name: "AES-CBC", iv: iv as any },
             key,
@@ -194,7 +204,12 @@ function encryptCryptoJS(text: string, password: string) {
   });
 }
 
-function decryptCryptoJS(ciphertext: string, password: string, saltB64: string, ivB64: string) {
+function decryptCryptoJS(
+  ciphertext: string,
+  password: string,
+  saltB64: string,
+  ivB64: string,
+) {
   const salt = CryptoJS.enc.Base64.parse(saltB64);
   const iv = CryptoJS.enc.Base64.parse(ivB64);
 
@@ -220,7 +235,9 @@ function decryptCryptoJS(ciphertext: string, password: string, saltB64: string, 
   if (!decryptedText) decryptedText = tryDecrypt(LEGACY_ITERATIONS);
 
   if (!decryptedText) {
-    return Promise.reject(new Error("Decryption failed. Probably wrong password."));
+    return Promise.reject(
+      new Error("Decryption failed. Probably wrong password."),
+    );
   }
   return Promise.resolve(decryptedText);
 }

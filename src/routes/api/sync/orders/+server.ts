@@ -72,21 +72,30 @@ export const POST: RequestHandler = async ({ request }) => {
     } else {
       const msg = (regularResult.reason as Error).message || "Unknown error";
       // Sanitize
-      console.error("Error fetching regular orders:", msg.replaceAll(apiKey, "***"));
+      console.error(
+        "Error fetching regular orders:",
+        msg.replaceAll(apiKey, "***"),
+      );
     }
 
     if (tpslResult.status === "fulfilled") {
       allOrders = allOrders.concat(tpslResult.value);
     } else {
-       const msg = (tpslResult.reason as Error).message || "Unknown error";
-      console.warn("Error fetching TP/SL orders:", msg.replaceAll(apiKey, "***"));
+      const msg = (tpslResult.reason as Error).message || "Unknown error";
+      console.warn(
+        "Error fetching TP/SL orders:",
+        msg.replaceAll(apiKey, "***"),
+      );
     }
 
     if (planResult.status === "fulfilled") {
       allOrders = allOrders.concat(planResult.value);
     } else {
       const msg = (planResult.reason as Error).message || "Unknown error";
-      console.warn("Error fetching plan orders:", msg.replaceAll(apiKey, "***"));
+      console.warn(
+        "Error fetching plan orders:",
+        msg.replaceAll(apiKey, "***"),
+      );
     }
 
     return json({ data: allOrders, isPartial });
@@ -95,12 +104,9 @@ export const POST: RequestHandler = async ({ request }) => {
     const rawMsg = e instanceof Error ? e.message : String(e);
     console.error(
       `Error fetching orders from Bitunix:`,
-      rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***")
+      rawMsg.replaceAll(apiKey, "***").replaceAll(apiSecret, "***"),
     );
-    return json(
-      { error: rawMsg || "Failed to fetch orders" },
-      { status: 500 },
-    );
+    return json({ error: rawMsg || "Failed to fetch orders" }, { status: 500 });
   }
 };
 
@@ -138,9 +144,7 @@ async function fetchAllPages(
     if (!lastItem) break;
 
     const timeField =
-      lastItem.ctime ||
-      lastItem.createTime ||
-      lastItem.updateTime;
+      lastItem.ctime || lastItem.createTime || lastItem.updateTime;
 
     if (timeField !== undefined && timeField !== null) {
       const parsedTime = Number(timeField);

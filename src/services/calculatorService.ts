@@ -16,7 +16,11 @@ import type {
   BaseMetrics,
 } from "../stores/types";
 import { tradeState, type TradeTarget } from "../stores/trade.svelte";
-import { resultsState, type ResultsState, type CalculatedTpDetail } from "../stores/results.svelte";
+import {
+  resultsState,
+  type ResultsState,
+  type CalculatedTpDetail,
+} from "../stores/results.svelte";
 import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
 
@@ -50,7 +54,7 @@ export class CalculatorService {
   constructor(
     private calculator: Calculator,
     private uiManager: UiManager,
-  ) { }
+  ) {}
 
   /**
    * Main calculation and display method with robust error handling
@@ -61,7 +65,7 @@ export class CalculatorService {
       // Access state directly
       const currentTradeState = tradeState;
 
-      // We iterate on a fresh results object or update state directly? 
+      // We iterate on a fresh results object or update state directly?
       // The original code created a `newResults` object, validated against it, and then set the store.
       // We can replicate this pattern to avoid partial updates during calculation.
       const newResults: ResultsState = {
@@ -172,7 +176,7 @@ export class CalculatorService {
         const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
         const delta = Math.abs(
           (currentTradeState.riskPercentage || 0) -
-          newRiskPercentage.toNumber(),
+            newRiskPercentage.toNumber(),
         );
         if (delta > 0.000001) {
           tradeState.riskPercentage = newRiskPercentage.toNumber();
@@ -212,10 +216,10 @@ export class CalculatorService {
       );
 
       if (riskPercentageDelta > 0.000001 || riskAmountDelta > 0.000001) {
-        tradeState.update(s => ({
+        tradeState.update((s) => ({
           ...s,
           riskPercentage: newRiskPercentage.toNumber(),
-          riskAmount: riskAmount.toNumber()
+          riskAmount: riskAmount.toNumber(),
         }));
       }
       values.riskPercentage = newRiskPercentage;
@@ -235,7 +239,7 @@ export class CalculatorService {
         const finalMetrics = baseMetrics;
         const riskAmountDelta = Math.abs(
           (currentTradeState.riskAmount || 0) -
-          finalMetrics.riskAmount.toNumber(),
+            finalMetrics.riskAmount.toNumber(),
         );
         if (riskAmountDelta > 0.000001) {
           tradeState.riskAmount = finalMetrics.riskAmount.toNumber();
@@ -349,7 +353,7 @@ export class CalculatorService {
     const hasNoData = !currentTradeState.currentTradeData;
 
     if (stopLossChange > 0.000001 || hasNoData) {
-      tradeState.update(s => ({
+      tradeState.update((s) => ({
         ...s,
         currentTradeData: {
           ...values,
@@ -359,7 +363,7 @@ export class CalculatorService {
           status: "Open",
           calculatedTpDetails,
         },
-        stopLossPrice: newStopLoss
+        stopLossPrice: newStopLoss,
       }));
     }
   }
@@ -393,7 +397,7 @@ export class CalculatorService {
       atrValue: parseDecimal(currentTradeState.atrValue),
       atrMultiplier: parseDecimal(
         currentTradeState.atrMultiplier ||
-        parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
+          parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
       targets: currentTradeState.targets.map((t: any) => ({
@@ -443,8 +447,9 @@ export class CalculatorService {
       newResults.showAtrFormulaDisplay = true;
       newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
         4,
-      )} ${operator} (${values.atrValue} × ${values.atrMultiplier
-        }) = ${values.stopLossPrice.toFixed(4)}`;
+      )} ${operator} (${values.atrValue} × ${
+        values.atrMultiplier
+      }) = ${values.stopLossPrice.toFixed(4)}`;
     } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
       return { status: CONSTANTS.STATUS_INCOMPLETE };
     }

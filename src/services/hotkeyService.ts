@@ -206,7 +206,10 @@ export const HOTKEY_ACTIONS: HotkeyAction[] = [
     category: "Trade Setup",
     defaultKey: "Alt+L",
     action: () =>
-      tradeState.update((s) => ({ ...s, tradeType: CONSTANTS.TRADE_TYPE_LONG })),
+      tradeState.update((s) => ({
+        ...s,
+        tradeType: CONSTANTS.TRADE_TYPE_LONG,
+      })),
   },
   {
     id: "SET_SHORT",

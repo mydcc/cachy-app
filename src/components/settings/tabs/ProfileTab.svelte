@@ -92,242 +92,517 @@
         R: "Reset",
         F: "Symbol Picker",
     };
+
+    let activeSubTab = $state<"general" | "appearance" | "controls">("general");
 </script>
 
 <div class="profile-tab flex flex-col gap-6" role="tabpanel" id="tab-profile">
-    <!-- Appearance & Identity Section -->
-    <section class="settings-section">
-        <h3 class="section-title">
-            {$_("settings.profile.appearanceTitle") || "Appearance & Identity"}
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Language -->
-            <div class="field-group">
-                <label for="settings-language">{$_("settings.language")}</label>
-                <select
-                    id="settings-language"
-                    value={$locale}
-                    onchange={(e) => setLocale(e.currentTarget.value)}
-                    class="select-field"
-                >
-                    <option value="en">English</option>
-                    <option value="de">Deutsch</option>
-                </select>
-            </div>
-
-            <!-- Theme -->
-            <div class="field-group">
-                <label for="settings-theme">{$_("settings.theme")}</label>
-                <select
-                    id="settings-theme"
-                    value={uiState.currentTheme}
-                    onchange={(e) => uiState.setTheme(e.currentTarget.value)}
-                    class="select-field"
-                >
-                    {#each themes as theme, index}
-                        <option
-                            value={theme.value}
-                            disabled={!settingsState.isPro && index >= 5}
-                        >
-                            {theme.label}
-                            {!settingsState.isPro && index >= 5 ? "(Pro)" : ""}
-                        </option>
-                    {/each}
-                </select>
-            </div>
-
-            <!-- Font -->
-            <div class="field-group">
-                <label for="settings-font">{$_("settings.fontFamily")}</label>
-                <select
-                    id="settings-font"
-                    bind:value={settingsState.fontFamily}
-                    class="select-field"
-                >
-                    {#each fonts as font}
-                        <option value={font.value}>{font.label}</option>
-                    {/each}
-                </select>
-            </div>
-
-            <!-- Glassmorphism Toggle -->
-            <div class="field-group justify-between flex-row items-center pt-4">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.enableGlassmorphism") ||
-                            "Glassmorphism"}</span
-                    >
-                    <span class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.glassmorphismDesc") ||
-                            "Enable translucent UI effects"}</span
-                    >
-                </div>
-                <button
-                    class="toggle-container {settingsState.enableGlassmorphism
-                        ? 'active'
-                        : ''}"
-                    onclick={() =>
-                        (settingsState.enableGlassmorphism =
-                            !settingsState.enableGlassmorphism)}
-                    aria-label={$_("settings.enableGlassmorphism") ||
-                        "Toggle Glassmorphism"}
-                >
-                    <div class="toggle-thumb"></div>
-                </button>
-            </div>
-        </div>
-
-        {#if $locale === "de"}
-            <label class="flex items-center gap-2 cursor-pointer mt-4 group">
-                <input
-                    type="checkbox"
-                    bind:checked={settingsState.forceEnglishTechnicalTerms}
-                    class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
-                />
-                <span
-                    class="text-sm text-[var(--text-primary)] group-hover:text-[var(--accent-color)] transition-colors"
-                >
-                    {$_("settings.forceEnglishTechnicalTerms")}
-                </span>
-            </label>
-        {/if}
-    </section>
-
-    <!-- Control & Interaction Section -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-6"
-    >
-        <h3 class="section-title">
-            {$_("settings.profile.controlTitle") || "Control & Interaction"}
-        </h3>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Fee Preference -->
-            <div class="field-group">
-                <div class="field-label">{$_("settings.feePreference")}</div>
-                <div class="segmented-control">
-                    {#each ["maker", "taker"] as fee}
-                        <button
-                            class="segmented-btn {settingsState.feePreference ===
-                            fee
-                                ? 'active'
-                                : ''}"
-                            onclick={() =>
-                                (settingsState.feePreference = fee as any)}
-                        >
-                            {fee.toUpperCase()}
-                        </button>
-                    {/each}
-                    <div
-                        class="segmented-bg"
-                        style="transform: translateX({settingsState.feePreference ===
-                        'maker'
-                            ? '0%'
-                            : '100%'})"
-                    ></div>
-                </div>
-                <p class="text-[10px] text-[var(--text-secondary)] mt-2">
-                    {$_("settings.feePreferenceDesc")}
-                </p>
-            </div>
-
-            <!-- Spin Buttons Visibility -->
-            <div class="field-group">
-                <div class="field-label">{$_("settings.showSpinButtons")}</div>
-                <div class="segmented-control three-way">
-                    {#each [{ v: true, l: $_("settings.spinButtonsAlways") || "Always" }, { v: "hover", l: $_("settings.spinButtonsHover") || "Hover" }, { v: false, l: $_("settings.spinButtonsHidden") || "None" }] as opt}
-                        <button
-                            class="segmented-btn {settingsState.showSpinButtons ===
-                            opt.v
-                                ? 'active'
-                                : ''}"
-                            onclick={() =>
-                                (settingsState.showSpinButtons = opt.v as any)}
-                        >
-                            {opt.l}
-                        </button>
-                    {/each}
-                    <div
-                        class="segmented-bg"
-                        style="width: 33.33%; transform: translateX({settingsState.showSpinButtons ===
-                        true
-                            ? '0%'
-                            : settingsState.showSpinButtons === 'hover'
-                              ? '100%'
-                              : '200%'})"
-                    ></div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Hotkeys Section -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-6"
-    >
-        <div class="flex justify-between items-center mb-4">
-            <h3 class="section-title mb-0">
-                {$_("settings.profile.hotkeysTitle") || "Keyboard Shortcuts"}
-            </h3>
-
-            <select
-                bind:value={settingsState.hotkeyMode}
-                class="select-field text-xs w-auto min-w-[150px]"
-            >
-                <option value="mode2">Safety Mode (Alt + Key)</option>
-                <option value="mode1">Direct Mode (Fast)</option>
-                <option value="mode3">Hybrid Mode</option>
-                <option value="custom">Custom Configuration</option>
-            </select>
-        </div>
-
-        <div
-            class="hotkey-content {settingsState.hotkeyMode === 'custom'
-                ? 'custom-active'
-                : ''}"
+    <!-- Sub-Tab Navigation -->
+    <div class="subtab-nav">
+        <button
+            class:active={activeSubTab === "general"}
+            onclick={() => (activeSubTab = "general")}
         >
-            {#if settingsState.hotkeyMode !== "custom"}
-                <div
-                    class="hotkey-preview p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
-                >
-                    <div class="flex justify-between items-center mb-3">
-                        <p class="text-xs text-[var(--text-secondary)]">
-                            {$_("settings.profile.activeHotkeys") ||
-                                "Active Hotkeys"}
-                        </p>
-                        <button
-                            class="text-xs text-[var(--accent)] hover:underline"
-                            onclick={() =>
-                                (settingsState.hotkeyMode = "custom")}
+            {$_("settings.profile.subtabs.general") || "Allgemein"}
+        </button>
+        <button
+            class:active={activeSubTab === "appearance"}
+            onclick={() => (activeSubTab = "appearance")}
+        >
+            {$_("settings.profile.subtabs.appearance") || "Darstellung"}
+        </button>
+        <button
+            class:active={activeSubTab === "controls"}
+            onclick={() => (activeSubTab = "controls")}
+        >
+            {$_("settings.profile.subtabs.controls") || "Steuerung"}
+        </button>
+    </div>
+
+    <!-- Sub-Tab Content -->
+    <div class="subtab-content">
+        {#if activeSubTab === "general"}
+            <!-- Allgemein Tab -->
+            <section class="settings-section">
+                <h3 class="section-title">
+                    {$_("settings.profile.generalTitle") ||
+                        "Allgemeine Einstellungen"}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Language -->
+                    <div class="field-group">
+                        <label for="settings-language"
+                            >{$_("settings.language")}</label
                         >
-                            {$_("settings.profile.customize") || "Customize"}
-                        </button>
+                        <select
+                            id="settings-language"
+                            value={$locale}
+                            onchange={(e) => setLocale(e.currentTarget.value)}
+                            class="select-field"
+                        >
+                            <option value="en">English</option>
+                            <option value="de">Deutsch</option>
+                        </select>
                     </div>
 
-                    <div
-                        class="max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0.5 text-xs text-[var(--text-secondary)]"
-                    >
-                        {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
-                            <div class="flex justify-between py-1">
-                                <span>{label}</span>
-                                <span
-                                    class="font-mono text-[var(--text-primary)]"
-                                    >{key}</span
+                    <!-- Theme -->
+                    <div class="field-group">
+                        <label for="settings-theme"
+                            >{$_("settings.theme")}</label
+                        >
+                        <select
+                            id="settings-theme"
+                            value={uiState.currentTheme}
+                            onchange={(e) =>
+                                uiState.setTheme(e.currentTarget.value)}
+                            class="select-field"
+                        >
+                            {#each themes as theme, index}
+                                <option
+                                    value={theme.value}
+                                    disabled={!settingsState.isPro &&
+                                        index >= 5}
                                 >
-                            </div>
-                        {/each}
+                                    {theme.label}
+                                    {!settingsState.isPro && index >= 5
+                                        ? "(Pro)"
+                                        : ""}
+                                </option>
+                            {/each}
+                        </select>
+                    </div>
+
+                    <!-- Font -->
+                    <div class="field-group">
+                        <label for="settings-font"
+                            >{$_("settings.fontFamily")}</label
+                        >
+                        <select
+                            id="settings-font"
+                            bind:value={settingsState.fontFamily}
+                            class="select-field"
+                        >
+                            {#each fonts as font}
+                                <option value={font.value}>{font.label}</option>
+                            {/each}
+                        </select>
                     </div>
                 </div>
-            {:else}
+
+                {#if $locale === "de"}
+                    <label
+                        class="flex items-center gap-2 cursor-pointer mt-4 group"
+                    >
+                        <input
+                            type="checkbox"
+                            bind:checked={
+                                settingsState.forceEnglishTechnicalTerms
+                            }
+                            class="form-checkbox h-4 w-4 text-[var(--accent-color)] rounded border-[var(--border-color)] bg-[var(--bg-secondary)]"
+                        />
+                        <span
+                            class="text-sm text-[var(--text-primary)] group-hover:text-[var(--accent-color)] transition-colors"
+                        >
+                            {$_("settings.forceEnglishTechnicalTerms")}
+                        </span>
+                    </label>
+                {/if}
+            </section>
+        {:else if activeSubTab === "appearance"}
+            <!-- Darstellung Tab -->
+            <section class="settings-section">
+                <h3 class="section-title">
+                    {$_("settings.profile.appearanceTitle") || "Darstellung"}
+                </h3>
+
+                <!-- Glassmorphism Toggle -->
                 <div
-                    class="hotkey-settings-wrapper p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                    class="field-group justify-between flex-row items-center mb-4"
                 >
-                    <HotkeySettings />
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium">
+                            {$_("settings.enableGlassmorphism") ||
+                                "Glassmorphism"}
+                        </span>
+                        <span class="text-[10px] text-[var(--text-secondary)]">
+                            {$_("settings.glassmorphismDesc") ||
+                                "Enable translucent UI effects"}
+                        </span>
+                    </div>
+                    <button
+                        class="toggle-container {settingsState.enableGlassmorphism
+                            ? 'active'
+                            : ''}"
+                        onclick={() =>
+                            (settingsState.enableGlassmorphism =
+                                !settingsState.enableGlassmorphism)}
+                        aria-label={$_("settings.enableGlassmorphism") ||
+                            "Toggle Glassmorphism"}
+                    >
+                        <div class="toggle-thumb"></div>
+                    </button>
                 </div>
-            {/if}
-        </div>
-    </section>
+
+                <!-- Background Settings -->\n
+                <div class="border-t border-[var(--border-color)] pt-4 mt-4">
+                    <h4
+                        class="text-sm font-semibold text-[var(--text-primary)] mb-4"
+                    >
+                        {$_("settings.profile.background.title") ||
+                            "Hintergrund"}
+                    </h4>
+
+                    <!-- Background Type Selector -->
+                    <div class="field-group mb-4">
+                        <label
+                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                            >{$_("settings.profile.background.type") ||
+                                "Hintergrund Typ"}</label
+                        >
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            {#each [{ v: "none", l: $_("settings.profile.background.typeNone") || "Kein" }, { v: "image", l: $_("settings.profile.background.typeImage") || "Bild" }, { v: "video", l: $_("settings.profile.background.typeVideo") || "Video" }, { v: "animation", l: $_("settings.profile.background.typeAnimation") || "Animation" }] as opt}
+                                <button
+                                    class="px-3 py-2 text-xs rounded border transition-all {settingsState.backgroundType ===
+                                    opt.v
+                                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                        : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
+                                    onclick={() =>
+                                        (settingsState.backgroundType =
+                                            opt.v as any)}
+                                >
+                                    {opt.l}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+
+                    <!-- URL Input for Image/Video -->
+                    {#if settingsState.backgroundType === "image" || settingsState.backgroundType === "video"}
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                                >{$_("settings.profile.background.url") ||
+                                    "URL"}</label
+                            >
+                            <input
+                                type="text"
+                                bind:value={settingsState.backgroundUrl}
+                                placeholder={$_(
+                                    "settings.profile.background.urlPlaceholder",
+                                ) || "https://example.com/background.jpg"}
+                                class="w-full px-3 py-2 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:border-[var(--accent-color)] outline-none"
+                            />
+                            <p
+                                class="text-[10px] text-[var(--text-secondary)] mt-1"
+                            >
+                                {$_("settings.profile.background.urlHelper") ||
+                                    "Unterstützte: .jpg, .png, .mp4"}
+                            </p>
+                        </div>
+                    {/if}
+
+                    <!-- Animation Preset Selector -->
+                    {#if settingsState.backgroundType === "animation"}
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                                >{$_(
+                                    "settings.profile.background.presetLabel",
+                                ) || "Animation"}</label
+                            >
+                            <select
+                                bind:value={
+                                    settingsState.backgroundAnimationPreset
+                                }
+                                class="w-full px-3 py-2 text-sm rounded border border-[var(--border-color)] bg-[var(--bg-secondary)] text-[var(--text-primary)] focus:border-[var(--accent-color)] outline-none"
+                            >
+                                <option value="none"
+                                    >{$_(
+                                        "settings.profile.background.presetNone",
+                                    ) || "Keine"}</option
+                                >
+                                <option value="gradient"
+                                    >{$_(
+                                        "settings.profile.background.presetGradient",
+                                    ) || "Gradient Flow"}</option
+                                >
+                                <option value="particles"
+                                    >{$_(
+                                        "settings.profile.background.presetParticles",
+                                    ) || "Partikel"}</option
+                                >
+                                <option value="breathing"
+                                    >{$_(
+                                        "settings.profile.background.presetBreathing",
+                                    ) || "Breathing"}</option
+                                >
+                                <option value="waves"
+                                    >{$_(
+                                        "settings.profile.background.presetWaves",
+                                    ) || "Wellen"}</option
+                                >
+                                <option value="aurora"
+                                    >{$_(
+                                        "settings.profile.background.presetAurora",
+                                    ) || "Aurora"}</option
+                                >
+                            </select>
+                        </div>
+
+                        <!-- Animation Intensity -->
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                                >{$_("settings.profile.background.intensity") ||
+                                    "Intensität"}</label
+                            >
+                            <div class="flex gap-2">
+                                {#each [{ v: "low", l: $_("settings.profile.background.intensityLow") || "Niedrig" }, { v: "medium", l: $_("settings.profile.background.intensityMedium") || "Mittel" }, { v: "high", l: $_("settings.profile.background.intensityHigh") || "Hoch" }] as opt}
+                                    <button
+                                        class="flex-1 px-3 py-2 text-xs rounded border transition-all {settingsState.backgroundAnimationIntensity ===
+                                        opt.v
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
+                                        onclick={() =>
+                                            (settingsState.backgroundAnimationIntensity =
+                                                opt.v as any)}
+                                    >
+                                        {opt.l}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+
+                    <!-- Video Playback Speed -->
+                    {#if settingsState.backgroundType === "video"}
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                            >
+                                {$_("settings.profile.background.videoSpeed") ||
+                                    "Geschwindigkeit"}: {settingsState.videoPlaybackSpeed.toFixed(
+                                    1,
+                                )}x
+                            </label>
+                            <input
+                                type="range"
+                                bind:value={settingsState.videoPlaybackSpeed}
+                                min="0.5"
+                                max="2"
+                                step="0.1"
+                                class="w-full"
+                            />
+                            <div
+                                class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1"
+                            >
+                                <span>0.5x</span>
+                                <span>2.0x</span>
+                            </div>
+                        </div>
+                    {/if}
+
+                    <!-- Opacity Slider -->
+                    {#if settingsState.backgroundType !== "none"}
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                            >
+                                {$_("settings.profile.background.opacity") ||
+                                    "Deckkraft"}: {Math.round(
+                                    settingsState.backgroundOpacity * 100,
+                                )}%
+                            </label>
+                            <input
+                                type="range"
+                                bind:value={settingsState.backgroundOpacity}
+                                min="0"
+                                max="1"
+                                step="0.05"
+                                class="w-full"
+                            />
+                            <div
+                                class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1"
+                            >
+                                <span>0%</span>
+                                <span>100%</span>
+                            </div>
+                        </div>
+
+                        <!-- Blur Slider -->
+                        <div class="field-group mb-4">
+                            <label
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                            >
+                                {$_("settings.profile.background.blur") ||
+                                    "Unschärfe"}: {settingsState.backgroundBlur}px
+                            </label>
+                            <input
+                                type="range"
+                                bind:value={settingsState.backgroundBlur}
+                                min="0"
+                                max="20"
+                                step="1"
+                                class="w-full"
+                            />
+                            <div
+                                class="flex justify-between text-[10px] text-[var(--text-secondary)] mt-1"
+                            >
+                                <span>0px</span>
+                                <span>20px</span>
+                            </div>
+                        </div>
+                    {/if}
+                </div>
+            </section>
+        {:else if activeSubTab === "controls"}
+            <!-- Steuerung Tab -->
+
+            <section class="settings-section">
+                <h3 class="section-title">
+                    {$_("settings.profile.controlTitle") ||
+                        "Steuerung & Interaktion"}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Fee Preference -->
+                    <div class="field-group">
+                        <div class="field-label">
+                            {$_("settings.feePreference")}
+                        </div>
+                        <div class="segmented-control">
+                            {#each ["maker", "taker"] as fee}
+                                <button
+                                    class="segmented-btn {settingsState.feePreference ===
+                                    fee
+                                        ? 'active'
+                                        : ''}"
+                                    onclick={() =>
+                                        (settingsState.feePreference =
+                                            fee as any)}
+                                >
+                                    {fee.toUpperCase()}
+                                </button>
+                            {/each}
+                            <div
+                                class="segmented-bg"
+                                style="transform: translateX({settingsState.feePreference ===
+                                'maker'
+                                    ? '0%'
+                                    : '100%'})"
+                            ></div>
+                        </div>
+                        <p
+                            class="text-[10px] text-[var(--text-secondary)] mt-2"
+                        >
+                            {$_("settings.feePreferenceDesc")}
+                        </p>
+                    </div>
+
+                    <!-- Spin Buttons Visibility -->
+                    <div class="field-group">
+                        <div class="field-label">
+                            {$_("settings.showSpinButtons")}
+                        </div>
+                        <div class="segmented-control three-way">
+                            {#each [{ v: true, l: $_("settings.spinButtonsAlways") || "Always" }, { v: "hover", l: $_("settings.spinButtonsHover") || "Hover" }, { v: false, l: $_("settings.spinButtonsHidden") || "None" }] as opt}
+                                <button
+                                    class="segmented-btn {settingsState.showSpinButtons ===
+                                    opt.v
+                                        ? 'active'
+                                        : ''}"
+                                    onclick={() =>
+                                        (settingsState.showSpinButtons =
+                                            opt.v as any)}
+                                >
+                                    {opt.l}
+                                </button>
+                            {/each}
+                            <div
+                                class="segmented-bg"
+                                style="width: 33.33%; transform: translateX({settingsState.showSpinButtons ===
+                                true
+                                    ? '0%'
+                                    : settingsState.showSpinButtons === 'hover'
+                                      ? '100%'
+                                      : '200%'})"
+                            ></div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Hotkeys Section -->
+            <section
+                class="settings-section border-t border-[var(--border-color)] pt-6"
+            >
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="section-title mb-0">
+                        {$_("settings.profile.hotkeysTitle") ||
+                            "Keyboard Shortcuts"}
+                    </h3>
+
+                    <select
+                        bind:value={settingsState.hotkeyMode}
+                        class="select-field text-xs w-auto min-w-[150px]"
+                    >
+                        <option value="mode2">Safety Mode (Alt + Key)</option>
+                        <option value="mode1">Direct Mode (Fast)</option>
+                        <option value="mode3">Hybrid Mode</option>
+                        <option value="custom">Custom Configuration</option>
+                    </select>
+                </div>
+
+                <div
+                    class="hotkey-content {settingsState.hotkeyMode === 'custom'
+                        ? 'custom-active'
+                        : ''}"
+                >
+                    {#if settingsState.hotkeyMode !== "custom"}
+                        <div
+                            class="hotkey-preview p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                        >
+                            <div class="flex justify-between items-center mb-3">
+                                <p class="text-xs text-[var(--text-secondary)]">
+                                    {$_("settings.profile.activeHotkeys") ||
+                                        "Active Hotkeys"}
+                                </p>
+                                <button
+                                    class="text-xs text-[var(--accent)] hover:underline"
+                                    onclick={() =>
+                                        (settingsState.hotkeyMode = "custom")}
+                                >
+                                    {$_("settings.profile.customize") ||
+                                        "Customize"}
+                                </button>
+                            </div>
+
+                            <div
+                                class="max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0.5 text-xs text-[var(--text-secondary)]"
+                            >
+                                {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
+                                    <div class="flex justify-between py-1">
+                                        <span>{label}</span>
+                                        <span
+                                            class="font-mono text-[var(--text-primary)]"
+                                            >{key}</span
+                                        >
+                                    </div>
+                                {/each}
+                            </div>
+                        </div>
+                    {:else}
+                        <div
+                            class="hotkey-settings-wrapper p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+                        >
+                            <HotkeySettings />
+                        </div>
+                    {/if}
+                </div>
+            </section>
+        {/if}
+    </div>
 </div>
 
 <style>
@@ -449,5 +724,39 @@
         overflow: hidden;
         display: flex;
         flex-direction: column;
+    }
+
+    /* Subtab Navigation */
+    .subtab-nav {
+        display: flex;
+        gap: 0.5rem;
+        margin-bottom: 1.5rem;
+        border-bottom: 1px solid var(--border-color);
+        padding-bottom: 0.5rem;
+    }
+
+    .subtab-nav button {
+        padding: 0.5rem 1rem;
+        font-size: 0.875rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        background: transparent;
+        border: none;
+        border-bottom: 2px solid transparent;
+        cursor: pointer;
+        transition: all 0.2s ease;
+    }
+
+    .subtab-nav button.active {
+        color: var(--accent-color);
+        border-bottom-color: var(--accent-color);
+    }
+
+    .subtab-nav button:hover:not(.active) {
+        color: var(--text-primary);
+    }
+
+    .subtab-content {
+        padding: 0.5rem 0;
     }
 </style>

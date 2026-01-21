@@ -719,11 +719,47 @@
     "profile": {
       "activeHotkeys": "Active Hotkeys",
       "appearanceTitle": "Appearance & Identity",
+      "generalTitle": "General Settings",
       "controlTitle": "Control & Interaction",
       "customize": "Customize",
       "hotkeysTitle": "Hotkeys",
       "presetInfo": "You are using a hotkey preset. Switch to 'Custom' to rebind individual hotkeys.",
-      "switchToCustom": "Customize Hotkeys"
+      "switchToCustom": "Customize Hotkeys",
+      "subtabs": {
+        "general": "General",
+        "appearance": "Appearance",
+        "controls": "Controls"
+      },
+      "background": {
+        "title": "Background",
+        "type": "Background Type",
+        "typeNone": "None",
+        "typeImage": "Image",
+        "typeVideo": "Video",
+        "typeAnimation": "Animation",
+        "url": "URL",
+        "urlPlaceholder": "https://example.com/background.jpg",
+        "urlHelper": "Supported: .jpg, .png, .mp4",
+        "invalidUrl": "Invalid URL or format",
+        "corsError": "Could not load URL (CORS)",
+        "testUrl": "Test URL",
+        "presetLabel": "Animation",
+        "presetNone": "None",
+        "presetGradient": "Gradient Flow",
+        "presetParticles": "Particles",
+        "presetBreathing": "Breathing",
+        "presetWaves": "Waves",
+        "presetAurora": "Aurora",
+        "opacity": "Opacity",
+        "blur": "Blur",
+        "videoSpeed": "Speed",
+        "intensity": "Intensity",
+        "intensityLow": "Low",
+        "intensityMedium": "Medium",
+        "intensityHigh": "High",
+        "reset": "Reset",
+        "resetConfirm": "Reset all background settings?"
+      }
     }
   },
   "common": {

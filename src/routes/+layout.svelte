@@ -28,6 +28,7 @@
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import { onMount } from "svelte";
   import { initZoomPlugin } from "../lib/chartSetup";
+  import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import { _ } from "../locales/i18n";
 
@@ -189,6 +190,7 @@
 </svelte:head>
 
 <div class="app-container">
+  <BackgroundRenderer />
   {@render children?.()}
 
   <!-- Global Modals -->

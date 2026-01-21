@@ -15,27 +15,31 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-export function portal(node: HTMLElement, target: HTMLElement | string = 'body') {
-    let targetEl: HTMLElement | null;
+export function portal(
+  node: HTMLElement,
+  target: HTMLElement | string = "body",
+) {
+  let targetEl: HTMLElement | null;
 
-    function update(newTarget: HTMLElement | string) {
-        targetEl = typeof newTarget === 'string'
-            ? document.querySelector(newTarget)
-            : newTarget;
+  function update(newTarget: HTMLElement | string) {
+    targetEl =
+      typeof newTarget === "string"
+        ? document.querySelector(newTarget)
+        : newTarget;
 
-        if (targetEl) {
-            targetEl.appendChild(node);
-        }
+    if (targetEl) {
+      targetEl.appendChild(node);
     }
+  }
 
-    update(target);
+  update(target);
 
-    return {
-        update,
-        destroy() {
-            if (node.parentNode) {
-                node.parentNode.removeChild(node);
-            }
-        }
-    };
+  return {
+    update,
+    destroy() {
+      if (node.parentNode) {
+        node.parentNode.removeChild(node);
+      }
+    },
+  };
 }

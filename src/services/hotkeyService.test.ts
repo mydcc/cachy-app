@@ -36,8 +36,8 @@ vi.mock("../stores/trade.svelte", () => ({
     targets: [],
     // Mock other needed props
     update: vi.fn(),
-    set: vi.fn()
-  }
+    set: vi.fn(),
+  },
 }));
 
 vi.mock("../stores/ui.svelte", () => {

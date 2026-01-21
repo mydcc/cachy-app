@@ -18,7 +18,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { julesService } from "./julesService";
 
-
 // Mock Stores
 vi.mock("../stores/settings.svelte", () => ({
   settingsState: {
@@ -31,10 +30,11 @@ vi.mock("../stores/trade.svelte", () => ({
   tradeState: {
     symbol: "BTCUSDT",
     targets: [],
-    subscribe: (fn: any) => { // Legacy compat mock if needed, or if julesService still subscribes
+    subscribe: (fn: any) => {
+      // Legacy compat mock if needed, or if julesService still subscribes
       fn({ symbol: "BTCUSDT", targets: [] });
-      return () => { };
-    }
+      return () => {};
+    },
   },
 }));
 
@@ -44,7 +44,7 @@ vi.mock("../stores/account.svelte", () => ({
     openOrders: [],
     balance: "1000",
     availableBalance: "1000",
-    isConnected: true
+    isConnected: true,
   },
 }));
 
@@ -54,9 +54,9 @@ vi.mock("../stores/market.svelte", () => ({
     connectionStatus: "connected",
     subscribe: (fn: any) => {
       fn({});
-      return () => { };
-    }
-  }
+      return () => {};
+    },
+  },
 }));
 
 // Mock Fetch

@@ -113,12 +113,16 @@ class BitunixWebSocketService {
         const status = marketState.connectionStatus;
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
-          if (status !== "disconnected") marketState.connectionStatus = "disconnected";
+          if (status !== "disconnected")
+            marketState.connectionStatus = "disconnected";
           return;
         }
 
         // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
-        if (settingsState.apiProvider !== "bitunix" || !settingsState.capabilities.marketData) {
+        if (
+          settingsState.apiProvider !== "bitunix" ||
+          !settingsState.capabilities.marketData
+        ) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup("public");
@@ -177,7 +181,10 @@ class BitunixWebSocketService {
       ) {
         // If it's connecting for too long, cleanup and force a new one
         const now = Date.now();
-        if (this.wsPublic.readyState === WebSocket.CONNECTING && now - this.lastMessageTimePublic > 5000) {
+        if (
+          this.wsPublic.readyState === WebSocket.CONNECTING &&
+          now - this.lastMessageTimePublic > 5000
+        ) {
           this.cleanup("public");
         } else {
           return;
@@ -192,7 +199,8 @@ class BitunixWebSocketService {
       const ws = new WebSocket(WS_PUBLIC_URL);
       this.wsPublic = ws;
 
-      if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
+      if (this.connectionTimeoutPublic)
+        clearTimeout(this.connectionTimeoutPublic);
       this.connectionTimeoutPublic = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
@@ -206,7 +214,8 @@ class BitunixWebSocketService {
       }, CONNECTION_TIMEOUT_MS);
 
       ws.onopen = () => {
-        if (this.connectionTimeoutPublic) clearTimeout(this.connectionTimeoutPublic);
+        if (this.connectionTimeoutPublic)
+          clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) return;
 
         marketState.connectionStatus = "connected";
@@ -229,8 +238,7 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "public");
-        } catch (e) {
-        }
+        } catch (e) {}
       };
 
       ws.onclose = () => {
@@ -246,8 +254,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {
-      };
+      ws.onerror = (error) => {};
     } catch (e) {
       this.scheduleReconnect("public");
     }
@@ -276,7 +283,8 @@ class BitunixWebSocketService {
       const ws = new WebSocket(WS_PRIVATE_URL);
       this.wsPrivate = ws;
 
-      if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
+      if (this.connectionTimeoutPrivate)
+        clearTimeout(this.connectionTimeoutPrivate);
       this.connectionTimeoutPrivate = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
@@ -290,7 +298,8 @@ class BitunixWebSocketService {
       }, CONNECTION_TIMEOUT_MS);
 
       ws.onopen = () => {
-        if (this.connectionTimeoutPrivate) clearTimeout(this.connectionTimeoutPrivate);
+        if (this.connectionTimeoutPrivate)
+          clearTimeout(this.connectionTimeoutPrivate);
         if (this.wsPrivate !== ws) return;
 
         this.isReconnectingPrivate = false;
@@ -312,8 +321,7 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "private");
-        } catch (e) {
-        }
+        } catch (e) {}
       };
 
       ws.onclose = () => {
@@ -329,8 +337,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {
-      };
+      ws.onerror = (error) => {};
     } catch (e) {
       this.scheduleReconnect("private");
     }
@@ -393,7 +400,10 @@ class BitunixWebSocketService {
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
-          console.warn('[WebSocket] Ping send failed, connection may be closed:', e);
+          console.warn(
+            "[WebSocket] Ping send failed, connection may be closed:",
+            e,
+          );
         }
       }
     }, PING_INTERVAL);
@@ -429,19 +439,37 @@ class BitunixWebSocketService {
 
   private stopHeartbeat(type: "public" | "private") {
     if (type === "public") {
-      if (this.pingTimerPublic) { clearInterval(this.pingTimerPublic); this.pingTimerPublic = null; }
-      if (this.watchdogTimerPublic) { clearTimeout(this.watchdogTimerPublic); this.watchdogTimerPublic = null; }
+      if (this.pingTimerPublic) {
+        clearInterval(this.pingTimerPublic);
+        this.pingTimerPublic = null;
+      }
+      if (this.watchdogTimerPublic) {
+        clearTimeout(this.watchdogTimerPublic);
+        this.watchdogTimerPublic = null;
+      }
     } else {
-      if (this.pingTimerPrivate) { clearInterval(this.pingTimerPrivate); this.pingTimerPrivate = null; }
-      if (this.watchdogTimerPrivate) { clearTimeout(this.watchdogTimerPrivate); this.watchdogTimerPrivate = null; }
+      if (this.pingTimerPrivate) {
+        clearInterval(this.pingTimerPrivate);
+        this.pingTimerPrivate = null;
+      }
+      if (this.watchdogTimerPrivate) {
+        clearTimeout(this.watchdogTimerPrivate);
+        this.watchdogTimerPrivate = null;
+      }
     }
   }
 
   private cleanup(type: "public" | "private") {
     this.stopHeartbeat(type);
     if (type === "public") {
-      if (this.connectionTimeoutPublic) { clearTimeout(this.connectionTimeoutPublic); this.connectionTimeoutPublic = null; }
-      if (this.reconnectTimerPublic) { clearTimeout(this.reconnectTimerPublic); this.reconnectTimerPublic = null; }
+      if (this.connectionTimeoutPublic) {
+        clearTimeout(this.connectionTimeoutPublic);
+        this.connectionTimeoutPublic = null;
+      }
+      if (this.reconnectTimerPublic) {
+        clearTimeout(this.reconnectTimerPublic);
+        this.reconnectTimerPublic = null;
+      }
       if (this.wsPublic) {
         this.wsPublic.onopen = null;
         this.wsPublic.onmessage = null;
@@ -450,14 +478,20 @@ class BitunixWebSocketService {
         try {
           this.wsPublic.close();
         } catch (e) {
-          console.warn('[WebSocket] Error closing public connection:', e);
+          console.warn("[WebSocket] Error closing public connection:", e);
         }
       }
       this.wsPublic = null;
       this.isReconnectingPublic = false;
     } else {
-      if (this.connectionTimeoutPrivate) { clearTimeout(this.connectionTimeoutPrivate); this.connectionTimeoutPrivate = null; }
-      if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }
+      if (this.connectionTimeoutPrivate) {
+        clearTimeout(this.connectionTimeoutPrivate);
+        this.connectionTimeoutPrivate = null;
+      }
+      if (this.reconnectTimerPrivate) {
+        clearTimeout(this.reconnectTimerPrivate);
+        this.reconnectTimerPrivate = null;
+      }
       if (this.wsPrivate) {
         this.wsPrivate.onopen = null;
         this.wsPrivate.onmessage = null;
@@ -466,7 +500,7 @@ class BitunixWebSocketService {
         try {
           this.wsPrivate.close();
         } catch (e) {
-          console.warn('[WebSocket] Error closing private connection:', e);
+          console.warn("[WebSocket] Error closing private connection:", e);
         }
       }
       this.wsPrivate = null;
@@ -477,26 +511,39 @@ class BitunixWebSocketService {
 
   private login(apiKey: string, apiSecret: string) {
     try {
-      if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN) return;
+      if (!this.wsPrivate || this.wsPrivate.readyState !== WebSocket.OPEN)
+        return;
       if (!CryptoJS || !CryptoJS.SHA256) return;
 
       let nonce: string;
-      if (typeof window !== "undefined" && window.crypto && window.crypto.getRandomValues) {
+      if (
+        typeof window !== "undefined" &&
+        window.crypto &&
+        window.crypto.getRandomValues
+      ) {
         const array = new Uint8Array(16);
         window.crypto.getRandomValues(array);
-        nonce = Array.from(array, (byte) => byte.toString(16).padStart(2, "0")).join("");
+        nonce = Array.from(array, (byte) =>
+          byte.toString(16).padStart(2, "0"),
+        ).join("");
       } else {
         nonce = Math.random().toString(36).substring(2, 15);
       }
 
       const timestamp = Math.floor(Date.now() / 1000);
-      const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(CryptoJS.enc.Hex);
-      const sign = CryptoJS.SHA256(first + apiSecret).toString(CryptoJS.enc.Hex);
+      const first = CryptoJS.SHA256(nonce + timestamp + apiKey).toString(
+        CryptoJS.enc.Hex,
+      );
+      const sign = CryptoJS.SHA256(first + apiSecret).toString(
+        CryptoJS.enc.Hex,
+      );
 
-      const payload = { op: "login", args: [{ apiKey, timestamp, nonce, sign }] };
+      const payload = {
+        op: "login",
+        args: [{ apiKey, timestamp, nonce, sign }],
+      };
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) {
-    }
+    } catch (error) {}
   }
 
   private validatePriceData(data: Partial<BitunixPriceData>): boolean {
@@ -535,7 +582,10 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        console.warn('[WebSocket] Invalid message structure:', validationResult.error.issues);
+        console.warn(
+          "[WebSocket] Invalid message structure:",
+          validationResult.error.issues,
+        );
         return;
       }
 
@@ -543,7 +593,11 @@ class BitunixWebSocketService {
 
       // 2. Handle special messages
       if (validatedMessage && validatedMessage.event === "login") {
-        if (validatedMessage.code === 0 || validatedMessage.code === "0" || validatedMessage.msg === "success") {
+        if (
+          validatedMessage.code === 0 ||
+          validatedMessage.code === "0" ||
+          validatedMessage.msg === "success"
+        ) {
           this.isAuthenticated = true;
           this.subscribePrivate();
         }
@@ -551,11 +605,16 @@ class BitunixWebSocketService {
       }
 
       if (!validatedMessage) return;
-      if (validatedMessage.op === "pong" || validatedMessage.pong || validatedMessage.op === "ping") return;
+      if (
+        validatedMessage.op === "pong" ||
+        validatedMessage.pong ||
+        validatedMessage.op === "ping"
+      )
+        return;
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        console.warn('[WebSocket] Unknown channel:', validatedMessage.ch);
+        console.warn("[WebSocket] Unknown channel:", validatedMessage.ch);
         return;
       }
 
@@ -565,16 +624,24 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in price update:', rawSymbol);
+          console.warn(
+            "[WebSocket] Invalid symbol in price update:",
+            rawSymbol,
+          );
           return;
         }
 
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
 
         // Validate price data with Zod
-        const priceValidation = BitunixPriceDataSchema.safeParse(validatedMessage.data);
+        const priceValidation = BitunixPriceDataSchema.safeParse(
+          validatedMessage.data,
+        );
         if (!priceValidation.success) {
-          console.warn('[WebSocket] Invalid price data:', priceValidation.error.issues);
+          console.warn(
+            "[WebSocket] Invalid price data:",
+            priceValidation.error.issues,
+          );
           return;
         }
 
@@ -594,16 +661,24 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          console.warn('[WebSocket] Invalid symbol in ticker update:', rawSymbol);
+          console.warn(
+            "[WebSocket] Invalid symbol in ticker update:",
+            rawSymbol,
+          );
           return;
         }
 
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
 
         // Validate ticker data with Zod
-        const tickerValidation = BitunixTickerDataSchema.safeParse(validatedMessage.data);
+        const tickerValidation = BitunixTickerDataSchema.safeParse(
+          validatedMessage.data,
+        );
         if (!tickerValidation.success) {
-          console.warn('[WebSocket] Invalid ticker data:', tickerValidation.error.issues);
+          console.warn(
+            "[WebSocket] Invalid ticker data:",
+            tickerValidation.error.issues,
+          );
           return;
         }
 
@@ -627,8 +702,13 @@ class BitunixWebSocketService {
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
-        if (symbol && data) marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
-      } else if (validatedMessage.ch && (validatedMessage.ch.startsWith("market_kline_") || validatedMessage.ch === "mark_kline_1day")) {
+        if (symbol && data)
+          marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+      } else if (
+        validatedMessage.ch &&
+        (validatedMessage.ch.startsWith("market_kline_") ||
+          validatedMessage.ch === "mark_kline_1day")
+      ) {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
@@ -640,34 +720,59 @@ class BitunixWebSocketService {
             const match = validatedMessage.ch.match(/market_kline_(.+)/);
             if (match) {
               const bitunixTf = match[1];
-              const revMap: Record<string, string> = { "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m", "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M" };
+              const revMap: Record<string, string> = {
+                "1min": "1m",
+                "5min": "5m",
+                "15min": "15m",
+                "30min": "30m",
+                "60min": "1h",
+                "4h": "4h",
+                "1day": "1d",
+                "1week": "1w",
+                "1month": "1M",
+              };
               timeframe = revMap[bitunixTf] || bitunixTf;
             }
           }
-          marketState.updateKline(symbol, timeframe, { o: data.o, h: data.h, l: data.l, c: data.c, b: data.b || data.v, t: data.t || data.id || data.ts || Date.now() });
+          marketState.updateKline(symbol, timeframe, {
+            o: data.o,
+            h: data.h,
+            l: data.l,
+            c: data.c,
+            b: data.b || data.v,
+            t: data.t || data.id || data.ts || Date.now(),
+          });
         }
       } else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountState.updatePositionFromWs(item));
+          if (Array.isArray(data))
+            data.forEach((item: any) =>
+              accountState.updatePositionFromWs(item),
+            );
           else accountState.updatePositionFromWs(data);
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountState.updateOrderFromWs(item));
+          if (Array.isArray(data))
+            data.forEach((item: any) => accountState.updateOrderFromWs(item));
           else accountState.updateOrderFromWs(data);
         }
       } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data)) data.forEach((item: any) => accountState.updateBalanceFromWs(item));
+          if (Array.isArray(data))
+            data.forEach((item: any) => accountState.updateBalanceFromWs(item));
           else accountState.updateBalanceFromWs(data);
         }
       }
     } catch (err) {
-      console.error('[WebSocket] Message handling error:', err);
-      console.error('[WebSocket] Problematic message:', JSON.stringify(message).slice(0, 200));
+      console.error("[WebSocket] Message handling error:", err);
+      console.error(
+        "[WebSocket] Problematic message:",
+        JSON.stringify(message).slice(0, 200),
+      );
     }
   }
 
@@ -704,7 +809,7 @@ class BitunixWebSocketService {
     try {
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn('[WebSocket] Failed to send private subscribe:', e);
+      console.warn("[WebSocket] Failed to send private subscribe:", e);
     }
   }
 
@@ -713,7 +818,10 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(`[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`, e);
+      console.warn(
+        `[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`,
+        e,
+      );
     }
   }
 
@@ -722,7 +830,10 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(`[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`, e);
+      console.warn(
+        `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`,
+        e,
+      );
     }
   }
 

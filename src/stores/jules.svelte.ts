@@ -8,30 +8,30 @@
  */
 
 class JulesManager {
-    isVisible = $state(false);
-    message = $state("");
-    isLoading = $state(false);
+  isVisible = $state(false);
+  message = $state("");
+  isLoading = $state(false);
 
-    showReport(message: string) {
-        this.isVisible = true;
-        this.message = message;
-        this.isLoading = false;
-    }
+  showReport(message: string) {
+    this.isVisible = true;
+    this.message = message;
+    this.isLoading = false;
+  }
 
-    hideReport() {
-        this.isVisible = false;
-        this.message = "";
-    }
+  hideReport() {
+    this.isVisible = false;
+    this.message = "";
+  }
 
-    setLoading(isLoading: boolean) {
-        this.isLoading = isLoading;
-    }
+  setLoading(isLoading: boolean) {
+    this.isLoading = isLoading;
+  }
 
-    reset() {
-        this.isVisible = false;
-        this.message = "";
-        this.isLoading = false;
-    }
+  reset() {
+    this.isVisible = false;
+    this.message = "";
+    this.isLoading = false;
+  }
 }
 
 export const julesState = new JulesManager();

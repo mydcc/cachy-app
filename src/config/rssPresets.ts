@@ -9,69 +9,67 @@
 
 /**
  * RSS Feed Preset Configuration
- * 
+ *
  * Curated list of high-quality RSS feeds for crypto/trading news.
  * These feeds are pre-configured for one-click activation in settings.
  */
 
 export interface RssPreset {
-    id: string;
-    name: string;
-    url: string;
-    category: 'crypto' | 'trading' | 'macro';
-    description?: string;
+  id: string;
+  name: string;
+  url: string;
+  category: "crypto" | "trading" | "macro";
+  description?: string;
 }
 
 export const RSS_PRESETS: RssPreset[] = [
-    {
-        id: 'coindesk',
-        name: 'CoinDesk',
-        url: 'https://www.coindesk.com/arc/outboundfeeds/rss/',
-        category: 'crypto',
-        description: 'Leading crypto news and analysis'
-    },
-    {
-        id: 'cointelegraph',
-        name: 'Cointelegraph',
-        url: 'https://cointelegraph.com/rss',
-        category: 'crypto',
-        description: 'Breaking crypto news and blockchain insights'
-    },
-    {
-        id: 'decrypt',
-        name: 'Decrypt',
-        url: 'https://decrypt.co/feed',
-        category: 'crypto',
-        description: 'Crypto news with Web3 focus'
-    },
-    {
-        id: 'theblock',
-        name: 'The Block',
-        url: 'https://www.theblock.co/rss.xml',
-        category: 'crypto',
-        description: 'Research-driven crypto journalism'
-    },
-    {
-        id: 'bitcoinmagazine',
-        name: 'Bitcoin Magazine',
-        url: 'https://bitcoinmagazine.com/.rss/full/',
-        category: 'crypto',
-        description: 'Bitcoin-focused news and education'
-    },
+  {
+    id: "coindesk",
+    name: "CoinDesk",
+    url: "https://www.coindesk.com/arc/outboundfeeds/rss/",
+    category: "crypto",
+    description: "Leading crypto news and analysis",
+  },
+  {
+    id: "cointelegraph",
+    name: "Cointelegraph",
+    url: "https://cointelegraph.com/rss",
+    category: "crypto",
+    description: "Breaking crypto news and blockchain insights",
+  },
+  {
+    id: "decrypt",
+    name: "Decrypt",
+    url: "https://decrypt.co/feed",
+    category: "crypto",
+    description: "Crypto news with Web3 focus",
+  },
+  {
+    id: "theblock",
+    name: "The Block",
+    url: "https://www.theblock.co/rss.xml",
+    category: "crypto",
+    description: "Research-driven crypto journalism",
+  },
+  {
+    id: "bitcoinmagazine",
+    name: "Bitcoin Magazine",
+    url: "https://bitcoinmagazine.com/.rss/full/",
+    category: "crypto",
+    description: "Bitcoin-focused news and education",
+  },
 ];
 
 /**
  * Get preset by ID
  */
 export function getPresetById(id: string): RssPreset | undefined {
-    return RSS_PRESETS.find(p => p.id === id);
+  return RSS_PRESETS.find((p) => p.id === id);
 }
 
 /**
  * Get all preset URLs for given IDs
  */
 export function getPresetUrls(ids: string[]): string[] {
-    return RSS_PRESETS
-        .filter(p => ids.includes(p.id))
-        .map(p => p.url);
+  return RSS_PRESETS.filter((p) => ids.includes(p.id)).map((p) => p.url);
 }

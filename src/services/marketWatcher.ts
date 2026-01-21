@@ -15,7 +15,6 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-
 import { untrack } from "svelte";
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
@@ -204,25 +203,35 @@ class MarketWatcher {
     });
   }
 
-  private async pollSymbolChannel(symbol: string, channel: string, provider: "bitunix" | "binance") {
+  private async pollSymbolChannel(
+    symbol: string,
+    channel: string,
+    provider: "bitunix" | "binance",
+  ) {
     if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
     this.fetchLocks.add(lockKey);
 
     // Determine priority: high for the main trading symbol, normal for the rest
-    const isMainSymbol = tradeState.symbol && normalizeSymbol(tradeState.symbol, "bitunix") === symbol;
+    const isMainSymbol =
+      tradeState.symbol &&
+      normalizeSymbol(tradeState.symbol, "bitunix") === symbol;
     const priority = isMainSymbol ? "high" : "normal";
 
     try {
       if (channel === "price" || channel === "ticker") {
-        const data = await apiService.fetchTicker24h(symbol, provider, priority);
+        const data = await apiService.fetchTicker24h(
+          symbol,
+          provider,
+          priority,
+        );
         marketState.updateSymbol(symbol, {
           lastPrice: data.lastPrice,
           highPrice: data.highPrice,
           lowPrice: data.lowPrice,
           volume: data.volume,
           priceChangePercent: data.priceChangePercent,
-          quoteVolume: data.quoteVolume
+          quoteVolume: data.quoteVolume,
         });
       } else if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");

@@ -134,7 +134,8 @@ class RequestManager {
                 }
 
                 console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1
+                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
+                    retries + 1
                   })`,
                   e,
                 );
@@ -267,7 +268,10 @@ export const apiService = {
           // Validate response structure with Zod
           const validation = BitunixTickerResponseSchema.safeParse(res);
           if (!validation.success) {
-            console.error("[API] Invalid ticker response:", validation.error.issues);
+            console.error(
+              "[API] Invalid ticker response:",
+              validation.error.issues,
+            );
             throw new Error("apiErrors.invalidResponse");
           }
 
@@ -275,7 +279,8 @@ export const apiService = {
 
           if (validatedRes.code !== undefined && validatedRes.code !== 0) {
             const error = new Error(getBitunixErrorKey(validatedRes.code));
-            if (validatedRes.code === 2 || validatedRes.code === "2") (error as any).status = 404;
+            if (validatedRes.code === 2 || validatedRes.code === "2")
+              (error as any).status = 404;
             throw error;
           }
           if (!validatedRes.data || validatedRes.data.length === 0) {
@@ -563,18 +568,22 @@ export const apiService = {
 
           return res.data.map((ticker: any) => {
             // Defensive checks before Number conversion
-            const openRaw = ticker.open !== undefined && ticker.open !== null
-              ? Number(ticker.open)
-              : 0;
-            const lastRaw = ticker.lastPrice !== undefined && ticker.lastPrice !== null
-              ? Number(ticker.lastPrice)
-              : 0;
-            const baseVolRaw = ticker.baseVol !== undefined && ticker.baseVol !== null
-              ? Number(ticker.baseVol)
-              : 0;
-            const quoteVolRaw = ticker.quoteVol !== undefined && ticker.quoteVol !== null
-              ? Number(ticker.quoteVol)
-              : 0;
+            const openRaw =
+              ticker.open !== undefined && ticker.open !== null
+                ? Number(ticker.open)
+                : 0;
+            const lastRaw =
+              ticker.lastPrice !== undefined && ticker.lastPrice !== null
+                ? Number(ticker.lastPrice)
+                : 0;
+            const baseVolRaw =
+              ticker.baseVol !== undefined && ticker.baseVol !== null
+                ? Number(ticker.baseVol)
+                : 0;
+            const quoteVolRaw =
+              ticker.quoteVol !== undefined && ticker.quoteVol !== null
+                ? Number(ticker.quoteVol)
+                : 0;
 
             const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
             const last = new Decimal(isNaN(lastRaw) ? 0 : lastRaw);
@@ -641,24 +650,30 @@ export const apiService = {
             }
             const ticker = data.data[0];
             // Defensive checks before Number conversion
-            const openRaw = ticker.open !== undefined && ticker.open !== null
-              ? Number(ticker.open)
-              : 0;
-            const lastRaw = ticker.lastPrice !== undefined && ticker.lastPrice !== null
-              ? Number(ticker.lastPrice)
-              : NaN; // Keep NaN for validation below
-            const highRaw = ticker.high !== undefined && ticker.high !== null
-              ? Number(ticker.high)
-              : NaN;
-            const lowRaw = ticker.low !== undefined && ticker.low !== null
-              ? Number(ticker.low)
-              : NaN;
-            const baseVolRaw = ticker.baseVol !== undefined && ticker.baseVol !== null
-              ? Number(ticker.baseVol)
-              : 0;
-            const quoteVolRaw = ticker.quoteVol !== undefined && ticker.quoteVol !== null
-              ? Number(ticker.quoteVol)
-              : 0;
+            const openRaw =
+              ticker.open !== undefined && ticker.open !== null
+                ? Number(ticker.open)
+                : 0;
+            const lastRaw =
+              ticker.lastPrice !== undefined && ticker.lastPrice !== null
+                ? Number(ticker.lastPrice)
+                : NaN; // Keep NaN for validation below
+            const highRaw =
+              ticker.high !== undefined && ticker.high !== null
+                ? Number(ticker.high)
+                : NaN;
+            const lowRaw =
+              ticker.low !== undefined && ticker.low !== null
+                ? Number(ticker.low)
+                : NaN;
+            const baseVolRaw =
+              ticker.baseVol !== undefined && ticker.baseVol !== null
+                ? Number(ticker.baseVol)
+                : 0;
+            const quoteVolRaw =
+              ticker.quoteVol !== undefined && ticker.quoteVol !== null
+                ? Number(ticker.quoteVol)
+                : 0;
 
             if (isNaN(lastRaw) || !isFinite(lastRaw)) {
               throw new Error("apiErrors.invalidResponse");

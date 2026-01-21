@@ -28,26 +28,26 @@ export interface SentimentAnalysis {
 }
 
 const COIN_ALIASES: Record<string, string[]> = {
-  "BTC": ["Bitcoin", "BTC"],
-  "ETH": ["Ethereum", "Ether", "ETH"],
-  "XRP": ["Ripple", "XRP"],
-  "SOL": ["Solana", "SOL"],
-  "ADA": ["Cardano", "ADA"],
-  "DOGE": ["Dogecoin", "DOGE"],
-  "DOT": ["Polkadot", "DOT"],
-  "MATIC": ["Polygon", "MATIC"],
-  "LTC": ["Litecoin", "LTC"],
-  "LINK": ["Chainlink", "LINK"],
-  "AVAX": ["Avalanche", "AVAX"],
-  "UNI": ["Uniswap", "UNI"],
-  "ATOM": ["Cosmos", "ATOM"],
-  "XLM": ["Stellar", "XLM"],
-  "XMR": ["Monero", "XMR"],
-  "ALGO": ["Algorand", "ALGO"],
-  "NEAR": ["Near Protocol", "NEAR"],
-  "BCH": ["Bitcoin Cash", "BCH"],
-  "TRX": ["Tron", "TRX"],
-  "ETC": ["Ethereum Classic", "ETC"]
+  BTC: ["Bitcoin", "BTC"],
+  ETH: ["Ethereum", "Ether", "ETH"],
+  XRP: ["Ripple", "XRP"],
+  SOL: ["Solana", "SOL"],
+  ADA: ["Cardano", "ADA"],
+  DOGE: ["Dogecoin", "DOGE"],
+  DOT: ["Polkadot", "DOT"],
+  MATIC: ["Polygon", "MATIC"],
+  LTC: ["Litecoin", "LTC"],
+  LINK: ["Chainlink", "LINK"],
+  AVAX: ["Avalanche", "AVAX"],
+  UNI: ["Uniswap", "UNI"],
+  ATOM: ["Cosmos", "ATOM"],
+  XLM: ["Stellar", "XLM"],
+  XMR: ["Monero", "XMR"],
+  ALGO: ["Algorand", "ALGO"],
+  NEAR: ["Near Protocol", "NEAR"],
+  BCH: ["Bitcoin Cash", "BCH"],
+  TRX: ["Tron", "TRX"],
+  ETC: ["Ethereum Classic", "ETC"],
 };
 
 function matchesSymbol(text: string, symbol: string): boolean {
@@ -56,7 +56,7 @@ function matchesSymbol(text: string, symbol: string): boolean {
   const keywords = COIN_ALIASES[cleanSym] || [cleanSym];
 
   const lowerText = text.toLowerCase();
-  return keywords.some(k => lowerText.includes(k.toLowerCase()));
+  return keywords.some((k) => lowerText.includes(k.toLowerCase()));
 }
 
 const CACHE_KEY_NEWS = "cachy_news_cache";
@@ -66,7 +66,10 @@ const CACHE_TTL_SENTIMENT = 1000 * 60 * 15; // 15 minutes
 
 // Deduplication trackers
 const pendingNewsFetches = new Map<string, Promise<NewsItem[]>>();
-const pendingSentimentFetches = new Map<string, Promise<SentimentAnalysis | null>>();
+const pendingSentimentFetches = new Map<
+  string,
+  Promise<SentimentAnalysis | null>
+>();
 
 export const newsService = {
   async fetchNews(symbol?: string): Promise<NewsItem[]> {
@@ -101,7 +104,9 @@ export const newsService = {
               public: "true",
             };
             if (symbol) {
-              const cleanSymbol = symbol.replace("USDT", "").replace("USDC", "");
+              const cleanSymbol = symbol
+                .replace("USDT", "")
+                .replace("USDC", "");
               params.currencies = cleanSymbol;
             }
 
@@ -111,7 +116,7 @@ export const newsService = {
                 source: "cryptopanic",
                 apiKey: cryptoPanicApiKey,
                 params,
-                plan: settingsState.cryptoPanicPlan || "developer"
+                plan: settingsState.cryptoPanicPlan || "developer",
               }),
             });
 
@@ -122,7 +127,7 @@ export const newsService = {
                 url: item.url,
                 source: item.source?.title || "Unknown",
                 published_at: item.published_at,
-                currencies: item.currencies
+                currencies: item.currencies,
               }));
             }
           } catch (e) {
@@ -134,11 +139,20 @@ export const newsService = {
         if (newsItems.length < 5 && newsApiKey) {
           try {
             const q = symbol ? symbol : "crypto bitcoin ethereum";
-            const params = { q, sortBy: "publishedAt", language: "en", pageSize: "10" };
+            const params = {
+              q,
+              sortBy: "publishedAt",
+              language: "en",
+              pageSize: "10",
+            };
 
             const res = await fetch("/api/external/news", {
               method: "POST",
-              body: JSON.stringify({ source: "newsapi", apiKey: newsApiKey, params })
+              body: JSON.stringify({
+                source: "newsapi",
+                apiKey: newsApiKey,
+                params,
+              }),
             });
 
             if (res.ok) {
@@ -148,7 +162,7 @@ export const newsService = {
                 url: item.url,
                 source: item.source.name,
                 published_at: item.publishedAt,
-                currencies: []
+                currencies: [],
               }));
               newsItems = [...newsItems, ...mapped];
             }
@@ -160,15 +174,19 @@ export const newsService = {
         // RSS Feeds
         const rssUrls = [
           ...getPresetUrls(settingsState.rssPresets || []),
-          ...(settingsState.customRssFeeds || []).filter(u => u && u.trim().length > 0)
+          ...(settingsState.customRssFeeds || []).filter(
+            (u) => u && u.trim().length > 0,
+          ),
         ];
 
         if (rssUrls.length > 0) {
           try {
             let rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
             if (settingsState.rssFilterBySymbol && symbol) {
-              rssItems = rssItems.filter(item =>
-                matchesSymbol(item.title, symbol) || matchesSymbol(item.url, symbol)
+              rssItems = rssItems.filter(
+                (item) =>
+                  matchesSymbol(item.title, symbol) ||
+                  matchesSymbol(item.url, symbol),
               );
             }
             newsItems = [...newsItems, ...rssItems];
@@ -177,13 +195,20 @@ export const newsService = {
           }
         }
 
-        newsItems.sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime());
+        newsItems.sort(
+          (a, b) =>
+            new Date(b.published_at).getTime() -
+            new Date(a.published_at).getTime(),
+        );
 
-        localStorage.setItem(CACHE_KEY_NEWS, JSON.stringify({
-          data: newsItems,
-          timestamp: Date.now(),
-          cachedSymbol: symbol
-        }));
+        localStorage.setItem(
+          CACHE_KEY_NEWS,
+          JSON.stringify({
+            data: newsItems,
+            timestamp: Date.now(),
+            cachedSymbol: symbol,
+          }),
+        );
 
         return newsItems;
       } finally {
@@ -208,7 +233,10 @@ export const newsService = {
         const cached = localStorage.getItem(CACHE_KEY_SENTIMENT);
         if (cached) {
           const { data, timestamp, newsHash: cachedHash } = JSON.parse(cached);
-          if (Date.now() - timestamp < CACHE_TTL_SENTIMENT && cachedHash === newsHash) {
+          if (
+            Date.now() - timestamp < CACHE_TTL_SENTIMENT &&
+            cachedHash === newsHash
+          ) {
             return data;
           }
         }
@@ -216,14 +244,19 @@ export const newsService = {
         const { aiProvider, geminiApiKey, openaiApiKey } = settingsState;
         if (!aiProvider) return null;
 
-        const headlines = news.slice(0, 10).map(n => `- ${n.published_at}: ${n.title} (${n.source})`).join("\n");
+        const headlines = news
+          .slice(0, 10)
+          .map((n) => `- ${n.published_at}: ${n.title} (${n.source})`)
+          .join("\n");
         const prompt = `Analyze sentiment for these headlines. score -1 to 1. regime: BULLISH, BEARISH, NEUTRAL, UNCERTAIN.\n\n${headlines}\n\nOutput JSON ONLY: { "score": number, "regime": "string", "summary": "string", "keyFactors": ["string"] }`;
 
         let resultText = "";
 
         if (aiProvider === "gemini" && geminiApiKey) {
           const genAI = new GoogleGenerativeAI(geminiApiKey);
-          const model = genAI.getGenerativeModel({ model: settingsState.geminiModel || "gemini-1.5-flash" });
+          const model = genAI.getGenerativeModel({
+            model: settingsState.geminiModel || "gemini-1.5-flash",
+          });
 
           let lastErr = null;
           for (let i = 0; i < 3; i++) {
@@ -235,7 +268,7 @@ export const newsService = {
               lastErr = e;
               const msg = e?.message || "";
               if (msg.includes("503") || msg.includes("overloaded")) {
-                await new Promise(r => setTimeout(r, 2000 * (i + 1)));
+                await new Promise((r) => setTimeout(r, 2000 * (i + 1)));
                 continue;
               }
               throw e;
@@ -244,23 +277,37 @@ export const newsService = {
           if (!resultText && lastErr) throw lastErr;
         } else if (aiProvider === "openai" && openaiApiKey) {
           const { default: OpenAI } = await import("openai");
-          const openai = new OpenAI({ apiKey: openaiApiKey, dangerouslyAllowBrowser: true });
+          const openai = new OpenAI({
+            apiKey: openaiApiKey,
+            dangerouslyAllowBrowser: true,
+          });
           const completion = await openai.chat.completions.create({
-            messages: [{ role: "system", content: "Analyze sentiment." }, { role: "user", content: prompt }],
+            messages: [
+              { role: "system", content: "Analyze sentiment." },
+              { role: "user", content: prompt },
+            ],
             model: settingsState.openaiModel || "gpt-4o",
-            response_format: { type: "json_object" }
+            response_format: { type: "json_object" },
           });
           resultText = completion.choices[0].message.content || "{}";
         }
 
         if (!resultText) return null;
-        const analysis: SentimentAnalysis = JSON.parse(resultText.replace(/```json/g, "").replace(/```/g, "").trim());
+        const analysis: SentimentAnalysis = JSON.parse(
+          resultText
+            .replace(/```json/g, "")
+            .replace(/```/g, "")
+            .trim(),
+        );
 
-        localStorage.setItem(CACHE_KEY_SENTIMENT, JSON.stringify({
-          data: analysis,
-          timestamp: Date.now(),
-          newsHash
-        }));
+        localStorage.setItem(
+          CACHE_KEY_SENTIMENT,
+          JSON.stringify({
+            data: analysis,
+            timestamp: Date.now(),
+            newsHash,
+          }),
+        );
 
         return analysis;
       } catch (e: any) {
@@ -269,7 +316,7 @@ export const newsService = {
           score: 0,
           regime: "UNCERTAIN",
           summary: "Failed to analyze sentiment.",
-          keyFactors: []
+          keyFactors: [],
         };
       } finally {
         pendingSentimentFetches.delete(newsHash);
@@ -278,5 +325,5 @@ export const newsService = {
 
     pendingSentimentFetches.set(newsHash, analysisPromise);
     return analysisPromise;
-  }
+  },
 };

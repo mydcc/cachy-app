@@ -78,9 +78,7 @@ export const deletePreset = (name: string) => {
       ...store,
       availablePresets: Object.keys(presets), // Update available presets
       selectedPreset:
-        presetState.selectedPreset === name
-          ? ""
-          : presetState.selectedPreset, // Clear selected if deleted
+        presetState.selectedPreset === name ? "" : presetState.selectedPreset, // Clear selected if deleted
     }));
   } catch (e) {
     console.warn("Could not delete preset from localStorage.", e);

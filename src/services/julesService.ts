@@ -54,11 +54,11 @@ export const julesService = {
       ...settings,
       apiKeys: settings.apiKeys
         ? Object.fromEntries(
-          Object.entries(settings.apiKeys).map(([provider, keys]) => [
-            provider,
-            { ...(keys as any), apiSecret: "***REDACTED***" },
-          ]),
-        )
+            Object.entries(settings.apiKeys).map(([provider, keys]) => [
+              provider,
+              { ...(keys as any), apiSecret: "***REDACTED***" },
+            ]),
+          )
         : {},
     };
 
@@ -78,8 +78,13 @@ export const julesService = {
       // We need to find USDT balance or just summary.
       // Legacy accountStore had computed props, but AccountManager splits them.
       // Let's sum up available or just take USDT.
-      balance: account.assets.find(a => a.currency === "USDT")?.total.toNumber() || 0,
-      availableBalance: account.assets.find(a => a.currency === "USDT")?.available.toNumber() || 0,
+      balance:
+        account.assets.find((a) => a.currency === "USDT")?.total.toNumber() ||
+        0,
+      availableBalance:
+        account.assets
+          .find((a) => a.currency === "USDT")
+          ?.available.toNumber() || 0,
       positionsCount: account.positions.length,
       ordersCount: account.openOrders.length,
       isConnected: wsStatus === "connected",
@@ -91,21 +96,30 @@ export const julesService = {
       accountSummary: safeAccount,
       marketStatus: {
         connected: wsStatus === "connected",
-        data: marketData ? {
-          lastPrice: marketData.lastPrice,
-          priceChange: marketData.priceChangePercent,
-          technicals: marketData.technicals ? {
-            summary: marketData.technicals.summary,
-            confluence: marketData.technicals.confluence,
-            // We send key signals to AI, not entire array of 1000s of numbers
-            signals: {
-              rsi: marketData.technicals.oscillators.find(o => o.name === "RSI")?.value,
-              macdAction: marketData.technicals.oscillators.find(o => o.name === "MACD")?.action,
-              divergences: marketData.technicals.divergences,
-              ichimokuAction: marketData.technicals.advanced?.ichimoku?.action
+        data: marketData
+          ? {
+              lastPrice: marketData.lastPrice,
+              priceChange: marketData.priceChangePercent,
+              technicals: marketData.technicals
+                ? {
+                    summary: marketData.technicals.summary,
+                    confluence: marketData.technicals.confluence,
+                    // We send key signals to AI, not entire array of 1000s of numbers
+                    signals: {
+                      rsi: marketData.technicals.oscillators.find(
+                        (o) => o.name === "RSI",
+                      )?.value,
+                      macdAction: marketData.technicals.oscillators.find(
+                        (o) => o.name === "MACD",
+                      )?.action,
+                      divergences: marketData.technicals.divergences,
+                      ichimokuAction:
+                        marketData.technicals.advanced?.ichimoku?.action,
+                    },
+                  }
+                : "Calculating...",
             }
-          } : "Calculating..."
-        } : "No Data"
+          : "No Data",
       },
       uiState: {
         theme: ui.currentTheme,
@@ -127,7 +141,9 @@ export const julesService = {
   async reportToJules(error: any = null, mode: "AUTO" | "MANUAL" = "MANUAL") {
     try {
       julesState.setLoading(true);
-      julesState.showReport("Analyzing market conditions and your portfolio...");
+      julesState.showReport(
+        "Analyzing market conditions and your portfolio...",
+      );
       const context = this.getSystemSnapshot();
 
       const response = await fetch("/api/jules", {
@@ -138,10 +154,10 @@ export const julesService = {
           context,
           error: error
             ? {
-              message: error.message || error.toString(),
-              stack: error.stack,
-              name: error.name,
-            }
+                message: error.message || error.toString(),
+                stack: error.stack,
+                name: error.name,
+              }
             : null,
         }),
       });

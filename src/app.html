@@ -1,73 +1,92 @@
 <!doctype html>
 <html lang="en">
+  <head>
+    <meta charset="utf-8" />
 
-<head>
-  <meta charset="utf-8" />
+    <!-- Prevent indexing of subdomains (dev, metaverse) -->
+    <script>
+      if (
+        window.location.hostname.includes("dev.cachy.app") ||
+        window.location.hostname.includes("metaverse.cachy.app")
+      ) {
+        const meta = document.createElement("meta");
+        meta.name = "robots";
+        meta.content = "noindex, nofollow";
+        document.head.appendChild(meta);
+      }
+    </script>
 
-  <!-- Prevent indexing of subdomains (dev, metaverse) -->
-  <script>
-    if (
-      window.location.hostname.includes("dev.cachy.app") ||
-      window.location.hostname.includes("metaverse.cachy.app")
-    ) {
-      const meta = document.createElement("meta");
-      meta.name = "robots";
-      meta.content = "noindex, nofollow";
-      document.head.appendChild(meta);
-    }
-  </script>
+    <!-- Favicons for different platforms and browsers -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+    <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+    <link rel="shortcut icon" href="/favicon.ico" />
 
-  <!-- Favicons for different platforms and browsers -->
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
-  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
-  <link rel="shortcut icon" href="/favicon.ico" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
 
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <!-- Basic SEO -->
+    <title>Cachy - Position Size & Risk Calculator</title>
+    <meta
+      name="description"
+      content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."
+    />
+    <meta
+      name="keywords"
+      content="trading calculator, position size, risk management, take profit, crypto trading, forex trading, stock trading, trading tools, financial calculator, trade optimizer"
+    />
+    <link rel="canonical" href="https://www.cachy.app/" />
 
-  <!-- Basic SEO -->
-  <title>Cachy - Position Size & Risk Calculator</title>
-  <meta name="description"
-    content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis." />
-  <meta name="keywords"
-    content="trading calculator, position size, risk management, take profit, crypto trading, forex trading, stock trading, trading tools, financial calculator, trade optimizer" />
-  <link rel="canonical" href="https://www.cachy.app/" />
+    <!-- Multilingual Support (hreflang) -->
+    <link rel="alternate" hreflang="en" href="https://www.cachy.app/" />
+    <link rel="alternate" hreflang="de" href="https://www.cachy.app/" />
+    <link rel="alternate" hreflang="x-default" href="https://www.cachy.app/" />
+    <!-- Replace with your actual domain -->
 
-  <!-- Multilingual Support (hreflang) -->
-  <link rel="alternate" hreflang="en" href="https://www.cachy.app/" />
-  <link rel="alternate" hreflang="de" href="https://www.cachy.app/" />
-  <link rel="alternate" hreflang="x-default" href="https://www.cachy.app/" />
-  <!-- Replace with your actual domain -->
+    <!-- Open Graph / Facebook -->
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://www.cachy.app/" />
+    <!-- Replace with your actual domain -->
+    <meta
+      property="og:title"
+      content="Cachy - Position Size & Risk Calculator"
+    />
+    <meta
+      property="og:description"
+      content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."
+    />
+    <meta property="og:image" content="https://www.cachy.app/og-image.jpg" />
+    <!-- Replace with your actual image URL -->
 
-  <!-- Open Graph / Facebook -->
-  <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://www.cachy.app/" />
-  <!-- Replace with your actual domain -->
-  <meta property="og:title" content="Cachy - Position Size & Risk Calculator" />
-  <meta property="og:description"
-    content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis." />
-  <meta property="og:image" content="https://www.cachy.app/og-image.jpg" />
-  <!-- Replace with your actual image URL -->
+    <!-- Twitter -->
+    <meta property="twitter:card" content="summary_large_image" />
+    <meta property="twitter:url" content="https://www.cachy.app/" />
+    <!-- Replace with your actual domain -->
+    <meta
+      property="twitter:title"
+      content="Cachy - Position Size & Risk Calculator"
+    />
+    <meta
+      property="twitter:description"
+      content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis."
+    />
+    <meta
+      property="twitter:image"
+      content="https://www.cachy.app/twitter-image.jpg"
+    />
+    <!-- Replace with your actual image URL -->
 
-  <!-- Twitter -->
-  <meta property="twitter:card" content="summary_large_image" />
-  <meta property="twitter:url" content="https://www.cachy.app/" />
-  <!-- Replace with your actual domain -->
-  <meta property="twitter:title" content="Cachy - Position Size & Risk Calculator" />
-  <meta property="twitter:description"
-    content="Cachy is a comprehensive trading calculator for position sizing, risk management, and take-profit targets. Optimize your trades with real-time calculations and visual analysis." />
-  <meta property="twitter:image" content="https://www.cachy.app/twitter-image.jpg" />
-  <!-- Replace with your actual image URL -->
+    <link rel="manifest" href="/manifest.json" />
+    <link rel="apple-touch-icon" href="/icon-192.png" />
+    <meta name="theme-color" content="#0f172a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta
+      name="apple-mobile-web-app-status-bar-style"
+      content="black-translucent"
+    />
 
-  <link rel="manifest" href="/manifest.json" />
-  <link rel="apple-touch-icon" href="/icon-192.png" />
-  <meta name="theme-color" content="#0f172a" />
-  <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-
-  <!-- Structured Data (Schema.org) for SEO -->
-  <script type="application/ld+json">
+    <!-- Structured Data (Schema.org) for SEO -->
+    <script type="application/ld+json">
       {
         "@context": "https://schema.org",
         "@type": "WebApplication",
@@ -103,69 +122,74 @@
       }
     </script>
 
-  %sveltekit.head%
+    %sveltekit.head%
 
-  <!-- Matomo Tag Manager -->
-  <script>
-    var _mtm = (window._mtm = window._mtm || []);
-    _mtm.push({ "mtm.startTime": new Date().getTime(), event: "mtm.Start" });
-    (function () {
-      var d = document,
-        g = d.createElement("script"),
-        s = d.getElementsByTagName("script")[0];
-      g.async = true;
-      g.src = "https://s.cachy.app/js/container_h6eaMUR9.js";
-      s.parentNode.insertBefore(g, s);
-    })();
-  </script>
-  <!-- End Matomo Tag Manager -->
+    <!-- Matomo Tag Manager -->
+    <script>
+      var _mtm = (window._mtm = window._mtm || []);
+      _mtm.push({ "mtm.startTime": new Date().getTime(), event: "mtm.Start" });
+      (function () {
+        var d = document,
+          g = d.createElement("script"),
+          s = d.getElementsByTagName("script")[0];
+        g.async = true;
+        g.src = "https://s.cachy.app/js/container_h6eaMUR9.js";
+        s.parentNode.insertBefore(g, s);
+      })();
+    </script>
+    <!-- End Matomo Tag Manager -->
 
-  <!-- Theme Initialization (CRITICAL: Must run BEFORE any rendering) -->
-  <script>
-    (function () {
-      try {
-        var theme = localStorage.getItem("cachy_theme") || "dark";
+    <!-- Theme Initialization (CRITICAL: Must run BEFORE any rendering) -->
+    <script>
+      (function () {
+        try {
+          var theme = localStorage.getItem("cachy_theme") || "dark";
 
-        // Apply theme class immediately
-        if (theme !== "dark") {
-          document.documentElement.classList.add("theme-" + theme);
+          // Apply theme class immediately
+          if (theme !== "dark") {
+            document.documentElement.classList.add("theme-" + theme);
+          }
+
+          // CRITICAL: Set background color inline to prevent white flash
+          // This ensures the correct background is shown BEFORE CSS loads
+          var bgColors = {
+            dark: "#0f172a",
+            light: "#f1f5f9",
+            VIP: "#121212",
+            matrix: "#000000",
+            meteorite: "#0c082f",
+            steel: "#08103f",
+            dracula: "#282a36",
+            "solarized-light": "#fdf6e3",
+            "solarized-dark": "#002b36",
+            nord: "#2e3440",
+            "gruvbox-dark": "#282828",
+            monokai: "#1e1f1c",
+            "tokyo-night": "#1a1b26",
+            "everforest-dark": "#2d353b",
+          };
+
+          var bgColor = bgColors[theme] || bgColors["dark"];
+          document.documentElement.style.backgroundColor = bgColor;
+        } catch (e) {
+          // Silently fail if localStorage is not available
+          document.documentElement.style.backgroundColor = "#0f172a";
         }
+      })();
+    </script>
+  </head>
 
-        // CRITICAL: Set background color inline to prevent white flash
-        // This ensures the correct background is shown BEFORE CSS loads
-        var bgColors = {
-          dark: "#0f172a",
-          light: "#f1f5f9",
-          VIP: "#121212",
-          matrix: "#000000",
-          meteorite: "#0c082f",
-          steel: "#08103f",
-          dracula: "#282a36",
-          "solarized-light": "#fdf6e3",
-          "solarized-dark": "#002b36",
-          nord: "#2e3440",
-          "gruvbox-dark": "#282828",
-          monokai: "#1e1f1c",
-          "tokyo-night": "#1a1b26",
-          "everforest-dark": "#2d353b",
-        };
-
-        var bgColor = bgColors[theme] || bgColors["dark"];
-        document.documentElement.style.backgroundColor = bgColor;
-      } catch (e) {
-        // Silently fail if localStorage is not available
-        document.documentElement.style.backgroundColor = "#0f172a";
-      }
-    })();
-  </script>
-</head>
-
-<body class="min-h-screen" data-sveltekit-preload-data="hover">
-  <!-- Matomo Tag Manager (noscript) -->
-  <noscript><iframe src="https://s.cachy.app/ns.html?id=h6eaMUR9" height="0" width="0"
-      style="display: none; visibility: hidden"></iframe></noscript>
-  <!-- End Matomo Tag Manager (noscript) -->
-  <div style="display: contents">%sveltekit.body%</div>
-</body>
-
+  <body class="min-h-screen" data-sveltekit-preload-data="hover">
+    <!-- Matomo Tag Manager (noscript) -->
+    <noscript
+      ><iframe
+        src="https://s.cachy.app/ns.html?id=h6eaMUR9"
+        height="0"
+        width="0"
+        style="display: none; visibility: hidden"
+      ></iframe
+    ></noscript>
+    <!-- End Matomo Tag Manager (noscript) -->
+    <div style="display: contents">%sveltekit.body%</div>
+  </body>
 </html>

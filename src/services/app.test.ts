@@ -18,10 +18,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import * as fs from "fs";
 import * as path from "path";
-import {
-  tradeState,
-  INITIAL_TRADE_STATE,
-} from "../stores/trade.svelte";
+import { tradeState, INITIAL_TRADE_STATE } from "../stores/trade.svelte";
 import { resultsState, INITIAL_RESULTS_STATE } from "../stores/results.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { journalState } from "../stores/journal.svelte";
@@ -35,7 +32,6 @@ import type { AppState } from "../stores/types";
 function toggleAtrInputs(enable: boolean) {
   tradeState.toggleAtrInputs(enable);
 }
-
 
 // Mock the uiState to prevent errors during tests
 vi.mock("../stores/ui.svelte", () => ({
@@ -197,9 +193,9 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // field, the logic doesn't process it.
     tradeState.update((state) => {
       // Need to copy targets? state.targets is proxied in Runes
-      // But update gets a snapshot. 
+      // But update gets a snapshot.
       // Actually tradeState.update takes `curr: any` and we return modified.
-      // But the implementation uses Object.assign(this, next). 
+      // But the implementation uses Object.assign(this, next).
       // If we mutate `state` inside and return it, it might work but best to return new object.
       // For this test, let's keep it simple.
       state.targets[0].isLocked = true;
