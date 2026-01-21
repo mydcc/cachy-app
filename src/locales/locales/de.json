@@ -643,10 +643,16 @@
         "appearance": "Darstellung",
         "controls": "Steuerung"
       },
+      "glass": {
+        "blur": "Glas Unschärfe",
+        "saturate": "Sättigung",
+        "opacity": "Deckkraft"
+      },
       "background": {
         "title": "Hintergrund",
         "type": "Hintergrund Typ",
         "typeNone": "Kein",
+        "typeMedia": "Img / Vid",
         "typeImage": "Bild",
         "typeVideo": "Video",
         "typeAnimation": "Animation",

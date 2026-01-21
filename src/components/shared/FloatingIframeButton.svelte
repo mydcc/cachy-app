@@ -10,8 +10,8 @@
             // Beispiel-URL: Ein entspannter Lofi-Stream oder Trading-Content
             uiState.toggleIframeModal(
                 true,
-                "https://www.youtube.com/embed/jfKfPfyJRdk",
-                "Cachy TV / Trading Feed",
+                "https://space.cachy.app/index.php?plot_id=genesis",
+                "Cachy Space",
             );
         }
     }

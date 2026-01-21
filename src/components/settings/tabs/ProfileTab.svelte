@@ -158,16 +158,9 @@
                                 uiState.setTheme(e.currentTarget.value)}
                             class="select-field"
                         >
-                            {#each themes as theme, index}
-                                <option
-                                    value={theme.value}
-                                    disabled={!settingsState.isPro &&
-                                        index >= 5}
-                                >
+                            {#each themes as theme}
+                                <option value={theme.value}>
                                     {theme.label}
-                                    {!settingsState.isPro && index >= 5
-                                        ? "(Pro)"
-                                        : ""}
                                 </option>
                             {/each}
                         </select>
@@ -244,7 +237,65 @@
                     </button>
                 </div>
 
-                <!-- Background Settings -->\n
+                {#if settingsState.enableGlassmorphism}
+                    <div
+                        class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-4 animate-in fade-in slide-in-from-top-2"
+                    >
+                        <!-- Glass Blur -->
+                        <div class="field-group">
+                            <label
+                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                            >
+                                {$_("settings.profile.glass.blur") ||
+                                    "Glass Blur"}: {settingsState.glassBlur}px
+                                <input
+                                    type="range"
+                                    bind:value={settingsState.glassBlur}
+                                    min="0"
+                                    max="40"
+                                    step="1"
+                                    class="w-full"
+                                />
+                            </label>
+                        </div>
+                        <!-- Glass Saturate -->
+                        <div class="field-group">
+                            <label
+                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                            >
+                                {$_("settings.profile.glass.saturate") ||
+                                    "Saturation"}: {settingsState.glassSaturate}%
+                                <input
+                                    type="range"
+                                    bind:value={settingsState.glassSaturate}
+                                    min="50"
+                                    max="300"
+                                    step="10"
+                                    class="w-full"
+                                />
+                            </label>
+                        </div>
+                        <!-- Glass Opacity -->
+                        <div class="field-group">
+                            <label
+                                class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
+                            >
+                                {$_("settings.profile.glass.opacity") ||
+                                    "Opacity"}: {Math.round(
+                                    settingsState.glassOpacity * 100,
+                                )}%
+                                <input
+                                    type="range"
+                                    bind:value={settingsState.glassOpacity}
+                                    min="0"
+                                    max="1"
+                                    step="0.05"
+                                    class="w-full"
+                                />
+                            </label>
+                        </div>
+                    </div>
+                {/if}
                 <div class="border-t border-[var(--border-color)] pt-4 mt-4">
                     <h4
                         class="text-sm font-semibold text-[var(--text-primary)] mb-4"
@@ -255,21 +306,41 @@
 
                     <!-- Background Type Selector -->
                     <div class="field-group mb-4">
-                        <label
-                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                        <span
+                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
                             >{$_("settings.profile.background.type") ||
-                                "Hintergrund Typ"}</label
+                                "Hintergrund Typ"}</span
                         >
-                        <div class="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            {#each [{ v: "none", l: $_("settings.profile.background.typeNone") || "Kein" }, { v: "image", l: $_("settings.profile.background.typeImage") || "Bild" }, { v: "video", l: $_("settings.profile.background.typeVideo") || "Video" }, { v: "animation", l: $_("settings.profile.background.typeAnimation") || "Animation" }] as opt}
+                        <div
+                            id="bg-type-selector"
+                            class="grid grid-cols-3 gap-2"
+                        >
+                            {#each [{ v: "none", l: $_("settings.profile.background.typeNone") || "Kein" }, { v: "image", l: $_("settings.profile.background.typeMedia") || "Img / Vid" }, { v: "animation", l: $_("settings.profile.background.typeAnimation") || "Animation" }] as opt}
                                 <button
-                                    class="px-3 py-2 text-xs rounded border transition-all {settingsState.backgroundType ===
-                                    opt.v
+                                    class="px-3 py-2 text-xs rounded border transition-all {(opt.v ===
+                                        'image' &&
+                                        (settingsState.backgroundType ===
+                                            'image' ||
+                                            settingsState.backgroundType ===
+                                                'video')) ||
+                                    opt.v === settingsState.backgroundType
                                         ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                         : 'bg-[var(--bg-secondary)] text-[var(--text-primary)] border-[var(--border-color)] hover:border-[var(--accent-color)]'}"
-                                    onclick={() =>
-                                        (settingsState.backgroundType =
-                                            opt.v as any)}
+                                    onclick={() => {
+                                        if (opt.v === "image") {
+                                            // Auto-detect based on URL if possible, otherwise default image
+                                            const isVid =
+                                                settingsState.backgroundUrl
+                                                    ?.toLowerCase()
+                                                    .endsWith(".mp4");
+                                            settingsState.backgroundType = isVid
+                                                ? "video"
+                                                : "image";
+                                        } else {
+                                            settingsState.backgroundType =
+                                                opt.v as any;
+                                        }
+                                    }}
                                 >
                                     {opt.l}
                                 </button>
@@ -281,13 +352,39 @@
                     {#if settingsState.backgroundType === "image" || settingsState.backgroundType === "video"}
                         <div class="field-group mb-4">
                             <label
+                                for="bg-url-input"
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
                                 >{$_("settings.profile.background.url") ||
                                     "URL"}</label
                             >
                             <input
+                                id="bg-url-input"
                                 type="text"
-                                bind:value={settingsState.backgroundUrl}
+                                value={settingsState.backgroundUrl}
+                                oninput={(e) => {
+                                    const val = e.currentTarget.value;
+                                    settingsState.backgroundUrl = val;
+                                    // Auto-switch between image and video type
+                                    if (
+                                        settingsState.backgroundType ===
+                                            "image" ||
+                                        settingsState.backgroundType === "video"
+                                    ) {
+                                        const isVid =
+                                            val
+                                                .toLowerCase()
+                                                .endsWith(".mp4") ||
+                                            val
+                                                .toLowerCase()
+                                                .includes("youtube.com") ||
+                                            val
+                                                .toLowerCase()
+                                                .includes("vimeo.com");
+                                        settingsState.backgroundType = isVid
+                                            ? "video"
+                                            : "image";
+                                    }
+                                }}
                                 placeholder={$_(
                                     "settings.profile.background.urlPlaceholder",
                                 ) || "https://example.com/background.jpg"}
@@ -306,12 +403,14 @@
                     {#if settingsState.backgroundType === "animation"}
                         <div class="field-group mb-4">
                             <label
+                                for="bg-preset-select"
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
                                 >{$_(
                                     "settings.profile.background.presetLabel",
                                 ) || "Animation"}</label
                             >
                             <select
+                                id="bg-preset-select"
                                 bind:value={
                                     settingsState.backgroundAnimationPreset
                                 }
@@ -352,12 +451,12 @@
 
                         <!-- Animation Intensity -->
                         <div class="field-group mb-4">
-                            <label
-                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
+                            <span
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
                                 >{$_("settings.profile.background.intensity") ||
-                                    "Intensität"}</label
+                                    "Intensität"}</span
                             >
-                            <div class="flex gap-2">
+                            <div id="bg-intensity-selector" class="flex gap-2">
                                 {#each [{ v: "low", l: $_("settings.profile.background.intensityLow") || "Niedrig" }, { v: "medium", l: $_("settings.profile.background.intensityMedium") || "Mittel" }, { v: "high", l: $_("settings.profile.background.intensityHigh") || "Hoch" }] as opt}
                                     <button
                                         class="flex-1 px-3 py-2 text-xs rounded border transition-all {settingsState.backgroundAnimationIntensity ===
@@ -379,6 +478,7 @@
                     {#if settingsState.backgroundType === "video"}
                         <div class="field-group mb-4">
                             <label
+                                for="bg-video-speed"
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
                             >
                                 {$_("settings.profile.background.videoSpeed") ||
@@ -387,6 +487,7 @@
                                 )}x
                             </label>
                             <input
+                                id="bg-video-speed"
                                 type="range"
                                 bind:value={settingsState.videoPlaybackSpeed}
                                 min="0.5"
@@ -407,6 +508,7 @@
                     {#if settingsState.backgroundType !== "none"}
                         <div class="field-group mb-4">
                             <label
+                                for="bg-opacity-slider"
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
                             >
                                 {$_("settings.profile.background.opacity") ||
@@ -415,6 +517,7 @@
                                 )}%
                             </label>
                             <input
+                                id="bg-opacity-slider"
                                 type="range"
                                 bind:value={settingsState.backgroundOpacity}
                                 min="0"
@@ -433,12 +536,14 @@
                         <!-- Blur Slider -->
                         <div class="field-group mb-4">
                             <label
+                                for="bg-blur-slider"
                                 class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
                             >
                                 {$_("settings.profile.background.blur") ||
                                     "Unschärfe"}: {settingsState.backgroundBlur}px
                             </label>
                             <input
+                                id="bg-blur-slider"
                                 type="range"
                                 bind:value={settingsState.backgroundBlur}
                                 min="0"
@@ -466,39 +571,41 @@
                 </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <!-- Fee Preference -->
-                    <div class="field-group">
-                        <div class="field-label">
-                            {$_("settings.feePreference")}
+                    <!-- Fee Preference (Pro Only) -->
+                    {#if settingsState.isPro}
+                        <div class="field-group">
+                            <div class="field-label">
+                                {$_("settings.feePreference")}
+                            </div>
+                            <div class="segmented-control">
+                                {#each ["maker", "taker"] as fee}
+                                    <button
+                                        class="segmented-btn {settingsState.feePreference ===
+                                        fee
+                                            ? 'active'
+                                            : ''}"
+                                        onclick={() =>
+                                            (settingsState.feePreference =
+                                                fee as any)}
+                                    >
+                                        {fee.toUpperCase()}
+                                    </button>
+                                {/each}
+                                <div
+                                    class="segmented-bg"
+                                    style="transform: translateX({settingsState.feePreference ===
+                                    'maker'
+                                        ? '0%'
+                                        : '100%'})"
+                                ></div>
+                            </div>
+                            <p
+                                class="text-[10px] text-[var(--text-secondary)] mt-2"
+                            >
+                                {$_("settings.feePreferenceDesc")}
+                            </p>
                         </div>
-                        <div class="segmented-control">
-                            {#each ["maker", "taker"] as fee}
-                                <button
-                                    class="segmented-btn {settingsState.feePreference ===
-                                    fee
-                                        ? 'active'
-                                        : ''}"
-                                    onclick={() =>
-                                        (settingsState.feePreference =
-                                            fee as any)}
-                                >
-                                    {fee.toUpperCase()}
-                                </button>
-                            {/each}
-                            <div
-                                class="segmented-bg"
-                                style="transform: translateX({settingsState.feePreference ===
-                                'maker'
-                                    ? '0%'
-                                    : '100%'})"
-                            ></div>
-                        </div>
-                        <p
-                            class="text-[10px] text-[var(--text-secondary)] mt-2"
-                        >
-                            {$_("settings.feePreferenceDesc")}
-                        </p>
-                    </div>
+                    {/if}
 
                     <!-- Spin Buttons Visibility -->
                     <div class="field-group">
@@ -579,7 +686,7 @@
                             </div>
 
                             <div
-                                class="max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0.5 text-xs text-[var(--text-secondary)]"
+                                class="hotkey-list-scroll grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0.5 text-xs text-[var(--text-secondary)]"
                             >
                                 {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
                                     <div class="flex justify-between py-1">
@@ -719,11 +826,28 @@
         transform: translateX(16px);
     }
 
-    .hotkey-settings-wrapper {
-        max-height: 400px;
-        overflow: hidden;
+    .hotkey-settings-wrapper,
+    .hotkey-preview {
+        max-height: 480px;
+        overflow-y: auto;
         display: flex;
         flex-direction: column;
+        padding-right: 4px;
+    }
+
+    .hotkey-list-scroll {
+        flex: 1;
+    }
+
+    .hotkey-settings-wrapper::-webkit-scrollbar,
+    .hotkey-preview::-webkit-scrollbar {
+        width: 4px;
+    }
+
+    .hotkey-settings-wrapper::-webkit-scrollbar-thumb,
+    .hotkey-preview::-webkit-scrollbar-thumb {
+        background: var(--border-color);
+        border-radius: 2px;
     }
 
     /* Subtab Navigation */

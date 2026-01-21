@@ -5,6 +5,7 @@
     import { _ } from "../../locales/i18n";
 
     let containerEl: HTMLDivElement | undefined = $state();
+    let isInteracting = $state(false);
 
     $effect(() => {
         if (!containerEl || !uiState.iframeModal.visible) return;
@@ -13,9 +14,15 @@
             .draggable({
                 allowFrom: ".iframe-header",
                 listeners: {
+                    start() {
+                        isInteracting = true;
+                    },
                     move(event) {
                         uiState.iframeModal.x += event.dx;
                         uiState.iframeModal.y += event.dy;
+                    },
+                    end() {
+                        isInteracting = false;
                     },
                 },
                 modifiers: [
@@ -26,13 +33,19 @@
                 ],
             })
             .resizable({
-                edges: { left: true, right: true, bottom: true, top: true },
+                edges: { left: true, right: true, bottom: true, top: false }, // Verhindere Top-Resize um Header-Drag zu schützen
                 listeners: {
+                    start() {
+                        isInteracting = true;
+                    },
                     move(event) {
                         uiState.iframeModal.width = event.rect.width;
                         uiState.iframeModal.height = event.rect.height;
                         uiState.iframeModal.x += event.deltaRect.left;
                         uiState.iframeModal.y += event.deltaRect.top;
+                    },
+                    end() {
+                        isInteracting = false;
                     },
                 },
                 modifiers: [
@@ -41,7 +54,7 @@
                     }),
                     interact.modifiers.restrictSize({
                         min: { width: 320, height: 180 },
-                        max: { width: 768, height: 432 },
+                        max: { width: 1200, height: 675 }, // Erhöht auf Wunsch des Nutzers für mehr Freiheit
                     }),
                     interact.modifiers.restrictEdges({
                         outer: "parent",
@@ -63,6 +76,7 @@
     <div
         bind:this={containerEl}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"
+        class:is-interacting={isInteracting}
         transition:fade={{ duration: 200 }}
         style="
       width: {uiState.iframeModal.width}px;
@@ -70,18 +84,21 @@
       left: {uiState.iframeModal.x}px;
       top: {uiState.iframeModal.y}px;
       border-radius: 8px;
+      touch-action: none;
     "
     >
         <!-- Header/Titelleiste -->
         <div
-            class="iframe-header h-8 flex items-center justify-between px-3 bg-[#111] border-b border-[#222] cursor-move shrink-0"
+            class="iframe-header h-8 flex items-center justify-between px-3 bg-[#111] border-b border-[#222] cursor-move shrink-0 select-none"
         >
-            <div class="flex items-center gap-2 truncate mr-4">
-                <span class="text-amber-500 text-xs">📺</span>
+            <div
+                class="flex items-center gap-2 truncate mr-4 pointer-events-none"
+            >
+                <span class="text-amber-500 text-xs">🚀</span>
                 <span
                     class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] truncate"
                 >
-                    {uiState.iframeModal.title || "Floating Window"}
+                    {uiState.iframeModal.title || "Cachy Space"}
                 </span>
             </div>
             <button
@@ -109,17 +126,26 @@
         <!-- Content/Iframe -->
         <div class="flex-1 w-full bg-black relative">
             <iframe
-                src={uiState.iframeModal.url}
+                src={uiState.iframeModal.url ||
+                    "https://space.cachy.app/index.php?plot_id=genesis"}
                 title={uiState.iframeModal.title}
                 class="w-full h-full border-none"
-                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                class:pointer-events-none={isInteracting}
+                allow="xr-spatial-tracking; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
                 allowfullscreen
             ></iframe>
 
-            <!-- Overlay for visual feedback when resizing / dragging (optional) -->
+            <!-- Visual Resizing indicator for bottom corners -->
             <div
-                class="absolute inset-0 pointer-events-none border border-transparent group-hover:border-[var(--accent-color)]/20 transition-colors rounded-b-lg"
-            ></div>
+                class="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+                <svg
+                    viewBox="0 0 10 10"
+                    class="w-full h-full fill-[var(--accent-color)] opacity-40"
+                >
+                    <path d="M 0 10 L 10 10 L 10 0 Z" />
+                </svg>
+            </div>
         </div>
     </div>
 {/if}
@@ -128,5 +154,10 @@
     .iframe-header {
         user-select: none;
         backdrop-filter: blur(10px);
+    }
+
+    /* Disable transitions while interacting to prevent the "laggy/rubber-band" effect */
+    .is-interacting {
+        transition: none !important;
     }
 </style>

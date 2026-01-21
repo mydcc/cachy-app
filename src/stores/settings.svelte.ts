@@ -100,13 +100,13 @@ export interface Settings {
   newsApiKey?: string;
   cryptoPanicPlan: "developer" | "growth" | "enterprise";
   cryptoPanicFilter:
-    | "all"
-    | "rising"
-    | "hot"
-    | "bullish"
-    | "bearish"
-    | "important"
-    | "saved";
+  | "all"
+  | "rising"
+  | "hot"
+  | "bullish"
+  | "bearish"
+  | "important"
+  | "saved";
   enableNewsAnalysis: boolean;
   cmcApiKey?: string;
   enableCmcContext: boolean;
@@ -129,6 +129,9 @@ export interface Settings {
   rssFilterBySymbol?: boolean;
   isProLicenseActive: boolean;
   enableGlassmorphism: boolean;
+  glassBlur: number;
+  glassSaturate: number;
+  glassOpacity: number;
   backgroundType: BackgroundType;
   backgroundUrl: string | null;
   backgroundOpacity: number;
@@ -224,6 +227,9 @@ const defaultSettings: Settings = {
   rssFilterBySymbol: false,
   isProLicenseActive: false,
   enableGlassmorphism: false,
+  glassBlur: 8,
+  glassSaturate: 100,
+  glassOpacity: 0.7,
   backgroundType: "none",
   backgroundUrl: null,
   backgroundOpacity: 0.3,
@@ -264,6 +270,9 @@ class SettingsManager {
   feePreference = $state<"maker" | "taker">(defaultSettings.feePreference);
   hotkeyMode = $state<HotkeyMode>(defaultSettings.hotkeyMode);
   isProLicenseActive = $state<boolean>(defaultSettings.isProLicenseActive);
+  glassBlur = $state<number>(defaultSettings.glassBlur);
+  glassSaturate = $state<number>(defaultSettings.glassSaturate);
+  glassOpacity = $state<number>(defaultSettings.glassOpacity);
 
   apiKeys = $state(defaultSettings.apiKeys);
   customHotkeys = $state(defaultSettings.customHotkeys);
@@ -623,6 +632,9 @@ class SettingsManager {
         merged.customRssFeeds || defaultSettings.customRssFeeds;
       this.isProLicenseActive =
         merged.isProLicenseActive ?? defaultSettings.isProLicenseActive;
+      this.glassBlur = merged.glassBlur ?? defaultSettings.glassBlur;
+      this.glassSaturate = merged.glassSaturate ?? defaultSettings.glassSaturate;
+      this.glassOpacity = merged.glassOpacity ?? defaultSettings.glassOpacity;
 
       // Background Customization
       this.enableGlassmorphism =
@@ -766,6 +778,9 @@ class SettingsManager {
       rssPresets: $state.snapshot(this.rssPresets),
       customRssFeeds: $state.snapshot(this.customRssFeeds),
       isProLicenseActive: this.isProLicenseActive,
+      glassBlur: this.glassBlur,
+      glassSaturate: this.glassSaturate,
+      glassOpacity: this.glassOpacity,
       enableGlassmorphism: this.enableGlassmorphism,
       backgroundType: this.backgroundType,
       backgroundUrl: this.backgroundUrl,

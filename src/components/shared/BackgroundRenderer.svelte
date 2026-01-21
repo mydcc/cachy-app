@@ -34,7 +34,7 @@
           videoEl.pause();
         }
       },
-      { threshold: 0.1 }
+      { threshold: 0.1 },
     );
     observer.observe(videoEl);
     return () => {
@@ -44,8 +44,14 @@
 
   $effect(() => {
     if (typeof document !== "undefined") {
-      document.documentElement.style.setProperty("--bg-blur", `${settingsState.backgroundBlur}px`);
-      document.documentElement.style.setProperty("--bg-opacity", settingsState.backgroundOpacity.toString());
+      document.documentElement.style.setProperty(
+        "--bg-blur",
+        `${settingsState.backgroundBlur}px`,
+      );
+      document.documentElement.style.setProperty(
+        "--bg-opacity",
+        settingsState.backgroundOpacity.toString(),
+      );
     }
   });
 </script>
@@ -53,9 +59,23 @@
 {#if settingsState.backgroundType !== "none"}
   <div class="background-container">
     {#if settingsState.backgroundType === "image" && settingsState.backgroundUrl && !imageError}
-      <img src={settingsState.backgroundUrl} alt="Background" loading="lazy" onerror={() => (imageError = true)} />
+      <img
+        src={settingsState.backgroundUrl}
+        alt="Background"
+        loading="lazy"
+        onerror={() => (imageError = true)}
+      />
     {:else if settingsState.backgroundType === "video" && settingsState.backgroundUrl && !videoError}
-      <video bind:this={videoEl} src={settingsState.backgroundUrl} autoplay muted loop playsinline preload="metadata" onerror={() => (videoError = true)} />
+      <video
+        bind:this={videoEl}
+        src={settingsState.backgroundUrl}
+        autoplay
+        muted
+        loop
+        playsinline
+        preload="metadata"
+        onerror={() => (videoError = true)}
+      ></video>
     {:else if settingsState.backgroundType === "animation"}
       <BackgroundAnimations />
     {/if}
@@ -70,7 +90,9 @@
     overflow: hidden;
     pointer-events: none;
     filter: blur(var(--bg-blur, 0px)) opacity(var(--bg-opacity, 1));
-    transition: filter 0.3s ease, opacity 0.3s ease;
+    transition:
+      filter 0.3s ease,
+      opacity 0.3s ease;
   }
 
   .background-container img,

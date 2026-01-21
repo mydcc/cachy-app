@@ -732,10 +732,16 @@
         "appearance": "Appearance",
         "controls": "Controls"
       },
+      "glass": {
+        "blur": "Glass Blur",
+        "saturate": "Saturation",
+        "opacity": "Opacity"
+      },
       "background": {
         "title": "Background",
         "type": "Background Type",
         "typeNone": "None",
+        "typeMedia": "Img / Vid",
         "typeImage": "Image",
         "typeVideo": "Video",
         "typeAnimation": "Animation",

@@ -36,6 +36,7 @@
   let messageText = $state("");
   let isSending = $state(false);
   let errorMessage = $state("");
+  let isInteracting = $state(false);
 
   // Scroll to bottom on new messages
   $effect(() => {
@@ -158,10 +159,14 @@
       interaction.resizable({
         edges: { right: true },
         listeners: {
+          start() {
+            isInteracting = true;
+          },
           move(event) {
             panelState.width = event.rect.width;
           },
           end() {
+            isInteracting = false;
             settingsState.panelState = { ...panelState };
           },
         },
@@ -177,11 +182,15 @@
         .draggable({
           allowFrom: ".panel-header",
           listeners: {
+            start() {
+              isInteracting = true;
+            },
             move(event) {
               panelState.x += event.dx;
               panelState.y += event.dy;
             },
             end() {
+              isInteracting = false;
               clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
@@ -194,8 +203,11 @@
           ],
         })
         .resizable({
-          edges: { left: true, right: true, bottom: true, top: true },
+          edges: { left: true, right: true, bottom: true, top: false }, // Top disabled to prevent conflict with header drag
           listeners: {
+            start() {
+              isInteracting = true;
+            },
             move(event) {
               panelState.width = event.rect.width;
               panelState.height = event.rect.height;
@@ -203,6 +215,7 @@
               panelState.y += event.deltaRect.top;
             },
             end() {
+              isInteracting = false;
               clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
@@ -427,6 +440,7 @@
     {#if isOpen}
       <div
         class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel"
+        class:is-interacting={isInteracting}
         transition:fly={{
           y: isFloating ? 20 : 0,
           x: isSidebar ? -30 : 0,
@@ -1169,6 +1183,10 @@
 {/if}
 
 <style>
+  .is-interacting {
+    transition: none !important;
+  }
+
   .writing-vertical-lr {
     writing-mode: vertical-lr;
     text-orientation: mixed;

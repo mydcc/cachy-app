@@ -214,7 +214,7 @@
 
   function handleThemeSwitch(direction: "forward" | "backward" = "forward") {
     const currentIndex = themes.indexOf(uiState.currentTheme);
-    const limit = settingsState.isPro ? themes.length : 5;
+    const limit = themes.length;
     let nextIndex;
 
     if (direction === "forward") {

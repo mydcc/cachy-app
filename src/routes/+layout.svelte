@@ -195,19 +195,16 @@
         html.classList.remove("glass-enabled");
       }
 
-      // 2. Adjust Glass Intensity when Background is active
-      const hasBg = settingsState.backgroundType !== "none";
-      if (hasBg) {
-        // Boost glassmorphism for better visibility against backgrounds
-        html.style.setProperty("--glass-blur", "24px");
-        html.style.setProperty("--glass-saturate", "160%");
-        html.style.setProperty("--glass-opacity", "0.5");
-      } else {
-        // Default subtle values
-        html.style.setProperty("--glass-blur", "8px");
-        html.style.setProperty("--glass-saturate", "100%");
-        html.style.setProperty("--glass-opacity", "0.7");
-      }
+      // 2. Apply Custom Glass Settings
+      html.style.setProperty("--glass-blur", `${settingsState.glassBlur}px`);
+      html.style.setProperty(
+        "--glass-saturate",
+        `${settingsState.glassSaturate}%`,
+      );
+      html.style.setProperty(
+        "--glass-opacity",
+        settingsState.glassOpacity.toString(),
+      );
     }
   });
 </script>
