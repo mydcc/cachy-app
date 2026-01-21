@@ -58,6 +58,7 @@
   // Initial state
   let animationKey = $state(0);
   let priceTrend: "up" | "down" | null = $state(null);
+  let isInitialLoad = $state(true);
 
   // RSI Logic
   let historyKlines: Kline[] = $state([]);
@@ -452,6 +453,13 @@
       marketWatcher.register(symbol, "depth_book5");
     }
   });
+
+  // Reset isInitialLoad once we have data
+  $effect(() => {
+    if (isInitialLoad && (wsData || tickerData)) {
+      isInitialLoad = false;
+    }
+  });
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -507,12 +515,32 @@
     </div>
   </div>
 
-  {#if !currentPrice && !tickerData}
+  {#if isInitialLoad}
+    <!-- Loading State during initial load -->
+    <div class="flex flex-col gap-4 py-2 animate-pulse">
+      <div class="flex justify-between items-baseline">
+        <div class="h-8 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/4 shimmer"></div>
+      </div>
+      <div class="h-2 bg-[var(--bg-tertiary)] rounded w-full shimmer"></div>
+      <div class="grid grid-cols-2 gap-4 mt-2">
+        <div class="space-y-2">
+          <div class="h-3 bg-[var(--bg-tertiary)] rounded w-3/4 shimmer"></div>
+          <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        </div>
+        <div class="space-y-2 flex flex-col items-end">
+          <div class="h-3 bg-[var(--bg-tertiary)] rounded w-3/4 shimmer"></div>
+          <div class="h-4 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
+        </div>
+      </div>
+    </div>
+  {:else if !currentPrice && !tickerData}
+    <!-- Error state after loading attempt -->
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
       {$_("apiErrors.noMarketData") || "No market data available"}
     </div>
   {:else if !currentPrice || currentPrice.isZero()}
-    <!-- Skeleton / Loading State -->
+    <!-- Skeleton / Loading State for subsequent updates -->
     <div class="flex flex-col gap-4 py-2 animate-pulse">
       <div class="flex justify-between items-baseline">
         <div class="h-8 bg-[var(--bg-tertiary)] rounded w-1/2 shimmer"></div>
