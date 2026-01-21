@@ -136,6 +136,7 @@ export interface Settings {
   backgroundAnimationPreset: BackgroundAnimationPreset;
   backgroundAnimationIntensity: AnimationIntensity;
   videoPlaybackSpeed: number;
+  enableNetworkLogs: boolean;
 }
 
 const defaultSettings: Settings = {
@@ -230,6 +231,7 @@ const defaultSettings: Settings = {
   backgroundAnimationPreset: "none",
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
+  enableNetworkLogs: false,
 };
 
 class SettingsManager {
@@ -417,6 +419,7 @@ class SettingsManager {
     defaultSettings.backgroundAnimationIntensity,
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
+  enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
 
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
@@ -640,6 +643,8 @@ class SettingsManager {
         defaultSettings.backgroundAnimationIntensity;
       this.videoPlaybackSpeed =
         merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
+      this.enableNetworkLogs =
+        merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
 
       // Migration
       if (parsed.marketDataInterval === "manual") {
@@ -769,6 +774,7 @@ class SettingsManager {
       backgroundAnimationPreset: this.backgroundAnimationPreset,
       backgroundAnimationIntensity: this.backgroundAnimationIntensity,
       videoPlaybackSpeed: this.videoPlaybackSpeed,
+      enableNetworkLogs: this.enableNetworkLogs,
     };
   }
 

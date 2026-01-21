@@ -64,7 +64,7 @@
     aria-labelledby="modal-title"
   >
     <div
-      class="modal-content {extraClasses}"
+      class="modal-content glass-panel {extraClasses}"
       transition:fly|local={{ y: -20, duration: 200 }}
     >
       <div class="modal-header">

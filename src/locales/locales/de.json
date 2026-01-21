@@ -759,7 +759,9 @@
     "maintenance": {
       "backupTitle": "Backup & Wiederherstellung",
       "dangerTitle": "Gefahrenzone",
-      "healthTitle": "Daten-Gesundheit"
+      "healthTitle": "Daten-Gesundheit",
+      "networkLogsTitle": "Netzwerk-Protokollierung",
+      "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     }
   },
   "common": {

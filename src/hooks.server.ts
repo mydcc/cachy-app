@@ -62,6 +62,7 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
   const start = Date.now();
   const { method } = event.request;
   const path = event.url.pathname;
+  const fullUrl = event.url.pathname + event.url.search;
 
   // Ignoriere den Log-Stream selbst, um Endlos-Schleifen zu vermeiden
   if (path.includes("/api/stream-logs")) {
@@ -70,7 +71,7 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
 
   // Log Request Eingang
   // Wir loggen keine Bodies hier, da das Lesen des Streams ihn verbrauchen könnte (SvelteKit spezifisch)
-  logger.info(`[REQ] ${method} ${path}`);
+  logger.info(`[REQ] ${method} ${fullUrl}`);
 
   try {
     const response = await resolve(event);
@@ -88,7 +89,7 @@ const loggingHandler: Handle = async ({ event, resolve }) => {
       );
     } else {
       logger.info(
-        `[RES] ${method} ${path} -> ${response.status} (${duration}ms)`,
+        `[RES] ${method} ${fullUrl} -> ${response.status} (${duration}ms)`,
       );
     }
 

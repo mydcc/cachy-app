@@ -218,6 +218,12 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) return;
 
+        if (settingsState.enableNetworkLogs) {
+          console.log(
+            "%c[WS-Public] Connection opened",
+            "color: #0fa; font-weight: bold;",
+          );
+        }
         marketState.connectionStatus = "connected";
         this.isReconnectingPublic = false;
         this.lastMessageTimePublic = Date.now();
@@ -302,6 +308,12 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPrivate);
         if (this.wsPrivate !== ws) return;
 
+        if (settingsState.enableNetworkLogs) {
+          console.log(
+            "%c[WS-Private] Connection opened",
+            "color: #b8f; font-weight: bold;",
+          );
+        }
         this.isReconnectingPrivate = false;
         this.lastMessageTimePrivate = Date.now();
         this.startHeartbeat(ws, "private");
@@ -598,6 +610,9 @@ class BitunixWebSocketService {
           validatedMessage.code === "0" ||
           validatedMessage.msg === "success"
         ) {
+          if (settingsState.enableNetworkLogs) {
+            console.log("%c[WS-Private] Login successful", "color: #0fa;");
+          }
           this.isAuthenticated = true;
           this.subscribePrivate();
         }
@@ -783,6 +798,12 @@ class BitunixWebSocketService {
     if (this.publicSubscriptions.has(subKey)) return;
     this.publicSubscriptions.add(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
+      if (settingsState.enableNetworkLogs) {
+        console.log(
+          `%c[WS] Subscribe: ${channel}:${normalizedSymbol}`,
+          "color: #8af;",
+        );
+      }
       this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
     } else {
       this.connectPublic();

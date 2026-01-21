@@ -55,6 +55,7 @@
     "crypto-js": "^4.2.0",
     "decimal.js": "^10.4.3",
     "dompurify": "^3.3.1",
+    "interactjs": "^1.10.27",
     "intl-messageformat": "^11.0.9",
     "katex": "^0.16.27",
     "marked": "^17.0.1",

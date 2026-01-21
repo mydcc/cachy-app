@@ -24,6 +24,7 @@
   import SettingsModal from "../components/settings/SettingsModal.svelte";
   import CustomModal from "../components/shared/CustomModal.svelte";
   import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
+  import FloatingIframe from "../components/shared/FloatingIframe.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import { onMount } from "svelte";
@@ -69,64 +70,82 @@
 
     // Theme is already initialized in uiStore, no need to set it here
 
-    // --- CachyLog Integration (Development Only) ---
+    // --- CachyLog Integration (Developer & Manual Opt-in) ---
     // Connect to Server-Sent Events stream for real-time server logs
-    let evtSource: EventSource | null = null;
+    $effect(() => {
+      let evtSource: EventSource | null = null;
 
-    // Only enable CachyLog in development mode
-    const isDevelopment =
-      import.meta.env.DEV ||
-      window.location.hostname.includes("localhost") ||
-      window.location.hostname.includes("dev.");
+      const isDevDomain =
+        window.location.hostname.includes("localhost") ||
+        window.location.hostname.includes("dev.");
 
-    if (typeof EventSource !== "undefined" && isDevelopment) {
-      try {
-        evtSource = new EventSource("/api/stream-logs");
+      const shouldEnable =
+        settingsState.enableNetworkLogs || import.meta.env.DEV || isDevDomain;
 
-        evtSource.onmessage = (event) => {
-          try {
-            const logEntry = JSON.parse(event.data);
-            // Styling for console
-            const clStyle =
-              "background: #333; color: #00ff9d; padding: 2px 5px; border-radius: 3px; font-weight: bold;";
-            const levelStyle =
-              logEntry.level === "error"
-                ? "color: #ff4444;"
-                : logEntry.level === "warn"
-                  ? "color: #ffbb33;"
-                  : "color: #88ccff;";
+      if (typeof EventSource !== "undefined" && shouldEnable) {
+        try {
+          evtSource = new EventSource("/api/stream-logs");
 
-            // "CL: [LEVEL] Message"
-            // Note: console.log supports format specifiers like %c
-            console.log(
-              `%cCL:%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
-              clStyle,
-              levelStyle,
-              logEntry.data ? logEntry.data : "",
-            );
-          } catch (e) {
-            console.log(
-              "%cCL:%c [RAW]",
-              "background: #333; color: #00ff9d;",
-              "",
-              event.data,
-            );
-          }
-        };
+          evtSource.onmessage = (event) => {
+            try {
+              const logEntry = JSON.parse(event.data);
+              const now = new Date();
+              const timeStr =
+                now.toLocaleTimeString([], {
+                  hour12: false,
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                }) +
+                "." +
+                now.getMilliseconds().toString().padStart(3, "0");
 
-        evtSource.onerror = (err) => {
-          // Quietly fail or retry, don't spam console
-          // console.error('CL: EventSource failed:', err);
-        };
-      } catch (e) {
-        console.error("CL: Failed to init EventSource", e);
+              // Styling for console
+              const clStyle =
+                "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
+              const timeStyle =
+                "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
+              const levelStyle =
+                logEntry.level === "error"
+                  ? "color: #ff4444; font-weight: bold;"
+                  : logEntry.level === "warn"
+                    ? "color: #ffbb33; font-weight: bold;"
+                    : "color: #88ccff;";
+
+              // "CL | 22:10:24.572 [LEVEL] Message"
+              console.log(
+                `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+                clStyle,
+                timeStyle,
+                levelStyle,
+                logEntry.data ? logEntry.data : "",
+              );
+            } catch (e) {
+              console.log(
+                "%cCL:%c [RAW]",
+                "background: #333; color: #00ff9d;",
+                "",
+                event.data,
+              );
+            }
+          };
+
+          evtSource.onerror = () => {
+            // Silence error to stay transparent
+          };
+        } catch (e) {
+          console.error("CL: Failed to init EventSource", e);
+        }
       }
-    }
+
+      return () => {
+        if (evtSource) {
+          evtSource.close();
+        }
+      };
+    });
 
     return () => {
-      if (evtSource) {
-        evtSource.close();
-      }
       window.removeEventListener("error", handleGlobalError);
       window.removeEventListener(
         "unhandledrejection",
@@ -161,6 +180,34 @@
         "--app-font-family",
         settingsState.fontFamily,
       );
+    }
+  });
+
+  // Dynamic Glassmorphism & Background Contrast
+  $effect(() => {
+    if (typeof document !== "undefined") {
+      const html = document.documentElement;
+
+      // 1. Enable/Disable Glassmorphism class
+      if (settingsState.enableGlassmorphism) {
+        html.classList.add("glass-enabled");
+      } else {
+        html.classList.remove("glass-enabled");
+      }
+
+      // 2. Adjust Glass Intensity when Background is active
+      const hasBg = settingsState.backgroundType !== "none";
+      if (hasBg) {
+        // Boost glassmorphism for better visibility against backgrounds
+        html.style.setProperty("--glass-blur", "24px");
+        html.style.setProperty("--glass-saturate", "160%");
+        html.style.setProperty("--glass-opacity", "0.5");
+      } else {
+        // Default subtle values
+        html.style.setProperty("--glass-blur", "8px");
+        html.style.setProperty("--glass-saturate", "100%");
+        html.style.setProperty("--glass-opacity", "0.7");
+      }
     }
   });
 </script>
@@ -198,6 +245,7 @@
   <SettingsModal />
   <CustomModal />
   <SymbolPickerModal />
+  <FloatingIframe />
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 

@@ -29,6 +29,17 @@ class UiManager {
   showSettingsModal = $state(false);
   settingsTab = $state("profile");
 
+  // Floating Iframe Modal State
+  iframeModal = $state({
+    visible: false,
+    url: "",
+    title: "",
+    width: 640,
+    height: 360,
+    x: 100,
+    y: 100,
+  });
+
   // Loading State
   isLoading = $state(false);
   loadingMessage = $state("");
@@ -243,6 +254,14 @@ class UiManager {
   openSettings(tab = "profile") {
     this.showSettingsModal = true;
     this.settingsTab = tab;
+  }
+
+  toggleIframeModal(visible: boolean, url = "", title = "") {
+    this.iframeModal.visible = visible;
+    if (visible) {
+      if (url) this.iframeModal.url = url;
+      if (title) this.iframeModal.title = title;
+    }
   }
 
   showFeedback(type: "copy" | "save", duration = 2000) {

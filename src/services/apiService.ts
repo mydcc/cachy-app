@@ -19,6 +19,7 @@ import { Decimal } from "decimal.js";
 import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { settingsState } from "../stores/settings.svelte";
 import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
@@ -93,11 +94,20 @@ class RequestManager {
     // 0. Cache Check
     const cached = this.cache.get(key);
     if (cached && now - cached.timestamp < this.CACHE_TTL) {
+      if (settingsState.enableNetworkLogs) {
+        console.log(`%c[Cache] Hit: ${key}`, "color: #bfa; font-size: 10px;");
+      }
       return Promise.resolve(cached.data as T);
     }
 
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
+      if (settingsState.enableNetworkLogs) {
+        console.log(
+          `%c[Dedupe] Joined: ${key}`,
+          "color: #8af; font-size: 10px;",
+        );
+      }
       return this.pending.get(key) as Promise<T>;
     }
 
@@ -107,6 +117,12 @@ class RequestManager {
         this.activeCount++;
 
         try {
+          if (settingsState.enableNetworkLogs) {
+            console.log(
+              `%c[Request] Start: ${key}`,
+              "color: #aaa; font-size: 10px;",
+            );
+          }
           // Wrapped task with Timeout and Retry
           const executeWithRetry = async (attempt: number): Promise<T> => {
             const controller = new AbortController();
@@ -133,12 +149,12 @@ class RequestManager {
                   throw e;
                 }
 
-                console.warn(
-                  `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${
-                    retries + 1
-                  })`,
-                  e,
-                );
+                if (settingsState.enableNetworkLogs) {
+                  console.log(
+                    `%c[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`,
+                    "color: #fa0;",
+                  );
+                }
                 // Wait a bit before retry (increased for rate limit recovery)
                 await new Promise((r) => setTimeout(r, 1500 * (attempt + 1)));
                 return executeWithRetry(attempt + 1);
@@ -154,8 +170,17 @@ class RequestManager {
           // Store in cache upon success (only if it matches the current request)
           this.cache.set(key, { data: result, timestamp: Date.now() });
 
+          if (settingsState.enableNetworkLogs) {
+            console.log(
+              `%c[Response] Success: ${key}`,
+              "color: #0fa; font-size: 10px;",
+            );
+          }
           resolve(result);
         } catch (e) {
+          if (settingsState.enableNetworkLogs) {
+            console.error(`[Response] Failed: ${key}`, e);
+          }
           reject(e);
         } finally {
           this.activeCount--;

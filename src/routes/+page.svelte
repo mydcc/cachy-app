@@ -53,6 +53,7 @@
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
   import SidePanel from "../components/shared/SidePanel.svelte";
+  import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
@@ -700,7 +701,10 @@
         </div>
         <div class="mt-4 flex justify-between items-center">
           <LanguageSwitcher />
-          <SettingsButton />
+          <div class="flex items-center gap-2">
+            <FloatingIframeButton />
+            <SettingsButton />
+          </div>
           <div class="flex items-center gap-2">
             <PowerToggle />
           </div>

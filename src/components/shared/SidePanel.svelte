@@ -28,6 +28,7 @@
   import { marked } from "marked";
   // @ts-ignore
   import DOMPurify from "dompurify";
+  import interact from "interactjs";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
@@ -143,98 +144,84 @@
   });
 
   // Panel State (Position & Size)
-  let panelState = $state(settingsState.panelState);
-  let isDragging = $state(false);
-  let dragType:
-    | "move"
-    | "n"
-    | "s"
-    | "e"
-    | "w"
-    | "ne"
-    | "nw"
-    | "se"
-    | "sw"
-    | null = $state(null);
+  let panelEl: HTMLDivElement | undefined = $state();
+  let panelState = $state(
+    settingsState.panelState || { width: 450, height: 550, x: 20, y: 20 },
+  );
 
-  // Drag Start State
-  let startX = 0;
-  let startY = 0;
-  let startLeft = 0;
-  let startTop = 0;
-  let startWidth = 0;
-  let startHeight = 0;
+  $effect(() => {
+    if (!panelEl) return;
 
-  function handleMouseDown(e: MouseEvent, type: typeof dragType) {
-    if (isSidebar && type !== "w" && type !== "e") return; // Sidebar only supports width resize
+    const interaction = interact(panelEl);
 
-    isDragging = true;
-    dragType = type;
-    startX = e.clientX;
-    startY = e.clientY;
-
-    // Check if panelState needs init (though store has defaults)
-    if (!panelState) {
-      panelState = { width: 450, height: 550, x: 20, y: 20 };
+    if (isSidebar) {
+      interaction.resizable({
+        edges: { right: true },
+        listeners: {
+          move(event) {
+            panelState.width = event.rect.width;
+          },
+          end() {
+            settingsState.panelState = { ...panelState };
+          },
+        },
+        modifiers: [
+          interact.modifiers.restrictSize({
+            min: { width: 300, height: 100 },
+            max: { width: 800, height: 2000 },
+          }),
+        ],
+      });
+    } else if (isFloating && !settingsState.panelIsExpanded) {
+      interaction
+        .draggable({
+          allowFrom: ".panel-header",
+          listeners: {
+            move(event) {
+              panelState.x += event.dx;
+              panelState.y += event.dy;
+            },
+            end() {
+              clampPanelPosition();
+              settingsState.panelState = { ...panelState };
+            },
+          },
+          modifiers: [
+            interact.modifiers.restrictRect({
+              restriction: "parent",
+              endOnly: true,
+            }),
+          ],
+        })
+        .resizable({
+          edges: { left: true, right: true, bottom: true, top: true },
+          listeners: {
+            move(event) {
+              panelState.width = event.rect.width;
+              panelState.height = event.rect.height;
+              panelState.x += event.deltaRect.left;
+              panelState.y += event.deltaRect.top;
+            },
+            end() {
+              clampPanelPosition();
+              settingsState.panelState = { ...panelState };
+            },
+          },
+          modifiers: [
+            interact.modifiers.restrictSize({
+              min: { width: 300, height: 200 },
+            }),
+            interact.modifiers.restrictEdges({
+              outer: "parent",
+            }),
+          ],
+        });
     }
 
-    startLeft = panelState.x;
-    startTop = panelState.y;
-    startWidth = panelState.width;
-    startHeight = panelState.height;
-
-    window.addEventListener("mousemove", handleMouseMove);
-    window.addEventListener("mouseup", handleMouseUp);
-    document.body.style.userSelect = "none";
-  }
-
-  function handleMouseMove(e: MouseEvent) {
-    if (!isDragging || !dragType) return;
-
-    const dx = e.clientX - startX;
-    const dy = e.clientY - startY;
-
-    if (dragType === "move") {
-      panelState.x = startLeft + dx;
-      panelState.y = startTop + dy;
-    } else {
-      // Resizing
-      // Constraints
-      const minW = 300;
-      const minH = 200;
-
-      if (dragType.includes("e")) {
-        panelState.width = Math.max(minW, startWidth + dx);
-      }
-      if (dragType.includes("w")) {
-        const newW = Math.max(minW, startWidth - dx);
-        panelState.x = startLeft + (startWidth - newW);
-        panelState.width = newW;
-      }
-      if (dragType.includes("s")) {
-        panelState.height = Math.max(minH, startHeight + dy);
-      }
-      if (dragType.includes("n")) {
-        const newH = Math.max(minH, startHeight - dy);
-        panelState.y = startTop + (startHeight - newH);
-        panelState.height = newH;
-      }
-    }
-  }
-
-  function handleMouseUp() {
-    isDragging = false;
-    dragType = null;
-    window.removeEventListener("mousemove", handleMouseMove);
-    window.removeEventListener("mouseup", handleMouseUp);
-    document.body.style.userSelect = "";
-
-    // Clamp position to be safe
-    clampPanelPosition();
-
-    // Save to store
-    settingsState.panelState = { ...panelState };
-  }
+    return () => {
+      interaction.unset();
+    };
+  });
 
   function changeFontSize(delta: number) {
     settingsState.chatFontSize = Math.max(
@@ -439,7 +426,7 @@
     <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
-        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100]"
+        class="flex flex-col border border-[var(--border-color)] pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel"
         transition:fly={{
           y: isFloating ? 20 : 0,
           x: isSidebar ? -30 : 0,
@@ -462,200 +449,91 @@
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
       >
-        <!-- RESIZE HANDLES -->
-        {#if !isSidebar}
+        <!-- Main Panel Content -->
+        <div bind:this={panelEl} class="flex-1 flex flex-col min-h-0">
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
           <div
-            class="absolute top-0 left-0 w-3 h-3 cursor-nw-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "nw")}
-            role="separator"
+            class="panel-header h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
+            class:border-green-900={isTerminal}
+            class:border-[var(--border-color)]={!isTerminal}
+            class:cursor-move={!isSidebar}
+            ondblclick={() => toggleLayout()}
+            role="toolbar"
             tabindex="0"
-            aria-label="Resize NW"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute top-0 right-0 w-3 h-3 cursor-ne-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "ne")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize NE"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute bottom-0 left-0 w-3 h-3 cursor-sw-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "sw")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize SW"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute bottom-0 right-0 w-3 h-3 cursor-se-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "se")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize SE"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute top-0 left-2 right-2 h-2 cursor-n-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "n")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize N"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute bottom-0 left-2 right-2 h-2 cursor-s-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "s")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize S"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute left-0 top-2 bottom-2 w-2 cursor-w-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "w")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize W"
-          ></div>
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute right-0 top-2 bottom-2 w-2 cursor-e-resize z-50"
-            onmousedown={(e) => handleMouseDown(e, "e")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize E"
-          ></div>
-        {:else}
-          <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-          <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
-          <div
-            class="absolute top-0 right-0 w-1 h-full cursor-ew-resize z-50 hover:bg-blue-500 hover:opacity-50 transition-colors"
-            onmousedown={(e) => handleMouseDown(e, "e")}
-            role="separator"
-            tabindex="0"
-            aria-label="Resize Width"
-          ></div>
-        {/if}
-        <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
-        <div
-          class="h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
-          class:border-green-900={isTerminal}
-          class:border-[var(--border-color)]={!isTerminal}
-          class:cursor-move={!isSidebar}
-          onmousedown={!isSidebar ? (e) => handleMouseDown(e, "move") : null}
-          ondblclick={() => toggleLayout()}
-          role="toolbar"
-          tabindex="0"
-        >
-          <h3
-            class="font-bold text-xs tracking-widest uppercase"
-            class:text-green-500={isTerminal}
-            class:text-[var(--text-primary)]={!isTerminal}
           >
-            <button
-              type="button"
-              class="hover:text-[var(--accent-color)] transition-colors cursor-pointer bg-transparent border-none p-0"
-              style="font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;"
-              onclick={cycleMode}
-              ondblclick={(e) => e.stopPropagation()}
-            >
-              {getPanelTitle(settingsState.sidePanelMode)}
-            </button>
-          </h3>
-
-          <div class="flex items-center gap-2">
-            <!-- Font Size Controls -->
-            <div
-              class="flex items-center gap-1 mr-2 border-r border-[var(--border-color)] pr-2"
-              class:border-green-900={isTerminal}
+            <h3
+              class="font-bold text-xs tracking-widest uppercase"
+              class:text-green-500={isTerminal}
+              class:text-[var(--text-primary)]={!isTerminal}
             >
               <button
-                class="hover:text-[var(--text-primary)] transition-colors p-0.5"
-                onclick={() => changeFontSize(-1)}
+                type="button"
+                class="hover:text-[var(--accent-color)] transition-colors cursor-pointer bg-transparent border-none p-0"
+                style="font: inherit; color: inherit; text-transform: inherit; letter-spacing: inherit;"
+                onclick={cycleMode}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Smaller Font"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  ><line x1="5" y1="12" x2="19" y2="12" /></svg
-                >
+                {getPanelTitle(settingsState.sidePanelMode)}
               </button>
-              <span class="text-[9px] font-mono opacity-50 w-4 text-center"
-                >{settingsState.chatFontSize || 13}</span
+            </h3>
+
+            <div class="flex items-center gap-2">
+              <!-- Font Size Controls -->
+              <div
+                class="flex items-center gap-1 mr-2 border-r border-[var(--border-color)] pr-2"
+                class:border-green-900={isTerminal}
               >
+                <button
+                  class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+                  onclick={() => changeFontSize(-1)}
+                  ondblclick={(e) => e.stopPropagation()}
+                  title="Smaller Font"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    ><line x1="5" y1="12" x2="19" y2="12" /></svg
+                  >
+                </button>
+                <span class="text-[9px] font-mono opacity-50 w-4 text-center"
+                  >{settingsState.chatFontSize || 13}</span
+                >
+                <button
+                  class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+                  onclick={() => changeFontSize(+1)}
+                  ondblclick={(e) => e.stopPropagation()}
+                  title="Larger Font"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-3 w-3"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2.5"
+                    ><line x1="12" y1="5" x2="12" y2="19" /><line
+                      x1="5"
+                      y1="12"
+                      x2="19"
+                      y2="12"
+                    /></svg
+                  >
+                </button>
+              </div>
+
+              <!-- Export Button -->
               <button
                 class="hover:text-[var(--text-primary)] transition-colors p-0.5"
-                onclick={() => changeFontSize(+1)}
+                class:text-green-700={isTerminal}
+                class:hover:text-green-300={isTerminal}
+                onclick={exportChat}
                 ondblclick={(e) => e.stopPropagation()}
-                title="Larger Font"
+                title="Export Chat"
               >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-3 w-3"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2.5"
-                  ><line x1="12" y1="5" x2="12" y2="19" /><line
-                    x1="5"
-                    y1="12"
-                    x2="19"
-                    y2="12"
-                  /></svg
-                >
-              </button>
-            </div>
-
-            <!-- Export Button -->
-            <button
-              class="hover:text-[var(--text-primary)] transition-colors p-0.5"
-              class:text-green-700={isTerminal}
-              class:hover:text-green-300={isTerminal}
-              onclick={exportChat}
-              ondblclick={(e) => e.stopPropagation()}
-              title="Export Chat"
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                ><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4" /><polyline
-                  points="7 10 12 15 17 10"
-                /><line x1="12" y1="15" x2="12" y2="3" /></svg
-              >
-            </button>
-
-            <!-- Expand / Shrink -->
-            <button
-              class="hover:text-[var(--text-primary)] transition-colors p-0.5"
-              class:text-green-700={isTerminal}
-              class:hover:text-green-300={isTerminal}
-              onclick={toggleExpand}
-              ondblclick={(e) => e.stopPropagation()}
-              title={settingsState.panelIsExpanded
-                ? "Collapse Panel"
-                : "Expand Panel"}
-            >
-              {#if settingsState.panelIsExpanded}
                 <svg
                   xmlns="http://www.w3.org/2000/svg"
                   class="h-4 w-4"
@@ -663,591 +541,626 @@
                   fill="none"
                   stroke="currentColor"
                   stroke-width="2"
-                  ><polyline points="4 14 10 14 10 20" /><polyline
-                    points="20 10 14 10 14 4"
-                  /><line x1="14" y1="10" x2="21" y2="3" /><line
-                    x1="3"
-                    y1="21"
-                    x2="10"
-                    y2="14"
+                  ><path
+                    d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v4"
+                  /><polyline points="7 10 12 15 17 10" /><line
+                    x1="12"
+                    y1="15"
+                    x2="12"
+                    y2="3"
                   /></svg
                 >
-              {:else}
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  class="h-4 w-4"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  ><polyline points="15 3 21 3 21 9" /><polyline
-                    points="9 21 3 21 3 15"
-                  /><line x1="21" y1="3" x2="14" y2="10" /><line
-                    x1="3"
-                    y1="21"
-                    x2="10"
-                    y2="14"
-                  /></svg
-                >
-              {/if}
-            </button>
+              </button>
 
-            <button
-              class="transition-colors hover:text-red-500 p-0.5"
-              class:text-green-700={isTerminal}
-              class:text-[var(--text-secondary)]={!isTerminal}
-              onclick={() => {
-                const mode = settingsState.sidePanelMode;
-                const confirmClear = settingsState.aiConfirmClear; // We reuse this setting for simplicity or add a general one
+              <!-- Expand / Shrink -->
+              <button
+                class="hover:text-[var(--text-primary)] transition-colors p-0.5"
+                class:text-green-700={isTerminal}
+                class:hover:text-green-300={isTerminal}
+                onclick={toggleExpand}
+                ondblclick={(e) => e.stopPropagation()}
+                title={settingsState.panelIsExpanded
+                  ? "Collapse Panel"
+                  : "Expand Panel"}
+              >
+                {#if settingsState.panelIsExpanded}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><polyline points="4 14 10 14 10 20" /><polyline
+                      points="20 10 14 10 14 4"
+                    /><line x1="14" y1="10" x2="21" y2="3" /><line
+                      x1="3"
+                      y1="21"
+                      x2="10"
+                      y2="14"
+                    /></svg
+                  >
+                {:else}
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-4 w-4"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    ><polyline points="15 3 21 3 21 9" /><polyline
+                      points="9 21 3 21 3 15"
+                    /><line x1="21" y1="3" x2="14" y2="10" /><line
+                      x1="3"
+                      y1="21"
+                      x2="10"
+                      y2="14"
+                    /></svg
+                  >
+                {/if}
+              </button>
 
-                const clearFn = () => {
-                  if (mode === "ai") aiState.clearHistory();
-                  else if (mode === "notes") notesState.clearNotes();
-                  else chatState.clearHistory();
-                };
+              <button
+                class="transition-colors hover:text-red-500 p-0.5"
+                class:text-green-700={isTerminal}
+                class:text-[var(--text-secondary)]={!isTerminal}
+                onclick={() => {
+                  const mode = settingsState.sidePanelMode;
+                  const confirmClear = settingsState.aiConfirmClear; // We reuse this setting for simplicity or add a general one
 
-                if (confirmClear) {
-                  if (
-                    confirm(
-                      $_(
-                        mode === "notes"
-                          ? "notes.clearConfirm"
-                          : "chat.clearConfirm",
-                      ) || "Clear history?",
-                    )
-                  ) {
+                  const clearFn = () => {
+                    if (mode === "ai") aiState.clearHistory();
+                    else if (mode === "notes") notesState.clearNotes();
+                    else chatState.clearHistory();
+                  };
+
+                  if (confirmClear) {
+                    if (
+                      confirm(
+                        $_(
+                          mode === "notes"
+                            ? "notes.clearConfirm"
+                            : "chat.clearConfirm",
+                        ) || "Clear history?",
+                      )
+                    ) {
+                      clearFn();
+                    }
+                  } else {
                     clearFn();
                   }
-                } else {
-                  clearFn();
-                }
-                inputEl?.focus();
-              }}
-              ondblclick={(e) => e.stopPropagation()}
-              title="Clear History"
-            >
-              <!-- TRASH ICON -->
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                stroke-width="2"
-                ><polyline points="3 6 5 6 21 6" /><path
-                  d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
-                /></svg
+                  inputEl?.focus();
+                }}
+                ondblclick={(e) => e.stopPropagation()}
+                title="Clear History"
               >
-            </button>
-            <button
-              class="transition-colors p-0.5"
-              class:text-green-500={isTerminal}
-              class:text-[var(--text-secondary)]={!isTerminal}
-              class:hover:text-[var(--text-primary)]={!isTerminal}
-              class:hover:text-green-300={isTerminal}
-              aria-label="Close"
-              onclick={toggle}
-              ondblclick={(e) => e.stopPropagation()}
-            >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                class="h-4 w-4"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                ><path
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
+                <!-- TRASH ICON -->
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
                   stroke-width="2"
-                  d="M6 18L18 6M6 6l12 12"
-                /></svg
-              >
-            </button>
-          </div>
-        </div>
-
-        <!-- Messages Area -->
-        <div
-          bind:this={messagesContainer}
-          class="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3 scroll-smooth"
-          class:bg-black={isTerminal}
-          class:bg-[var(--chat-messages-bg)]={!isTerminal}
-        >
-          {#if settingsState.sidePanelMode === "ai"}
-            <!-- AI Messages -->
-            {#each aiState.messages as msg (msg.id)}
-              {@const isActionMsg =
-                msg.role === "system" &&
-                (msg.content.includes("[PENDING:") ||
-                  msg.content.includes("[✅") ||
-                  msg.content.includes("[❌"))}
-              <div
-                class="flex flex-col text-sm {msg.role === 'user'
-                  ? 'items-end'
-                  : 'items-start'} {isActionMsg ? 'my-1' : ''}"
-              >
-                <!-- Label for Terminal / Minimal Mode -->
-                {#if !isBubble && !isActionMsg}
-                  <div
-                    class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
-                  >
-                    {msg.role === "user" ? "You" : "AI"}
-                  </div>
-                {/if}
-
-                <div
-                  class="leading-relaxed transition-all relative group"
-                  style="font-size: {settingsState.chatFontSize || 13}px"
-                  class:text-green-400={isTerminal && msg.role === "user"}
-                  class:text-green-600={isTerminal && msg.role === "assistant"}
-                  class:w-full={isTerminal}
-                  class:text-right={isTerminal && msg.role === "user"}
-                  class:text-[var(--accent-color)]={isMinimal &&
-                    msg.role === "user"}
-                  class:text-[var(--text-primary)]={isMinimal &&
-                    msg.role === "assistant"}
-                  class:max-w-[90%]={isMinimal && msg.role === "user"}
-                  class:max-w-[95%]={isMinimal && msg.role === "assistant"}
-                  class:text-left={isMinimal && msg.role === "assistant"}
-                  class:bg-gradient-to-br={isBubble && msg.role === "user"}
-                  class:from-indigo-600={isBubble && msg.role === "user"}
-                  class:to-blue-600={isBubble && msg.role === "user"}
-                  class:text-white={isBubble && msg.role === "user"}
-                  class:rounded-[1.2rem]={isBubble && !isActionMsg}
-                  class:rounded-tr-none={isBubble && msg.role === "user"}
-                  class:px-4={isBubble && !isActionMsg}
-                  class:py-2={isBubble && !isActionMsg}
-                  class:shadow-md={isBubble && msg.role === "user"}
-                  class:max-w-[85%]={isBubble}
-                  class:bg-[var(--chat-bubble-bg)]={isBubble &&
-                    msg.role === "assistant" &&
-                    !isActionMsg}
-                  class:rounded-tl-none={isBubble && msg.role === "assistant"}
-                  class:border={isBubble &&
-                    msg.role === "assistant" &&
-                    !isActionMsg}
-                  class:border-[var(--border-color)]={isBubble &&
-                    msg.role === "assistant" &&
-                    !isActionMsg}
-                  class:shadow-sm={isBubble &&
-                    msg.role === "assistant" &&
-                    !isActionMsg}
-                  class:overflow-x-hidden={isBubble}
+                  ><polyline points="3 6 5 6 21 6" /><path
+                    d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"
+                  /></svg
                 >
-                  <!-- Copy Button (shows on hover) -->
-                  <button
-                    class="absolute -top-2 {msg.role === 'user'
-                      ? '-left-6'
-                      : '-right-6'} p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--accent-color)]"
-                    onclick={() => copyToClipboard(msg.content)}
-                    title="Copy Content"
-                  >
-                    <svg
-                      xmlns="http://www.w3.org/2000/svg"
-                      class="h-3 w-3"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      stroke-width="2"
-                      ><rect
-                        x="9"
-                        y="9"
-                        width="13"
-                        height="13"
-                        rx="2"
-                        ry="2"
-                      /><path
-                        d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
-                      /></svg
-                    >
-                  </button>
+              </button>
+              <button
+                class="transition-colors p-0.5"
+                class:text-green-500={isTerminal}
+                class:text-[var(--text-secondary)]={!isTerminal}
+                class:hover:text-[var(--text-primary)]={!isTerminal}
+                class:hover:text-green-300={isTerminal}
+                aria-label="Close"
+                onclick={toggle}
+                ondblclick={(e) => e.stopPropagation()}
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  class="h-4 w-4"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  ><path
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    stroke-width="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  /></svg
+                >
+              </button>
+            </div>
+          </div>
 
-                  {#if msg.role === "assistant"}
+          <!-- Messages Area -->
+          <div
+            bind:this={messagesContainer}
+            class="flex-1 overflow-y-auto overflow-x-hidden p-4 flex flex-col gap-3 scroll-smooth"
+            class:bg-black={isTerminal}
+            class:bg-[var(--chat-messages-bg)]={!isTerminal}
+          >
+            {#if settingsState.sidePanelMode === "ai"}
+              <!-- AI Messages -->
+              {#each aiState.messages as msg (msg.id)}
+                {@const isActionMsg =
+                  msg.role === "system" &&
+                  (msg.content.includes("[PENDING:") ||
+                    msg.content.includes("[✅") ||
+                    msg.content.includes("[❌"))}
+                <div
+                  class="flex flex-col text-sm {msg.role === 'user'
+                    ? 'items-end'
+                    : 'items-start'} {isActionMsg ? 'my-1' : ''}"
+                >
+                  <!-- Label for Terminal / Minimal Mode -->
+                  {#if !isBubble && !isActionMsg}
                     <div
-                      class="markdown-content"
-                      style="font-size: inherit"
-                      class:terminal-md={isTerminal}
+                      class="mb-1 text-[10px] uppercase font-bold tracking-wider opacity-60"
                     >
-                      {@html renderMarkdown(msg.content)}
+                      {msg.role === "user" ? "You" : "AI"}
                     </div>
-                  {:else if msg.role === "system"}
-                    {@const pendingMatch =
-                      msg.content.match(/\[PENDING:([^\]]+)\]/)}
-                    {#if pendingMatch}
-                      {@const pendingId = pendingMatch[1]}
-                      {@const pending = aiState.pendingActions.get(pendingId)}
-                      {#if pending}
-                        <div class="action-confirmation-block">
-                          <div class="action-table-container">
-                            <table class="action-mini-table">
-                              <thead>
-                                <tr>
-                                  <th colspan="2">Vorgeschlagene Änderungen</th>
-                                </tr>
-                              </thead>
-                              <tbody>
-                                {#each pending.actions as action}
+                  {/if}
+
+                  <div
+                    class="leading-relaxed transition-all relative group"
+                    style="font-size: {settingsState.chatFontSize || 13}px"
+                    class:text-green-400={isTerminal && msg.role === "user"}
+                    class:text-green-600={isTerminal &&
+                      msg.role === "assistant"}
+                    class:w-full={isTerminal}
+                    class:text-right={isTerminal && msg.role === "user"}
+                    class:text-[var(--accent-color)]={isMinimal &&
+                      msg.role === "user"}
+                    class:text-[var(--text-primary)]={isMinimal &&
+                      msg.role === "assistant"}
+                    class:max-w-[90%]={isMinimal && msg.role === "user"}
+                    class:max-w-[95%]={isMinimal && msg.role === "assistant"}
+                    class:text-left={isMinimal && msg.role === "assistant"}
+                    class:bg-gradient-to-br={isBubble && msg.role === "user"}
+                    class:from-indigo-600={isBubble && msg.role === "user"}
+                    class:to-blue-600={isBubble && msg.role === "user"}
+                    class:text-white={isBubble && msg.role === "user"}
+                    class:rounded-[1.2rem]={isBubble && !isActionMsg}
+                    class:rounded-tr-none={isBubble && msg.role === "user"}
+                    class:px-4={isBubble && !isActionMsg}
+                    class:py-2={isBubble && !isActionMsg}
+                    class:shadow-md={isBubble && msg.role === "user"}
+                    class:max-w-[85%]={isBubble}
+                    class:bg-[var(--chat-bubble-bg)]={isBubble &&
+                      msg.role === "assistant" &&
+                      !isActionMsg}
+                    class:rounded-tl-none={isBubble && msg.role === "assistant"}
+                    class:border={isBubble &&
+                      msg.role === "assistant" &&
+                      !isActionMsg}
+                    class:border-[var(--border-color)]={isBubble &&
+                      msg.role === "assistant" &&
+                      !isActionMsg}
+                    class:shadow-sm={isBubble &&
+                      msg.role === "assistant" &&
+                      !isActionMsg}
+                    class:overflow-x-hidden={isBubble}
+                  >
+                    <!-- Copy Button (shows on hover) -->
+                    <button
+                      class="absolute -top-2 {msg.role === 'user'
+                        ? '-left-6'
+                        : '-right-6'} p-1 bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded shadow-sm opacity-0 group-hover:opacity-100 transition-opacity hover:text-[var(--accent-color)]"
+                      onclick={() => copyToClipboard(msg.content)}
+                      title="Copy Content"
+                    >
+                      <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        class="h-3 w-3"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        ><rect
+                          x="9"
+                          y="9"
+                          width="13"
+                          height="13"
+                          rx="2"
+                          ry="2"
+                        /><path
+                          d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"
+                        /></svg
+                      >
+                    </button>
+
+                    {#if msg.role === "assistant"}
+                      <div
+                        class="markdown-content"
+                        style="font-size: inherit"
+                        class:terminal-md={isTerminal}
+                      >
+                        {@html renderMarkdown(msg.content)}
+                      </div>
+                    {:else if msg.role === "system"}
+                      {@const pendingMatch =
+                        msg.content.match(/\[PENDING:([^\]]+)\]/)}
+                      {#if pendingMatch}
+                        {@const pendingId = pendingMatch[1]}
+                        {@const pending = aiState.pendingActions.get(pendingId)}
+                        {#if pending}
+                          <div class="action-confirmation-block">
+                            <div class="action-table-container">
+                              <table class="action-mini-table">
+                                <thead>
                                   <tr>
-                                    <td class="action-label"
-                                      >{aiState
-                                        .describeAction(action)
-                                        .split(": ")[0]}</td
-                                    >
-                                    <td class="action-value"
-                                      >{aiState
-                                        .describeAction(action)
-                                        .split(": ")[1] || ""}</td
+                                    <th colspan="2"
+                                      >Vorgeschlagene Änderungen</th
                                     >
                                   </tr>
-                                {/each}
-                              </tbody>
-                            </table>
+                                </thead>
+                                <tbody>
+                                  {#each pending.actions as action}
+                                    <tr>
+                                      <td class="action-label"
+                                        >{aiState
+                                          .describeAction(action)
+                                          .split(": ")[0]}</td
+                                      >
+                                      <td class="action-value"
+                                        >{aiState
+                                          .describeAction(action)
+                                          .split(": ")[1] || ""}</td
+                                      >
+                                    </tr>
+                                  {/each}
+                                </tbody>
+                              </table>
+                            </div>
+                            <div class="flex gap-2 mt-2">
+                              <button
+                                class="confirm-btn"
+                                onclick={() => aiState.confirmAction(pendingId)}
+                              >
+                                Anwenden
+                              </button>
+                              <button
+                                class="reject-btn"
+                                onclick={() => aiState.rejectAction(pendingId)}
+                              >
+                                Ignorieren
+                              </button>
+                            </div>
                           </div>
-                          <div class="flex gap-2 mt-2">
-                            <button
-                              class="confirm-btn"
-                              onclick={() => aiState.confirmAction(pendingId)}
-                            >
-                              Anwenden
-                            </button>
-                            <button
-                              class="reject-btn"
-                              onclick={() => aiState.rejectAction(pendingId)}
-                            >
-                              Ignorieren
-                            </button>
-                          </div>
+                        {/if}
+                      {:else if msg.content.includes("[✅") || msg.content.includes("[❌")}
+                        <div class="text-[0.7rem] opacity-50 italic">
+                          {msg.content.replace(/\[|\]/g, "")}
+                        </div>
+                      {:else}
+                        <div class="text-[0.75rem] opacity-60">
+                          {msg.content}
                         </div>
                       {/if}
-                    {:else if msg.content.includes("[✅") || msg.content.includes("[❌")}
-                      <div class="text-[0.7rem] opacity-50 italic">
-                        {msg.content.replace(/\[|\]/g, "")}
-                      </div>
                     {:else}
-                      <div class="text-[0.75rem] opacity-60">
-                        {msg.content}
-                      </div>
+                      {msg.content}
                     {/if}
-                  {:else}
-                    {msg.content}
-                  {/if}
-                </div>
-
-                {#if isBubble}
-                  <span
-                    class="text-[9px] text-[var(--text-tertiary)] mt-1 px-1 opacity-70"
-                  >
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                {:else}
-                  <div class="text-[9px] mt-1 opacity-50 font-mono">
-                    {new Date(msg.timestamp).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
                   </div>
-                {/if}
-              </div>
-            {/each}
 
-            {#if aiState.isStreaming}
-              <div class="flex flex-col items-start animate-pulse">
-                {#if isTerminal}
-                  <span class="text-xs text-green-500 blink"
-                    >_ PROCESSING...</span
-                  >
-                {:else}
-                  <span
-                    class="text-[10px] uppercase font-bold text-[var(--accent-color)]"
-                    >Thinking...</span
-                  >
-                {/if}
-              </div>
-            {/if}
-
-            {#if aiState.messages.length === 0}
-              <div
-                class="flex flex-col items-center justify-center h-full opacity-40 select-none"
-              >
-                {#if isTerminal}
-                  <p class="text-xs text-green-800">
-                    SYSTEM READY. AWAITING INPUT.
-                  </p>
-                {:else}
-                  <p class="text-xs font-medium text-[var(--text-secondary)]">
-                    Ready to assist.
-                  </p>
-                {/if}
-              </div>
-            {/if}
-          {:else if settingsState.sidePanelMode === "notes"}
-            <!-- Private Notes -->
-            {#each notesState.messages as msg (msg.id)}
-              <div
-                class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
-              >
-                <div
-                  class="whitespace-pre-wrap text-[var(--text-primary)] font-medium"
-                  style="font-size: {settingsState.chatFontSize || 13}px"
-                >
-                  {msg.text}
-                </div>
-                <div
-                  class="text-[10px] text-[var(--text-secondary)] mt-2 text-right"
-                >
-                  {new Date(msg.timestamp).toLocaleString()}
-                </div>
-              </div>
-            {/each}
-          {:else}
-            <!-- Global Chat -->
-            <div
-              class="text-[10px] text-center opacity-40 mb-4 uppercase tracking-widest font-bold"
-            >
-              --- Connected to Global Chat ---
-            </div>
-            {#each chatState.messages.filter((m) => {
-              if (m.sender === "system") return true;
-              if (m.clientId === chatState.clientId) return true;
-              if (m.profitFactor === undefined) return true;
-              return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
-            }) as msg (msg.id)}
-              <div
-                class="mb-3 text-[var(--text-primary)] pl-2 border-l-2 border-[var(--accent-color)] bg-[var(--bg-tertiary)]/30 rounded-r p-1"
-              >
-                {#if msg.sender === "system"}
-                  <div
-                    class="text-xs text-[var(--accent-color)] font-bold mb-1 opacity-80 text-center uppercase tracking-wider"
-                  >
-                    --- {msg.text} ---
-                  </div>
-                {:else}
-                  {@const isMe =
-                    msg.clientId === chatState.clientId ||
-                    msg.senderId === "me"}
-                  <div class="flex flex-col">
+                  {#if isBubble}
                     <span
-                      class="text-[9px] font-bold opacity-60 uppercase mb-0.5 flex items-center gap-1.5"
-                      class:text-[var(--accent-color)]={isMe}
-                      class:opacity-100={isMe}
+                      class="text-[9px] text-[var(--text-tertiary)] mt-1 px-1 opacity-70"
                     >
-                      <span>
-                        {isMe ? "You" : "User"}
-                      </span>
-                      {#if msg.profitFactor !== undefined}
-                        <span
-                          class="px-1.5 py-0.5 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded text-[7px] font-black shadow-sm"
-                          style="line-height: 1;"
-                        >
-                          PF {msg.profitFactor.toFixed(2)}
-                        </span>
-                      {/if}
-                    </span>
-                    <span
-                      class="leading-tight text-[var(--text-primary)]"
-                      style="font-size: {settingsState.chatFontSize || 13}px"
-                      >{msg.text}</span
-                    >
-                    <span class="text-[9px] opacity-30 mt-1 font-mono">
                       {new Date(msg.timestamp).toLocaleTimeString([], {
                         hour: "2-digit",
                         minute: "2-digit",
                       })}
                     </span>
+                  {:else}
+                    <div class="text-[9px] mt-1 opacity-50 font-mono">
+                      {new Date(msg.timestamp).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+
+              {#if aiState.isStreaming}
+                <div class="flex flex-col items-start animate-pulse">
+                  {#if isTerminal}
+                    <span class="text-xs text-green-500 blink"
+                      >_ PROCESSING...</span
+                    >
+                  {:else}
+                    <span
+                      class="text-[10px] uppercase font-bold text-[var(--accent-color)]"
+                      >Thinking...</span
+                    >
+                  {/if}
+                </div>
+              {/if}
+
+              {#if aiState.messages.length === 0}
+                <div
+                  class="flex flex-col items-center justify-center h-full opacity-40 select-none"
+                >
+                  {#if isTerminal}
+                    <p class="text-xs text-green-800">
+                      SYSTEM READY. AWAITING INPUT.
+                    </p>
+                  {:else}
+                    <p class="text-xs font-medium text-[var(--text-secondary)]">
+                      Ready to assist.
+                    </p>
+                  {/if}
+                </div>
+              {/if}
+            {:else if settingsState.sidePanelMode === "notes"}
+              <!-- Private Notes -->
+              {#each notesState.messages as msg (msg.id)}
+                <div
+                  class="mb-3 p-3 bg-[var(--bg-tertiary)] rounded border border-[var(--border-color)] relative group"
+                >
+                  <div
+                    class="whitespace-pre-wrap text-[var(--text-primary)] font-medium"
+                    style="font-size: {settingsState.chatFontSize || 13}px"
+                  >
+                    {msg.text}
                   </div>
+                  <div
+                    class="text-[10px] text-[var(--text-secondary)] mt-2 text-right"
+                  >
+                    {new Date(msg.timestamp).toLocaleString()}
+                  </div>
+                </div>
+              {/each}
+            {:else}
+              <!-- Global Chat -->
+              <div
+                class="text-[10px] text-center opacity-40 mb-4 uppercase tracking-widest font-bold"
+              >
+                --- Connected to Global Chat ---
+              </div>
+              {#each chatState.messages.filter((m) => {
+                if (m.sender === "system") return true;
+                if (m.clientId === chatState.clientId) return true;
+                if (m.profitFactor === undefined) return true;
+                return m.profitFactor >= (settingsState.minChatProfitFactor || 0);
+              }) as msg (msg.id)}
+                <div
+                  class="mb-3 text-[var(--text-primary)] pl-2 border-l-2 border-[var(--accent-color)] bg-[var(--bg-tertiary)]/30 rounded-r p-1"
+                >
+                  {#if msg.sender === "system"}
+                    <div
+                      class="text-xs text-[var(--accent-color)] font-bold mb-1 opacity-80 text-center uppercase tracking-wider"
+                    >
+                      --- {msg.text} ---
+                    </div>
+                  {:else}
+                    {@const isMe =
+                      msg.clientId === chatState.clientId ||
+                      msg.senderId === "me"}
+                    <div class="flex flex-col">
+                      <span
+                        class="text-[9px] font-bold opacity-60 uppercase mb-0.5 flex items-center gap-1.5"
+                        class:text-[var(--accent-color)]={isMe}
+                        class:opacity-100={isMe}
+                      >
+                        <span>
+                          {isMe ? "You" : "User"}
+                        </span>
+                        {#if msg.profitFactor !== undefined}
+                          <span
+                            class="px-1.5 py-0.5 bg-[var(--accent-color)] text-[var(--btn-accent-text)] rounded text-[7px] font-black shadow-sm"
+                            style="line-height: 1;"
+                          >
+                            PF {msg.profitFactor.toFixed(2)}
+                          </span>
+                        {/if}
+                      </span>
+                      <span
+                        class="leading-tight text-[var(--text-primary)]"
+                        style="font-size: {settingsState.chatFontSize || 13}px"
+                        >{msg.text}</span
+                      >
+                      <span class="text-[9px] opacity-30 mt-1 font-mono">
+                        {new Date(msg.timestamp).toLocaleTimeString([], {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                        })}
+                      </span>
+                    </div>
+                  {/if}
+                </div>
+              {/each}
+            {/if}
+          </div>
+
+          <!-- Input Area -->
+          <div
+            class="p-2 border-t shrink-0 transition-colors bg-[var(--bg-secondary)]"
+            class:border-green-900={isTerminal}
+            class:border-[var(--border-color)]={!isTerminal}
+          >
+            <!-- Context Status Bar (Phase 1) -->
+            {#if isAiMode}
+              <div
+                class="flex items-center gap-3 px-1 mb-2 text-[10px] opacity-60 overflow-hidden"
+              >
+                <div
+                  class="flex items-center gap-1"
+                  title="Market Data Available"
+                  class:text-green-500={contextData?.cmc?.global ||
+                    contextData?.technicals}
+                >
+                  <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
+                </div>
+                <div
+                  class="flex items-center gap-1"
+                  title="News Data Available"
+                  class:text-green-500={contextData?.news &&
+                    contextData.news.length > 0}
+                >
+                  <span
+                    >{contextData?.news && contextData.news.length > 0
+                      ? "🟢"
+                      : "⚪"}</span
+                  > News
+                </div>
+                <!-- Add more indicators as needed -->
+              </div>
+
+              <!-- Quick Actions (Phase 1) -->
+              {#if !messageText}
+                <div class="flex gap-2 overflow-x-auto mb-2 pb-1 no-scrollbar">
+                  <button
+                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    onclick={() => {
+                      messageText =
+                        "Analysiere den Markt für " +
+                        (tradeState.symbol || "BTC");
+                      handleSend();
+                    }}
+                  >
+                    📊 Market Check
+                  </button>
+                  <button
+                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    onclick={() => {
+                      messageText =
+                        "Erstelle eine technische Analyse für " +
+                        (tradeState.symbol || "BTC");
+                      handleSend();
+                    }}
+                  >
+                    🧪 Tech Analysis
+                  </button>
+                  <button
+                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    onclick={() => {
+                      messageText = "Prüfe mein Setup auf Fehler und Risiken.";
+                      handleSend();
+                    }}
+                  >
+                    ⚠️ Risk Audit
+                  </button>
+                  <button
+                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    onclick={() => {
+                      messageText = "Gibt es wichtige News?";
+                      handleSend();
+                    }}
+                  >
+                    📰 News check
+                  </button>
+                </div>
+              {/if}
+            {/if}
+
+            {#if errorMessage}
+              {@const isRateLimit =
+                errorMessage.toLowerCase().includes("quota") ||
+                errorMessage.includes("429")}
+              <div
+                class="text-xs mb-2 px-2 transition-colors"
+                class:text-[var(--danger-color)]={!isRateLimit}
+                class:animate-pulse={!isRateLimit}
+                class:text-orange-400={isRateLimit}
+                class:font-medium={isRateLimit}
+              >
+                {#if isRateLimit}
+                  <div class="flex items-center gap-1.5 opacity-90">
+                    <span>⚠️</span>
+                    <span
+                      >Generative AI Quota exceeded. Please try again later or
+                      check API settings.</span
+                    >
+                  </div>
+                {:else}
+                  {$_(errorMessage) || errorMessage || aiState.error}
                 {/if}
               </div>
-            {/each}
-          {/if}
-        </div>
-
-        <!-- Input Area -->
-        <div
-          class="p-2 border-t shrink-0 transition-colors bg-[var(--bg-secondary)]"
-          class:border-green-900={isTerminal}
-          class:border-[var(--border-color)]={!isTerminal}
-        >
-          <!-- Context Status Bar (Phase 1) -->
-          {#if isAiMode}
-            <div
-              class="flex items-center gap-3 px-1 mb-2 text-[10px] opacity-60 overflow-hidden"
-            >
-              <div
-                class="flex items-center gap-1"
-                title="Market Data Available"
-                class:text-green-500={contextData?.cmc?.global ||
-                  contextData?.technicals}
-              >
-                <span>{contextData?.cmc?.global ? "🟢" : "⚪"}</span> Market
-              </div>
-              <div
-                class="flex items-center gap-1"
-                title="News Data Available"
-                class:text-green-500={contextData?.news &&
-                  contextData.news.length > 0}
-              >
-                <span
-                  >{contextData?.news && contextData.news.length > 0
-                    ? "🟢"
-                    : "⚪"}</span
-                > News
-              </div>
-              <!-- Add more indicators as needed -->
-            </div>
-
-            <!-- Quick Actions (Phase 1) -->
-            {#if !messageText}
-              <div class="flex gap-2 overflow-x-auto mb-2 pb-1 no-scrollbar">
-                <button
-                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
-                  onclick={() => {
-                    messageText =
-                      "Analysiere den Markt für " +
-                      (tradeState.symbol || "BTC");
-                    handleSend();
-                  }}
-                >
-                  📊 Market Check
-                </button>
-                <button
-                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
-                  onclick={() => {
-                    messageText =
-                      "Erstelle eine technische Analyse für " +
-                      (tradeState.symbol || "BTC");
-                    handleSend();
-                  }}
-                >
-                  🧪 Tech Analysis
-                </button>
-                <button
-                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
-                  onclick={() => {
-                    messageText = "Prüfe mein Setup auf Fehler und Risiken.";
-                    handleSend();
-                  }}
-                >
-                  ⚠️ Risk Audit
-                </button>
-                <button
-                  class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
-                  onclick={() => {
-                    messageText = "Gibt es wichtige News?";
-                    handleSend();
-                  }}
-                >
-                  📰 News check
-                </button>
-              </div>
             {/if}
-          {/if}
-
-          {#if errorMessage}
-            {@const isRateLimit =
-              errorMessage.toLowerCase().includes("quota") ||
-              errorMessage.includes("429")}
-            <div
-              class="text-xs mb-2 px-2 transition-colors"
-              class:text-[var(--danger-color)]={!isRateLimit}
-              class:animate-pulse={!isRateLimit}
-              class:text-orange-400={isRateLimit}
-              class:font-medium={isRateLimit}
-            >
-              {#if isRateLimit}
-                <div class="flex items-center gap-1.5 opacity-90">
-                  <span>⚠️</span>
-                  <span
-                    >Generative AI Quota exceeded. Please try again later or
-                    check API settings.</span
-                  >
-                </div>
+            <div class="relative w-full">
+              {#if isAiMode || settingsState.sidePanelMode === "notes"}
+                <textarea
+                  bind:this={inputEl}
+                  rows="1"
+                  class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none flex items-center min-h-[40px] max-h-[200px]"
+                  style="font-size: {settingsState.chatFontSize || 13}px"
+                  class:bg-black={isTerminal}
+                  class:text-green-500={isTerminal}
+                  class:border-green-800={isTerminal}
+                  class:focus:border-green-500={isTerminal}
+                  class:font-mono={isTerminal}
+                  class:bg-[var(--bg-primary)]={!isTerminal}
+                  class:text-[var(--text-primary)]={!isTerminal}
+                  class:border-[var(--border-color)]={!isTerminal}
+                  class:rounded-xl={!isTerminal}
+                  class:focus:border-[var(--accent-color)]={!isTerminal}
+                  class:placeholder-[var(--text-tertiary)]={true}
+                  placeholder={settingsState.sidePanelMode === "ai"
+                    ? isTerminal
+                      ? "> ENTER COMMAND"
+                      : "Message AI... (Shift+Enter for new line)"
+                    : "Type note..."}
+                  maxlength={settingsState.sidePanelMode === "ai" ? 2000 : 2000}
+                  bind:value={messageText}
+                  onkeydown={handleKeydown}
+                  oninput={(e) =>
+                    adjustTextareaHeight(e.target as HTMLTextAreaElement)}
+                  disabled={isSending ||
+                    (settingsState.sidePanelMode === "ai" &&
+                      aiState.isStreaming)}
+                ></textarea>
               {:else}
-                {$_(errorMessage) || errorMessage || aiState.error}
+                <input
+                  bind:this={inputEl}
+                  type="text"
+                  class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
+                  style="font-size: {settingsState.chatFontSize || 13}px"
+                  class:bg-black={isTerminal}
+                  class:text-green-500={isTerminal}
+                  class:border-green-800={isTerminal}
+                  class:focus:border-green-500={isTerminal}
+                  class:font-mono={isTerminal}
+                  class:bg-[var(--bg-primary)]={!isTerminal}
+                  class:text-[var(--text-primary)]={!isTerminal}
+                  class:border-[var(--border-color)]={!isTerminal}
+                  class:rounded-full={isBubble}
+                  class:focus:border-[var(--accent-color)]={!isTerminal}
+                  class:placeholder-[var(--text-tertiary)]={true}
+                  placeholder="Type here..."
+                  maxlength={140}
+                  bind:value={messageText}
+                  onkeydown={handleKeydown}
+                  disabled={isSending}
+                />
+              {/if}
+              {#if !isTerminal}
+                <button
+                  class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-2"
+                  onclick={handleSend}
+                  disabled={!messageText.trim()}
+                  aria-label="Send message"
+                  title="Send message"
+                >
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="16"
+                    height="16"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><line x1="22" y1="2" x2="11" y2="13"></line><polygon
+                      points="22 2 15 22 11 13 2 9 22 2"
+                    ></polygon></svg
+                  >
+                </button>
               {/if}
             </div>
-          {/if}
-          <div class="relative w-full">
-            {#if isAiMode || settingsState.sidePanelMode === "notes"}
-              <textarea
-                bind:this={inputEl}
-                rows="1"
-                class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none flex items-center min-h-[40px] max-h-[200px]"
-                style="font-size: {settingsState.chatFontSize || 13}px"
-                class:bg-black={isTerminal}
-                class:text-green-500={isTerminal}
-                class:border-green-800={isTerminal}
-                class:focus:border-green-500={isTerminal}
-                class:font-mono={isTerminal}
-                class:bg-[var(--bg-primary)]={!isTerminal}
-                class:text-[var(--text-primary)]={!isTerminal}
-                class:border-[var(--border-color)]={!isTerminal}
-                class:rounded-xl={!isTerminal}
-                class:focus:border-[var(--accent-color)]={!isTerminal}
-                class:placeholder-[var(--text-tertiary)]={true}
-                placeholder={settingsState.sidePanelMode === "ai"
-                  ? isTerminal
-                    ? "> ENTER COMMAND"
-                    : "Message AI... (Shift+Enter for new line)"
-                  : "Type note..."}
-                maxlength={settingsState.sidePanelMode === "ai" ? 2000 : 2000}
-                bind:value={messageText}
-                onkeydown={handleKeydown}
-                oninput={(e) =>
-                  adjustTextareaHeight(e.target as HTMLTextAreaElement)}
-                disabled={isSending ||
-                  (settingsState.sidePanelMode === "ai" && aiState.isStreaming)}
-              ></textarea>
-            {:else}
-              <input
-                bind:this={inputEl}
-                type="text"
-                class="w-full bg-transparent border-none focus:ring-0 p-2 pr-10 resize-none h-10 flex items-center"
-                style="font-size: {settingsState.chatFontSize || 13}px"
-                class:bg-black={isTerminal}
-                class:text-green-500={isTerminal}
-                class:border-green-800={isTerminal}
-                class:focus:border-green-500={isTerminal}
-                class:font-mono={isTerminal}
-                class:bg-[var(--bg-primary)]={!isTerminal}
-                class:text-[var(--text-primary)]={!isTerminal}
-                class:border-[var(--border-color)]={!isTerminal}
-                class:rounded-full={isBubble}
-                class:focus:border-[var(--accent-color)]={!isTerminal}
-                class:placeholder-[var(--text-tertiary)]={true}
-                placeholder="Type here..."
-                maxlength={140}
-                bind:value={messageText}
-                onkeydown={handleKeydown}
-                disabled={isSending}
-              />
-            {/if}
-            {#if !isTerminal}
-              <button
-                class="absolute right-2 top-1/2 transform -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] p-2"
-                onclick={handleSend}
-                disabled={!messageText.trim()}
-                aria-label="Send message"
-                title="Send message"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="16"
-                  height="16"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  stroke-width="2"
-                  stroke-linecap="round"
-                  stroke-linejoin="round"
-                  ><line x1="22" y1="2" x2="11" y2="13"></line><polygon
-                    points="22 2 15 22 11 13 2 9 22 2"
-                  ></polygon></svg
-                >
-              </button>
-            {/if}
           </div>
         </div>
       </div>

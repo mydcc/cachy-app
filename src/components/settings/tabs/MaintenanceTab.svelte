@@ -277,15 +277,33 @@
             <div
                 class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
             >
-                <span class="text-xs font-bold block mb-2 uppercase opacity-50"
-                    >System Logs</span
-                >
+                <div class="flex justify-between items-center mb-4">
+                    <span class="text-xs font-bold block uppercase opacity-50"
+                        >{$_("settings.maintenance.networkLogsTitle")}</span
+                    >
+                    <button
+                        class="toggle-container {settingsState.enableNetworkLogs
+                            ? 'active'
+                            : ''}"
+                        onclick={() =>
+                            (settingsState.enableNetworkLogs =
+                                !settingsState.enableNetworkLogs)}
+                        aria-label="Toggle Server Logs"
+                    >
+                        <div class="toggle-thumb"></div>
+                    </button>
+                </div>
                 <button
                     class="w-full py-2 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-lg text-sm transition-colors"
                     onclick={() => fetch("/api/test-log", { method: "POST" })}
                 >
                     Check Browser Connectivity
                 </button>
+                <p
+                    class="text-[9px] text-[var(--text-secondary)] mt-2 italic px-1"
+                >
+                    {$_("settings.maintenance.networkLogsDesc")}
+                </p>
             </div>
 
             <div class="p-4 rounded-xl bg-red-500/5 border border-red-500/20">
@@ -405,9 +423,33 @@
         font-weight: 700;
         text-transform: uppercase;
     }
-    .status-badge.success {
-        background: var(--success-color);
-        color: white;
-        opacity: 0.8;
+    .active .toggle-thumb {
+        transform: translateX(16px);
+    }
+
+    /* Toggle (Shared) */
+    .toggle-container {
+        width: 36px;
+        height: 20px;
+        background-color: var(--bg-tertiary);
+        border-radius: 20px;
+        position: relative;
+        transition: all 0.3s ease;
+        border: 1px solid var(--border-color);
+        cursor: pointer;
+    }
+    .toggle-container.active {
+        background-color: var(--accent-color);
+        border-color: var(--accent-color);
+    }
+    .toggle-thumb {
+        width: 14px;
+        height: 14px;
+        background-color: white;
+        border-radius: 50%;
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 </style>

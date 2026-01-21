@@ -678,7 +678,9 @@
     "maintenance": {
       "backupTitle": "Backup & Restore",
       "dangerTitle": "Danger Zone",
-      "healthTitle": "Data Health"
+      "healthTitle": "Data Health",
+      "networkLogsTitle": "Network Logging",
+      "networkLogsDesc": "Show real-time API & Server activity in the console."
     },
     "workspace": {
       "expertDesc": "Advanced options for experienced users",
