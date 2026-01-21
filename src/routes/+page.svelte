@@ -296,7 +296,7 @@
   {#if settingsState.showSidebars}
     <!-- Left Sidebar: Positions Table & Sentiment (Sticky) -->
     <div class="hidden xl:flex flex-col gap-3 w-96 shrink-0 sticky top-8 z-40">
-      {#if settingsState.showSidebarActivity}
+      {#if settingsState.showSidebarActivity && settingsState.isPro}
         <PositionsSidebar />
       {/if}
       {#if settingsState.showMarketSentiment}

@@ -54,118 +54,136 @@
     id="tab-integrations"
 >
     <!-- Exchanges Section -->
-    <section class="settings-section">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-blue-500/10 text-blue-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><rect width="20" height="12" x="2" y="6" rx="2" /><circle
-                        cx="12"
-                        cy="12"
-                        r="2"
-                    /><path d="M6 12h.01M18 12h.01" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.integrations.exchanges") ||
-                    "Exchange Connectivity"}
-            </h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Bitunix -->
-            <div class="api-card">
-                <div class="header">
-                    <span class="font-bold text-sm">Bitunix</span>
-                    <span
-                        class="status-dot {settingsState.apiKeys.bitunix.key
-                            ? 'connected'
-                            : ''}"
-                    ></span>
+    {#if settingsState.isPro}
+        <section class="settings-section">
+            <div class="flex items-center gap-2 mb-4">
+                <div class="icon-box bg-blue-500/10 text-blue-500">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><rect
+                            width="20"
+                            height="12"
+                            x="2"
+                            y="6"
+                            rx="2"
+                        /><circle cx="12" cy="12" r="2" /><path
+                            d="M6 12h.01M18 12h.01"
+                        /></svg
+                    >
                 </div>
-                <div class="body">
-                    <div class="field-group">
-                        <label for="bitunix-api-key"
-                            >{$_("settings.integrations.apiKey")}</label
-                        >
-                        <input
-                            id="bitunix-api-key"
-                            type={showKeys["bitunix_k"] ? "text" : "password"}
-                            bind:value={settingsState.apiKeys.bitunix.key}
-                            class="api-input"
-                            placeholder="{$_(
-                                'settings.integrations.enterKey',
-                            )} (Bitunix)"
-                        />
-                    </div>
-                    <div class="field-group mt-3">
-                        <label for="bitunix-api-secret"
-                            >{$_("settings.integrations.apiSecret")}</label
-                        >
-                        <input
-                            id="bitunix-api-secret"
-                            type={showKeys["bitunix_s"] ? "text" : "password"}
-                            bind:value={settingsState.apiKeys.bitunix.secret}
-                            class="api-input"
-                            placeholder={$_(
-                                "settings.integrations.enterSecret",
-                            )}
-                        />
-                    </div>
-                </div>
+                <h3 class="section-title mb-0">
+                    {$_("settings.integrations.exchanges") ||
+                        "Exchange Connectivity"}
+                </h3>
             </div>
 
-            <!-- Binance -->
-            <div class="api-card">
-                <div class="header">
-                    <span class="font-bold text-sm">Binance</span>
-                    <span
-                        class="status-dot {settingsState.apiKeys.binance.key
-                            ? 'connected'
-                            : ''}"
-                    ></span>
-                </div>
-                <div class="body">
-                    <div class="field-group">
-                        <label for="binance-api-key"
-                            >{$_("settings.integrations.apiKey")}</label
-                        >
-                        <input
-                            id="binance-api-key"
-                            type={showKeys["binance_k"] ? "text" : "password"}
-                            bind:value={settingsState.apiKeys.binance.key}
-                            class="api-input"
-                            placeholder="{$_(
-                                'settings.integrations.enterKey',
-                            )} (Binance)"
-                        />
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <!-- Bitunix -->
+                <div class="api-card">
+                    <div class="header">
+                        <span class="font-bold text-sm">Bitunix</span>
+                        <span
+                            class="status-dot {settingsState.apiKeys.bitunix.key
+                                ? 'connected'
+                                : ''}"
+                        ></span>
                     </div>
-                    <div class="field-group mt-3">
-                        <label for="binance-api-secret"
-                            >{$_("settings.integrations.apiSecret")}</label
-                        >
-                        <input
-                            id="binance-api-secret"
-                            type={showKeys["binance_s"] ? "text" : "password"}
-                            bind:value={settingsState.apiKeys.binance.secret}
-                            class="api-input"
-                            placeholder={$_(
-                                "settings.integrations.enterSecret",
-                            )}
-                        />
+                    <div class="body">
+                        <div class="field-group">
+                            <label for="bitunix-api-key"
+                                >{$_("settings.integrations.apiKey")}</label
+                            >
+                            <input
+                                id="bitunix-api-key"
+                                type={showKeys["bitunix_k"]
+                                    ? "text"
+                                    : "password"}
+                                bind:value={settingsState.apiKeys.bitunix.key}
+                                class="api-input"
+                                placeholder="{$_(
+                                    'settings.integrations.enterKey',
+                                )} (Bitunix)"
+                            />
+                        </div>
+                        <div class="field-group mt-3">
+                            <label for="bitunix-api-secret"
+                                >{$_("settings.integrations.apiSecret")}</label
+                            >
+                            <input
+                                id="bitunix-api-secret"
+                                type={showKeys["bitunix_s"]
+                                    ? "text"
+                                    : "password"}
+                                bind:value={
+                                    settingsState.apiKeys.bitunix.secret
+                                }
+                                class="api-input"
+                                placeholder={$_(
+                                    "settings.integrations.enterSecret",
+                                )}
+                            />
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Binance -->
+                <div class="api-card">
+                    <div class="header">
+                        <span class="font-bold text-sm">Binance</span>
+                        <span
+                            class="status-dot {settingsState.apiKeys.binance.key
+                                ? 'connected'
+                                : ''}"
+                        ></span>
+                    </div>
+                    <div class="body">
+                        <div class="field-group">
+                            <label for="binance-api-key"
+                                >{$_("settings.integrations.apiKey")}</label
+                            >
+                            <input
+                                id="binance-api-key"
+                                type={showKeys["binance_k"]
+                                    ? "text"
+                                    : "password"}
+                                bind:value={settingsState.apiKeys.binance.key}
+                                class="api-input"
+                                placeholder="{$_(
+                                    'settings.integrations.enterKey',
+                                )} (Binance)"
+                            />
+                        </div>
+                        <div class="field-group mt-3">
+                            <label for="binance-api-secret"
+                                >{$_("settings.integrations.apiSecret")}</label
+                            >
+                            <input
+                                id="binance-api-secret"
+                                type={showKeys["binance_s"]
+                                    ? "text"
+                                    : "password"}
+                                bind:value={
+                                    settingsState.apiKeys.binance.secret
+                                }
+                                class="api-input"
+                                placeholder={$_(
+                                    "settings.integrations.enterSecret",
+                                )}
+                            />
+                        </div>
                     </div>
                 </div>
             </div>
-        </div>
-    </section>
+        </section>
+    {/if}
 
     <!-- Intelligence (AI) Section -->
     <section

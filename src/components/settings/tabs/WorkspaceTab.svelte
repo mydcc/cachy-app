@@ -146,16 +146,18 @@
                         "Market Details"}</span
                 >
             </label>
-            <label class="module-toggle">
-                <input
-                    type="checkbox"
-                    bind:checked={settingsState.showSidebarActivity}
-                />
-                <span
-                    >{$_("settings.showSidebarActivity") ||
-                        "Activity Sidebar"}</span
-                >
-            </label>
+            {#if settingsState.isPro}
+                <label class="module-toggle">
+                    <input
+                        type="checkbox"
+                        bind:checked={settingsState.showSidebarActivity}
+                    />
+                    <span
+                        >{$_("settings.showSidebarActivity") ||
+                            "Activity Sidebar"}</span
+                    >
+                </label>
+            {/if}
             <label class="module-toggle">
                 <input
                     type="checkbox"
