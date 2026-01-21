@@ -284,7 +284,7 @@ class SettingsManager {
 
     get capabilities() {
         return {
-            marketData: this.isPro && this.showMarketActivity
+            marketData: this.showMarketActivity  // Market Data is available for all users
         };
     }
     showMarketSentiment = $state<boolean>(defaultSettings.showMarketSentiment);
