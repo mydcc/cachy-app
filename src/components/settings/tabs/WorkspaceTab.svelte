@@ -244,39 +244,6 @@
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-                    <div class="field-group">
-                        <label for="market-activity-interval"
-                            >{$_("settings.marketDataInterval") ||
-                                "Update Speed"}</label
-                        >
-                        <select
-                            id="market-activity-interval"
-                            bind:value={settingsState.marketDataInterval}
-                            class="input-field py-1 text-xs"
-                        >
-                            <option value={1000}>1s (Ultra)</option>
-                            <option value={2000}>2s (Fast)</option>
-                            <option value={5000}>5s (Normal)</option>
-                            <option value={10000}>10s (Save CPU)</option>
-                        </select>
-                    </div>
-                    <div class="field-group justify-end h-full">
-                        <label
-                            class="flex items-center gap-2 cursor-pointer h-full pt-4"
-                        >
-                            <input
-                                type="checkbox"
-                                bind:checked={
-                                    settingsState.autoUpdatePriceInput
-                                }
-                                class="w-4 h-4 accent-[var(--accent-color)]"
-                            />
-                            <span class="text-xs"
-                                >{$_("settings.autoUpdatePriceInput") ||
-                                    "Live Price Link"}</span
-                            >
-                        </label>
-                    </div>
                     <div class="field-group justify-end h-full">
                         <label
                             class="flex items-center gap-2 cursor-pointer h-full pt-4"
@@ -420,6 +387,47 @@
                 {/if}
             </div>
         {/if}
+    </section>
+    <!-- Performance & Data Section -->
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-6"
+    >
+        <h3 class="section-title">
+            {$_("settings.workspace.performanceTitle") || "Performance & Data"}
+        </h3>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="field-group">
+                <label for="market-activity-interval-global"
+                    >{$_("settings.marketDataInterval") ||
+                        "Update Speed"}</label
+                >
+                <select
+                    id="market-activity-interval-global"
+                    bind:value={settingsState.marketDataInterval}
+                    class="input-field py-1 text-xs"
+                >
+                    <option value={1000}>1s (Ultra)</option>
+                    <option value={2000}>2s (Fast)</option>
+                    <option value={5000}>5s (Normal)</option>
+                    <option value={10000}>10s (Save CPU)</option>
+                </select>
+            </div>
+            <div class="field-group justify-end h-full">
+                <label
+                    class="flex items-center gap-2 cursor-pointer h-full pt-4"
+                >
+                    <input
+                        type="checkbox"
+                        bind:checked={settingsState.autoUpdatePriceInput}
+                        class="w-4 h-4 accent-[var(--accent-color)]"
+                    />
+                    <span class="text-xs"
+                        >{$_("settings.autoUpdatePriceInput") ||
+                            "Live Price Link"}</span
+                    >
+                </label>
+            </div>
+        </div>
     </section>
 </div>
 
