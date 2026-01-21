@@ -276,7 +276,7 @@
   isOpen={uiState.showSettingsModal}
   title={$_("settings.title") || "Settings"}
   onclose={close}
-  extraClasses="!w-[1100px] !max-w-[95vw] !max-h-[85vh] flex flex-col overflow-hidden"
+  extraClasses="modal-size-instructions flex flex-col overflow-hidden"
   alignment="center"
 >
   <!-- Main Content Container (Split View) -->

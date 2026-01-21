@@ -15,8 +15,7 @@
 
 @font-face {
   font-family: "Inter";
-  src: url("/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf")
-    format("truetype");
+  src: url("/fonts/Inter/Inter-Italic-VariableFont_opsz,wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -25,8 +24,7 @@
 /* Variable Fonts */
 @font-face {
   font-family: "IBM Plex Sans";
-  src: url("/fonts/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf")
-    format("truetype");
+  src: url("/fonts/IBM_Plex_Sans/IBMPlexSans-VariableFont_wdth,wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -34,8 +32,7 @@
 
 @font-face {
   font-family: "JetBrains Mono";
-  src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/JetBrains_Mono/JetBrainsMono-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -43,8 +40,7 @@
 
 @font-face {
   font-family: "Roboto Mono";
-  src: url("/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Roboto_Mono/RobotoMono-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -52,8 +48,7 @@
 
 @font-face {
   font-family: "Source Sans 3";
-  src: url("/fonts/Source_Sans_3/SourceSans3-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Source_Sans_3/SourceSans3-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -69,8 +64,7 @@
 
 @font-face {
   font-family: "Nunito Sans";
-  src: url("/fonts/Nunito_Sans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf")
-    format("truetype");
+  src: url("/fonts/Nunito_Sans/NunitoSans-VariableFont_YTLC,opsz,wdth,wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -78,8 +72,7 @@
 
 @font-face {
   font-family: "Nunito Sans";
-  src: url("/fonts/Nunito_Sans/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf")
-    format("truetype");
+  src: url("/fonts/Nunito_Sans/NunitoSans-Italic-VariableFont_YTLC,opsz,wdth,wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -87,8 +80,7 @@
 
 @font-face {
   font-family: "Red Hat Display";
-  src: url("/fonts/Red_Hat_Display/RedHatDisplay-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Red_Hat_Display/RedHatDisplay-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -96,8 +88,7 @@
 
 @font-face {
   font-family: "Red Hat Display";
-  src: url("/fonts/Red_Hat_Display/RedHatDisplay-Italic-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Red_Hat_Display/RedHatDisplay-Italic-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -105,8 +96,7 @@
 
 @font-face {
   font-family: "Schibsted Grotesk";
-  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -114,8 +104,7 @@
 
 @font-face {
   font-family: "Schibsted Grotesk";
-  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-Italic-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Schibsted_Grotesk/SchibstedGrotesk-Italic-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: italic;
   font-display: swap;
@@ -123,8 +112,7 @@
 
 @font-face {
   font-family: "Space Grotesk";
-  src: url("/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.ttf")
-    format("truetype");
+  src: url("/fonts/Space_Grotesk/SpaceGrotesk-VariableFont_wght.ttf") format("truetype");
   font-weight: 100 900;
   font-style: normal;
   font-display: swap;
@@ -322,11 +310,9 @@
   --overlay-derived: rgba(12, 8, 47, 0.8);
 
   /* --- Semantic Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-purple-light),
-    var(--gradient-purple-dark)
-  );
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-purple-light),
+      var(--gradient-purple-dark));
   --bg-secondary: #08051e;
   /* Deepest purple for sidebar & inputs */
   --bg-tertiary: #161245;
@@ -422,11 +408,9 @@
   --overlay-derived: rgba(8, 16, 63, 0.8);
 
   /* --- Semantic Mapping --- */
-  --bg-primary: radial-gradient(
-    farthest-side at top,
-    var(--gradient-blue-light),
-    var(--gradient-blue-dark)
-  );
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-blue-light),
+      var(--gradient-blue-dark));
   --bg-secondary: #05081a;
   /* Deepest blue for sidebar & inputs */
   --bg-tertiary: #0f173d;
@@ -1593,11 +1577,9 @@
   --btn-accent-hover-bg: var(--midnight-gold-hover);
   --btn-accent-text: var(--midnight-bg-main);
   --btn-success-bg: var(--midnight-success);
-  --btn-success-hover-bg: color-mix(
-    in srgb,
-    var(--midnight-success) 80%,
-    black
-  );
+  --btn-success-hover-bg: color-mix(in srgb,
+      var(--midnight-success) 80%,
+      black);
   --btn-success-text: var(--midnight-text-primary);
 
   /* --- Toggle & UI --- */
@@ -2124,7 +2106,7 @@ input[type="number"] {
   transition: background-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track {
+input[type="checkbox"]:checked+.atr-toggle-track {
   background-color: var(--toggle-bg-on);
 }
 
@@ -2137,7 +2119,7 @@ input[type="checkbox"]:checked + .atr-toggle-track {
     border-color 0.3s;
 }
 
-input[type="checkbox"]:checked + .atr-toggle-track::after {
+input[type="checkbox"]:checked+.atr-toggle-track::after {
   transform: translateX(calc(100% + 2px));
   border-color: var(--toggle-circle-bg-on) !important;
   background-color: var(--toggle-circle-bg-on) !important;
@@ -2219,12 +2201,10 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   left: -100%;
   width: 100%;
   height: 100%;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15),
-    transparent
-  );
+  background: linear-gradient(90deg,
+      transparent,
+      rgba(255, 255, 255, 0.15),
+      transparent);
   transition: left 0.6s ease;
 }
 
@@ -2542,11 +2522,9 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   }
 
   30% {
-    background-color: color-mix(
-      in srgb,
-      var(--accent-color) 50%,
-      var(--bg-tertiary)
-    );
+    background-color: color-mix(in srgb,
+        var(--accent-color) 50%,
+        var(--bg-tertiary));
   }
 
   100% {
@@ -2602,8 +2580,7 @@ body {
   /* Allows pull-to-refresh and rubber-banding */
   -webkit-tap-highlight-color: transparent;
   /* Clean mobile taps */
-  padding: env(safe-area-inset-top) env(safe-area-inset-right)
-    env(safe-area-inset-bottom) env(safe-area-inset-left);
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
 }
 
 h1,
@@ -2617,12 +2594,10 @@ svg {
 
 /* Loading Shimmer */
 .shimmer {
-  background: linear-gradient(
-    90deg,
-    var(--bg-tertiary) 25%,
-    color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
-    var(--bg-tertiary) 75%
-  );
+  background: linear-gradient(90deg,
+      var(--bg-tertiary) 25%,
+      color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
+      var(--bg-tertiary) 75%);
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite linear;
 }
@@ -2729,8 +2704,7 @@ svg {
 /* Firefox Scrollbar Styles */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--scrollbar-thumb, var(--bg-tertiary))
-    var(--scrollbar-track, var(--bg-secondary));
+  scrollbar-color: var(--scrollbar-thumb, var(--bg-tertiary)) var(--scrollbar-track, var(--bg-secondary));
 }
 
 /* Modal Size Utilities */
@@ -2744,6 +2718,7 @@ svg {
 
 .modal-size-instructions {
   width: 80vw;
+  max-width: 1320px;
   aspect-ratio: 3 / 2;
 }
 
