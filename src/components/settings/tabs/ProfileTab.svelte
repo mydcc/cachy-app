@@ -306,7 +306,7 @@
                     </div>
 
                     <div
-                        class="max-h-64 overflow-y-auto space-y-1 text-xs text-[var(--text-secondary)]"
+                        class="max-h-64 overflow-y-auto grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-0.5 text-xs text-[var(--text-secondary)]"
                     >
                         {#each Object.entries(settingsState.hotkeyMode === "mode1" ? MODE1_DESCRIPTIONS : settingsState.hotkeyMode === "mode2" ? MODE2_DESCRIPTIONS : MODE3_DESCRIPTIONS) as [key, label]}
                             <div class="flex justify-between py-1">

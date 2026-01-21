@@ -146,18 +146,7 @@
                         "Market Details"}</span
                 >
             </label>
-            {#if settingsState.isPro}
-                <label class="module-toggle">
-                    <input
-                        type="checkbox"
-                        bind:checked={settingsState.showSidebarActivity}
-                    />
-                    <span
-                        >{$_("settings.showSidebarActivity") ||
-                            "Activity Sidebar"}</span
-                    >
-                </label>
-            {/if}
+
             <label class="module-toggle">
                 <input
                     type="checkbox"
@@ -170,6 +159,143 @@
             </label>
         </div>
     </section>
+
+    <!-- Market Activity (Broker Data) -->
+    {#if settingsState.isPro}
+        <section
+            class="settings-section border-t border-[var(--border-color)] pt-6"
+        >
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex flex-col">
+                    <h3 class="section-title mb-0">
+                        {$_("settings.workspace.marketActivityTitle") ||
+                            "Market Activity"}
+                    </h3>
+                </div>
+                <button
+                    class="toggle-container {settingsState.showSidebarActivity
+                        ? 'active'
+                        : ''}"
+                    onclick={() =>
+                        (settingsState.showSidebarActivity =
+                            !settingsState.showSidebarActivity)}
+                    aria-label="Toggle Market Activity"
+                >
+                    <div class="toggle-thumb"></div>
+                </button>
+            </div>
+
+            {#if settingsState.showSidebarActivity}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.hideUnfilledOrders") ||
+                                    "Focus View"}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.workspace.focusDesc") ||
+                                    "Hide non-essential table data"}</span
+                            >
+                        </div>
+                        <input
+                            type="checkbox"
+                            bind:checked={settingsState.hideUnfilledOrders}
+                            class="hidden-checkbox"
+                        />
+                        <div
+                            class="card-indicator {settingsState.hideUnfilledOrders
+                                ? 'active'
+                                : ''}"
+                        ></div>
+                    </label>
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.positionViewMode") ||
+                                    "Expert Layout"}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.workspace.expertDesc") ||
+                                    "Detailed vs compact positions"}</span
+                            >
+                        </div>
+                        <input
+                            type="checkbox"
+                            checked={settingsState.positionViewMode ===
+                                "detailed"}
+                            onchange={(e) =>
+                                (settingsState.positionViewMode = e
+                                    .currentTarget.checked
+                                    ? "detailed"
+                                    : "focus")}
+                            class="hidden-checkbox"
+                        />
+                        <div
+                            class="card-indicator {settingsState.positionViewMode ===
+                            'detailed'
+                                ? 'active'
+                                : ''}"
+                        ></div>
+                    </label>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
+                    <div class="field-group">
+                        <label for="market-activity-interval"
+                            >{$_("settings.marketDataInterval") ||
+                                "Update Speed"}</label
+                        >
+                        <select
+                            id="market-activity-interval"
+                            bind:value={settingsState.marketDataInterval}
+                            class="input-field py-1 text-xs"
+                        >
+                            <option value={1000}>1s (Ultra)</option>
+                            <option value={2000}>2s (Fast)</option>
+                            <option value={5000}>5s (Normal)</option>
+                            <option value={10000}>10s (Save CPU)</option>
+                        </select>
+                    </div>
+                    <div class="field-group justify-end h-full">
+                        <label
+                            class="flex items-center gap-2 cursor-pointer h-full pt-4"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={
+                                    settingsState.autoUpdatePriceInput
+                                }
+                                class="w-4 h-4 accent-[var(--accent-color)]"
+                            />
+                            <span class="text-xs"
+                                >{$_("settings.autoUpdatePriceInput") ||
+                                    "Live Price Link"}</span
+                            >
+                        </label>
+                    </div>
+                    <div class="field-group justify-end h-full">
+                        <label
+                            class="flex items-center gap-2 cursor-pointer h-full pt-4"
+                        >
+                            <input
+                                type="checkbox"
+                                bind:checked={settingsState.autoFetchBalance}
+                                class="w-4 h-4 accent-[var(--accent-color)]"
+                            />
+                            <span class="text-xs"
+                                >{$_("settings.autoFetchBalance") ||
+                                    "Auto Balance"}</span
+                            >
+                        </label>
+                    </div>
+                </div>
+            {/if}
+        </section>
+    {/if}
 
     <!-- Side Panel & Widgets -->
     <section
@@ -294,108 +420,6 @@
                 {/if}
             </div>
         {/if}
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-            <label class="toggle-card">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.hideUnfilledOrders") ||
-                            "Focus View"}</span
-                    >
-                    <span class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.workspace.focusDesc") ||
-                            "Hide non-essential table data"}</span
-                    >
-                </div>
-                <input
-                    type="checkbox"
-                    bind:checked={settingsState.hideUnfilledOrders}
-                    class="hidden-checkbox"
-                />
-                <div
-                    class="card-indicator {settingsState.hideUnfilledOrders
-                        ? 'active'
-                        : ''}"
-                ></div>
-            </label>
-
-            <label class="toggle-card">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.positionViewMode") ||
-                            "Expert Layout"}</span
-                    >
-                    <span class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.workspace.expertDesc") ||
-                            "Detailed vs compact positions"}</span
-                    >
-                </div>
-                <input
-                    type="checkbox"
-                    checked={settingsState.positionViewMode === "detailed"}
-                    onchange={(e) =>
-                        (settingsState.positionViewMode = e.currentTarget
-                            .checked
-                            ? "detailed"
-                            : "focus")}
-                    class="hidden-checkbox"
-                />
-                <div
-                    class="card-indicator {settingsState.positionViewMode ===
-                    'detailed'
-                        ? 'active'
-                        : ''}"
-                ></div>
-            </label>
-        </div>
-
-        <!-- Performance & Updates -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mt-6">
-            <div class="field-group">
-                <label for="market-interval"
-                    >{$_("settings.marketDataInterval") ||
-                        "Update Speed"}</label
-                >
-                <select
-                    id="market-interval"
-                    bind:value={settingsState.marketDataInterval}
-                    class="input-field py-1 text-xs"
-                >
-                    <option value={1000}>1s (Ultra)</option>
-                    <option value={2000}>2s (Fast)</option>
-                    <option value={5000}>5s (Normal)</option>
-                    <option value={10000}>10s (Save CPU)</option>
-                </select>
-            </div>
-
-            <div class="field-group justify-end">
-                <label class="flex items-center gap-2 cursor-pointer h-full">
-                    <input
-                        type="checkbox"
-                        bind:checked={settingsState.autoUpdatePriceInput}
-                        class="w-4 h-4 accent-[var(--accent-color)]"
-                    />
-                    <span class="text-xs"
-                        >{$_("settings.autoUpdatePriceInput") ||
-                            "Live Price Link"}</span
-                    >
-                </label>
-            </div>
-
-            <div class="field-group justify-end">
-                <label class="flex items-center gap-2 cursor-pointer h-full">
-                    <input
-                        type="checkbox"
-                        bind:checked={settingsState.autoFetchBalance}
-                        class="w-4 h-4 accent-[var(--accent-color)]"
-                    />
-                    <span class="text-xs"
-                        >{$_("settings.autoFetchBalance") ||
-                            "Auto Balance"}</span
-                    >
-                </label>
-            </div>
-        </div>
     </section>
 </div>
 
