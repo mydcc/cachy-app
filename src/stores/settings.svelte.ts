@@ -561,7 +561,12 @@ class SettingsManager {
       this.isPro = merged.isPro;
       this.feePreference = merged.feePreference;
       this.hotkeyMode = merged.hotkeyMode;
-      this.apiKeys = merged.apiKeys;
+      // Granular updates for apiKeys to preserve object references if components bind to them
+      if (merged.apiKeys) {
+        if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
+        if (merged.apiKeys.binance) this.apiKeys.binance = merged.apiKeys.binance;
+      }
+
       this.customHotkeys = merged.customHotkeys || {};
       this.favoriteTimeframes = merged.favoriteTimeframes;
       this.favoriteSymbols = merged.favoriteSymbols;
@@ -574,6 +579,7 @@ class SettingsManager {
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
+
       // Copy panelState properties individually to preserve $state reactivity
       if (merged.panelState) {
         this.panelState.width = merged.panelState.width ?? this.panelState.width;
