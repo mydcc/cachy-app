@@ -205,7 +205,7 @@
 
     // Separate draggable and resizable to prevent chaining conflicts
     const dragInteraction = interact(panelEl).draggable({
-      allowFrom: ".panel-header",
+      allowFrom: ".drag-handle",
       listeners: {
         start() {
           isInteracting = true;
@@ -225,7 +225,7 @@
 
     const resizeInteraction = interact(panelEl).resizable({
       // Explicitly define edges for floating mode
-      edges: { left: true, right: true, bottom: true, top: false },
+      edges: { left: true, right: true, bottom: true, top: true },
       listeners: {
         start() {
           isInteracting = true;
@@ -477,11 +477,9 @@
         <div class="flex-1 flex flex-col min-h-0">
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <div
-            class="panel-header h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
+            class="panel-header h-10 border-b flex items-center px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
             class:border-green-900={isTerminal}
             class:border-[var(--border-color)]={!isTerminal}
-            class:cursor-move={!isSidebar}
-            ondblclick={() => toggleLayout()}
             role="toolbar"
             tabindex="0"
           >
@@ -500,6 +498,14 @@
                 {getPanelTitle(settingsState.sidePanelMode)}
               </button>
             </h3>
+
+            <!-- Drag Handle Spacer -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <div
+              class="drag-handle flex-1 mx-2 my-1 self-stretch rounded bg-transparent hover:bg-white/5 transition-colors"
+              class:cursor-move={!isSidebar}
+              ondblclick={() => toggleLayout()}
+            ></div>
 
             <div class="flex items-center gap-2">
               <!-- Font Size Controls -->

@@ -36,8 +36,8 @@ class UiManager {
     visible: false,
     url: "",
     title: "",
-    width: 640,
-    height: 360,
+    width: 768,
+    height: 465,
     x: 100,
     y: 100,
   });
