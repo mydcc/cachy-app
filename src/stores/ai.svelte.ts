@@ -235,6 +235,7 @@ class AiManager {
 
       const systemPrompt = `${identity}\n\n${settings.customSystemPrompt || baseRoleInstructions}
 
+IMPORTANT: You MUST answer in GERMAN language. Even if the instructions above are in English, your final output to the user MUST be in German.
 IMPORTANT: Your previous responses might have lacked emojis. Disregard that style. From now on, you MUST use emojis to structure your response.
  
 REAL-TIME CONTEXT:
@@ -926,15 +927,15 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
   public describeAction(action: AiAction): string {
     switch (action.action) {
       case "setEntryPrice":
-        return `Entry: ${action.value}`;
+        return `Einstieg: ${action.value}`;
       case "setStopLoss":
-        return `Stop Loss: ${action.value}`;
+        return `Stopp-Loss: ${action.value}`;
       case "setTakeProfit":
         return `TP${(action.index ?? 0) + 1}: ${action.value}`;
       case "setLeverage":
-        return `Leverage: ${action.value}x`;
+        return `Hebel: ${action.value}x`;
       case "setRisk":
-        return `Risk: ${action.value}%`;
+        return `Risiko: ${action.value}%`;
       case "setSymbol":
         return `Symbol: ${action.value}`;
       case "setAtrMultiplier":
@@ -942,9 +943,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         const mult = action.value || action.atrMultiplier;
         return `ATR SL: ${mult}x`;
       case "setUseAtrSl":
-        return action.value ? "ATR SL: ON" : "ATR SL: OFF";
+        return action.value ? "ATR SL: AN" : "ATR SL: AUS";
       default:
-        return `Action: ${action.action}`;
+        return `Aktion: ${action.action}`;
     }
   }
 
