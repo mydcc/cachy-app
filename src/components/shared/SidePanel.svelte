@@ -314,20 +314,8 @@
   }
 
   onMount(() => {
-    // Check bounds on init
+    // Check bounds on init only
     clampPanelPosition();
-
-    // Check bounds on resize
-    const handleResize = () => clampPanelPosition();
-    window.addEventListener("resize", handleResize);
-    return () => window.removeEventListener("resize", handleResize);
-  });
-
-  $effect(() => {
-    // Check bounds when switching layouts
-    if (isFloating) {
-      clampPanelPosition();
-    }
   });
 
   function toggleExpand() {
