@@ -23,12 +23,14 @@ export function debounce<T extends (...args: unknown[]) => void>(
   delay: number,
 ) {
   let timeout: ReturnType<typeof setTimeout>;
-  return function (this: ThisParameterType<T>, ...args: Parameters<T>) {
+  const debounced = function (this: ThisParameterType<T>, ...args: Parameters<T>) {
     // eslint-disable-next-line @typescript-eslint/no-this-alias
     const context = this;
     clearTimeout(timeout);
     timeout = setTimeout(() => func.apply(context, args), delay);
   };
+  debounced.cancel = () => clearTimeout(timeout);
+  return debounced;
 }
 
 export function parseDecimal(
@@ -37,23 +39,56 @@ export function parseDecimal(
   if (value === null || value === undefined) {
     return new Decimal(0);
   }
-  // Convert to string to handle both numbers and strings uniformly
-  const stringValue = String(value).replace(",", ".").trim();
 
-  // If the string is empty after trimming, it's a 0.
-  if (stringValue === "") {
-    return new Decimal(0);
+  if (value instanceof Decimal) return value;
+  if (typeof value === "number") return new Decimal(value);
+
+  let str = String(value).trim();
+  if (str === "") return new Decimal(0);
+
+  // Handle German/English formats
+  const hasComma = str.includes(",");
+  const hasDot = str.includes(".");
+
+  if (hasComma && hasDot) {
+    const lastComma = str.lastIndexOf(",");
+    const lastDot = str.lastIndexOf(".");
+    if (lastComma > lastDot) {
+      // German: 1.200,50 -> 1200.50
+      str = str.replace(/\./g, "").replace(",", ".");
+    } else {
+      // English: 1,200.50 -> 1200.50
+      str = str.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Ambiguous: 1,200 (EN) vs 1,5 (DE)
+    // In this app context, assume comma is decimal separator if single comma
+    // EXCEPT if it looks like thousands (3 digits after comma).
+    // But simple input "1,5" is common in DE.
+    // "1,200" is ambiguous.
+    // Let's assume DE preference for comma as decimal separator unless explicitly multiple commas.
+    const parts = str.split(",");
+    if (parts.length > 2) {
+      // 1,000,000 -> EN
+      str = str.replace(/,/g, "");
+    } else {
+      // 1,5 or 1,200 -> Replace with dot for Decimal
+      str = str.replace(",", ".");
+    }
+  }
+  // If only dot, usually safe for Decimal (1200.50)
+  // But could be 1.200 (DE thousands).
+  // If multiple dots: 1.200.000 -> remove dots.
+  else if (hasDot) {
+    const parts = str.split(".");
+    if (parts.length > 2) {
+      str = str.replace(/\./g, "");
+    }
+    // Single dot: 1.200 -> 1.2
   }
 
-  // Check if the result is a finite number
-  const numValue = Number(stringValue);
-  if (isNaN(numValue) || !isFinite(numValue)) {
-    return new Decimal(0);
-  }
-
-  // If all checks pass, create the new Decimal
   try {
-    return new Decimal(stringValue);
+    return new Decimal(str);
   } catch (e) {
     return new Decimal(0);
   }
