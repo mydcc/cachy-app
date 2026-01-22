@@ -11,6 +11,7 @@ import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { Decimal } from "decimal.js";
+import { z } from "zod";
 
 // Re-using types might require importing AppState or redefining what we need
 // Ideally we import AppState, but let's define the shape here for clarity/independence or import if needed.
@@ -23,6 +24,43 @@ export interface TradeTarget {
 }
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
+
+// Define Zod Schema for TradeTarget
+const TradeTargetSchema = z.object({
+  price: z.number().nullable(),
+  percent: z.number().nullable(),
+  isLocked: z.boolean(),
+});
+
+// Define Zod Schema for TradeState
+const TradeStateSchema = z.object({
+  tradeType: z.string(),
+  accountSize: z.number(),
+  riskPercentage: z.number(),
+  entryPrice: z.number().nullable(),
+  stopLossPrice: z.number().nullable(),
+  leverage: z.number().nullable(),
+  fees: z.number().nullable(),
+  symbol: z.string(),
+  atrValue: z.number().nullable(),
+  atrMultiplier: z.number(),
+  useAtrSl: z.boolean(),
+  atrMode: z.enum(["auto", "manual"]).catch("auto"),
+  atrTimeframe: z.string(),
+  analysisTimeframe: z.string().optional().default("1h"),
+  tradeNotes: z.string(),
+  tags: z.array(z.string()).optional().default([]),
+  targets: z.array(TradeTargetSchema).optional(),
+  isPositionSizeLocked: z.boolean(),
+  lockedPositionSize: z.union([z.string(), z.number(), z.null()]).transform(val => {
+     if (val === null) return null;
+     return new Decimal(val);
+  }).nullable(),
+  isRiskAmountLocked: z.boolean(),
+  riskAmount: z.number().nullable(),
+  journalSearchQuery: z.string().optional().default(""),
+  journalFilterStatus: z.string().optional().default("all"),
+});
 
 export const INITIAL_TRADE_STATE = {
   tradeType: CONSTANTS.TRADE_TYPE_LONG,
@@ -118,66 +156,87 @@ class TradeManager {
       const stored = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (stored) {
         const parsed = JSON.parse(stored);
-        // Bulk assign safe properties
-        // We trust the keys from local storage but ensure defaults for missing ones
-        const merged = { ...INITIAL_TRADE_STATE, ...parsed };
 
-        // Assign each property specifically to trigger reactivity?
-        // Object.assign(this, merged) works for classes if properties are on instance.
-        // With Runes, direct assignment to properties is best.
+        // Use Zod for validation and cleaning
+        const result = TradeStateSchema.safeParse(parsed);
 
-        this.tradeType = merged.tradeType;
-        this.accountSize = merged.accountSize;
-        this.riskPercentage = merged.riskPercentage;
-        this.entryPrice = merged.entryPrice;
-        this.stopLossPrice = merged.stopLossPrice;
-        this.leverage = merged.leverage;
-        this.fees = merged.fees;
-        this.symbol = merged.symbol;
-        this.atrValue = merged.atrValue;
-        this.atrMultiplier = merged.atrMultiplier;
-        this.useAtrSl = merged.useAtrSl;
-        this.atrMode = merged.atrMode;
-        this.atrTimeframe = merged.atrTimeframe;
-        this.analysisTimeframe = merged.analysisTimeframe;
-        this.tradeNotes = merged.tradeNotes;
-        this.tags = merged.tags || [];
+        if (result.success) {
+            const data = result.data;
+            this.tradeType = data.tradeType;
+            this.accountSize = data.accountSize;
+            this.riskPercentage = data.riskPercentage;
+            this.entryPrice = data.entryPrice;
+            this.stopLossPrice = data.stopLossPrice;
+            this.leverage = data.leverage;
+            this.fees = data.fees;
+            this.symbol = data.symbol;
+            this.atrValue = data.atrValue;
+            this.atrMultiplier = data.atrMultiplier;
+            this.useAtrSl = data.useAtrSl;
+            this.atrMode = data.atrMode;
+            this.atrTimeframe = data.atrTimeframe;
+            this.analysisTimeframe = data.analysisTimeframe;
+            this.tradeNotes = data.tradeNotes;
+            this.tags = data.tags;
+            this.journalSearchQuery = data.journalSearchQuery;
+            this.journalFilterStatus = data.journalFilterStatus;
 
-        // Fix targets issue - force defaults if all prices are null (likely old version or reset)
-        const hasAnyPrice = merged.targets?.some(
-          (t: any) => t.price !== null && t.price !== 0,
-        );
-        if (!merged.targets || merged.targets.length === 0 || !hasAnyPrice) {
-          this.targets = JSON.parse(
-            JSON.stringify(INITIAL_TRADE_STATE.targets),
-          );
+            // Handle Decimal/Special fields
+            this.isPositionSizeLocked = data.isPositionSizeLocked;
+            this.lockedPositionSize = data.lockedPositionSize;
+            this.isRiskAmountLocked = data.isRiskAmountLocked;
+            this.riskAmount = data.riskAmount;
+
+            // Logic for targets
+            const hasAnyPrice = data.targets?.some(
+              (t: any) => t.price !== null && t.price !== 0,
+            );
+            if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
+               this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+            } else {
+               this.targets = data.targets;
+            }
+
         } else {
-          this.targets = merged.targets;
+            if (import.meta.env.DEV) {
+                console.warn("Trade state validation failed, using defaults", result.error);
+            }
+             this.resetToDefaults();
         }
 
-        this.isPositionSizeLocked = merged.isPositionSizeLocked;
-        if (merged.lockedPositionSize) {
-          try {
-            this.lockedPositionSize = new Decimal(merged.lockedPositionSize);
-          } catch (e) {
-            this.lockedPositionSize = null;
-          }
-        } else {
-          this.lockedPositionSize = null;
-        }
-        this.isRiskAmountLocked = merged.isRiskAmountLocked;
-        this.riskAmount = merged.riskAmount;
-        this.journalSearchQuery = merged.journalSearchQuery || "";
-        this.journalFilterStatus = merged.journalFilterStatus || "all";
       } else {
-        this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+        this.resetToDefaults();
       }
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("Failed to load trade state", e);
       }
-      this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+      this.resetToDefaults();
     }
+  }
+
+  private resetToDefaults() {
+      // Bulk reset to initial state
+      this.tradeType = INITIAL_TRADE_STATE.tradeType;
+      this.accountSize = INITIAL_TRADE_STATE.accountSize;
+      this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
+      this.entryPrice = INITIAL_TRADE_STATE.entryPrice;
+      this.stopLossPrice = INITIAL_TRADE_STATE.stopLossPrice;
+      this.leverage = INITIAL_TRADE_STATE.leverage;
+      this.fees = INITIAL_TRADE_STATE.fees;
+      this.symbol = INITIAL_TRADE_STATE.symbol;
+      this.atrValue = INITIAL_TRADE_STATE.atrValue;
+      this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
+      this.useAtrSl = INITIAL_TRADE_STATE.useAtrSl;
+      this.atrMode = INITIAL_TRADE_STATE.atrMode;
+      this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
+      this.tradeNotes = INITIAL_TRADE_STATE.tradeNotes;
+      this.tags = [...INITIAL_TRADE_STATE.tags];
+      this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+      this.isPositionSizeLocked = INITIAL_TRADE_STATE.isPositionSizeLocked;
+      this.lockedPositionSize = INITIAL_TRADE_STATE.lockedPositionSize;
+      this.isRiskAmountLocked = INITIAL_TRADE_STATE.isRiskAmountLocked;
+      this.riskAmount = INITIAL_TRADE_STATE.riskAmount;
   }
 
   private save() {
@@ -186,6 +245,10 @@ class TradeManager {
       const s = this.getSnapshot();
       const toSave: any = { ...s };
       delete toSave.currentTradeData;
+      // Convert Decimal to string for storage
+      if (toSave.lockedPositionSize instanceof Decimal) {
+          toSave.lockedPositionSize = toSave.lockedPositionSize.toString();
+      }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
       this.notifyListeners();
     } catch (e) {
