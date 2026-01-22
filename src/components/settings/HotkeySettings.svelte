@@ -23,7 +23,6 @@
     normalizeKeyCombo,
   } from "../../services/hotkeyService";
   import { _ } from "../../locales/i18n";
-  import { onMount, onDestroy } from "svelte";
 
   let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);

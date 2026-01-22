@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { untrack } from "svelte";
   import {
     Chart,
     Tooltip as ChartTooltip,
@@ -198,13 +198,20 @@
      return d;
   });
 
-  onMount(() => {
+  $effect(() => {
     if (canvas) {
       chart = new Chart(canvas, {
         type: "scatter", // Base type
-        data: finalChartData,
-        options,
+        data: untrack(() => finalChartData),
+        options: untrack(() => options),
       });
+
+      return () => {
+        if (chart) {
+          chart.destroy();
+          chart = null;
+        }
+      };
     }
   });
 
@@ -213,12 +220,6 @@
       chart.data = finalChartData;
       chart.options = options;
       chart.update();
-    }
-  });
-
-  onDestroy(() => {
-    if (chart) {
-      chart.destroy();
     }
   });
 </script>

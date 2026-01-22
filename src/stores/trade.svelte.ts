@@ -68,8 +68,8 @@ class TradeManager {
   riskPercentage = $state(INITIAL_TRADE_STATE.riskPercentage);
   entryPrice = $state(INITIAL_TRADE_STATE.entryPrice);
   stopLossPrice = $state(INITIAL_TRADE_STATE.stopLossPrice);
-  leverage = $state(INITIAL_TRADE_STATE.leverage);
-  fees = $state(INITIAL_TRADE_STATE.fees);
+  leverage = $state<number | null>(INITIAL_TRADE_STATE.leverage);
+  fees = $state<number | null>(INITIAL_TRADE_STATE.fees);
   symbol = $state(INITIAL_TRADE_STATE.symbol);
   atrValue = $state(INITIAL_TRADE_STATE.atrValue);
   atrMultiplier = $state(INITIAL_TRADE_STATE.atrMultiplier);
@@ -184,7 +184,7 @@ class TradeManager {
     if (!browser) return;
     try {
       const s = this.getSnapshot();
-      const toSave = { ...s };
+      const toSave: any = { ...s };
       delete toSave.currentTradeData;
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
       this.notifyListeners();

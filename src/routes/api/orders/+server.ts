@@ -178,7 +178,7 @@ export const POST: RequestHandler = async ({ request }) => {
         }
 
         // Safe formatting for the amount
-        const safeAmount = formatApiNum(body.amount);
+        const safeAmount = formatApiNum(body.amount as string | number);
         if (!safeAmount) throw new Error("Invalid amount formatting for closing position");
 
         // To close a position, we place a MARKET order in the opposite direction
