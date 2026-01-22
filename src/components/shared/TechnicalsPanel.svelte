@@ -105,7 +105,10 @@
         marketState.updateSymbol(symbol, { technicals: newData });
       }
     } catch (e) {
-      console.error("[Technicals] Calculation error:", e);
+      if (import.meta.env.DEV) {
+        console.error("[Technicals] Calculation error:", e);
+      }
+      error = "Calculation failed";
     }
   }
 
@@ -128,7 +131,9 @@
       }
     } catch (e: any) {
       if (e.message !== "apiErrors.symbolNotFound") {
-        console.error("Technicals fetch error:", e);
+        if (import.meta.env.DEV) {
+          console.error("Technicals fetch error:", e);
+        }
       }
       error = e.message;
     } finally {
