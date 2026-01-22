@@ -49,12 +49,9 @@
                     },
                 },
                 modifiers: [
-                    interact.modifiers.aspectRatio({
-                        ratio: 16 / 9,
-                    }),
                     interact.modifiers.restrictSize({
                         min: { width: 320, height: 180 },
-                        max: { width: 1200, height: 675 }, // Erhöht auf Wunsch des Nutzers für mehr Freiheit
+                        max: { width: 1600, height: 900 },
                     }),
                     interact.modifiers.restrictEdges({
                         outer: "parent",

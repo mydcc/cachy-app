@@ -225,6 +225,13 @@
               }
             },
             move(event) {
+              console.log("🔍 SidePanel Resize:", {
+                "rect.width": event.rect.width,
+                "rect.height": event.rect.height,
+                "deltaRect.left": event.deltaRect.left,
+                "deltaRect.top": event.deltaRect.top,
+                "current panelState": { ...panelState },
+              });
               panelState.width = event.rect.width;
               panelState.height = event.rect.height;
               panelState.x += event.deltaRect.left;
