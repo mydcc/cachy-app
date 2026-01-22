@@ -68,15 +68,23 @@ export class ConfluenceAnalyzer {
 
     // 4. Divergences
     // Weight: High (Reversal signals)
-    if (data.divergences) {
+    // CAP: Max 30 points total Impact to prevent score explosion from multiple indicators
+    if (data.divergences && data.divergences.length > 0) {
+      let divScore = 0;
       data.divergences.forEach((div) => {
         // Recent divergence?
         // Assuming the scanner only returns relevant ones.
         const weight = div.type === "Regular" ? 15 : 10;
-        if (div.side === "Bullish")
-          adjust(weight, `${div.type} Bull Div (${div.indicator})`);
-        else adjust(-weight, `${div.type} Bear Div (${div.indicator})`);
+        if (div.side === "Bullish") divScore += weight;
+        else divScore -= weight;
       });
+
+      // Clamp divergence impact
+      divScore = Math.max(-30, Math.min(30, divScore));
+
+      if (divScore !== 0) {
+        adjust(divScore, `Divergences (${divScore > 0 ? "Bull" : "Bear"})`);
+      }
     }
 
     // 5. VWAP

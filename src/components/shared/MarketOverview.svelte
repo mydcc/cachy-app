@@ -745,9 +745,9 @@
             <a
               href={tvLink}
               target="cachy_external_tv"
-              rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
               title="TradingView Chart"
+              onclick={() => window.open(tvLink, "cachy_external_tv")?.focus()}
             >
               TV
             </a>
@@ -757,9 +757,10 @@
             <a
               href={cgHeatmapLink}
               target="cachy_external_coinglass"
-              rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title="Liquidation Heatmap"
+              onclick={() =>
+                window.open(cgHeatmapLink, "cachy_external_coinglass")?.focus()}
             >
               CG Heat
             </a>
@@ -769,9 +770,10 @@
             <a
               href={brokerLink}
               target="cachy_external_broker"
-              rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
               title="Open on {provider}"
+              onclick={() =>
+                window.open(brokerLink, "cachy_external_broker")?.focus()}
             >
               {provider.toUpperCase()}
             </a>

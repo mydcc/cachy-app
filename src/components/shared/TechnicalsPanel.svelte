@@ -396,7 +396,10 @@
                     ? $_("settings.technicals.marketConfluence")
                     : "Confluence"}</span
                 >
-                <div class="flex items-center gap-2">
+                <div
+                  class="flex items-center gap-2"
+                  title={data.confluence.contributing.join("\n")}
+                >
                   <span
                     class="font-bold {getActionColor(data.confluence.level)}"
                     >{Math.round(data.confluence.score)}%</span
