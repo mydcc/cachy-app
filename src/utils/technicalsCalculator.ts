@@ -247,7 +247,9 @@ export function calculateAllIndicators(
       action: wRAction,
     });
   } catch (error) {
-    console.error("Error calculating oscillators:", error);
+    if (import.meta.env.DEV) {
+      console.error("Error calculating oscillators:", error);
+    }
   }
 
   // --- Divergences Scan ---
@@ -283,7 +285,9 @@ export function calculateAllIndicators(
       });
     });
   } catch (e) {
-    console.error("Divergence Scan Error:", e);
+    if (import.meta.env.DEV) {
+      console.error("Divergence Scan Error:", e);
+    }
   }
 
   // --- Advanced / New Indicators ---
@@ -421,7 +425,9 @@ export function calculateAllIndicators(
       };
     }
   } catch (e) {
-    console.error("Advanced Indicators Error:", e);
+    if (import.meta.env.DEV) {
+      console.error("Advanced Indicators Error:", e);
+    }
   }
 
   // --- Moving Averages ---
@@ -444,7 +450,9 @@ export function calculateAllIndicators(
       });
     }
   } catch (error) {
-    console.error("Error calculating moving averages:", error);
+    if (import.meta.env.DEV) {
+      console.error("Error calculating moving averages:", error);
+    }
   }
 
   // --- Pivots ---
@@ -481,7 +489,9 @@ export function calculateAllIndicators(
       },
     };
   } catch (e) {
-    console.error("Volatility calculation error:", e);
+    if (import.meta.env.DEV) {
+      console.error("Volatility calculation error:", e);
+    }
   }
 
   // --- Summary & Confluence ---
