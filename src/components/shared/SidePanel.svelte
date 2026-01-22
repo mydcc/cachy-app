@@ -226,6 +226,7 @@
     const resizeInteraction = interact(panelEl).resizable({
       // Explicitly define edges for floating mode
       edges: { left: true, right: true, bottom: true, top: true },
+      margin: 6, // Reduce resize activation zone to prevent conflict with drag handle
       listeners: {
         start() {
           isInteracting = true;
@@ -501,8 +502,10 @@
 
             <!-- Drag Handle Spacer -->
             <!-- svelte-ignore a11y_no_static_element_interactions -->
+            <!-- Drag Handle Spacer -->
+            <!-- svelte-ignore a11y_no_static_element_interactions -->
             <div
-              class="drag-handle flex-1 mx-2 my-1 self-stretch rounded bg-transparent hover:bg-white/5 transition-colors"
+              class="drag-handle flex-1 mx-2 my-1 self-stretch rounded bg-transparent transition-colors"
               class:cursor-move={!isSidebar}
               ondblclick={() => toggleLayout()}
             ></div>
