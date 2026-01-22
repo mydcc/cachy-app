@@ -574,7 +574,13 @@ class SettingsManager {
       this.sidePanelMode = merged.sidePanelMode;
       this.sidePanelLayout = merged.sidePanelLayout;
       this.chatStyle = merged.chatStyle;
-      this.panelState = merged.panelState;
+      // Copy panelState properties individually to preserve $state reactivity
+      if (merged.panelState) {
+        this.panelState.width = merged.panelState.width ?? this.panelState.width;
+        this.panelState.height = merged.panelState.height ?? this.panelState.height;
+        this.panelState.x = merged.panelState.x ?? this.panelState.x;
+        this.panelState.y = merged.panelState.y ?? this.panelState.y;
+      }
       this.maxPrivateNotes = merged.maxPrivateNotes;
       this.customSystemPrompt = merged.customSystemPrompt;
       this.aiProvider = merged.aiProvider;

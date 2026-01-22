@@ -424,7 +424,7 @@
     {#if isOpen}
       <div
         bind:this={panelEl}
-        class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel panel-border"
+        class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden fixed z-[100] glass-panel panel-border"
         class:is-interacting={isInteracting}
         transition:fly={{
           y: isFloating ? 20 : 0,
@@ -447,6 +447,7 @@
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
+        class:panel-transition={!isInteracting}
       >
         <!-- Main Panel Content -->
         <div class="flex-1 flex flex-col min-h-0">
