@@ -94,6 +94,21 @@
     };
 
     let activeSubTab = $derived(uiState.settingsProfileTab);
+    let isMobile = $state(false);
+
+    $effect(() => {
+        const checkMobile = () => {
+            if (typeof window !== "undefined") {
+                isMobile = window.innerWidth <= 768;
+                if (isMobile && uiState.settingsProfileTab === "appearance") {
+                    uiState.settingsProfileTab = "general";
+                }
+            }
+        };
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+        return () => window.removeEventListener("resize", checkMobile);
+    });
 
     function setSubTab(tab: typeof uiState.settingsProfileTab) {
         uiState.settingsProfileTab = tab;
@@ -109,12 +124,14 @@
         >
             {$_("settings.profile.subtabs.general") || "Allgemein"}
         </button>
-        <button
-            class:active={activeSubTab === "appearance"}
-            onclick={() => setSubTab("appearance")}
-        >
-            {$_("settings.profile.subtabs.appearance") || "Darstellung"}
-        </button>
+        {#if !isMobile}
+            <button
+                class:active={activeSubTab === "appearance"}
+                onclick={() => setSubTab("appearance")}
+            >
+                {$_("settings.profile.subtabs.appearance") || "Darstellung"}
+            </button>
+        {/if}
         <button
             class:active={activeSubTab === "controls"}
             onclick={() => setSubTab("controls")}

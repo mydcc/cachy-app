@@ -273,19 +273,13 @@
 
   let isMobile = $state(false);
 
-  // Filter tabs: hide 'profile' on mobile
-  let visibleTabs = $derived(
-    isMobile ? tabs.filter((t) => t.id !== "profile") : tabs,
-  );
+  // Filter tabs: no longer hiding 'profile' on mobile, user wants sub-tab hidden instead
+  let visibleTabs = $derived(tabs);
 
   $effect(() => {
     const checkMobile = () => {
       if (typeof window !== "undefined") {
         isMobile = window.innerWidth <= 768; // Standard mobile breakpoint
-        // Retrieve trigger state if we are on mobile and profile is selected
-        if (isMobile && activeTab === "profile") {
-          selectTab("workspace");
-        }
       }
     };
     checkMobile();
