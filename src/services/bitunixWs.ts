@@ -40,7 +40,7 @@ const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
 const PING_INTERVAL = 1500;
-const WATCHDOG_TIMEOUT = 3000;
+const WATCHDOG_TIMEOUT = 10000;
 const RECONNECT_DELAY = 500;
 const CONNECTION_TIMEOUT_MS = 3000;
 
@@ -144,11 +144,11 @@ class BitunixWebSocketService {
           return;
         }
 
-        if (status === "connected" && timeSincePublic > 2000) {
+        if (status === "connected" && timeSincePublic > 5000) {
           marketState.connectionStatus = "reconnecting";
         }
 
-        if (status !== "disconnected" && timeSincePublic > 5000) {
+        if (status !== "disconnected" && timeSincePublic > 12000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
