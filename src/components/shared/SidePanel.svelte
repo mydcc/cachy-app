@@ -1339,54 +1339,6 @@
     background: rgba(125, 125, 125, 0.2);
   }
 
-  /* Resize Handles */
-  .resize-handle {
-    position: absolute;
-    z-index: 10;
-    transition: background 0.2s ease;
-  }
-
-  .resize-handle:hover {
-    background: rgba(var(--accent-rgb), 0.1);
-  }
-
-  .resizer-right {
-    top: 0;
-    right: -2px;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-  }
-
-  .resizer-left {
-    top: 0;
-    left: -2px;
-    width: 6px;
-    height: 100%;
-    cursor: col-resize;
-  }
-
-  .resizer-bottom {
-    bottom: -2px;
-    left: 0;
-    width: 100%;
-    height: 6px;
-    cursor: row-resize;
-  }
-
-  .resizer-corner {
-    position: absolute;
-    bottom: 2px;
-    right: 2px;
-    width: 12px;
-    height: 12px;
-    z-index: 11;
-    color: var(--accent-color);
-    opacity: 0.4;
-    pointer-events: none;
-    transition: opacity 0.2s ease;
-  }
-
   /* Panel Border */
   .panel-border {
     border: 1px solid var(--border-color);
