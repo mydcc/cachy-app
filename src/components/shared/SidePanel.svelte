@@ -219,10 +219,7 @@
         },
       },
       modifiers: [
-        interact.modifiers.restrictRect({
-          restriction: "parent",
-          endOnly: true,
-        }),
+        // Modifier entfernt, da restriction: 'parent' das Springen verursacht
       ],
     });
 
@@ -468,6 +465,8 @@
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
+        class:left-0={isSidebar}
+        class:top-0={isSidebar}
         class:bg-[var(--bg-secondary)]={isTerminal}
         class:border-green-800={isTerminal}
         class:text-green-500={isTerminal}
@@ -487,7 +486,7 @@
             tabindex="0"
           >
             <h3
-              class="font-bold text-xs tracking-widest uppercase flex items-center gap-2"
+              class="font-bold text-xs tracking-widest uppercase"
               class:text-green-500={isTerminal}
               class:text-[var(--text-primary)]={!isTerminal}
             >
@@ -500,13 +499,6 @@
               >
                 {getPanelTitle(settingsState.sidePanelMode)}
               </button>
-              {#if isFloating}
-                <span class="opacity-50 text-[9px] font-mono">
-                  {Math.round(settingsState.panelState.width)}x{Math.round(
-                    settingsState.panelState.height,
-                  )}
-                </span>
-              {/if}
             </h3>
 
             <div class="flex items-center gap-2">
