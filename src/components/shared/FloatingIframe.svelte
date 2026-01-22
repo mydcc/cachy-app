@@ -1,5 +1,4 @@
 <script lang="ts">
-    import interact from "interactjs";
     import { fade } from "svelte/transition";
     import { uiState } from "../../stores/ui.svelte";
     import { _ } from "../../locales/i18n";
@@ -44,59 +43,71 @@
     $effect(() => {
         if (!containerEl || !iframeState.visible || isMobile) return;
 
-        const interaction = interact(containerEl)
-            .draggable({
-                allowFrom: ".iframe-header",
-                listeners: {
-                    start() {
-                        isInteracting = true;
+        let interaction: any;
+
+        const initInteract = async () => {
+            const { default: interact } = await import("interactjs");
+            interaction = interact(containerEl!)
+                .draggable({
+                    allowFrom: ".iframe-header",
+                    listeners: {
+                        start() {
+                            isInteracting = true;
+                        },
+                        move(event) {
+                            iframeState.x += event.dx;
+                            iframeState.y += event.dy;
+                        },
+                        end() {
+                            isInteracting = false;
+                        },
                     },
-                    move(event) {
-                        iframeState.x += event.dx;
-                        iframeState.y += event.dy;
+                    modifiers: [
+                        interact.modifiers.restrictRect({
+                            restriction: "parent",
+                        }),
+                    ],
+                })
+                .resizable({
+                    edges: {
+                        left: true,
+                        right: true,
+                        bottom: true,
+                        top: false,
                     },
-                    end() {
-                        isInteracting = false;
+                    listeners: {
+                        start() {
+                            isInteracting = true;
+                        },
+                        move(event) {
+                            iframeState.width = event.rect.width;
+                            iframeState.height = event.rect.height;
+                            iframeState.x += event.deltaRect.left;
+                            iframeState.y += event.deltaRect.top;
+                        },
+                        end() {
+                            isInteracting = false;
+                        },
                     },
-                },
-                modifiers: [
-                    interact.modifiers.restrictRect({
-                        restriction: "parent",
-                    }),
-                ],
-            })
-            .resizable({
-                edges: { left: true, right: true, bottom: true, top: false },
-                listeners: {
-                    start() {
-                        isInteracting = true;
-                    },
-                    move(event) {
-                        iframeState.width = event.rect.width;
-                        iframeState.height = event.rect.height;
-                        iframeState.x += event.deltaRect.left;
-                        iframeState.y += event.deltaRect.top;
-                    },
-                    end() {
-                        isInteracting = false;
-                    },
-                },
-                modifiers: [
-                    interact.modifiers.restrictSize({
-                        min: { width: 320, height: 180 },
-                        max: { width: 1600, height: 900 },
-                    }),
-                    interact.modifiers.restrictEdges({
-                        outer: "parent",
-                    }),
-                    interact.modifiers.aspectRatio({
-                        ratio: 768 / 465,
-                    }),
-                ],
-            });
+                    modifiers: [
+                        interact.modifiers.restrictSize({
+                            min: { width: 320, height: 180 },
+                            max: { width: 1600, height: 900 },
+                        }),
+                        interact.modifiers.restrictEdges({
+                            outer: "parent",
+                        }),
+                        interact.modifiers.aspectRatio({
+                            ratio: 768 / 465,
+                        }),
+                    ],
+                });
+        };
+
+        initInteract();
 
         return () => {
-            interaction.unset();
+            if (interaction) interaction.unset();
         };
     });
 

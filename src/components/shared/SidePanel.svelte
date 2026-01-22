@@ -28,7 +28,6 @@
   import { marked } from "marked";
   // @ts-ignore
   import DOMPurify from "dompurify";
-  import interact from "interactjs";
 
   let isOpen = $state(false);
   let inputEl: HTMLInputElement | HTMLTextAreaElement | undefined = $state();
@@ -182,86 +181,102 @@
     sanitizePanelState();
   });
 
-  // Sidebar mode interaction
   $effect(() => {
     if (!panelEl || !isSidebar) return;
 
-    const interaction = interact(panelEl).resizable({
-      edges: { right: true },
-      listeners: {
-        start() {
-          isInteracting = true;
-        },
-        move(event) {
-          settingsState.panelState.width = event.rect.width;
-        },
-        end() {
-          isInteracting = false;
-        },
-      },
-      modifiers: [
-        interact.modifiers.restrictSize({
-          min: { width: 300, height: 100 },
-        }),
-      ],
-    });
+    let interaction: any;
 
-    return () => interaction.unset();
+    const initInteract = async () => {
+      const { default: interact } = await import("interactjs");
+      interaction = interact(panelEl!).resizable({
+        edges: { right: true },
+        listeners: {
+          start() {
+            isInteracting = true;
+          },
+          move(event) {
+            settingsState.panelState.width = event.rect.width;
+          },
+          end() {
+            isInteracting = false;
+          },
+        },
+        modifiers: [
+          interact.modifiers.restrictSize({
+            min: { width: 300, height: 100 },
+          }),
+        ],
+      });
+    };
+
+    initInteract();
+
+    return () => {
+      if (interaction) interaction.unset();
+    };
   });
 
   // Floating mode interaction
   $effect(() => {
     if (!panelEl || !isFloating || settingsState.panelIsExpanded) return;
 
-    // Separate draggable and resizable to prevent chaining conflicts
-    const dragInteraction = interact(panelEl).draggable({
-      allowFrom: ".drag-handle",
-      listeners: {
-        start() {
-          isInteracting = true;
-        },
-        move(event) {
-          settingsState.panelState.x += event.dx;
-          settingsState.panelState.y += event.dy;
-        },
-        end() {
-          isInteracting = false;
-        },
-      },
-      modifiers: [
-        // Modifier entfernt, da restriction: 'parent' das Springen verursacht
-      ],
-    });
+    let dragInteraction: any;
+    let resizeInteraction: any;
 
-    const resizeInteraction = interact(panelEl).resizable({
-      // Explicitly define edges for floating mode
-      edges: { left: true, right: true, bottom: true, top: true },
-      margin: 6, // Reduce resize activation zone to prevent conflict with drag handle
-      listeners: {
-        start() {
-          isInteracting = true;
+    const initInteract = async () => {
+      const { default: interact } = await import("interactjs");
+      // Separate draggable and resizable to prevent chaining conflicts
+      dragInteraction = interact(panelEl!).draggable({
+        allowFrom: ".drag-handle",
+        listeners: {
+          start() {
+            isInteracting = true;
+          },
+          move(event) {
+            settingsState.panelState.x += event.dx;
+            settingsState.panelState.y += event.dy;
+          },
+          end() {
+            isInteracting = false;
+          },
         },
-        move(event) {
-          // Update width/height AND position for left/top resize
-          settingsState.panelState.width = event.rect.width;
-          settingsState.panelState.height = event.rect.height;
-          settingsState.panelState.x += event.deltaRect.left;
-          settingsState.panelState.y += event.deltaRect.top;
+        modifiers: [
+          // Modifier entfernt, da restriction: 'parent' das Springen verursacht
+        ],
+      });
+
+      resizeInteraction = interact(panelEl!).resizable({
+        // Explicitly define edges for floating mode
+        edges: { left: true, right: true, bottom: true, top: true },
+        margin: 6, // Reduce resize activation zone to prevent conflict with drag handle
+        listeners: {
+          start() {
+            isInteracting = true;
+          },
+          move(event) {
+            // Update width/height AND position for left/top resize
+            settingsState.panelState.width = event.rect.width;
+            settingsState.panelState.height = event.rect.height;
+            settingsState.panelState.x += event.deltaRect.left;
+            settingsState.panelState.y += event.deltaRect.top;
+          },
+          end() {
+            isInteracting = false;
+          },
         },
-        end() {
-          isInteracting = false;
-        },
-      },
-      modifiers: [
-        interact.modifiers.restrictSize({
-          min: { width: 300, height: 200 },
-        }),
-      ],
-    });
+        modifiers: [
+          interact.modifiers.restrictSize({
+            min: { width: 300, height: 200 },
+          }),
+        ],
+      });
+    };
+
+    initInteract();
 
     return () => {
-      dragInteraction.unset();
-      resizeInteraction.unset();
+      if (dragInteraction) dragInteraction.unset();
+      if (resizeInteraction) resizeInteraction.unset();
     };
   });
 
