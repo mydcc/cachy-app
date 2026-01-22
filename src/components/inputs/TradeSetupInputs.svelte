@@ -233,8 +233,16 @@
   let showSmiley = $state(false);
   let smileyX = $state(0);
   let smileyY = $state(0);
+  let smileyTimer: ReturnType<typeof setTimeout> | undefined;
 
   import { portal } from "../../lib/actions/portal";
+
+  // Cleanup timer on unmount
+  $effect(() => {
+    return () => {
+      if (smileyTimer) clearTimeout(smileyTimer);
+    };
+  });
 
   async function copyStopLossToClipboard(
     value: string,
@@ -248,9 +256,11 @@
       smileyX = x;
       smileyY = y;
       showSmiley = true;
-      // Hide after 1s
-      setTimeout(() => {
+
+      if (smileyTimer) clearTimeout(smileyTimer);
+      smileyTimer = setTimeout(() => {
         showSmiley = false;
+        smileyTimer = undefined;
       }, 1000);
     } catch (err) {
       uiState.showError("Failed to copy to clipboard");

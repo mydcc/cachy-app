@@ -149,7 +149,13 @@ export const POST: RequestHandler = async ({ request }) => {
         const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
         result = { orders };
       } else if (type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret);
+        // Support custom limit, default to 50 for better visibility
+        const limit = body.limit ? Number(body.limit) : 50;
+        // Cap limit to reasonable max (e.g. 100) to prevent abuse if needed,
+        // but Bitunix likely has its own max (usually 100).
+        const safeLimit = Math.min(Math.max(limit, 1), 100);
+
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, safeLimit);
         result = { orders };
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
@@ -398,13 +404,13 @@ async function fetchBitunixPendingOrders(
 async function fetchBitunixHistoryOrders(
   apiKey: string,
   apiSecret: string,
+  limit = 20,
 ): Promise<NormalizedOrder[]> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/get_history_orders";
 
-  // Default limit 20
   const params: Record<string, string> = {
-    limit: "20",
+    limit: String(limit),
   };
 
   const { nonce, timestamp, signature, queryString } = generateBitunixSignature(
