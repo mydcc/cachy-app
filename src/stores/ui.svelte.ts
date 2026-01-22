@@ -62,6 +62,7 @@ class UiManager {
   settingsTab = $state("profile");
   settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
   settingsWorkspaceTab = $state("sidebar");
+  showMarketDashboardModal = $state(false);
 
   // Floating Windows Management
   windows = $state<FloatingWindow[]>([]);
@@ -284,6 +285,9 @@ class UiManager {
   }
   toggleSettingsModal(show: boolean) {
     this.showSettingsModal = show;
+  }
+  toggleMarketDashboardModal(show: boolean) {
+    this.showMarketDashboardModal = show;
   }
 
   openSettings(tab = "profile") {

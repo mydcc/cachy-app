@@ -140,6 +140,14 @@ export interface Settings {
   backgroundAnimationIntensity: AnimationIntensity;
   videoPlaybackSpeed: number;
   enableNetworkLogs: boolean;
+  logSettings?: {
+    technicals: boolean;
+    network: boolean;
+    ai: boolean;
+    market: boolean;
+    general: boolean;
+    technicalsVerbose?: boolean;
+  };
 }
 
 const defaultSettings: Settings = {
@@ -238,6 +246,14 @@ const defaultSettings: Settings = {
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
   enableNetworkLogs: false,
+  logSettings: {
+    technicals: false,
+    network: false,
+    ai: true,
+    market: false,
+    general: true,
+    technicalsVerbose: false,
+  },
 };
 
 class SettingsManager {
@@ -431,6 +447,7 @@ class SettingsManager {
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
+  logSettings = $state(defaultSettings.logSettings);
 
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
@@ -648,6 +665,7 @@ class SettingsManager {
       this.showTechnicalsSignals = merged.showTechnicalsSignals;
       this.showTechnicalsPivots =
         merged.showTechnicalsPivots ?? defaultSettings.showTechnicalsPivots;
+      this.logSettings = merged.logSettings || defaultSettings.logSettings;
       this.showTvLink = merged.showTvLink ?? defaultSettings.showTvLink;
       this.showCgHeatLink =
         merged.showCgHeatLink ?? defaultSettings.showCgHeatLink;
@@ -822,6 +840,7 @@ class SettingsManager {
       backgroundAnimationIntensity: this.backgroundAnimationIntensity,
       videoPlaybackSpeed: this.videoPlaybackSpeed,
       enableNetworkLogs: this.enableNetworkLogs,
+      logSettings: $state.snapshot(this.logSettings),
     };
   }
 

@@ -55,6 +55,7 @@
   import SidePanel from "../components/shared/SidePanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
+  import AnalyticsButton from "../components/shared/AnalyticsButton.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
@@ -703,6 +704,7 @@
           <LanguageSwitcher />
           <div class="flex items-center gap-2">
             <FloatingIframeButton />
+            <AnalyticsButton />
             <SettingsButton />
           </div>
           <div class="flex items-center gap-2">

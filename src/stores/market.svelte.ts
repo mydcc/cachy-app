@@ -37,6 +37,14 @@ export interface MarketData {
     }
   >;
   technicals?: import("../services/technicalsTypes").TechnicalsData;
+  metricsHistory?: MetricSnapshot[];
+}
+
+export interface MetricSnapshot {
+  time: number;
+  spread: number;
+  imbalance: number; // Bid Ratio (0-1)
+  price: number;
 }
 
 export type WSStatus =
@@ -67,7 +75,55 @@ class MarketManager {
       this.cleanupIntervalId = setInterval(() => {
         this.cleanup();
       }, 60 * 1000);
+
+      // Start metrics history recording (every 10s)
+      setInterval(() => {
+        this.snapshotMetrics();
+      }, 10 * 1000);
     }
+  }
+
+  private snapshotMetrics() {
+    const now = Date.now();
+    Object.values(this.data).forEach((market) => {
+      // Only record if we have depth and price
+      if (
+        !market.depth ||
+        !market.lastPrice ||
+        market.depth.bids.length === 0 ||
+        market.depth.asks.length === 0
+      ) return;
+
+      const bestBid = parseFloat(market.depth.bids[0][0]);
+      const bestAsk = parseFloat(market.depth.asks[0][0]);
+
+      if (!bestBid || !bestAsk) return;
+
+      const spread = (bestAsk - bestBid) / bestBid; // Relative spread
+
+      // Calculate Imbalance (Top 5 levels)
+      const bidVol = market.depth.bids.slice(0, 5).reduce((acc, level) => acc + parseFloat(level[1]), 0);
+      const askVol = market.depth.asks.slice(0, 5).reduce((acc, level) => acc + parseFloat(level[1]), 0);
+      const imbalance = (bidVol + askVol) > 0 ? bidVol / (bidVol + askVol) : 0.5;
+
+      const snapshot: MetricSnapshot = {
+        time: now,
+        spread,
+        imbalance,
+        price: market.lastPrice.toNumber()
+      };
+
+      // Initialize if missing
+      if (!market.metricsHistory) market.metricsHistory = [];
+
+      // Add new snapshot
+      market.metricsHistory.push(snapshot);
+
+      // Keep last 60 entries (10 minutes)
+      if (market.metricsHistory.length > 60) {
+        market.metricsHistory.shift();
+      }
+    });
   }
 
   private getOrCreateSymbol(symbol: string): MarketData {

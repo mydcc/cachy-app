@@ -265,6 +265,105 @@
         {/if}
     </section>
 
+    <!-- Extended Logs -->
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-6"
+    >
+        <h3 class="section-title">Log Levels & Filtering</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div
+                class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)] col-span-full"
+            >
+                <div class="flex flex-col gap-3">
+                    <p class="text-[11px] text-[var(--text-secondary)] mb-2">
+                        Control which information is printed to the browser
+                        console.
+                    </p>
+
+                    {#if settingsState.logSettings}
+                        <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+                            <!-- Helper for Toggles -->
+                            {#snippet logToggle(label, key)}
+                                <label
+                                    class="flex items-center justify-between p-2 rounded bg-[var(--bg-tertiary)] cursor-pointer hover:bg-[var(--bg-primary)] transition-colors border border-[var(--border-color)]"
+                                >
+                                    <span class="text-xs font-semibold"
+                                        >{label}</span
+                                    >
+                                    <input
+                                        type="checkbox"
+                                        class="accent-[var(--accent-color)]"
+                                        checked={settingsState.logSettings[key]}
+                                        onchange={(e) => {
+                                            if (settingsState.logSettings) {
+                                                settingsState.logSettings[key] =
+                                                    e.currentTarget.checked;
+                                            }
+                                        }}
+                                    />
+                                </label>
+                            {/snippet}
+
+                            {@render logToggle("General", "general")}
+                            {@render logToggle("AI Logic", "ai")}
+                            {@render logToggle("Market Data", "market")}
+
+                            <!-- Technicals Special Case -->
+                            <div
+                                class="flex flex-col gap-1 p-2 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
+                            >
+                                <label
+                                    class="flex items-center justify-between cursor-pointer"
+                                >
+                                    <span class="text-xs font-semibold"
+                                        >Technicals</span
+                                    >
+                                    <input
+                                        type="checkbox"
+                                        class="accent-[var(--accent-color)]"
+                                        checked={settingsState.logSettings
+                                            .technicals}
+                                        onchange={(e) => {
+                                            if (settingsState.logSettings) {
+                                                settingsState.logSettings.technicals =
+                                                    e.currentTarget.checked;
+                                            }
+                                        }}
+                                    />
+                                </label>
+                                {#if settingsState.logSettings.technicals}
+                                    <label
+                                        class="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border-color)] cursor-pointer"
+                                    >
+                                        <span
+                                            class="text-[10px] text-[var(--text-secondary)]"
+                                            >Show Values (Verbose)</span
+                                        >
+                                        <input
+                                            type="checkbox"
+                                            class="w-3 h-3 accent-[var(--accent-color)]"
+                                            checked={settingsState.logSettings
+                                                .technicalsVerbose}
+                                            onchange={(e) => {
+                                                if (settingsState.logSettings) {
+                                                    settingsState.logSettings.technicalsVerbose =
+                                                        e.currentTarget.checked;
+                                                }
+                                            }}
+                                        />
+                                    </label>
+                                {/if}
+                            </div>
+
+                            {@render logToggle("Network", "network")}
+                        </div>
+                    {/if}
+                </div>
+            </div>
+        </div>
+    </section>
+
     <!-- Developer & Danger -->
     <section
         class="settings-section border-t border-[var(--border-color)] pt-6"

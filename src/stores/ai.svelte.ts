@@ -518,19 +518,19 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           cmcContext = {
             global: globalMetrics
               ? {
-                  btcDominance: globalMetrics.btc_dominance,
-                  marketCap: globalMetrics.total_market_cap,
-                  volume24h: globalMetrics.total_volume_24h,
-                  activeCoins: globalMetrics.active_cryptocurrencies,
-                }
+                btcDominance: globalMetrics.btc_dominance,
+                marketCap: globalMetrics.total_market_cap,
+                volume24h: globalMetrics.total_volume_24h,
+                activeCoins: globalMetrics.active_cryptocurrencies,
+              }
               : "Unavailable",
             symbolMetadata: coinMeta
               ? {
-                  name: coinMeta.name,
-                  slug: coinMeta.slug,
-                  tags: coinMeta.tags,
-                  dateAdded: coinMeta.date_added,
-                }
+                name: coinMeta.name,
+                slug: coinMeta.slug,
+                tags: coinMeta.tags,
+                dateAdded: coinMeta.date_added,
+              }
               : "Unavailable",
           };
         }
@@ -602,18 +602,18 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     // Ensure consistent lookup (try existing, then uppercase, then lowercase)
     const marketData = symbol
       ? market[symbol] ||
-        market[symbol.toUpperCase()] ||
-        market[symbol.toLowerCase()]
+      market[symbol.toUpperCase()] ||
+      market[symbol.toLowerCase()]
       : null;
 
     const recentTrades = Array.isArray(journal)
       ? journal.slice(0, limit).map((t: JournalEntry) => ({
-          symbol: t.symbol,
-          entry: t.entryDate,
-          exit: t.exitDate,
-          pnl: t.totalNetProfit?.toNumber() || 0,
-          won: (t.totalNetProfit?.toNumber() || 0) > 0,
-        }))
+        symbol: t.symbol,
+        entry: t.entryDate,
+        exit: t.exitDate,
+        pnl: t.totalNetProfit?.toNumber() || 0,
+        won: (t.totalNetProfit?.toNumber() || 0) > 0,
+      }))
       : [];
 
     // Technicals Data (New Addition)
@@ -638,20 +638,20 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               summary: data.summary,
               confluence: data.confluence
                 ? {
-                    score: Number(data.confluence.score.toFixed(2)),
-                    level: data.confluence.level,
-                    contributing: data.confluence.contributing,
-                  }
+                  score: Number(data.confluence.score.toFixed(2)),
+                  level: data.confluence.level,
+                  contributing: data.confluence.contributing,
+                }
                 : "N/A",
               divergences:
                 data.divergences && data.divergences.length > 0
                   ? data.divergences.map((d) => ({
-                      type: d.type,
-                      indicator: d.indicator,
-                      side: d.side,
-                      priceStart: Number(d.priceStart).toFixed(4),
-                      priceEnd: Number(d.priceEnd).toFixed(4),
-                    }))
+                    type: d.type,
+                    indicator: d.indicator,
+                    side: d.side,
+                    priceStart: Number(d.priceStart).toFixed(4),
+                    priceEnd: Number(d.priceEnd).toFixed(4),
+                  }))
                   : [],
               oscillators: Object.fromEntries(
                 Object.entries(data.oscillators).map(([k, v]) => [
@@ -675,362 +675,391 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               },
               volatility: data.volatility
                 ? {
-                    atr: Number(Number(data.volatility.atr).toFixed(4)),
-                    bbPercentP: Number(
-                      Number(data.volatility.bb.percentP).toFixed(2),
-                    ),
-                  }
+                  atr: Number(Number(data.volatility.atr).toFixed(4)),
+                  bbPercentP: Number(
+                    Number(data.volatility.bb.percentP).toFixed(2),
+                  ),
+                }
                 : "N/A",
             };
           }
         }
-      } catch (e) {
-        if (import.meta.env.DEV) {
-          console.warn("Failed to gather Technicals context:", e);
+      }
+        }
+
+    // --- Multi-Timeframe Trend Context (New) ---
+    // Fetch higher timeframe (e.g. 4h) for trend bias
+    const trendTimeframe = "4h";
+    if (timeframe !== trendTimeframe) {
+      const trendKlines = await apiService.fetchBitunixKlines(symbol, trendTimeframe, 200);
+      if (trendKlines && trendKlines.length > 0) {
+        const trendData = await technicalsService.calculateTechnicals(trendKlines, indicatorState);
+        if (trendData) {
+          // Merge into technicalsContext or add as separate field
+          // We'll add it as 'trendBias'
+          (technicalsContext as any).higherTimeframe = {
+            timeframe: trendTimeframe,
+            summary: trendData.summary, // e.g. "STRONG_BUY"
+            ema200Action: trendData.movingAverages.find(m => m.name === "EMA 200")?.action || "Unknown",
+            rsi: Number(trendData.oscillators["RSI"]?.toFixed(2)) || "N/A"
+          };
         }
       }
     }
 
-    // Market Details with Imbalance & Spread
-    let marketDetails = null;
-    if (marketData) {
-      let imbalance = "Unknown";
-      let spread = "Unknown";
-      let spreadStatus = "Unknown";
-      let imbalanceStatus = "Balanced";
-
-      if (
-        marketData.depth &&
-        marketData.depth.bids.length > 0 &&
-        marketData.depth.asks.length > 0
-      ) {
-        const bestBid = new Decimal(marketData.depth.bids[0][0]);
-        const bestAsk = new Decimal(marketData.depth.asks[0][0]);
-        const spreadVal = bestAsk.minus(bestBid);
-        spread = spreadVal.toFixed(5);
-
-        // Calculate spread relative to price
-        const spreadPercent = spreadVal.div(bestBid).times(100).toNumber();
-        if (spreadPercent < 0.02) spreadStatus = "Ultra Tight (Highly Liquid)";
-        else if (spreadPercent < 0.05) spreadStatus = "Normal/Liquid";
-        else if (spreadPercent < 0.15)
-          spreadStatus = "Wide (Wait for better fills)";
-        else spreadStatus = "Extreme Gap (Illiquid/Volatility Spikes)";
-
-        const totalBidVol = marketData.depth.bids
-          .slice(0, 5)
-          .reduce((sum, b) => sum + Number(b[1]), 0);
-        const totalAskVol = marketData.depth.asks
-          .slice(0, 5)
-          .reduce((sum, a) => sum + Number(a[1]), 0);
-        const bidRatio = totalBidVol / (totalBidVol + totalAskVol);
-        imbalance = (bidRatio * 100).toFixed(1) + "% Bids";
-
-        if (bidRatio > 0.8) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
-        else if (bidRatio > 0.6) imbalanceStatus = "Bullish Skew (Snapshot)";
-        else if (bidRatio < 0.2)
-          imbalanceStatus = "Extreme Sell Pressure (Snapshot)";
-        else if (bidRatio < 0.4) imbalanceStatus = "Bearish Skew (Snapshot)";
-        else imbalanceStatus = "Balanced (No immediate directional edge)";
-      }
-
-      marketDetails = {
-        currentPrice: marketData.lastPrice
-          ? parseFloat(marketData.lastPrice.toFixed(4))
-          : "Unknown",
-        high24h: marketData.highPrice
-          ? parseFloat(marketData.highPrice.toFixed(4))
-          : undefined,
-        low24h: marketData.lowPrice
-          ? parseFloat(marketData.lowPrice.toFixed(4))
-          : undefined,
-        volume24h: marketData.volume
-          ? Math.round(Number(marketData.volume)).toLocaleString()
-          : undefined,
-        fundingRate: marketData.fundingRate
-          ? marketData.fundingRate.times(100).toFixed(4) + "%"
-          : "N/A",
-        nextFunding: marketData.nextFundingTime
-          ? new Date(marketData.nextFundingTime).toISOString()
-          : "N/A",
-        orderbook: marketData.depth
-          ? {
-              imbalance,
-              imbalanceStatus,
-              spread,
-              spreadStatus,
-              topBids: marketData.depth.bids
-                .slice(0, 3)
-                .map((b) => parseFloat(Number(b[0]).toFixed(4))),
-              topAsks: marketData.depth.asks
-                .slice(0, 3)
-                .map((a) => parseFloat(Number(a[0]).toFixed(4))),
-            }
-          : "Unavailable",
-      };
+  } catch(e) {
+    if (import.meta.env.DEV) {
+      console.warn("Failed to gather Technicals context:", e);
     }
+  }
+}
 
-    return {
-      currentTime: new Date().toISOString(),
-      portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
-      activeSymbol: symbol,
-      REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
-      priceChange24h: marketData?.priceChangePercent
-        ? Number(marketData.priceChangePercent).toFixed(2) + "%"
-        : "Unknown",
-      marketDetails,
-      technicals: technicalsContext,
-      openPositions: Array.isArray(account.positions)
-        ? account.positions.map((p: any) => ({
-            symbol: p.symbol,
-            side: p.side,
-            size: p.size.toString(),
-            entry: p.entryPrice.toString(),
-            pnl: p.unrealizedPnl.toString(),
-            roi:
-              !p.entryPrice.isZero() && !p.size.isZero()
-                ? p.unrealizedPnl
-                    .div(p.entryPrice.times(p.size).div(p.leverage))
-                    .times(100)
-                    .toFixed(2) + "%"
-                : "N/A",
-          }))
-        : [],
-      recentHistory: recentTrades,
-      tradeSetup: {
-        entry: trade.entryPrice,
-        sl: trade.stopLossPrice,
-        tp: trade.targets,
-        risk: trade.riskPercentage + "%",
-        atrMultiplier: trade.atrMultiplier,
-        useAtrSl: trade.useAtrSl,
+// Market Details with Imbalance & Spread
+let marketDetails = null;
+if (marketData) {
+  let imbalance = "Unknown";
+  let spread = "Unknown";
+  let spreadStatus = "Unknown";
+  let imbalanceStatus = "Balanced";
+
+  if (
+    marketData.depth &&
+    marketData.depth.bids.length > 0 &&
+    marketData.depth.asks.length > 0
+  ) {
+    const bestBid = new Decimal(marketData.depth.bids[0][0]);
+    const bestAsk = new Decimal(marketData.depth.asks[0][0]);
+    const spreadVal = bestAsk.minus(bestBid);
+    spread = spreadVal.toFixed(5);
+
+    // Calculate spread relative to price
+    const spreadPercent = spreadVal.div(bestBid).times(100).toNumber();
+    if (spreadPercent < 0.02) spreadStatus = "Ultra Tight (Highly Liquid)";
+    else if (spreadPercent < 0.05) spreadStatus = "Normal/Liquid";
+    else if (spreadPercent < 0.15)
+      spreadStatus = "Wide (Wait for better fills)";
+    else spreadStatus = "Extreme Gap (Illiquid/Volatility Spikes)";
+
+    const totalBidVol = marketData.depth.bids
+      .slice(0, 5)
+      .reduce((sum, b) => sum + Number(b[1]), 0);
+    const totalAskVol = marketData.depth.asks
+      .slice(0, 5)
+      .reduce((sum, a) => sum + Number(a[1]), 0);
+    const bidRatio = totalBidVol / (totalBidVol + totalAskVol);
+    imbalance = (bidRatio * 100).toFixed(1) + "% Bids";
+
+    if (bidRatio > 0.8) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
+    else if (bidRatio > 0.6) imbalanceStatus = "Bullish Skew (Snapshot)";
+    else if (bidRatio < 0.2)
+      imbalanceStatus = "Extreme Sell Pressure (Snapshot)";
+    else if (bidRatio < 0.4) imbalanceStatus = "Bearish Skew (Snapshot)";
+    else imbalanceStatus = "Balanced (No immediate directional edge)";
+  }
+
+  marketDetails = {
+    currentPrice: marketData.lastPrice
+      ? parseFloat(marketData.lastPrice.toFixed(4))
+      : "Unknown",
+    high24h: marketData.highPrice
+      ? parseFloat(marketData.highPrice.toFixed(4))
+      : undefined,
+    low24h: marketData.lowPrice
+      ? parseFloat(marketData.lowPrice.toFixed(4))
+      : undefined,
+    volume24h: marketData.volume
+      ? Math.round(Number(marketData.volume)).toLocaleString()
+      : undefined,
+    fundingRate: marketData.fundingRate
+      ? marketData.fundingRate.times(100).toFixed(4) + "%"
+      : "N/A",
+    nextFunding: marketData.nextFundingTime
+      ? new Date(marketData.nextFundingTime).toISOString()
+      : "N/A",
+    orderbook: marketData.depth
+      ? {
+        imbalance,
+        imbalanceStatus,
+        spread,
+        spreadStatus,
+        topBids: marketData.depth.bids
+          .slice(0, 3)
+          .map((b) => parseFloat(Number(b[0]).toFixed(4))),
+        topAsks: marketData.depth.asks
+          .slice(0, 3)
+          .map((a) => parseFloat(Number(a[0]).toFixed(4))),
       },
-      marketIntelligence: cmcContext,
-      latestNews: newsContext,
-    };
+    metricsTrend: marketData.metricsHistory
+      ? marketData.metricsHistory.slice(-10).map(m => ({
+        t: getRelativeTimeString(new Date(m.time).toISOString(), "en"),
+        spread: m.spread.toFixed(5),
+        imb: (m.imbalance * 100).toFixed(1) + "%"
+      }))
+      : "Insufficient Data (Collecting...)"
+  };
+}
+
+return {
+  currentTime: new Date().toISOString(),
+  portfolioStats: { totalTrades, winrate, totalPnl, accountSize },
+  activeSymbol: symbol,
+  REAL_TIME_PRICE: marketData?.lastPrice?.toString() || "Unknown", // RENAMED to be very loud
+  priceChange24h: marketData?.priceChangePercent
+    ? Number(marketData.priceChangePercent).toFixed(2) + "%"
+    : "Unknown",
+  marketDetails,
+  technicals: technicalsContext,
+  openPositions: Array.isArray(account.positions)
+    ? account.positions.map((p: any) => ({
+      symbol: p.symbol,
+      side: p.side,
+      size: p.size.toString(),
+      entry: p.entryPrice.toString(),
+      pnl: p.unrealizedPnl.toString(),
+      roi:
+        !p.entryPrice.isZero() && !p.size.isZero()
+          ? p.unrealizedPnl
+            .div(p.entryPrice.times(p.size).div(p.leverage))
+            .times(100)
+            .toFixed(2) + "%"
+          : "N/A",
+    }))
+    : [],
+  recentHistory: recentTrades,
+  tradeSetup: {
+    entry: trade.entryPrice,
+    sl: trade.stopLossPrice,
+    tp: trade.targets,
+    risk: trade.riskPercentage + "%",
+    atrMultiplier: trade.atrMultiplier,
+    useAtrSl: trade.useAtrSl,
+  },
+  marketIntelligence: cmcContext,
+  latestNews: newsContext,
+};
   }
 
   private parseActions(text: string): AiAction[] {
-    const actions: AiAction[] = [];
-    const regex = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
-    const match = text.match(regex);
+  const actions: AiAction[] = [];
+  const regex = /```json\s*(\[\s*\{.*?\}\s*\])\s*```/s;
+  const match = text.match(regex);
 
-    if (match && match[1]) {
-      try {
-        const parsed = JSON.parse(match[1]);
-        if (Array.isArray(parsed)) return parsed as AiAction[];
-      } catch (e) {
-        /* ignore */
-      }
+  if (match && match[1]) {
+    try {
+      const parsed = JSON.parse(match[1]);
+      if (Array.isArray(parsed)) return parsed as AiAction[];
+    } catch (e) {
+      /* ignore */
     }
-
-    const singleRegex = /```json\s*(\{.*?\})\s*```/s;
-    const singleMatch = text.match(singleRegex);
-    if (singleMatch && singleMatch[1]) {
-      try {
-        const parsed = JSON.parse(singleMatch[1]);
-        return [parsed as AiAction];
-      } catch (e) {
-        /* ignore */
-      }
-    }
-
-    return actions;
   }
+
+  const singleRegex = /```json\s*(\{.*?\})\s*```/s;
+  const singleMatch = text.match(singleRegex);
+  if (singleMatch && singleMatch[1]) {
+    try {
+      const parsed = JSON.parse(singleMatch[1]);
+      return [parsed as AiAction];
+    } catch (e) {
+      /* ignore */
+    }
+  }
+
+  return actions;
+}
 
   private executeAction(action: AiAction, confirmNeeded: boolean): boolean {
-    // confirmNeeded is now handled at the batch level in processResponse
-    if (confirmNeeded) return false;
+  // confirmNeeded is now handled at the batch level in processResponse
+  if (confirmNeeded) return false;
 
-    try {
-      switch (action.action) {
-        case "setEntryPrice":
-          if (action.value !== undefined) {
-            tradeState.entryPrice = parseAiValue(action.value as string);
-          }
-          break;
-        case "setStopLoss":
-          if (action.value !== undefined) {
-            tradeState.stopLossPrice = parseAiValue(action.value as string);
-          }
-          break;
-        case "setTakeProfit":
-          if (typeof action.index === "number") {
-            const idx = action.index;
-            // Access targets array directly
-            const currentTargets = tradeState.targets;
-            if (currentTargets[idx]) {
-              // Deep reactivity in Svelte 5 allows modifying properties directly
-              // However, since it's an array of objects, we ensure reactivity triggers
-              // by reassigning or mutating properly. Runes proxies handle deep mutation.
-              if (action.value !== undefined) {
-                currentTargets[idx].price = parseAiValue(action.value as string);
-              }
-              if (action.percent !== undefined) {
-                currentTargets[idx].percent = parseAiValue(action.percent as string);
-              }
+  try {
+    switch (action.action) {
+      case "setEntryPrice":
+        if (action.value !== undefined) {
+          tradeState.entryPrice = parseAiValue(action.value as string);
+        }
+        break;
+      case "setStopLoss":
+        if (action.value !== undefined) {
+          tradeState.stopLossPrice = parseAiValue(action.value as string);
+        }
+        break;
+      case "setTakeProfit":
+        if (typeof action.index === "number") {
+          const idx = action.index;
+          // Access targets array directly
+          const currentTargets = tradeState.targets;
+          if (currentTargets[idx]) {
+            // Deep reactivity in Svelte 5 allows modifying properties directly
+            // However, since it's an array of objects, we ensure reactivity triggers
+            // by reassigning or mutating properly. Runes proxies handle deep mutation.
+            if (action.value !== undefined) {
+              currentTargets[idx].price = parseAiValue(action.value as string);
+            }
+            if (action.percent !== undefined) {
+              currentTargets[idx].percent = parseAiValue(action.percent as string);
             }
           }
-          break;
-        case "setLeverage":
-          if (action.value !== undefined) {
-            tradeState.leverage = parseAiValue(action.value as string);
-          }
-          break;
-        case "setRisk":
-          if (action.value !== undefined) {
-            tradeState.riskPercentage = parseAiValue(action.value as string);
-          }
-          break;
-        case "setSymbol":
-          if (action.value !== undefined) {
-            tradeState.symbol = String(action.value);
-          }
-          break;
-        case "setAtrMultiplier":
-        case "setStopLossATR":
-          const mult = action.value || action.atrMultiplier;
-          if (mult !== undefined) {
-            tradeState.atrMultiplier = parseFloat(String(mult));
-            tradeState.useAtrSl = true;
-          }
-          break;
-        case "setUseAtrSl":
-          if (typeof action.value === "boolean") {
-            tradeState.useAtrSl = action.value;
-          }
-          break;
-      }
-      return true;
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error("AI Action Execution Failed", e);
-      }
-      return false;
+        }
+        break;
+      case "setLeverage":
+        if (action.value !== undefined) {
+          tradeState.leverage = parseAiValue(action.value as string);
+        }
+        break;
+      case "setRisk":
+        if (action.value !== undefined) {
+          tradeState.riskPercentage = parseAiValue(action.value as string);
+        }
+        break;
+      case "setSymbol":
+        if (action.value !== undefined) {
+          tradeState.symbol = String(action.value);
+        }
+        break;
+      case "setAtrMultiplier":
+      case "setStopLossATR":
+        const mult = action.value || action.atrMultiplier;
+        if (mult !== undefined) {
+          tradeState.atrMultiplier = parseFloat(String(mult));
+          tradeState.useAtrSl = true;
+        }
+        break;
+      case "setUseAtrSl":
+        if (typeof action.value === "boolean") {
+          tradeState.useAtrSl = action.value;
+        }
+        break;
     }
+    return true;
+  } catch (e) {
+    if (import.meta.env.DEV) {
+      console.error("AI Action Execution Failed", e);
+    }
+    return false;
   }
+}
 
   /**
    * Describe an action in compact human-readable format
    */
   public describeAction(action: AiAction): string {
-    switch (action.action) {
-      case "setEntryPrice":
-        return `Einstieg: ${action.value}`;
-      case "setStopLoss":
-        return `Stopp-Loss: ${action.value}`;
-      case "setTakeProfit":
-        return `TP${(action.index ?? 0) + 1}: ${action.value}`;
-      case "setLeverage":
-        return `Hebel: ${action.value}x`;
-      case "setRisk":
-        return `Risiko: ${action.value}%`;
-      case "setSymbol":
-        return `Symbol: ${action.value}`;
-      case "setAtrMultiplier":
-      case "setStopLossATR":
-        const mult = action.value || action.atrMultiplier;
-        return `ATR SL: ${mult}x`;
-      case "setUseAtrSl":
-        return action.value ? "ATR SL: AN" : "ATR SL: AUS";
-      default:
-        return `Aktion: ${action.action}`;
-    }
+  switch (action.action) {
+    case "setEntryPrice":
+      return `Einstieg: ${action.value}`;
+    case "setStopLoss":
+      return `Stopp-Loss: ${action.value}`;
+    case "setTakeProfit":
+      return `TP${(action.index ?? 0) + 1}: ${action.value}`;
+    case "setLeverage":
+      return `Hebel: ${action.value}x`;
+    case "setRisk":
+      return `Risiko: ${action.value}%`;
+    case "setSymbol":
+      return `Symbol: ${action.value}`;
+    case "setAtrMultiplier":
+    case "setStopLossATR":
+      const mult = action.value || action.atrMultiplier;
+      return `ATR SL: ${mult}x`;
+    case "setUseAtrSl":
+      return action.value ? "ATR SL: AN" : "ATR SL: AUS";
+    default:
+      return `Aktion: ${action.action}`;
   }
+}
 
   /**
    * Add action to pending queue for user confirmation
    */
   private addPendingAction(actions: any[]): string {
-    const id = crypto.randomUUID();
-    this.pendingActions.set(id, {
-      id,
-      actions,
-      timestamp: Date.now(),
-    });
-    return id;
-  }
+  const id = crypto.randomUUID();
+  this.pendingActions.set(id, {
+    id,
+    actions,
+    timestamp: Date.now(),
+  });
+  return id;
+}
 
-  /**
-   * Confirm and execute a pending action
-   */
-  confirmAction(actionId: string) {
-    const pending = this.pendingActions.get(actionId);
-    if (!pending) return;
+/**
+ * Confirm and execute a pending action
+ */
+confirmAction(actionId: string) {
+  const pending = this.pendingActions.get(actionId);
+  if (!pending) return;
 
-    // Execute all actions in batch
-    pending.actions.forEach((action) => {
-      this.executeAction(action, false);
-    });
+  // Execute all actions in batch
+  pending.actions.forEach((action) => {
+    this.executeAction(action, false);
+  });
 
-    // Remove from pending
-    this.pendingActions.delete(actionId);
+  // Remove from pending
+  this.pendingActions.delete(actionId);
 
-    // Update message to show confirmed status
-    this.updateActionMessage(actionId, "confirmed");
-    this.save();
-  }
+  // Update message to show confirmed status
+  this.updateActionMessage(actionId, "confirmed");
+  this.save();
+}
 
-  /**
-   * Reject a pending action
-   */
-  rejectAction(actionId: string) {
-    const pending = this.pendingActions.get(actionId);
-    if (!pending) return;
+/**
+ * Reject a pending action
+ */
+rejectAction(actionId: string) {
+  const pending = this.pendingActions.get(actionId);
+  if (!pending) return;
 
-    // Remove from pending
-    this.pendingActions.delete(actionId);
+  // Remove from pending
+  this.pendingActions.delete(actionId);
 
-    // Update message to show rejected status
-    this.updateActionMessage(actionId, "rejected");
-    this.save();
-  }
+  // Update message to show rejected status
+  this.updateActionMessage(actionId, "rejected");
+  this.save();
+}
 
   /**
    * Update action message to show status
    */
   private updateActionMessage(
-    actionId: string,
-    status: "confirmed" | "rejected",
-  ) {
-    const idx = this.messages.findIndex((m) =>
-      m.content.includes(`[PENDING:${actionId}]`),
+  actionId: string,
+  status: "confirmed" | "rejected",
+) {
+  const idx = this.messages.findIndex((m) =>
+    m.content.includes(`[PENDING:${actionId}]`),
+  );
+  if (idx !== -1) {
+    const statusEmoji = status === "confirmed" ? "✅" : "❌";
+    const statusText = status === "confirmed" ? "Bestätigt" : "Abgelehnt";
+
+    // Remove [PENDING:id] and add status
+    this.messages[idx].content = this.messages[idx].content.replace(
+      `[PENDING:${actionId}]`,
+      `[${statusEmoji} ${statusText}]`,
     );
-    if (idx !== -1) {
-      const statusEmoji = status === "confirmed" ? "✅" : "❌";
-      const statusText = status === "confirmed" ? "Bestätigt" : "Abgelehnt";
-
-      // Remove [PENDING:id] and add status
-      this.messages[idx].content = this.messages[idx].content.replace(
-        `[PENDING:${actionId}]`,
-        `[${statusEmoji} ${statusText}]`,
-      );
-    }
   }
+}
 
-  // Compatibility
-  subscribe(
-    fn: (value: {
-      messages: AiMessage[];
-      isStreaming: boolean;
-      error: string | null;
-    }) => void,
-  ) {
-    fn({
-      messages: this.messages,
-      isStreaming: this.isStreaming,
-      error: this.error,
-    });
-    return $effect.root(() => {
-      $effect(() => {
-        fn({
-          messages: this.messages,
-          isStreaming: this.isStreaming,
-          error: this.error,
-        });
+// Compatibility
+subscribe(
+  fn: (value: {
+    messages: AiMessage[];
+    isStreaming: boolean;
+    error: string | null;
+  }) => void,
+) {
+  fn({
+    messages: this.messages,
+    isStreaming: this.isStreaming,
+    error: this.error,
+  });
+  return $effect.root(() => {
+    $effect(() => {
+      fn({
+        messages: this.messages,
+        isStreaming: this.isStreaming,
+        error: this.error,
       });
     });
-  }
+  });
+}
 }
 
 export const aiState = new AiManager();

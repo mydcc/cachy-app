@@ -22,6 +22,7 @@
   import DisclaimerModal from "../components/shared/DisclaimerModal.svelte";
   import JournalView from "../components/shared/JournalView.svelte";
   import SettingsModal from "../components/settings/SettingsModal.svelte";
+  import MarketDashboardModal from "../components/shared/MarketDashboardModal.svelte";
   import CustomModal from "../components/shared/CustomModal.svelte";
   import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
   import FloatingIframe from "../components/shared/FloatingIframe.svelte";
@@ -213,6 +214,18 @@
       );
     }
   });
+
+  // Start Market Analyst
+  onMount(() => {
+    import("../services/marketAnalyst").then(({ marketAnalyst }) => {
+      marketAnalyst.start();
+    });
+    return () => {
+      import("../services/marketAnalyst").then(({ marketAnalyst }) => {
+        marketAnalyst.stop();
+      });
+    };
+  });
 </script>
 
 <svelte:head>
@@ -246,6 +259,7 @@
   <!-- Global Modals -->
   <JournalView />
   <SettingsModal />
+  <MarketDashboardModal />
   <CustomModal />
   <SymbolPickerModal />
   <!-- Dynamic Floating Windows -->
