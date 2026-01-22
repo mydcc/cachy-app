@@ -148,7 +148,8 @@ class BitunixWebSocketService {
           marketState.connectionStatus = "reconnecting";
         }
 
-        if (status !== "disconnected" && timeSincePublic > 12000) {
+        // Increased from 12000 to 20000 to allow watchdog (10s) to handle reconnects first
+        if (status !== "disconnected" && timeSincePublic > 20000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
