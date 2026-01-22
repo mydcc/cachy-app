@@ -178,7 +178,7 @@ class RequestManager {
           }
           resolve(result);
         } catch (e) {
-          if (settingsState.enableNetworkLogs) {
+          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
             console.error(`[Response] Failed: ${key}`, e);
           }
           reject(e);
@@ -243,7 +243,9 @@ export const apiService = {
       const text = await response.text();
       // Sanitize error message (max 100 chars, no sensitive data)
       const sanitized = sanitizeErrorMessage(text, 100);
-      console.error("[API] Expected JSON, got:", sanitized);
+      if (import.meta.env.DEV) {
+        console.error("[API] Expected JSON, got:", sanitized);
+      }
       throw new Error("apiErrors.invalidResponseFormat");
     }
 
@@ -257,7 +259,9 @@ export const apiService = {
     try {
       return JSON.parse(text);
     } catch (e) {
-      console.error("[API] JSON parse error");
+      if (import.meta.env.DEV) {
+        console.error("[API] JSON parse error");
+      }
       throw new Error("apiErrors.invalidJson");
     }
   },
@@ -293,10 +297,12 @@ export const apiService = {
           // Validate response structure with Zod
           const validation = BitunixTickerResponseSchema.safeParse(res);
           if (!validation.success) {
-            console.error(
-              "[API] Invalid ticker response:",
-              validation.error.issues,
-            );
+            if (import.meta.env.DEV) {
+              console.error(
+                "[API] Invalid ticker response:",
+                validation.error.issues,
+              );
+            }
             throw new Error("apiErrors.invalidResponse");
           }
 
@@ -371,9 +377,11 @@ export const apiService = {
                 errData.error &&
                 !errData.error.includes("Symbol not found")
               ) {
-                console.error(
-                  `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
-                );
+                if (import.meta.env.DEV) {
+                  console.error(
+                    `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
+                  );
+                }
               }
             } catch {
               /* ignore parsing error */
@@ -424,7 +432,9 @@ export const apiService = {
 
                   return { open, high, low, close, volume, time };
                 } catch (e) {
-                  console.warn("Skipping invalid kline:", kline, e);
+                  if (import.meta.env.DEV) {
+                    console.warn("Skipping invalid kline:", kline, e);
+                  }
                   return null;
                 }
               },
@@ -432,7 +442,9 @@ export const apiService = {
             .filter((k): k is Kline => k !== null);
         } catch (e: any) {
           if (e.message !== "apiErrors.symbolNotFound") {
-            console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+            if (import.meta.env.DEV) {
+              console.error(`fetchBitunixKlines error for ${symbol}:`, e);
+            }
           }
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
@@ -544,7 +556,9 @@ export const apiService = {
 
                 return { open, high, low, close, volume, time };
               } catch (e) {
-                console.warn("Skipping invalid Binance kline:", kline, e);
+                if (import.meta.env.DEV) {
+                  console.warn("Skipping invalid Binance kline:", kline, e);
+                }
                 return null;
               }
             })
@@ -628,7 +642,9 @@ export const apiService = {
             };
           });
         } catch (e) {
-          console.error("Snapshot Fetch Error", e);
+          if (import.meta.env.DEV) {
+            console.error("Snapshot Fetch Error", e);
+          }
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
@@ -751,7 +767,9 @@ export const apiService = {
             };
           }
         } catch (e) {
-          console.error("fetchTicker24h error", e);
+          if (import.meta.env.DEV) {
+            console.error("fetchTicker24h error", e);
+          }
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&
