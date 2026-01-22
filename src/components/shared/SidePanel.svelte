@@ -144,11 +144,8 @@
     }
   });
 
-  // Panel State (Position & Size)
+  // Panel State (Position & Size) - use settingsState.panelState directly
   let panelEl: HTMLDivElement | undefined = $state();
-  let panelState = $state(
-    settingsState.panelState || { width: 450, height: 550, x: 20, y: 20 },
-  );
 
   // Sidebar mode interaction
   $effect(() => {
@@ -161,11 +158,10 @@
           isInteracting = true;
         },
         move(event) {
-          panelState.width = event.rect.width;
+          settingsState.panelState.width = event.rect.width;
         },
         end() {
           isInteracting = false;
-          settingsState.panelState = { ...panelState };
         },
       },
       modifiers: [
@@ -191,12 +187,11 @@
             isInteracting = true;
           },
           move(event) {
-            panelState.x += event.dx;
-            panelState.y += event.dy;
+            settingsState.panelState.x += event.dx;
+            settingsState.panelState.y += event.dy;
           },
           end() {
             isInteracting = false;
-            settingsState.panelState = { ...panelState };
           },
         },
         modifiers: [
@@ -213,14 +208,13 @@
             isInteracting = true;
           },
           move(event) {
-            panelState.width = event.rect.width;
-            panelState.height = event.rect.height;
-            panelState.x += event.deltaRect.left;
-            panelState.y += event.deltaRect.top;
+            settingsState.panelState.width = event.rect.width;
+            settingsState.panelState.height = event.rect.height;
+            settingsState.panelState.x += event.deltaRect.left;
+            settingsState.panelState.y += event.deltaRect.top;
           },
           end() {
             isInteracting = false;
-            settingsState.panelState = { ...panelState };
           },
         },
         modifiers: [
@@ -294,14 +288,17 @@
   }
 
   function clampPanelPosition() {
-    if (typeof window === "undefined" || !panelState || !isFloating) return;
+    if (
+      typeof window === "undefined" ||
+      !settingsState.panelState ||
+      !isFloating
+    )
+      return;
 
     const { innerWidth, innerHeight } = window;
-    let { x, y, width, height } = panelState;
+    let { x, y, width, height } = settingsState.panelState;
 
     // Safety bounds: Ensure panel is fully reachable
-    // x: between 0 and window width - panel width
-    // y: between 0 and window height - panel height
     const maxX = Math.max(0, innerWidth - width);
     const maxY = Math.max(0, innerHeight - height);
 
@@ -309,9 +306,8 @@
     let newY = Math.max(0, Math.min(y, maxY));
 
     if (newX !== x || newY !== y) {
-      panelState.x = newX;
-      panelState.y = newY;
-      settingsState.panelState = { ...panelState };
+      settingsState.panelState.x = newX;
+      settingsState.panelState.y = newY;
     }
   }
 
@@ -438,9 +434,9 @@
         style="{settingsState.panelIsExpanded
           ? 'width: 100vw; height: 100vh; left: 0; top: 0; border-radius: 0;'
           : isSidebar
-            ? `width: ${panelState?.width || 320}px;`
-            : panelState
-              ? `width: ${panelState.width}px; height: ${panelState.height}px; left: ${panelState.x}px; top: ${panelState.y}px;`
+            ? `width: ${settingsState.panelState?.width || 320}px;`
+            : settingsState.panelState
+              ? `width: ${settingsState.panelState.width}px; height: ${settingsState.panelState.height}px; left: ${settingsState.panelState.x}px; top: ${settingsState.panelState.y}px;`
               : ''} min-width: 300px; min-height: 200px; touch-action: none;"
         class:mb-4={isFloating && !settingsState.panelIsExpanded}
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
