@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { onMount, onDestroy, untrack } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { fade } from "svelte/transition";
   import { uiState } from "../../stores/ui.svelte";
   import { tradeState } from "../../stores/trade.svelte";
@@ -203,15 +203,18 @@
     // MarketWatcher handles connections and polling automatically
   });
 
-  onDestroy(() => {
-    if (countdownInterval) clearInterval(countdownInterval);
-    if (symbol && provider === "bitunix") {
-      marketWatcher.unregister(symbol, "price");
-      marketWatcher.unregister(symbol, "ticker");
-      marketWatcher.unregister(symbol, "depth_book5");
-      if (currentWsKlineChannel)
-        marketWatcher.unregister(symbol, currentWsKlineChannel);
-    }
+  // Replaces legacy onDestroy with $effect cleanup
+  $effect(() => {
+    return () => {
+      if (countdownInterval) clearInterval(countdownInterval);
+      if (symbol && provider === "bitunix") {
+        marketWatcher.unregister(symbol, "price");
+        marketWatcher.unregister(symbol, "ticker");
+        marketWatcher.unregister(symbol, "depth_book5");
+        if (currentWsKlineChannel)
+          marketWatcher.unregister(symbol, currentWsKlineChannel);
+      }
+    };
   });
 
   function formatValue(val: Decimal | undefined | null, decimals: number = 2) {

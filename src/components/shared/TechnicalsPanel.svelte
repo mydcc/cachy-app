@@ -5,7 +5,7 @@
 <script lang="ts">
   import { stopPropagation } from "svelte/legacy";
 
-  import { onDestroy, untrack } from "svelte";
+  import { untrack } from "svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
@@ -42,12 +42,14 @@
   const CALCULATION_THROTTLE_MS = 1000;
   let calculationTimeout: any = null;
 
-  onDestroy(() => {
-    if (currentSubscription) {
-      const [oldSym, oldTf] = currentSubscription.split(":");
-      marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-      marketWatcher.unregister(oldSym, "price");
-    }
+  $effect(() => {
+    return () => {
+      if (currentSubscription) {
+        const [oldSym, oldTf] = currentSubscription.split(":");
+        marketWatcher.unregister(oldSym, `kline_${oldTf}`);
+        marketWatcher.unregister(oldSym, "price");
+      }
+    };
   });
 
   function handleRealTimeUpdate(newKline: any) {

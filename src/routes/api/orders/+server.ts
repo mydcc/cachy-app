@@ -130,10 +130,18 @@ export const POST: RequestHandler = async ({ request }) => {
         ) {
           // Check triggerPrice OR stopPrice
           const trigger = body.triggerPrice || body.stopPrice;
+
+          if (!trigger) {
+             return json(
+              { error: `Trigger price required for ${orderType}.` },
+              { status: 400 },
+            );
+          }
+
           const triggerVal = parseFloat(String(trigger));
           if (isNaN(triggerVal) || triggerVal <= 0) {
             return json(
-              { error: `Trigger price required for ${orderType}.` },
+              { error: `Invalid trigger price for ${orderType}.` },
               { status: 400 },
             );
           }
@@ -205,7 +213,9 @@ export const POST: RequestHandler = async ({ request }) => {
       .replaceAll(apiKey, "***")
       .replaceAll(apiSecret, "***");
 
-    // console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
+    if (import.meta.env.DEV) {
+       console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
+    }
 
     // Return a generic error if it's a 500, or specific if it's safe
     // We assume e.message from our internal helpers is reasonably safe, but we wrap it just in case

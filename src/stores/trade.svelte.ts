@@ -345,7 +345,7 @@ class TradeManager {
 
   // Compatibility
   private listeners = new Set<(value: any) => void>();
-  // private notifyTimer: any = null; // Removed debounce for sync updates
+  private saveTimer: ReturnType<typeof setTimeout> | null = null;
 
   private notifyListeners() {
     // Synchronous notification to prevent race conditions
