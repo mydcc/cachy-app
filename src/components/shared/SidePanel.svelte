@@ -191,9 +191,6 @@
           listeners: {
             start() {
               isInteracting = true;
-              if (panelEl) {
-                panelEl.style.userSelect = "none";
-              }
             },
             move(event) {
               panelState.x += event.dx;
@@ -201,10 +198,6 @@
             },
             end() {
               isInteracting = false;
-              if (panelEl) {
-                panelEl.style.userSelect = "";
-              }
-              clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
           },
@@ -217,13 +210,9 @@
         })
         .resizable({
           edges: { left: true, right: true, bottom: true, top: false },
-          margin: 8,
           listeners: {
             start() {
               isInteracting = true;
-              if (panelEl) {
-                panelEl.style.userSelect = "none";
-              }
             },
             move(event) {
               panelState.width = event.rect.width;
@@ -233,10 +222,6 @@
             },
             end() {
               isInteracting = false;
-              if (panelEl) {
-                panelEl.style.userSelect = "";
-              }
-              clampPanelPosition();
               settingsState.panelState = { ...panelState };
             },
           },
@@ -1206,6 +1191,7 @@
 <style>
   .is-interacting {
     transition: none !important;
+    user-select: none !important;
   }
 
   .writing-vertical-lr {
