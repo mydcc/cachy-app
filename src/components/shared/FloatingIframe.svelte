@@ -114,8 +114,12 @@
 </script>
 
 {#if iframeState.visible}
+    <!-- svelte-ignore a11y_no_static_element_interactions -->
+    <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={containerEl}
+        role="application"
+        aria-label={iframeState.title}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"
         class:is-interacting={isInteracting}
         class:mobile-mode={isMobile}
