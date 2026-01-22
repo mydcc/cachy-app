@@ -18,6 +18,7 @@
 <script lang="ts">
   import { onMount, onDestroy, untrack } from "svelte";
   import { fade } from "svelte/transition";
+  import { uiState } from "../../stores/ui.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
@@ -254,6 +255,25 @@
       app.fetchAllAnalysisData(symbol.toUpperCase());
     }
   }
+
+  // --- Channel Logic ---
+  const CHANNEL_SYMBOLS = ["BTC", "ETH", "SOL", "LINK", "XRP"];
+
+  function openChannel() {
+    if (!symbol) return;
+    const s = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "");
+
+    // Only allow for specific symbols
+    if (!CHANNEL_SYMBOLS.includes(s)) return;
+
+    const url = `https://space.cachy.app/index.php?plot_id=${s}`;
+    const title = `${s} Channel`;
+
+    // Open in dynamic window with unique ID per config/symbol
+    const windowId = `channel_${plotId}`;
+    uiState.openWindow(windowId, url, title);
+  }
+
   let wsStatus = $derived(marketState.connectionStatus);
   // Derived Real-time values
   let currentPrice = $derived.by(() => {
@@ -742,6 +762,19 @@
             >
               {provider.toUpperCase()}
             </a>
+          {/if}
+
+          {#if CHANNEL_SYMBOLS.includes(baseAsset)}
+            <button
+              class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-0.5 rounded"
+              title="Open {baseAsset} Channel"
+              onclick={(e) => {
+                e.stopPropagation();
+                openChannel();
+              }}
+            >
+              {@html icons.monitor}
+            </button>
           {/if}
         </div>
       {/if}

@@ -2,8 +2,13 @@
     import { uiState } from "../../stores/ui.svelte";
     import { _ } from "../../locales/i18n";
 
+    // Derived state to check if main window is open
+    let isGenesisOpen = $derived(
+        uiState.windows.some((w) => w.id === "genesis"),
+    );
+
     function toggle() {
-        if (uiState.iframeModal.visible) {
+        if (isGenesisOpen) {
             uiState.toggleIframeModal(false);
         } else {
             uiState.toggleIframeModal(
@@ -17,7 +22,7 @@
 
 <button
     class="btn-icon-accent"
-    class:active={uiState.iframeModal.visible}
+    class:active={isGenesisOpen}
     onclick={toggle}
     aria-label="Toggle Video"
     title="Toggle Video Modal"

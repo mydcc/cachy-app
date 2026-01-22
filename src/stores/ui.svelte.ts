@@ -10,6 +10,35 @@
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 
+class FloatingWindow {
+  id = $state("");
+  visible = $state(true);
+  url = $state("");
+  title = $state("");
+  width = $state(768);
+  height = $state(465);
+  x = $state(100);
+  y = $state(100);
+
+  constructor(data: {
+    id: string;
+    url: string;
+    title: string;
+    x?: number;
+    y?: number;
+    width?: number;
+    height?: number;
+  }) {
+    this.id = data.id;
+    this.url = data.url;
+    this.title = data.title;
+    if (data.x !== undefined) this.x = data.x;
+    if (data.y !== undefined) this.y = data.y;
+    if (data.width !== undefined) this.width = data.width;
+    if (data.height !== undefined) this.height = data.height;
+  }
+}
+
 class UiManager {
   currentTheme = $state("dark");
   showJournalModal = $state(false);
@@ -31,16 +60,10 @@ class UiManager {
   settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
   settingsWorkspaceTab = $state("sidebar");
 
-  // Floating Iframe Modal State
-  iframeModal = $state({
-    visible: false,
-    url: "",
-    title: "",
-    width: 768,
-    height: 465,
-    x: 100,
-    y: 100,
-  });
+  // Floating Windows Management
+  windows = $state<FloatingWindow[]>([]);
+  private windowOffset = 30; // Cascading offset
+  private basePosition = { x: 100, y: 100 };
 
   // Loading State
   isLoading = $state(false);
@@ -102,6 +125,7 @@ class UiManager {
         loadingMessage: this.loadingMessage,
         syncProgress: this.syncProgress,
         tooltip: this.tooltip,
+        windows: this.windows, // Expose windows
       };
       fn(stateSnapshot);
       return () => { };
@@ -138,6 +162,7 @@ class UiManager {
       loadingMessage: this.loadingMessage,
       syncProgress: this.syncProgress,
       tooltip: this.tooltip,
+      windows: this.windows,
     };
     const newState = fn(stateSnapshot);
     Object.assign(this, newState);
@@ -262,13 +287,70 @@ class UiManager {
     this.settingsTab = tab;
   }
 
-  toggleIframeModal(visible: boolean, url = "", title = "") {
-    this.iframeModal.visible = visible;
-    if (visible) {
-      if (url) this.iframeModal.url = url;
-      if (title) this.iframeModal.title = title;
+  // --- Dynamic Window Management ---
+  openWindow(id: string, url: string, title: string) {
+    const existingIndex = this.windows.findIndex((w) => w.id === id);
+
+    if (existingIndex !== -1) {
+      // Window exists, bring to front/update
+      const w = this.windows[existingIndex];
+      w.visible = true;
+      w.url = url;
+      w.title = title;
+      // Optional: Bring to front logic (re-insert at end) could go here
+    } else {
+      // Create new window
+      // Calculate cascade position based on number of open windows
+      const count = this.windows.length;
+      const x = this.basePosition.x + (count * this.windowOffset) % 200;
+      const y = this.basePosition.y + (count * this.windowOffset) % 200;
+
+      this.windows.push(
+        new FloatingWindow({
+          id,
+          url,
+          title,
+          x,
+          y,
+        }),
+      );
     }
   }
+
+  closeWindow(id: string) {
+    this.windows = this.windows.filter((w) => w.id !== id);
+  }
+
+  // Legacy Wrapper for "Genesis" (Main) Modal
+  toggleIframeModal(visible: boolean, url = "", title = "") {
+    if (visible) {
+      this.openWindow("genesis", url, title);
+    } else {
+      this.closeWindow("genesis");
+    }
+  }
+
+  // Legacy Wrapper for "Channel" Modal
+  toggleIframeModal2(visible: boolean, url = "", title = "") {
+    // For legacy channel calls, we might need a unique ID if not provided.
+    // However, existing usages likely want a specific channel.
+    // If this is called generically, we might need to know WHICH channel.
+    // But since this was just added, we can assume 'channel' ID or similar.
+    // For now, let's map it to a generic 'channel_secondary' if no better info exists,
+    // BUT strictly speaking, the updated code in MarketOverview uses toggleIframeModal2
+    // with a specific URL/Title.
+    // Actually, MarketOverview refactor is part of this plan.
+    // We should deprecate this method and update MarketOverview directly.
+    // But to keep TypeScript happy until then:
+    if (visible) {
+      // Use title as pseudo-ID if unique enough, or just 'secondary'
+      // Better: MarketOverview will be updated to use openWindow directly.
+      this.openWindow("secondary_legacy", url, title);
+    } else {
+      this.closeWindow("secondary_legacy");
+    }
+  }
+
 
   showFeedback(type: "copy" | "save", duration = 2000) {
     if (type === "copy") this.showCopyFeedback = true;

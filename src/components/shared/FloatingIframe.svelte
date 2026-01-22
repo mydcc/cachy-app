@@ -1,14 +1,28 @@
 <script lang="ts">
-    import { uiState } from "../../stores/ui.svelte";
     import interact from "interactjs";
     import { fade } from "svelte/transition";
     import { _ } from "../../locales/i18n";
+
+    interface Props {
+        iframeState: {
+            visible: boolean;
+            url: string;
+            title: string;
+            width: number;
+            height: number;
+            x: number;
+            y: number;
+        };
+        onClose: () => void;
+    }
+
+    let { iframeState, onClose }: Props = $props();
 
     let containerEl: HTMLDivElement | undefined = $state();
     let isInteracting = $state(false);
 
     $effect(() => {
-        if (!containerEl || !uiState.iframeModal.visible) return;
+        if (!containerEl || !iframeState.visible) return;
 
         const interaction = interact(containerEl)
             .draggable({
@@ -18,8 +32,8 @@
                         isInteracting = true;
                     },
                     move(event) {
-                        uiState.iframeModal.x += event.dx;
-                        uiState.iframeModal.y += event.dy;
+                        iframeState.x += event.dx;
+                        iframeState.y += event.dy;
                     },
                     end() {
                         isInteracting = false;
@@ -39,10 +53,10 @@
                         isInteracting = true;
                     },
                     move(event) {
-                        uiState.iframeModal.width = event.rect.width;
-                        uiState.iframeModal.height = event.rect.height;
-                        uiState.iframeModal.x += event.deltaRect.left;
-                        uiState.iframeModal.y += event.deltaRect.top;
+                        iframeState.width = event.rect.width;
+                        iframeState.height = event.rect.height;
+                        iframeState.x += event.deltaRect.left;
+                        iframeState.y += event.deltaRect.top;
                     },
                     end() {
                         isInteracting = false;
@@ -66,23 +80,19 @@
             interaction.unset();
         };
     });
-
-    function close() {
-        uiState.toggleIframeModal(false);
-    }
 </script>
 
-{#if uiState.iframeModal.visible}
+{#if iframeState.visible}
     <div
         bind:this={containerEl}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"
         class:is-interacting={isInteracting}
         transition:fade={{ duration: 200 }}
         style="
-      width: {uiState.iframeModal.width}px;
-      height: {uiState.iframeModal.height}px;
-      left: {uiState.iframeModal.x}px;
-      top: {uiState.iframeModal.y}px;
+      width: {iframeState.width}px;
+      height: {iframeState.height}px;
+      left: {iframeState.x}px;
+      top: {iframeState.y}px;
       border-radius: 8px;
       touch-action: none;
     "
@@ -98,12 +108,12 @@
                 <span
                     class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] truncate"
                 >
-                    {uiState.iframeModal.title || "Cachy Space"}
+                    {iframeState.title || "Cachy Space"}
                 </span>
             </div>
             <button
                 class="text-[var(--text-secondary)] hover:text-white transition-colors p-1"
-                onclick={close}
+                onclick={onClose}
                 aria-label="Close"
             >
                 <svg
@@ -126,9 +136,9 @@
         <!-- Content/Iframe -->
         <div class="flex-1 w-full bg-black relative">
             <iframe
-                src={uiState.iframeModal.url ||
+                src={iframeState.url ||
                     "https://space.cachy.app/index.php?plot_id=genesis"}
-                title={uiState.iframeModal.title}
+                title={iframeState.title}
                 class="w-full h-full border-none"
                 class:pointer-events-none={isInteracting}
                 allow="xr-spatial-tracking; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"

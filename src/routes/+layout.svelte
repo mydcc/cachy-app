@@ -242,7 +242,13 @@
   <SettingsModal />
   <CustomModal />
   <SymbolPickerModal />
-  <FloatingIframe />
+  <!-- Dynamic Floating Windows -->
+  {#each uiState.windows as window (window.id)}
+    <FloatingIframe
+      iframeState={window}
+      onClose={() => uiState.closeWindow(window.id)}
+    />
+  {/each}
   <!-- ToastManager Removed as not found -->
   <!-- LoadingSpinner Removed as not found -->
 
