@@ -88,7 +88,11 @@ class TradeManager {
   journalFilterStatus = $state(INITIAL_TRADE_STATE.journalFilterStatus);
 
   // Transient
-  currentTradeData = $state(INITIAL_TRADE_STATE.currentTradeData);
+  /**
+   * Holds current active trade data fetched from API/WS.
+   * Can be used to sync UI with real position state.
+   */
+  currentTradeData = $state<Record<string, any> | null>(INITIAL_TRADE_STATE.currentTradeData);
   remoteLeverage = $state(INITIAL_TRADE_STATE.remoteLeverage);
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
   remoteMakerFee = $state(INITIAL_TRADE_STATE.remoteMakerFee);
@@ -169,7 +173,9 @@ class TradeManager {
         this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
       }
     } catch (e) {
-      console.error("Failed to load trade state", e);
+      if (import.meta.env.DEV) {
+        console.error("Failed to load trade state", e);
+      }
       this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
     }
   }
@@ -183,7 +189,9 @@ class TradeManager {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
       this.notifyListeners();
     } catch (e) {
-      console.error("Failed to save trade state", e);
+      if (import.meta.env.DEV) {
+        console.error("Failed to save trade state", e);
+      }
     }
   }
 
@@ -197,7 +205,9 @@ class TradeManager {
     }
     const normalized = normalizeSymbol(symbol, provider);
     if (!normalized) {
-      console.warn("[tradeState] Invalid symbol:", symbol);
+      if (import.meta.env.DEV) {
+        console.warn("[tradeState] Invalid symbol:", symbol);
+      }
       return false;
     }
     this.symbol = normalized;
@@ -255,21 +265,32 @@ class TradeManager {
     const snap = this.getSnapshot();
     const next = fn(snap);
 
-    // Apply back
+    // Apply back properties to this instance (Svelte 5 Runes)
+    // We iterate keys to trigger individual property setters if needed,
+    // though Object.assign works for class properties in Runes too.
     Object.assign(this, next);
 
-    // Handle nested Decimal if replaced? (lockedPositionSize)
+    // Handle nested Decimal if replaced (lockedPositionSize)
     if (
       next.lockedPositionSize &&
       !(next.lockedPositionSize instanceof Decimal)
     ) {
-      this.lockedPositionSize = new Decimal(next.lockedPositionSize);
+      try {
+        this.lockedPositionSize = new Decimal(next.lockedPositionSize);
+      } catch(e) { /* ignore */ }
+    }
+
+    // Ensure reactivity for targets array if replaced completely
+    // Object.assign handles this, but explicit assignment ensures Runes signal works if Object.assign behavior varies
+    if (next.targets && next.targets !== this.targets) {
+        this.targets = next.targets;
     }
   }
 
   // Helper for legacy 'set' pattern (useful for tests)
   set(newState: any) {
     Object.assign(this, newState);
+
     if (
       newState.lockedPositionSize &&
       !(newState.lockedPositionSize instanceof Decimal)
@@ -279,6 +300,11 @@ class TradeManager {
       } catch (e) {
         /* ignore */
       }
+    }
+
+    // Ensure targets reactivity
+    if (newState.targets) {
+        this.targets = newState.targets;
     }
   }
 

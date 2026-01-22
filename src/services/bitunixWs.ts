@@ -590,8 +590,12 @@ class BitunixWebSocketService {
       else this.awaitingPongPrivate = false;
 
       // 1. Validate message structure with Zod
+      // We rely on safeParse but we are lenient about extra fields (zod object is not strict by default)
+      // If the schema itself is strict, it would fail on new fields.
+      // BitunixWSMessageSchema in types/bitunixValidation.ts uses z.object({...}) which allows extra fields.
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
+        // Only trigger circuit breaker for fundamental structure violations
         const now = Date.now();
         if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
           this.validationErrorCount = 0;
@@ -664,6 +668,8 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
+          // In DEV, warn loudly. In PROD, we just ignore to prevent crashing or weird state,
+          // but we might consider a way to notify the UI if this is the ACTIVE symbol.
           if (import.meta.env.DEV) {
             console.warn(
               "[WebSocket] Invalid symbol in price update:",
