@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cachy App | State of the Art Architecture</title>
+    <style>
+        :root {
+            --bg-dark: #0f172a;
+            --bg-card: #1e293b;
+            --text-primary: #f8fafc;
+            --text-secondary: #94a3b8;
+            --accent-primary: #38bdf8;
+            --accent-glow: rgba(56, 189, 248, 0.2);
+            --success: #22c55e;
+            --glass: rgba(30, 41, 59, 0.7);
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-primary);
+            line-height: 1.6;
+            overflow-x: hidden;
+            background-image: 
+                radial-gradient(circle at 15% 50%, rgba(56, 189, 248, 0.08) 0%, transparent 25%),
+                radial-gradient(circle at 85% 30%, rgba(168, 85, 247, 0.08) 0%, transparent 25%);
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 80px;
+            animation: fadeInDown 1s ease;
+        }
+
+        h1 {
+            font-size: 4rem;
+            font-weight: 800;
+            background: linear-gradient(135deg, #fff 0%, #94a3b8 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            margin-bottom: 16px;
+            letter-spacing: -0.02em;
+        }
+
+        .subtitle {
+            font-size: 1.25rem;
+            color: var(--text-secondary);
+            max-width: 600px;
+            margin: 0 auto;
+        }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 20px;
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-primary);
+            font-size: 0.875rem;
+            font-weight: 600;
+            margin-bottom: 20px;
+            border: 1px solid rgba(56, 189, 248, 0.2);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 24px;
+            margin-bottom: 60px;
+        }
+
+        .card {
+            background: var(--bg-card);
+            border-radius: 16px;
+            padding: 32px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            position: relative;
+            overflow: hidden;
+            backdrop-filter: blur(10px);
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 20px 40px -5px rgba(0, 0, 0, 0.3), 0 0 20px var(--accent-glow);
+            border-color: rgba(56, 189, 248, 0.3);
+        }
+
+        .card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 4px;
+            background: linear-gradient(90deg, var(--accent-primary), #a855f7);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        }
+
+        .card:hover::before {
+            opacity: 1;
+        }
+
+        .card-icon {
+            font-size: 2rem;
+            margin-bottom: 20px;
+            display: inline-block;
+        }
+
+        .card h3 {
+            font-size: 1.5rem;
+            margin-bottom: 12px;
+            color: #fff;
+        }
+
+        .card p {
+            color: var(--text-secondary);
+            font-size: 0.95rem;
+            margin-bottom: 20px;
+        }
+
+        .tech-badge {
+            display: inline-flex;
+            align-items: center;
+            padding: 4px 8px;
+            border-radius: 6px;
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-secondary);
+            font-size: 0.8rem;
+            margin-right: 8px;
+            margin-bottom: 8px;
+        }
+
+        .tech-badge.highlight {
+            background: rgba(56, 189, 248, 0.1);
+            color: var(--accent-primary);
+        }
+
+        .section-title {
+            font-size: 2rem;
+            margin-bottom: 40px;
+            text-align: center;
+            position: relative;
+            display: inline-block;
+            left: 50%;
+            transform: translateX(-50%);
+        }
+
+        .architecture-diagram {
+            background: var(--bg-card);
+            border-radius: 24px;
+            padding: 60px;
+            position: relative;
+            margin-bottom: 80px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 40px;
+        }
+
+        .arch-node {
+            background: rgba(15, 23, 42, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            padding: 20px 40px;
+            border-radius: 12px;
+            text-align: center;
+            position: relative;
+            min-width: 180px;
+        }
+
+        .arch-node strong {
+            display: block;
+            color: #fff;
+            margin-bottom: 4px;
+        }
+
+        .arch-node span {
+            font-size: 0.85rem;
+            color: var(--accent-primary);
+        }
+
+        .connection-line {
+            height: 2px;
+            width: 60px;
+            background: linear-gradient(90deg, transparent, var(--accent-primary), transparent);
+        }
+
+        @keyframes fadeInDown {
+            from { opacity: 0; transform: translateY(-20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 20px;
+            text-align: center;
+            margin-top: 40px;
+        }
+
+        .stat-item h4 {
+            font-size: 2.5rem;
+            color: #fff;
+            font-weight: 700;
+        }
+
+        .stat-item span {
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        footer {
+            text-align: center;
+            padding: 40px 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+            border-top: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <div class="tag">INVESTOR BRIEFING 2026</div>
+            <h1>CACHY APP</h1>
+            <p class="subtitle">A conceptual overview of a high-frequency, AI-augmented crypto trading terminal built with the absolute latest web technologies.</p>
+        </header>
+
+        <section>
+            <h2 class="section-title">Technological Foundation</h2>
+            <div class="grid">
+                <!-- Svelte 5 -->
+                <div class="card">
+                    <div class="card-icon">⚡</div>
+                    <h3>Svelte 5 (Runes)</h3>
+                    <p>Leveraging the groundbreaking reactivity model of Svelte 5. Runes provide fine-grained control over state, eliminating virtual DOM overhead for maximum frame rates.</p>
+                    <div>
+                        <span class="tech-badge highlight">v5.48.0</span>
+                        <span class="tech-badge">Zero Bundle</span>
+                        <span class="tech-badge">Reactivity</span>
+                    </div>
+                </div>
+
+                <!-- Tailwind 4 -->
+                <div class="card">
+                    <div class="card-icon">🎨</div>
+                    <h3>Tailwind CSS 4</h3>
+                    <p>Running on the new Oxide engine. Unified configuration, native variable support, and blazing fast HMR. The UI is computed, not just styled.</p>
+                    <div>
+                        <span class="tech-badge highlight">v4.1.18</span>
+                        <span class="tech-badge">Oxide Engine</span>
+                        <span class="tech-badge">JIT</span>
+                    </div>
+                </div>
+
+                <!-- Vite 7 -->
+                <div class="card">
+                    <div class="card-icon">🚀</div>
+                    <h3>Vite 7</h3>
+                    <p>Next-generation frontend tooling. Instant server start, lightning-fast HMR, and optimized production builds ensuring the terminal loads in milliseconds.</p>
+                    <div>
+                        <span class="tech-badge highlight">v7.3.1</span>
+                        <span class="tech-badge">ESBuild</span>
+                        <span class="tech-badge">Rollup</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <h2 class="section-title">System Architecture</h2>
+            <div class="architecture-diagram">
+                <div class="arch-node">
+                    <strong>External Exchanges</strong>
+                    <span>Bitunix / Binance</span>
+                </div>
+                <div class="connection-line"></div>
+                <div class="arch-node">
+                    <strong>Core Logic</strong>
+                    <span>TypeScript / Zod</span>
+                </div>
+                <div class="connection-line"></div>
+                <div class="arch-node">
+                    <strong>AI Layer</strong>
+                    <span>Deepmind Gemini</span>
+                </div>
+            </div>
+        </section>
+
+        <section>
+            <div class="grid">
+                <!-- AI Integration -->
+                <div class="card">
+                    <div class="card-icon">🧠</div>
+                    <h3>Context-Aware AI</h3>
+                    <p>Deep integration with Google Gemini. The AI reads the current market state, active chart data, and user portfolio to provide real-time, context-sensitive trading advice.</p>
+                    <div>
+                        <span class="tech-badge">Gemini Flash</span>
+                        <span class="tech-badge">RAG</span>
+                    </div>
+                </div>
+
+                <!-- Data Integrity -->
+                <div class="card">
+                    <div class="card-icon">🛡️</div>
+                    <h3>Defensive Engineering</h3>
+                    <p>Strict schema validation using Zod ensures that API Data is sanitized before it ever hits the UI. Type-safe from backend to frontend.</p>
+                    <div>
+                        <span class="tech-badge">Zod</span>
+                        <span class="tech-badge">TypeScript</span>
+                    </div>
+                </div>
+
+                <!-- Floating UI -->
+                <div class="card">
+                    <div class="card-icon">🪟</div>
+                    <h3>Floating Multi-Window</h3>
+                    <p>Desktop-class experience in the browser. Floating, resizable widgets for charts, Unity 3D visualizers, and order forms powered by interact.js.</p>
+                    <div>
+                        <span class="tech-badge">Interact.js</span>
+                        <span class="tech-badge">Glassmorphism</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="stats-grid">
+            <div class="stat-item">
+                <h4>< 50ms</h4>
+                <span>Execution Latency</span>
+            </div>
+            <div class="stat-item">
+                <h4>100%</h4>
+                <span>Type Safety</span>
+            </div>
+            <div class="stat-item">
+                <h4>0.94.3</h4>
+                <span>Current Version</span>
+            </div>
+            <div class="stat-item">
+                <h4>24/7</h4>
+                <span>Availability</span>
+            </div>
+        </section>
+
+        <footer>
+            <p>&copy; 2026 Cachy App. Built with precision by MYDCT.</p>
+        </footer>
+    </div>
+
+</body>
+</html>
