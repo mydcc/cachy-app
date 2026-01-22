@@ -257,16 +257,29 @@
   }
 
   // --- Channel Logic ---
-  const CHANNEL_SYMBOLS = ["BTC", "ETH", "SOL", "LINK", "XRP"];
+  // --- Channel Logic ---
+  const CHANNEL_CONFIG: Record<string, string | boolean> = {
+    BTC: true, // true = use symbol as ID
+    ETH: true,
+    SOL: true,
+    LINK: true,
+    XRP: true,
+    // Example for mapping a symbol to a different plot_id:
+    // DOGE: "meme_plot"
+  };
 
   function openChannel() {
     if (!symbol) return;
     const s = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "");
 
-    // Only allow for specific symbols
-    if (!CHANNEL_SYMBOLS.includes(s)) return;
+    // Check if symbol is configured
+    const config = CHANNEL_CONFIG[s];
+    if (!config) return;
 
-    const url = `https://space.cachy.app/index.php?plot_id=${s}`;
+    // Determine plot_id: use specific string if provided, otherwise symbol
+    const plotId = typeof config === "string" ? config : s;
+
+    const url = `https://space.cachy.app/index.php?plot_id=${plotId}`;
     const title = `${s} Channel`;
 
     // Open in dynamic window with unique ID per config/symbol
@@ -764,7 +777,7 @@
             </a>
           {/if}
 
-          {#if CHANNEL_SYMBOLS.includes(baseAsset)}
+          {#if CHANNEL_CONFIG[baseAsset]}
             <button
               class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-0.5 rounded"
               title="Open {baseAsset} Channel"
