@@ -47,6 +47,8 @@
 
   // onMount init removed as chatState handles itself via effects
 
+  let errorTimeout: ReturnType<typeof setTimeout> | undefined;
+
   async function handleSend() {
     if (!messageText.trim()) return;
 
@@ -65,12 +67,20 @@
       messageText = "";
     } catch (e: any) {
       errorMessage = e.message || "Error";
-      setTimeout(() => (errorMessage = ""), 3000);
+      if (errorTimeout) clearTimeout(errorTimeout);
+      errorTimeout = setTimeout(() => (errorMessage = ""), 3000);
     } finally {
       isSending = false;
       if (inputEl) inputEl.focus();
     }
   }
+
+  // Cleanup effect
+  $effect(() => {
+    return () => {
+      if (errorTimeout) clearTimeout(errorTimeout);
+    };
+  });
 
   function handleKeydown(e: KeyboardEvent) {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -350,7 +360,8 @@
 
 {#if settingsState.enableSidePanel}
   <div
-    class="fixed z-[60] pointer-events-none transition-all duration-300 flex"
+    class="fixed pointer-events-none transition-all duration-300 flex"
+    style="z-index: var(--z-overlay);"
     class:bottom-4={isFloating}
     class:left-4={isFloating}
     class:flex-col-reverse={isFloating}
@@ -449,7 +460,7 @@
     {#if isOpen}
       <div
         bind:this={panelEl}
-        class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden fixed z-[100] glass-panel panel-border"
+        class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden fixed glass-panel panel-border"
         class:is-interacting={isInteracting}
         transition:fly={{
           y: isFloating ? 20 : 0,
@@ -462,7 +473,7 @@
             ? `width: ${settingsState.panelState?.width || 320}px;`
             : settingsState.panelState
               ? `width: ${settingsState.panelState.width}px; height: ${settingsState.panelState.height}px; left: ${settingsState.panelState.x}px; top: ${settingsState.panelState.y}px;`
-              : ''} min-width: 300px; min-height: 200px; touch-action: none;"
+              : ''} min-width: 300px; min-height: 200px; touch-action: none; z-index: var(--z-overlay);"
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}

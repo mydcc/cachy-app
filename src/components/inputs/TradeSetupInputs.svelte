@@ -81,9 +81,12 @@
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
-  // Exception: If localSymbol is empty, always sync to ensure default shows up.
+  // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
   $effect(() => {
-    if ((!isSymbolFocused || localSymbol === "") && symbol !== localSymbol) {
+    // Only update local from props if:
+    // 1. User is NOT focused
+    // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+    if (!isSymbolFocused && symbol !== localSymbol) {
       localSymbol = symbol || "";
     }
   });
@@ -656,7 +659,7 @@
     position: fixed;
     font-size: 1.5rem;
     pointer-events: none;
-    z-index: 9999;
+    z-index: var(--z-feedback);
     animation: fadeOut 1s ease-out forwards;
   }
 

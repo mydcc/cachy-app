@@ -203,6 +203,18 @@
   --glass-blur: 8px;
   --glass-saturate: 100%;
   --glass-opacity: 0.7;
+
+  /* --- Z-Index System --- */
+  --z-negative: -1;
+  --z-base: 0;
+  --z-dropdown: 20;
+  --z-sticky: 30;
+  --z-modal-backdrop: 40;
+  --z-modal: 50;
+  --z-tooltip: 60;
+  --z-overlay: 100;
+  --z-feedback: 200;
+  --z-max: 9999;
 }
 
 /* =================================================================
@@ -2370,7 +2382,7 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   border-radius: 0.5rem;
   font-size: 0.8rem;
   white-space: nowrap;
-  z-index: 60;
+  z-index: var(--z-tooltip);
   pointer-events: none;
   box-shadow: var(--shadow-tooltip);
 }
@@ -2398,7 +2410,7 @@ input[type="checkbox"]:checked + .atr-toggle-track::after {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 50;
+  z-index: var(--z-modal);
   visibility: hidden;
   opacity: 0;
   transition:
