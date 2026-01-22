@@ -168,79 +168,106 @@ class MarketManager {
 
   // Legacy update methods refactored to use updateSymbol
   updatePrice(symbol: string, data: any) {
-    let nft = 0;
-    if (data.nextFundingTime) {
-      nft = /^\d+$/.test(data.nextFundingTime)
-        ? parseInt(data.nextFundingTime, 10)
-        : new Date(data.nextFundingTime).getTime();
+    try {
+      let nft = 0;
+      if (data.nextFundingTime) {
+        nft = /^\d+$/.test(data.nextFundingTime)
+          ? parseInt(data.nextFundingTime, 10)
+          : new Date(data.nextFundingTime).getTime();
+      }
+
+      // Defensive check
+      const update: Partial<MarketData> = {
+        nextFundingTime: nft,
+      };
+
+      if (data.price) update.lastPrice = new Decimal(data.price);
+      if (data.indexPrice) update.indexPrice = new Decimal(data.indexPrice);
+      if (data.fundingRate) update.fundingRate = new Decimal(data.fundingRate);
+
+      this.updateSymbol(symbol, update);
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn(`[Market] Error updating price for ${symbol}:`, e);
+      }
     }
-
-    // Defensive check
-    const update: Partial<MarketData> = {
-        nextFundingTime: nft
-    };
-
-    if (data.price) update.lastPrice = new Decimal(data.price);
-    if (data.indexPrice) update.indexPrice = new Decimal(data.indexPrice);
-    if (data.fundingRate) update.fundingRate = new Decimal(data.fundingRate);
-
-    this.updateSymbol(symbol, update);
   }
 
   updateTicker(symbol: string, data: any) {
-    const update: Partial<MarketData> = {};
+    try {
+      const update: Partial<MarketData> = {};
 
-    // Validate and map fields safely
-    if (data.lastPrice !== undefined && data.lastPrice !== null) {
+      // Validate and map fields safely
+      if (data.lastPrice !== undefined && data.lastPrice !== null) {
         update.lastPrice = new Decimal(data.lastPrice);
-    }
-    if (data.high !== undefined && data.high !== null) {
+      }
+      if (data.high !== undefined && data.high !== null) {
         update.highPrice = new Decimal(data.high);
-    }
-    if (data.low !== undefined && data.low !== null) {
+      }
+      if (data.low !== undefined && data.low !== null) {
         update.lowPrice = new Decimal(data.low);
-    }
-    if (data.vol !== undefined && data.vol !== null) {
+      }
+      if (data.vol !== undefined && data.vol !== null) {
         update.volume = new Decimal(data.vol);
-    }
-    if (data.quoteVol !== undefined && data.quoteVol !== null) {
+      }
+      if (data.quoteVol !== undefined && data.quoteVol !== null) {
         update.quoteVolume = new Decimal(data.quoteVol);
-    }
+      }
 
-    // Prioritize API provided change rate (data.change is 'r' from API)
-    if (data.change !== undefined && data.change !== null) {
+      // Prioritize API provided change rate (data.change is 'r' from API)
+      if (data.change !== undefined && data.change !== null) {
         // Bitunix sends rate (e.g. 0.045 for 4.5%). We usually display percent.
         // If the API sends it as a rate, we multiply by 100.
         // Assuming data.change is the raw 'r' field which is a rate.
         update.priceChangePercent = new Decimal(data.change).times(100);
-    } else if (update.lastPrice && data.open) {
+      } else if (update.lastPrice && data.open) {
         // Fallback: Calculate from open if change is missing but open exists
         const open = new Decimal(data.open);
         if (!open.isZero()) {
-            update.priceChangePercent = update.lastPrice.minus(open).div(open).times(100);
+          update.priceChangePercent = update.lastPrice
+            .minus(open)
+            .div(open)
+            .times(100);
         }
-    }
+      }
 
-    this.updateSymbol(symbol, update);
+      this.updateSymbol(symbol, update);
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn(`[Market] Error updating ticker for ${symbol}:`, e);
+      }
+    }
   }
 
   updateDepth(symbol: string, data: any) {
-    this.updateSymbol(symbol, {
-      depth: { bids: data.bids, asks: data.asks },
-    });
+    try {
+      this.updateSymbol(symbol, {
+        depth: { bids: data.bids, asks: data.asks },
+      });
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn(`[Market] Error updating depth for ${symbol}:`, e);
+      }
+    }
   }
 
   updateKline(symbol: string, timeframe: string, data: any) {
-    this.updateSymbolKlines(symbol, timeframe, [
-      {
-        open: new Decimal(data.o),
-        high: new Decimal(data.h),
-        low: new Decimal(data.l),
-        close: new Decimal(data.c),
-        volume: new Decimal(data.b),
-        time: data.t,
-      },
-    ]);
+    try {
+      this.updateSymbolKlines(symbol, timeframe, [
+        {
+          open: new Decimal(data.o),
+          high: new Decimal(data.h),
+          low: new Decimal(data.l),
+          close: new Decimal(data.c),
+          volume: new Decimal(data.b),
+          time: data.t,
+        },
+      ]);
+    } catch (e) {
+      if (import.meta.env.DEV) {
+        console.warn(`[Market] Error updating kline for ${symbol}:`, e);
+      }
+    }
   }
 
   reset() {
