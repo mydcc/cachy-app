@@ -14,3 +14,49 @@
   You should have received a copy of the GNU Affero General Public License
   along with this program.  If not, see <https://www.gnu.org/licenses/>.
 -->
+
+<script lang="ts">
+  interface Props {
+    title?: string;
+    onClick?: () => void;
+    children?: import("svelte").Snippet;
+    extraClasses?: string;
+    disabled?: boolean;
+  }
+
+  let {
+    title,
+    onClick,
+    children,
+    extraClasses = "",
+    disabled = false,
+  }: Props = $props();
+</script>
+
+<button
+  class="btn-base {extraClasses}"
+  {disabled}
+  onclick={onClick}
+  {title}
+>
+  {#if children}
+    {@render children()}
+  {/if}
+</button>
+
+<style>
+  .btn-base {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-family: inherit;
+  }
+
+  .btn-base:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+</style>

@@ -752,7 +752,7 @@ class BitunixWebSocketService {
         if (data.l !== undefined) update.low = data.l;
         if (data.b !== undefined) update.vol = data.b;
         if (data.q !== undefined) update.quoteVol = data.q;
-        if (data.r !== undefined) update.change = data.r;
+        if (data && data.r !== undefined) update.change = data.r;
         if (data.o !== undefined) update.open = data.o;
 
         if (Object.keys(update).length > 0) {

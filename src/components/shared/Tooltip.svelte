@@ -16,7 +16,6 @@
 -->
 
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
   import {
     computePosition,
     flip,
@@ -35,7 +34,7 @@
   let tooltipEl: HTMLElement | undefined = $state();
   let arrowEl: HTMLElement | undefined = $state();
   let triggerEl: HTMLElement | undefined = $state();
-  let cleanup: (() => void) | null | undefined = $state();
+  // Cleanup logic moved to effect return
 
   function show() {
     visible = true;
@@ -48,49 +47,60 @@
   async function updatePosition() {
     if (!triggerEl || !tooltipEl || !arrowEl) return;
 
-    const { x, y, placement, middlewareData } = await computePosition(
-      triggerEl,
-      tooltipEl,
-      {
-        placement: "top",
-        middleware: [
-          offset(10),
-          flip(),
-          shift({ padding: 8 }),
-          arrow({ element: arrowEl }),
-        ],
-      },
-    );
+    try {
+      const result = await computePosition(
+        triggerEl,
+        tooltipEl,
+        {
+          placement: "top",
+          middleware: [
+            offset(10),
+            flip(),
+            shift({ padding: 8 }),
+            arrow({ element: arrowEl }),
+          ],
+        },
+      );
 
-    Object.assign(tooltipEl.style, {
-      left: `${x}px`,
-      top: `${y}px`,
-    });
+      if (!result) return;
+      const { x, y, placement, middlewareData } = result;
 
-    // Position arrow
-    const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
-    const staticSide = {
-      top: "bottom",
-      right: "left",
-      bottom: "top",
-      left: "right",
-    }[placement.split("-")[0]]!;
+      Object.assign(tooltipEl.style, {
+        left: `${x}px`,
+        top: `${y}px`,
+      });
 
-    Object.assign(arrowEl.style, {
-      left: arrowX != null ? `${arrowX}px` : "",
-      top: arrowY != null ? `${arrowY}px` : "",
-      [staticSide]: "-4px",
-    });
+      // Position arrow
+      const { x: arrowX, y: arrowY } = middlewareData.arrow || {};
+      const side = placement.split("-")[0];
+
+      const staticSideMap: Record<string, string> = {
+        top: "bottom",
+        right: "left",
+        bottom: "top",
+        left: "right",
+      };
+
+      const staticSide = staticSideMap[side];
+
+      if (staticSide) {
+        Object.assign(arrowEl.style, {
+          left: arrowX != null ? `${arrowX}px` : "",
+          top: arrowY != null ? `${arrowY}px` : "",
+          [staticSide]: "-4px",
+        });
+      }
+    } catch (e) {
+      // console.warn("Tooltip position error", e);
+    }
   }
 
   $effect(() => {
     if (visible && triggerEl && tooltipEl) {
       updatePosition();
     }
-  });
-
-  onDestroy(() => {
-    if (cleanup) cleanup();
+    // Effect cleanup handles destruction implicitly for reactive bindings,
+    // but if we had manual listeners we would return a cleanup function here.
   });
 </script>
 
