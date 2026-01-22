@@ -94,7 +94,7 @@ class RequestManager {
     // 0. Cache Check
     const cached = this.cache.get(key);
     if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      if (settingsState.enableNetworkLogs) {
+      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
         console.log(`%c[Cache] Hit: ${key}`, "color: #bfa; font-size: 10px;");
       }
       return Promise.resolve(cached.data as T);
@@ -102,7 +102,7 @@ class RequestManager {
 
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
-      if (settingsState.enableNetworkLogs) {
+      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
         console.log(
           `%c[Dedupe] Joined: ${key}`,
           "color: #8af; font-size: 10px;",
@@ -117,7 +117,7 @@ class RequestManager {
         this.activeCount++;
 
         try {
-          if (settingsState.enableNetworkLogs) {
+          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
             console.log(
               `%c[Request] Start: ${key}`,
               "color: #aaa; font-size: 10px;",
@@ -134,7 +134,7 @@ class RequestManager {
             try {
               return await task(controller.signal);
             } catch (e) {
-              if (e instanceof Error && e.name === "AbortError") {
+              if (import.meta.env.DEV && e instanceof Error && e.name === "AbortError") {
                 console.warn(`[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
@@ -149,7 +149,7 @@ class RequestManager {
                   throw e;
                 }
 
-                if (settingsState.enableNetworkLogs) {
+                if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
                   console.log(
                     `%c[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`,
                     "color: #fa0;",
@@ -170,7 +170,7 @@ class RequestManager {
           // Store in cache upon success (only if it matches the current request)
           this.cache.set(key, { data: result, timestamp: Date.now() });
 
-          if (settingsState.enableNetworkLogs) {
+          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
             console.log(
               `%c[Response] Success: ${key}`,
               "color: #0fa; font-size: 10px;",
