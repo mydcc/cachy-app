@@ -744,7 +744,7 @@
           {#if settingsState.showTvLink}
             <a
               href={tvLink}
-              target="_blank"
+              target="cachy_external_tv"
               rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
               title="TradingView Chart"
@@ -756,7 +756,7 @@
           {#if settingsState.showCgHeatLink}
             <a
               href={cgHeatmapLink}
-              target="_blank"
+              target="cachy_external_coinglass"
               rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
               title="Liquidation Heatmap"
@@ -768,7 +768,7 @@
           {#if settingsState.showBrokerLink}
             <a
               href={brokerLink}
-              target="_blank"
+              target="cachy_external_broker"
               rel="noopener noreferrer"
               class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
               title="Open on {provider}"
