@@ -73,6 +73,13 @@ class BitunixWebSocketService {
 
   private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
+  private errorCountPublic = 0;
+  private lastErrorTimePublic = 0;
+  private errorCountPrivate = 0;
+  private lastErrorTimePrivate = 0;
+  private readonly ERROR_THRESHOLD = 5;
+  private readonly ERROR_WINDOW_MS = 10000;
+
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
 
@@ -244,7 +251,11 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "public");
-        } catch (e) {}
+          // Reset error count on successful message
+          if (this.errorCountPublic > 0) this.errorCountPublic = 0;
+        } catch (e) {
+          this.handleInternalError("public", e);
+        }
       };
 
       ws.onclose = () => {
@@ -333,7 +344,10 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "private");
-        } catch (e) {}
+          if (this.errorCountPrivate > 0) this.errorCountPrivate = 0;
+        } catch (e) {
+          this.handleInternalError("private", e);
+        }
       };
 
       ws.onclose = () => {
@@ -904,6 +918,44 @@ class BitunixWebSocketService {
         this.sendSubscribe(this.wsPublic, symbol, channel);
       }
     });
+  }
+
+  private handleInternalError(type: "public" | "private", error: unknown) {
+    const now = Date.now();
+
+    if (type === "public") {
+      if (now - this.lastErrorTimePublic > this.ERROR_WINDOW_MS) {
+        this.errorCountPublic = 0;
+      }
+      this.errorCountPublic++;
+      this.lastErrorTimePublic = now;
+
+      if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
+        if (import.meta.env.DEV) {
+          console.warn(`[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
+        }
+        this.cleanup("public");
+        this.scheduleReconnect("public");
+      }
+    } else {
+      if (now - this.lastErrorTimePrivate > this.ERROR_WINDOW_MS) {
+        this.errorCountPrivate = 0;
+      }
+      this.errorCountPrivate++;
+      this.lastErrorTimePrivate = now;
+
+      if (this.errorCountPrivate >= this.ERROR_THRESHOLD) {
+        if (import.meta.env.DEV) {
+          console.warn(`[WebSocket] Private: Excessive errors (${this.errorCountPrivate}), forcing reconnect.`);
+        }
+        this.cleanup("private");
+        this.scheduleReconnect("private");
+      }
+    }
+
+    if (import.meta.env.DEV) {
+      console.warn(`[WebSocket] ${type} error handled:`, error);
+    }
   }
 }
 

@@ -839,75 +839,58 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       switch (action.action) {
         case "setEntryPrice":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              entryPrice: parseAiValue(action.value as string),
-            }));
+            tradeState.entryPrice = parseAiValue(action.value as string);
           }
           break;
         case "setStopLoss":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              stopLossPrice: parseAiValue(action.value as string),
-            }));
+            tradeState.stopLossPrice = parseAiValue(action.value as string);
           }
           break;
         case "setTakeProfit":
           if (typeof action.index === "number") {
             const idx = action.index;
-            tradeState.update((s: any) => {
-              const newTargets = [...s.targets];
-              if (newTargets[idx]) {
-                let updatedTarget = { ...newTargets[idx] };
-                if (action.value !== undefined)
-                  updatedTarget.price = parseAiValue(action.value as string);
-                if (action.percent !== undefined)
-                  updatedTarget.percent = parseAiValue(action.percent as string);
-                newTargets[idx] = updatedTarget;
+            // Access targets array directly
+            const currentTargets = tradeState.targets;
+            if (currentTargets[idx]) {
+              // Deep reactivity in Svelte 5 allows modifying properties directly
+              // However, since it's an array of objects, we ensure reactivity triggers
+              // by reassigning or mutating properly. Runes proxies handle deep mutation.
+              if (action.value !== undefined) {
+                currentTargets[idx].price = parseAiValue(action.value as string);
               }
-              return { ...s, targets: newTargets };
-            });
+              if (action.percent !== undefined) {
+                currentTargets[idx].percent = parseAiValue(action.percent as string);
+              }
+            }
           }
           break;
         case "setLeverage":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              leverage: parseAiValue(action.value as string),
-            }));
+            tradeState.leverage = parseAiValue(action.value as string);
           }
           break;
         case "setRisk":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              riskPercentage: parseAiValue(action.value as string),
-            }));
+            tradeState.riskPercentage = parseAiValue(action.value as string);
           }
           break;
         case "setSymbol":
           if (action.value !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              symbol: String(action.value),
-            }));
+            tradeState.symbol = String(action.value);
           }
           break;
         case "setAtrMultiplier":
         case "setStopLossATR":
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
-            tradeState.update((s: any) => ({
-              ...s,
-              atrMultiplier: parseFloat(String(mult)),
-              useAtrSl: true,
-            }));
+            tradeState.atrMultiplier = parseFloat(String(mult));
+            tradeState.useAtrSl = true;
           }
           break;
         case "setUseAtrSl":
           if (typeof action.value === "boolean") {
-            tradeState.update((s: any) => ({ ...s, useAtrSl: action.value }));
+            tradeState.useAtrSl = action.value;
           }
           break;
       }
