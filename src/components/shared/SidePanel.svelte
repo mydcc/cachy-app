@@ -147,6 +147,31 @@
   // Panel State (Position & Size) - use settingsState.panelState directly
   let panelEl: HTMLDivElement | undefined = $state();
 
+  function sanitizePanelState() {
+    if (!settingsState.panelState) {
+      settingsState.panelState = { width: 450, height: 550, x: 20, y: 20 };
+      return;
+    }
+    // Ensure numbers are valid
+    if (isNaN(settingsState.panelState.x)) settingsState.panelState.x = 20;
+    if (isNaN(settingsState.panelState.y)) settingsState.panelState.y = 20;
+    if (
+      isNaN(settingsState.panelState.width) ||
+      settingsState.panelState.width < 300
+    )
+      settingsState.panelState.width = 450;
+    if (
+      isNaN(settingsState.panelState.height) ||
+      settingsState.panelState.height < 200
+    )
+      settingsState.panelState.height = 550;
+  }
+
+  $effect(() => {
+    // Sanitize constantly to prevent NaN propagation
+    sanitizePanelState();
+  });
+
   // Sidebar mode interaction
   $effect(() => {
     if (!panelEl || !isSidebar) return;
@@ -167,7 +192,6 @@
       modifiers: [
         interact.modifiers.restrictSize({
           min: { width: 300, height: 100 },
-          max: { width: 800, height: 2000 },
         }),
       ],
     });
@@ -221,9 +245,7 @@
           interact.modifiers.restrictSize({
             min: { width: 300, height: 200 },
           }),
-          interact.modifiers.restrictEdges({
-            outer: "parent",
-          }),
+          // Removed restrictEdges to prevent blocking
         ],
       });
 
@@ -438,7 +460,6 @@
             : settingsState.panelState
               ? `width: ${settingsState.panelState.width}px; height: ${settingsState.panelState.height}px; left: ${settingsState.panelState.x}px; top: ${settingsState.panelState.y}px;`
               : ''} min-width: 300px; min-height: 200px; touch-action: none;"
-        class:mb-4={isFloating && !settingsState.panelIsExpanded}
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
@@ -447,7 +468,6 @@
         class:text-green-500={isTerminal}
         class:font-mono={isTerminal}
         class:bg-[var(--bg-tertiary)]={!isTerminal}
-        class:panel-transition={!isInteracting}
       >
         <!-- Main Panel Content -->
         <div class="flex-1 flex flex-col min-h-0">
