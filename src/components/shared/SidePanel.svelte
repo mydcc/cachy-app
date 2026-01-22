@@ -203,53 +203,58 @@
   $effect(() => {
     if (!panelEl || !isFloating || settingsState.panelIsExpanded) return;
 
-    const interaction = interact(panelEl)
-      .draggable({
-        allowFrom: ".panel-header",
-        listeners: {
-          start() {
-            isInteracting = true;
-          },
-          move(event) {
-            settingsState.panelState.x += event.dx;
-            settingsState.panelState.y += event.dy;
-          },
-          end() {
-            isInteracting = false;
-          },
+    // Separate draggable and resizable to prevent chaining conflicts
+    const dragInteraction = interact(panelEl).draggable({
+      allowFrom: ".panel-header",
+      listeners: {
+        start() {
+          isInteracting = true;
         },
-        modifiers: [
-          interact.modifiers.restrictRect({
-            restriction: "parent",
-            endOnly: true,
-          }),
-        ],
-      })
-      .resizable({
-        edges: { left: true, right: true, bottom: true, top: false },
-        listeners: {
-          start() {
-            isInteracting = true;
-          },
-          move(event) {
-            settingsState.panelState.width = event.rect.width;
-            settingsState.panelState.height = event.rect.height;
-            settingsState.panelState.x += event.deltaRect.left;
-            settingsState.panelState.y += event.deltaRect.top;
-          },
-          end() {
-            isInteracting = false;
-          },
+        move(event) {
+          settingsState.panelState.x += event.dx;
+          settingsState.panelState.y += event.dy;
         },
-        modifiers: [
-          interact.modifiers.restrictSize({
-            min: { width: 300, height: 200 },
-          }),
-          // Removed restrictEdges to prevent blocking
-        ],
-      });
+        end() {
+          isInteracting = false;
+        },
+      },
+      modifiers: [
+        interact.modifiers.restrictRect({
+          restriction: "parent",
+          endOnly: true,
+        }),
+      ],
+    });
 
-    return () => interaction.unset();
+    const resizeInteraction = interact(panelEl).resizable({
+      // Explicitly define edges for floating mode
+      edges: { left: true, right: true, bottom: true, top: false },
+      listeners: {
+        start() {
+          isInteracting = true;
+        },
+        move(event) {
+          // Update width/height AND position for left/top resize
+          settingsState.panelState.width = event.rect.width;
+          settingsState.panelState.height = event.rect.height;
+          settingsState.panelState.x += event.deltaRect.left;
+          settingsState.panelState.y += event.deltaRect.top;
+        },
+        end() {
+          isInteracting = false;
+        },
+      },
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: { width: 300, height: 200 },
+        }),
+      ],
+    });
+
+    return () => {
+      dragInteraction.unset();
+      resizeInteraction.unset();
+    };
   });
 
   function changeFontSize(delta: number) {
@@ -482,7 +487,7 @@
             tabindex="0"
           >
             <h3
-              class="font-bold text-xs tracking-widest uppercase"
+              class="font-bold text-xs tracking-widest uppercase flex items-center gap-2"
               class:text-green-500={isTerminal}
               class:text-[var(--text-primary)]={!isTerminal}
             >
@@ -495,6 +500,13 @@
               >
                 {getPanelTitle(settingsState.sidePanelMode)}
               </button>
+              {#if isFloating}
+                <span class="opacity-50 text-[9px] font-mono">
+                  {Math.round(settingsState.panelState.width)}x{Math.round(
+                    settingsState.panelState.height,
+                  )}
+                </span>
+              {/if}
             </h3>
 
             <div class="flex items-center gap-2">
