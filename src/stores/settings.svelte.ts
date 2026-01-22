@@ -27,6 +27,12 @@ export type BackgroundAnimationPreset =
   | "waves"
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
+export type XMonitorType = "user" | "hashtag";
+export interface XMonitor {
+  type: XMonitorType;
+  value: string;
+}
+
 
 export interface ApiKeys {
   key: string;
@@ -148,6 +154,10 @@ export interface Settings {
     general: boolean;
     technicalsVerbose?: boolean;
   };
+  discordBotToken?: string;
+  discordChannels: string[];
+  xMonitors: XMonitor[];
+  nitterInstance: string;
 }
 
 const defaultSettings: Settings = {
@@ -254,6 +264,10 @@ const defaultSettings: Settings = {
     general: true,
     technicalsVerbose: false,
   },
+  discordBotToken: "",
+  discordChannels: [],
+  xMonitors: [], // e.g. [{type: 'user', value: 'elonmusk'}, {type: 'hashtag', value: 'BTC'}]
+  nitterInstance: "https://nitter.net",
 };
 
 class SettingsManager {
@@ -448,6 +462,12 @@ class SettingsManager {
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
   logSettings = $state(defaultSettings.logSettings);
+
+  // Social Media
+  discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
+  discordChannels = $state<string[]>(defaultSettings.discordChannels);
+  xMonitors = $state<XMonitor[]>(defaultSettings.xMonitors);
+  nitterInstance = $state<string>(defaultSettings.nitterInstance);
 
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
@@ -702,6 +722,14 @@ class SettingsManager {
       this.enableNetworkLogs =
         merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
 
+      // Social Media
+      this.discordBotToken = merged.discordBotToken;
+      this.discordChannels =
+        merged.discordChannels || defaultSettings.discordChannels;
+      this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
+      this.nitterInstance =
+        merged.nitterInstance || defaultSettings.nitterInstance;
+
       // Migration
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
@@ -841,6 +869,10 @@ class SettingsManager {
       videoPlaybackSpeed: this.videoPlaybackSpeed,
       enableNetworkLogs: this.enableNetworkLogs,
       logSettings: $state.snapshot(this.logSettings),
+      discordBotToken: this.discordBotToken,
+      discordChannels: $state.snapshot(this.discordChannels),
+      xMonitors: $state.snapshot(this.xMonitors),
+      nitterInstance: this.nitterInstance,
     };
   }
 

@@ -10,6 +10,8 @@
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { rssParserService } from "./rssParserService";
+import { xService } from "./xService";
+import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 
 export interface NewsItem {
@@ -171,12 +173,24 @@ export const newsService = {
           }
         }
 
+        // Discord
+        try {
+          let discordItems = await discordService.fetchDiscordNews();
+          if (symbol) {
+            discordItems = discordItems.filter(item => matchesSymbol(item.title, symbol));
+          }
+          newsItems = [...newsItems, ...discordItems];
+        } catch (e) {
+          console.error("Failed to fetch Discord:", e);
+        }
+
         // RSS Feeds
         const rssUrls = [
           ...getPresetUrls(settingsState.rssPresets || []),
           ...(settingsState.customRssFeeds || []).filter(
             (u) => u && u.trim().length > 0,
           ),
+          ...xService.getXFeedUrls(),
         ];
 
         if (rssUrls.length > 0) {

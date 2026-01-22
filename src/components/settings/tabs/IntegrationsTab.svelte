@@ -46,6 +46,32 @@
         }
         localStorage.removeItem("cachy_news_cache");
     }
+
+    // Social Media Helpers
+    function addDiscordChannel() {
+        if (!settingsState.discordChannels) settingsState.discordChannels = [];
+        settingsState.discordChannels = [...settingsState.discordChannels, ""];
+    }
+
+    function removeDiscordChannel(index: number) {
+        const newChannels = [...settingsState.discordChannels];
+        newChannels.splice(index, 1);
+        settingsState.discordChannels = newChannels;
+    }
+
+    function addXMonitor() {
+        if (!settingsState.xMonitors) settingsState.xMonitors = [];
+        settingsState.xMonitors = [
+            ...settingsState.xMonitors,
+            { type: "user", value: "" },
+        ];
+    }
+
+    function removeXMonitor(index: number) {
+        const newMonitors = [...settingsState.xMonitors];
+        newMonitors.splice(index, 1);
+        settingsState.xMonitors = newMonitors;
+    }
 </script>
 
 <div
@@ -107,7 +133,9 @@
                                     type={showKeys["bitunix_k"]
                                         ? "text"
                                         : "password"}
-                                    bind:value={settingsState.apiKeys.bitunix.key}
+                                    bind:value={
+                                        settingsState.apiKeys.bitunix.key
+                                    }
                                     class="api-input pr-8"
                                     placeholder="{$_(
                                         'settings.integrations.enterKey',
@@ -115,7 +143,8 @@
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                                    onclick={() => toggleKeyVisibility("bitunix_k")}
+                                    onclick={() =>
+                                        toggleKeyVisibility("bitunix_k")}
                                 >
                                     {#if showKeys["bitunix_k"]}
                                         <svg
@@ -128,7 +157,9 @@
                                             stroke-width="2"
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
-                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                            ><path
+                                                d="M9.88 9.88a3 3 0 1 0 4.24 4.24"
+                                            /><path
                                                 d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
                                             /><path
                                                 d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
@@ -147,7 +178,11 @@
                                             stroke-linejoin="round"
                                             ><path
                                                 d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                            /><circle cx="12" cy="12" r="3" /></svg
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
                                         >
                                     {/if}
                                 </button>
@@ -173,7 +208,8 @@
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                                    onclick={() => toggleKeyVisibility("bitunix_s")}
+                                    onclick={() =>
+                                        toggleKeyVisibility("bitunix_s")}
                                 >
                                     {#if showKeys["bitunix_s"]}
                                         <svg
@@ -186,7 +222,9 @@
                                             stroke-width="2"
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
-                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                            ><path
+                                                d="M9.88 9.88a3 3 0 1 0 4.24 4.24"
+                                            /><path
                                                 d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
                                             /><path
                                                 d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
@@ -205,7 +243,11 @@
                                             stroke-linejoin="round"
                                             ><path
                                                 d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                            /><circle cx="12" cy="12" r="3" /></svg
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
                                         >
                                     {/if}
                                 </button>
@@ -235,7 +277,9 @@
                                     type={showKeys["binance_k"]
                                         ? "text"
                                         : "password"}
-                                    bind:value={settingsState.apiKeys.binance.key}
+                                    bind:value={
+                                        settingsState.apiKeys.binance.key
+                                    }
                                     class="api-input pr-8"
                                     placeholder="{$_(
                                         'settings.integrations.enterKey',
@@ -243,7 +287,8 @@
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                                    onclick={() => toggleKeyVisibility("binance_k")}
+                                    onclick={() =>
+                                        toggleKeyVisibility("binance_k")}
                                 >
                                     {#if showKeys["binance_k"]}
                                         <svg
@@ -256,7 +301,9 @@
                                             stroke-width="2"
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
-                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                            ><path
+                                                d="M9.88 9.88a3 3 0 1 0 4.24 4.24"
+                                            /><path
                                                 d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
                                             /><path
                                                 d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
@@ -275,7 +322,11 @@
                                             stroke-linejoin="round"
                                             ><path
                                                 d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                            /><circle cx="12" cy="12" r="3" /></svg
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
                                         >
                                     {/if}
                                 </button>
@@ -301,7 +352,8 @@
                                 />
                                 <button
                                     class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-                                    onclick={() => toggleKeyVisibility("binance_s")}
+                                    onclick={() =>
+                                        toggleKeyVisibility("binance_s")}
                                 >
                                     {#if showKeys["binance_s"]}
                                         <svg
@@ -314,7 +366,9 @@
                                             stroke-width="2"
                                             stroke-linecap="round"
                                             stroke-linejoin="round"
-                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                            ><path
+                                                d="M9.88 9.88a3 3 0 1 0 4.24 4.24"
+                                            /><path
                                                 d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
                                             /><path
                                                 d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
@@ -333,7 +387,11 @@
                                             stroke-linejoin="round"
                                             ><path
                                                 d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                            /><circle cx="12" cy="12" r="3" /></svg
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
                                         >
                                     {/if}
                                 </button>
@@ -653,6 +711,178 @@
                         </div>
                     {/each}
                 {/if}
+            </div>
+        </div>
+    </section>
+
+    <!-- Social Media Section -->
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-8"
+    >
+        <div class="flex items-center gap-2 mb-4">
+            <div class="icon-box bg-indigo-500/10 text-indigo-500">
+                <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    width="20"
+                    height="20"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                    ><path
+                        d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"
+                    /></svg
+                >
+            </div>
+            <h3 class="section-title mb-0">Social Media</h3>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <!-- Discord -->
+            <div class="api-card">
+                <div class="header">
+                    <span class="font-bold text-sm">Discord</span>
+                </div>
+                <div class="body">
+                    <div class="field-group mb-4">
+                        <label for="discord-token">Bot Token</label>
+                        <input
+                            id="discord-token"
+                            type="password"
+                            bind:value={settingsState.discordBotToken}
+                            class="api-input"
+                            placeholder="MTE..."
+                        />
+                    </div>
+
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-bold text-[var(--text-secondary)] uppercase"
+                            >Channels (ID)</span
+                        >
+                        <button
+                            class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)]"
+                            onclick={addDiscordChannel}
+                            aria-label="Add Discord Channel"
+                        >
+                            + Channel
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        {#each settingsState.discordChannels as channel, i}
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    bind:value={
+                                        settingsState.discordChannels[i]
+                                    }
+                                    class="api-input"
+                                    placeholder="123456789..."
+                                />
+                                <button
+                                    class="text-red-500 hover:text-red-400 p-2"
+                                    onclick={() => removeDiscordChannel(i)}
+                                    aria-label="Remove channel"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path d="M18 6 6 18" /><path
+                                            d="m6 6 12 12"
+                                        /></svg
+                                    >
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
+            </div>
+
+            <!-- X / Nitter -->
+            <div class="api-card">
+                <div class="header">
+                    <span class="font-bold text-sm">X (Twitter) via Nitter</span
+                    >
+                </div>
+                <div class="body">
+                    <div class="field-group mb-4">
+                        <label for="nitter-instance">Nitter Instance URL</label>
+                        <input
+                            id="nitter-instance"
+                            type="text"
+                            bind:value={settingsState.nitterInstance}
+                            class="api-input"
+                            placeholder="https://nitter.net"
+                        />
+                    </div>
+
+                    <div class="flex items-center justify-between mb-2">
+                        <span
+                            class="text-xs font-bold text-[var(--text-secondary)] uppercase"
+                            >Monitors</span
+                        >
+                        <button
+                            class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)]"
+                            onclick={addXMonitor}
+                            aria-label="Add X Monitor"
+                        >
+                            + Monitor
+                        </button>
+                    </div>
+                    <div class="flex flex-col gap-2">
+                        {#each settingsState.xMonitors as monitor, i}
+                            <div class="flex items-center gap-2">
+                                <select
+                                    bind:value={settingsState.xMonitors[i].type}
+                                    class="api-input w-24 py-1 text-xs"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="hashtag">#Tag</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    bind:value={
+                                        settingsState.xMonitors[i].value
+                                    }
+                                    class="api-input"
+                                    placeholder={settingsState.xMonitors[i]
+                                        .type === "user"
+                                        ? "elonmusk"
+                                        : "BTC"}
+                                />
+                                <button
+                                    class="text-red-500 hover:text-red-400 p-2"
+                                    onclick={() => removeXMonitor(i)}
+                                    aria-label="Remove monitor"
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path d="M18 6 6 18" /><path
+                                            d="m6 6 12 12"
+                                        /></svg
+                                    >
+                                </button>
+                            </div>
+                        {/each}
+                    </div>
+                </div>
             </div>
         </div>
     </section>
