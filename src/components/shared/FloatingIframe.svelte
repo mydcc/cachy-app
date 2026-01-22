@@ -59,7 +59,6 @@
                 modifiers: [
                     interact.modifiers.restrictRect({
                         restriction: "parent",
-                        endOnly: true,
                     }),
                 ],
             })
@@ -160,8 +159,7 @@
                 title={iframeState.title}
                 class="w-full h-full border-none"
                 class:pointer-events-none={isInteracting}
-                allow="xr-spatial-tracking; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
+                allow="xr-spatial-tracking; pointer-lock; gamepad; camera; microphone; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             ></iframe>
 
             <!-- Visual Resizing indicator for bottom corners -->
