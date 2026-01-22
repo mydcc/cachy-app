@@ -237,6 +237,12 @@ class AiManager {
 
 IMPORTANT: You MUST answer in GERMAN language. Even if the instructions above are in English, your final output to the user MUST be in German.
 IMPORTANT: Your previous responses might have lacked emojis. Disregard that style. From now on, you MUST use emojis to structure your response.
+IMPORTANT (CRITICAL FOR JSON ACTIONS):
+When generating the JSON block for actions (e.g., setEntryPrice, setTakeProfit), you MUST use STANDARD ENGLISH NUMBER FORMAT.
+- Decimal separator: DOT (.)
+- Thousands separator: NONE
+- Example: 1200.50 (NOT 1.200,50 or 1,200.50)
+- Failure to do this will cause the app to misinterpret values (e.g. 1.200 becomes 1.2).
  
 REAL-TIME CONTEXT:
 ${JSON.stringify(context, null, 2)}

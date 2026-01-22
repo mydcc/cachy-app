@@ -72,7 +72,8 @@
   let selectedSuggestionIndex = $state(-1);
 
   let priceDeviation = $derived.by(() => {
-    if (!entryPrice || !app.currentMarketPrice) return 0;
+    // Safety check: ensure symbol is valid before calculating deviation
+    if (!symbol || !entryPrice || !app.currentMarketPrice) return 0;
     const market = app.currentMarketPrice.toNumber();
     if (market <= 0) return 0;
     const dev = Math.abs((entryPrice - market) / market) * 100;
