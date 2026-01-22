@@ -218,7 +218,7 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) return;
 
-        if (settingsState.enableNetworkLogs) {
+        if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
           console.log(
             "%c[WS-Public] Connection opened",
             "color: #0fa; font-weight: bold;",
@@ -308,7 +308,7 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPrivate);
         if (this.wsPrivate !== ws) return;
 
-        if (settingsState.enableNetworkLogs) {
+        if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
           console.log(
             "%c[WS-Private] Connection opened",
             "color: #b8f; font-weight: bold;",
@@ -412,10 +412,12 @@ class BitunixWebSocketService {
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
-          console.warn(
-            "[WebSocket] Ping send failed, connection may be closed:",
-            e,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[WebSocket] Ping send failed, connection may be closed:",
+              e,
+            );
+          }
         }
       }
     }, PING_INTERVAL);
@@ -490,7 +492,9 @@ class BitunixWebSocketService {
         try {
           this.wsPublic.close();
         } catch (e) {
-          console.warn("[WebSocket] Error closing public connection:", e);
+          if (import.meta.env.DEV) {
+            console.warn("[WebSocket] Error closing public connection:", e);
+          }
         }
       }
       this.wsPublic = null;
@@ -512,7 +516,9 @@ class BitunixWebSocketService {
         try {
           this.wsPrivate.close();
         } catch (e) {
-          console.warn("[WebSocket] Error closing private connection:", e);
+          if (import.meta.env.DEV) {
+            console.warn("[WebSocket] Error closing private connection:", e);
+          }
         }
       }
       this.wsPrivate = null;
@@ -594,10 +600,12 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        console.warn(
-          "[WebSocket] Invalid message structure:",
-          validationResult.error.issues,
-        );
+        if (import.meta.env.DEV) {
+          console.warn(
+            "[WebSocket] Invalid message structure:",
+            validationResult.error.issues,
+          );
+        }
         return;
       }
 
@@ -610,7 +618,7 @@ class BitunixWebSocketService {
           validatedMessage.code === "0" ||
           validatedMessage.msg === "success"
         ) {
-          if (settingsState.enableNetworkLogs) {
+          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
             console.log("%c[WS-Private] Login successful", "color: #0fa;");
           }
           this.isAuthenticated = true;
@@ -629,7 +637,9 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        console.warn("[WebSocket] Unknown channel:", validatedMessage.ch);
+        if (import.meta.env.DEV) {
+          console.warn("[WebSocket] Unknown channel:", validatedMessage.ch);
+        }
         return;
       }
 
@@ -639,10 +649,12 @@ class BitunixWebSocketService {
 
         // Validate symbol
         if (!validateSymbol(rawSymbol)) {
-          console.warn(
-            "[WebSocket] Invalid symbol in price update:",
-            rawSymbol,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[WebSocket] Invalid symbol in price update:",
+              rawSymbol,
+            );
+          }
           return;
         }
 
@@ -653,17 +665,24 @@ class BitunixWebSocketService {
           validatedMessage.data,
         );
         if (!priceValidation.success) {
-          console.warn(
-            "[WebSocket] Invalid price data:",
-            priceValidation.error.issues,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[WebSocket] Invalid price data:",
+              priceValidation.error.issues,
+            );
+          }
           return;
         }
 
         const data = priceValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Partial<{
+          price: string | number;
+          indexPrice: string | number;
+          fundingRate: string | number;
+          nextFundingTime: string | number;
+        }> = {};
         if (data.mp !== undefined) update.price = data.mp;
         if (data.ip !== undefined) update.indexPrice = data.ip;
         if (data.fr !== undefined) update.fundingRate = data.fr;
@@ -676,10 +695,12 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          console.warn(
-            "[WebSocket] Invalid symbol in ticker update:",
-            rawSymbol,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[WebSocket] Invalid symbol in ticker update:",
+              rawSymbol,
+            );
+          }
           return;
         }
 
@@ -690,17 +711,27 @@ class BitunixWebSocketService {
           validatedMessage.data,
         );
         if (!tickerValidation.success) {
-          console.warn(
-            "[WebSocket] Invalid ticker data:",
-            tickerValidation.error.issues,
-          );
+          if (import.meta.env.DEV) {
+            console.warn(
+              "[WebSocket] Invalid ticker data:",
+              tickerValidation.error.issues,
+            );
+          }
           return;
         }
 
         const data = tickerValidation.data;
 
         // Build update object
-        const update: any = {};
+        const update: Partial<{
+          lastPrice: string | number;
+          high: string | number;
+          low: string | number;
+          vol: string | number;
+          quoteVol: string | number;
+          change: string | number;
+          open: string | number;
+        }> = {};
         if (data.la !== undefined) update.lastPrice = data.la;
         if (data.h !== undefined) update.high = data.h;
         if (data.l !== undefined) update.low = data.l;
@@ -783,11 +814,13 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      console.error("[WebSocket] Message handling error:", err);
-      console.error(
-        "[WebSocket] Problematic message:",
-        JSON.stringify(message).slice(0, 200),
-      );
+      if (import.meta.env.DEV) {
+        console.error("[WebSocket] Message handling error:", err);
+        console.error(
+          "[WebSocket] Problematic message:",
+          JSON.stringify(message).slice(0, 200),
+        );
+      }
     }
   }
 
@@ -798,7 +831,7 @@ class BitunixWebSocketService {
     if (this.publicSubscriptions.has(subKey)) return;
     this.publicSubscriptions.add(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-      if (settingsState.enableNetworkLogs) {
+      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
         console.log(
           `%c[WS] Subscribe: ${channel}:${normalizedSymbol}`,
           "color: #8af;",
@@ -830,7 +863,9 @@ class BitunixWebSocketService {
     try {
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn("[WebSocket] Failed to send private subscribe:", e);
+      if (import.meta.env.DEV) {
+        console.warn("[WebSocket] Failed to send private subscribe:", e);
+      }
     }
   }
 
@@ -839,10 +874,12 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(
-        `[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`,
-        e,
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`,
+          e,
+        );
+      }
     }
   }
 
@@ -851,10 +888,12 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      console.warn(
-        `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`,
-        e,
-      );
+      if (import.meta.env.DEV) {
+        console.warn(
+          `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`,
+          e,
+        );
+      }
     }
   }
 
