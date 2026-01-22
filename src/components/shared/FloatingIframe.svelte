@@ -192,8 +192,9 @@
 
     .mobile-mode {
         top: 0 !important;
-        left: 0 !important;
-        width: 100vw !important;
+        left: 50% !important;
+        transform: translateX(-50%) !important;
+        width: min(182vh, 100vw) !important;
         aspect-ratio: 15/9 !important;
         height: auto !important; /* Let aspect ratio determine height */
         border-radius: 0 !important;
