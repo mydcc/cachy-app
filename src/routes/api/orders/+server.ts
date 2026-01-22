@@ -216,12 +216,16 @@ async function placeBitunixOrder(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/trade/place_order";
 
+  // Safe formatting
+  const safeQty = formatApiNum(orderData.qty);
+  if (!safeQty) throw new Error("Invalid quantity formatting");
+
   // Construct Payload
   const payload: BitunixOrderPayload = {
     symbol: orderData.symbol,
     side: orderData.side.toUpperCase(),
     type: orderData.type.toUpperCase(),
-    qty: formatApiNum(orderData.qty)!,
+    qty: safeQty,
     reduceOnly: orderData.reduceOnly || false,
   };
 
