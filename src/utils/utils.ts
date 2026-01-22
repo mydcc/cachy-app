@@ -388,3 +388,92 @@ export function escapeHtml(unsafe: string | null | undefined): string {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+
+/**
+ * Smart parsing of AI-generated number strings, handling international formats (DE/EN).
+ *
+ * Scenarios:
+ * - "1,200.50" (EN) -> 1200.5
+ * - "1.200,50" (DE) -> 1200.5
+ * - "50k" -> 50000
+ * - "1.5m" -> 1500000
+ * - "100" -> 100
+ */
+export function parseAiValue(value: string | number | boolean): number {
+  if (typeof value === "number") return value;
+  if (typeof value === "boolean") return value ? 1 : 0;
+  if (!value) return 0;
+
+  let str = String(value).trim().toLowerCase();
+
+  // Multipliers
+  let multiplier = 1;
+  if (str.endsWith("k")) {
+    multiplier = 1000;
+    str = str.slice(0, -1);
+  } else if (str.endsWith("m")) {
+    multiplier = 1000000;
+    str = str.slice(0, -1);
+  }
+
+  // Detect format
+  const hasComma = str.includes(",");
+  const hasDot = str.includes(".");
+
+  if (hasComma && hasDot) {
+    // Both present. The last one is the decimal separator.
+    const lastComma = str.lastIndexOf(",");
+    const lastDot = str.lastIndexOf(".");
+
+    if (lastComma > lastDot) {
+      // German format: 1.200,50
+      str = str.replace(/\./g, "").replace(",", ".");
+    } else {
+      // English format: 1,200.50
+      str = str.replace(/,/g, "");
+    }
+  } else if (hasComma) {
+    // Only comma. Could be 1,200 (EN) or 1,5 (DE).
+    // Heuristic: If there are exactly 3 digits after comma, and more digits before, it MIGHT be thousands.
+    // But "1,200" is ambiguous (1.200 DE vs 1200 EN).
+    // AI context usually implies standard English format for large numbers, or German if explicitly prompted.
+    // However, safest assumption for "X,Y" where Y is 1-2 digits is Decimal.
+    // "1,200" -> Assume 1200 (EN) if it looks like thousands sep.
+    // "50,5" -> Assume 50.5 (DE).
+
+    const parts = str.split(",");
+    // If multiple commas "1,000,000", definitely EN thousands.
+    if (parts.length > 2) {
+      str = str.replace(/,/g, "");
+    } else if (parts.length === 2) {
+      // One comma. "1,200" (EN) vs "50,5" (DE) vs "0,005" (DE).
+      const suffix = parts[1];
+
+      // Special case: "0,..." is always decimal in DE context (English would be "0....")
+      if (str.startsWith("0,")) {
+        str = str.replace(",", ".");
+      }
+      // "1,200" -> 3 digits -> Assume Thousands (EN)
+      else if (suffix.length === 3) {
+        str = str.replace(/,/g, "");
+      }
+      // "50,5" or "50,50" -> Assume Decimal (DE)
+      else {
+        str = str.replace(",", ".");
+      }
+    }
+  }
+  // If only dot, usually standard float (1200.50) or German thousands (1.200).
+  // AI outputting "1.200" is ambiguous. We assume standard float unless it has multiple dots "1.000.000".
+  else if (hasDot) {
+    const parts = str.split(".");
+    if (parts.length > 2) {
+      // "1.000.000" -> German thousands
+      str = str.replace(/\./g, "");
+    }
+    // "1.200" -> treated as 1.2 in standard JS.
+  }
+
+  const parsed = parseFloat(str);
+  return isNaN(parsed) ? 0 : parsed * multiplier;
+}
