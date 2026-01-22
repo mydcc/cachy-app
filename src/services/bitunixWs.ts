@@ -596,29 +596,40 @@ class BitunixWebSocketService {
       // BitunixWSMessageSchema in types/bitunixValidation.ts uses z.object({...}) which allows extra fields.
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
-        // Only trigger circuit breaker for fundamental structure violations
-        const now = Date.now();
-        if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
-          this.validationErrorCount = 0;
-        }
-        this.validationErrorCount++;
-        this.lastValidationErrorTime = now;
+        // Check if it's a critical structure failure vs minor field mismatch
+        // If 'event', 'op' or 'ch' are missing/wrong type, it's critical.
+        // If just data fields are off, we can ignore single message without counting towards circuit breaker.
+        const issues = validationResult.error.issues;
+        const criticalFields = ["event", "op", "ch", "code"];
+        const isCritical = issues.some(i => i.path.length > 0 && criticalFields.includes(String(i.path[0])));
 
-        if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
-          if (import.meta.env.DEV) {
-            console.error(
-              "[WebSocket] Too many validation errors. Forcing reconnect.",
-            );
-          }
-          this.validationErrorCount = 0;
-          this.cleanup(type);
-          this.scheduleReconnect(type);
-          return;
+        // If strictly structure is invalid (e.g. not an object), that's critical too
+        const isStructureError = issues.some(i => i.code === "invalid_type" && i.path.length === 0);
+
+        if (isCritical || isStructureError) {
+           const now = Date.now();
+           if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
+             this.validationErrorCount = 0;
+           }
+           this.validationErrorCount++;
+           this.lastValidationErrorTime = now;
+
+           if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
+             if (import.meta.env.DEV) {
+               console.error(
+                 "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
+               );
+             }
+             this.validationErrorCount = 0;
+             this.cleanup(type);
+             this.scheduleReconnect(type);
+             return;
+           }
         }
 
         if (import.meta.env.DEV) {
           console.warn(
-            "[WebSocket] Invalid message structure:",
+            "[WebSocket] Invalid message structure (ignored):",
             validationResult.error.issues,
           );
         }
