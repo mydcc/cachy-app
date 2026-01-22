@@ -153,13 +153,17 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
+
+        // Strict reduceOnly check: handle boolean true or string "true"
+        const isReduceOnly = body.reduceOnly === true || String(body.reduceOnly) === "true";
+
         const orderPayload: BitunixOrderPayload = {
           symbol: body.symbol as string,
           side: body.side as string,
           type: body.type as string,
           qty: String(body.qty), // Ensure string
           price: body.price ? String(body.price) : undefined,
-          reduceOnly: !!body.reduceOnly,
+          reduceOnly: isReduceOnly,
           triggerPrice: body.triggerPrice
             ? String(body.triggerPrice)
             : undefined,

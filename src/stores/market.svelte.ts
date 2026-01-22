@@ -174,28 +174,54 @@ class MarketManager {
         ? parseInt(data.nextFundingTime, 10)
         : new Date(data.nextFundingTime).getTime();
     }
-    this.updateSymbol(symbol, {
-      lastPrice: new Decimal(data.price),
-      indexPrice: new Decimal(data.indexPrice),
-      fundingRate: new Decimal(data.fundingRate),
-      nextFundingTime: nft,
-    });
+
+    // Defensive check
+    const update: Partial<MarketData> = {
+        nextFundingTime: nft
+    };
+
+    if (data.price) update.lastPrice = new Decimal(data.price);
+    if (data.indexPrice) update.indexPrice = new Decimal(data.indexPrice);
+    if (data.fundingRate) update.fundingRate = new Decimal(data.fundingRate);
+
+    this.updateSymbol(symbol, update);
   }
 
   updateTicker(symbol: string, data: any) {
-    const last = new Decimal(data.lastPrice);
-    const open = new Decimal(data.open);
-    let pct = new Decimal(0);
-    if (!open.isZero()) pct = last.minus(open).div(open).times(100);
+    const update: Partial<MarketData> = {};
 
-    this.updateSymbol(symbol, {
-      lastPrice: last,
-      highPrice: new Decimal(data.high),
-      lowPrice: new Decimal(data.low),
-      volume: new Decimal(data.vol),
-      quoteVolume: new Decimal(data.quoteVol),
-      priceChangePercent: pct,
-    });
+    // Validate and map fields safely
+    if (data.lastPrice !== undefined && data.lastPrice !== null) {
+        update.lastPrice = new Decimal(data.lastPrice);
+    }
+    if (data.high !== undefined && data.high !== null) {
+        update.highPrice = new Decimal(data.high);
+    }
+    if (data.low !== undefined && data.low !== null) {
+        update.lowPrice = new Decimal(data.low);
+    }
+    if (data.vol !== undefined && data.vol !== null) {
+        update.volume = new Decimal(data.vol);
+    }
+    if (data.quoteVol !== undefined && data.quoteVol !== null) {
+        update.quoteVolume = new Decimal(data.quoteVol);
+    }
+
+    // Prioritize API provided change rate (data.change is 'r' from API)
+    if (data.change !== undefined && data.change !== null) {
+        // Bitunix sends rate (e.g. 0.045 for 4.5%). We usually display percent.
+        // If the API sends it as a rate, we multiply by 100.
+        // Assuming data.change is the raw 'r' field which is a rate.
+        update.priceChangePercent = new Decimal(data.change).times(100);
+    } else if (update.lastPrice && data.open) {
+        // Fallback: Calculate from open if change is missing but open exists
+        const open = new Decimal(data.open);
+        if (!open.isZero()) {
+            update.priceChangePercent = update.lastPrice.minus(open).div(open).times(100);
+        }
+    }
+
+    this.updateSymbol(symbol, update);
   }
 
   updateDepth(symbol: string, data: any) {

@@ -21,6 +21,7 @@ import { technicalsService } from "../services/technicalsService";
 import { apiService } from "../services/apiService";
 import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
+import { parseAiValue } from "../utils/utils";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -840,7 +841,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           if (action.value !== undefined) {
             tradeState.update((s: any) => ({
               ...s,
-              entryPrice: parseFloat(String(action.value)),
+              entryPrice: parseAiValue(action.value as string),
             }));
           }
           break;
@@ -848,7 +849,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           if (action.value !== undefined) {
             tradeState.update((s: any) => ({
               ...s,
-              stopLossPrice: parseFloat(String(action.value)),
+              stopLossPrice: parseAiValue(action.value as string),
             }));
           }
           break;
@@ -860,9 +861,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               if (newTargets[idx]) {
                 let updatedTarget = { ...newTargets[idx] };
                 if (action.value !== undefined)
-                  updatedTarget.price = parseFloat(String(action.value));
+                  updatedTarget.price = parseAiValue(action.value as string);
                 if (action.percent !== undefined)
-                  updatedTarget.percent = parseFloat(String(action.percent));
+                  updatedTarget.percent = parseAiValue(action.percent as string);
                 newTargets[idx] = updatedTarget;
               }
               return { ...s, targets: newTargets };
@@ -873,7 +874,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           if (action.value !== undefined) {
             tradeState.update((s: any) => ({
               ...s,
-              leverage: parseFloat(String(action.value)),
+              leverage: parseAiValue(action.value as string),
             }));
           }
           break;
@@ -881,7 +882,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           if (action.value !== undefined) {
             tradeState.update((s: any) => ({
               ...s,
-              riskPercentage: parseFloat(String(action.value)),
+              riskPercentage: parseAiValue(action.value as string),
             }));
           }
           break;
