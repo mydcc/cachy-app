@@ -301,7 +301,7 @@ export class TradeExecutionService {
   async placeOrder(params: PlaceOrderParams): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Place Order:", params);
+    if (import.meta.env.DEV) console.log("[TradeService] Place Order:", params);
 
     // 1. Validate parameters
     if (params.type === "limit" && !params.price) {
@@ -377,7 +377,8 @@ export class TradeExecutionService {
       timestamp: response.data!.createTime,
     };
 
-    console.log("[TradeService] Order placed successfully:", result);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Order placed successfully:", result);
 
     return result;
   }
@@ -399,7 +400,8 @@ export class TradeExecutionService {
       case "REJECTED":
         return "cancelled";
       default:
-        console.warn("[TradeService] Unknown status:", bitunixStatus);
+        if (import.meta.env.DEV)
+          console.warn("[TradeService] Unknown status:", bitunixStatus);
         return "pending";
     }
   }
@@ -415,7 +417,8 @@ export class TradeExecutionService {
   async modifyOrder(params: ModifyOrderParams): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Modify Order:", params);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Modify Order:", params);
     const body: any = { orderId: params.orderId };
     if (params.price) body.price = params.price.toNumber();
     if (params.amount) body.qty = params.amount.toNumber();
@@ -450,7 +453,7 @@ export class TradeExecutionService {
   async cancelOrder(orderId: string): Promise<void> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Cancel Order:", orderId);
+    if (import.meta.env.DEV) console.log("[TradeService] Cancel Order:", orderId);
 
     // Bitunix API: Cancel single order
     const body = {
@@ -463,7 +466,8 @@ export class TradeExecutionService {
       body,
     );
 
-    console.log("[TradeService] Order cancelled successfully:", orderId);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Order cancelled successfully:", orderId);
   }
 
   /**
@@ -477,7 +481,8 @@ export class TradeExecutionService {
   async cancelOrders(symbol: string): Promise<number> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Cancel Orders for symbol:", symbol);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Cancel Orders for symbol:", symbol);
 
     // Bitunix API: Cancel all orders for symbol
     const body = {
@@ -490,12 +495,13 @@ export class TradeExecutionService {
     }>("POST", "/api/v1/futures/trade/cancel_orders", body);
 
     const cancelledCount = response.data?.success?.length || 0;
-    console.log(
-      "[TradeService] Cancelled",
-      cancelledCount,
-      "orders for",
-      symbol,
-    );
+    if (import.meta.env.DEV)
+      console.log(
+        "[TradeService] Cancelled",
+        cancelledCount,
+        "orders for",
+        symbol,
+      );
 
     return cancelledCount;
   }
@@ -510,7 +516,7 @@ export class TradeExecutionService {
   async cancelAllOrders(): Promise<number> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Cancel ALL Orders");
+    if (import.meta.env.DEV) console.log("[TradeService] Cancel ALL Orders");
 
     // Bitunix API: Cancel all orders (no symbol filter)
     const response = await this.signedRequest<{
@@ -519,7 +525,8 @@ export class TradeExecutionService {
     }>("POST", "/api/v1/futures/trade/cancel_all_orders", {});
 
     const cancelledCount = response.data?.success?.length || 0;
-    console.log("[TradeService] Cancelled", cancelledCount, "orders total");
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Cancelled", cancelledCount, "orders total");
 
     return cancelledCount;
   }
@@ -535,7 +542,8 @@ export class TradeExecutionService {
   async closePosition(params: PositionCloseParams): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Close Position:", params);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Close Position:", params);
 
     // Close position = Place opposite order with reduceOnly flag
     const oppositeSide: OrderSide =
@@ -552,7 +560,8 @@ export class TradeExecutionService {
 
     const result = await this.placeOrder(orderParams);
 
-    console.log("[TradeService] Position closed successfully");
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Position closed successfully");
 
     return result;
   }
@@ -567,7 +576,7 @@ export class TradeExecutionService {
   async closeAllPositions(): Promise<OrderResult[]> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Close ALL Positions");
+    if (import.meta.env.DEV) console.log("[TradeService] Close ALL Positions");
     throw new Error(
       "NOT_YET_IMPLEMENTED: closeAllPositions requires position data API. Use closePosition() for individual positions.",
     );
@@ -589,7 +598,8 @@ export class TradeExecutionService {
   ): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Flash Close Position:", symbol, positionSide);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Flash Close Position:", symbol, positionSide);
     const oppositeSide: OrderSide = positionSide === "long" ? "sell" : "buy";
     return await this.placeOrder({
       symbol,
@@ -611,7 +621,12 @@ export class TradeExecutionService {
   async batchOrder(params: BatchOrderParams): Promise<OrderResult[]> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Batch Order:", params.orders.length, "orders");
+    if (import.meta.env.DEV)
+      console.log(
+        "[TradeService] Batch Order:",
+        params.orders.length,
+        "orders",
+      );
     if (params.orders.length > 10)
       throw new Error("VALIDATION_ERROR: Max 10 orders per batch");
     const bitunixOrders = params.orders.map((o) => ({
@@ -657,7 +672,11 @@ export class TradeExecutionService {
   async getPendingOrders(symbol?: string): Promise<OrderResult[]> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Get Pending Orders, symbol:", symbol || "all");
+    if (import.meta.env.DEV)
+      console.log(
+        "[TradeService] Get Pending Orders, symbol:",
+        symbol || "all",
+      );
 
     // Build query params
     const params = symbol ? `?symbol=${symbol}` : "";
@@ -688,7 +707,8 @@ export class TradeExecutionService {
       timestamp: order.createTime,
     }));
 
-    console.log("[TradeService] Found", orders.length, "pending orders");
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Found", orders.length, "pending orders");
 
     return orders;
   }
@@ -704,7 +724,8 @@ export class TradeExecutionService {
   async getOrderDetail(orderId: string): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log("[TradeService] Get Order Detail:", orderId);
+    if (import.meta.env.DEV)
+      console.log("[TradeService] Get Order Detail:", orderId);
     const response = await this.signedRequest<{
       orderId: string;
       symbol: string;
@@ -742,12 +763,13 @@ export class TradeExecutionService {
   ): Promise<OrderResult[]> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log(
-      "[TradeService] Get History Orders, symbol:",
-      symbol || "all",
-      "limit:",
-      limit,
-    );
+    if (import.meta.env.DEV)
+      console.log(
+        "[TradeService] Get History Orders, symbol:",
+        symbol || "all",
+        "limit:",
+        limit,
+      );
     const params = `?${symbol ? `symbol=${symbol}&` : ""}limit=${limit}`;
     const response = await this.signedRequest<{
       orders: Array<{
@@ -785,12 +807,13 @@ export class TradeExecutionService {
   async getHistoryTrades(symbol?: string, limit: number = 100): Promise<any[]> {
     TradeExecutionGuard.ensureAuthorized();
 
-    console.log(
-      "[TradeService] Get History Trades, symbol:",
-      symbol || "all",
-      "limit:",
-      limit,
-    );
+    if (import.meta.env.DEV)
+      console.log(
+        "[TradeService] Get History Trades, symbol:",
+        symbol || "all",
+        "limit:",
+        limit,
+      );
     const params = `?${symbol ? `symbol=${symbol}&` : ""}limit=${limit}`;
     const response = await this.signedRequest<any[]>(
       "GET",

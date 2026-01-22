@@ -29,6 +29,7 @@ class FloatingWindow {
     y?: number;
     width?: number;
     height?: number;
+    zIndex?: number;
   }) {
     this.id = data.id;
     this.url = data.url;
