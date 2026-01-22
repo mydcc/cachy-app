@@ -96,6 +96,17 @@
             interaction.unset();
         };
     });
+
+    $effect(() => {
+        const handleFsChange = () => {
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
+        };
+        document.addEventListener("fullscreenchange", handleFsChange);
+        return () =>
+            document.removeEventListener("fullscreenchange", handleFsChange);
+    });
 </script>
 
 {#if iframeState.visible}
@@ -159,7 +170,8 @@
                 title={iframeState.title}
                 class="w-full h-full border-none"
                 class:pointer-events-none={isInteracting}
-                allow="xr-spatial-tracking; pointer-lock; gamepad; camera; microphone; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allow="xr-spatial-tracking; pointer-lock; gamepad; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowfullscreen
             ></iframe>
 
             <!-- Visual Resizing indicator for bottom corners -->
