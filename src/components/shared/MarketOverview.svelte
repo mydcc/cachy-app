@@ -778,9 +778,16 @@
           {/if}
 
           {#if CHANNEL_CONFIG[baseAsset]}
+            {@const config = CHANNEL_CONFIG[baseAsset]}
+            {@const plotId = typeof config === "string" ? config : baseAsset}
+            {@const windowId = `channel_${plotId}`}
+            {@const isOpen = uiState.windows.some((w) => w.id === windowId)}
             <button
-              class="text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-0.5 rounded"
-              title="Open {baseAsset} Channel"
+              class="transition-colors p-0.5 rounded"
+              class:text-[var(--accent-color)]={isOpen}
+              class:text-[var(--text-secondary)]={!isOpen}
+              class:hover:text-[var(--accent-color)]={!isOpen}
+              title={isOpen ? "Close Channel" : "Open Channel"}
               onclick={(e) => {
                 e.stopPropagation();
                 openChannel();
