@@ -250,8 +250,6 @@ class TradeManager {
   }
 
   // Helper for legacy 'update' pattern
-  // RETAINING for compatibility with rest of app (service files) until they are migrated
-  // But marked as deprecated
   update(fn: (curr: any) => any) {
     // Create a snapshot object
     const snap = this.getSnapshot();
