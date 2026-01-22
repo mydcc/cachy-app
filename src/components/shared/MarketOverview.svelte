@@ -284,7 +284,7 @@
 
     // Open in dynamic window with unique ID per config/symbol
     const windowId = `channel_${plotId}`;
-    uiState.openWindow(windowId, url, title);
+    uiState.toggleWindow(windowId, url, title);
   }
 
   let wsStatus = $derived(marketState.connectionStatus);

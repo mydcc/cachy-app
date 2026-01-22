@@ -321,6 +321,15 @@ class UiManager {
     this.windows = this.windows.filter((w) => w.id !== id);
   }
 
+  toggleWindow(id: string, url: string, title: string) {
+    const existingIndex = this.windows.findIndex((w) => w.id === id);
+    if (existingIndex !== -1) {
+      this.closeWindow(id);
+    } else {
+      this.openWindow(id, url, title);
+    }
+  }
+
   // Legacy Wrapper for "Genesis" (Main) Modal
   toggleIframeModal(visible: boolean, url = "", title = "") {
     if (visible) {

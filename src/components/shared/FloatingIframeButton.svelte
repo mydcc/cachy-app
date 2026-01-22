@@ -11,7 +11,7 @@
     // Config for custom channels menu
     const CUSTOM_CHANNELS = [
         { id: "genesis", label: "Genesis (Main)", plotId: "genesis" },
-        { id: "teich", label: "Teich", plotId: "teich" },
+        { id: "teich", label: "Teich", plotId: "TEICH" },
         { id: "cinema", label: "Cinema", plotId: "cinema" },
     ];
 
