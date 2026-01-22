@@ -158,22 +158,15 @@
     if (isSidebar) {
       interaction.resizable({
         edges: { right: true },
-        margin: 8,
         listeners: {
           start() {
             isInteracting = true;
-            if (panelEl) {
-              panelEl.style.userSelect = "none";
-            }
           },
           move(event) {
             panelState.width = event.rect.width;
           },
           end() {
             isInteracting = false;
-            if (panelEl) {
-              panelEl.style.userSelect = "";
-            }
             settingsState.panelState = { ...panelState };
           },
         },
