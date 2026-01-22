@@ -1,10 +1,13 @@
 <script lang="ts">
     import interact from "interactjs";
     import { fade } from "svelte/transition";
+    import { uiState } from "../../stores/ui.svelte";
     import { _ } from "../../locales/i18n";
+    import { icons } from "../../lib/constants";
 
     interface Props {
         iframeState: {
+            id: string;
             visible: boolean;
             url: string;
             title: string;
@@ -12,6 +15,7 @@
             height: number;
             x: number;
             y: number;
+            zIndex: number;
         };
         onClose: () => void;
     }
@@ -23,7 +27,6 @@
     let isMobile = $state(false);
 
     $effect(() => {
-        // Check window size for mobile detection
         const checkMobile = () => {
             if (typeof window !== "undefined") {
                 isMobile = window.innerWidth <= 768;
@@ -63,7 +66,7 @@
                 ],
             })
             .resizable({
-                edges: { left: true, right: true, bottom: true, top: false }, // Verhindere Top-Resize um Header-Drag zu schützen
+                edges: { left: true, right: true, bottom: true, top: false },
                 listeners: {
                     start() {
                         isInteracting = true;
@@ -87,7 +90,7 @@
                         outer: "parent",
                     }),
                     interact.modifiers.aspectRatio({
-                        ratio: 768 / 465, // Keep roughly 15:9 / 5:3
+                        ratio: 768 / 465,
                     }),
                 ],
             });
@@ -100,12 +103,13 @@
     $effect(() => {
         const handleFsChange = () => {
             if (document.fullscreenElement) {
-                document.exitFullscreen().catch(() => {});
+                document.exitFullscreen();
             }
         };
         document.addEventListener("fullscreenchange", handleFsChange);
-        return () =>
+        return () => {
             document.removeEventListener("fullscreenchange", handleFsChange);
+        };
     });
 </script>
 
@@ -116,12 +120,14 @@
         class:is-interacting={isInteracting}
         class:mobile-mode={isMobile}
         transition:fade={{ duration: 200 }}
+        onmousedown={() => uiState.bringToFront(iframeState.id)}
         style={!isMobile
             ? `
       width: ${iframeState.width}px;
       height: ${iframeState.height}px;
       left: ${iframeState.x}px;
       top: ${iframeState.y}px;
+      z-index: ${iframeState.zIndex};
       border-radius: 8px;
     `
             : ""}
@@ -133,7 +139,7 @@
             <div
                 class="flex items-center gap-2 truncate mr-4 pointer-events-none"
             >
-                <span class="text-amber-500 text-xs">🚀</span>
+                <span class="text-amber-500 text-xs text-shadow-glow">🚀</span>
                 <span
                     class="text-[10px] font-bold uppercase tracking-wider text-[var(--text-secondary)] truncate"
                 >

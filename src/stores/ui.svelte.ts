@@ -19,6 +19,7 @@ class FloatingWindow {
   height = $state(465);
   x = $state(100);
   y = $state(100);
+  zIndex = $state(70);
 
   constructor(data: {
     id: string;
@@ -36,6 +37,7 @@ class FloatingWindow {
     if (data.y !== undefined) this.y = data.y;
     if (data.width !== undefined) this.width = data.width;
     if (data.height !== undefined) this.height = data.height;
+    if (data.zIndex !== undefined) this.zIndex = data.zIndex;
   }
 }
 
@@ -64,6 +66,7 @@ class UiManager {
   windows = $state<FloatingWindow[]>([]);
   private windowOffset = 30; // Cascading offset
   private basePosition = { x: 100, y: 100 };
+  private maxZIndex = 70; // Starting z-index for floating windows
 
   // Loading State
   isLoading = $state(false);
@@ -297,7 +300,7 @@ class UiManager {
       w.visible = true;
       w.url = url;
       w.title = title;
-      // Optional: Bring to front logic (re-insert at end) could go here
+      this.bringToFront(id);
     } else {
       // Create new window
       // Calculate cascade position based on number of open windows
@@ -312,8 +315,16 @@ class UiManager {
           title,
           x,
           y,
+          zIndex: ++this.maxZIndex,
         }),
       );
+    }
+  }
+
+  bringToFront(id: string) {
+    const window = this.windows.find((w) => w.id === id);
+    if (window) {
+      window.zIndex = ++this.maxZIndex;
     }
   }
 
