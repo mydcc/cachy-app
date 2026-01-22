@@ -214,21 +214,33 @@ class MarketManager {
         update.quoteVolume = new Decimal(data.quoteVol);
       }
 
-      // Prioritize API provided change rate (data.change is 'r' from API)
-      if (data.change !== undefined && data.change !== null) {
-        // Bitunix sends rate (e.g. 0.045 for 4.5%). We usually display percent.
-        // If the API sends it as a rate, we multiply by 100.
-        // Assuming data.change is the raw 'r' field which is a rate.
-        update.priceChangePercent = new Decimal(data.change).times(100);
-      } else if (update.lastPrice && data.open) {
-        // Fallback: Calculate from open if change is missing but open exists
+      // Calculate price change percent from open and last price if available
+      // This is more reliable than interpreting the 'change' field which might be rate or percent
+      let calculatedChange = false;
+      if (data.open) {
         const open = new Decimal(data.open);
-        if (!open.isZero()) {
-          update.priceChangePercent = update.lastPrice
+        const last = update.lastPrice || this.data[symbol]?.lastPrice;
+
+        if (!open.isZero() && last) {
+          update.priceChangePercent = last
             .minus(open)
             .div(open)
             .times(100);
+          calculatedChange = true;
         }
+      }
+
+      // Fallback to API provided change if calculation wasn't possible
+      if (
+        !calculatedChange &&
+        data.change !== undefined &&
+        data.change !== null
+      ) {
+        // Bitunix used to send rate (0.045), but might send percent (4.5) now.
+        // We try to infer or just stick to rate logic if no open price is available.
+        // For now, we assume if we land here, we might still need the multiplication,
+        // but prefer the calculation above.
+        update.priceChangePercent = new Decimal(data.change).times(100);
       }
 
       this.updateSymbol(symbol, update);
