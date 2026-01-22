@@ -160,8 +160,12 @@ export const POST: RequestHandler = async ({ request }) => {
       } else if (type === "place-order") {
         // Safe Construction of Payload after validation above
 
-        // Strict reduceOnly check: handle boolean true or string "true"
-        const isReduceOnly = body.reduceOnly === true || String(body.reduceOnly) === "true";
+        // Strict reduceOnly check: handle boolean true, string "true", number 1, or string "1"
+        const reduceOnlyRaw = String(body.reduceOnly);
+        const isReduceOnly =
+          body.reduceOnly === true ||
+          reduceOnlyRaw === "true" ||
+          reduceOnlyRaw === "1";
 
         const orderPayload: BitunixOrderPayload = {
           symbol: body.symbol as string,
@@ -177,7 +181,7 @@ export const POST: RequestHandler = async ({ request }) => {
         };
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
-        // Double check amount before creating close order
+        // Double check amount before creating close order (must be positive)
         const amount = parseFloat(String(body.amount));
         if (isNaN(amount) || amount <= 0) {
           throw new Error("Invalid amount for closing position");
@@ -185,7 +189,8 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // Safe formatting for the amount
         const safeAmount = formatApiNum(body.amount as string | number);
-        if (!safeAmount) throw new Error("Invalid amount formatting for closing position");
+        if (!safeAmount)
+          throw new Error("Invalid amount formatting for closing position");
 
         // To close a position, we place a MARKET order in the opposite direction
         const closeOrder: BitunixOrderPayload = {
