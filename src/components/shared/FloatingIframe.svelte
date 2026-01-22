@@ -56,6 +56,9 @@
                     interact.modifiers.restrictEdges({
                         outer: "parent",
                     }),
+                    interact.modifiers.aspectRatio({
+                        ratio: 768 / 465,
+                    }),
                 ],
             });
 
