@@ -270,6 +270,28 @@
       label: $_("settings.tabs.maintenance") || "Data & Maintenance",
     },
   ];
+
+  let isMobile = $state(false);
+
+  // Filter tabs: hide 'profile' on mobile
+  let visibleTabs = $derived(
+    isMobile ? tabs.filter((t) => t.id !== "profile") : tabs,
+  );
+
+  $effect(() => {
+    const checkMobile = () => {
+      if (typeof window !== "undefined") {
+        isMobile = window.innerWidth <= 768; // Standard mobile breakpoint
+        // Retrieve trigger state if we are on mobile and profile is selected
+        if (isMobile && activeTab === "profile") {
+          selectTab("workspace");
+        }
+      }
+    };
+    checkMobile();
+    window.addEventListener("resize", checkMobile);
+    return () => window.removeEventListener("resize", checkMobile);
+  });
 </script>
 
 <ModalFrame
@@ -289,7 +311,7 @@
       class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
       role="tablist"
     >
-      {#each tabs as tab}
+      {#each visibleTabs as tab}
         <button
           class="flex items-center gap-3 px-6 py-3.5 text-sm font-semibold transition-all text-left focus:outline-none whitespace-nowrap group
                  {activeTab === tab.id

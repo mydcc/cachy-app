@@ -777,7 +777,7 @@
             </a>
           {/if}
 
-          {#if CHANNEL_CONFIG[baseAsset]}
+          {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
             {@const plotId = typeof config === "string" ? config : baseAsset}
             {@const windowId = `channel_${plotId}`}
