@@ -71,7 +71,9 @@ class AiManager {
         }
       }
     } catch (e) {
-      console.error("Failed to load AI history", e);
+      if (import.meta.env.DEV) {
+        console.error("Failed to load AI history", e);
+      }
     }
   }
 
@@ -87,7 +89,9 @@ class AiManager {
         }),
       );
     } catch (e) {
-      console.error("Failed to save AI history", e);
+      if (import.meta.env.DEV) {
+        console.error("Failed to save AI history", e);
+      }
     }
   }
 
@@ -350,7 +354,11 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           if (res.status === 429) {
             attempt++;
             const delay = Math.pow(2, attempt) * 1000;
-            console.warn(`Rate limited (429). Retrying in ${delay / 1000}s...`);
+            if (import.meta.env.DEV) {
+              console.warn(
+                `Rate limited (429). Retrying in ${delay / 1000}s...`,
+              );
+            }
             this.error = `Rate limited. Retrying in ${delay / 1000}s...`;
             await new Promise((r) => setTimeout(r, delay));
             continue;
@@ -363,7 +371,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         } catch (e: any) {
           if (attempt === MAX_RETRIES - 1) throw e; // Final failure
           attempt++;
-          console.warn(`API Error: ${e.message}. Retrying...`);
+          if (import.meta.env.DEV) {
+            console.warn(`API Error: ${e.message}. Retrying...`);
+          }
           await new Promise((r) => setTimeout(r, 1000));
         }
       }
@@ -456,13 +466,17 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               try {
                 this.executeAction(action, false);
               } catch (err) {
-                console.error("Single action failed", err);
+                if (import.meta.env.DEV) {
+                  console.error("Single action failed", err);
+                }
               }
             });
           }
         }
       } catch (actionErr) {
-        console.error("Action parsing error:", actionErr);
+        if (import.meta.env.DEV) {
+          console.error("Action parsing error:", actionErr);
+        }
       }
 
       this.isStreaming = false;
@@ -513,7 +527,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           };
         }
       } catch (e) {
-        console.warn("Failed to gather CMC context:", e);
+        if (import.meta.env.DEV) {
+          console.warn("Failed to gather CMC context:", e);
+        }
       }
     }
 
@@ -549,7 +565,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           }));
         }
       } catch (e) {
-        console.warn("Failed to gather News context:", e);
+        if (import.meta.env.DEV) {
+          console.warn("Failed to gather News context:", e);
+        }
       }
     }
 
@@ -659,7 +677,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           }
         }
       } catch (e) {
-        console.warn("Failed to gather Technicals context:", e);
+        if (import.meta.env.DEV) {
+          console.warn("Failed to gather Technicals context:", e);
+        }
       }
     }
 
@@ -892,7 +912,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       }
       return true;
     } catch (e) {
-      console.error("AI Action Execution Failed", e);
+      if (import.meta.env.DEV) {
+        console.error("AI Action Execution Failed", e);
+      }
       return false;
     }
   }
