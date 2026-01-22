@@ -52,12 +52,16 @@
 
     // Global Error Handling
     const handleGlobalError = (event: ErrorEvent) => {
-      console.error("Caught global error:", event.error);
+      if (import.meta.env.DEV) {
+        console.error("Caught global error:", event.error);
+      }
       uiState.showError(event.message || "An unexpected error occurred.");
     };
 
     const handleUnhandledRejection = (event: PromiseRejectionEvent) => {
-      console.error("Caught unhandled rejection:", event.reason);
+      if (import.meta.env.DEV) {
+        console.error("Caught unhandled rejection:", event.reason);
+      }
       const message =
         event.reason instanceof Error
           ? event.reason.message
@@ -134,7 +138,9 @@
             // Silence error to stay transparent
           };
         } catch (e) {
-          console.error("CL: Failed to init EventSource", e);
+          if (import.meta.env.DEV) {
+            console.error("CL: Failed to init EventSource", e);
+          }
         }
       }
 
