@@ -217,6 +217,7 @@
         })
         .resizable({
           edges: { left: true, right: true, bottom: true, top: false },
+          margin: 8,
           listeners: {
             start() {
               isInteracting = true;
@@ -458,6 +459,7 @@
     <!-- MAIN PANEL CONTENT -->
     {#if isOpen}
       <div
+        bind:this={panelEl}
         class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden panel-transition fixed z-[100] glass-panel panel-border"
         class:is-interacting={isInteracting}
         transition:fly={{
@@ -483,7 +485,7 @@
         class:bg-[var(--bg-tertiary)]={!isTerminal}
       >
         <!-- Main Panel Content -->
-        <div bind:this={panelEl} class="flex-1 flex flex-col min-h-0">
+        <div class="flex-1 flex flex-col min-h-0">
           <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
           <div
             class="panel-header h-10 border-b flex items-center justify-between px-4 shrink-0 transition-colors bg-[var(--bg-secondary)]"
