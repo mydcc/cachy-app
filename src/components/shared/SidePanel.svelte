@@ -150,20 +150,73 @@
     settingsState.panelState || { width: 450, height: 550, x: 20, y: 20 },
   );
 
+  // Sidebar mode interaction
   $effect(() => {
-    if (!panelEl) return;
+    if (!panelEl || !isSidebar) return;
 
-    const interaction = interact(panelEl);
+    const interaction = interact(panelEl).resizable({
+      edges: { right: true },
+      listeners: {
+        start() {
+          isInteracting = true;
+        },
+        move(event) {
+          panelState.width = event.rect.width;
+        },
+        end() {
+          isInteracting = false;
+          settingsState.panelState = { ...panelState };
+        },
+      },
+      modifiers: [
+        interact.modifiers.restrictSize({
+          min: { width: 300, height: 100 },
+          max: { width: 800, height: 2000 },
+        }),
+      ],
+    });
 
-    if (isSidebar) {
-      interaction.resizable({
-        edges: { right: true },
+    return () => interaction.unset();
+  });
+
+  // Floating mode interaction
+  $effect(() => {
+    if (!panelEl || !isFloating || settingsState.panelIsExpanded) return;
+
+    const interaction = interact(panelEl)
+      .draggable({
+        allowFrom: ".panel-header",
+        listeners: {
+          start() {
+            isInteracting = true;
+          },
+          move(event) {
+            panelState.x += event.dx;
+            panelState.y += event.dy;
+          },
+          end() {
+            isInteracting = false;
+            settingsState.panelState = { ...panelState };
+          },
+        },
+        modifiers: [
+          interact.modifiers.restrictRect({
+            restriction: "parent",
+            endOnly: true,
+          }),
+        ],
+      })
+      .resizable({
+        edges: { left: true, right: true, bottom: true, top: false },
         listeners: {
           start() {
             isInteracting = true;
           },
           move(event) {
             panelState.width = event.rect.width;
+            panelState.height = event.rect.height;
+            panelState.x += event.deltaRect.left;
+            panelState.y += event.deltaRect.top;
           },
           end() {
             isInteracting = false;
@@ -172,66 +225,15 @@
         },
         modifiers: [
           interact.modifiers.restrictSize({
-            min: { width: 300, height: 100 },
-            max: { width: 800, height: 2000 },
+            min: { width: 300, height: 200 },
+          }),
+          interact.modifiers.restrictEdges({
+            outer: "parent",
           }),
         ],
       });
-    } else if (isFloating && !settingsState.panelIsExpanded) {
-      interaction
-        .draggable({
-          allowFrom: ".panel-header",
-          listeners: {
-            start() {
-              isInteracting = true;
-            },
-            move(event) {
-              panelState.x += event.dx;
-              panelState.y += event.dy;
-            },
-            end() {
-              isInteracting = false;
-              settingsState.panelState = { ...panelState };
-            },
-          },
-          modifiers: [
-            interact.modifiers.restrictRect({
-              restriction: "parent",
-              endOnly: true,
-            }),
-          ],
-        })
-        .resizable({
-          edges: { left: true, right: true, bottom: true, top: false },
-          listeners: {
-            start() {
-              isInteracting = true;
-            },
-            move(event) {
-              panelState.width = event.rect.width;
-              panelState.height = event.rect.height;
-              panelState.x += event.deltaRect.left;
-              panelState.y += event.deltaRect.top;
-            },
-            end() {
-              isInteracting = false;
-              settingsState.panelState = { ...panelState };
-            },
-          },
-          modifiers: [
-            interact.modifiers.restrictSize({
-              min: { width: 300, height: 200 },
-            }),
-            interact.modifiers.restrictEdges({
-              outer: "parent",
-            }),
-          ],
-        });
-    }
 
-    return () => {
-      interaction.unset();
-    };
+    return () => interaction.unset();
   });
 
   function changeFontSize(delta: number) {
