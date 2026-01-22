@@ -73,6 +73,13 @@ class BitunixWebSocketService {
 
   private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
+  private errorCountPublic = 0;
+  private lastErrorTimePublic = 0;
+  private errorCountPrivate = 0;
+  private lastErrorTimePrivate = 0;
+  private readonly ERROR_THRESHOLD = 5;
+  private readonly ERROR_WINDOW_MS = 10000;
+
   private awaitingPongPublic = false;
   private awaitingPongPrivate = false;
 
@@ -84,6 +91,12 @@ class BitunixWebSocketService {
 
   private isAuthenticated = false;
   private isDestroyed = false;
+
+  // Circuit Breaker for Validation Errors
+  private validationErrorCount = 0;
+  private lastValidationErrorTime = 0;
+  private readonly MAX_VALIDATION_ERRORS = 5;
+  private readonly VALIDATION_ERROR_WINDOW = 10000;
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
@@ -244,7 +257,11 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "public");
-        } catch (e) {}
+          // Reset error count on successful message
+          if (this.errorCountPublic > 0) this.errorCountPublic = 0;
+        } catch (e) {
+          this.handleInternalError("public", e);
+        }
       };
 
       ws.onclose = () => {
@@ -333,7 +350,10 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "private");
-        } catch (e) {}
+          if (this.errorCountPrivate > 0) this.errorCountPrivate = 0;
+        } catch (e) {
+          this.handleInternalError("private", e);
+        }
       };
 
       ws.onclose = () => {
@@ -564,34 +584,6 @@ class BitunixWebSocketService {
     } catch (error) {}
   }
 
-  private validatePriceData(data: Partial<BitunixPriceData>): boolean {
-    if (!data) return false;
-    const fields = ["mp", "ip", "fr", "nft"] as const;
-    for (const field of fields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        if (isNaN(parseFloat(String(data[field])))) return false;
-      }
-    }
-    return true;
-  }
-
-  private validateTickerData(data: Partial<BitunixTickerData>): boolean {
-    if (!data) return false;
-    // Allow partial updates (deltas). We just need at least one valid numeric field.
-    const fields = ["la", "o", "h", "l", "b", "q", "r"] as const;
-    let hasValidField = false;
-
-    for (const field of fields) {
-      if (data[field] !== undefined && data[field] !== null) {
-        const val = parseFloat(String(data[field]));
-        if (!isNaN(val)) {
-          hasValidField = true;
-        }
-      }
-    }
-    return hasValidField;
-  }
-
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
       if (type === "public") this.awaitingPongPublic = false;
@@ -600,6 +592,25 @@ class BitunixWebSocketService {
       // 1. Validate message structure with Zod
       const validationResult = BitunixWSMessageSchema.safeParse(message);
       if (!validationResult.success) {
+        const now = Date.now();
+        if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
+          this.validationErrorCount = 0;
+        }
+        this.validationErrorCount++;
+        this.lastValidationErrorTime = now;
+
+        if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
+          if (import.meta.env.DEV) {
+            console.error(
+              "[WebSocket] Too many validation errors. Forcing reconnect.",
+            );
+          }
+          this.validationErrorCount = 0;
+          this.cleanup(type);
+          this.scheduleReconnect(type);
+          return;
+        }
+
         if (import.meta.env.DEV) {
           console.warn(
             "[WebSocket] Invalid message structure:",
@@ -608,6 +619,10 @@ class BitunixWebSocketService {
         }
         return;
       }
+
+      // Reset error count on successful message parse (optional, but good for stability)
+      // We only reset if we successfully processed a valid message to avoid flapping
+      // this.validationErrorCount = 0; // Commented out to be strict about error burst frequency
 
       const validatedMessage = validationResult.data;
 
@@ -904,6 +919,44 @@ class BitunixWebSocketService {
         this.sendSubscribe(this.wsPublic, symbol, channel);
       }
     });
+  }
+
+  private handleInternalError(type: "public" | "private", error: unknown) {
+    const now = Date.now();
+
+    if (type === "public") {
+      if (now - this.lastErrorTimePublic > this.ERROR_WINDOW_MS) {
+        this.errorCountPublic = 0;
+      }
+      this.errorCountPublic++;
+      this.lastErrorTimePublic = now;
+
+      if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
+        if (import.meta.env.DEV) {
+          console.warn(`[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
+        }
+        this.cleanup("public");
+        this.scheduleReconnect("public");
+      }
+    } else {
+      if (now - this.lastErrorTimePrivate > this.ERROR_WINDOW_MS) {
+        this.errorCountPrivate = 0;
+      }
+      this.errorCountPrivate++;
+      this.lastErrorTimePrivate = now;
+
+      if (this.errorCountPrivate >= this.ERROR_THRESHOLD) {
+        if (import.meta.env.DEV) {
+          console.warn(`[WebSocket] Private: Excessive errors (${this.errorCountPrivate}), forcing reconnect.`);
+        }
+        this.cleanup("private");
+        this.scheduleReconnect("private");
+      }
+    }
+
+    if (import.meta.env.DEV) {
+      console.warn(`[WebSocket] ${type} error handled:`, error);
+    }
   }
 }
 

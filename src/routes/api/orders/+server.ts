@@ -222,7 +222,8 @@ async function placeBitunixOrder(
 
   // Safe formatting
   const safeQty = formatApiNum(orderData.qty);
-  if (!safeQty) throw new Error("Invalid quantity formatting");
+  if (!safeQty || isNaN(parseFloat(safeQty)))
+    throw new Error("Invalid quantity formatting");
 
   // Construct Payload
   const payload: BitunixOrderPayload = {
@@ -240,16 +241,25 @@ async function placeBitunixOrder(
     type === "TAKE_PROFIT_LIMIT"
   ) {
     if (!orderData.price) throw new Error("Price required for limit order");
-    payload.price = formatApiNum(orderData.price);
+    const safePrice = formatApiNum(orderData.price);
+    if (!safePrice || isNaN(parseFloat(safePrice)))
+      throw new Error("Invalid price formatting");
+    payload.price = safePrice;
   }
 
   // Pass through triggerPrice for stop orders if present
   if (orderData.triggerPrice) {
-    payload.triggerPrice = formatApiNum(orderData.triggerPrice);
+    const safeTrigger = formatApiNum(orderData.triggerPrice);
+    if (!safeTrigger || isNaN(parseFloat(safeTrigger)))
+      throw new Error("Invalid triggerPrice formatting");
+    payload.triggerPrice = safeTrigger;
   }
   // Some APIs use stopPrice as alias
   if (orderData.stopPrice && !payload.triggerPrice) {
-    payload.triggerPrice = formatApiNum(orderData.stopPrice);
+    const safeStop = formatApiNum(orderData.stopPrice);
+    if (!safeStop || isNaN(parseFloat(safeStop)))
+      throw new Error("Invalid stopPrice formatting");
+    payload.triggerPrice = safeStop;
   }
 
   // Clean null/undefined

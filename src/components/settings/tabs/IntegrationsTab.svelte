@@ -101,35 +101,115 @@
                             <label for="bitunix-api-key"
                                 >{$_("settings.integrations.apiKey")}</label
                             >
-                            <input
-                                id="bitunix-api-key"
-                                type={showKeys["bitunix_k"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={settingsState.apiKeys.bitunix.key}
-                                class="api-input"
-                                placeholder="{$_(
-                                    'settings.integrations.enterKey',
-                                )} (Bitunix)"
-                            />
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="bitunix-api-key"
+                                    type={showKeys["bitunix_k"]
+                                        ? "text"
+                                        : "password"}
+                                    bind:value={settingsState.apiKeys.bitunix.key}
+                                    class="api-input pr-8"
+                                    placeholder="{$_(
+                                        'settings.integrations.enterKey',
+                                    )} (Bitunix)"
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                    onclick={() => toggleKeyVisibility("bitunix_k")}
+                                >
+                                    {#if showKeys["bitunix_k"]}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                                            /><path
+                                                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
+                                            /><path d="m2 2 20 20" /></svg
+                                        >
+                                    {:else}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle cx="12" cy="12" r="3" /></svg
+                                        >
+                                    {/if}
+                                </button>
+                            </div>
                         </div>
                         <div class="field-group mt-3">
                             <label for="bitunix-api-secret"
                                 >{$_("settings.integrations.apiSecret")}</label
                             >
-                            <input
-                                id="bitunix-api-secret"
-                                type={showKeys["bitunix_s"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={
-                                    settingsState.apiKeys.bitunix.secret
-                                }
-                                class="api-input"
-                                placeholder={$_(
-                                    "settings.integrations.enterSecret",
-                                )}
-                            />
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="bitunix-api-secret"
+                                    type={showKeys["bitunix_s"]
+                                        ? "text"
+                                        : "password"}
+                                    bind:value={
+                                        settingsState.apiKeys.bitunix.secret
+                                    }
+                                    class="api-input pr-8"
+                                    placeholder={$_(
+                                        "settings.integrations.enterSecret",
+                                    )}
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                    onclick={() => toggleKeyVisibility("bitunix_s")}
+                                >
+                                    {#if showKeys["bitunix_s"]}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                                            /><path
+                                                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
+                                            /><path d="m2 2 20 20" /></svg
+                                        >
+                                    {:else}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle cx="12" cy="12" r="3" /></svg
+                                        >
+                                    {/if}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -149,35 +229,115 @@
                             <label for="binance-api-key"
                                 >{$_("settings.integrations.apiKey")}</label
                             >
-                            <input
-                                id="binance-api-key"
-                                type={showKeys["binance_k"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={settingsState.apiKeys.binance.key}
-                                class="api-input"
-                                placeholder="{$_(
-                                    'settings.integrations.enterKey',
-                                )} (Binance)"
-                            />
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="binance-api-key"
+                                    type={showKeys["binance_k"]
+                                        ? "text"
+                                        : "password"}
+                                    bind:value={settingsState.apiKeys.binance.key}
+                                    class="api-input pr-8"
+                                    placeholder="{$_(
+                                        'settings.integrations.enterKey',
+                                    )} (Binance)"
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                    onclick={() => toggleKeyVisibility("binance_k")}
+                                >
+                                    {#if showKeys["binance_k"]}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                                            /><path
+                                                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
+                                            /><path d="m2 2 20 20" /></svg
+                                        >
+                                    {:else}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle cx="12" cy="12" r="3" /></svg
+                                        >
+                                    {/if}
+                                </button>
+                            </div>
                         </div>
                         <div class="field-group mt-3">
                             <label for="binance-api-secret"
                                 >{$_("settings.integrations.apiSecret")}</label
                             >
-                            <input
-                                id="binance-api-secret"
-                                type={showKeys["binance_s"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={
-                                    settingsState.apiKeys.binance.secret
-                                }
-                                class="api-input"
-                                placeholder={$_(
-                                    "settings.integrations.enterSecret",
-                                )}
-                            />
+                            <div class="input-wrapper relative">
+                                <input
+                                    id="binance-api-secret"
+                                    type={showKeys["binance_s"]
+                                        ? "text"
+                                        : "password"}
+                                    bind:value={
+                                        settingsState.apiKeys.binance.secret
+                                    }
+                                    class="api-input pr-8"
+                                    placeholder={$_(
+                                        "settings.integrations.enterSecret",
+                                    )}
+                                />
+                                <button
+                                    class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
+                                    onclick={() => toggleKeyVisibility("binance_s")}
+                                >
+                                    {#if showKeys["binance_s"]}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24" /><path
+                                                d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"
+                                            /><path
+                                                d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7c.44 0 .87-.03 1.28-.08"
+                                            /><path d="m2 2 20 20" /></svg
+                                        >
+                                    {:else}
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="16"
+                                            height="16"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle cx="12" cy="12" r="3" /></svg
+                                        >
+                                    {/if}
+                                </button>
+                            </div>
                         </div>
                     </div>
                 </div>
