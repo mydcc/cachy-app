@@ -122,6 +122,13 @@
     }
   }, 500);
 
+  // Cleanup pending debounce on unmount
+  $effect(() => {
+    return () => {
+      handleSymbolInput.cancel();
+    };
+  });
+
   function selectSuggestion(s: string) {
     trackCustomEvent("Symbol", "SelectSuggestion", s);
     dispatch("selectSymbolSuggestion", s);
