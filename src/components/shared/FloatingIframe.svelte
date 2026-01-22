@@ -20,9 +20,26 @@
 
     let containerEl: HTMLDivElement | undefined = $state();
     let isInteracting = $state(false);
+    let isMobile = $state(false);
 
     $effect(() => {
-        if (!containerEl || !iframeState.visible) return;
+        // Check window size for mobile detection
+        const checkMobile = () => {
+            if (typeof window !== "undefined") {
+                isMobile = window.innerWidth <= 768;
+            }
+        };
+
+        checkMobile();
+        window.addEventListener("resize", checkMobile);
+
+        return () => {
+            window.removeEventListener("resize", checkMobile);
+        };
+    });
+
+    $effect(() => {
+        if (!containerEl || !iframeState.visible || isMobile) return;
 
         const interaction = interact(containerEl)
             .draggable({
@@ -71,7 +88,7 @@
                         outer: "parent",
                     }),
                     interact.modifiers.aspectRatio({
-                        ratio: 768 / 465,
+                        ratio: 768 / 465, // Keep roughly 15:9 / 5:3
                     }),
                 ],
             });
@@ -87,15 +104,17 @@
         bind:this={containerEl}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"
         class:is-interacting={isInteracting}
+        class:mobile-mode={isMobile}
         transition:fade={{ duration: 200 }}
-        style="
-      width: {iframeState.width}px;
-      height: {iframeState.height}px;
-      left: {iframeState.x}px;
-      top: {iframeState.y}px;
+        style={!isMobile
+            ? `
+      width: ${iframeState.width}px;
+      height: ${iframeState.height}px;
+      left: ${iframeState.x}px;
+      top: ${iframeState.y}px;
       border-radius: 8px;
-      touch-action: none;
-    "
+    `
+            : ""}
     >
         <!-- Header/Titelleiste -->
         <div
@@ -169,5 +188,15 @@
     /* Disable transitions while interacting to prevent the "laggy/rubber-band" effect */
     .is-interacting {
         transition: none !important;
+    }
+
+    .mobile-mode {
+        top: 0 !important;
+        left: 0 !important;
+        width: 100vw !important;
+        aspect-ratio: 15/9 !important;
+        height: auto !important; /* Let aspect ratio determine height */
+        border-radius: 0 !important;
+        touch-action: auto !important;
     }
 </style>
