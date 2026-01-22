@@ -16,20 +16,27 @@
 -->
 
 <script lang="ts">
-  import { createBubbler } from 'svelte/legacy';
-
-  const bubble = createBubbler();
   interface Props {
     checked?: boolean;
     disabled?: boolean;
     id?: string;
+    onchange?: (e: Event) => void;
   }
 
-  let { checked = $bindable(false), disabled = false, id = "toggle-" + Math.random().toString(36).substr(2, 9) }: Props = $props();
+  let {
+    checked = $bindable(false),
+    disabled = false,
+    id = "toggle-" + Math.random().toString(36).substr(2, 9),
+    onchange
+  }: Props = $props();
+
+  function handleChange(e: Event) {
+    if (onchange) onchange(e);
+  }
 </script>
 
 <div class="toggle-wrapper" class:disabled>
-  <input type="checkbox" {id} bind:checked {disabled} onchange={bubble('change')} />
+  <input type="checkbox" {id} bind:checked {disabled} onchange={handleChange} />
   <label for={id}>
     <span class="toggle-slider"></span>
   </label>

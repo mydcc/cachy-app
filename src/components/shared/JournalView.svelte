@@ -31,7 +31,7 @@
   import ModalFrame from "./ModalFrame.svelte";
   import DashboardNav from "./DashboardNav.svelte";
   import { Decimal } from "decimal.js";
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
 
   // Journal Sub-Components
   import JournalFilters from "./journal/JournalFilters.svelte";
@@ -140,15 +140,12 @@
     }, 2000);
   }
 
-  onMount(() => {
+  $effect(() => {
     if (browser) {
       window.addEventListener("keydown", handleKeydown);
-    }
-  });
-
-  onDestroy(() => {
-    if (browser) {
-      window.removeEventListener("keydown", handleKeydown);
+      return () => {
+        window.removeEventListener("keydown", handleKeydown);
+      };
     }
   });
 

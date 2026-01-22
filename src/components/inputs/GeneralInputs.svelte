@@ -39,7 +39,8 @@
   }: Props = $props();
 
   function setTradeType(type: string) {
-    tradeState.update((s) => ({ ...s, tradeType: type }));
+    // Direct assignment instead of .update()
+    tradeState.tradeType = type;
     trackCustomEvent("Trade", "ChangeType", type);
   }
 
@@ -49,19 +50,15 @@
   function handleLeverageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      leverage: value === "" ? null : parseFloat(value),
-    }));
+    // Direct assignment
+    tradeState.leverage = value === "" ? null : parseFloat(value);
   }
 
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      fees: value === "" ? null : parseFloat(value),
-    }));
+    // Direct assignment
+    tradeState.fees = value === "" ? null : parseFloat(value);
   }
 
   // Leverage Sync Status
@@ -72,22 +69,12 @@
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
-      tradeState.update((s) => ({ ...s, leverage: remoteLev }));
+      // Direct assignment
+      tradeState.leverage = remoteLev;
     }
   }
 
   // Fee Logic
-  // If API Keys are present, we might want to default to auto-filling fees if they are known.
-  // However, the store logic updates fees if remote fees are found.
-  // Here we just provide the input.
-  // We add a sync indicator for Fees similar to Leverage if remote fees match current input.
-
-  // Determine target remote fee based on feeMode (Entry fee)
-  // feeMode is usually 'maker_taker' etc.
-  // Standard logic in tradeStore uses entry fee for 'fees' property.
-  // If tradeType is LONG/SHORT, does it matter? Usually Maker/Taker depends on order type (Limit/Market).
-  // Let's assume Limit = Maker, Market = Taker for simplicity, OR use the feeMode toggle.
-  // The `feeMode` toggle determines what we *expect* to pay.
   let feeMode = $derived(tradeState.feeMode || "maker_taker");
   let entryType = $derived(feeMode.split("_")[0] as "maker" | "taker");
   let targetRemoteFee = $derived(
@@ -102,7 +89,8 @@
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
-      tradeState.update((s) => ({ ...s, fees: targetRemoteFee }));
+      // Direct assignment
+      tradeState.fees = targetRemoteFee;
     }
   }
 </script>

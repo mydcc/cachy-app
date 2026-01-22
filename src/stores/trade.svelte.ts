@@ -285,6 +285,7 @@ class TradeManager {
     if (next.targets && next.targets !== this.targets) {
         this.targets = next.targets;
     }
+    this.notifyListeners();
   }
 
   // Helper for legacy 'set' pattern (useful for tests)
