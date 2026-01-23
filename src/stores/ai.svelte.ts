@@ -887,7 +887,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             const idx = action.index;
             // Access targets array directly
             const currentTargets = tradeState.targets;
-            if (currentTargets[idx]) {
+            // Robust bounds check
+            if (
+              idx >= 0 &&
+              idx < currentTargets.length &&
+              currentTargets[idx]
+            ) {
               // Deep reactivity in Svelte 5 allows modifying properties directly
               // However, since it's an array of objects, we ensure reactivity triggers
               // by reassigning or mutating properly. Runes proxies handle deep mutation.

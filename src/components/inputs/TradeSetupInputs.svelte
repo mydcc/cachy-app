@@ -73,6 +73,22 @@
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
+  const format = (val: number | null) =>
+    val === null || val === undefined ? "" : String(val);
+
+  // Local state for numeric inputs (Buffer to prevent "vanishing decimal" bug)
+  let localEntryPrice = $state(format(entryPrice));
+  let isEntryPriceFocused = $state(false);
+
+  let localStopLossPrice = $state(format(stopLossPrice));
+  let isStopLossPriceFocused = $state(false);
+
+  let localAtrValue = $state(format(atrValue));
+  let isAtrValueFocused = $state(false);
+
+  let localAtrMultiplier = $state(format(atrMultiplier));
+  let isAtrMultiplierFocused = $state(false);
+
   let priceDeviation = $derived.by(() => {
     // Safety check: ensure symbol is valid before calculating deviation
     // Use marketState for reactivity
@@ -95,6 +111,37 @@
     // 2. OR user is focused, but prop changed AND it's not just a result of clearing
     if (!isSymbolFocused && symbol !== localSymbol) {
       localSymbol = symbol || "";
+    }
+  });
+
+  // Sync Numeric Inputs from Props to Local (One-way sync when NOT focused)
+  $effect(() => {
+    if (!isEntryPriceFocused && format(entryPrice) !== localEntryPrice) {
+      localEntryPrice = format(entryPrice);
+    }
+  });
+
+  $effect(() => {
+    if (
+      !isStopLossPriceFocused &&
+      format(stopLossPrice) !== localStopLossPrice
+    ) {
+      localStopLossPrice = format(stopLossPrice);
+    }
+  });
+
+  $effect(() => {
+    if (!isAtrValueFocused && format(atrValue) !== localAtrValue) {
+      localAtrValue = format(atrValue);
+    }
+  });
+
+  $effect(() => {
+    if (
+      !isAtrMultiplierFocused &&
+      format(atrMultiplier) !== localAtrMultiplier
+    ) {
+      localAtrMultiplier = format(atrMultiplier);
     }
   });
 
@@ -184,43 +231,51 @@
     }
   }
 
-  const format = (val: number | null) =>
-    val === null || val === undefined ? "" : String(val);
+  // Helper to parse input safely
+  function parseInputVal(val: string): number | null {
+    if (val === "") return null;
+    const parsed = parseFloat(val);
+    return isNaN(parsed) ? null : parsed;
+  }
 
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      entryPrice: value === "" ? null : parseFloat(value),
-    }));
+    localEntryPrice = value; // Update buffer
+    const num = parseInputVal(value);
+    if (entryPrice !== num) {
+      tradeState.update((s) => ({ ...s, entryPrice: num }));
+    }
   }
 
   function handleAtrValueInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      atrValue: value === "" ? null : parseFloat(value),
-    }));
+    localAtrValue = value;
+    const num = parseInputVal(value);
+    if (atrValue !== num) {
+      tradeState.update((s) => ({ ...s, atrValue: num }));
+    }
   }
 
   function handleAtrMultiplierInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      atrMultiplier: value === "" ? null : parseFloat(value),
-    }));
+    localAtrMultiplier = value;
+    const num = parseInputVal(value);
+    if (atrMultiplier !== num) {
+      tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+    }
   }
 
   function handleStopLossPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    tradeState.update((s) => ({
-      ...s,
-      stopLossPrice: value === "" ? null : parseFloat(value),
-    }));
+    localStopLossPrice = value;
+    const num = parseInputVal(value);
+    if (stopLossPrice !== num) {
+      tradeState.update((s) => ({ ...s, stopLossPrice: num }));
+    }
   }
 
   function toggleAutoUpdatePrice() {
@@ -385,7 +440,9 @@
           rightOffset: "40px",
           showSpinButtons: false,
         }}
-        value={format(entryPrice)}
+        bind:value={localEntryPrice}
+        onfocus={() => (isEntryPriceFocused = true)}
+        onblur={() => (isEntryPriceFocused = false)}
         oninput={(e) => {
           handleEntryPriceInput(e);
           onboardingService.trackFirstInput();
@@ -476,7 +533,9 @@
             step: priceStep,
             min: 0,
           }}
-          value={format(stopLossPrice)}
+          bind:value={localStopLossPrice}
+          onfocus={() => (isStopLossPriceFocused = true)}
+          onblur={() => (isStopLossPriceFocused = false)}
           oninput={handleStopLossPriceInput}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_(
@@ -498,7 +557,9 @@
                 min: 0,
                 showSpinButtons: "hover",
               }}
-              value={format(atrValue)}
+              bind:value={localAtrValue}
+              onfocus={() => (isAtrValueFocused = true)}
+              onblur={() => (isAtrValueFocused = false)}
               oninput={handleAtrValueInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
@@ -515,7 +576,9 @@
                 min: 0.1,
                 showSpinButtons: "hover",
               }}
-              value={format(atrMultiplier)}
+              bind:value={localAtrMultiplier}
+              onfocus={() => (isAtrMultiplierFocused = true)}
+              onblur={() => (isAtrMultiplierFocused = false)}
               oninput={handleAtrMultiplierInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_(
@@ -574,7 +637,9 @@
                   rightOffset: "40px",
                   showSpinButtons: false,
                 }}
-                value={format(atrValue)}
+                bind:value={localAtrValue}
+                onfocus={() => (isAtrValueFocused = true)}
+                onblur={() => (isAtrValueFocused = false)}
                 oninput={handleAtrValueInput}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
                 placeholder="ATR"
@@ -621,7 +686,9 @@
                   step: 0.1,
                   min: 0.1,
                 }}
-                value={format(atrMultiplier)}
+                bind:value={localAtrMultiplier}
+                onfocus={() => (isAtrMultiplierFocused = true)}
+                onblur={() => (isAtrMultiplierFocused = false)}
                 oninput={handleAtrMultiplierInput}
                 class="input-field w-full px-4 py-2 rounded-md"
                 placeholder="1.2"
