@@ -32,8 +32,10 @@ import {
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
   isAllowedChannel,
+  isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
+import { marketWatcher } from "./marketWatcher";
 
 const WS_PUBLIC_URL =
   CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";
@@ -110,12 +112,20 @@ class BitunixWebSocketService {
     this.cleanup("public");
     this.cleanup("private");
     marketState.connectionStatus = "connecting";
+
+    // Ensure polling is active until we are fully connected
+    marketWatcher.resumePolling();
+
     this.connectPublic(true);
     this.connectPrivate();
   };
 
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
+
+    // Connection lost? Start polling!
+    marketWatcher.resumePolling();
+
     this.cleanup("public");
     this.cleanup("private");
   };
@@ -168,7 +178,6 @@ class BitunixWebSocketService {
         // Monitor for stale connection, but ONLY if connected.
         // If connecting, the connectionTimeout handles it.
         if (status === "connected" && timeSincePublic > 20000) {
-          console.warn("[Bitunix Watchdog] Triggered! Killing connection due to timeout.");
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
@@ -211,6 +220,9 @@ class BitunixWebSocketService {
 
   private connectPublic(force = false) {
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
+
+    // Start with polling active until we prove connection
+    marketWatcher.resumePolling();
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
@@ -265,6 +277,10 @@ class BitunixWebSocketService {
           logger.log("network", "Public connection opened");
         }
         marketState.connectionStatus = "connected";
+
+        // WS Connected -> Stop Polling immediately!
+        marketWatcher.stopPolling();
+
         this.isReconnectingPublic = false;
         this.lastMessageTimePublic = Date.now();
         this.startHeartbeat(ws, "public");

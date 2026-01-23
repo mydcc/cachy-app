@@ -190,15 +190,27 @@ class MarketWatcher {
     }, 2000);
   }
 
+  public stopPolling() {
+    if (this.pollingInterval) {
+      clearInterval(this.pollingInterval);
+      this.pollingInterval = null;
+    }
+  }
+
+  public resumePolling() {
+    if (!this.pollingInterval) {
+      this.startPolling();
+    }
+  }
+
   private isPollingPaused() {
     if (!browser) return true;
     const settings = settingsState;
     if (!settings.capabilities.marketData) return true;
-    const wsStatus = marketState.connectionStatus;
-    const provider = settings.apiProvider;
-    // We only pause polling if SOME WebSocket is successfully connected.
-    // This prevents double-load (WS + REST) for any provider.
-    return wsStatus === "connected";
+
+    // Fallback: If WS says connected, we pause.
+    // But ideally WS services call stopPolling() on connect.
+    return marketState.connectionStatus === "connected";
   }
 
   private async performPollingCycle() {

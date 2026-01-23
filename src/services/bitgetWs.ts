@@ -11,6 +11,7 @@ import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { marketWatcher } from "./marketWatcher";
 import CryptoJS from "crypto-js";
 import type {
   BitgetWSMessage,
@@ -56,11 +57,13 @@ class BitgetWebSocketService {
     if (this.isDestroyed) return;
     this.cleanup();
     marketState.connectionStatus = "connecting";
+    marketWatcher.resumePolling();
     this.connect(true);
   };
 
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
+    marketWatcher.resumePolling();
     this.cleanup();
   };
 
@@ -184,6 +187,10 @@ class BitgetWebSocketService {
           console.log("%c[WS-Bitget] Connected", "color: #0fa; font-weight: bold;");
         }
         marketState.connectionStatus = "connected";
+
+        // WS Connected -> Stop Polling!
+        marketWatcher.stopPolling();
+
         this.isReconnecting = false;
         this.lastMessageTime = Date.now();
 
