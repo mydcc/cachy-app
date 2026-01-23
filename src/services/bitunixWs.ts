@@ -159,8 +159,9 @@ class BitunixWebSocketService {
           marketState.connectionStatus = "reconnecting";
         }
 
-        // Increased from 12000 to 20000 to allow watchdog (10s) to handle reconnects first
-        if (status !== "disconnected" && timeSincePublic > 20000) {
+        // Monitor for stale connection, but ONLY if connected.
+        // If connecting, the connectionTimeout handles it.
+        if (status === "connected" && timeSincePublic > 20000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
