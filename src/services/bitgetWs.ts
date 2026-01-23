@@ -192,8 +192,8 @@ class BitgetWebSocketService {
         }
         marketState.connectionStatus = "connected";
 
-        // WS Connected -> Stop Polling!
-        if (this.pollingController) this.pollingController.stopPolling();
+        // Notify Manager
+        connectionManager.onProviderConnected("bitget");
 
         this.isReconnecting = false;
         this.lastMessageTime = Date.now();
