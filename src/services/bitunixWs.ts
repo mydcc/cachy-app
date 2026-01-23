@@ -34,7 +34,6 @@ import {
   isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
-import { marketWatcher } from "./marketWatcher";
 
 const WS_PUBLIC_URL =
   CONSTANTS.BITUNIX_WS_PUBLIC_URL || "wss://fapi.bitunix.com/public/";

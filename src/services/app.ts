@@ -59,6 +59,10 @@ export const app = {
       app.setupMarketSync();
       app.setupRealtimeUpdates();
 
+      // Inject dependencies to break circular import
+      bitunixWs.setPollingController(marketWatcher);
+      bitgetWs.setPollingController(marketWatcher);
+
       // Connect WS based on settings
       if (settingsState.apiProvider === "bitget") {
         bitgetWs.connect();

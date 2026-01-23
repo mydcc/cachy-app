@@ -11,7 +11,6 @@ import { marketState } from "../stores/market.svelte";
 import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
-import { marketWatcher } from "./marketWatcher";
 import CryptoJS from "crypto-js";
 import type {
   BitgetWSMessage,
@@ -53,19 +52,30 @@ class BitgetWebSocketService {
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200;
 
+  private pollingController: { stopPolling: () => void; resumePolling: () => void } | null = null;
+
+  public setPollingController(controller: { stopPolling: () => void; resumePolling: () => void }) {
+    this.pollingController = controller;
+  }
+
   private handleOnline = () => {
     if (this.isDestroyed) return;
     this.cleanup();
     marketState.connectionStatus = "connecting";
-    marketWatcher.resumePolling();
+    if (this.pollingController) this.pollingController.resumePolling();
     this.connect(true);
   };
 
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
-    marketWatcher.resumePolling();
+    if (this.pollingController) this.pollingController.resumePolling();
     this.cleanup();
   };
+
+  // ... lines 69-195 preserved implicitly via surrounding context if I matched correctly, but better to target specific blocks. 
+  // Wait, I am using ReplaceFileContent which matches target content. I should split this.
+  // Splitting for safety.
+
 
   constructor() {
     if (typeof window !== "undefined") {
@@ -189,7 +199,7 @@ class BitgetWebSocketService {
         marketState.connectionStatus = "connected";
 
         // WS Connected -> Stop Polling!
-        marketWatcher.stopPolling();
+        if (this.pollingController) this.pollingController.stopPolling();
 
         this.isReconnecting = false;
         this.lastMessageTime = Date.now();
