@@ -44,6 +44,7 @@
   import AiAssistantTab from "./tabs/AiAssistantTab.svelte";
   import IntegrationsTab from "./tabs/IntegrationsTab.svelte";
   import MaintenanceTab from "./tabs/MaintenanceTab.svelte";
+  import CloudTab from "./tabs/CloudTab.svelte";
 
   // Tab State
   type TabType =
@@ -52,7 +53,8 @@
     | "analysis"
     | "ai_assistant"
     | "integrations"
-    | "maintenance";
+    | "maintenance"
+    | "cloud";
 
   // Use the store as the unique source of truth for the active tab
   // This prevents unintended resets when the store updates for other reasons
@@ -265,6 +267,11 @@
       label: $_("settings.tabs.integrations") || "Integrations",
     },
     {
+      id: "cloud",
+      icon: `<path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"/>`,
+      label: "Cloud / Community",
+    },
+    {
       id: "maintenance",
       icon: `<path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/>`,
       label: $_("settings.tabs.maintenance") || "Data & Maintenance",
@@ -352,6 +359,8 @@
         <AiAssistantTab />
       {:else if activeTab === "integrations"}
         <IntegrationsTab />
+      {:else if activeTab === "cloud"}
+        <CloudTab />
       {:else if activeTab === "maintenance"}
         <MaintenanceTab
           onBackup={handleBackup}
