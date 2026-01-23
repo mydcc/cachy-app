@@ -209,12 +209,14 @@ class BitunixWebSocketService {
     this.cleanup("private");
   }
 
-  connect() {
-    this.connectPublic();
-    this.connectPrivate();
+  connect(force?: boolean) {
+    logger.log("general", `[BitunixWS] Service connect() called. Force: ${force}`);
+    this.connectPublic(force);
+    this.connectPrivate(force);
   }
 
   private connectPublic(force = false) {
+    logger.log("general", `[BitunixWS] connectPublic(force=${force}) - Capabilities: ${settingsState.capabilities.marketData}, isDestroyed: ${this.isDestroyed}`);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {

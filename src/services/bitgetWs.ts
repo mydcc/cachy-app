@@ -72,6 +72,7 @@ class BitgetWebSocketService {
 
 
   constructor() {
+    logger.log("general", "[BitgetWS] Service Instance Created");
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -145,7 +146,8 @@ class BitgetWebSocketService {
     this.cleanup();
   }
 
-  connect(force = false) {
+  connect(force?: boolean) {
+    logger.log("general", `[BitgetWS] Service connect() called. Force: ${force}`);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
