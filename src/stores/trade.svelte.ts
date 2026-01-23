@@ -91,7 +91,7 @@ export const INITIAL_TRADE_STATE = {
   journalSearchQuery: "",
   journalFilterStatus: "all",
   // Transient / Remote data placeholders
-  currentTradeData: null as any,
+  currentTradeData: null as Record<string, any> | null,
   remoteLeverage: undefined as number | undefined,
   remoteMarginMode: undefined as string | undefined,
   remoteMakerFee: undefined as number | undefined,

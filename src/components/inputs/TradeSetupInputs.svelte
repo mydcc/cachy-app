@@ -92,7 +92,7 @@
   let priceDeviation = $derived.by(() => {
     // Safety check: ensure symbol is valid before calculating deviation
     // Use marketState for reactivity
-    const normSymbol = normalizeSymbol(localSymbol, "bitunix");
+    const normSymbol = normalizeSymbol(localSymbol, settingsState.apiProvider);
     const currentPrice = marketState.data[normSymbol]?.lastPrice;
 
     if (!localSymbol || !entryPrice || !currentPrice) return 0;
