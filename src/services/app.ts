@@ -41,6 +41,7 @@ import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
 import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
+import { connectionManager } from "./connectionManager";
 import { normalizeSymbol } from "../utils/symbolUtils";
 
 const calculatorService = new CalculatorService(calculator, uiState);
@@ -55,25 +56,25 @@ export const app = {
 
   init: () => {
     if (browser) {
+      // 1. Initialise core logic
       app.populatePresetLoader();
       app.setupMarketSync();
+
+      // 2. Register dependencies in ConnectionManager
+      connectionManager.registerProvider("bitunix", bitunixWs);
+      connectionManager.registerProvider("bitget", bitgetWs);
+      connectionManager.registerPolling(marketWatcher);
+
+      // 3. Setup Reactions
       app.setupRealtimeUpdates();
 
-      // Inject dependencies to break circular import
-      bitunixWs.setPollingController(marketWatcher);
-      bitgetWs.setPollingController(marketWatcher);
-
-      // Connect WS based on settings
-      if (settingsState.apiProvider === "bitget") {
-        bitgetWs.connect();
-      } else {
-        bitunixWs.connect();
-      }
-
-      // Force initial state on first start or after update
+      // 4. Force initial state on first start or after update
       app.setupFirstStart();
 
-      // Fetch initial data immediately
+      // 5. Initial connection
+      connectionManager.switchProvider(settingsState.apiProvider || "bitunix", { force: true });
+
+      // Fetch initial price data
       app.handleFetchPrice();
       app.fetchAtr(true);
     }
