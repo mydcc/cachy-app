@@ -40,8 +40,8 @@ const WS_PUBLIC_URL =
 const WS_PRIVATE_URL =
   CONSTANTS.BITUNIX_WS_PRIVATE_URL || "wss://fapi.bitunix.com/private/";
 
-const PING_INTERVAL = 1500;
-const WATCHDOG_TIMEOUT = 10000;
+const PING_INTERVAL = 5000;
+const WATCHDOG_TIMEOUT = 20000;
 const RECONNECT_DELAY = 500;
 const CONNECTION_TIMEOUT_MS = 3000;
 
@@ -82,7 +82,9 @@ class BitunixWebSocketService {
   private readonly ERROR_WINDOW_MS = 10000;
 
   private awaitingPongPublic = false;
+  private missedPongsPublic = 0;
   private awaitingPongPrivate = false;
+  private missedPongsPrivate = 0;
 
   private lastMessageTimePublic = Date.now();
   private lastMessageTimePrivate = Date.now();
@@ -424,26 +426,38 @@ class BitunixWebSocketService {
     if (type === "public") {
       if (this.pingTimerPublic) clearInterval(this.pingTimerPublic);
       this.awaitingPongPublic = false;
+      this.missedPongsPublic = 0;
     } else {
       if (this.pingTimerPrivate) clearInterval(this.pingTimerPrivate);
       this.awaitingPongPrivate = false;
+      this.missedPongsPrivate = 0;
     }
 
     const timer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
-        if (type === "public" && this.awaitingPongPublic) {
-          this.cleanup(type);
-          this.scheduleReconnect(type);
-          return;
+        if (type === "public") {
+          if (this.awaitingPongPublic) {
+            this.missedPongsPublic++;
+            if (this.missedPongsPublic >= 3) {
+              logger.warn("network", "[WebSocket] Public: Missed too many pongs, reconnecting.");
+              this.cleanup(type);
+              this.scheduleReconnect(type);
+              return;
+            }
+          }
+          this.awaitingPongPublic = true;
+        } else {
+          if (this.awaitingPongPrivate) {
+            this.missedPongsPrivate++;
+            if (this.missedPongsPrivate >= 3) {
+              logger.warn("network", "[WebSocket] Private: Missed too many pongs, reconnecting.");
+              this.cleanup("private");
+              this.scheduleReconnect("private");
+              return;
+            }
+          }
+          this.awaitingPongPrivate = true;
         }
-        if (type === "private" && this.awaitingPongPrivate) {
-          this.cleanup("private");
-          this.scheduleReconnect("private");
-          return;
-        }
-
-        if (type === "public") this.awaitingPongPublic = true;
-        else this.awaitingPongPrivate = true;
 
         const pingPayload = { op: "ping", ping: Math.floor(Date.now() / 1000) };
         try {
@@ -598,8 +612,13 @@ class BitunixWebSocketService {
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
     try {
-      if (type === "public") this.awaitingPongPublic = false;
-      else this.awaitingPongPrivate = false;
+      if (type === "public") {
+        this.awaitingPongPublic = false;
+        this.missedPongsPublic = 0;
+      } else {
+        this.awaitingPongPrivate = false;
+        this.missedPongsPrivate = 0;
+      }
 
       // 1. Validate message structure with Zod
       // We rely on safeParse but we are lenient about extra fields (zod object is not strict by default)
