@@ -484,6 +484,9 @@
   $effect(() => {
     if (symbol && provider === "bitunix") {
       marketWatcher.register(symbol, "depth_book5");
+      return () => {
+        marketWatcher.unregister(symbol, "depth_book5");
+      };
     }
   });
 
