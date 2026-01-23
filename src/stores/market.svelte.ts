@@ -39,6 +39,7 @@ export interface MarketData {
   >;
   technicals?: import("../services/technicalsTypes").TechnicalsData;
   metricsHistory?: MetricSnapshot[];
+  lastUpdated?: number; // Optimization: only snapshot fresh data
 }
 
 export interface MetricSnapshot {
@@ -86,9 +87,9 @@ class MarketManager {
       }, 100);
 
       // Start metrics history recording (every 10s)
-      // setInterval(() => {
-      //   this.snapshotMetrics();
-      // }, 10 * 1000);
+      setInterval(() => {
+        this.snapshotMetrics();
+      }, 10 * 1000);
     }
   }
 
@@ -103,6 +104,11 @@ class MarketManager {
 
     safeKeys.forEach((key) => {
       const market = this.data[key];
+
+      // Optimization: Skip if data is stale (>15s old)
+      // This prevents recording identical snapshots if the market is quiet or disconnected
+      if (!market.lastUpdated || now - market.lastUpdated > 15000) return;
+
       // Only record if we have depth and price
       if (
         !market.depth ||
@@ -225,6 +231,7 @@ class MarketManager {
   private applyUpdate(symbol: string, partial: Partial<MarketData>) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
+    current.lastUpdated = Date.now();
 
     if (partial.lastPrice !== undefined) current.lastPrice = partial.lastPrice;
     if (partial.indexPrice !== undefined)
