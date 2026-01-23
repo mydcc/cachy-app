@@ -38,8 +38,8 @@ export const GET: RequestHandler = async ({ url }) => {
 
   try {
     let klines;
-    if (provider === "binance") {
-      klines = await fetchBinanceKlines(symbol, interval, limit, start, end);
+    if (provider === "bitget") {
+      klines = await fetchBitgetKlines(symbol, interval, limit, start, end);
     } else {
       klines = await fetchBitunixKlines(symbol, interval, limit, start, end);
     }
@@ -61,9 +61,6 @@ async function fetchBitunixKlines(
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/market/kline";
 
-  // Map internal interval to Bitunix interval if needed
-  // Bitunix: 1min, 5min, 15min, 30min, 60min, 4h, 1day, 1week, 1month
-  // App: 1m, 5m, 15m, 1h, 4h, 1d
   const map: Record<string, string> = {
     "1m": "1min",
     "5m": "5min",
@@ -100,7 +97,6 @@ async function fetchBitunixKlines(
     try {
       data = JSON.parse(text);
     } catch (e) {
-      // Ignore JSON parse error, fallback to generic error
     }
 
     if (
@@ -124,7 +120,6 @@ async function fetchBitunixKlines(
 
   const data = await response.json();
   if (data.code !== 0 && data.code !== "0") {
-    // Treat Bitunix "System error" (Code 2) or message as 404 Not Found for symbols
     if (
       data.code === 2 ||
       data.code === "2" ||
@@ -139,7 +134,6 @@ async function fetchBitunixKlines(
 
   const results = data.data || [];
 
-  // Optimize: Return plain strings to reduce payload size and serialization overhead
   return results
     .map((k: any) => ({
       open: new Decimal(k.open || k.o || 0).toString(),
@@ -152,43 +146,67 @@ async function fetchBitunixKlines(
     .sort((a: any, b: any) => a.timestamp - b.timestamp);
 }
 
-async function fetchBinanceKlines(
+async function fetchBitgetKlines(
   symbol: string,
   interval: string,
   limit: number,
   start?: number,
   end?: number,
 ) {
-  const baseUrl = "https://fapi.binance.com";
-  const path = "/fapi/v1/klines";
+  const baseUrl = "https://api.bitget.com";
+  const path = "/api/mix/v1/market/candles";
+
+  // Bitget Granularity: 1m, 5m, 15m, 30m, 1H, 4H, 12H, 1D, 1W
+  const map: Record<string, string> = {
+    "1m": "1m",
+    "5m": "5m",
+    "15m": "15m",
+    "30m": "30m",
+    "1h": "1H",
+    "4h": "4H",
+    "1d": "1D",
+    "1w": "1W",
+  };
+  const mappedInterval = map[interval] || interval;
+
+  // Bitget requires _UMCBL suffix usually for Mix
+  let bitgetSymbol = symbol.toUpperCase();
+  if (!bitgetSymbol.includes("_")) {
+      bitgetSymbol += "_UMCBL";
+  }
 
   const params: any = {
-    symbol: symbol.toUpperCase(),
-    interval: interval,
-    limit: limit.toString(),
+    symbol: bitgetSymbol,
+    granularity: mappedInterval,
+    // limit? Bitget doesn't explicitly support 'limit' param in some docs, but we can try.
+    // Usually it relies on startTime/endTime.
   };
   if (start) params.startTime = start.toString();
   if (end) params.endTime = end.toString();
+
+  // If no start/end, Bitget returns latest.
 
   const queryString = new URLSearchParams(params).toString();
 
   const response = await fetch(`${baseUrl}${path}?${queryString}`);
 
   if (!response.ok) {
-    throw new Error(`Binance API error: ${response.status}`);
+    throw new Error(`Bitget API error: ${response.status}`);
   }
 
   const data = await response.json();
+  // [[timestamp, open, high, low, close, volume, quoteVol], ...]
+  // timestamp is string or number? usually string in response.
 
-  // Optimize: Binance returns strings for prices, pass them directly
+  // Optimize: Return plain strings
   return data
     .map((k: any[]) => ({
-      timestamp: k[0],
+      timestamp: parseInt(k[0]),
       open: k[1],
       high: k[2],
       low: k[3],
       close: k[4],
-      volume: k[5],
+      volume: k[5], // base volume
     }))
     .sort((a: any, b: any) => a.timestamp - b.timestamp);
 }
