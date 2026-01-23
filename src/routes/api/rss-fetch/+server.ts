@@ -66,7 +66,8 @@ export const POST: RequestHandler = async ({ request }) => {
       error.message?.includes("Invalid XML") ||
       error.message?.includes("Unable to parse XML")
     ) {
-      // Quietly return 422 without logging stack trace
+      // Suppress noisy logs for common scraper blocks/failures
+      // console.warn(`[rss-fetch] Parsing failed for ${url}`);
       return json({ error: "Invalid RSS/XML format" }, { status: 422 });
     }
 

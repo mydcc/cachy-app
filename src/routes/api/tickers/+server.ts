@@ -24,25 +24,6 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
   const provider = url.searchParams.get("provider") || "bitunix";
   const type = url.searchParams.get("type"); // 'price' (default) or '24hr'
 
-  // symbols parameter is optional for snapshot (all tickers)
-  // But we might want to enforce it for 'price' type on Binance?
-  // For now, allow empty symbols for Bitunix snapshot.
-  if (!symbols && provider === "binance" && type !== "24hr") {
-    // Binance ticker/price usually returns all if empty, but let's be safe/conservative
-    // Actually Binance allows it too. But let's stick to the current requirement: Bitunix Snapshot.
-    // So validation:
-  }
-
-  if (!symbols && provider === "binance") {
-    // Optional: check if Binance supports all tickers endpoint used below.
-    // Binance logic below builds url with symbol=${symbols}. If symbols is null, it fails.
-    // So for Binance we require symbols for now (unless we update Binance logic too).
-    return json(
-      { message: 'Query parameter "symbols" is required for Binance.' },
-      { status: 400 },
-    );
-  }
-
   const cacheKey = `tickers:${provider}:${symbols || "ALL"}:${type || "default"}`;
 
   try {
@@ -50,12 +31,15 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
       cacheKey,
       async () => {
         let apiUrl = "";
-        if (provider === "binance") {
-          // Binance Futures API
-          if (type === "24hr") {
-            apiUrl = `https://fapi.binance.com/fapi/v1/ticker/24hr?symbol=${symbols}`;
+        if (provider === "bitget") {
+          // Bitget Futures API
+          if (symbols) {
+             let sym = symbols.toUpperCase();
+             if (!sym.includes("_")) sym += "_UMCBL";
+             apiUrl = `https://api.bitget.com/api/mix/v1/market/ticker?symbol=${sym}`;
           } else {
-            apiUrl = `https://fapi.binance.com/fapi/v1/ticker/price?symbol=${symbols}`;
+             // All tickers
+             apiUrl = `https://api.bitget.com/api/mix/v1/market/tickers?productType=umcbl`;
           }
         } else {
           // Default to Bitunix
@@ -88,7 +72,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
 
         const data = await response.json();
         if (
-          provider !== "binance" &&
+          provider !== "bitget" && // Bitget uses code 00000, handled below generally?
           data &&
           (data.code === 2 ||
             data.code === "2" ||
@@ -97,6 +81,7 @@ export const GET: RequestHandler = async ({ url, fetch }) => {
           // eslint-disable-next-line no-throw-literal
           throw { status: 404, message: "Symbol not found" };
         }
+
         return data;
       },
       1000,

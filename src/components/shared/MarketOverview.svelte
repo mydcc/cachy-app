@@ -151,7 +151,13 @@
         indicatorState.rsi.length + indicatorState.rsi.signalLength + 10,
         50,
       );
-      const klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
+      // Use correct API based on provider
+      let klines = [];
+      if (provider === "bitget") {
+          klines = await apiService.fetchBitgetKlines(symbol, tf, limit);
+      } else {
+          klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
+      }
       historyKlines = klines ?? [];
     } catch (e: any) {
       if (e.message !== "apiErrors.symbolNotFound") {
@@ -190,13 +196,20 @@
   let symbol = $derived(customSymbol || tradeState.symbol || "");
   let provider = $derived(settingsState.apiProvider);
   let tickerData = $derived(
-    marketState.data[normalizeSymbol(symbol, "bitunix")],
+    marketState.data[normalizeSymbol(symbol, "bitunix")], // Use normalized symbol as key
   );
-  // WS Data
+  // WS Data - Use normalizeSymbol with correct provider?
+  // MarketState keys are normalized using bitunix logic (BTCUSDT) in marketWatcher.
+  // Wait, if provider is Bitget, marketWatcher stores them as BTCUSDT_UMCBL?
+  // Let's check bitgetWs. It updates using instId (BTCUSDT_UMCBL).
+  // So we should use normalizeSymbol(symbol, provider) to access marketState.
+
   let wsData = $derived.by(() => {
     if (!symbol) return null;
-    return marketState.data[normalizeSymbol(symbol, "bitunix")] || null;
+    const key = normalizeSymbol(symbol, provider);
+    return marketState.data[key] || null;
   });
+
   let displaySymbol = $derived(getDisplaySymbol(symbol));
 
   $effect(() => {
@@ -204,10 +217,14 @@
     // Cleanup logic moved here
     return () => {
       if (countdownInterval) clearInterval(countdownInterval);
-      if (symbol && provider === "bitunix") {
+      if (symbol) {
         marketWatcher.unregister(symbol, "price");
         marketWatcher.unregister(symbol, "ticker");
-        marketWatcher.unregister(symbol, "depth_book5");
+        if (provider === "bitunix") {
+             marketWatcher.unregister(symbol, "depth_book5");
+        } else {
+             marketWatcher.unregister(symbol, "depth_book5"); // Mapped to books5 internally
+        }
         if (currentWsKlineChannel)
           marketWatcher.unregister(symbol, currentWsKlineChannel);
       }
@@ -331,7 +348,6 @@
     if (
       symbol &&
       symbol.length >= 3 &&
-      provider === "bitunix" &&
       effectiveRsiTimeframe
     ) {
       untrack(() => {
@@ -353,7 +369,7 @@
   // Dynamic TradingView Link
   let tvLink = $derived.by(() => {
     const providerPrefix =
-      provider.toUpperCase() === "BINANCE" ? "BINANCE" : "BITUNIX";
+      provider.toUpperCase() === "BITGET" ? "BITGET" : "BITUNIX";
     const formattedSymbol = symbol.endsWith(".P")
       ? symbol.replace(".P", "")
       : symbol;
@@ -368,10 +384,10 @@
   // Direct Broker Link
   let brokerLink = $derived.by(() => {
     const s = symbol.toUpperCase();
-    if (provider.toLowerCase() === "binance") {
-      // Binance Futures URL structure
+    if (provider.toLowerCase() === "bitget") {
+      // Bitget Futures URL structure
       const formatted = s.endsWith("USDT") ? s : s + "USDT";
-      return `https://www.binance.com/en/futures/${formatted}`;
+      return `https://www.bitget.com/futures/usdt/${formatted}`;
     } else {
       // Bitunix Contract Trade URL structure
       const formatted = s.endsWith("USDT") ? s : s + "USDT";
@@ -482,7 +498,7 @@
     }
   });
   $effect(() => {
-    if (symbol && provider === "bitunix") {
+    if (symbol) {
       marketWatcher.register(symbol, "depth_book5");
       return () => {
         marketWatcher.unregister(symbol, "depth_book5");

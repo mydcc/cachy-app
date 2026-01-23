@@ -37,6 +37,7 @@ export interface XMonitor {
 export interface ApiKeys {
   key: string;
   secret: string;
+  passphrase?: string;
 }
 
 export interface PanelState {
@@ -47,7 +48,7 @@ export interface PanelState {
 }
 
 export interface Settings {
-  apiProvider: "bitunix" | "binance";
+  apiProvider: "bitunix" | "bitget";
   marketDataInterval: MarketDataInterval;
   autoUpdatePriceInput: boolean;
   autoFetchBalance: boolean;
@@ -62,7 +63,7 @@ export interface Settings {
   hotkeyMode: HotkeyMode;
   apiKeys: {
     bitunix: ApiKeys;
-    binance: ApiKeys;
+    bitget: ApiKeys;
   };
   customHotkeys: Record<string, string>;
   favoriteTimeframes: string[];
@@ -176,7 +177,7 @@ const defaultSettings: Settings = {
   customHotkeys: {},
   apiKeys: {
     bitunix: { key: "", secret: "" },
-    binance: { key: "", secret: "" },
+    bitget: { key: "", secret: "", passphrase: "" },
   },
   favoriteTimeframes: ["5m", "15m", "1h", "4h"],
   favoriteSymbols: ["BTCUSDT", "ETHUSDT", "SOLUSDT", "LINKUSDT"],
@@ -272,13 +273,13 @@ const defaultSettings: Settings = {
 
 class SettingsManager {
   // Using $state for all properties
-  private _apiProvider = $state<"bitunix" | "binance">(
+  private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
   );
   get apiProvider() {
     return this._apiProvider;
   }
-  set apiProvider(v: "bitunix" | "binance") {
+  set apiProvider(v: "bitunix" | "bitget") {
     if (v !== this._apiProvider) {
       if (import.meta.env.DEV) {
         console.warn(`[Settings] apiProvider: ${this._apiProvider} -> ${v}`);
@@ -383,10 +384,21 @@ class SettingsManager {
   }
 
   get capabilities() {
-    // Check if user has API credentials (key + secret)
-    const hasApiKeys = Boolean(
-      this.apiKeys?.bitunix?.key && this.apiKeys?.bitunix?.secret,
+    // Check if user has API credentials
+    // For Bitget, we need key, secret AND passphrase
+    const hasBitgetKeys = Boolean(
+      this.apiKeys?.bitget?.key &&
+      this.apiKeys?.bitget?.secret &&
+      this.apiKeys?.bitget?.passphrase
     );
+
+    // For Bitunix, just key and secret
+    const hasBitunixKeys = Boolean(
+      this.apiKeys?.bitunix?.key &&
+      this.apiKeys?.bitunix?.secret
+    );
+
+    const hasApiKeys = this.apiProvider === "bitget" ? hasBitgetKeys : hasBitunixKeys;
 
     return {
       // ========== PUBLIC FEATURES (Community + Pro) ==========
@@ -547,9 +559,9 @@ class SettingsManager {
           ...defaultSettings.apiKeys.bitunix,
           ...(parsed.apiKeys?.bitunix || {}),
         },
-        binance: {
-          ...defaultSettings.apiKeys.binance,
-          ...(parsed.apiKeys?.binance || {}),
+        bitget: {
+          ...defaultSettings.apiKeys.bitget,
+          ...(parsed.apiKeys?.bitget || {}),
         },
       };
 
@@ -572,23 +584,16 @@ class SettingsManager {
         localStorage.setItem(migrationKey, "true");
       }
 
-      // Extra safety: Only allow binance if keys are present and not default placeholders
-      const hasBinanceKeys =
-        merged.apiKeys?.binance?.key &&
-        merged.apiKeys.binance.key.length > 5 &&
-        merged.apiKeys.binance.secret;
-
-      if (loadedProvider === "binance" && !hasBinanceKeys) {
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[Settings] Binance selected but no valid keys found. Falling back to Bitunix.",
-          );
-        }
-        loadedProvider = "bitunix";
+      // If user had Binance before, fallback to Bitget or Bitunix?
+      // Since Binance is gone, if provider was "binance", set to "bitunix" or "bitget".
+      if (loadedProvider === "binance") {
+         if (import.meta.env.DEV) {
+             console.warn("[Settings] Binance provider found (deprecated). Resetting to Bitunix.");
+         }
+         loadedProvider = "bitunix";
       }
 
-      const finalProvider =
-        loadedProvider === "binance" ? "binance" : "bitunix";
+      const finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix";
 
       // Set the private field directly during load to avoid dual logging
       this._apiProvider = finalProvider;
@@ -596,7 +601,7 @@ class SettingsManager {
       if (loadedProvider && loadedProvider !== finalProvider) {
         if (import.meta.env.DEV) {
           console.warn(
-            `[Settings] Invalid provider "${loadedProvider}" reset to "bitunix"`,
+            `[Settings] Invalid provider "${loadedProvider}" reset to "${finalProvider}"`,
           );
         }
       }
@@ -615,7 +620,7 @@ class SettingsManager {
       // Granular updates for apiKeys to preserve object references if components bind to them
       if (merged.apiKeys) {
         if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
-        if (merged.apiKeys.binance) this.apiKeys.binance = merged.apiKeys.binance;
+        if (merged.apiKeys.bitget) this.apiKeys.bitget = merged.apiKeys.bitget;
       }
 
       this.customHotkeys = merged.customHotkeys || {};
