@@ -54,6 +54,7 @@ class ConnectionManager {
 
             // 2. Update active state
             this.activeProvider = newProvider;
+            logger.log("general", `[ConnectionManager] Active provider is now: ${this.activeProvider}`);
 
             // 3. Start Polling as a safety bridge
             if (this.pollingService) {
@@ -100,6 +101,7 @@ class ConnectionManager {
      * Signal from a provider that it is successfully connected.
      */
     public onProviderConnected(name: string) {
+        logger.log("general", `[ConnectionManager] ${name} reports SUCCESS. Active is: ${this.activeProvider}`);
         if (name !== this.activeProvider) {
             logger.warn("general", `[ConnectionManager] Late connection from inactive provider ${name}. Killing it.`);
             this.providers.get(name)?.destroy();
