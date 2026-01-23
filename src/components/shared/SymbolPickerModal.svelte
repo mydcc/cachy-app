@@ -210,6 +210,10 @@
         if (favs.includes(symbol)) {
             settingsState.favoriteSymbols = favs.filter((f) => f !== symbol);
         } else {
+            if (favs.length >= 12) {
+                uiState.showError("Maximal 12 Favoriten erlaubt.");
+                return;
+            }
             settingsState.favoriteSymbols = [...favs, symbol];
         }
     }

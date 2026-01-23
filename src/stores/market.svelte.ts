@@ -55,7 +55,8 @@ export type WSStatus =
   | "reconnecting";
 
 // LRU Cache Configuration
-const MAX_CACHE_SIZE = 600;
+// LRU Cache Configuration
+const MAX_CACHE_SIZE = 50; // Massiv reduced from 600 to prevent RAM overflow
 const TTL_MS = 10 * 60 * 1000; // 10 minutes
 
 interface CacheMetadata {
@@ -119,8 +120,8 @@ class MarketManager {
       // Add new snapshot
       market.metricsHistory.push(snapshot);
 
-      // Keep last 60 entries (10 minutes)
-      if (market.metricsHistory.length > 60) {
+      // Keep last 30 entries (5 minutes) - reduced from 60 for memory safety
+      if (market.metricsHistory.length > 30) {
         market.metricsHistory.shift();
       }
     });

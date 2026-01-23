@@ -625,7 +625,8 @@ class SettingsManager {
 
       this.customHotkeys = merged.customHotkeys || {};
       this.favoriteTimeframes = merged.favoriteTimeframes;
-      this.favoriteSymbols = merged.favoriteSymbols;
+      // Strict limit on favorites to prevent memory overflow (User Agreement: 12)
+      this.favoriteSymbols = (merged.favoriteSymbols || []).slice(0, 12);
       this.syncRsiTimeframe = merged.syncRsiTimeframe;
       this.imgbbApiKey = merged.imgbbApiKey;
       this.imgbbExpiration = merged.imgbbExpiration;
