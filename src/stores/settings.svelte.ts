@@ -587,13 +587,21 @@ class SettingsManager {
       // If user had Binance before, fallback to Bitget or Bitunix?
       // Since Binance is gone, if provider was "binance", set to "bitunix" or "bitget".
       if (loadedProvider === "binance") {
-         if (import.meta.env.DEV) {
-             console.warn("[Settings] Binance provider found (deprecated). Resetting to Bitunix.");
-         }
-         loadedProvider = "bitunix";
+        if (import.meta.env.DEV) {
+          console.warn("[Settings] Binance provider found (deprecated). Resetting to Bitunix.");
+        }
+        loadedProvider = "bitunix";
       }
 
       const finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix";
+
+      // Migration for Gemini Model: Ensure we use a stable version
+      if (this.geminiModel === "gemma" || !this.geminiModel) {
+        if (import.meta.env.DEV) {
+          console.warn("[Settings] Migrating geminiModel to gemini-1.5-flash for stability.");
+        }
+        this.geminiModel = "gemini-1.5-flash";
+      }
 
       // Set the private field directly during load to avoid dual logging
       this._apiProvider = finalProvider;

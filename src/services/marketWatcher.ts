@@ -109,7 +109,16 @@ class MarketWatcher {
   private syncSubscriptions() {
     if (!browser) return;
     const settings = settingsState;
-    if (settings.apiProvider !== "bitunix") return;
+    // Only Bitunix has a WebSocket implementation currently.
+    // If future providers get WS support, add them here.
+    if (settings.apiProvider !== "bitunix") {
+      // If we switched away from Bitunix, clear all WS subscriptions
+      bitunixWs.publicSubscriptions.forEach((key) => {
+        const [channel, symbol] = key.split(":");
+        bitunixWs.unsubscribe(symbol, channel);
+      });
+      return;
+    }
 
     // 1. Collect all intended subscriptions from requests
     // map of key (channel:symbol) -> { symbol, channel }
@@ -182,8 +191,10 @@ class MarketWatcher {
     const settings = settingsState;
     if (!settings.capabilities.marketData) return true;
     const wsStatus = marketState.connectionStatus;
-    // We only poll if Binance is selected OR Bitunix WS is down
-    return settings.apiProvider !== "binance" && wsStatus === "connected";
+    const provider = settings.apiProvider;
+    // We only pause polling if Bitunix is selected AND the WebSocket is successfully connected.
+    // For other providers (like Bitget), we currently rely on REST polling.
+    return provider === "bitunix" && wsStatus === "connected";
   }
 
   private async performPollingCycle() {
@@ -206,7 +217,7 @@ class MarketWatcher {
   private async pollSymbolChannel(
     symbol: string,
     channel: string,
-    provider: "bitunix" | "binance",
+    provider: "bitunix" | "bitget",
   ) {
     if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
@@ -235,8 +246,8 @@ class MarketWatcher {
         });
       } else if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
-        const klines = await (provider === "binance"
-          ? apiService.fetchBinanceKlines(symbol, tf, 50)
+        const klines = await (provider === "bitget"
+          ? apiService.fetchBitgetKlines(symbol, tf, 50)
           : apiService.fetchBitunixKlines(symbol, tf, 50));
 
         if (klines && klines.length > 0) {
