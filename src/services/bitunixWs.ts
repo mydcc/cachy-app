@@ -601,12 +601,15 @@ class BitunixWebSocketService {
         // If just data fields are off, we can ignore single message without counting towards circuit breaker.
         const issues = validationResult.error.issues;
         const criticalFields = ["event", "op", "ch", "code"];
-        const isCritical = issues.some(i => i.path.length > 0 && criticalFields.includes(String(i.path[0])));
+        // Critical if:
+        // 1. Root level structure error (path is empty)
+        // 2. Critical field error (path[0] is in criticalFields)
+        const isCritical = issues.some(i =>
+          i.path.length === 0 ||
+          (i.path.length > 0 && criticalFields.includes(String(i.path[0])))
+        );
 
-        // If strictly structure is invalid (e.g. not an object), that's critical too
-        const isStructureError = issues.some(i => i.code === "invalid_type" && i.path.length === 0);
-
-        if (isCritical || isStructureError) {
+        if (isCritical) {
            const now = Date.now();
            if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
              this.validationErrorCount = 0;
@@ -638,7 +641,7 @@ class BitunixWebSocketService {
 
       // Reset error count on successful message parse (optional, but good for stability)
       // We only reset if we successfully processed a valid message to avoid flapping
-      // this.validationErrorCount = 0; // Commented out to be strict about error burst frequency
+      this.validationErrorCount = 0;
 
       const validatedMessage = validationResult.data;
 
