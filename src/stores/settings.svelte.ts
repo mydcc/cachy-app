@@ -595,14 +595,6 @@ class SettingsManager {
 
       const finalProvider = loadedProvider === "bitget" ? "bitget" : "bitunix";
 
-      // Migration for Gemini Model: Ensure we use a stable version
-      if (this.geminiModel === "gemma" || !this.geminiModel) {
-        if (import.meta.env.DEV) {
-          console.warn("[Settings] Migrating geminiModel to gemini-1.5-flash for stability.");
-        }
-        this.geminiModel = "gemini-1.5-flash";
-      }
-
       // Set the private field directly during load to avoid dual logging
       this._apiProvider = finalProvider;
 
@@ -743,10 +735,20 @@ class SettingsManager {
       this.nitterInstance =
         merged.nitterInstance || defaultSettings.nitterInstance;
 
-      // Migration
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
         this.marketDataInterval = 60;
+      }
+
+      // Migration for Gemini Model: Ensure we use a stable version
+      // We do this at the very end to ensure it's not overwritten by 'merged.geminiModel'
+      if (this.geminiModel === "gemma" || !this.geminiModel) {
+        if (import.meta.env.DEV) {
+          console.warn(
+            "[Settings] Migrating geminiModel to gemini-1.5-flash for stability.",
+          );
+        }
+        this.geminiModel = "gemini-1.5-flash";
       }
     } catch (e) {
       if (import.meta.env.DEV) {

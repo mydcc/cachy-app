@@ -55,6 +55,12 @@ export function normalizeSymbol(
   if (s.endsWith("USDTP")) {
     s = s.substring(0, s.length - 1);
   }
+
+  // Bitget specific suffixing (for Futures)
+  if (provider === "bitget" && !s.includes("_UMCBL")) {
+    s = s + "_UMCBL";
+  }
+
   return s;
 }
 
@@ -63,5 +69,5 @@ export function normalizeSymbol(
  */
 export function formatSymbolForDisplay(symbol: string): string {
   if (!symbol) return "";
-  return symbol.replace("USDT", "").replace("P", "");
+  return symbol.replace("USDT", "").replace("P", "").replace("_UMCBL", "");
 }

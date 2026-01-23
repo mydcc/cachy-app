@@ -326,53 +326,53 @@ export const apiService = {
     priority: "high" | "normal" = "normal",
     timeout = 10000,
   ): Promise<Kline[]> {
-     const key = `BITGET:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
-     return requestManager.schedule(
-         key,
-         async (signal) => {
-             try {
-                 const normalized = apiService.normalizeSymbol(symbol, "bitget");
-                 const params = new URLSearchParams({
-                     provider: "bitget",
-                     symbol: normalized,
-                     interval: interval,
-                     limit: limit.toString()
-                 });
-                 if (startTime) params.append("startTime", startTime.toString());
-                 if (endTime) params.append("endTime", endTime.toString());
+    const key = `BITGET:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
+    return requestManager.schedule(
+      key,
+      async (signal) => {
+        try {
+          const normalized = apiService.normalizeSymbol(symbol, "bitget");
+          const params = new URLSearchParams({
+            provider: "bitget",
+            symbol: normalized,
+            interval: interval,
+            limit: limit.toString()
+          });
+          if (startTime) params.append("startTime", startTime.toString());
+          if (endTime) params.append("endTime", endTime.toString());
 
-                 const response = await fetch(`/api/klines?${params.toString()}`, { signal });
-                 if (!response.ok) throw new Error("apiErrors.klineError");
-                 const res = await apiService.safeJson(response);
+          const response = await fetch(`/api/klines?${params.toString()}`, { signal });
+          if (!response.ok) throw new Error("apiErrors.klineError");
+          const res = await apiService.safeJson(response);
 
-                 if (!Array.isArray(res)) {
-                    throw new Error("apiErrors.invalidResponse");
-                 }
+          if (!Array.isArray(res)) {
+            throw new Error("apiErrors.invalidResponse");
+          }
 
-                 return res.map((k: any) => {
-                     try {
-                         const time = parseTimestamp(k.timestamp || k.time || k.t);
-                         const open = new Decimal(k.open);
-                         const high = new Decimal(k.high);
-                         const low = new Decimal(k.low);
-                         const close = new Decimal(k.close);
-                         const volume = new Decimal(k.volume);
+          return res.map((k: any) => {
+            try {
+              const time = parseTimestamp(k.timestamp || k.time || k.t);
+              const open = new Decimal(k.open);
+              const high = new Decimal(k.high);
+              const low = new Decimal(k.low);
+              const close = new Decimal(k.close);
+              const volume = new Decimal(k.volume);
 
-                         if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
-                         return { open, high, low, close, volume, time };
-                     } catch(e) {
-                         return null;
-                     }
-                 }).filter((k): k is Kline => k !== null);
-             } catch(e) {
-                 if (e instanceof Error && e.name === "AbortError") throw e;
-                 throw new Error("apiErrors.generic");
-             }
-         },
-         priority,
-         1,
-         timeout
-     );
+              if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
+              return { open, high, low, close, volume, time };
+            } catch (e) {
+              return null;
+            }
+          }).filter((k): k is Kline => k !== null);
+        } catch (e) {
+          if (e instanceof Error && e.name === "AbortError") throw e;
+          throw new Error("apiErrors.generic");
+        }
+      },
+      priority,
+      1,
+      timeout
+    );
   },
 
   async fetchBitunixKlines(
@@ -514,45 +514,45 @@ export const apiService = {
           const res = await apiService.safeJson(response);
 
           if (provider === "bitunix") {
-             if (res.code !== undefined && res.code !== 0) {
-               throw new Error(getBitunixErrorKey(res.code));
-             }
-             if (!res.data || !Array.isArray(res.data)) {
-               throw new Error("apiErrors.invalidResponse");
-             }
-             return res.data.map((ticker: any) => {
-                const open = new Decimal(ticker.open || 0);
-                const last = new Decimal(ticker.lastPrice || 0);
-                const change = !open.isZero()
-                   ? last.minus(open).dividedBy(open).times(100)
-                   : new Decimal(0);
+            if (res.code !== undefined && res.code !== 0) {
+              throw new Error(getBitunixErrorKey(res.code));
+            }
+            if (!res.data || !Array.isArray(res.data)) {
+              throw new Error("apiErrors.invalidResponse");
+            }
+            return res.data.map((ticker: any) => {
+              const open = new Decimal(ticker.open || 0);
+              const last = new Decimal(ticker.lastPrice || 0);
+              const change = !open.isZero()
+                ? last.minus(open).dividedBy(open).times(100)
+                : new Decimal(0);
 
-                return {
-                   provider: "bitunix",
-                   symbol: ticker.symbol,
-                   lastPrice: last,
-                   highPrice: new Decimal(ticker.high || 0),
-                   lowPrice: new Decimal(ticker.low || 0),
-                   volume: new Decimal(ticker.baseVol || 0),
-                   quoteVolume: new Decimal(ticker.quoteVol || 0),
-                   priceChangePercent: change
-                };
-             });
+              return {
+                provider: "bitunix",
+                symbol: ticker.symbol,
+                lastPrice: last,
+                highPrice: new Decimal(ticker.high || 0),
+                lowPrice: new Decimal(ticker.low || 0),
+                volume: new Decimal(ticker.baseVol || 0),
+                quoteVolume: new Decimal(ticker.quoteVol || 0),
+                priceChangePercent: change
+              };
+            });
           } else {
-             // Bitget (via backend)
-             const data = res.data || [];
-             if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
+            // Bitget (via backend)
+            const data = res.data || [];
+            if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
 
-             return data.map((t: any) => ({
-                 provider: "bitget",
-                 symbol: t.instId || t.symbol,
-                 lastPrice: new Decimal(t.last || 0),
-                 highPrice: new Decimal(t.high24h || 0),
-                 lowPrice: new Decimal(t.low24h || 0),
-                 volume: new Decimal(t.volume24h || 0),
-                 quoteVolume: new Decimal(t.quoteVolume || t.usdtVolume || 0),
-                 priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
-             }));
+            return data.map((t: any) => ({
+              provider: "bitget",
+              symbol: t.instId || t.symbol,
+              lastPrice: new Decimal(t.last || 0),
+              highPrice: new Decimal(t.high24h || 0),
+              lowPrice: new Decimal(t.low24h || 0),
+              volume: new Decimal(t.volume24h || 0),
+              quoteVolume: new Decimal(t.quoteVolume || t.usdtVolume || 0),
+              priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
+            }));
           }
         } catch (e) {
           if (import.meta.env.DEV) {
@@ -648,10 +648,10 @@ export const apiService = {
               provider,
               symbol: normalized,
               lastPrice: last,
-              highPrice: new Decimal(ticker.high),
-              lowPrice: new Decimal(ticker.low),
-              volume: new Decimal(ticker.baseVol),
-              quoteVolume: new Decimal(ticker.quoteVol),
+              highPrice: high,
+              lowPrice: low,
+              volume: baseVol,
+              quoteVolume: quoteVol,
               priceChangePercent: change,
             };
           } else {
@@ -660,14 +660,14 @@ export const apiService = {
             if (!ticker) throw new Error("apiErrors.invalidResponse");
 
             return {
-                provider,
-                symbol: normalized,
-                lastPrice: new Decimal(ticker.last || 0),
-                highPrice: new Decimal(ticker.high24h || 0),
-                lowPrice: new Decimal(ticker.low24h || 0),
-                volume: new Decimal(ticker.volume24h || 0),
-                quoteVolume: new Decimal(ticker.quoteVolume || ticker.usdtVolume || 0),
-                priceChangePercent: new Decimal(ticker.priceChangePercent || 0)
+              provider,
+              symbol: normalized,
+              lastPrice: new Decimal(ticker.last || 0),
+              highPrice: new Decimal(ticker.high24h || 0),
+              lowPrice: new Decimal(ticker.low24h || 0),
+              volume: new Decimal(ticker.volume24h || 0),
+              quoteVolume: new Decimal(ticker.quoteVolume || ticker.usdtVolume || 0),
+              priceChangePercent: new Decimal(ticker.priceChangePercent || 0)
             };
           }
         } catch (e) {

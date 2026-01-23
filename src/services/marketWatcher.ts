@@ -113,7 +113,7 @@ class MarketWatcher {
     // If future providers get WS support, add them here.
     if (settings.apiProvider !== "bitunix") {
       // If we switched away from Bitunix, clear all WS subscriptions
-      bitunixWs.publicSubscriptions.forEach((key) => {
+      Array.from(bitunixWs.publicSubscriptions).forEach((key) => {
         const [channel, symbol] = key.split(":");
         bitunixWs.unsubscribe(symbol, channel);
       });
