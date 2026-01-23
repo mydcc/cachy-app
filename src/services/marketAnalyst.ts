@@ -25,6 +25,10 @@ class MarketAnalystService {
 
     start() {
         if (!browser || this.isRunning) return;
+        // [DEBUG] Completely disabled analysis loop to check CPU
+        logger.log("general", "Market Analyst logic DISABLED (Internal Loop Blocked).");
+        return;
+
         this.isRunning = true;
         logger.log("general", "Market Analyst started.");
         this.processNext();
@@ -134,5 +138,5 @@ class MarketAnalystService {
     }
 }
 
-// export const marketAnalyst = new MarketAnalystService();
-export const marketAnalyst = null as any;
+export const marketAnalyst = new MarketAnalystService();
+// export const marketAnalyst = null as any;
