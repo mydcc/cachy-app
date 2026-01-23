@@ -24,10 +24,12 @@
   import { _ } from "../../locales/i18n";
   import { trackCustomEvent } from "../../services/trackingService";
   import { onboardingService } from "../../services/onboardingService";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { modalState } from "../../stores/modal.svelte";
+  import { marketState } from "../../stores/market.svelte";
   import { app } from "../../services/app";
 
   const dispatch = createEventDispatcher();
@@ -73,8 +75,12 @@
 
   let priceDeviation = $derived.by(() => {
     // Safety check: ensure symbol is valid before calculating deviation
-    if (!symbol || !entryPrice || !app.currentMarketPrice) return 0;
-    const market = app.currentMarketPrice.toNumber();
+    // Use marketState for reactivity
+    const normSymbol = normalizeSymbol(localSymbol, "bitunix");
+    const currentPrice = marketState.data[normSymbol]?.lastPrice;
+
+    if (!localSymbol || !entryPrice || !currentPrice) return 0;
+    const market = currentPrice.toNumber();
     if (market <= 0) return 0;
     const dev = Math.abs((entryPrice - market) / market) * 100;
     return dev > 1000 ? 0 : dev; // Ignore extreme values during sync

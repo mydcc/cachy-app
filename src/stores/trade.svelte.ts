@@ -245,6 +245,13 @@ class TradeManager {
       const s = this.getSnapshot();
       const toSave: any = { ...s };
       delete toSave.currentTradeData;
+      delete toSave.remoteLeverage;
+      delete toSave.remoteMarginMode;
+      delete toSave.remoteMakerFee;
+      delete toSave.remoteTakerFee;
+      delete toSave.exitFees;
+      delete toSave.feeMode;
+
       // Convert Decimal to string for storage
       if (toSave.lockedPositionSize instanceof Decimal) {
           toSave.lockedPositionSize = toSave.lockedPositionSize.toString();

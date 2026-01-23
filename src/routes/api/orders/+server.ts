@@ -30,6 +30,12 @@ import type {
 } from "../../../types/bitunix";
 import { formatApiNum } from "../../../utils/utils";
 
+function isValidNumberString(val: unknown): boolean {
+  if (typeof val === "number") return !isNaN(val) && isFinite(val);
+  if (typeof val !== "string") return false;
+  return /^-?\d+(\.\d+)?$/.test(val);
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   let body: Record<string, unknown>;
   try {
@@ -47,7 +53,12 @@ export const POST: RequestHandler = async ({ request }) => {
   const apiSecret = body.apiSecret as string | undefined;
   const type = body.type as string | undefined;
 
-  if (!exchange || !apiKey || !apiSecret) {
+  if (
+    !exchange ||
+    typeof exchange !== "string" ||
+    !apiKey ||
+    !apiSecret
+  ) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
   }
 
@@ -62,10 +73,18 @@ export const POST: RequestHandler = async ({ request }) => {
     if (type === "place-order" || type === "close-position") {
       // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
       const rawQty = type === "close-position" ? body.amount : body.qty;
-      // Strict check: must be string or number convertible to positive number
+
+      // Strict check: valid number string AND positive
+      if (!isValidNumberString(rawQty)) {
+        return json(
+          { error: "Invalid quantity format." },
+          { status: 400 },
+        );
+      }
+
       const qty = parseFloat(String(rawQty));
 
-      if (isNaN(qty) || qty <= 0) {
+      if (qty <= 0) {
         return json(
           { error: "Invalid quantity. Must be a positive number." },
           { status: 400 },
@@ -112,10 +131,16 @@ export const POST: RequestHandler = async ({ request }) => {
           orderType === "TAKE_PROFIT_LIMIT"
         ) {
           // Price validation
-          const price = parseFloat(String(body.price));
-          if (isNaN(price) || price <= 0) {
+          if (!isValidNumberString(body.price)) {
             return json(
-              { error: "Invalid price for LIMIT/STOP order." },
+              { error: "Invalid price format for LIMIT/STOP order." },
+              { status: 400 },
+            );
+          }
+          const price = parseFloat(String(body.price));
+          if (price <= 0) {
+            return json(
+              { error: "Invalid price (must be > 0)." },
               { status: 400 },
             );
           }
@@ -130,10 +155,16 @@ export const POST: RequestHandler = async ({ request }) => {
         ) {
           // Check triggerPrice OR stopPrice
           const trigger = body.triggerPrice || body.stopPrice;
+          if (!isValidNumberString(trigger)) {
+             return json(
+              { error: `Invalid trigger price format for ${orderType}.` },
+              { status: 400 },
+            );
+          }
           const triggerVal = parseFloat(String(trigger));
-          if (isNaN(triggerVal) || triggerVal <= 0) {
+          if (triggerVal <= 0) {
             return json(
-              { error: `Trigger price required for ${orderType}.` },
+              { error: `Trigger price must be > 0 for ${orderType}.` },
               { status: 400 },
             );
           }
@@ -150,7 +181,18 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       } else if (type === "history") {
         // Support custom limit, default to 50 for better visibility
-        const limit = body.limit ? Number(body.limit) : 50;
+        let limit = 50;
+        if (body.limit !== undefined) {
+          // Strict integer check
+          if (
+            (typeof body.limit === "number" && Number.isInteger(body.limit)) ||
+            (typeof body.limit === "string" && /^\d+$/.test(body.limit))
+          ) {
+            limit = Number(body.limit);
+          } else {
+             return json({ error: "Invalid limit. Must be an integer." }, { status: 400 });
+          }
+        }
         // Cap limit to reasonable max (e.g. 100) to prevent abuse if needed,
         // but Bitunix likely has its own max (usually 100).
         const safeLimit = Math.min(Math.max(limit, 1), 100);
