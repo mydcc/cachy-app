@@ -19,9 +19,11 @@ const parser = new Parser({
 });
 
 export const POST: RequestHandler = async ({ request }) => {
+  let url = "unknown";
+
   try {
     const body = await request.json();
-    const { url } = body;
+    url = body.url;
 
     if (!url || typeof url !== "string") {
       return json(
@@ -55,7 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
       feedDescription: feed.description,
     });
   } catch (error: any) {
-    console.error(`[rss-fetch] Error fetching RSS feed for ${body?.url}:`, {
+    console.error(`[rss-fetch] Error fetching RSS feed for ${url}:`, {
       message: error.message,
       code: error.code,
       stack: error.stack,

@@ -1,0 +1,2658 @@
+/* src/themes.css - Restored Themes */
+
+/* =================================================================
+   Root & Default Theme
+   ================================================================= */
+:root,
+.theme-default {
+  /* --- Palette --- */
+  --blue-950: #0f172a;
+  --blue-900: #1e293b;
+  --blue-800: #334155;
+  --blue-700: #475569;
+  --blue-600: #64748b;
+  --blue-300: #94a3b8;
+  --blue-100: #e2e8f0;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9;
+  --sky-600: #0284c7;
+  --green-500: #22c55e;
+  --green-600: #16a34a;
+  --red-500: #ef4444;
+  --red-800: #991b1b;
+  --red-900: #b91c1c;
+  --yellow-400: #facc15;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--blue-950);
+  --bg-secondary: var(--blue-900);
+  --bg-tertiary: var(--blue-800);
+  --chat-bubble-bg: var(--blue-900);
+  --chat-messages-bg: var(--blue-950);
+  --scrollbar-thumb: var(--blue-800);
+  --scrollbar-track: var(--blue-900);
+  --text-primary: var(--blue-100);
+  --text-secondary: var(--blue-300);
+  --text-tertiary: var(--blue-600);
+  --border-color: var(--blue-800);
+  --accent-color: var(--sky-500);
+  --accent-color-hover: var(--sky-400);
+  --success-color: var(--green-500);
+  --danger-color: var(--red-500);
+  --warning-color: var(--yellow-400);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--blue-700);
+  --btn-default-hover-bg: var(--blue-600);
+  --btn-default-text: var(--blue-100);
+  --btn-danger-bg: var(--red-800);
+  --btn-danger-hover-bg: var(--red-900);
+  --btn-danger-text: var(--blue-100);
+  --btn-accent-bg: var(--sky-500);
+  --btn-accent-hover-bg: var(--sky-600);
+  --btn-accent-text: var(--blue-950);
+  --btn-success-bg: var(--green-500);
+  --btn-success-hover-bg: var(--green-600);
+  --btn-success-text: var(--blue-950);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--blue-700);
+  --toggle-bg-on: var(--sky-500);
+  --toggle-circle-bg: var(--blue-100);
+  --toggle-circle-bg-on: var(--blue-100);
+  --overlay-color: var(--black-overlay);
+  /* --- Motion --- */
+  --transition-fast: 0.15s ease-out;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+  /* --- Glassmorphism Defaults --- */
+  --glass-blur: 8px;
+  --glass-saturate: 100%;
+  --glass-opacity: 0.7;
+}
+
+/* =================================================================
+   Light Theme
+   ================================================================= */
+.theme-light {
+  /* --- Palette --- */
+  --slate-100: #f1f5f9;
+  --pure-white: #ffffff;
+  --slate-200: #e2e8f0;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  /* Added for instruction */
+  --slate-500: #64748b;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --sky-400: #38bdf8;
+  --sky-500: #0ea5e9;
+  --green-600: #16a34a;
+  --green-700: #15803d;
+  --red-600: #dc2626;
+  --red-500: #ef4444;
+  --amber-500: #f59e0b;
+  --indigo-600: #4f46e5;
+  /* Added for instruction */
+  --indigo-500: #6366f1;
+  /* Added for instruction */
+  --orange-500: #f97316;
+  /* Added for instruction */
+  --black-transparent: rgba(0, 0, 0, 0.1);
+  --white-transparent: rgba(255, 255, 255, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--slate-100);
+  --bg-secondary: var(--pure-white);
+  --bg-tertiary: var(--slate-200);
+  --chat-bubble-bg: var(--slate-100);
+  --chat-messages-bg: var(--pure-white);
+  --scrollbar-thumb: var(--slate-300);
+  --scrollbar-track: var(--slate-100);
+  --text-primary: var(--slate-900);
+  --text-secondary: var(--slate-500);
+  --text-tertiary: var(--slate-400);
+  --border-color: var(--slate-300);
+  --accent-color: var(--indigo-600);
+  --accent-color-hover: var(--indigo-500);
+  --success-color: var(--green-600);
+  --danger-color: var(--red-600);
+  --warning-color: var(--orange-500);
+  --shadow-tooltip: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--slate-400);
+  --btn-default-hover-bg: var(--slate-300);
+  --btn-default-text: var(--slate-800);
+  --btn-danger-bg: var(--red-500);
+  --btn-danger-hover-bg: var(--red-600);
+  --btn-danger-text: var(--slate-100);
+  --btn-accent-bg: var(--sky-400);
+  --btn-accent-hover-bg: var(--sky-500);
+  --btn-accent-text: var(--pure-white);
+  --btn-success-bg: var(--green-600);
+  --btn-success-hover-bg: var(--green-700);
+  --btn-success-text: var(--pure-white);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--slate-400);
+  --toggle-bg-on: var(--sky-400);
+  --toggle-circle-bg: var(--slate-100);
+  --toggle-circle-bg-on: var(--slate-100);
+  --overlay-color: var(--white-transparent);
+}
+
+/* =================================================================
+   Meteorite Theme - Vollständige Farbpalette
+   ================================================================= */
+.theme-meteorite {
+  /* --- Core Colors --- */
+  --core-purple: #4e21e7;
+  --core-meteorite: #433f65;
+  --core-green-free: #0da49a;
+  --core-blue-pro: #334eff;
+  --core-red-insights: #ee485f;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #fa9de7;
+  --highlight-red: #ff60ee;
+
+  /* --- Gradient Colors --- */
+  --gradient-purple-light: #2b1f99;
+  --gradient-purple-dark: #0c082f;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
+  --gradient-blue-light: #3c6e99;
+  --gradient-blue-dark: #08103f;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #1a154a;
+  --bg-tertiary-derived: #2b1f99;
+  --chat-bubble-assistant-bg: #0c082f;
+  --accent-hover-derived: #5c71ff;
+  --default-hover-derived: #5b587d;
+  --danger-hover-derived: #f46d7e;
+  --success-hover-derived: #3db6af;
+  --overlay-derived: rgba(12, 8, 47, 0.8);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(
+    farthest-side at top,
+    var(--gradient-purple-light),
+    var(--gradient-purple-dark)
+  );
+  --bg-secondary: #08051e;
+  /* Deepest purple for sidebar & inputs */
+  --bg-tertiary: #161245;
+  /* Slightly lighter for card backgrounds */
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
+  --chat-messages-bg: var(--gradient-purple-dark);
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
+  --text-primary: var(--purple-light);
+  --text-secondary: var(--highlight-meteorite);
+  --text-tertiary: var(--core-meteorite);
+  --border-color: #2b1f99;
+  /* Sharper borders for better separation */
+  --accent-color: var(--core-blue-pro);
+  --accent-color-hover: var(--accent-hover-derived);
+  --success-color: var(--core-green-free);
+  --danger-color: var(--core-red-insights);
+  --warning-color: var(--highlight-red-alt);
+  --shadow-tooltip: 0 30px 90px -20px rgba(12, 8, 47, 0.5);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--core-meteorite);
+  --btn-default-hover-bg: var(--default-hover-derived);
+  --btn-default-text: var(--purple-light);
+  --btn-danger-bg: var(--core-red-insights);
+  --btn-danger-hover-bg: var(--danger-hover-derived);
+  --btn-danger-text: var(--purple-light);
+  --btn-accent-bg: var(--core-blue-pro);
+  --btn-accent-hover-bg: var(--accent-hover-derived);
+  --btn-accent-text: var(--purple-light);
+  --btn-success-bg: var(--core-green-free);
+  --btn-success-hover-bg: var(--success-hover-derived);
+  --btn-success-text: var(--purple-light);
+
+  /* --- Toggle Colors --- */
+  --toggle-bg-off: var(--core-meteorite);
+  --toggle-bg-on: var(--core-blue-pro);
+  --toggle-circle-bg: var(--purple-light);
+  --toggle-circle-bg-on: var(--purple-light);
+
+  /* --- Overlay --- */
+  --overlay-color: var(--overlay-derived);
+}
+
+
+/* =================================================================
+   Steel Theme - Vollständige Farbpalette
+   ================================================================= */
+.theme-steel {
+  /* --- Core Colors --- */
+  --core-purple: #4e21e7;
+  --core-meteorite: #433f65;
+  --core-green-free: #0da49a;
+  --core-blue-pro: #334eff;
+  --core-red-insights: #ee485f;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #fa9de7;
+  --highlight-red: #ff60ee;
+
+  /* --- Gradient Colors --- */
+  --gradient-purple-light: #2b1f99;
+  --gradient-purple-dark: #0c082f;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
+  --gradient-blue-light: #3c6e99;
+  --gradient-blue-dark: #08103f;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #1a2a6c;
+  --bg-tertiary-derived: #3c6e99;
+  --chat-bubble-assistant-bg: #08103f;
+  --accent-hover-derived: #5c71ff;
+  --default-hover-derived: #5b587d;
+  --danger-hover-derived: #f46d7e;
+  --success-hover-derived: #3db6af;
+  --overlay-derived: rgba(8, 16, 63, 0.8);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(
+    farthest-side at top,
+    var(--gradient-blue-light),
+    var(--gradient-blue-dark)
+  );
+  --bg-secondary: #05081a;
+  /* Deepest blue for sidebar & inputs */
+  --bg-tertiary: #0f173d;
+  /* Slightly lighter for card backgrounds */
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
+  --chat-messages-bg: var(--gradient-blue-dark);
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
+  --text-primary: var(--blue-pro-light);
+  --text-secondary: var(--highlight-blue-pro);
+  --text-tertiary: var(--core-meteorite);
+  --border-color: #1a2a6c;
+  /* Sharper borders for better separation */
+  --accent-color: var(--core-blue-pro);
+  --accent-color-hover: var(--accent-hover-derived);
+  --success-color: var(--core-green-free);
+  --danger-color: var(--core-red-insights);
+  --warning-color: var(--highlight-red-alt);
+  --shadow-tooltip: 0 30px 90px -20px rgba(8, 16, 63, 0.5);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--core-meteorite);
+  --btn-default-hover-bg: var(--default-hover-derived);
+  --btn-default-text: var(--blue-pro-light);
+  --btn-danger-bg: var(--core-red-insights);
+  --btn-danger-hover-bg: var(--danger-hover-derived);
+  --btn-danger-text: var(--blue-pro-light);
+  --btn-accent-bg: var(--core-blue-pro);
+  --btn-accent-hover-bg: var(--accent-hover-derived);
+  --btn-accent-text: var(--blue-pro-light);
+  --btn-success-bg: var(--core-green-free);
+  --btn-success-hover-bg: var(--success-hover-derived);
+  --btn-success-text: var(--blue-pro-light);
+
+  /* --- Toggle Colors --- */
+  --toggle-bg-off: var(--core-meteorite);
+  --toggle-bg-on: var(--core-blue-pro);
+  --toggle-circle-bg: var(--blue-pro-light);
+  --toggle-circle-bg-on: var(--blue-pro-light);
+
+  /* --- Overlay --- */
+  --overlay-color: var(--overlay-derived);
+}
+
+/* =================================================================
+   VIP Theme
+   ================================================================= */
+.theme-VIP {
+  /* --- Palette --- */
+  --gray-900: #121212;
+  --gray-800: #1e1e1e;
+  --gray-700: #2c2c2c;
+  --gray-200: #e0e0e0;
+  --gray-400: #b0b0b0;
+  --gray-600: #444;
+  --lime-300: #e2ff00;
+  --lime-400: #cde200;
+  --green-500: #4caf50;
+  --green-600: #43a047;
+  --red-500: #f44336;
+  --orange-500: #ff9800;
+  --gray-blue-400: #9598a1;
+  --gray-blue-500: #82858d;
+  --red-800: #b71c1c;
+  --red-700: #d32f2f;
+  --white: #ffffff;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--gray-900);
+  --bg-secondary: var(--gray-800);
+  --bg-tertiary: var(--gray-700);
+  --chat-bubble-bg: var(--gray-700);
+  --chat-messages-bg: var(--gray-900);
+  --scrollbar-thumb: var(--gray-700);
+  --scrollbar-track: var(--gray-900);
+  --text-primary: var(--gray-200);
+  --text-secondary: var(--gray-400);
+  --text-tertiary: var(--gray-600);
+  --border-color: var(--gray-600);
+  --accent-color: var(--lime-300);
+  --accent-color-hover: var(--lime-400);
+  --success-color: var(--green-500);
+  --danger-color: var(--red-500);
+  --warning-color: var(--orange-500);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--gray-blue-400);
+  --btn-default-hover-bg: var(--gray-blue-500);
+  --btn-default-text: var(--gray-900);
+  --btn-danger-bg: var(--red-800);
+  --btn-danger-hover-bg: var(--red-700);
+  --btn-danger-text: var(--white);
+  --btn-accent-bg: var(--lime-300);
+  --btn-accent-hover-bg: var(--lime-400);
+  --btn-accent-text: var(--gray-900);
+  --btn-success-bg: var(--green-500);
+  --btn-success-hover-bg: var(--green-600);
+  --btn-success-text: var(--white);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--gray-600);
+  --toggle-bg-on: var(--lime-300);
+  --toggle-circle-bg: var(--gray-200);
+  --toggle-circle-bg-on: var(--gray-600);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Matrix Theme
+   ================================================================= */
+.theme-matrix {
+  /* --- Palette --- */
+  --matrix-base: #000000;
+  --gray-950: #0d0d0d;
+  --gray-900: #1a1a1a;
+  --green-400: #00ff41;
+  --green-500: #00e639;
+  --green-600: #00b32d;
+  --green-700: #00802b;
+  --red-500: #ff0000;
+  --red-800: #990000;
+  --red-900: #cc0000;
+  --yellow-400: #ffff00;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--matrix-base);
+  --bg-secondary: var(--gray-950);
+  --bg-tertiary: var(--gray-900);
+  --chat-bubble-bg: var(--gray-950);
+  --chat-messages-bg: var(--matrix-base);
+  --scrollbar-thumb: var(--gray-900);
+  --scrollbar-track: var(--matrix-base);
+  --text-primary: var(--green-400);
+  --text-secondary: var(--green-600);
+  --border-color: var(--green-700);
+  --accent-color: var(--green-400);
+  --accent-color-hover: var(--green-500);
+  --success-color: var(--green-400);
+  --danger-color: var(--red-500);
+  --warning-color: var(--yellow-400);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--green-700);
+  --btn-default-hover-bg: var(--green-600);
+  --btn-default-text: var(--matrix-base);
+  --btn-danger-bg: var(--red-800);
+  --btn-danger-hover-bg: var(--red-900);
+  --btn-danger-text: #ffffff;
+  --btn-accent-bg: var(--green-400);
+  --btn-accent-hover-bg: var(--green-500);
+  --btn-accent-text: var(--matrix-base);
+  --btn-success-bg: var(--green-400);
+  --btn-success-hover-bg: var(--green-500);
+  --btn-success-text: var(--green-700);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--green-700);
+  --toggle-bg-on: var(--green-400);
+  --toggle-circle-bg: var(--matrix-base);
+  --toggle-circle-bg-on: var(--green-400);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Dracula Theme
+   ================================================================= */
+.theme-dracula {
+  /* --- Palette --- */
+  --dark-purple-800: #282a36;
+  --dark-purple-700: #383a59;
+  --dark-purple-600: #44475a;
+  --dark-purple-400: #6272a4;
+  --light-gray: #f8f8f2;
+  --purple: #bd93f9;
+  --pink: #ff79c6;
+  --pink-hover: #ff92d0;
+  --green: #50fa7b;
+  --green-hover: #62faa4;
+  --red: #ff5555;
+  --red-hover: #ff6e6e;
+  --yellow: #f1fa8c;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--dark-purple-800);
+  --bg-secondary: var(--dark-purple-700);
+  --bg-tertiary: var(--dark-purple-600);
+  --chat-bubble-bg: var(--dark-purple-800);
+  --chat-messages-bg: var(--dark-purple-800);
+  --scrollbar-thumb: var(--dark-purple-600);
+  --scrollbar-track: var(--dark-purple-800);
+  --text-primary: var(--light-gray);
+  --text-secondary: var(--purple);
+  --border-color: var(--dark-purple-400);
+  --accent-color: var(--pink);
+  --accent-color-hover: var(--pink-hover);
+  --success-color: var(--green);
+  --danger-color: var(--red);
+  --warning-color: var(--yellow);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--dark-purple-600);
+  --btn-default-hover-bg: var(--dark-purple-400);
+  --btn-default-text: var(--light-gray);
+  --btn-danger-bg: var(--red);
+  --btn-danger-hover-bg: var(--red-hover);
+  --btn-danger-text: var(--dark-purple-800);
+  --btn-accent-bg: var(--pink);
+  --btn-accent-hover-bg: var(--pink-hover);
+  --btn-accent-text: var(--dark-purple-800);
+  --btn-success-bg: var(--green);
+  --btn-success-hover-bg: var(--green-hover);
+  --btn-success-text: var(--dark-purple-800);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--dark-purple-600);
+  --toggle-bg-on: var(--purple);
+  --toggle-circle-bg: var(--text-primary);
+  --toggle-circle-bg-on: var(--purple);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Solarized Light Theme
+   ================================================================= */
+.theme-solarized-light {
+  /* --- Palette --- */
+  --base3: #fdf6e3;
+  --base2: #eee8d5;
+  --base1: #e7e1cf;
+  --base00: #657b83;
+  --base01: #586e75;
+  --base02: #93a1a1;
+  --base03: #839496;
+  --base04: #002b36;
+  /* Added for high contrast text */
+  --blue: #268bd2;
+  --blue-dark: #1e6a9e;
+  --green: #859900;
+  --green-dark: #728300;
+  --red: #dc322f;
+  --orange: #cb4b16;
+  --yellow: #b58900;
+  --white-overlay: rgba(255, 255, 255, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--base3);
+  --bg-secondary: var(--base2);
+  --bg-tertiary: var(--base1);
+  --chat-bubble-bg: var(--base2);
+  --chat-messages-bg: var(--base3);
+  --scrollbar-thumb: var(--base02);
+  --scrollbar-track: var(--base2);
+  --text-primary: var(--base00);
+  --text-secondary: var(--base01);
+  --border-color: var(--base02);
+  --accent-color: var(--blue);
+  --accent-color-hover: var(--blue-dark);
+  --success-color: var(--green);
+  --danger-color: var(--red);
+  --warning-color: var(--yellow);
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.1);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--base02);
+  --btn-default-hover-bg: var(--base03);
+  --btn-default-text: var(--base04);
+  --btn-danger-bg: var(--red);
+  --btn-danger-hover-bg: var(--orange);
+  --btn-danger-text: var(--base3);
+  --btn-accent-bg: var(--blue);
+  --btn-accent-hover-bg: var(--blue-dark);
+  --btn-accent-text: var(--base3);
+  --btn-success-bg: var(--green);
+  --btn-success-hover-bg: var(--green-dark);
+  --btn-success-text: var(--base3);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--base02);
+  --toggle-bg-on: var(--blue);
+  --toggle-circle-bg: var(--base3);
+  --toggle-circle-bg-on: var(--base3);
+  --overlay-color: var(--white-overlay);
+}
+
+/* =================================================================
+   Nord Theme
+   ================================================================= */
+.theme-nord {
+  /* --- Palette --- */
+  --polar-night-1: #2e3440;
+  --polar-night-2: #3b4252;
+  --polar-night-3: #434c5e;
+  --polar-night-4: #4c566a;
+  --snow-storm-1: #d8dee9;
+  --snow-storm-2: #e5e9f0;
+  --frost-3: #88c0d0;
+  --frost-4: #8fbcbb;
+  --aurora-green: #a3be8c;
+  --aurora-green-dark: #99b57e;
+  --aurora-red: #bf616a;
+  --aurora-orange: #d08770;
+  --aurora-yellow: #ebcb8b;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--polar-night-1);
+  --bg-secondary: var(--polar-night-2);
+  --bg-tertiary: var(--polar-night-3);
+  --chat-bubble-bg: var(--polar-night-3);
+  --chat-messages-bg: var(--polar-night-1);
+  --scrollbar-thumb: var(--polar-night-4);
+  --scrollbar-track: var(--polar-night-1);
+  --text-primary: var(--snow-storm-1);
+  --text-secondary: var(--snow-storm-2);
+  --border-color: var(--polar-night-4);
+  --accent-color: var(--frost-3);
+  --accent-color-hover: var(--frost-4);
+  --success-color: var(--aurora-green);
+  --danger-color: var(--aurora-red);
+  --warning-color: var(--aurora-yellow);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--polar-night-3);
+  --btn-default-hover-bg: var(--polar-night-4);
+  --btn-default-text: var(--snow-storm-1);
+  --btn-danger-bg: var(--aurora-red);
+  --btn-danger-hover-bg: var(--aurora-orange);
+  --btn-danger-text: var(--polar-night-1);
+  --btn-accent-bg: var(--frost-3);
+  --btn-accent-hover-bg: var(--frost-4);
+  --btn-accent-text: var(--polar-night-1);
+  --btn-success-bg: var(--aurora-green);
+  --btn-success-hover-bg: var(--aurora-green-dark);
+  --btn-success-text: var(--polar-night-1);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--polar-night-3);
+  --toggle-bg-on: var(--frost-3);
+  --toggle-circle-bg: var(--snow-storm-1);
+  --toggle-circle-bg-on: var(--snow-storm-1);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Gruvbox Dark Theme
+   ================================================================= */
+.theme-gruvbox-dark {
+  /* --- Palette --- */
+  --gruv-dark0-hard: #1d2021;
+  --gruv-dark0: #282828;
+  --gruv-dark1: #3c3836;
+  --gruv-dark2: #504945;
+  --gruv-dark4: #7c6f64;
+  --gruv-gray: #928374;
+  --gruv-light1: #ebdbb2;
+  --gruv-red: #cc241d;
+  --gruv-red-bright: #fb4934;
+  --gruv-green: #98971a;
+  --gruv-green-bright: #b8bb26;
+  --gruv-yellow: #d79921;
+  --gruv-yellow-bright: #fabd2f;
+  --gruv-blue: #458588;
+  --gruv-aqua: #689d6a;
+  --gruv-aqua-bright: #8ec07c;
+  --gruv-orange: #d65d0e;
+  --gruv-orange-bright: #fe8019;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--gruv-dark0);
+  --bg-secondary: var(--gruv-dark0-hard);
+  --bg-tertiary: var(--gruv-dark1);
+  --chat-bubble-bg: var(--gruv-dark0-hard);
+  --chat-messages-bg: var(--gruv-dark0);
+  --text-primary: var(--gruv-light1);
+  --text-secondary: var(--gruv-gray);
+  --border-color: var(--gruv-dark2);
+  --accent-color: var(--gruv-aqua-bright);
+  --accent-color-hover: var(--gruv-aqua);
+  --success-color: var(--gruv-green-bright);
+  --danger-color: var(--gruv-red-bright);
+  --warning-color: var(--gruv-yellow-bright);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--gruv-dark4);
+  --btn-default-hover-bg: var(--gruv-dark2);
+  --btn-default-text: var(--gruv-light1);
+  --btn-danger-bg: var(--gruv-red);
+  --btn-danger-hover-bg: var(--gruv-red-bright);
+  --btn-danger-text: var(--gruv-light1);
+  --btn-accent-bg: var(--gruv-aqua-bright);
+  --btn-accent-hover-bg: var(--gruv-aqua);
+  --btn-accent-text: var(--gruv-dark0-hard);
+  --btn-success-bg: var(--gruv-green);
+  --btn-success-hover-bg: var(--gruv-green-bright);
+  --btn-success-text: var(--gruv-dark0-hard);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--gruv-dark2);
+  --toggle-bg-on: var(--gruv-aqua-bright);
+  --toggle-circle-bg: var(--gruv-light1);
+  --toggle-circle-bg-on: var(--gruv-light1);
+  --overlay-color: var(--black-overlay);
+}
+
+
+/* =================================================================
+   Monokai Theme
+   ================================================================= */
+.theme-monokai {
+  /* --- Palette --- */
+  --mono-bg: #272822;
+  --mono-bg-dark: #1e1f1c;
+  --mono-bg-light: #414339;
+  --mono-bg-lighter: #575b61;
+  --mono-fg: #f8f8f2;
+  --mono-gray: #88846f;
+  --mono-pink: #f92672;
+  --mono-pink-light: #ff508f;
+  --mono-green: #a6e22e;
+  --mono-green-light: #b9f24d;
+  --mono-blue: #66d9ef;
+  --mono-yellow: #e6db74;
+  --mono-orange: #fd971f;
+  --mono-purple: #ae81ff;
+  --mono-red: #f44747;
+  --mono-red-light: #f66a6a;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--mono-bg-dark);
+  --bg-secondary: var(--mono-bg);
+  --bg-tertiary: var(--mono-bg-light);
+  --chat-bubble-bg: var(--mono-bg-dark);
+  --chat-messages-bg: var(--mono-bg-dark);
+  --scrollbar-thumb: var(--mono-gray);
+  --scrollbar-track: var(--mono-bg);
+  --text-primary: var(--mono-fg);
+  --text-secondary: var(--mono-gray);
+  --border-color: var(--mono-bg-light);
+  --accent-color: var(--mono-pink);
+  --accent-color-hover: var(--mono-pink-light);
+  --success-color: var(--mono-green);
+  --danger-color: var(--mono-red);
+  --warning-color: var(--mono-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--mono-bg-light);
+  --btn-default-hover-bg: var(--mono-bg-lighter);
+  --btn-default-text: var(--mono-fg);
+  --btn-danger-bg: var(--mono-red);
+  --btn-danger-hover-bg: var(--mono-red-light);
+  --btn-danger-text: var(--mono-bg-dark);
+  --btn-accent-bg: var(--mono-pink);
+  --btn-accent-hover-bg: var(--mono-pink-light);
+  --btn-accent-text: var(--mono-bg-dark);
+  --btn-success-bg: var(--mono-green);
+  --btn-success-hover-bg: var(--mono-green-light);
+  --btn-success-text: var(--mono-bg-dark);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--mono-bg-light);
+  --toggle-bg-on: var(--mono-pink);
+  --toggle-circle-bg: var(--mono-fg);
+  --toggle-circle-bg-on: var(--mono-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Tokyo Night Theme
+   ================================================================= */
+.theme-tokyo-night {
+  /* --- Palette --- */
+  --tokyo-bg: #1a1b26;
+  --tokyo-bg-light: #24283b;
+  --tokyo-bg-dark: #16161e;
+  --tokyo-fg: #c0caf5;
+  --tokyo-fg-alt: #a9b1d6;
+  --tokyo-comment: #565f89;
+  --tokyo-comment-light: #6b739e;
+  --tokyo-blue: #7aa2f7;
+  --tokyo-blue-light: #9ab7ff;
+  --tokyo-cyan: #7dcfff;
+  --tokyo-green: #9ece6a;
+  --tokyo-green-light: #b8f28a;
+  --tokyo-orange: #ff9e64;
+  --tokyo-red: #f7768e;
+  --tokyo-red-light: #ff91a4;
+  --tokyo-purple: #bb9af7;
+  --tokyo-yellow: #e0af68;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--tokyo-bg);
+  --bg-secondary: var(--tokyo-bg-light);
+  --bg-tertiary: var(--tokyo-bg-dark);
+  --chat-bubble-bg: var(--tokyo-bg-dark);
+  --chat-messages-bg: var(--tokyo-bg);
+  --scrollbar-thumb: var(--tokyo-comment);
+  --scrollbar-track: var(--tokyo-bg);
+  --text-primary: var(--tokyo-fg);
+  --text-secondary: var(--tokyo-fg-alt);
+  --border-color: var(--tokyo-comment);
+  --accent-color: var(--tokyo-blue);
+  --accent-color-hover: var(--tokyo-blue-light);
+  --success-color: var(--tokyo-green);
+  --danger-color: var(--tokyo-red);
+  --warning-color: var(--tokyo-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--tokyo-comment);
+  --btn-default-hover-bg: var(--tokyo-comment-light);
+  --btn-default-text: var(--tokyo-fg);
+  --btn-danger-bg: var(--tokyo-red);
+  --btn-danger-hover-bg: var(--tokyo-red-light);
+  --btn-danger-text: var(--tokyo-bg);
+  --btn-accent-bg: var(--tokyo-blue);
+  --btn-accent-hover-bg: var(--tokyo-blue-light);
+  --btn-accent-text: var(--tokyo-bg);
+  --btn-success-bg: var(--tokyo-green);
+  --btn-success-hover-bg: var(--tokyo-green-light);
+  --btn-success-text: var(--tokyo-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--tokyo-comment);
+  --toggle-bg-on: var(--tokyo-blue);
+  --toggle-circle-bg: var(--tokyo-fg);
+  --toggle-circle-bg-on: var(--tokyo-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Everforest Dark Theme
+   ================================================================= */
+.theme-everforest-dark {
+  /* --- Palette --- */
+  --ever-bg: #2d353b;
+  --ever-bg-alt: #343f44;
+  --ever-bg-dark: #232a2e;
+  --ever-bg3: #475258;
+  --ever-fg: #d3c6aa;
+  --ever-gray: #859289;
+  --ever-gray-light: #9da9a0;
+  --ever-red: #e67e80;
+  --ever-red-light: #f09496;
+  --ever-orange: #e69875;
+  --ever-yellow: #dbbc7f;
+  --ever-green: #a7c080;
+  --ever-green-light: #bad496;
+  --ever-aqua: #83c092;
+  --ever-aqua-light: #97d4a9;
+  --ever-blue: #7fbbb3;
+  --ever-purple: #d699b6;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--ever-bg);
+  --bg-secondary: var(--ever-bg-alt);
+  --bg-tertiary: var(--ever-bg-dark);
+  --chat-bubble-bg: var(--ever-bg-dark);
+  --chat-messages-bg: var(--ever-bg);
+  --scrollbar-thumb: var(--ever-gray);
+  --scrollbar-track: var(--ever-bg);
+  --text-primary: var(--ever-fg);
+  --text-secondary: var(--ever-gray);
+  --border-color: var(--ever-bg3);
+  --accent-color: var(--ever-aqua);
+  --accent-color-hover: var(--ever-aqua-light);
+  --success-color: var(--ever-green);
+  --danger-color: var(--ever-red);
+  --warning-color: var(--ever-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--ever-gray);
+  --btn-default-hover-bg: var(--ever-gray-light);
+  --btn-default-text: var(--ever-bg);
+  --btn-danger-bg: var(--ever-red);
+  --btn-danger-hover-bg: var(--ever-red-light);
+  --btn-danger-text: var(--ever-bg);
+  --btn-accent-bg: var(--ever-aqua);
+  --btn-accent-hover-bg: var(--ever-aqua-light);
+  --btn-accent-text: var(--ever-bg);
+  --btn-success-bg: var(--ever-green);
+  --btn-success-hover-bg: var(--ever-green-light);
+  --btn-success-text: var(--ever-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--ever-gray);
+  --toggle-bg-on: var(--ever-aqua);
+  --toggle-circle-bg: var(--ever-fg);
+  --toggle-circle-bg-on: var(--ever-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Solarized Dark Theme
+   ================================================================= */
+.theme-solarized-dark {
+  /* --- Palette --- */
+  --base03: #002b36;
+  --base02: #073642;
+  --base01: #586e75;
+  --base00: #657b83;
+  --base0: #839496;
+  --base1: #93a1a1;
+  --yellow: #b58900;
+  --orange: #cb4b16;
+  --red: #dc322f;
+  --magenta: #d33682;
+  --violet: #6c71c4;
+  --blue: #268bd2;
+  --blue-light: #54a9e0;
+  --cyan: #2aa198;
+  --green: #859900;
+  --green-light: #9cb400;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--base03);
+  --bg-secondary: var(--base02);
+  --bg-tertiary: #0a3d4a;
+  /* Optimized card background (darker than base01) */
+  --chat-bubble-bg: var(--base02);
+  --chat-messages-bg: var(--base03);
+  --scrollbar-thumb: var(--base01);
+  --scrollbar-track: var(--base03);
+  --text-primary: var(--base0);
+  --text-secondary: var(--base1);
+  --border-color: var(--base02);
+  --accent-color: var(--blue);
+  --accent-color-hover: var(--blue-light);
+  --success-color: var(--green);
+  --danger-color: var(--red);
+  --warning-color: var(--yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--base02);
+  --btn-default-hover-bg: var(--base01);
+  --btn-default-text: var(--base1);
+  --btn-danger-bg: var(--red);
+  --btn-danger-hover-bg: var(--orange);
+  --btn-danger-text: var(--base03);
+  --btn-accent-bg: var(--blue);
+  --btn-accent-hover-bg: var(--blue-light);
+  --btn-accent-text: var(--base03);
+  --btn-success-bg: var(--green);
+  --btn-success-hover-bg: var(--green-light);
+  --btn-success-text: var(--base03);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--base02);
+  --toggle-bg-on: var(--blue);
+  --toggle-circle-bg: var(--base03);
+  --toggle-circle-bg-on: var(--base03);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Catppuccin (Mocha) Theme
+   ================================================================= */
+.theme-catppuccin {
+  /* --- Palette --- */
+  --cat-base: #1e1e2e;
+  --cat-mantle: #181825;
+  --cat-crust: #11111b;
+  --cat-surface0: #313244;
+  --cat-surface1: #45475a;
+  --cat-surface2: #585b70;
+  --cat-text: #cdd6f4;
+  --cat-subtext1: #bac2de;
+  --cat-overlay2: #9399b2;
+  --cat-red: #f38ba8;
+  --cat-red-light: #f5a0b8;
+  --cat-green: #a6e3a1;
+  --cat-green-light: #baf5b5;
+  --cat-yellow: #f9e2af;
+  --cat-blue: #89b4fa;
+  --cat-pink: #f5c2e7;
+  --cat-teal: #94e2d5;
+  --cat-lavender: #b4befe;
+  --cat-lavender-light: #c4c9fe;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--cat-base);
+  --bg-secondary: var(--cat-mantle);
+  --bg-tertiary: var(--cat-surface0);
+  --chat-bubble-bg: var(--cat-mantle);
+  --chat-messages-bg: var(--cat-base);
+  --scrollbar-thumb: var(--cat-surface2);
+  --scrollbar-track: var(--cat-mantle);
+  --text-primary: var(--cat-text);
+  --text-secondary: var(--cat-subtext1);
+  --border-color: var(--cat-surface1);
+  --accent-color: var(--cat-lavender);
+  --accent-color-hover: var(--cat-lavender-light);
+  --success-color: var(--cat-green);
+  --danger-color: var(--cat-red);
+  --warning-color: var(--cat-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--cat-surface1);
+  --btn-default-hover-bg: var(--cat-surface2);
+  --btn-default-text: var(--cat-text);
+  --btn-danger-bg: var(--cat-red);
+  --btn-danger-hover-bg: var(--cat-red-light);
+  --btn-danger-text: var(--cat-base);
+  --btn-accent-bg: var(--cat-lavender);
+  --btn-accent-hover-bg: var(--cat-lavender-light);
+  --btn-accent-text: var(--cat-base);
+  --btn-success-bg: var(--cat-green);
+  --btn-success-hover-bg: var(--cat-green-light);
+  --btn-success-text: var(--cat-base);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--cat-surface1);
+  --toggle-bg-on: var(--cat-lavender);
+  --toggle-circle-bg: var(--cat-text);
+  --toggle-circle-bg-on: var(--cat-crust);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   One Dark Pro Theme
+   ================================================================= */
+.theme-one-dark-pro {
+  /* --- Palette --- */
+  --one-bg: #282c34;
+  --one-bg-dark: #21252b;
+  --one-bg-light: #3b4048;
+  --one-fg: #abb2bf;
+  --one-comment: #5c6370;
+  --one-comment-light: #6e7886;
+  --one-red: #e06c75;
+  --one-red-light: #e68b92;
+  --one-green: #98c379;
+  --one-green-light: #b1d69a;
+  --one-yellow: #e5c07b;
+  --one-orange: #d19a66;
+  --one-blue: #61afef;
+  --one-blue-light: #7ec1f7;
+  --one-purple: #c678dd;
+  --one-cyan: #56b6c2;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--one-bg);
+  --bg-secondary: var(--one-bg-dark);
+  --bg-tertiary: var(--one-bg-light);
+  --chat-bubble-bg: var(--one-bg-dark);
+  --chat-messages-bg: var(--one-bg);
+  --scrollbar-thumb: var(--one-comment);
+  --scrollbar-track: var(--one-bg-dark);
+  --text-primary: var(--one-fg);
+  --text-secondary: var(--one-comment);
+  --border-color: var(--one-comment);
+  --accent-color: var(--one-blue);
+  --accent-color-hover: var(--one-blue-light);
+  --success-color: var(--one-green);
+  --danger-color: var(--one-red);
+  --warning-color: var(--one-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--one-comment);
+  --btn-default-hover-bg: var(--one-comment-light);
+  --btn-default-text: var(--one-fg);
+  --btn-danger-bg: var(--one-red);
+  --btn-danger-hover-bg: var(--one-red-light);
+  --btn-danger-text: var(--one-bg);
+  --btn-accent-bg: var(--one-blue);
+  --btn-accent-hover-bg: var(--one-blue-light);
+  --btn-accent-text: var(--one-bg);
+  --btn-success-bg: var(--one-green);
+  --btn-success-hover-bg: var(--one-green-light);
+  --btn-success-text: var(--one-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--one-comment);
+  --toggle-bg-on: var(--one-blue);
+  --toggle-circle-bg: var(--one-fg);
+  --toggle-circle-bg-on: var(--one-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Obsidian Theme
+   ================================================================= */
+.theme-obsidian {
+  /* --- Palette --- */
+  --obsidian-bg: #1e1e1e;
+  --obsidian-bg-alt: #2a2a2a;
+  --obsidian-border: #3f3f3f;
+  --obsidian-border-light: #555555;
+  --obsidian-fg: #dadada;
+  --obsidian-gray: #999999;
+  --obsidian-white: #ffffff;
+  --obsidian-red: #fb464c;
+  --obsidian-red-light: #fc6b70;
+  --obsidian-green: #44cf6e;
+  --obsidian-green-light: #68d98c;
+  --obsidian-yellow: #e0de71;
+  --obsidian-blue: #027aff;
+  --obsidian-blue-light: #3593ff;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--obsidian-bg);
+  --bg-secondary: var(--obsidian-bg-alt);
+  --bg-tertiary: var(--obsidian-border);
+  --chat-bubble-bg: var(--obsidian-bg-alt);
+  --chat-messages-bg: var(--obsidian-bg);
+  --scrollbar-thumb: var(--obsidian-border-light);
+  --scrollbar-track: var(--obsidian-bg-alt);
+  --text-primary: var(--obsidian-fg);
+  --text-secondary: var(--obsidian-gray);
+  --border-color: var(--obsidian-border);
+  --accent-color: var(--obsidian-blue);
+  --accent-color-hover: var(--obsidian-blue-light);
+  --success-color: var(--obsidian-green);
+  --danger-color: var(--obsidian-red);
+  --warning-color: var(--obsidian-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--obsidian-border);
+  --btn-default-hover-bg: var(--obsidian-border-light);
+  --btn-default-text: var(--obsidian-fg);
+  --btn-danger-bg: var(--obsidian-red);
+  --btn-danger-hover-bg: var(--obsidian-red-light);
+  --btn-danger-text: var(--obsidian-bg);
+  --btn-accent-bg: var(--obsidian-blue);
+  --btn-accent-hover-bg: var(--obsidian-blue-light);
+  --btn-accent-text: var(--obsidian-white);
+  --btn-success-bg: var(--obsidian-green);
+  --btn-success-hover-bg: var(--obsidian-green-light);
+  --btn-success-text: var(--obsidian-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--obsidian-border);
+  --toggle-bg-on: var(--obsidian-blue);
+  --toggle-circle-bg: var(--obsidian-fg);
+  --toggle-circle-bg-on: var(--obsidian-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Dracula Soft Theme
+   ================================================================= */
+.theme-dracula-soft {
+  /* --- Palette --- */
+  --drac-soft-bg: #282a36;
+  --drac-soft-bg-alt: #383a59;
+  --drac-soft-border: #44475a;
+  --drac-soft-fg: #f8f8f2;
+  --drac-soft-comment: #6272a4;
+  --drac-soft-purple: #b491c8;
+  --drac-soft-pink: #e089b3;
+  --drac-soft-pink-light: #e6a0c1;
+  --drac-soft-green: #7de89f;
+  --drac-soft-green-light: #97f0b6;
+  --drac-soft-red: #e07878;
+  --drac-soft-red-light: #e68f8f;
+  --drac-soft-yellow: #dcdf9a;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--drac-soft-bg);
+  --bg-secondary: var(--drac-soft-bg-alt);
+  --bg-tertiary: var(--drac-soft-border);
+  --chat-bubble-bg: var(--drac-soft-bg-alt);
+  --chat-messages-bg: var(--drac-soft-bg);
+  --scrollbar-thumb: var(--drac-soft-comment);
+  --scrollbar-track: var(--drac-soft-bg);
+  --text-primary: var(--drac-soft-fg);
+  --text-secondary: var(--drac-soft-purple);
+  --border-color: var(--drac-soft-border);
+  --accent-color: var(--drac-soft-pink);
+  --accent-color-hover: var(--drac-soft-pink-light);
+  --success-color: var(--drac-soft-green);
+  --danger-color: var(--drac-soft-red);
+  --warning-color: var(--drac-soft-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--drac-soft-border);
+  --btn-default-hover-bg: var(--drac-soft-comment);
+  --btn-default-text: var(--drac-soft-fg);
+  --btn-danger-bg: var(--drac-soft-red);
+  --btn-danger-hover-bg: var(--drac-soft-red-light);
+  --btn-danger-text: var(--drac-soft-bg);
+  --btn-accent-bg: var(--drac-soft-pink);
+  --btn-accent-hover-bg: var(--drac-soft-pink-light);
+  --btn-accent-text: var(--drac-soft-bg);
+  --btn-success-bg: var(--drac-soft-green);
+  --btn-success-hover-bg: var(--drac-soft-green-light);
+  --btn-success-text: var(--drac-soft-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--drac-soft-border);
+  --toggle-bg-on: var(--drac-soft-purple);
+  --toggle-circle-bg: var(--drac-soft-fg);
+  --toggle-circle-bg-on: var(--drac-soft-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+
+/* =================================================================
+   Ayu Dark Theme
+   ================================================================= */
+.theme-ayu-dark {
+  /* --- Palette --- */
+  --ayu-bg: #0f1419;
+  --ayu-fg: #bfbdb6;
+  --ayu-bg-alt: #131721;
+  --ayu-border: #3b5364;
+  --ayu-border-light: #4c6a80;
+  --ayu-tag: #39bae6;
+  --ayu-func: #ffb454;
+  --ayu-entity: #59c2ff;
+  --ayu-entity-light: #82d1ff;
+  --ayu-string: #aad94c;
+  --ayu-keyword: #ff8f40;
+  --ayu-comment: #5c6370;
+  --ayu-constant: #d2a6ff;
+  --ayu-error: #d95757;
+  --ayu-error-light: #e07878;
+  --ayu-added: #7fd962;
+  --ayu-added-light: #99e07f;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--ayu-bg);
+  --bg-secondary: var(--ayu-bg-alt);
+  --bg-tertiary: var(--ayu-border);
+  --chat-bubble-bg: var(--ayu-bg-alt);
+  --chat-messages-bg: var(--ayu-bg);
+  --scrollbar-thumb: var(--ayu-border-light);
+  --scrollbar-track: var(--ayu-bg-alt);
+  --text-primary: var(--ayu-fg);
+  --text-secondary: var(--ayu-fg);
+  --border-color: var(--ayu-border);
+  --accent-color: var(--ayu-entity);
+  --accent-color-hover: var(--ayu-entity-light);
+  --success-color: var(--ayu-added);
+  --danger-color: var(--ayu-error);
+  --warning-color: var(--ayu-func);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--ayu-border);
+  --btn-default-hover-bg: var(--ayu-border-light);
+  --btn-default-text: var(--ayu-fg);
+  --btn-danger-bg: var(--ayu-error);
+  --btn-danger-hover-bg: var(--ayu-error-light);
+  --btn-danger-text: var(--ayu-bg);
+  --btn-accent-bg: var(--ayu-entity);
+  --btn-accent-hover-bg: var(--ayu-entity-light);
+  --btn-accent-text: var(--ayu-bg);
+  --btn-success-bg: var(--ayu-added);
+  --btn-success-hover-bg: var(--ayu-added-light);
+  --btn-success-text: var(--ayu-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--ayu-border);
+  --toggle-bg-on: var(--ayu-entity);
+  --toggle-circle-bg: var(--ayu-fg);
+  --toggle-circle-bg-on: var(--ayu-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Cobalt2 Theme
+   ================================================================= */
+.theme-cobalt2 {
+  /* --- Palette --- */
+  --cobalt-bg: #193549;
+  --cobalt-bg-dark: #15232d;
+  --cobalt-bg-alt: #1f4662;
+  --cobalt-bg-alt-light: #35434d;
+  --cobalt-fg: #ffffff;
+  --cobalt-comment: #0088ff;
+  --cobalt-yellow: #ffc600;
+  --cobalt-yellow-light: #ffe066;
+  --cobalt-orange: #ff9d00;
+  --cobalt-green: #3ad900;
+  --cobalt-green-light: #61e633;
+  --cobalt-blue: #80ffbb;
+  --cobalt-pink: #ff628c;
+  --cobalt-red: #ff1e00;
+  --cobalt-red-light: #ff5533;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--cobalt-bg);
+  --bg-secondary: var(--cobalt-bg-dark);
+  --bg-tertiary: var(--cobalt-bg-alt);
+  --chat-bubble-bg: var(--cobalt-bg-dark);
+  --chat-messages-bg: var(--cobalt-bg);
+  --scrollbar-thumb: var(--cobalt-comment);
+  --scrollbar-track: var(--cobalt-bg-dark);
+  --text-primary: var(--cobalt-fg);
+  --text-secondary: var(--cobalt-comment);
+  --border-color: var(--cobalt-bg-alt);
+  --accent-color: var(--cobalt-yellow);
+  --accent-color-hover: var(--cobalt-yellow-light);
+  --success-color: var(--cobalt-green);
+  --danger-color: var(--cobalt-red);
+  --warning-color: var(--cobalt-orange);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--cobalt-bg-alt);
+  --btn-default-hover-bg: var(--cobalt-bg-alt-light);
+  --btn-default-text: var(--cobalt-fg);
+  --btn-danger-bg: var(--cobalt-red);
+  --btn-danger-hover-bg: var(--cobalt-red-light);
+  --btn-danger-text: var(--cobalt-fg);
+  --btn-accent-bg: var(--cobalt-yellow);
+  --btn-accent-hover-bg: var(--cobalt-yellow-light);
+  --btn-accent-text: var(--cobalt-bg);
+  --btn-success-bg: var(--cobalt-green);
+  --btn-success-hover-bg: var(--cobalt-green-light);
+  --btn-success-text: var(--cobalt-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--cobalt-bg-alt);
+  --toggle-bg-on: var(--cobalt-yellow);
+  --toggle-circle-bg: var(--cobalt-bg);
+  --toggle-circle-bg-on: var(--cobalt-bg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Night Owl Theme
+   ================================================================= */
+.theme-night-owl {
+  /* --- Palette --- */
+  --owl-bg: #011627;
+  --owl-bg-light: #011a2f;
+  --owl-bg-lighter: #1d3b53;
+  --owl-bg-lightest: #5f7e97;
+  --owl-fg: #d6deeb;
+  --owl-comment: #637777;
+  --owl-red: #ff6363;
+  --owl-red-light: #ff8c8c;
+  --owl-orange: #f78c6c;
+  --owl-purple: #c792ea;
+  --owl-purple-light: #d2a5f0;
+  --owl-blue: #82aaff;
+  --owl-yellow: #ecc48d;
+  --owl-green: #addb67;
+  --owl-green-light: #c1e685;
+  --owl-cyan: #7fdbca;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--owl-bg);
+  --bg-secondary: var(--owl-bg-light);
+  --bg-tertiary: var(--owl-bg-lighter);
+  --chat-bubble-bg: var(--owl-bg-light);
+  --chat-messages-bg: var(--owl-bg);
+  --scrollbar-thumb: var(--owl-bg-lightest);
+  --scrollbar-track: var(--owl-bg-light);
+  --text-primary: var(--owl-fg);
+  --text-secondary: var(--owl-comment);
+  --border-color: var(--owl-bg-lighter);
+  --accent-color: var(--owl-purple);
+  --accent-color-hover: var(--owl-purple-light);
+  --success-color: var(--owl-green);
+  --danger-color: var(--owl-red);
+  --warning-color: var(--owl-yellow);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--owl-bg-lighter);
+  --btn-default-hover-bg: var(--owl-bg-lightest);
+  --btn-default-text: var(--owl-fg);
+  --btn-danger-bg: var(--owl-red);
+  --btn-danger-hover-bg: var(--owl-red-light);
+  --btn-danger-text: var(--owl-bg);
+  --btn-accent-bg: var(--owl-purple);
+  --btn-accent-hover-bg: var(--owl-purple-light);
+  --btn-accent-text: var(--owl-bg);
+  --btn-success-bg: var(--owl-green);
+  --btn-success-hover-bg: var(--owl-green-light);
+  --btn-success-text: var(--owl-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--owl-bg-lighter);
+  --toggle-bg-on: var(--owl-purple);
+  --toggle-circle-bg: var(--owl-fg);
+  --toggle-circle-bg-on: var(--owl-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Midnight Theme
+   ================================================================= */
+.theme-midnight {
+  /* --- Palette --- */
+  --midnight-bg-main: #0d1117;
+  --midnight-bg-cards: #161b22;
+  --midnight-bg-overlay: #21262d;
+  --midnight-border: #30363d;
+  --midnight-text-primary: #e6edf3;
+  --midnight-text-secondary: #8b949e;
+  --midnight-gold: #ffd700;
+  --midnight-gold-hover: #d4af37;
+  --midnight-success: #238636;
+  --midnight-error: #da3633;
+  --midnight-warning: #d29922;
+  --black-transparent: rgba(0, 0, 0, 0.3);
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--midnight-bg-main);
+  --bg-secondary: var(--midnight-bg-cards);
+  --bg-tertiary: var(--midnight-bg-overlay);
+  --chat-bubble-bg: var(--midnight-bg-cards);
+  --chat-messages-bg: var(--midnight-bg-main);
+  --scrollbar-thumb: var(--midnight-bg-overlay);
+  --scrollbar-track: var(--midnight-bg-main);
+  --text-primary: var(--midnight-text-primary);
+  --text-secondary: var(--midnight-text-secondary);
+  --border-color: var(--midnight-border);
+  --accent-color: var(--midnight-gold);
+  --accent-color-hover: var(--midnight-gold-hover);
+  --success-color: var(--midnight-success);
+  --danger-color: var(--midnight-error);
+  --warning-color: var(--midnight-warning);
+  --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--midnight-bg-overlay);
+  --btn-default-hover-bg: var(--midnight-border);
+  --btn-default-text: var(--midnight-text-primary);
+  --btn-danger-bg: var(--midnight-error);
+  --btn-danger-hover-bg: color-mix(in srgb, var(--midnight-error) 80%, black);
+  --btn-danger-text: var(--midnight-text-primary);
+  --btn-accent-bg: var(--midnight-gold);
+  --btn-accent-hover-bg: var(--midnight-gold-hover);
+  --btn-accent-text: var(--midnight-bg-main);
+  --btn-success-bg: var(--midnight-success);
+  --btn-success-hover-bg: color-mix(
+    in srgb,
+    var(--midnight-success) 80%,
+    black
+  );
+  --btn-success-text: var(--midnight-text-primary);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--midnight-bg-overlay);
+  --toggle-bg-on: var(--midnight-gold);
+  --toggle-circle-bg: var(--midnight-bg-main);
+  --toggle-circle-bg-on: var(--midnight-bg-main);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   Ayu Light Theme
+   ================================================================= */
+.theme-ayu-light {
+  /* --- Palette --- */
+  --ayu-light-bg: #f8f9fa;
+  --ayu-light-bg-alt: #f3f4f5;
+  --ayu-light-fg: #5c6166;
+  --ayu-light-fg-alt: #8a9199;
+  --ayu-light-border: #e6e6e6;
+  --ayu-light-accent: #ffaa33;
+  --ayu-light-accent-light: #ffb757;
+  --ayu-light-green: #6cbf43;
+  --ayu-light-green-light: #84d259;
+  --ayu-light-red: #e65050;
+  --ayu-light-red-light: #f06969;
+  --ayu-light-orange: #fa8d3e;
+  --ayu-light-blue: #399ee6;
+  --ayu-light-border-hover: #d9d9d9;
+  --white-overlay: rgba(255, 255, 255, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--ayu-light-bg);
+  --bg-secondary: var(--ayu-light-bg-alt);
+  --bg-tertiary: var(--ayu-light-border);
+  --chat-bubble-bg: var(--ayu-light-bg-alt);
+  --chat-messages-bg: var(--ayu-light-bg);
+  --scrollbar-thumb: #e0e0e0;
+  --scrollbar-track: var(--ayu-light-bg);
+  --text-primary: var(--ayu-light-fg);
+  --text-secondary: var(--ayu-light-fg-alt);
+  --border-color: var(--ayu-light-border);
+  --accent-color: var(--ayu-light-accent);
+  --accent-color-hover: var(--ayu-light-accent-light);
+  --success-color: var(--ayu-light-green);
+  --danger-color: var(--ayu-light-red);
+  --warning-color: var(--ayu-light-orange);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--ayu-light-border);
+  --btn-default-hover-bg: var(--ayu-light-border-hover);
+  --btn-default-text: var(--ayu-light-fg);
+  --btn-danger-bg: var(--ayu-light-red);
+  --btn-danger-hover-bg: var(--ayu-light-red-light);
+  --btn-danger-text: var(--ayu-light-fg);
+  --btn-accent-bg: var(--ayu-light-accent);
+  --btn-accent-hover-bg: var(--ayu-light-accent-light);
+  --btn-accent-text: var(--ayu-light-bg);
+  --btn-success-bg: var(--ayu-light-green);
+  --btn-success-hover-bg: var(--ayu-light-green-light);
+  --btn-success-text: var(--ayu-light-fg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--ayu-light-border);
+  --toggle-bg-on: var(--ayu-light-accent);
+  --toggle-circle-bg: var(--ayu-light-bg);
+  --toggle-circle-bg-on: var(--ayu-light-bg);
+  --overlay-color: var(--white-overlay);
+}
+
+
+/* =================================================================
+   Ayu Mirage Theme
+   ================================================================= */
+.theme-ayu-mirage {
+  /* --- Palette --- */
+  --ayu-mirage-bg: #1f2430;
+  --ayu-mirage-bg-alt: #242936;
+  --ayu-mirage-border: #2a3040;
+  --ayu-mirage-fg: #cccac2;
+  --ayu-mirage-fg-alt: #707a8c;
+  --ayu-mirage-accent: #ffcc66;
+  --ayu-mirage-accent-light: #ffd480;
+  --ayu-mirage-green: #87d96c;
+  --ayu-mirage-green-light: #99e07f;
+  --ayu-mirage-red: #ff6666;
+  --ayu-mirage-red-light: #ff8080;
+  --ayu-mirage-orange: #ffad66;
+  --ayu-mirage-blue: #73d0ff;
+  --ayu-mirage-border-hover: #3e4554;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--ayu-mirage-bg);
+  --bg-secondary: var(--ayu-mirage-bg-alt);
+  --bg-tertiary: var(--ayu-mirage-border);
+  --chat-bubble-bg: var(--ayu-mirage-bg-alt);
+  --chat-messages-bg: var(--ayu-mirage-bg);
+  --scrollbar-thumb: var(--ayu-mirage-border-hover);
+  --scrollbar-track: var(--ayu-mirage-bg-alt);
+  --text-primary: var(--ayu-mirage-fg);
+  --text-secondary: var(--ayu-mirage-fg-alt);
+  --border-color: var(--ayu-mirage-border);
+  --accent-color: var(--ayu-mirage-accent);
+  --accent-color-hover: var(--ayu-mirage-accent-light);
+  --success-color: var(--ayu-mirage-green);
+  --danger-color: var(--ayu-mirage-red);
+  --warning-color: var(--ayu-mirage-orange);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--ayu-mirage-border);
+  --btn-default-hover-bg: var(--ayu-mirage-border-hover);
+  --btn-default-text: var(--ayu-mirage-fg);
+  --btn-danger-bg: var(--ayu-mirage-red);
+  --btn-danger-hover-bg: var(--ayu-mirage-red-light);
+  --btn-danger-text: var(--ayu-mirage-bg);
+  --btn-accent-bg: var(--ayu-mirage-accent);
+  --btn-accent-hover-bg: var(--ayu-mirage-accent-light);
+  --btn-accent-text: var(--ayu-mirage-bg);
+  --btn-success-bg: var(--ayu-mirage-green);
+  --btn-success-hover-bg: var(--ayu-mirage-green-light);
+  --btn-success-text: var(--ayu-mirage-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--ayu-mirage-border);
+  --toggle-bg-on: var(--ayu-mirage-accent);
+  --toggle-circle-bg: var(--ayu-mirage-fg);
+  --toggle-circle-bg-on: var(--ayu-mirage-bg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   GitHub Dark Theme
+   ================================================================= */
+.theme-github-dark {
+  /* --- Palette --- */
+  --gh-dark-bg: #0d1117;
+  --gh-dark-bg-alt: #161b22;
+  --gh-dark-border: #30363d;
+  --gh-dark-fg: #c9d1d9;
+  --gh-dark-fg-alt: #8b949e;
+  --gh-dark-blue: #58a6ff;
+  --gh-dark-blue-light: #79c0ff;
+  --gh-dark-green: #3fb950;
+  --gh-dark-green-light: #56d364;
+  --gh-dark-red: #f85149;
+  --gh-dark-red-light: #ff7b72;
+  --gh-dark-orange: #f0883e;
+  --gh-dark-purple: #bc8cff;
+  --gh-dark-white: #ffffff;
+  --gh-dark-btn-bg: #21262d;
+  --gh-dark-btn-hover-bg: #30363d;
+  --gh-dark-btn-danger-bg: #da3633;
+  --gh-dark-btn-danger-hover-bg: #f85149;
+  --gh-dark-btn-accent-bg: #238636;
+  --gh-dark-btn-accent-hover-bg: #2ea043;
+  --black-overlay: rgba(0, 0, 0, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--gh-dark-bg);
+  --bg-secondary: var(--gh-dark-bg-alt);
+  --bg-tertiary: var(--gh-dark-border);
+  --chat-bubble-bg: var(--gh-dark-bg-alt);
+  --chat-messages-bg: var(--gh-dark-bg);
+  --scrollbar-thumb: var(--gh-dark-btn-bg);
+  --scrollbar-track: var(--gh-dark-bg);
+  --text-primary: var(--gh-dark-fg);
+  --text-secondary: var(--gh-dark-fg-alt);
+  --border-color: var(--gh-dark-border);
+  --accent-color: var(--gh-dark-blue);
+  --accent-color-hover: var(--gh-dark-blue-light);
+  --success-color: var(--gh-dark-green);
+  --danger-color: var(--gh-dark-red);
+  --warning-color: var(--gh-dark-orange);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--gh-dark-btn-bg);
+  --btn-default-hover-bg: var(--gh-dark-btn-hover-bg);
+  --btn-default-text: var(--gh-dark-fg);
+  --btn-danger-bg: var(--gh-dark-btn-danger-bg);
+  --btn-danger-hover-bg: var(--gh-dark-btn-danger-hover-bg);
+  --btn-danger-text: var(--gh-dark-white);
+  --btn-accent-bg: var(--gh-dark-btn-accent-bg);
+  --btn-accent-hover-bg: var(--gh-dark-btn-accent-hover-bg);
+  --btn-accent-text: var(--gh-dark-white);
+  --btn-success-bg: var(--gh-dark-green);
+  --btn-success-hover-bg: var(--gh-dark-green-light);
+  --btn-success-text: var(--gh-dark-bg);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--gh-dark-border);
+  --toggle-bg-on: var(--gh-dark-blue);
+  --toggle-circle-bg: var(--gh-dark-fg);
+  --toggle-circle-bg-on: var(--gh-dark-fg);
+  --overlay-color: var(--black-overlay);
+}
+
+/* =================================================================
+   GitHub Light Theme
+   ================================================================= */
+.theme-github-light {
+  /* --- Palette --- */
+  --gh-light-bg: #ffffff;
+  --gh-light-bg-alt: #f6f8fa;
+  --gh-light-border: #d0d7de;
+  --gh-light-fg: #24292f;
+  --gh-light-fg-alt: #57606a;
+  --gh-light-blue: #0969da;
+  --gh-light-blue-light: #2c85e9;
+  --gh-light-green: #1f883d;
+  --gh-light-green-light: #26a14a;
+  --gh-light-red: #cf222e;
+  --gh-light-red-light: #e5535d;
+  --gh-light-orange: #9a6700;
+  --gh-light-purple: #8250df;
+  --gh-light-white: #ffffff;
+  --gh-light-btn-bg: #f6f8fa;
+  --gh-light-btn-hover-bg: #f0f2f5;
+  --gh-light-btn-danger-bg: #d73a49;
+  --gh-light-btn-danger-hover-bg: #cf222e;
+  --gh-light-btn-accent-bg: #2da44e;
+  --gh-light-btn-accent-hover-bg: #2c974b;
+  --white-overlay: rgba(255, 255, 255, 0.7);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: var(--gh-light-bg);
+  --bg-secondary: var(--gh-light-bg-alt);
+  --bg-tertiary: var(--gh-light-btn-hover-bg);
+  --chat-bubble-bg: var(--gh-light-bg-alt);
+  --chat-messages-bg: var(--gh-light-bg);
+  --scrollbar-thumb: var(--gh-light-border);
+  --scrollbar-track: var(--gh-light-bg-alt);
+  --text-primary: var(--gh-light-fg);
+  --text-secondary: var(--gh-light-fg-alt);
+  --border-color: var(--gh-light-border);
+  --accent-color: var(--gh-light-blue);
+  --accent-color-hover: var(--gh-light-blue-light);
+  --success-color: var(--gh-light-green);
+  --danger-color: var(--gh-light-red);
+  --warning-color: var(--gh-light-orange);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--gh-light-btn-bg);
+  --btn-default-hover-bg: var(--gh-light-btn-hover-bg);
+  --btn-default-text: var(--gh-light-fg);
+  --btn-danger-bg: var(--gh-light-btn-danger-bg);
+  --btn-danger-hover-bg: var(--gh-light-btn-danger-hover-bg);
+  --btn-danger-text: var(--gh-light-white);
+  --btn-accent-bg: var(--gh-light-btn-accent-bg);
+  --btn-accent-hover-bg: var(--gh-light-btn-accent-hover-bg);
+  --btn-accent-text: var(--gh-light-white);
+  --btn-success-bg: var(--gh-light-green);
+  --btn-success-hover-bg: var(--gh-light-green-light);
+  --btn-success-text: var(--gh-light-white);
+
+  /* --- Toggle & UI --- */
+  --toggle-bg-off: var(--gh-light-border);
+  --toggle-bg-on: var(--gh-light-blue);
+  --toggle-circle-bg: var(--gh-light-bg);
+  --toggle-circle-bg-on: var(--gh-light-fg);
+  --overlay-color: var(--white-overlay);
+}
+
+/* =================================================================
+   Base & Component Styles
+   ================================================================= */
+html {
+  background-color: var(--bg-primary);
+  /* Inherit background-image if set in theme (e.g. gradients) */
+  background-image: var(--bg-primary);
+  background-attachment: fixed;
+  min-height: 100%;
+}
+
+body {
+  font-family: var(--app-font-family, "Inter"), sans-serif;
+  background: transparent;
+  /* Background is on html */
+  color: var(--text-primary);
+  transition: color 0.3s;
+  position: relative;
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+}
+
+table,
+input,
+select {
+  font-variant-numeric: tabular-nums;
+}
+
+.calculator-wrapper {
+  background-color: var(--bg-secondary);
+}
+
+.input-field {
+  background-color: var(--bg-tertiary);
+  border: 1px solid var(--border-color);
+  color: var(--text-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.settings-number-input {
+  width: 70px;
+  text-align: left;
+  padding: 0.25rem 0.5rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.input-field:disabled {
+  background-color: var(--bg-secondary);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.input-field.invalid {
+  border-color: var(--danger-color);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger-color) 40%, transparent);
+}
+
+.tp-percent.locked-input {
+  background: var(--bg-primary);
+  cursor: not-allowed;
+}
+
+.section-header {
+  background-color: var(--bg-tertiary);
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-secondary);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.result-group {
+  background: var(--bg-primary);
+  padding: 1rem;
+  border-radius: 0.5rem;
+  margin-top: 1.5rem;
+}
+
+.result-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  flex-wrap: wrap;
+  padding: 0.75rem 0;
+  border-bottom: 1px solid var(--bg-tertiary);
+}
+
+.result-item:last-child {
+  border-bottom: none;
+}
+
+.result-label {
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: 1rem;
+}
+
+.input-label {
+  @apply block text-xs font-medium text-[var(--text-secondary)] mb-1;
+}
+
+.result-value {
+  color: var(--text-primary);
+  font-weight: 600;
+  text-align: right;
+  word-break: break-all;
+  flex-grow: 1;
+  font-variant-numeric: tabular-nums;
+}
+
+.fade-in {
+  animation: fadeIn 0.5s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+.input-wrapper {
+  position: relative;
+  display: inline-flex;
+  vertical-align: middle;
+}
+
+.custom-spin-buttons {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  pointer-events: none;
+  z-index: 10;
+  transition: opacity 0.2s ease;
+}
+
+.custom-spin-buttons.hover-only {
+  opacity: 0;
+}
+
+.input-wrapper:hover .custom-spin-buttons.hover-only,
+.input-wrapper:focus-within .custom-spin-buttons.hover-only {
+  opacity: 1;
+}
+
+.spin-btn {
+  pointer-events: auto;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-secondary);
+  opacity: 0.7;
+  transition: all 0.2s ease;
+  padding: 0;
+  height: 10px;
+  width: 12px;
+}
+
+.spin-btn:hover {
+  color: var(--accent-color);
+  opacity: 1;
+}
+
+.spin-btn svg {
+  width: 10px;
+  height: 10px;
+}
+
+.trade-type-switch button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.375rem;
+  transition: all 0.2s ease-in-out;
+  border: 1px solid transparent;
+}
+
+.trade-type-switch button.active {
+  font-weight: 700;
+}
+
+.trade-type-switch button.long.active {
+  background-color: var(--success-color);
+  border-color: var(--success-color);
+  color: var(--btn-success-text);
+}
+
+.trade-type-switch button.short.active {
+  background-color: var(--danger-color);
+  border-color: var(--danger-color);
+  color: var(--btn-danger-text);
+}
+
+.trade-type-switch button:not(.active) {
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+}
+
+.trade-type-switch {
+  background-color: var(--bg-tertiary);
+}
+
+/* Solarized Light: Use dark text on light green 'Long' button */
+.theme-solarized-light .trade-type-switch button.long.active {
+  color: var(--base04);
+}
+
+/* Themed Scrollbar Styles */
+::-webkit-scrollbar {
+  width: 12px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--scrollbar-track, var(--bg-secondary));
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: var(--scrollbar-thumb, var(--bg-tertiary));
+  border-radius: 6px;
+  border: 3px solid var(--scrollbar-track, var(--bg-secondary));
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--accent-color);
+}
+
+/* Firefox Scrollbar Styles */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--scrollbar-thumb, var(--bg-tertiary))
+    var(--scrollbar-track, var(--bg-secondary));
+}
+
+
+/* Styles for ATR Mode Switcher */
+.atr-mode-switcher {
+  display: flex;
+  gap: 0.5rem;
+  /* 8px */
+}
+
+.btn-switcher {
+  padding: 0;
+  border: none;
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s ease-in-out;
+  font-size: 0.875rem;
+  /* 14px */
+  font-weight: 500;
+  /* Medium weight for non-active */
+}
+
+.btn-switcher.active {
+  color: var(--text-primary);
+  font-weight: 700;
+  /* Bold for active */
+}
+
+.atr-toggle-track {
+  background-color: var(--toggle-bg-off);
+  transition: background-color 0.3s;
+}
+
+input[type="checkbox"]:checked + .atr-toggle-track {
+  background-color: var(--toggle-bg-on);
+}
+
+.atr-toggle-track::after {
+  background-color: var(--toggle-circle-bg);
+  border-color: var(--border-color);
+  transition:
+    transform 0.3s,
+    background-color 0.3s,
+    border-color 0.3s;
+}
+
+input[type="checkbox"]:checked + .atr-toggle-track::after {
+  transform: translateX(calc(100% + 2px));
+  border-color: var(--toggle-circle-bg-on) !important;
+  background-color: var(--toggle-circle-bg-on) !important;
+}
+
+.copy-btn,
+.price-fetch-btn {
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: color 0.2s;
+  padding-right: 0.25rem;
+}
+
+.copy-btn:hover,
+.price-fetch-btn:hover {
+  color: var(--success-color);
+}
+
+/* New class for accent-colored icon buttons */
+.btn-icon-accent {
+  color: var(--accent-color);
+  transition: color 0.2s;
+}
+
+.btn-icon-accent:hover {
+  color: var(--accent-color-hover);
+}
+
+/* New class for lock icons */
+.btn-lock-icon {
+  color: var(--text-secondary);
+  transition: color 0.2s;
+}
+
+.btn-lock-icon:hover {
+  color: var(--accent-color);
+}
+
+/* New class for modal OK button */
+.btn-modal-ok {
+  background-color: var(--btn-accent-bg);
+  color: var(--btn-accent-text);
+  transition: background-color 0.2s;
+}
+
+.btn-modal-ok:hover {
+  background-color: var(--btn-accent-hover-bg);
+}
+
+/* Custom classes for theme-aware Buttons */
+.btn-primary-action {
+  background: var(--btn-accent-bg);
+  color: var(--btn-accent-text);
+  transition: all 0.3s ease;
+}
+
+.btn-primary-action:hover {
+  background: var(--btn-accent-hover-bg);
+  transform: translateY(-2px);
+  box-shadow:
+    0 4px 6px rgba(0, 0, 0, 0.1),
+    0 0 10px rgba(102, 126, 234, 0.1);
+}
+
+/* Pro Execute Button: Special styling for trade execution */
+.btn-primary-action.pro-execute {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+  position: relative;
+  overflow: hidden;
+}
+
+.btn-primary-action.pro-execute::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.15),
+    transparent
+  );
+  transition: left 0.6s ease;
+}
+
+.btn-primary-action.pro-execute:hover::before {
+  left: 100%;
+}
+
+.btn-primary-action.pro-execute:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+}
+
+.btn-secondary-action {
+  background-color: var(--btn-default-bg);
+  color: var(--btn-default-text);
+  transition: background-color 0.2s;
+}
+
+.btn-secondary-action:hover {
+  background-color: var(--btn-default-hover-bg);
+}
+
+.btn-primary-action:disabled,
+.btn-secondary-action:disabled {
+  background-color: var(--bg-tertiary);
+  color: var(--text-secondary);
+  cursor: not-allowed;
+}
+
+.copy-feedback,
+.save-feedback {
+  color: var(--success-color);
+  font-size: 0.8rem;
+  visibility: hidden;
+  opacity: 0;
+  transition: all 0.3s;
+}
+
+.copy-feedback.visible,
+.save-feedback.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.visual-bar-container {
+  background: var(--bg-primary);
+  padding: 2.5rem 1rem 2.5rem 1rem;
+  border-radius: 0.5rem;
+  margin-top: 1.5rem;
+  position: relative;
+}
+
+.visual-bar {
+  height: 1.5rem;
+  position: relative;
+  display: flex;
+  border-radius: 0.375rem;
+  overflow: visible;
+  background-color: var(--bg-tertiary);
+}
+
+.loss-zone {
+  background-color: var(--danger-color);
+  position: absolute;
+  height: 100%;
+}
+
+.gain-zone {
+  background-color: var(--success-color);
+  position: absolute;
+  height: 100%;
+}
+
+.bar-marker {
+  position: absolute;
+  top: -0.25rem;
+  bottom: -0.25rem;
+  width: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  transform: translateX(-50%);
+}
+
+.bar-marker::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 4px;
+  height: 100%;
+  background-color: var(--text-primary);
+}
+
+.bar-marker span {
+  position: absolute;
+  font-size: 0.75rem;
+  background-color: var(--bg-tertiary);
+  padding: 0.1rem 0.3rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+}
+
+.bar-marker:not(.entry-marker) span {
+  bottom: 100%;
+  margin-bottom: 0.25rem;
+  box-shadow: var(--shadow-tooltip);
+}
+
+.entry-marker span {
+  top: 100%;
+  margin-top: 0.25rem;
+}
+
+.bar-marker:hover .tp-tooltip {
+  visibility: visible;
+  opacity: 1;
+  transform: translateX(-50%) translateY(-5px);
+}
+
+.tp-tooltip {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%) translateY(0);
+
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.2s,
+    visibility 0.2s,
+    transform 0.2s;
+
+  background-color: var(--bg-tertiary);
+  color: var(--text-primary);
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  font-size: 0.8rem;
+  white-space: nowrap;
+  z-index: 60;
+  pointer-events: none;
+  box-shadow: var(--shadow-tooltip);
+}
+
+.tp-tooltip::before {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 0;
+  height: 0;
+  border-left: 5px solid transparent;
+  border-right: 5px solid transparent;
+  border-top: 5px solid var(--bg-tertiary);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: var(--overlay-color);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  visibility: hidden;
+  opacity: 0;
+  transition:
+    opacity 0.3s ease-in-out,
+    visibility 0.3s ease-in-out;
+}
+
+.modal-overlay.visible {
+  visibility: visible;
+  opacity: 1;
+}
+
+.modal-content {
+  background-color: var(--bg-secondary);
+  padding: 2rem;
+  border-radius: 1rem;
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  transform: scale(0.95);
+  opacity: 0;
+  transition:
+    transform 0.2s ease-in-out,
+    opacity 0.2s ease-in-out;
+}
+
+.modal-overlay.visible .modal-content {
+  transform: scale(1);
+  opacity: 1;
+}
+
+.journal-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-variant-numeric: tabular-nums;
+}
+
+.journal-table th,
+.journal-table td {
+  padding: 0.75rem;
+  border: 1px solid var(--border-color);
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.journal-table th {
+  background-color: var(--bg-tertiary);
+}
+
+.notes-cell {
+  max-width: 200px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+}
+
+.notes-cell.expanded {
+  white-space: pre-wrap;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: 400px;
+}
+
+.journal-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(100px, 1fr));
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.stat-card {
+  background: var(--bg-primary);
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  text-align: center;
+}
+
+.stat-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.suggestion-item {
+  background-color: var(--bg-secondary);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  color: var(--text-primary);
+}
+
+.suggestion-item:hover {
+  background-color: var(--accent-color);
+  color: var(--btn-accent-text);
+}
+
+.prose h3 {
+  margin-top: 1.5em;
+  margin-bottom: 0.5em;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 0.3em;
+}
+
+.prose p {
+  margin-bottom: 1em;
+  line-height: 1.6;
+}
+
+.prose ul {
+  list-style-type: disc;
+  margin-left: 1.5em;
+  margin-bottom: 1em;
+}
+
+.prose li {
+  margin-bottom: 0.5em;
+}
+
+.prose strong {
+  color: var(--text-primary);
+  font-weight: 600;
+}
+
+.prose code {
+  background-color: var(--bg-tertiary);
+  padding: 0.2em 0.4em;
+  margin: 0;
+  font-size: 85%;
+  border-radius: 3px;
+}
+
+.price-loaded-flash {
+  animation: price-flash 0.7s ease-in-out;
+}
+
+@keyframes price-flash {
+  0% {
+    background-color: var(--bg-tertiary);
+  }
+
+  30% {
+    background-color: color-mix(
+      in srgb,
+      var(--accent-color) 50%,
+      var(--bg-tertiary)
+    );
+  }
+
+  100% {
+    background-color: var(--bg-tertiary);
+  }
+}
+
+/* Glassmorphism Utility */
+.glass-panel {
+  background: var(--bg-secondary);
+  transition:
+    backdrop-filter var(--transition-smooth),
+    background var(--transition-smooth);
+}
+
+.glass-enabled .glass-panel {
+  background: color-mix(
+    in srgb,
+    var(--bg-secondary) calc(var(--glass-opacity) * 100%),
+    transparent
+  );
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur))
+    saturate(var(--glass-saturate));
+}
+
+/* Hover & Focus Enhancements */
+button,
+.clickable {
+  transition:
+    opacity var(--transition-fast),
+    background var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  outline: none;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-color) 30%, transparent);
+  transition: box-shadow var(--transition-fast);
+}
+
+  /* Fix for browser autofill (white background issue) */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+input:-webkit-autofill:active {
+  -webkit-box-shadow: 0 0 0 1000px var(--bg-tertiary) inset !important;
+  -webkit-text-fill-color: var(--text-primary) !important;
+  caret-color: var(--text-primary);
+  /* transition: background-color 5000s ease-in-out 0s; - Removed to prevent conflicts */
+}
+
+/* Global Interaction Helper: Prevents transition lag during drag/resize operations */
+.is-interacting {
+    transition: none !important;
+    pointer-events: auto !important; /* Ensure events continue to fire */
+}
+
+/* Improved App Feel & PWA optimizations */
+html,
+body {
+  overscroll-behavior: auto;
+  /* Allows pull-to-refresh and rubber-banding */
+  -webkit-tap-highlight-color: transparent;
+  /* Clean mobile taps */
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+    env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+h1,
+h2,
+.header-title,
+.icons,
+svg {
+  user-select: none;
+  /* Prevents accidental selection of UI elements */
+}
+
+/* Loading Shimmer */
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--bg-tertiary) 25%,
+    color-mix(in srgb, var(--bg-tertiary) 80%, var(--text-tertiary)) 50%,
+    var(--bg-tertiary) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite linear;
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: 200% 0;
+  }
+
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Price Flash Animations */
+@keyframes flash-green-text {
+  0% {
+    color: var(--success-color);
+    transform: scale(1.1);
+  }
+
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+@keyframes flash-red-text {
+  0% {
+    color: var(--danger-color);
+    transform: scale(1.1);
+  }
+
+  100% {
+    color: inherit;
+    transform: scale(1);
+  }
+}
+
+.price-up-flash {
+  animation: flash-green-text 0.5s ease-out;
+  display: inline-block;
+}
+
+.price-down-flash {
+  animation: flash-red-text 0.5s ease-out;
+  display: inline-block;
+}
+
+.price-up {
+  animation: flash-green 0.8s ease-out;
+}
+
+.price-down {
+  animation: flash-red 0.8s ease-out;
+}
+
+.text-link {
+  color: var(--accent-color);
+  text-decoration: none;
+}
+
+.text-link:hover {
+  text-decoration: underline;
+}
+
+/* =================================================================
+   Accessibility & Specific Overrides
+   ================================================================= */
+/*
+  The following overrides ensure proper text contrast on buttons
+  where the default text color (--btn-success-text, --btn-danger-text)
+  does not provide enough contrast against the button's background color
+  in a specific theme.
+*/
+
+
+/* Modal Size Utilities */
+.modal-size-sm {
+  @apply w-[90vw] max-w-lg;
+}
+
+.modal-size-journal {
+  width: 80vw;
+}
+
+.modal-size-instructions {
+  width: 80vw;
+  max-width: 1320px;
+  aspect-ratio: 3 / 2;
+}
+
+@media (max-width: 768px) {
+  .modal-size-instructions {
+    aspect-ratio: auto;
+  }
+}
+
+/* App Container for Footer Layout */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* Center horizontally */
+  justify-content: center;
+  /* Center vertically if space allows */
+  min-height: 100vh;
+  padding: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
