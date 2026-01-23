@@ -132,8 +132,8 @@ class BitunixWebSocketService {
         const timeSincePublic = now - this.lastMessageTimePublic;
         const status = marketState.connectionStatus;
 
-        if (import.meta.env.DEV && now % 5000 < 1000) {
-          console.log(`[Bitunix Monitor] Status: ${status}, LastMsg: ${timeSincePublic}ms ago, ActiveProvider: ${settingsState.apiProvider}`);
+        if (now % 2000 < 1000) {
+          console.warn(`[Bitunix Monitor] Status: ${status}, LastMsg: ${timeSincePublic}ms ago, ActiveProvider: ${settingsState.apiProvider}`);
         }
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -168,6 +168,7 @@ class BitunixWebSocketService {
         // Monitor for stale connection, but ONLY if connected.
         // If connecting, the connectionTimeout handles it.
         if (status === "connected" && timeSincePublic > 20000) {
+          console.warn("[Bitunix Watchdog] Triggered! Killing connection due to timeout.");
           marketState.connectionStatus = "disconnected";
           this.cleanup("public");
         }
