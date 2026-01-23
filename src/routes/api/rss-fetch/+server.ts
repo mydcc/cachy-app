@@ -68,8 +68,13 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Feed URL not found (DNS error)" }, { status: 404 });
     } else if (error.code === "ETIMEDOUT") {
       return json({ error: "Feed request timed out" }, { status: 504 });
-    } else if (error.message?.includes("Invalid XML")) {
-      return json({ error: "Invalid RSS/XML format" }, { status: 400 });
+    } else if (
+      error.message?.includes("Invalid XML") ||
+      error.message?.includes("Unable to parse XML")
+    ) {
+      // Suppress noisy logs for common scraper blocks/failures
+      // console.warn(`[rss-fetch] Parsing failed for ${url}`);
+      return json({ error: "Invalid RSS/XML format" }, { status: 422 });
     }
 
     return json(
