@@ -9,6 +9,7 @@
 
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
+import { untrack } from "svelte";
 
 export interface MarketData {
   symbol: string;
@@ -69,13 +70,20 @@ class MarketManager {
   connectionStatus = $state<WSStatus>("disconnected");
 
   private cacheMetadata = new Map<string, CacheMetadata>();
+  private pendingUpdates = new Map<string, Partial<MarketData>>();
   private cleanupIntervalId: any = null;
+  private flushIntervalId: any = null;
 
   constructor() {
     if (browser) {
       this.cleanupIntervalId = setInterval(() => {
         this.cleanup();
       }, 60 * 1000);
+
+      // Batch flushing loop (10 FPS)
+      this.flushIntervalId = setInterval(() => {
+        this.flushUpdates();
+      }, 100);
 
       // Start metrics history recording (every 10s)
       setInterval(() => {
@@ -86,7 +94,15 @@ class MarketManager {
 
   private snapshotMetrics() {
     const now = Date.now();
-    Object.values(this.data).forEach((market) => {
+    // Optimization: Only process symbols that have depth data and were recently updated
+    // Instead of iterating all, we iterate valid keys. With MAX_CACHE_SIZE=50 this is fast enough.
+    const keys = Object.keys(this.data);
+
+    // Performance Guard: if somehow we have too many keys, slice them
+    const safeKeys = keys.length > 50 ? keys.slice(0, 50) : keys;
+
+    safeKeys.forEach((key) => {
+      const market = this.data[key];
       // Only record if we have depth and price
       if (
         !market.depth ||
@@ -181,6 +197,32 @@ class MarketManager {
   }
 
   updateSymbol(symbol: string, partial: Partial<MarketData>) {
+    // Instead of updating immediately, we buffer updates
+    const existing = this.pendingUpdates.get(symbol) || {};
+
+    // Merge partials manually to ensure nested objects like depth/technicals don't get lost if partial is shallow
+    // However, partial is flat except for depth/technicals/klines.
+    // Simple spread is efficient for gathering updates.
+    this.pendingUpdates.set(symbol, { ...existing, ...partial });
+
+    // Note: We do NOT touch LRU here to save CPU. LRU touch will happen on flush.
+  }
+
+  private flushUpdates() {
+    if (this.pendingUpdates.size === 0) return;
+
+    // Apply all buffered updates in one go
+    untrack(() => { // Ensure we don't track dependencies inside this write operation if called from effect (unlikely here but safe)
+      this.pendingUpdates.forEach((partial, symbol) => {
+        this.applyUpdate(symbol, partial);
+      });
+    });
+
+    this.pendingUpdates.clear();
+    this.enforceCacheLimit();
+  }
+
+  private applyUpdate(symbol: string, partial: Partial<MarketData>) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
@@ -201,8 +243,6 @@ class MarketManager {
     if (partial.depth !== undefined) current.depth = partial.depth;
     if (partial.technicals !== undefined)
       current.technicals = partial.technicals;
-
-    this.enforceCacheLimit();
   }
 
   updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {
