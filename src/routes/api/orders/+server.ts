@@ -256,10 +256,17 @@ export const POST: RequestHandler = async ({ request }) => {
          const reduceOnlyRaw = String(body.reduceOnly);
          const isReduceOnly = body.reduceOnly === true || reduceOnlyRaw === "true" || reduceOnlyRaw === "1";
 
+         if (!body.side || typeof body.side !== "string") {
+            throw new Error("Invalid side (must be 'buy' or 'sell')");
+         }
+         if (!body.type || typeof body.type !== "string") {
+            throw new Error("Invalid order type");
+         }
+
          const payload: BitgetOrderPayload = {
              symbol: body.symbol as string,
-             side: (body.side as string).toLowerCase(), // Bitget uses lower case buy/sell? Docs say: "buy", "sell"
-             orderType: (body.type as string).toLowerCase(), // "limit", "market"
+             side: body.side.toLowerCase(), // Bitget uses lower case buy/sell? Docs say: "buy", "sell"
+             orderType: body.type.toLowerCase(), // "limit", "market"
              size: String(body.qty),
              price: body.price ? String(body.price) : undefined,
              force: "normal", // or gtc?
@@ -291,14 +298,18 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Check for sensitive patterns (simple check)
     // Defensive: ensure keys are defined before replacing (though they should be checked above)
-    const safeApiKey = apiKey || "UNKNOWN_API_KEY";
-    const safeApiSecret = apiSecret || "UNKNOWN_API_SECRET";
-    const safePassphrase = passphrase || "UNKNOWN_PASSPHRASE";
+    // Only redact if keys are actually present and have a safe minimum length to avoid redacting "abc" or similar
+    let sanitizedMsg = errorMsg;
 
-    const sanitizedMsg = errorMsg
-      .replaceAll(safeApiKey, "***")
-      .replaceAll(safeApiSecret, "***")
-      .replaceAll(safePassphrase, "***");
+    if (apiKey && apiKey.length > 3) {
+        sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+    }
+    if (apiSecret && apiSecret.length > 3) {
+        sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
+    }
+    if (passphrase && passphrase.length > 3) {
+        sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
+    }
 
     return json(
       { error: sanitizedMsg || `Failed to process ${type}` },

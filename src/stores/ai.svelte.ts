@@ -22,6 +22,7 @@ import { apiService } from "../services/apiService";
 import { newsService } from "../services/newsService";
 import { getRelativeTimeString } from "../lib/utils/timeUtils";
 import { parseAiValue } from "../utils/utils";
+import { logger } from "../services/logger";
 import type { JournalEntry } from "./types";
 
 export interface AiMessage {
@@ -902,6 +903,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               if (action.percent !== undefined) {
                 currentTargets[idx].percent = parseAiValue(action.percent as string);
               }
+            } else {
+              logger.warn("ai", "Invalid TP index", { index: idx, total: currentTargets.length });
             }
           }
           break;
