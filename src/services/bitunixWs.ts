@@ -98,6 +98,10 @@ class BitunixWebSocketService {
   private readonly MAX_VALIDATION_ERRORS = 5;
   private readonly VALIDATION_ERROR_WINDOW = 10000;
 
+  // Throttling for UI Blocking Updates
+  private throttleMap = new Map<string, number>();
+  private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
+
   private handleOnline = () => {
     if (this.isDestroyed) return;
     this.cleanup("public");
@@ -159,6 +163,16 @@ class BitunixWebSocketService {
         }
       }, 1000);
     }
+  }
+
+  private shouldThrottle(key: string): boolean {
+    const now = Date.now();
+    const last = this.throttleMap.get(key) || 0;
+    if (now - last < this.UPDATE_INTERVAL) {
+      return true;
+    }
+    this.throttleMap.set(key, now);
+    return false;
   }
 
   destroy() {
@@ -278,7 +292,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {};
+      ws.onerror = (error) => { };
     } catch (e) {
       this.scheduleReconnect("public");
     }
@@ -370,7 +384,7 @@ class BitunixWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {};
+      ws.onerror = (error) => { };
     } catch (e) {
       this.scheduleReconnect("private");
     }
@@ -582,7 +596,7 @@ class BitunixWebSocketService {
         args: [{ apiKey, timestamp, nonce, sign }],
       };
       this.wsPrivate.send(JSON.stringify(payload));
-    } catch (error) {}
+    } catch (error) { }
   }
 
   private handleMessage(message: BitunixWSMessage, type: "public" | "private") {
@@ -610,24 +624,24 @@ class BitunixWebSocketService {
         );
 
         if (isCritical) {
-           const now = Date.now();
-           if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
-             this.validationErrorCount = 0;
-           }
-           this.validationErrorCount++;
-           this.lastValidationErrorTime = now;
+          const now = Date.now();
+          if (now - this.lastValidationErrorTime > this.VALIDATION_ERROR_WINDOW) {
+            this.validationErrorCount = 0;
+          }
+          this.validationErrorCount++;
+          this.lastValidationErrorTime = now;
 
-           if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
-             if (import.meta.env.DEV) {
-               console.error(
-                 "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
-               );
-             }
-             this.validationErrorCount = 0;
-             this.cleanup(type);
-             this.scheduleReconnect(type);
-             return;
-           }
+          if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
+            if (import.meta.env.DEV) {
+              console.error(
+                "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
+              );
+            }
+            this.validationErrorCount = 0;
+            this.cleanup(type);
+            this.scheduleReconnect(type);
+            return;
+          }
         }
 
         if (import.meta.env.DEV) {
@@ -725,7 +739,9 @@ class BitunixWebSocketService {
         if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
 
         if (Object.keys(update).length > 0) {
-          marketState.updatePrice(symbol, update);
+          if (!this.shouldThrottle(`${symbol}:price`)) {
+            marketState.updatePrice(symbol, update);
+          }
         }
       } else if (validatedMessage.ch === "ticker") {
         const rawSymbol = validatedMessage.symbol;
@@ -777,15 +793,20 @@ class BitunixWebSocketService {
         if (data.o !== undefined) update.open = data.o;
 
         if (Object.keys(update).length > 0) {
-          marketState.updateTicker(symbol, update);
+          if (!this.shouldThrottle(`${symbol}:ticker`)) {
+            marketState.updateTicker(symbol, update);
+          }
         }
       } else if (validatedMessage.ch === "depth_book5") {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
-        if (symbol && data)
-          marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+        if (symbol && data) {
+          if (!this.shouldThrottle(`${symbol}:depth`)) {
+            marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+          }
+        }
       } else if (
         validatedMessage.ch &&
         (validatedMessage.ch.startsWith("market_kline_") ||
