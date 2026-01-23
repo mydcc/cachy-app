@@ -57,13 +57,7 @@ export const POST: RequestHandler = async ({ request }) => {
       feedDescription: feed.description,
     });
   } catch (error: any) {
-    console.error(`[rss-fetch] Error fetching RSS feed for ${url}:`, {
-      message: error.message,
-      code: error.code,
-      stack: error.stack,
-    });
-
-    // Provide helpful error messages
+    // Handle specific errors first to avoid noise
     if (error.code === "ENOTFOUND") {
       return json({ error: "Feed URL not found (DNS error)" }, { status: 404 });
     } else if (error.code === "ETIMEDOUT") {
@@ -72,10 +66,16 @@ export const POST: RequestHandler = async ({ request }) => {
       error.message?.includes("Invalid XML") ||
       error.message?.includes("Unable to parse XML")
     ) {
-      // Suppress noisy logs for common scraper blocks/failures
-      // console.warn(`[rss-fetch] Parsing failed for ${url}`);
+      // Quietly return 422 without logging stack trace
       return json({ error: "Invalid RSS/XML format" }, { status: 422 });
     }
+
+    // Log unexpected errors
+    console.error(`[rss-fetch] Error fetching RSS feed for ${url}:`, {
+      message: error.message,
+      code: error.code,
+      stack: error.stack,
+    });
 
     return json(
       {
