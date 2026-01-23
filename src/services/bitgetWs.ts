@@ -27,7 +27,7 @@ const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
 
 const PING_INTERVAL = 25000; // Bitget requires ping every 30s
 const WATCHDOG_TIMEOUT = 35000;
-const RECONNECT_DELAY = 1000;
+const RECONNECT_DELAY = 5000; // Increased from 1000ms to reduce CPU load on loop
 const CONNECTION_TIMEOUT_MS = 5000;
 
 class BitgetWebSocketService {
@@ -145,7 +145,7 @@ class BitgetWebSocketService {
         this.ws.readyState === WebSocket.OPEN ||
         this.ws.readyState === WebSocket.CONNECTING
       ) {
-         return;
+        return;
       }
       this.cleanup();
     }
@@ -190,11 +190,11 @@ class BitgetWebSocketService {
           settings.apiKeys?.bitget?.secret &&
           settings.apiKeys?.bitget?.passphrase
         ) {
-           this.login(
-             settings.apiKeys.bitget.key,
-             settings.apiKeys.bitget.secret,
-             settings.apiKeys.bitget.passphrase
-           );
+          this.login(
+            settings.apiKeys.bitget.key,
+            settings.apiKeys.bitget.secret,
+            settings.apiKeys.bitget.passphrase
+          );
         }
 
         this.resubscribe();
@@ -228,7 +228,7 @@ class BitgetWebSocketService {
         }
       };
 
-      ws.onerror = (error) => {};
+      ws.onerror = (error) => { };
 
     } catch (e) {
       this.scheduleReconnect();
@@ -258,7 +258,7 @@ class BitgetWebSocketService {
       if (ws && ws.readyState === WebSocket.OPEN) {
         try {
           ws.send("ping");
-        } catch (e) {}
+        } catch (e) { }
       }
     }, PING_INTERVAL);
   }
@@ -298,7 +298,7 @@ class BitgetWebSocketService {
       this.ws.onclose = null;
       try {
         this.ws.close();
-      } catch (e) {}
+      } catch (e) { }
     }
     this.ws = null;
     this.isReconnecting = false;
@@ -338,16 +338,16 @@ class BitgetWebSocketService {
     const msg = validated.data;
 
     if (msg.action === "login") { // Assuming action is login for response? Or separate event?
-        // Bitget sends event: "login", code: 00000 on success.
-        // My schema uses 'action'. Bitget usually sends { event: "login", code: ... }
-        // I might need to adjust schema for event messages vs data messages.
+      // Bitget sends event: "login", code: 00000 on success.
+      // My schema uses 'action'. Bitget usually sends { event: "login", code: ... }
+      // I might need to adjust schema for event messages vs data messages.
     }
     // Check event response
     if ((msg as any).event === "login" && (msg as any).code === "00000") {
-       this.isAuthenticated = true;
-       if (import.meta.env.DEV) console.log("%c[WS-Bitget] Login success", "color: #0fa;");
-       this.subscribePrivate();
-       return;
+      this.isAuthenticated = true;
+      if (import.meta.env.DEV) console.log("%c[WS-Bitget] Login success", "color: #0fa;");
+      this.subscribePrivate();
+      return;
     }
 
     if (!msg.arg || !msg.data) return;
@@ -362,106 +362,106 @@ class BitgetWebSocketService {
 
     // Ticker
     if (channel === "ticker") {
-        const data = msg.data[0];
-        const tickerVal = BitgetWSTickerSchema.safeParse(data);
-        if (tickerVal.success) {
-            const t = tickerVal.data;
-            // Update market
-            const update: any = {};
-            if (t.last) update.lastPrice = t.last;
-            if (t.high24h) update.highPrice = t.high24h;
-            if (t.low24h) update.lowPrice = t.low24h;
-            if (t.volume24h || t.baseVolume) update.volume = t.volume24h || t.baseVolume;
-            if (t.quoteVolume || t.usdtVolume) update.quoteVolume = t.quoteVolume || t.usdtVolume;
-            if (t.open24h) update.open = t.open24h;
+      const data = msg.data[0];
+      const tickerVal = BitgetWSTickerSchema.safeParse(data);
+      if (tickerVal.success) {
+        const t = tickerVal.data;
+        // Update market
+        const update: any = {};
+        if (t.last) update.lastPrice = t.last;
+        if (t.high24h) update.highPrice = t.high24h;
+        if (t.low24h) update.lowPrice = t.low24h;
+        if (t.volume24h || t.baseVolume) update.volume = t.volume24h || t.baseVolume;
+        if (t.quoteVolume || t.usdtVolume) update.quoteVolume = t.quoteVolume || t.usdtVolume;
+        if (t.open24h) update.open = t.open24h;
 
-            // Calc change if possible
-            if (t.last && t.open24h) {
-                const l = new Decimal(t.last);
-                const o = new Decimal(t.open24h);
-                if (!o.isZero()) {
-                    update.priceChangePercent = l.minus(o).div(o).times(100);
-                }
-            }
-
-            if (!this.shouldThrottle(`${instId}:ticker`)) {
-                marketState.updateTicker(instId, update);
-            }
-            // Also update price (for fast price)
-            if (t.last && !this.shouldThrottle(`${instId}:price`)) {
-                 marketState.updatePrice(instId, { price: t.last });
-            }
+        // Calc change if possible
+        if (t.last && t.open24h) {
+          const l = new Decimal(t.last);
+          const o = new Decimal(t.open24h);
+          if (!o.isZero()) {
+            update.priceChangePercent = l.minus(o).div(o).times(100);
+          }
         }
+
+        if (!this.shouldThrottle(`${instId}:ticker`)) {
+          marketState.updateTicker(instId, update);
+        }
+        // Also update price (for fast price)
+        if (t.last && !this.shouldThrottle(`${instId}:price`)) {
+          marketState.updatePrice(instId, { price: t.last });
+        }
+      }
     }
     // Kline
     else if (channel.startsWith("candle")) {
-        // data is [[ts, o, h, l, c, v, q], ...]
-        if (Array.isArray(msg.data)) {
-            const klines = msg.data.map((k: any) => {
-                // k is [ts, o, h, l, c, v]
-                return {
-                    time: parseInt(k[0]),
-                    open: new Decimal(k[1]),
-                    high: new Decimal(k[2]),
-                    low: new Decimal(k[3]),
-                    close: new Decimal(k[4]),
-                    volume: new Decimal(k[5])
-                };
-            });
+      // data is [[ts, o, h, l, c, v, q], ...]
+      if (Array.isArray(msg.data)) {
+        const klines = msg.data.map((k: any) => {
+          // k is [ts, o, h, l, c, v]
+          return {
+            time: parseInt(k[0]),
+            open: new Decimal(k[1]),
+            high: new Decimal(k[2]),
+            low: new Decimal(k[3]),
+            close: new Decimal(k[4]),
+            volume: new Decimal(k[5])
+          };
+        });
 
-            // Map channel to timeframe
-            // channel: candle1m, candle1H
-            const tfRaw = channel.replace("candle", "");
-            const map: Record<string, string> = {
-                "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
-                "1H": "1h", "4H": "4h", "1D": "1d", "1W": "1w"
-            };
-            const tf = map[tfRaw] || tfRaw;
+        // Map channel to timeframe
+        // channel: candle1m, candle1H
+        const tfRaw = channel.replace("candle", "");
+        const map: Record<string, string> = {
+          "1m": "1m", "5m": "5m", "15m": "15m", "30m": "30m",
+          "1H": "1h", "4H": "4h", "1D": "1d", "1W": "1w"
+        };
+        const tf = map[tfRaw] || tfRaw;
 
-            marketState.updateSymbolKlines(instId, tf, klines);
-        }
+        marketState.updateSymbolKlines(instId, tf, klines);
+      }
     }
     // Depth
     else if (channel === "books" || channel === "books5" || channel === "books15") {
-        const data = msg.data[0];
-        if (data && data.bids && data.asks) {
-            if (!this.shouldThrottle(`${instId}:depth`)) {
-                marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
-            }
+      const data = msg.data[0];
+      if (data && data.bids && data.asks) {
+        if (!this.shouldThrottle(`${instId}:depth`)) {
+          marketState.updateDepth(instId, { bids: data.bids, asks: data.asks });
         }
+      }
     }
     // Private: Orders
     else if (channel === "orders") {
-         // Handle order updates
-         if (Array.isArray(msg.data)) {
-             msg.data.forEach((o: any) => {
-                 // Map to internal format
-                 accountState.updateOrderFromWs({
-                     orderId: o.orderId,
-                     symbol: o.instId,
-                     status: o.status,
-                     filled: o.accFillSize, // executed qty
-                     price: o.price,
-                     avgPrice: o.priceAvg,
-                     // etc
-                 });
-             });
-         }
+      // Handle order updates
+      if (Array.isArray(msg.data)) {
+        msg.data.forEach((o: any) => {
+          // Map to internal format
+          accountState.updateOrderFromWs({
+            orderId: o.orderId,
+            symbol: o.instId,
+            status: o.status,
+            filled: o.accFillSize, // executed qty
+            price: o.price,
+            avgPrice: o.priceAvg,
+            // etc
+          });
+        });
+      }
     }
     // Private: Positions
     else if (channel === "positions") {
-        if (Array.isArray(msg.data)) {
-            msg.data.forEach((p: any) => {
-                accountState.updatePositionFromWs({
-                    symbol: p.instId,
-                    size: p.total, // or available? total usually
-                    entryPrice: p.openPriceAvg,
-                    marginType: p.marginMode,
-                    leverage: p.leverage,
-                    unrealizedPnl: p.unrealizedPL
-                });
-            });
-        }
+      if (Array.isArray(msg.data)) {
+        msg.data.forEach((p: any) => {
+          accountState.updatePositionFromWs({
+            symbol: p.instId,
+            size: p.total, // or available? total usually
+            entryPrice: p.openPriceAvg,
+            marginType: p.marginMode,
+            leverage: p.leverage,
+            unrealizedPnl: p.unrealizedPL
+          });
+        });
+      }
     }
   }
 
@@ -473,73 +473,73 @@ class BitgetWebSocketService {
     this.subscriptions.add(subKey);
 
     if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-        this.sendSubscribe(this.ws, normalizedSymbol, channel);
+      this.sendSubscribe(this.ws, normalizedSymbol, channel);
     } else {
-        this.connect();
+      this.connect();
     }
   }
 
   unsubscribe(symbol: string, channel: string) {
-     if (!symbol) return;
-     const normalizedSymbol = normalizeSymbol(symbol, "bitget");
-     const subKey = `${channel}:${normalizedSymbol}`;
-     if (this.subscriptions.has(subKey)) {
-         this.subscriptions.delete(subKey);
-         if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-             this.sendUnsubscribe(this.ws, normalizedSymbol, channel);
-         }
-     }
+    if (!symbol) return;
+    const normalizedSymbol = normalizeSymbol(symbol, "bitget");
+    const subKey = `${channel}:${normalizedSymbol}`;
+    if (this.subscriptions.has(subKey)) {
+      this.subscriptions.delete(subKey);
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.sendUnsubscribe(this.ws, normalizedSymbol, channel);
+      }
+    }
   }
 
   private sendSubscribe(ws: WebSocket, symbol: string, channel: string) {
-      // Args: instType: 'mc' (Futures Mix), channel, instId
-      const payload = {
-          op: "subscribe",
-          args: [{
-              instType: "mc",
-              channel: channel,
-              instId: symbol
-          }]
-      };
-      try { ws.send(JSON.stringify(payload)); } catch(e) {}
+    // Args: instType: 'mc' (Futures Mix), channel, instId
+    const payload = {
+      op: "subscribe",
+      args: [{
+        instType: "mc",
+        channel: channel,
+        instId: symbol
+      }]
+    };
+    try { ws.send(JSON.stringify(payload)); } catch (e) { }
   }
 
   private sendUnsubscribe(ws: WebSocket, symbol: string, channel: string) {
-      const payload = {
-          op: "unsubscribe",
-          args: [{
-              instType: "mc",
-              channel: channel,
-              instId: symbol
-          }]
-      };
-      try { ws.send(JSON.stringify(payload)); } catch(e) {}
+    const payload = {
+      op: "unsubscribe",
+      args: [{
+        instType: "mc",
+        channel: channel,
+        instId: symbol
+      }]
+    };
+    try { ws.send(JSON.stringify(payload)); } catch (e) { }
   }
 
   private resubscribe() {
-      this.subscriptions.forEach(key => {
-          const [channel, symbol] = key.split(":");
-          if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-              this.sendSubscribe(this.ws, symbol, channel);
-          }
-      });
+    this.subscriptions.forEach(key => {
+      const [channel, symbol] = key.split(":");
+      if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+        this.sendSubscribe(this.ws, symbol, channel);
+      }
+    });
   }
 
   private subscribePrivate() {
-      if (!this.isAuthenticated || !this.ws) return;
-      // Subscribe to all private channels usually for 'default' symbol?
-      // Bitget private channels (positions, orders) usually require 'instType' but 'instId' can be 'default' for all symbols?
-      // Docs: instId: 'default' for all symbols in product type.
+    if (!this.isAuthenticated || !this.ws) return;
+    // Subscribe to all private channels usually for 'default' symbol?
+    // Bitget private channels (positions, orders) usually require 'instType' but 'instId' can be 'default' for all symbols?
+    // Docs: instId: 'default' for all symbols in product type.
 
-      const channels = ["orders", "positions", "account"];
-      const args = channels.map(ch => ({
-          instType: "mc",
-          channel: ch,
-          instId: "default"
-      }));
+    const channels = ["orders", "positions", "account"];
+    const args = channels.map(ch => ({
+      instType: "mc",
+      channel: ch,
+      instId: "default"
+    }));
 
-      const payload = { op: "subscribe", args };
-      try { this.ws.send(JSON.stringify(payload)); } catch(e) {}
+    const payload = { op: "subscribe", args };
+    try { this.ws.send(JSON.stringify(payload)); } catch (e) { }
   }
 }
 

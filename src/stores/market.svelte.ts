@@ -87,9 +87,11 @@ class MarketManager {
       }, 100);
 
       // Start metrics history recording (every 10s)
+      /* TEMPORARILY DISABLED FOR CPU DEBUGGING
       setInterval(() => {
         this.snapshotMetrics();
       }, 10 * 1000);
+      */
     }
   }
 
