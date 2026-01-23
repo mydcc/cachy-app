@@ -32,7 +32,6 @@ import {
   BitunixPriceDataSchema,
   BitunixTickerDataSchema,
   isAllowedChannel,
-  isAllowedChannel,
   validateSymbol,
 } from "../types/bitunixValidation";
 import { marketWatcher } from "./marketWatcher";
