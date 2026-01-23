@@ -49,6 +49,14 @@
 
   /* Box Shadows */
   --shadow-tooltip: var(--shadow-tooltip);
+
+  /* Z-Indices */
+  --z-dropdown: 20;
+  --z-sticky: 30;
+  --z-tooltip: 40;
+  --z-modal: 50;
+  --z-overlay: 45;
+  --z-feedback: 100;
 }
 
 /* Custom Fonts */
