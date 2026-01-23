@@ -208,9 +208,12 @@ class MarketWatcher {
     const settings = settingsState;
     if (!settings.capabilities.marketData) return true;
 
-    // Fallback: If WS says connected, we pause.
-    // But ideally WS services call stopPolling() on connect.
-    return marketState.connectionStatus === "connected";
+    const paused = marketState.connectionStatus === "connected";
+    if (import.meta.env.DEV && !paused) {
+      // Only log if WE ARE ACTUALLY POLLING
+      // console.log(`[MarketWatcher] Polling... Status: ${marketState.connectionStatus}, Provider: ${settings.apiProvider}`);
+    }
+    return paused;
   }
 
   private async performPollingCycle() {
