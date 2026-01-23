@@ -180,7 +180,11 @@ class MarketWatcher {
     // Initial delay to avoid startup congestion
     setTimeout(() => {
       this.pollingInterval = setInterval(() => {
-        if (this.isPollingPaused()) return;
+        const paused = this.isPollingPaused();
+        if (import.meta.env.DEV) {
+          // console.log(`[MarketWatcher] Polling Cycle. Paused: ${paused}, WS Status: ${marketState.connectionStatus}`);
+        }
+        if (paused) return;
         this.performPollingCycle();
       }, 1000); // Check every second for what needs polling
     }, 2000);

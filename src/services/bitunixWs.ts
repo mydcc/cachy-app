@@ -132,6 +132,10 @@ class BitunixWebSocketService {
         const timeSincePublic = now - this.lastMessageTimePublic;
         const status = marketState.connectionStatus;
 
+        if (import.meta.env.DEV && now % 5000 < 1000) {
+          console.log(`[Bitunix Monitor] Status: ${status}, LastMsg: ${timeSincePublic}ms ago, ActiveProvider: ${settingsState.apiProvider}`);
+        }
+
         if (typeof navigator !== "undefined" && !navigator.onLine) {
           if (status !== "disconnected")
             marketState.connectionStatus = "disconnected";
