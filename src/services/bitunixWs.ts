@@ -20,6 +20,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { connectionManager } from "./connectionManager";
 import { logger } from "./logger";
 import CryptoJS from "crypto-js";
 import type {
@@ -105,21 +106,11 @@ class BitunixWebSocketService {
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
 
-  private pollingController: { stopPolling: () => void; resumePolling: () => void } | null = null;
-
-  public setPollingController(controller: { stopPolling: () => void; resumePolling: () => void }) {
-    this.pollingController = controller;
-  }
-
   private handleOnline = () => {
     if (this.isDestroyed) return;
     this.cleanup("public");
     this.cleanup("private");
     marketState.connectionStatus = "connecting";
-
-    // Ensure polling is active until we are fully connected
-    if (this.pollingController) this.pollingController.resumePolling();
-
     this.connectPublic(true);
     this.connectPrivate();
   };
@@ -127,8 +118,8 @@ class BitunixWebSocketService {
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
 
-    // Connection lost? Start polling!
-    if (this.pollingController) this.pollingController.resumePolling();
+    // Notify Manager
+    connectionManager.onProviderDisconnected("bitunix");
 
     this.cleanup("public");
     this.cleanup("private");
@@ -225,9 +216,6 @@ class BitunixWebSocketService {
   private connectPublic(force = false) {
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
-    // Start with polling active until we prove connection
-    if (this.pollingController) this.pollingController.resumePolling();
-
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
       return;
@@ -282,8 +270,8 @@ class BitunixWebSocketService {
         }
         marketState.connectionStatus = "connected";
 
-        // WS Connected -> Stop Polling immediately!
-        if (this.pollingController) this.pollingController.stopPolling();
+        // Notify Manager
+        connectionManager.onProviderConnected("bitunix");
 
         this.isReconnectingPublic = false;
         this.lastMessageTimePublic = Date.now();

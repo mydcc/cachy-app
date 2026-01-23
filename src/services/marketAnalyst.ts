@@ -15,7 +15,7 @@ import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
 
-const DELAY_BETWEEN_SYMBOLS = 2000; // 2 seconds between checks
+const DELAY_BETWEEN_SYMBOLS = 5000; // 5 seconds between checks
 const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes (Don't re-analyze if fresh)
 
 class MarketAnalystService {
@@ -40,6 +40,11 @@ class MarketAnalystService {
     private async processNext() {
         if (!this.isRunning) return;
 
+        if (!settingsState.capabilities.marketData) {
+            this.timeoutId = setTimeout(() => this.processNext(), 10000);
+            return;
+        }
+
         const favorites = settingsState.favoriteSymbols;
         if (favorites.length === 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 5000);
@@ -62,19 +67,21 @@ class MarketAnalystService {
             analysisState.isAnalyzing = true;
             logger.log("technicals", `Analyzing ${symbol} (Background)...`);
 
+            const provider = settingsState.apiProvider;
+
             // 1. Fetch Data (1h for general confluence)
-            // We assume 1h is good for "general condition"
-            const klines = await apiService.fetchBitunixKlines(symbol, "1h", 200);
+            const klines = await (provider === "bitget"
+                ? apiService.fetchBitgetKlines(symbol, "1h", 200)
+                : apiService.fetchBitunixKlines(symbol, "1h", 200));
 
             if (!klines || klines.length < 50) {
                 throw new Error("Insufficient klines");
             }
 
-            // 2. Fetch Trend Data (4h) - Lightweight check
-            // Optional: Could optimize to do this less often or reuse klines if possible
-            // For now, let's stick to 1h analysis to keep it light, or infer 4h trend from 1h EMAs roughly?
-            // Better to fetch 4h properly.
-            const klines4h = await apiService.fetchBitunixKlines(symbol, "4h", 100);
+            // 2. Fetch Trend Data (4h)
+            const klines4h = await (provider === "bitget"
+                ? apiService.fetchBitgetKlines(symbol, "4h", 100)
+                : apiService.fetchBitunixKlines(symbol, "4h", 100));
 
             // 3. Calculate 1H Technicals
             const tech1h = await technicalsService.calculateTechnicals(klines, indicatorState);
