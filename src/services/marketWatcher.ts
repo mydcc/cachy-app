@@ -192,9 +192,9 @@ class MarketWatcher {
     if (!settings.capabilities.marketData) return true;
     const wsStatus = marketState.connectionStatus;
     const provider = settings.apiProvider;
-    // We only pause polling if Bitunix is selected AND the WebSocket is successfully connected.
-    // For other providers (like Bitget), we currently rely on REST polling.
-    return provider === "bitunix" && wsStatus === "connected";
+    // We only pause polling if SOME WebSocket is successfully connected.
+    // This prevents double-load (WS + REST) for any provider.
+    return wsStatus === "connected";
   }
 
   private async performPollingCycle() {

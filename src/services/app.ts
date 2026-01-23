@@ -61,9 +61,9 @@ export const app = {
 
       // Connect WS based on settings
       if (settingsState.apiProvider === "bitget") {
-          bitgetWs.connect();
+        bitgetWs.connect();
       } else {
-          bitunixWs.connect();
+        bitunixWs.connect();
       }
 
       // Force initial state on first start or after update
@@ -131,32 +131,30 @@ export const app = {
         const keysChanged = currentKeys !== lastKeys;
 
         if (s.apiProvider === "bitget") {
-            if (providerChanged) {
-                // Switch from bitunix to bitget
-                bitunixWs.destroy();
+          // Ensure Bitunix is dead
+          if (bitunixWs) bitunixWs.destroy();
+
+          if (providerChanged || keysChanged) {
+            lastKeys = currentKeys;
+            lastProvider = s.apiProvider;
+            if (browser) {
+              // Ensure we start fresh
+              (bitgetWs as any).isDestroyed = false;
+              bitgetWs.connect(true);
             }
-            if (providerChanged || keysChanged) {
-                lastKeys = currentKeys;
-                lastProvider = s.apiProvider;
-                if (browser) {
-                    // bitgetWs connect
-                    (bitgetWs as any).isDestroyed = false; // reset flag if needed or just connect
-                    bitgetWs.connect(true);
-                }
-            }
+          }
         } else {
-            // Bitunix
-            if (providerChanged) {
-                bitgetWs.destroy();
+          // Ensure Bitget is dead
+          if (bitgetWs) bitgetWs.destroy();
+
+          if (providerChanged || keysChanged) {
+            lastKeys = currentKeys;
+            lastProvider = s.apiProvider;
+            if (browser) {
+              (bitunixWs as any).isDestroyed = false;
+              bitunixWs.connect();
             }
-            if (providerChanged || keysChanged) {
-                lastKeys = currentKeys;
-                lastProvider = s.apiProvider;
-                if (browser) {
-                    (bitunixWs as any).isDestroyed = false;
-                    bitunixWs.connect();
-                }
-            }
+          }
         }
       });
     });
@@ -475,15 +473,15 @@ export const app = {
       const klines =
         settingsState.apiProvider === "bitget"
           ? await apiService.fetchBitgetKlines(
-              symbol,
-              tradeState.atrTimeframe,
-              15,
-            )
+            symbol,
+            tradeState.atrTimeframe,
+            15,
+          )
           : await apiService.fetchBitunixKlines(
-              symbol,
-              tradeState.atrTimeframe,
-              15,
-            );
+            symbol,
+            tradeState.atrTimeframe,
+            15,
+          );
       const atr = calculator.calculateATR(klines);
       tradeState.update((s) => ({ ...s, atrValue: atr.toDP(4).toNumber() }));
       app.calculateAndDisplay();
