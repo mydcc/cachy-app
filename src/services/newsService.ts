@@ -131,7 +131,9 @@ export const newsService = {
               }));
             }
           } catch (e) {
-            console.error("Failed to fetch CryptoPanic:", e);
+            if (import.meta.env.DEV) {
+              console.error("Failed to fetch CryptoPanic:", e);
+            }
           }
         }
 
@@ -167,7 +169,9 @@ export const newsService = {
               newsItems = [...newsItems, ...mapped];
             }
           } catch (e) {
-            console.error("Failed to fetch NewsAPI:", e);
+            if (import.meta.env.DEV) {
+              console.error("Failed to fetch NewsAPI:", e);
+            }
           }
         }
 
@@ -191,7 +195,9 @@ export const newsService = {
             }
             newsItems = [...newsItems, ...rssItems];
           } catch (e) {
-            console.error("Failed to fetch RSS feeds:", e);
+            if (import.meta.env.DEV) {
+              console.error("Failed to fetch RSS feeds:", e);
+            }
           }
         }
 
@@ -311,7 +317,9 @@ export const newsService = {
 
         return analysis;
       } catch (e: any) {
-        console.error("Sentiment Analysis Failed:", e);
+        if (import.meta.env.DEV) {
+          console.error("Sentiment Analysis Failed:", e);
+        }
         return {
           score: 0,
           regime: "UNCERTAIN",

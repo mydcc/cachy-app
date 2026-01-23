@@ -43,7 +43,9 @@ export const POST: RequestHandler = async ({ request }) => {
     );
     return json({ data: history });
   } catch (e: any) {
-    console.error(`Error fetching history from Bitunix:`, e);
+    if (import.meta.env.DEV) {
+      console.error(`Error fetching history from Bitunix:`, e);
+    }
     return json(
       { error: e.message || "Failed to fetch history" },
       { status: 500 },

@@ -39,7 +39,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json({ positions });
   } catch (e: any) {
-    console.error(`Error fetching positions from ${exchange}:`, e);
+    if (import.meta.env.DEV) {
+      console.error(`Error fetching positions from ${exchange}:`, e);
+    }
     return json(
       { error: e.message || "Failed to fetch positions" },
       { status: 500 },

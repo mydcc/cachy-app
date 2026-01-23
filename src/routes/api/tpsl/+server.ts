@@ -90,7 +90,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     return json(result);
   } catch (e: any) {
-    console.error(`Error processing TP/SL request:`, e.message || e);
+    if (import.meta.env.DEV) {
+      console.error(`Error processing TP/SL request:`, e.message || e);
+    }
 
     // Determine appropriate status code
     let status = 500;

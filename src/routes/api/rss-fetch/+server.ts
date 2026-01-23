@@ -55,7 +55,9 @@ export const POST: RequestHandler = async ({ request }) => {
       feedDescription: feed.description,
     });
   } catch (error: any) {
-    console.error("[rss-fetch] Error fetching RSS feed:", error);
+    if (import.meta.env.DEV) {
+      console.error("[rss-fetch] Error fetching RSS feed:", error);
+    }
 
     // Provide helpful error messages
     if (error.code === "ENOTFOUND") {

@@ -314,6 +314,7 @@ class TradeManager {
     this.lockedPositionSize = null;
     this.isRiskAmountLocked = false;
     this.riskAmount = null;
+    this.currentTradeData = null;
 
     if (preserveSymbol) {
       this.symbol = currentSymbol;

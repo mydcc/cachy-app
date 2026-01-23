@@ -55,7 +55,9 @@ async function getMessages(): Promise<ChatMessage[]> {
       await fs.writeFile(DB_FILE, JSON.stringify(initial, null, 2));
       return initial;
     }
-    console.error("Error reading chat db:", error);
+    if (import.meta.env.DEV) {
+      console.error("Error reading chat db:", error);
+    }
     return [];
   }
 }
@@ -64,7 +66,9 @@ async function saveMessages(messages: ChatMessage[]) {
   try {
     await fs.writeFile(DB_FILE, JSON.stringify(messages, null, 2));
   } catch (error) {
-    console.error("Error writing chat db:", error);
+    if (import.meta.env.DEV) {
+      console.error("Error writing chat db:", error);
+    }
   }
 }
 
@@ -118,7 +122,9 @@ export const POST: RequestHandler = async ({ request }) => {
       message: newMessage,
     });
   } catch (e) {
-    console.error("Chat API Error:", e);
+    if (import.meta.env.DEV) {
+      console.error("Chat API Error:", e);
+    }
     return json({ error: "Internal Server Error" }, { status: 500 });
   }
 };

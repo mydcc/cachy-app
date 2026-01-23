@@ -37,7 +37,9 @@ function checkAndTrack(
       localStorage.setItem(key, "true");
     }
   } catch (e) {
-    console.warn(`Could not access localStorage for onboarding tracking: ${e}`);
+    if (import.meta.env.DEV) {
+      console.warn(`Could not access localStorage for onboarding tracking: ${e}`);
+    }
   }
 }
 

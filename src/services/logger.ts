@@ -34,17 +34,21 @@ class LoggerService {
         const prefix = `[${category.toUpperCase()}]`;
         const style = this.getStyle(category);
 
-        if (data !== undefined) {
-            console.log(`%c${prefix} ${message}`, style, data);
-        } else {
-            console.log(`%c${prefix} ${message}`, style);
+        if (import.meta.env.DEV) {
+            if (data !== undefined) {
+                console.log(`%c${prefix} ${message}`, style, data);
+            } else {
+                console.log(`%c${prefix} ${message}`, style);
+            }
         }
     }
 
     warn(category: LogCategory, message: string, data?: any) {
         if (!this.isEnabled(category)) return;
         const prefix = `[${category.toUpperCase()}]`;
-        console.warn(`${prefix} ${message}`, data || "");
+        if (import.meta.env.DEV) {
+            console.warn(`${prefix} ${message}`, data || "");
+        }
     }
 
     error(category: LogCategory, message: string, error?: any) {
@@ -55,7 +59,9 @@ class LoggerService {
         if (!this.isEnabled(category)) return;
 
         const prefix = `[${category.toUpperCase()}]`;
-        console.error(`${prefix} ${message}`, error || "");
+        if (import.meta.env.DEV) {
+            console.error(`${prefix} ${message}`, error || "");
+        }
     }
 
     private getStyle(category: LogCategory): string {

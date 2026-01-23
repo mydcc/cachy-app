@@ -45,7 +45,9 @@ export const GET: RequestHandler = async ({ url }) => {
     }
     return json(klines);
   } catch (e: any) {
-    console.error(`Error fetching klines from ${provider}:`, e);
+    if (import.meta.env.DEV) {
+      console.error(`Error fetching klines from ${provider}:`, e);
+    }
     const status = e.status || 500;
     return json({ error: e.message || "Failed to fetch klines" }, { status });
   }
@@ -116,7 +118,9 @@ async function fetchBitunixKlines(
       throw error;
     }
 
-    console.error(`Bitunix API error ${response.status}: ${text}`);
+    if (import.meta.env.DEV) {
+      console.error(`Bitunix API error ${response.status}: ${text}`);
+    }
     const error = new Error(`Bitunix API error: ${response.status}`);
     (error as any).status = response.status;
     throw error;

@@ -34,7 +34,9 @@ export const GET: RequestHandler = ({ request }) => {
           const data = `data: ${JSON.stringify(logEntry)}\n\n`;
           controller.enqueue(data);
         } catch (err) {
-          console.error("Error sending log to stream:", err);
+          if (import.meta.env.DEV) {
+            console.error("Error sending log to stream:", err);
+          }
           controller.close();
         }
       };

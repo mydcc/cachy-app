@@ -150,10 +150,12 @@ async function fetchBitunixBalance(
     return parseFloat(accountInfo.equity);
   }
 
-  console.warn(
-    "Could not find balance in Bitunix response:",
-    JSON.stringify(accountInfo),
-  );
+  if (import.meta.env.DEV) {
+    console.warn(
+      "Could not find balance in Bitunix response:",
+      JSON.stringify(accountInfo),
+    );
+  }
   return 0;
 }
 

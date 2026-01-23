@@ -50,7 +50,9 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: any) {
     // Security: Sanitize error log
     const errorMsg = e instanceof Error ? e.message : String(e);
-    console.error(`Error fetching account from ${exchange}:`, errorMsg);
+    if (import.meta.env.DEV) {
+      console.error(`Error fetching account from ${exchange}:`, errorMsg);
+    }
     return json(
       { error: e.message || "Failed to fetch account" },
       { status: 500 },

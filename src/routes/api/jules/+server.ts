@@ -28,7 +28,9 @@ const genAI = API_KEY ? new GoogleGenerativeAI(API_KEY) : null;
 
 export const POST: RequestHandler = async ({ request }) => {
   if (!genAI) {
-    console.error("JULES_API key is missing on server.");
+    if (import.meta.env.DEV) {
+      console.error("JULES_API key is missing on server.");
+    }
     return json(
       { error: "System configuration error: API key missing" },
       { status: 500 },
@@ -81,7 +83,9 @@ Keep it short and professional.
       timestamp: new Date().toISOString(),
     });
   } catch (e: any) {
-    console.error("Jules API Error:", e);
+    if (import.meta.env.DEV) {
+      console.error("Jules API Error:", e);
+    }
     return json(
       { error: "Failed to contact Jules: " + e.message },
       { status: 500 },
