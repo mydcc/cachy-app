@@ -57,24 +57,21 @@ export const POST: RequestHandler = async ({ request }) => {
       feedDescription: feed.description,
     });
   } catch (error: any) {
-    // Handle specific errors first to avoid noise
-    if (error.code === "ENOTFOUND") {
-      return json({ error: "Feed URL not found (DNS error)" }, { status: 404 });
-    } else if (error.code === "ETIMEDOUT") {
-      return json({ error: "Feed request timed out" }, { status: 504 });
-    } else if (
-      error.message?.includes("Invalid XML") ||
-      error.message?.includes("Unable to parse XML")
-    ) {
-      // Quietly return 422 without logging stack trace
+    const errorMessage = String(error.message || "");
+    const isXmlError =
+      errorMessage.includes("Invalid XML") ||
+      errorMessage.includes("Unable to parse XML") ||
+      errorMessage.includes("not a valid RSS") ||
+      errorMessage.includes("Unexpected close tag");
+
+    if (isXmlError) {
       return json({ error: "Invalid RSS/XML format" }, { status: 422 });
     }
 
-    // Log unexpected errors
-    console.error(`[rss-fetch] Error fetching RSS feed for ${url}:`, {
+    // Log unexpected errors (avoid logging 422/404/504)
+    console.error(`[rss-fetch] Unexpected Error for ${url}:`, {
       message: error.message,
-      code: error.code,
-      stack: error.stack,
+      code: error.code
     });
 
     return json(

@@ -199,7 +199,7 @@ const defaultSettings: Settings = {
   openaiApiKey: "",
   openaiModel: "gpt-4o",
   geminiApiKey: "",
-  geminiModel: "gemma",
+  geminiModel: "gemini-1.5-flash",
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
   aiConfirmActions: false,

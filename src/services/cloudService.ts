@@ -16,7 +16,7 @@ class CloudService {
   // Callback for Svelte to update UI
   private onMessageCallback: ((msgs: GlobalMessage[]) => void) | null = null;
 
-  constructor() {}
+  constructor() { }
 
   async connect(host: string = 'http://127.0.0.1:3000', dbName: string = 'cachy-server', token?: string) {
     if (this.connected) return;
@@ -25,38 +25,49 @@ class CloudService {
 
     // Initialize the connection
     try {
-        this.conn = DbConnection.builder()
+      this.conn = DbConnection.builder()
         .withUri(host)
         .withModuleName(dbName)
         .withToken(token || "") // Anonymous or token
         .onConnect((ctx) => {
-            console.log("Connected to SpacetimeDB!", ctx);
-            this.connected = true;
+          console.log("Connected to SpacetimeDB!", ctx);
+          this.connected = true;
 
-            // Subscribe to queries
-            const sub = this.conn?.subscriptionBuilder();
-            if (sub) {
-                sub.onApplied((ctx) => {
-                    console.log("Subscription applied", ctx);
-                })
-                .subscribeToAllTables();
-            }
+          // Subscribe to queries
+          const sub = this.conn?.subscriptionBuilder();
+          if (sub) {
+            sub.onApplied((ctx) => {
+              console.log("Subscription applied", ctx);
+            })
+              .subscribeToAllTables();
+          }
         })
         .onDisconnect((ctx) => {
-            console.log("Disconnected from SpacetimeDB", ctx);
-            this.connected = false;
+          console.log("Disconnected from SpacetimeDB", ctx);
+          this.connected = false;
         })
         .build();
     } catch (e) {
-        console.error("Failed to build/connect SpacetimeDB connection:", e);
+      console.error("Failed to build/connect SpacetimeDB connection:", e);
     }
 
-    // Handle row updates
-    (tables.globalMessage as any).onInsert((ctx: any, row: any) => {
-      console.log("New Message Received:", row);
-      this.messages = [...this.messages, row];
-      if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
-    });
+    // Handle row updates with robustness
+    try {
+      // Try snake_case if camelCase fails, as SpacetimeDB often generates snake_case for tables
+      const globalMessageTable = (tables as any).globalMessage || (tables as any).global_message;
+
+      if (globalMessageTable && typeof globalMessageTable.onInsert === 'function') {
+        globalMessageTable.onInsert((ctx: any, row: any) => {
+          console.log("New Message Received:", row);
+          this.messages = [...this.messages, row];
+          if (this.onMessageCallback) this.onMessageCallback([...this.messages]);
+        });
+      } else {
+        console.warn("SpacetimeDB: globalMessage table handle not found or not initialized yet.");
+      }
+    } catch (e) {
+      console.error("Error setting up SpacetimeDB table listeners:", e);
+    }
   }
 
   sendMessage(text: string) {
