@@ -86,9 +86,9 @@ class MarketManager {
       }, 100);
 
       // Start metrics history recording (every 10s)
-      setInterval(() => {
-        this.snapshotMetrics();
-      }, 10 * 1000);
+      // setInterval(() => {
+      //   this.snapshotMetrics();
+      // }, 10 * 1000);
     }
   }
 
