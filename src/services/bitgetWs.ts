@@ -12,6 +12,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
+import { logger } from "./logger";
 import CryptoJS from "crypto-js";
 import type {
   BitgetWSMessage,
@@ -65,11 +66,6 @@ class BitgetWebSocketService {
     connectionManager.onProviderDisconnected("bitget");
     this.cleanup();
   };
-
-  // ... lines 69-195 preserved implicitly via surrounding context if I matched correctly, but better to target specific blocks. 
-  // Wait, I am using ReplaceFileContent which matches target content. I should split this.
-  // Splitting for safety.
-
 
   constructor() {
     logger.log("general", "[BitgetWS] Service Instance Created");

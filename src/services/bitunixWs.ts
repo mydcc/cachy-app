@@ -327,7 +327,7 @@ class BitunixWebSocketService {
     }
   }
 
-  private connectPrivate() {
+  private connectPrivate(force = false) {
     if (this.isDestroyed) return;
 
     const settings = settingsState;

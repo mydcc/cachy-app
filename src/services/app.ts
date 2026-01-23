@@ -74,9 +74,6 @@ export const app = {
       // 5. Initial connection
       connectionManager.switchProvider(settingsState.apiProvider || "bitunix", { force: true });
 
-      // [DEBUG] Explicitly disable Analyst to check CPU
-      // if (marketAnalyst) marketAnalyst.stop();
-
       // Fetch initial price data
       app.handleFetchPrice();
       app.fetchAtr(true);

@@ -19,10 +19,17 @@ export interface PollingService {
 }
 
 class ConnectionManager {
+    private static instanceCount = 0;
+    private instanceId = 0;
     private activeProvider: string = "";
     private providers = new Map<string, ManagedService>();
     private pollingService: PollingService | null = null;
     private isDestroying = false;
+
+    constructor() {
+        this.instanceId = ++ConnectionManager.instanceCount;
+        logger.log("general", `[ConnectionManager] Instance #${this.instanceId} created.`);
+    }
 
     public registerProvider(name: string, service: ManagedService) {
         this.providers.set(name, service);
@@ -54,7 +61,7 @@ class ConnectionManager {
 
             // 2. Update active state
             this.activeProvider = newProvider;
-            logger.log("general", `[ConnectionManager] Active provider is now: ${this.activeProvider}`);
+            logger.log("general", `[ConnectionManager] Active provider is now: ${this.activeProvider} (Instance #${this.instanceId})`);
 
             // 3. Start Polling as a safety bridge
             if (this.pollingService) {
@@ -101,7 +108,7 @@ class ConnectionManager {
      * Signal from a provider that it is successfully connected.
      */
     public onProviderConnected(name: string) {
-        logger.log("general", `[ConnectionManager] ${name} reports SUCCESS. Active is: ${this.activeProvider}`);
+        logger.log("general", `[ConnectionManager] ${name} reports SUCCESS. Active is: ${this.activeProvider} (Instance #${this.instanceId})`);
         if (name !== this.activeProvider) {
             logger.warn("general", `[ConnectionManager] Late connection from inactive provider ${name}. Killing it.`);
             this.providers.get(name)?.destroy();
