@@ -126,6 +126,7 @@ class BitunixWebSocketService {
   };
 
   constructor() {
+    logger.log("general", "[BitunixWS] Service Instance Created");
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -261,9 +262,14 @@ class BitunixWebSocketService {
       }, CONNECTION_TIMEOUT_MS);
 
       ws.onopen = () => {
+        logger.log("general", `[BitunixWS] Socket event: ONOPEN. Instance: ${this.wsPublic === ws ? 'PRIMARY' : 'STALE'}`);
         if (this.connectionTimeoutPublic)
           clearTimeout(this.connectionTimeoutPublic);
-        if (this.wsPublic !== ws) return;
+        if (this.wsPublic !== ws) {
+          logger.warn("general", "[BitunixWS] ONOPEN triggered for stale socket. Closing.");
+          ws.close();
+          return;
+        }
 
         if (settingsState.enableNetworkLogs) {
           logger.log("network", "Public connection opened");
@@ -282,6 +288,7 @@ class BitunixWebSocketService {
 
       ws.onmessage = (event) => {
         if (this.wsPublic !== ws) return;
+        // logger.log("general", "[BitunixWS] Message received!");
         const now = Date.now();
         this.lastMessageTimePublic = now;
         if (now - this.lastWatchdogResetPublic > this.WATCHDOG_THROTTLE_MS) {
