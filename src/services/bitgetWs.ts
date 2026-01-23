@@ -27,7 +27,7 @@ const WS_URL = "wss://ws.bitget.com/mix/v1/stream";
 
 const PING_INTERVAL = 25000; // Bitget requires ping every 30s
 const WATCHDOG_TIMEOUT = 35000;
-const RECONNECT_DELAY = 5000; // Increased from 1000ms to reduce CPU load on loop
+const RECONNECT_DELAY = 1000;
 const CONNECTION_TIMEOUT_MS = 5000;
 
 class BitgetWebSocketService {

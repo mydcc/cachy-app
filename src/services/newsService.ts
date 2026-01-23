@@ -83,14 +83,153 @@ export const newsService = {
       return pendingNewsFetches.get(symbolKey)!;
     }
 
-    // TEMPORARY DEBUG: Disable all news fetching to verify CPU usage
-    /*
     const fetchPromise = (async (): Promise<NewsItem[]> => {
-       // ... existing code ...
-       return newsItems;
+      try {
+        const cached = localStorage.getItem(CACHE_KEY_NEWS);
+        if (cached) {
+          const { data, timestamp, cachedSymbol } = JSON.parse(cached);
+          if (
+            Date.now() - timestamp < CACHE_TTL_NEWS &&
+            ((!symbol && !cachedSymbol) || symbol === cachedSymbol)
+          ) {
+            return data;
+          }
+        }
+
+        const { cryptoPanicApiKey, newsApiKey } = settingsState;
+        let newsItems: NewsItem[] = [];
+
+        // Prioritize CryptoPanic
+        if (cryptoPanicApiKey) {
+          try {
+            const params: any = {
+              filter: settingsState.cryptoPanicFilter || "important",
+              public: "true",
+            };
+            if (symbol) {
+              const cleanSymbol = symbol
+                .replace("USDT", "")
+                .replace("USDC", "");
+              params.currencies = cleanSymbol;
+            }
+
+            const res = await fetch("/api/external/news", {
+              method: "POST",
+              body: JSON.stringify({
+                source: "cryptopanic",
+                apiKey: cryptoPanicApiKey,
+                params,
+                plan: settingsState.cryptoPanicPlan || "developer",
+              }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              newsItems = data.results.map((item: any) => ({
+                title: item.title,
+                url: item.url,
+                source: item.source?.title || "Unknown",
+                published_at: item.published_at,
+                currencies: item.currencies,
+              }));
+            }
+          } catch (e) {
+            logger.error("market", "Failed to fetch CryptoPanic", e);
+          }
+        }
+
+        // NewsAPI Fallback
+        if (newsItems.length < 5 && newsApiKey) {
+          try {
+            const q = symbol ? symbol : "crypto bitcoin ethereum";
+            const params = {
+              q,
+              sortBy: "publishedAt",
+              language: "en",
+              pageSize: "10",
+            };
+
+            const res = await fetch("/api/external/news", {
+              method: "POST",
+              body: JSON.stringify({
+                source: "newsapi",
+                apiKey: newsApiKey,
+                params,
+              }),
+            });
+
+            if (res.ok) {
+              const data = await res.json();
+              const mapped = data.articles.map((item: any) => ({
+                title: item.title,
+                url: item.url,
+                source: item.source.name,
+                published_at: item.publishedAt,
+                currencies: [],
+              }));
+              newsItems = [...newsItems, ...mapped];
+            }
+          } catch (e) {
+            logger.error("market", "Failed to fetch NewsAPI", e);
+          }
+        }
+
+        // Discord
+        try {
+          let discordItems = await discordService.fetchDiscordNews();
+          if (symbol) {
+            discordItems = discordItems.filter(item => matchesSymbol(item.title, symbol));
+          }
+          newsItems = [...newsItems, ...discordItems];
+        } catch (e) {
+          logger.error("market", "Failed to fetch Discord", e);
+        }
+
+        // RSS Feeds
+        const rssUrls = [
+          ...getPresetUrls(settingsState.rssPresets || []),
+          ...(settingsState.customRssFeeds || []).filter(
+            (u) => u && u.trim().length > 0,
+          ),
+          ...xService.getXFeedUrls(),
+        ];
+
+        if (rssUrls.length > 0) {
+          try {
+            let rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
+            if (settingsState.rssFilterBySymbol && symbol) {
+              rssItems = rssItems.filter(
+                (item) =>
+                  matchesSymbol(item.title, symbol) ||
+                  matchesSymbol(item.url, symbol),
+              );
+            }
+            newsItems = [...newsItems, ...rssItems];
+          } catch (e) {
+            logger.error("market", "Failed to fetch RSS feeds", e);
+          }
+        }
+
+        newsItems.sort(
+          (a, b) =>
+            new Date(b.published_at).getTime() -
+            new Date(a.published_at).getTime(),
+        );
+
+        localStorage.setItem(
+          CACHE_KEY_NEWS,
+          JSON.stringify({
+            data: newsItems,
+            timestamp: Date.now(),
+            cachedSymbol: symbol,
+          }),
+        );
+
+        return newsItems;
+      } finally {
+        pendingNewsFetches.delete(symbolKey);
+      }
     })();
-    */
-    const fetchPromise = Promise.resolve([]);
 
     pendingNewsFetches.set(symbolKey, fetchPromise);
     return fetchPromise;
