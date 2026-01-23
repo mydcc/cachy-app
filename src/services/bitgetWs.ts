@@ -82,10 +82,15 @@ class BitgetWebSocketService {
           return;
         }
 
-        if (
-          settingsState.apiProvider !== "bitget" ||
-          !settingsState.capabilities.marketData
-        ) {
+        // If Bitget is NOT the active provider, we must NOT touch the global status,
+        // because Bitunix might be connected. Just ensure our own socket is closed.
+        if (settingsState.apiProvider !== "bitget") {
+          this.cleanup();
+          return;
+        }
+
+        // If market data is globally disabled, then we can force disconnect.
+        if (!settingsState.capabilities.marketData) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup();

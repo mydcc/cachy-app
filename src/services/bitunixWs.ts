@@ -137,10 +137,16 @@ class BitunixWebSocketService {
         }
 
         // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
-        if (
-          settingsState.apiProvider !== "bitunix" ||
-          !settingsState.capabilities.marketData
-        ) {
+        // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
+        // If Bitunix is NOT the active provider, we must NOT touch the global status,
+        // because Bitget might be connected. Just ensure our own socket is closed.
+        if (settingsState.apiProvider !== "bitunix") {
+          this.cleanup("public");
+          this.cleanup("private");
+          return;
+        }
+
+        if (!settingsState.capabilities.marketData) {
           if (status !== "disconnected") {
             marketState.connectionStatus = "disconnected";
             this.cleanup("public");
