@@ -13,6 +13,7 @@ import { technicalsService } from "./technicalsService";
 import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
 import { browser } from "$app/environment";
+import { Decimal } from "decimal.js";
 
 const DELAY_BETWEEN_SYMBOLS = 2000; // 2 seconds between checks
 const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes (Don't re-analyze if fresh)
@@ -81,16 +82,19 @@ class MarketAnalystService {
 
             if (tech1h && tech4h) {
                 // 4. Derive Insights
-                const price = klines[klines.length - 1].close;
-                const open24h = klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open;
+                // Convert Decimal to number for arithmetic
+                const price = new Decimal(klines[klines.length - 1].close).toNumber();
+                const openVal = klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open;
+                const open24h = new Decimal(openVal).toNumber();
                 const change24h = ((price - open24h) / open24h) * 100;
 
                 // Trend 4H (based on EMA 50 vs EMA 200 or Price vs EMA 200)
                 const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
-                const trend4h = price > ema200_4h ? "bullish" : "bearish";
+                const ema200Num = new Decimal(ema200_4h).toNumber();
+                const trend4h = price > ema200Num ? "bullish" : "bearish";
 
                 // RSI 1H
-                const rsi1h = tech1h.oscillators["RSI"] || 50;
+                const rsi1h = (tech1h.oscillators["RSI"] as number) || 50;
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
                 if (rsi1h > 70) condition = "overbought";

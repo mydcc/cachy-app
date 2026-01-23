@@ -296,11 +296,13 @@ class TradeManager {
   // and let the Service orchestrate the rest.
   // However, to replace `resetAllInputs` from tradeStore, we need to return to defaults.
 
-  resetInputs(preserveSymbol = true) {
+  resetInputs(preserveSymbol = true, preserveTradeType = true) {
     const currentSymbol = this.symbol;
 
     // Reset fields
-    this.tradeType = INITIAL_TRADE_STATE.tradeType;
+    if (!preserveTradeType) {
+      this.tradeType = INITIAL_TRADE_STATE.tradeType;
+    }
     // Keep account settings? Usually reset keeps account size/risk?
     // tradeStore.ts uses JSON.parse(initialTradeState), so it resets EVERYTHING except symbol.
     this.accountSize = INITIAL_TRADE_STATE.accountSize;

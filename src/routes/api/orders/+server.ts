@@ -296,6 +296,20 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
+    // Enhanced Logging with Redaction
+    try {
+      const sanitizedBody: any = { ...body };
+      if (sanitizedBody.apiKey) sanitizedBody.apiKey = "***";
+      if (sanitizedBody.apiSecret) sanitizedBody.apiSecret = "***";
+      if (sanitizedBody.passphrase) sanitizedBody.passphrase = "***";
+      console.error(`[API] Order failed: ${type}`, {
+        error: errorMsg,
+        body: sanitizedBody,
+      });
+    } catch (logErr) {
+      console.error(`[API] Order failed: ${type}`, errorMsg);
+    }
+
     // Check for sensitive patterns (simple check)
     // Defensive: ensure keys are defined before replacing (though they should be checked above)
     // Only redact if keys are actually present and have a safe minimum length to avoid redacting "abc" or similar

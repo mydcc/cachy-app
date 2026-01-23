@@ -34,13 +34,13 @@ export function debounce<T extends (...args: unknown[]) => void>(
 }
 
 export function parseDecimal(
-  value: string | number | null | undefined,
+  value: string | number | null | undefined | Decimal,
 ): Decimal {
   if (value === null || value === undefined) {
     return new Decimal(0);
   }
 
-  if (value instanceof Decimal) return value;
+  if ((value as any) instanceof Decimal) return value as Decimal;
   if (typeof value === "number") return new Decimal(value);
 
   let str = String(value).trim();
