@@ -105,6 +105,12 @@ class BitunixWebSocketService {
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
 
+  private pollingController: { stopPolling: () => void; resumePolling: () => void } | null = null;
+
+  public setPollingController(controller: { stopPolling: () => void; resumePolling: () => void }) {
+    this.pollingController = controller;
+  }
+
   private handleOnline = () => {
     if (this.isDestroyed) return;
     this.cleanup("public");
@@ -112,7 +118,7 @@ class BitunixWebSocketService {
     marketState.connectionStatus = "connecting";
 
     // Ensure polling is active until we are fully connected
-    marketWatcher.resumePolling();
+    if (this.pollingController) this.pollingController.resumePolling();
 
     this.connectPublic(true);
     this.connectPrivate();
@@ -122,7 +128,7 @@ class BitunixWebSocketService {
     marketState.connectionStatus = "disconnected";
 
     // Connection lost? Start polling!
-    marketWatcher.resumePolling();
+    if (this.pollingController) this.pollingController.resumePolling();
 
     this.cleanup("public");
     this.cleanup("private");
@@ -220,7 +226,7 @@ class BitunixWebSocketService {
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     // Start with polling active until we prove connection
-    marketWatcher.resumePolling();
+    if (this.pollingController) this.pollingController.resumePolling();
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
       marketState.connectionStatus = "disconnected";
@@ -277,7 +283,7 @@ class BitunixWebSocketService {
         marketState.connectionStatus = "connected";
 
         // WS Connected -> Stop Polling immediately!
-        marketWatcher.stopPolling();
+        if (this.pollingController) this.pollingController.stopPolling();
 
         this.isReconnectingPublic = false;
         this.lastMessageTimePublic = Date.now();
