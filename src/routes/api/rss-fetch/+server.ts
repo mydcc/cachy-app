@@ -12,11 +12,22 @@ import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
 
 const parser = new Parser({
-  timeout: 10000, // 10 second timeout per feed
+  timeout: 10000,
   headers: {
-    "User-Agent": "Mozilla/5.0 (compatible; CachyApp/1.0)",
+    "User-Agent":
+      "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+    Accept: "application/rss+xml, application/xml, text/xml, */*",
   },
 });
+
+// Simple In-Memory Cache for RSS Feeds
+interface CachedFeed {
+  data: any;
+  timestamp: number;
+}
+const feedCache = new Map<string, CachedFeed>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const MAX_CACHE_ENTRIES = 50;
 
 export const POST: RequestHandler = async ({ request }) => {
   let url = "unknown";
@@ -39,11 +50,18 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Invalid URL format" }, { status: 400 });
     }
 
-    // Fetch and parse RSS feed
+    // 1. Check Cache
+    const cached = feedCache.get(url);
+    const now = Date.now();
+    if (cached && now - cached.timestamp < CACHE_TTL) {
+      return json(cached.data);
+    }
+
+    // 2. Fetch and parse RSS feed
     const feed = await parser.parseURL(url);
 
     // Normalize to NewsItem format
-    const items = feed.items.map((item) => ({
+    const newsItems = feed.items.map((item) => ({
       title: item.title || "Untitled",
       url: item.link || url,
       source: feed.title || new URL(url).hostname,
@@ -51,13 +69,36 @@ export const POST: RequestHandler = async ({ request }) => {
       description: item.contentSnippet || item.content || "",
     }));
 
-    return json({
-      items,
+    const responseData = {
+      items: newsItems,
       feedTitle: feed.title,
       feedDescription: feed.description,
-    });
+    };
+
+    // 3. Update Cache
+    if (feedCache.size >= MAX_CACHE_ENTRIES) {
+      // Remove oldest entry (FIFO-ish)
+      const firstEntry = feedCache.keys().next().value;
+      if (firstEntry) feedCache.delete(firstEntry);
+    }
+    feedCache.set(url, { data: responseData, timestamp: now });
+
+    return json(responseData);
   } catch (error: any) {
-    // Handle specific errors first to avoid noise
+    // Check if we have a stale cache entry during error (Stale-While-Revalidate fallback)
+    const staleCached = feedCache.get(url);
+    if (staleCached) {
+      // console.log(`[rss-fetch] Serving stale content for ${url} due to error`);
+      return json(staleCached.data);
+    }
+
+    if (error.message?.includes("Status code 429")) {
+      return json(
+        { error: "Rate limit hit (Provider side). Returning stale content." },
+        { status: 429 },
+      );
+    }
+
     if (error.code === "ENOTFOUND") {
       return json({ error: "Feed URL not found (DNS error)" }, { status: 404 });
     } else if (error.code === "ETIMEDOUT") {
@@ -66,15 +107,13 @@ export const POST: RequestHandler = async ({ request }) => {
       error.message?.includes("Invalid XML") ||
       error.message?.includes("Unable to parse XML")
     ) {
-      // Suppress noisy logs for common scraper blocks/failures
-      // console.warn(`[rss-fetch] Parsing failed for ${url}`);
       return json({ error: "Invalid RSS/XML format" }, { status: 422 });
     }
 
-    // Log unexpected errors (avoid logging 422/404/504)
+    // Log unexpected errors
     console.error(`[rss-fetch] Unexpected Error for ${url}:`, {
       message: error.message,
-      code: error.code
+      code: error.code,
     });
 
     return json(
