@@ -224,9 +224,18 @@ export const POST: RequestHandler = async ({ request }) => {
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       } else if (type === "close-position") {
         // Double check amount before creating close order (must be positive)
+        // Defensive check: ensure amount exists and is valid
+        if (
+          body.amount === undefined ||
+          body.amount === null ||
+          !isValidNumberString(body.amount)
+        ) {
+          throw new Error("Invalid amount format for closing position");
+        }
+
         const amount = parseFloat(String(body.amount));
         if (isNaN(amount) || amount <= 0) {
-          throw new Error("Invalid amount for closing position");
+          throw new Error("Invalid amount for closing position (must be > 0)");
         }
 
         // Safe formatting for the amount
@@ -254,9 +263,13 @@ export const POST: RequestHandler = async ({ request }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
+    // Defensive: ensure keys are defined before replacing (though they should be checked above)
+    const safeApiKey = apiKey || "UNKNOWN_API_KEY";
+    const safeApiSecret = apiSecret || "UNKNOWN_API_SECRET";
+
     const sanitizedMsg = errorMsg
-      .replaceAll(apiKey, "***")
-      .replaceAll(apiSecret, "***");
+      .replaceAll(safeApiKey, "***")
+      .replaceAll(safeApiSecret, "***");
 
     // console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
