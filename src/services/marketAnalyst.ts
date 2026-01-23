@@ -134,4 +134,5 @@ class MarketAnalystService {
     }
 }
 
-export const marketAnalyst = new MarketAnalystService();
+// export const marketAnalyst = new MarketAnalystService();
+export const marketAnalyst = null as any;
