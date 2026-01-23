@@ -390,6 +390,8 @@
           handleEntryPriceInput(e);
           onboardingService.trackFirstInput();
         }}
+        onfocus={() => (uiState.isEntryPriceFocused = true)}
+        onblur={() => (uiState.isEntryPriceFocused = false)}
         class="input-field w-full px-4 py-2 rounded-md transition-all {priceDeviation >
         10
           ? 'border-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.3)]'

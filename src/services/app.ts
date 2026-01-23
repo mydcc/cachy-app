@@ -184,7 +184,7 @@ export const app = {
         if (marketData && marketData.lastPrice) {
           app.currentMarketPrice = marketData.lastPrice;
 
-          if (settings.autoUpdatePriceInput) {
+          if (settings.autoUpdatePriceInput && !uiState.isEntryPriceFocused) {
             const newPrice = marketData.lastPrice.toNumber();
             if (state.entryPrice !== newPrice) {
               tradeState.update((s) => ({ ...s, entryPrice: newPrice }));

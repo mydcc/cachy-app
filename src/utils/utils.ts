@@ -441,6 +441,9 @@ export function parseAiValue(value: string | number | boolean): number {
 
   let str = String(value).trim().toLowerCase();
 
+  // Hardening: Remove internal spaces (e.g. "1 000")
+  str = str.replace(/\s/g, "");
+
   // Multipliers
   let multiplier = 1;
   if (str.endsWith("k")) {

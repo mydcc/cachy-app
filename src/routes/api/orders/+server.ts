@@ -254,9 +254,9 @@ export const POST: RequestHandler = async ({ request }) => {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
     // Check for sensitive patterns (simple check)
-    const sanitizedMsg = errorMsg
-      .replaceAll(apiKey, "***")
-      .replaceAll(apiSecret, "***");
+    let sanitizedMsg = errorMsg;
+    if (apiKey && apiKey.length > 0) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 0) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
 
     // console.error(`Error processing ${type} on ${exchange}:`, sanitizedMsg);
 
