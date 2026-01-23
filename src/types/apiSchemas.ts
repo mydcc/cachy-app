@@ -44,35 +44,6 @@ export const BitunixKlineSchema = z.object({
 
 export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
 
-// Binance Ticker Schema
-export const BinanceTickerSchema = z.object({
-  price: z.union([z.string(), z.number()]).optional(),
-  lastPrice: z.union([z.string(), z.number()]).optional(),
-  highPrice: z.union([z.string(), z.number()]).optional(),
-  lowPrice: z.union([z.string(), z.number()]).optional(),
-  volume: z.union([z.string(), z.number()]).optional(),
-  quoteVolume: z.union([z.string(), z.number()]).optional(),
-  priceChangePercent: z.union([z.string(), z.number()]).optional(),
-});
-
-// Binance Kline Schema
-export const BinanceKlineSchema = z.tuple([
-  z.number(), // Open time
-  z.string(), // Open
-  z.string(), // High
-  z.string(), // Low
-  z.string(), // Close
-  z.string(), // Volume
-  z.number(), // Close time
-  z.string(), // Quote asset volume
-  z.number(), // Number of trades
-  z.string(), // Taker buy base asset volume
-  z.string(), // Taker buy quote asset volume
-  z.string(), // Ignore
-]);
-
-export const BinanceKlineResponseSchema = z.array(BinanceKlineSchema);
-
 /**
  * Validate response size to prevent memory issues
  * @param data Response data as string
@@ -111,7 +82,8 @@ export function sanitizeErrorMessage(
     .replace(/api[_-]?key[=:]\s*[\w-]+/gi, "api_key=***")
     .replace(/secret[=:]\s*[\w-]+/gi, "secret=***")
     .replace(/token[=:]\s*[\w-]+/gi, "token=***")
-    .replace(/password[=:]\s*[\w-]+/gi, "password=***");
+    .replace(/password[=:]\s*[\w-]+/gi, "password=***")
+    .replace(/passphrase[=:]\s*[\w-]+/gi, "passphrase=***");
 
   // Limit length
   if (sanitized.length > maxLength) {

@@ -23,16 +23,13 @@ import { settingsState } from "../stores/settings.svelte";
 import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
-  BitunixKlineResponseSchema,
-  BinanceTickerSchema,
-  BinanceKlineResponseSchema,
   validateResponseSize,
   sanitizeErrorMessage,
 } from "../types/apiSchemas";
 export type { Kline };
 
 export interface Ticker24h {
-  provider: "bitunix" | "binance";
+  provider: "bitunix" | "bitget";
   symbol: string;
   lastPrice: Decimal;
   priceChangePercent: Decimal;
@@ -41,23 +38,6 @@ export interface Ticker24h {
   volume: Decimal; // Base volume usually
   quoteVolume?: Decimal;
 }
-
-// Define the structure of a Binance Kline entry
-// [Open time, Open, High, Low, Close, Volume, Close time, Quote asset volume, Number of trades, Taker buy base asset volume, Taker buy quote asset volume, Ignore]
-type BinanceKline = [
-  number, // Open time
-  string, // Open
-  string, // High
-  string, // Low
-  string, // Close
-  string, // Volume
-  number, // Close time
-  string, // Quote asset volume
-  number, // Number of trades
-  string, // Taker buy base asset volume
-  string, // Taker buy quote asset volume
-  string, // Ignore
-];
 
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
@@ -233,7 +213,7 @@ export function clearApiCache() {
 }
 
 export const apiService = {
-  normalizeSymbol(symbol: string, provider: "bitunix" | "binance"): string {
+  normalizeSymbol(symbol: string, provider: "bitunix" | "bitget"): string {
     return normalizeSymbol(symbol, provider);
   },
 
@@ -335,6 +315,64 @@ export const apiService = {
       1, // retries
       timeout, // dynamic timeout
     );
+  },
+
+  async fetchBitgetKlines(
+    symbol: string,
+    interval: string,
+    limit: number = 15,
+    startTime?: number,
+    endTime?: number,
+    priority: "high" | "normal" = "normal",
+    timeout = 10000,
+  ): Promise<Kline[]> {
+     const key = `BITGET:${symbol}:${interval}:${limit}:${startTime}:${endTime}`;
+     return requestManager.schedule(
+         key,
+         async (signal) => {
+             try {
+                 const normalized = apiService.normalizeSymbol(symbol, "bitget");
+                 const params = new URLSearchParams({
+                     provider: "bitget",
+                     symbol: normalized,
+                     interval: interval,
+                     limit: limit.toString()
+                 });
+                 if (startTime) params.append("startTime", startTime.toString());
+                 if (endTime) params.append("endTime", endTime.toString());
+
+                 const response = await fetch(`/api/klines?${params.toString()}`, { signal });
+                 if (!response.ok) throw new Error("apiErrors.klineError");
+                 const res = await apiService.safeJson(response);
+
+                 if (!Array.isArray(res)) {
+                    throw new Error("apiErrors.invalidResponse");
+                 }
+
+                 return res.map((k: any) => {
+                     try {
+                         const time = parseTimestamp(k.timestamp || k.time || k.t);
+                         const open = new Decimal(k.open);
+                         const high = new Decimal(k.high);
+                         const low = new Decimal(k.low);
+                         const close = new Decimal(k.close);
+                         const volume = new Decimal(k.volume);
+
+                         if (open.isNaN() || high.isNaN() || low.isNaN() || close.isNaN()) return null;
+                         return { open, high, low, close, volume, time };
+                     } catch(e) {
+                         return null;
+                     }
+                 }).filter((k): k is Kline => k !== null);
+             } catch(e) {
+                 if (e instanceof Error && e.name === "AbortError") throw e;
+                 throw new Error("apiErrors.generic");
+             }
+         },
+         priority,
+         1,
+         timeout
+     );
   },
 
   async fetchBitunixKlines(
@@ -457,139 +495,16 @@ export const apiService = {
     );
   },
 
-  async fetchBinancePrice(
-    symbol: string,
-    priority: "high" | "normal" = "high",
-    timeout = 5000,
-  ): Promise<Decimal> {
-    const key = `BINANCE:PRICE:${symbol}`;
-    return requestManager.schedule(
-      key,
-      async (signal) => {
-        try {
-          const normalized = apiService.normalizeSymbol(symbol, "binance");
-          const params = new URLSearchParams({
-            provider: "binance",
-            symbols: normalized,
-          });
-          const response = await fetch(`/api/tickers?${params.toString()}`, {
-            signal,
-          });
-          if (!response.ok) throw new Error("apiErrors.symbolNotFound");
-          const data = await response.json();
-
-          if (!data || data.price === undefined || data.price === null) {
-            throw new Error("apiErrors.invalidResponse");
-          }
-          const price = Number(data.price);
-          if (isNaN(price) || !isFinite(price)) {
-            throw new Error("apiErrors.invalidResponse");
-          }
-          return new Decimal(price);
-        } catch (e) {
-          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
-          if (
-            e instanceof Error &&
-            (e.message === "apiErrors.symbolNotFound" ||
-              e.message === "apiErrors.invalidResponse")
-          ) {
-            throw e;
-          }
-          throw new Error("apiErrors.generic");
-        }
-      },
-      priority,
-      1, // retries
-      timeout, // dynamic timeout
-    );
-  },
-
-  async fetchBinanceKlines(
-    symbol: string,
-    interval: string,
-    limit: number = 15,
-    priority: "high" | "normal" = "normal",
-    timeout = 10000,
-  ): Promise<Kline[]> {
-    const key = `BINANCE:${symbol}:${interval}:${limit}`;
-    return requestManager.schedule(
-      key,
-      async (signal) => {
-        try {
-          const normalized = apiService.normalizeSymbol(symbol, "binance");
-          const params = new URLSearchParams({
-            provider: "binance",
-            symbol: normalized,
-            interval: interval,
-            limit: limit.toString(),
-          });
-          const response = await fetch(`/api/klines?${params.toString()}`, {
-            signal,
-          });
-          if (!response.ok) throw new Error("apiErrors.klineError");
-          const data = await response.json();
-
-          if (!Array.isArray(data)) {
-            throw new Error("apiErrors.invalidResponse");
-          }
-
-          // Binance kline format: [ [time, open, high, low, close, volume, ...], ... ]
-          return data
-            .map((kline: BinanceKline) => {
-              try {
-                const time = parseTimestamp(kline[0]);
-                const open = new Decimal(kline[1] || 0);
-                const high = new Decimal(kline[2] || 0);
-                const low = new Decimal(kline[3] || 0);
-                const close = new Decimal(kline[4] || 0);
-                const volume = new Decimal(kline[5] || 0);
-
-                if (
-                  open.isNaN() ||
-                  high.isNaN() ||
-                  low.isNaN() ||
-                  close.isNaN() ||
-                  time === 0
-                ) {
-                  return null;
-                }
-
-                return { open, high, low, close, volume, time };
-              } catch (e) {
-                if (import.meta.env.DEV) {
-                  console.warn("Skipping invalid Binance kline:", kline, e);
-                }
-                return null;
-              }
-            })
-            .filter((k): k is Kline => k !== null);
-        } catch (e) {
-          if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
-          if (
-            e instanceof Error &&
-            (e.message === "apiErrors.klineError" ||
-              e.message === "apiErrors.invalidResponse")
-          ) {
-            throw e;
-          }
-          throw new Error("apiErrors.generic");
-        }
-      },
-      priority,
-      1,
-      timeout,
-    );
-  },
-
-  async fetchBitunixMarketSnapshot(
+  async fetchMarketSnapshot(
+    provider: "bitunix" | "bitget",
     priority: "high" | "normal" = "normal",
   ): Promise<Ticker24h[]> {
-    const key = `BITUNIX:SNAPSHOT`;
+    const key = `${provider.toUpperCase()}:SNAPSHOT`;
     return requestManager.schedule(
       key,
       async (signal) => {
         try {
-          const params = new URLSearchParams({ provider: "bitunix" });
+          const params = new URLSearchParams({ provider: provider });
           // Call without 'symbols' param to get all tickers
           const response = await fetch(`/api/tickers?${params.toString()}`, {
             signal,
@@ -598,49 +513,47 @@ export const apiService = {
           if (!response.ok) throw new Error("apiErrors.generic");
           const res = await apiService.safeJson(response);
 
-          if (res.code !== undefined && res.code !== 0) {
-            throw new Error(getBitunixErrorKey(res.code));
+          if (provider === "bitunix") {
+             if (res.code !== undefined && res.code !== 0) {
+               throw new Error(getBitunixErrorKey(res.code));
+             }
+             if (!res.data || !Array.isArray(res.data)) {
+               throw new Error("apiErrors.invalidResponse");
+             }
+             return res.data.map((ticker: any) => {
+                const open = new Decimal(ticker.open || 0);
+                const last = new Decimal(ticker.lastPrice || 0);
+                const change = !open.isZero()
+                   ? last.minus(open).dividedBy(open).times(100)
+                   : new Decimal(0);
+
+                return {
+                   provider: "bitunix",
+                   symbol: ticker.symbol,
+                   lastPrice: last,
+                   highPrice: new Decimal(ticker.high || 0),
+                   lowPrice: new Decimal(ticker.low || 0),
+                   volume: new Decimal(ticker.baseVol || 0),
+                   quoteVolume: new Decimal(ticker.quoteVol || 0),
+                   priceChangePercent: change
+                };
+             });
+          } else {
+             // Bitget (via backend)
+             const data = res.data || [];
+             if (!Array.isArray(data)) throw new Error("apiErrors.invalidResponse");
+
+             return data.map((t: any) => ({
+                 provider: "bitget",
+                 symbol: t.instId || t.symbol,
+                 lastPrice: new Decimal(t.last || 0),
+                 highPrice: new Decimal(t.high24h || 0),
+                 lowPrice: new Decimal(t.low24h || 0),
+                 volume: new Decimal(t.volume24h || 0),
+                 quoteVolume: new Decimal(t.quoteVolume || t.usdtVolume || 0),
+                 priceChangePercent: new Decimal(t.priceChangePercent || 0) // Or calculate
+             }));
           }
-          if (!res.data || !Array.isArray(res.data)) {
-            throw new Error("apiErrors.invalidResponse");
-          }
-
-          return res.data.map((ticker: any) => {
-            // Defensive checks before Number conversion
-            const openRaw =
-              ticker.open !== undefined && ticker.open !== null
-                ? Number(ticker.open)
-                : 0;
-            const lastRaw =
-              ticker.lastPrice !== undefined && ticker.lastPrice !== null
-                ? Number(ticker.lastPrice)
-                : 0;
-            const baseVolRaw =
-              ticker.baseVol !== undefined && ticker.baseVol !== null
-                ? Number(ticker.baseVol)
-                : 0;
-            const quoteVolRaw =
-              ticker.quoteVol !== undefined && ticker.quoteVol !== null
-                ? Number(ticker.quoteVol)
-                : 0;
-
-            const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
-            const last = new Decimal(isNaN(lastRaw) ? 0 : lastRaw);
-            const change = !open.isZero()
-              ? last.minus(open).dividedBy(open).times(100)
-              : new Decimal(0);
-
-            return {
-              provider: "bitunix",
-              symbol: ticker.symbol,
-              lastPrice: last,
-              highPrice: new Decimal(ticker.high || 0),
-              lowPrice: new Decimal(ticker.low || 0),
-              volume: new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw),
-              quoteVolume: new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw),
-              priceChangePercent: change,
-            };
-          });
         } catch (e) {
           if (import.meta.env.DEV) {
             console.error("Snapshot Fetch Error", e);
@@ -655,7 +568,7 @@ export const apiService = {
 
   async fetchTicker24h(
     symbol: string,
-    provider: "bitunix" | "binance",
+    provider: "bitunix" | "bitget",
     priority: "high" | "normal" = "normal",
     timeout = 10000,
   ): Promise<Ticker24h> {
@@ -690,7 +603,6 @@ export const apiService = {
               throw new Error("apiErrors.invalidResponse");
             }
             const ticker = data.data[0];
-            // Defensive checks before Number conversion
             const openRaw =
               ticker.open !== undefined && ticker.open !== null
                 ? Number(ticker.open)
@@ -743,27 +655,19 @@ export const apiService = {
               priceChangePercent: change,
             };
           } else {
-            // Binance
-            const lastRaw = Number(data.lastPrice);
-            if (isNaN(lastRaw) || !isFinite(lastRaw)) {
-              throw new Error("apiErrors.invalidResponse");
-            }
-
-            const highRaw = Number(data.highPrice);
-            const lowRaw = Number(data.lowPrice);
-            const baseVolRaw = Number(data.volume);
-            const quoteVolRaw = Number(data.quoteVolume);
-            const changeRaw = Number(data.priceChangePercent);
+            // Bitget
+            const ticker = (data.data && data.data[0]) || data;
+            if (!ticker) throw new Error("apiErrors.invalidResponse");
 
             return {
-              provider,
-              symbol: normalized,
-              lastPrice: new Decimal(lastRaw),
-              highPrice: new Decimal(isNaN(highRaw) ? lastRaw : highRaw),
-              lowPrice: new Decimal(isNaN(lowRaw) ? lastRaw : lowRaw),
-              volume: new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw),
-              quoteVolume: new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw),
-              priceChangePercent: new Decimal(isNaN(changeRaw) ? 0 : changeRaw),
+                provider,
+                symbol: normalized,
+                lastPrice: new Decimal(ticker.last || 0),
+                highPrice: new Decimal(ticker.high24h || 0),
+                lowPrice: new Decimal(ticker.low24h || 0),
+                volume: new Decimal(ticker.volume24h || 0),
+                quoteVolume: new Decimal(ticker.quoteVolume || ticker.usdtVolume || 0),
+                priceChangePercent: new Decimal(ticker.priceChangePercent || 0)
             };
           }
         } catch (e) {

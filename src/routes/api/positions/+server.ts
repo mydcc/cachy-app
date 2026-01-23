@@ -17,10 +17,11 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { createHmac, createHash, randomBytes } from "crypto";
+import { createHash, randomBytes } from "crypto";
+import { generateBitgetSignature } from "../../../utils/server/bitget";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { exchange, apiKey, apiSecret } = await request.json();
+  const { exchange, apiKey, apiSecret, passphrase } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
@@ -31,8 +32,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     if (exchange === "bitunix") {
       positions = await fetchBitunixPositions(apiKey, apiSecret);
-    } else if (exchange === "binance") {
-      positions = await fetchBinancePositions(apiKey, apiSecret);
+    } else if (exchange === "bitget") {
+      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      positions = await fetchBitgetPositions(apiKey, apiSecret, passphrase);
     } else {
       return json({ error: "Unsupported exchange" }, { status: 400 });
     }
@@ -161,46 +163,59 @@ async function fetchBitunixPositions(
     .filter((p: any) => p.size !== 0);
 }
 
-async function fetchBinancePositions(
+async function fetchBitgetPositions(
   apiKey: string,
   apiSecret: string,
+  passphrase: string
 ): Promise<any[]> {
-  const baseUrl = "https://fapi.binance.com";
-  const path = "/fapi/v2/positionRisk";
-  const timestamp = Date.now();
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/position/allPosition";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
 
-  let queryString = `timestamp=${timestamp}`;
-  const signature = createHmac("sha256", apiSecret)
-    .update(queryString)
-    .digest("hex");
-  queryString += `&signature=${signature}`;
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
 
-  const response = await fetch(`${baseUrl}${path}?${queryString}`, {
-    method: "GET",
-    headers: {
-      "X-MBX-APIKEY": apiKey,
-    },
-  });
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
+    });
 
-  if (!response.ok) {
-    const text = await response.text();
-    throw new Error(`Binance API error: ${response.status} ${text}`);
-  }
+    if (!response.ok) throw new Error("Bitget API Error");
+    const res = await response.json();
+    if (res.code !== "00000") throw new Error(res.msg);
 
-  const data = await response.json();
+    const data = res.data || [];
 
-  return data
-    .filter((p: any) => parseFloat(p.positionAmt) !== 0)
-    .map((p: any) => ({
-      symbol: p.symbol,
-      side: parseFloat(p.positionAmt) > 0 ? "LONG" : "SHORT",
-      size: Math.abs(parseFloat(p.positionAmt)),
-      entryPrice: parseFloat(p.entryPrice),
-      markPrice: parseFloat(p.markPrice),
-      liquidationPrice: parseFloat(p.liquidationPrice), // Ensure consistency
-      margin: parseFloat(p.margin || "0"), // Fallback
-      unrealizedPnL: parseFloat(p.unRealizedProfit),
-      leverage: parseFloat(p.leverage),
-      marginMode: p.marginType, // Normalize to marginMode? User code had marginMode
-    }));
+    return data
+        .filter((p: any) => parseFloat(p.total) !== 0) // Filter empty positions
+        .map((p: any) => {
+            // Bitget fields:
+            // symbol: symbol
+            // holdSide: long/short
+            // total: position size
+            // averageOpenPrice: entry
+            // markPrice: mark
+            // liquidationPrice: liq
+            // margin: margin
+            // unrealizedPL: pnl
+            // leverage: leverage
+            // marginMode: crossed/isolated
+
+            return {
+                symbol: p.symbol,
+                side: (p.holdSide || "").toUpperCase(),
+                size: parseFloat(p.total || "0"),
+                entryPrice: parseFloat(p.averageOpenPrice || "0"),
+                markPrice: parseFloat(p.markPrice || "0"),
+                liquidationPrice: parseFloat(p.liquidationPrice || "0"),
+                margin: parseFloat(p.margin || "0"),
+                unrealizedPnL: parseFloat(p.unrealizedPL || "0"),
+                leverage: parseFloat(p.leverage || "0"),
+                marginMode: p.marginMode // crossed, isolated
+            };
+        });
 }

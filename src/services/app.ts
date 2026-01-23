@@ -18,7 +18,8 @@ import { uiState } from "../stores/ui.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CalculatorService } from "./calculatorService";
 import { marketState } from "../stores/market.svelte";
-import { bitunixWs } from "./bitunixWs"; // Import WS Service
+import { bitunixWs } from "./bitunixWs";
+import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
 import { _ } from "../locales/i18n";
 import { syncService } from "./syncService";
@@ -57,7 +58,13 @@ export const app = {
       app.populatePresetLoader();
       app.setupMarketSync();
       app.setupRealtimeUpdates();
-      bitunixWs.connect();
+
+      // Connect WS based on settings
+      if (settingsState.apiProvider === "bitget") {
+          bitgetWs.connect();
+      } else {
+          bitunixWs.connect();
+      }
 
       // Force initial state on first start or after update
       app.setupFirstStart();
@@ -116,30 +123,40 @@ export const app = {
       untrack(() => {
         if (!s || !s.apiKeys) return;
 
-        const currentKeys = s.apiKeys.bitunix
-          ? `${s.apiKeys.bitunix.key || ""}:${s.apiKeys.bitunix.secret || ""}`
-          : "";
+        const currentKeys = s.apiProvider === "bitget"
+          ? `${s.apiKeys.bitget.key}:${s.apiKeys.bitget.secret}:${s.apiKeys.bitget.passphrase}`
+          : `${s.apiKeys.bitunix.key}:${s.apiKeys.bitunix.secret}`;
+
         const providerChanged = s.apiProvider !== lastProvider;
         const keysChanged = currentKeys !== lastKeys;
 
-        if (s.apiProvider === "bitunix") {
-          if (
-            (keysChanged || providerChanged) &&
-            s.apiKeys.bitunix?.key &&
-            s.apiKeys.bitunix?.secret
-          ) {
-            lastKeys = currentKeys;
-            lastProvider = s.apiProvider;
-            if (browser) {
-              (bitunixWs as any).isDestroyed = false;
-              bitunixWs.connect();
+        if (s.apiProvider === "bitget") {
+            if (providerChanged) {
+                // Switch from bitunix to bitget
+                bitunixWs.destroy();
             }
-          }
+            if (providerChanged || keysChanged) {
+                lastKeys = currentKeys;
+                lastProvider = s.apiProvider;
+                if (browser) {
+                    // bitgetWs connect
+                    (bitgetWs as any).isDestroyed = false; // reset flag if needed or just connect
+                    bitgetWs.connect(true);
+                }
+            }
         } else {
-          if (providerChanged || lastProvider === "bitunix") {
-            lastProvider = s.apiProvider;
-            bitunixWs.destroy();
-          }
+            // Bitunix
+            if (providerChanged) {
+                bitgetWs.destroy();
+            }
+            if (providerChanged || keysChanged) {
+                lastKeys = currentKeys;
+                lastProvider = s.apiProvider;
+                if (browser) {
+                    (bitunixWs as any).isDestroyed = false;
+                    bitunixWs.connect();
+                }
+            }
         }
       });
     });
@@ -153,8 +170,9 @@ export const app = {
     let symbolDebounceTimer: any = null;
 
     tradeStoreUnsubscribe = tradeState.subscribe((state) => {
+      const provider = settingsState.apiProvider;
       const newSymbol = state.symbol
-        ? normalizeSymbol(state.symbol, "bitunix")
+        ? normalizeSymbol(state.symbol, provider)
         : "";
 
       if (symbolDebounceTimer) clearTimeout(symbolDebounceTimer);
@@ -178,7 +196,7 @@ export const app = {
       const settings = settingsState;
 
       if (state.symbol) {
-        const normSymbol = normalizeSymbol(state.symbol, "bitunix");
+        const normSymbol = normalizeSymbol(state.symbol, settings.apiProvider);
         const marketData = data[normSymbol];
 
         if (marketData && marketData.lastPrice) {
@@ -198,11 +216,9 @@ export const app = {
       if (status === "disconnected" || status === "reconnecting") {
         const settings = settingsState;
         if (
-          settings.autoUpdatePriceInput &&
-          settings.apiProvider === "bitunix"
+          settings.autoUpdatePriceInput
         ) {
-          // We could trigger a manual fetch here if WS is down
-          // But MarketWatcher handles general polling now.
+          // Fallback handled by marketWatcher polling
         }
       }
     });
@@ -424,12 +440,14 @@ export const app = {
     if (!symbol) return;
     if (!isAuto) uiState.isPriceFetching = true;
     try {
-      const price =
-        settingsState.apiProvider === "binance"
-          ? await apiService.fetchBinancePrice(symbol)
-          : await apiService.fetchBitunixPrice(symbol);
-      app.currentMarketPrice = price;
-      tradeState.update((s) => ({ ...s, entryPrice: price.toNumber() }));
+      const ticker = await apiService.fetchTicker24h(
+        symbol,
+        settingsState.apiProvider,
+      );
+      const priceVal = ticker.lastPrice;
+
+      app.currentMarketPrice = priceVal;
+      tradeState.update((s) => ({ ...s, entryPrice: priceVal.toNumber() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("Preis-Fetch fehlgeschlagen.");
@@ -455,8 +473,8 @@ export const app = {
     if (!isAuto) uiState.isAtrFetching = true;
     try {
       const klines =
-        settingsState.apiProvider === "binance"
-          ? await apiService.fetchBinanceKlines(
+        settingsState.apiProvider === "bitget"
+          ? await apiService.fetchBitgetKlines(
               symbol,
               tradeState.atrTimeframe,
               15,

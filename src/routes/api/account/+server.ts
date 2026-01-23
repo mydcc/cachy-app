@@ -21,29 +21,31 @@ import {
   generateBitunixSignature,
   validateBitunixKeys,
 } from "../../../utils/server/bitunix";
+import {
+  generateBitgetSignature,
+  validateBitgetKeys,
+} from "../../../utils/server/bitget";
 
 export const POST: RequestHandler = async ({ request }) => {
-  const { exchange, apiKey, apiSecret } = await request.json();
+  const { exchange, apiKey, apiSecret, passphrase } = await request.json();
 
   if (!exchange || !apiKey || !apiSecret) {
     return json({ error: "Missing credentials or exchange" }, { status: 400 });
   }
 
-  // Security: Validate API Key length
-  if (exchange === "bitunix") {
-    const validationError = validateBitunixKeys(apiKey, apiSecret);
-    if (validationError) {
-      return json({ error: validationError }, { status: 400 });
-    }
-  }
-
   try {
     let account = null;
     if (exchange === "bitunix") {
+      const validationError = validateBitunixKeys(apiKey, apiSecret);
+      if (validationError) return json({ error: validationError }, { status: 400 });
       account = await fetchBitunixAccount(apiKey, apiSecret);
-    } else if (exchange === "binance") {
-      // Placeholder
-      account = { error: "Not implemented for Binance yet" };
+    } else if (exchange === "bitget") {
+      if (!passphrase) return json({ error: "Missing passphrase" }, { status: 400 });
+      const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
+      if (validationError) return json({ error: validationError }, { status: 400 });
+      account = await fetchBitgetAccount(apiKey, apiSecret, passphrase);
+    } else {
+        return json({ error: "Unsupported exchange" }, { status: 400 });
     }
 
     return json(account);
@@ -128,4 +130,44 @@ async function fetchBitunixAccount(
     crossUnrealizedPNL: crossPnL,
     isolationUnrealizedPNL: isoPnL,
   };
+}
+
+async function fetchBitgetAccount(
+    apiKey: string,
+    apiSecret: string,
+    passphrase: string
+): Promise<any> {
+    const baseUrl = "https://api.bitget.com";
+    const path = "/api/mix/v1/account/account";
+    const params = { productType: "umcbl", marginCoin: "USDT" };
+
+    const { timestamp, signature, queryString } = generateBitgetSignature(apiSecret, "GET", path, params);
+
+    const response = await fetch(`${baseUrl}${path}?${queryString}`, {
+        headers: {
+            "ACCESS-KEY": apiKey,
+            "ACCESS-SIGN": signature,
+            "ACCESS-TIMESTAMP": timestamp,
+            "ACCESS-PASSPHRASE": passphrase,
+            "Content-Type": "application/json"
+        }
+    });
+
+    if (!response.ok) throw new Error("Bitget API Error");
+    const res = await response.json();
+    if (res.code !== "00000") throw new Error(res.msg);
+
+    const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
+    if (!data) throw new Error("No account data found");
+
+    // Bitget fields: available, locked, equity, usdtEquity, unrealizedPL
+    return {
+        available: parseFloat(data.available || "0"),
+        margin: parseFloat(data.locked || "0"), // locked margin?
+        totalUnrealizedPnL: parseFloat(data.unrealizedPL || "0"),
+        marginCoin: data.marginCoin,
+        frozen: parseFloat(data.locked || "0"), // Bitget usually groups margin/frozen in locked
+        // Map other fields as needed
+        equity: parseFloat(data.equity || "0")
+    };
 }
