@@ -13,6 +13,7 @@ import { rssParserService } from "./rssParserService";
 import { xService } from "./xService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
+import { logger } from "./logger";
 
 export interface NewsItem {
   title: string;
@@ -133,7 +134,7 @@ export const newsService = {
               }));
             }
           } catch (e) {
-            console.error("Failed to fetch CryptoPanic:", e);
+            logger.error("market", "Failed to fetch CryptoPanic", e);
           }
         }
 
@@ -169,7 +170,7 @@ export const newsService = {
               newsItems = [...newsItems, ...mapped];
             }
           } catch (e) {
-            console.error("Failed to fetch NewsAPI:", e);
+            logger.error("market", "Failed to fetch NewsAPI", e);
           }
         }
 
@@ -181,7 +182,7 @@ export const newsService = {
           }
           newsItems = [...newsItems, ...discordItems];
         } catch (e) {
-          console.error("Failed to fetch Discord:", e);
+          logger.error("market", "Failed to fetch Discord", e);
         }
 
         // RSS Feeds
@@ -205,7 +206,7 @@ export const newsService = {
             }
             newsItems = [...newsItems, ...rssItems];
           } catch (e) {
-            console.error("Failed to fetch RSS feeds:", e);
+            logger.error("market", "Failed to fetch RSS feeds", e);
           }
         }
 
@@ -325,7 +326,7 @@ export const newsService = {
 
         return analysis;
       } catch (e: any) {
-        console.error("Sentiment Analysis Failed:", e);
+        logger.error("ai", "Sentiment Analysis Failed", e);
         return {
           score: 0,
           regime: "UNCERTAIN",

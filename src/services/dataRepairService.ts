@@ -3,6 +3,7 @@ import { apiService } from "./apiService";
 import { calculator } from "../lib/calculator";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { logger } from "./logger";
 
 export interface RepairError {
   tradeId: string | number;
@@ -76,7 +77,8 @@ export const dataRepairService = {
         const timestamp = new Date(timeStr).getTime();
 
         if (isNaN(timestamp)) {
-          console.warn(
+          logger.warn(
+            "journal",
             `[DataRepair] Invalid date for trade ${trade.id}, skipping.`,
           );
           failed++;
@@ -132,7 +134,7 @@ export const dataRepairService = {
           failed++;
         }
       } catch (e) {
-        console.error(`[DataRepair] Failed to repair ${trade.symbol}:`, e);
+        logger.error("journal", `[DataRepair] Failed to repair ${trade.symbol}`, e);
         failed++;
         // Continue with next trade
       }
@@ -270,7 +272,7 @@ export const dataRepairService = {
           failed++;
         }
       } catch (e) {
-        console.error(`[DataRepair] MFE/MAE Err ${trade.symbol}:`, e);
+        logger.error("journal", `[DataRepair] MFE/MAE Err ${trade.symbol}`, e);
         failed++;
       }
 

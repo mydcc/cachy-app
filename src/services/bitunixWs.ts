@@ -20,6 +20,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { logger } from "./logger";
 import CryptoJS from "crypto-js";
 import type {
   BitunixWSMessage,
@@ -246,11 +247,8 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) return;
 
-        if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-          console.log(
-            "%c[WS-Public] Connection opened",
-            "color: #0fa; font-weight: bold;",
-          );
+        if (settingsState.enableNetworkLogs) {
+          logger.log("network", "Public connection opened");
         }
         marketState.connectionStatus = "connected";
         this.isReconnectingPublic = false;
@@ -340,11 +338,8 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPrivate);
         if (this.wsPrivate !== ws) return;
 
-        if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-          console.log(
-            "%c[WS-Private] Connection opened",
-            "color: #b8f; font-weight: bold;",
-          );
+        if (settingsState.enableNetworkLogs) {
+          logger.log("network", "Private connection opened");
         }
         this.isReconnectingPrivate = false;
         this.lastMessageTimePrivate = Date.now();
@@ -447,12 +442,11 @@ class BitunixWebSocketService {
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
-          if (import.meta.env.DEV) {
-            console.warn(
-              "[WebSocket] Ping send failed, connection may be closed:",
-              e,
-            );
-          }
+          logger.warn(
+            "network",
+            "[WebSocket] Ping send failed, connection may be closed",
+            e,
+          );
         }
       }
     }, PING_INTERVAL);
@@ -527,9 +521,7 @@ class BitunixWebSocketService {
         try {
           this.wsPublic.close();
         } catch (e) {
-          if (import.meta.env.DEV) {
-            console.warn("[WebSocket] Error closing public connection:", e);
-          }
+          logger.warn("network", "[WebSocket] Error closing public connection", e);
         }
       }
       this.wsPublic = null;
@@ -551,9 +543,7 @@ class BitunixWebSocketService {
         try {
           this.wsPrivate.close();
         } catch (e) {
-          if (import.meta.env.DEV) {
-            console.warn("[WebSocket] Error closing private connection:", e);
-          }
+          logger.warn("network", "[WebSocket] Error closing private connection", e);
         }
       }
       this.wsPrivate = null;
@@ -632,11 +622,10 @@ class BitunixWebSocketService {
           this.lastValidationErrorTime = now;
 
           if (this.validationErrorCount > this.MAX_VALIDATION_ERRORS) {
-            if (import.meta.env.DEV) {
-              console.error(
-                "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
-              );
-            }
+            logger.error(
+              "network",
+              "[WebSocket] Too many CRITICAL validation errors. Forcing reconnect.",
+            );
             this.validationErrorCount = 0;
             this.cleanup(type);
             this.scheduleReconnect(type);
@@ -644,12 +633,7 @@ class BitunixWebSocketService {
           }
         }
 
-        if (import.meta.env.DEV) {
-          console.warn(
-            "[WebSocket] Invalid message structure (ignored):",
-            validationResult.error.issues,
-          );
-        }
+        logger.warn("network", "[WebSocket] Invalid message structure (ignored)", validationResult.error.issues);
         return;
       }
 
@@ -666,8 +650,8 @@ class BitunixWebSocketService {
           validatedMessage.code === "0" ||
           validatedMessage.msg === "success"
         ) {
-          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-            console.log("%c[WS-Private] Login successful", "color: #0fa;");
+          if (settingsState.enableNetworkLogs) {
+            logger.log("network", "Login successful");
           }
           this.isAuthenticated = true;
           this.subscribePrivate();
@@ -685,9 +669,7 @@ class BitunixWebSocketService {
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {
-        if (import.meta.env.DEV) {
-          console.warn("[WebSocket] Unknown channel:", validatedMessage.ch);
-        }
+        logger.warn("network", "[WebSocket] Unknown channel", validatedMessage.ch);
         return;
       }
 
@@ -699,12 +681,7 @@ class BitunixWebSocketService {
         if (!validateSymbol(rawSymbol)) {
           // In DEV, warn loudly. In PROD, we just ignore to prevent crashing or weird state,
           // but we might consider a way to notify the UI if this is the ACTIVE symbol.
-          if (import.meta.env.DEV) {
-            console.warn(
-              "[WebSocket] Invalid symbol in price update:",
-              rawSymbol,
-            );
-          }
+          logger.warn("network", "[WebSocket] Invalid symbol in price update", rawSymbol);
           return;
         }
 
@@ -715,12 +692,7 @@ class BitunixWebSocketService {
           validatedMessage.data,
         );
         if (!priceValidation.success) {
-          if (import.meta.env.DEV) {
-            console.warn(
-              "[WebSocket] Invalid price data:",
-              priceValidation.error.issues,
-            );
-          }
+          logger.warn("network", "[WebSocket] Invalid price data", priceValidation.error.issues);
           return;
         }
 
@@ -747,12 +719,7 @@ class BitunixWebSocketService {
         const rawSymbol = validatedMessage.symbol;
 
         if (!validateSymbol(rawSymbol)) {
-          if (import.meta.env.DEV) {
-            console.warn(
-              "[WebSocket] Invalid symbol in ticker update:",
-              rawSymbol,
-            );
-          }
+          logger.warn("network", "[WebSocket] Invalid symbol in ticker update", rawSymbol);
           return;
         }
 
@@ -763,12 +730,7 @@ class BitunixWebSocketService {
           validatedMessage.data,
         );
         if (!tickerValidation.success) {
-          if (import.meta.env.DEV) {
-            console.warn(
-              "[WebSocket] Invalid ticker data:",
-              tickerValidation.error.issues,
-            );
-          }
+          logger.warn("network", "[WebSocket] Invalid ticker data", tickerValidation.error.issues);
           return;
         }
 
@@ -871,13 +833,8 @@ class BitunixWebSocketService {
         }
       }
     } catch (err) {
-      if (import.meta.env.DEV) {
-        console.error("[WebSocket] Message handling error:", err);
-        console.error(
-          "[WebSocket] Problematic message:",
-          JSON.stringify(message).slice(0, 200),
-        );
-      }
+      logger.error("network", "[WebSocket] Message handling error", err);
+      logger.error("network", "[WebSocket] Problematic message", JSON.stringify(message).slice(0, 200));
     }
   }
 
@@ -888,11 +845,8 @@ class BitunixWebSocketService {
     if (this.publicSubscriptions.has(subKey)) return;
     this.publicSubscriptions.add(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
-      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-        console.log(
-          `%c[WS] Subscribe: ${channel}:${normalizedSymbol}`,
-          "color: #8af;",
-        );
+      if (settingsState.enableNetworkLogs) {
+        logger.log("network", `Subscribe: ${channel}:${normalizedSymbol}`);
       }
       this.sendSubscribe(this.wsPublic, normalizedSymbol, channel);
     } else {
@@ -920,9 +874,7 @@ class BitunixWebSocketService {
     try {
       this.wsPrivate.send(JSON.stringify(payload));
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn("[WebSocket] Failed to send private subscribe:", e);
-      }
+      logger.warn("network", "[WebSocket] Failed to send private subscribe", e);
     }
   }
 
@@ -931,12 +883,7 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(
-          `[WebSocket] Failed to send subscribe for ${symbol}:${channel}:`,
-          e,
-        );
-      }
+      logger.warn("network", `[WebSocket] Failed to send subscribe for ${symbol}:${channel}`, e);
     }
   }
 
@@ -945,12 +892,7 @@ class BitunixWebSocketService {
     try {
       ws.send(JSON.stringify(payload));
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.warn(
-          `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}:`,
-          e,
-        );
-      }
+      logger.warn("network", `[WebSocket] Failed to send unsubscribe for ${symbol}:${channel}`, e);
     }
   }
 
@@ -974,9 +916,7 @@ class BitunixWebSocketService {
       this.lastErrorTimePublic = now;
 
       if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
-        if (import.meta.env.DEV) {
-          console.warn(`[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
-        }
+        logger.warn("network", `[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
         this.cleanup("public");
         this.scheduleReconnect("public");
       }
@@ -988,17 +928,13 @@ class BitunixWebSocketService {
       this.lastErrorTimePrivate = now;
 
       if (this.errorCountPrivate >= this.ERROR_THRESHOLD) {
-        if (import.meta.env.DEV) {
-          console.warn(`[WebSocket] Private: Excessive errors (${this.errorCountPrivate}), forcing reconnect.`);
-        }
+        logger.warn("network", `[WebSocket] Private: Excessive errors (${this.errorCountPrivate}), forcing reconnect.`);
         this.cleanup("private");
         this.scheduleReconnect("private");
       }
     }
 
-    if (import.meta.env.DEV) {
-      console.warn(`[WebSocket] ${type} error handled:`, error);
-    }
+    logger.warn("network", `[WebSocket] ${type} error handled`, error);
   }
 }
 

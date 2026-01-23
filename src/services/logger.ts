@@ -13,23 +13,28 @@ export type LogCategory =
     | "network"
     | "ai"
     | "market"
-    | "general";
+    | "general"
+    | "journal"
+    | "ui";
 
 class LoggerService {
 
-    private isEnabled(category: LogCategory): boolean {
+    private isEnabled(category: LogCategory, force = false): boolean {
         if (!browser) return false;
-        // Master switch (optional, using existing enableNetworkLogs for network)
-        // or specific categories in settings
+        if (force) return true;
 
         const settings = settingsState;
+
+        // If debugMode is on, let everything through
+        if (settings.debugMode) return true;
+
         if (!settings.logSettings) return category === "general";
 
-        return !!settings.logSettings[category];
+        return !!(settings.logSettings as any)[category];
     }
 
-    log(category: LogCategory, message: string, data?: any) {
-        if (!this.isEnabled(category)) return;
+    log(category: LogCategory, message: string, data?: any, force = false) {
+        if (!this.isEnabled(category, force)) return;
 
         const prefix = `[${category.toUpperCase()}]`;
         const style = this.getStyle(category);
@@ -41,21 +46,23 @@ class LoggerService {
         }
     }
 
-    warn(category: LogCategory, message: string, data?: any) {
-        if (!this.isEnabled(category)) return;
+    warn(category: LogCategory, message: string, data?: any, force = false) {
+        if (!this.isEnabled(category, force)) return;
         const prefix = `[${category.toUpperCase()}]`;
         console.warn(`${prefix} ${message}`, data || "");
     }
 
-    error(category: LogCategory, message: string, error?: any) {
-        // Errors might be always visible regardless of settings? 
-        // Usually yes, but let's allow filtering if desired for noise reduction.
-        // For now, FORCE errors to be visible unless explicitly suppressed is safer,
-        // but user asked to filter logs. We'll respect the filter but maybe default "error" types to ON.
-        if (!this.isEnabled(category)) return;
+    error(category: LogCategory, message: string, error?: any, force = true) {
+        if (!this.isEnabled(category, force)) return;
 
         const prefix = `[${category.toUpperCase()}]`;
         console.error(`${prefix} ${message}`, error || "");
+    }
+
+    debug(category: LogCategory, message: string, data?: any) {
+        if (import.meta.env.DEV) {
+            this.log(category, `DEBUG: ${message}`, data);
+        }
     }
 
     private getStyle(category: LogCategory): string {
@@ -64,6 +71,8 @@ class LoggerService {
             case "network": return "color: #8af; font-weight: bold;";
             case "ai": return "color: #d8f; font-weight: bold;";
             case "market": return "color: #fd8; font-weight: bold;";
+            case "journal": return "color: #f8a; font-weight: bold;";
+            case "ui": return "color: #8df; font-weight: bold;";
             default: return "color: #ccc;";
         }
     }

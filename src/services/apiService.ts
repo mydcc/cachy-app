@@ -20,6 +20,7 @@ import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { settingsState } from "../stores/settings.svelte";
+import { logger } from "./logger";
 import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
@@ -52,9 +53,32 @@ class RequestManager {
   private readonly MAX_CONCURRENCY = 8;
   private readonly DEFAULT_TIMEOUT = 10000;
   private readonly CACHE_TTL = 10000; // 10s cache for successful requests
+  private readonly CLEANUP_INTERVAL = 60000; // Check every 60s
 
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
+
+  constructor() {
+    // Start periodic cleanup to prevent memory leaks
+    if (typeof setInterval !== "undefined") {
+      setInterval(() => this.pruneCache(), this.CLEANUP_INTERVAL);
+    }
+  }
+
+  private pruneCache() {
+    const now = Date.now();
+    let removedCount = 0;
+    this.cache.forEach((value, key) => {
+      if (now - value.timestamp > this.CACHE_TTL) {
+        this.cache.delete(key);
+        removedCount++;
+      }
+    });
+
+    if (removedCount > 0 && import.meta.env.DEV && settingsState.enableNetworkLogs) {
+      logger.debug("network", `[Cache] Pruned ${removedCount} items. Current size: ${this.cache.size}`);
+    }
+  }
 
   /**
    * Execute a fetch usage deduping and queuing.
@@ -74,20 +98,13 @@ class RequestManager {
     // 0. Cache Check
     const cached = this.cache.get(key);
     if (cached && now - cached.timestamp < this.CACHE_TTL) {
-      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-        console.log(`%c[Cache] Hit: ${key}`, "color: #bfa; font-size: 10px;");
-      }
+      logger.debug("network", `[Cache] Hit: ${key}`);
       return Promise.resolve(cached.data as T);
     }
 
     // 1. Deduplication: If already fetching this key, return existing promise
     if (this.pending.has(key)) {
-      if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-        console.log(
-          `%c[Dedupe] Joined: ${key}`,
-          "color: #8af; font-size: 10px;",
-        );
-      }
+      logger.debug("network", `[Dedupe] Joined: ${key}`);
       return this.pending.get(key) as Promise<T>;
     }
 
@@ -97,12 +114,7 @@ class RequestManager {
         this.activeCount++;
 
         try {
-          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-            console.log(
-              `%c[Request] Start: ${key}`,
-              "color: #aaa; font-size: 10px;",
-            );
-          }
+          logger.debug("network", `[Request] Start: ${key}`);
           // Wrapped task with Timeout and Retry
           const executeWithRetry = async (attempt: number): Promise<T> => {
             const controller = new AbortController();
@@ -114,8 +126,8 @@ class RequestManager {
             try {
               return await task(controller.signal);
             } catch (e) {
-              if (import.meta.env.DEV && e instanceof Error && e.name === "AbortError") {
-                console.warn(`[ReqMgr] Timeout for ${key}`);
+              if (e instanceof Error && e.name === "AbortError") {
+                logger.warn("network", `[ReqMgr] Timeout for ${key}`);
               }
               if (attempt < retries) {
                 const errorMsg =
@@ -129,10 +141,10 @@ class RequestManager {
                   throw e;
                 }
 
-                if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-                  console.log(
-                    `%c[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`,
-                    "color: #fa0;",
+                if (settingsState.enableNetworkLogs) {
+                  logger.log(
+                    "network",
+                    `[ReqMgr] Retrying ${key} (Attempt ${attempt + 1}/${retries + 1})`
                   );
                 }
                 // Wait a bit before retry (increased for rate limit recovery)
@@ -150,16 +162,13 @@ class RequestManager {
           // Store in cache upon success (only if it matches the current request)
           this.cache.set(key, { data: result, timestamp: Date.now() });
 
-          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-            console.log(
-              `%c[Response] Success: ${key}`,
-              "color: #0fa; font-size: 10px;",
-            );
+          if (settingsState.enableNetworkLogs) {
+            logger.log("network", `[Response] Success: ${key}`);
           }
           resolve(result);
         } catch (e) {
-          if (settingsState.enableNetworkLogs && import.meta.env.DEV) {
-            console.error(`[Response] Failed: ${key}`, e);
+          if (settingsState.enableNetworkLogs) {
+            logger.error("network", `[Response] Failed: ${key}`, e);
           }
           reject(e);
         } finally {
@@ -223,9 +232,7 @@ export const apiService = {
       const text = await response.text();
       // Sanitize error message (max 100 chars, no sensitive data)
       const sanitized = sanitizeErrorMessage(text, 100);
-      if (import.meta.env.DEV) {
-        console.error("[API] Expected JSON, got:", sanitized);
-      }
+      logger.error("network", "[API] Expected JSON, got", sanitized);
       throw new Error("apiErrors.invalidResponseFormat");
     }
 
@@ -239,9 +246,7 @@ export const apiService = {
     try {
       return JSON.parse(text);
     } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error("[API] JSON parse error");
-      }
+      logger.error("network", "[API] JSON parse error");
       throw new Error("apiErrors.invalidJson");
     }
   },
@@ -277,12 +282,11 @@ export const apiService = {
           // Validate response structure with Zod
           const validation = BitunixTickerResponseSchema.safeParse(res);
           if (!validation.success) {
-            if (import.meta.env.DEV) {
-              console.error(
-                "[API] Invalid ticker response:",
-                validation.error.issues,
-              );
-            }
+            logger.error(
+              "network",
+              "[API] Invalid ticker response",
+              validation.error.issues,
+            );
             throw new Error("apiErrors.invalidResponse");
           }
 
@@ -470,9 +474,7 @@ export const apiService = {
 
                   return { open, high, low, close, volume, time };
                 } catch (e) {
-                  if (import.meta.env.DEV) {
-                    console.warn("Skipping invalid kline:", kline, e);
-                  }
+                  logger.warn("network", "Skipping invalid kline", { kline, error: e });
                   return null;
                 }
               },
@@ -480,9 +482,7 @@ export const apiService = {
             .filter((k): k is Kline => k !== null);
         } catch (e: any) {
           if (e.message !== "apiErrors.symbolNotFound") {
-            if (import.meta.env.DEV) {
-              console.error(`fetchBitunixKlines error for ${symbol}:`, e);
-            }
+            logger.error("network", `fetchBitunixKlines error for ${symbol}`, e);
           }
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
@@ -555,9 +555,7 @@ export const apiService = {
             }));
           }
         } catch (e) {
-          if (import.meta.env.DEV) {
-            console.error("Snapshot Fetch Error", e);
-          }
+          logger.error("network", "Snapshot Fetch Error", e);
           if (e instanceof Error && e.name === "AbortError") throw e;
           throw new Error("apiErrors.generic");
         }
@@ -671,9 +669,7 @@ export const apiService = {
             };
           }
         } catch (e) {
-          if (import.meta.env.DEV) {
-            console.error("fetchTicker24h error", e);
-          }
+          logger.error("network", "fetchTicker24h error", e);
           if (e instanceof Error && e.name === "AbortError") throw e; // Pass through for RequestManager
           if (
             e instanceof Error &&

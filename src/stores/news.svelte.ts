@@ -12,6 +12,7 @@ import {
   type NewsItem,
   type SentimentAnalysis,
 } from "../services/newsService";
+import { logger } from "../services/logger";
 import { settingsState } from "./settings.svelte";
 
 class NewsStore {
@@ -49,7 +50,7 @@ class NewsStore {
         this.sentiment = null;
       }
     } catch (e: any) {
-      console.error("[NewsStore] Refresh failed:", e);
+      logger.error("market", "Refresh failed", e);
       this.error = e.message || "Failed to load news";
     } finally {
       this.isLoading = false;
