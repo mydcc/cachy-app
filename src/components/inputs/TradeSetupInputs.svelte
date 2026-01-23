@@ -73,6 +73,20 @@
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
+  // Buffer states for numeric inputs to prevent "jumping cursor" bugs
+  const format = (val: number | null) =>
+    val === null || val === undefined ? "" : String(val);
+
+  let entryPriceInput = $state(format(entryPrice));
+  let stopLossPriceInput = $state(format(stopLossPrice));
+  let atrValueInput = $state(format(atrValue));
+  let atrMultiplierInput = $state(format(atrMultiplier));
+
+  let isEntryPriceFocused = $state(false);
+  let isStopLossPriceFocused = $state(false);
+  let isAtrValueFocused = $state(false);
+  let isAtrMultiplierFocused = $state(false);
+
   let priceDeviation = $derived.by(() => {
     // Safety check: ensure symbol is valid before calculating deviation
     // Use marketState for reactivity
@@ -90,11 +104,29 @@
   // CRITICAL: Only sync if user is NOT typing/focused to prevent mobile keyboard issues.
   // FIX: Allow clearing input (localSymbol === "") while focused without snapping back.
   $effect(() => {
-    // Only update local from props if:
-    // 1. User is NOT focused
-    // 2. OR user is focused, but prop changed AND it's not just a result of clearing
+    // SYMBOL
     if (!isSymbolFocused && symbol !== localSymbol) {
       localSymbol = symbol || "";
+    }
+
+    // NUMERIC INPUTS
+    // Only update local input buffer from prop if the input is NOT focused
+    // This allows the user to type "1." (invalid float) without it snapping back to "1"
+    if (!isEntryPriceFocused) {
+      const formatted = format(entryPrice);
+      if (formatted !== entryPriceInput) entryPriceInput = formatted;
+    }
+    if (!isStopLossPriceFocused) {
+      const formatted = format(stopLossPrice);
+      if (formatted !== stopLossPriceInput) stopLossPriceInput = formatted;
+    }
+    if (!isAtrValueFocused) {
+      const formatted = format(atrValue);
+      if (formatted !== atrValueInput) atrValueInput = formatted;
+    }
+    if (!isAtrMultiplierFocused) {
+      const formatted = format(atrMultiplier);
+      if (formatted !== atrMultiplierInput) atrMultiplierInput = formatted;
     }
   });
 
@@ -184,12 +216,10 @@
     }
   }
 
-  const format = (val: number | null) =>
-    val === null || val === undefined ? "" : String(val);
-
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    entryPriceInput = value; // Update local buffer immediately
     tradeState.update((s) => ({
       ...s,
       entryPrice: value === "" ? null : parseFloat(value),
@@ -199,6 +229,7 @@
   function handleAtrValueInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    atrValueInput = value;
     tradeState.update((s) => ({
       ...s,
       atrValue: value === "" ? null : parseFloat(value),
@@ -208,6 +239,7 @@
   function handleAtrMultiplierInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    atrMultiplierInput = value;
     tradeState.update((s) => ({
       ...s,
       atrMultiplier: value === "" ? null : parseFloat(value),
@@ -217,6 +249,7 @@
   function handleStopLossPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
+    stopLossPriceInput = value;
     tradeState.update((s) => ({
       ...s,
       stopLossPrice: value === "" ? null : parseFloat(value),
@@ -385,11 +418,13 @@
           rightOffset: "40px",
           showSpinButtons: false,
         }}
-        value={format(entryPrice)}
+        value={entryPriceInput}
         oninput={(e) => {
           handleEntryPriceInput(e);
           onboardingService.trackFirstInput();
         }}
+        onfocus={() => (isEntryPriceFocused = true)}
+        onblur={() => (isEntryPriceFocused = false)}
         class="input-field w-full px-4 py-2 rounded-md transition-all {priceDeviation >
         10
           ? 'border-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.3)]'
@@ -476,8 +511,10 @@
             step: priceStep,
             min: 0,
           }}
-          value={format(stopLossPrice)}
+          value={stopLossPriceInput}
           oninput={handleStopLossPriceInput}
+          onfocus={() => (isStopLossPriceFocused = true)}
+          onblur={() => (isStopLossPriceFocused = false)}
           class="input-field w-full px-4 py-2 rounded-md"
           placeholder={$_(
             "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
@@ -498,8 +535,10 @@
                 min: 0,
                 showSpinButtons: "hover",
               }}
-              value={format(atrValue)}
+              value={atrValueInput}
               oninput={handleAtrValueInput}
+              onfocus={() => (isAtrValueFocused = true)}
+              onblur={() => (isAtrValueFocused = false)}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
             />
@@ -515,8 +554,10 @@
                 min: 0.1,
                 showSpinButtons: "hover",
               }}
-              value={format(atrMultiplier)}
+              value={atrMultiplierInput}
               oninput={handleAtrMultiplierInput}
+              onfocus={() => (isAtrMultiplierFocused = true)}
+              onblur={() => (isAtrMultiplierFocused = false)}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_(
                 "dashboard.tradeSetupInputs.multiplierPlaceholder",
@@ -574,8 +615,10 @@
                   rightOffset: "40px",
                   showSpinButtons: false,
                 }}
-                value={format(atrValue)}
+                value={atrValueInput}
                 oninput={handleAtrValueInput}
+                onfocus={() => (isAtrValueFocused = true)}
+                onblur={() => (isAtrValueFocused = false)}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
                 placeholder="ATR"
               />
@@ -621,8 +664,10 @@
                   step: 0.1,
                   min: 0.1,
                 }}
-                value={format(atrMultiplier)}
+                value={atrMultiplierInput}
                 oninput={handleAtrMultiplierInput}
+                onfocus={() => (isAtrMultiplierFocused = true)}
+                onblur={() => (isAtrMultiplierFocused = false)}
                 class="input-field w-full px-4 py-2 rounded-md"
                 placeholder="1.2"
               />

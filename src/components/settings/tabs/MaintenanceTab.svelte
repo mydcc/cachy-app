@@ -284,7 +284,7 @@
                     {#if settingsState.logSettings}
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                             <!-- Helper for Toggles -->
-                            {#snippet logToggle(label, key)}
+                            {#snippet logToggle(label: string, key: any)}
                                 <label
                                     class="flex items-center justify-between p-2 rounded bg-[var(--bg-tertiary)] cursor-pointer hover:bg-[var(--bg-primary)] transition-colors border border-[var(--border-color)]"
                                 >
@@ -294,9 +294,10 @@
                                     <input
                                         type="checkbox"
                                         class="accent-[var(--accent-color)]"
-                                        checked={settingsState.logSettings[key]}
+                                        checked={settingsState.logSettings ? (settingsState.logSettings as any)[key] : false}
                                         onchange={(e) => {
                                             if (settingsState.logSettings) {
+                                                // @ts-ignore
                                                 settingsState.logSettings[key] =
                                                     e.currentTarget.checked;
                                             }

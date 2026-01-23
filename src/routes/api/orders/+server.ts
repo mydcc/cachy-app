@@ -71,6 +71,30 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Security: Validate Order Parameters
     if (type === "place-order" || type === "close-position") {
+      // Check for common field confusion
+      if (
+        type === "place-order" &&
+        body.amount !== undefined &&
+        body.qty === undefined
+      ) {
+        return json(
+          { error: "Invalid field: Use 'qty' for place-order, not 'amount'." },
+          { status: 400 },
+        );
+      }
+      if (
+        type === "close-position" &&
+        body.qty !== undefined &&
+        body.amount === undefined
+      ) {
+        return json(
+          {
+            error: "Invalid field: Use 'amount' for close-position, not 'qty'.",
+          },
+          { status: 400 },
+        );
+      }
+
       // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
       const rawQty = type === "close-position" ? body.amount : body.qty;
 

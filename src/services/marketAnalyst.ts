@@ -81,16 +81,19 @@ class MarketAnalystService {
 
             if (tech1h && tech4h) {
                 // 4. Derive Insights
-                const price = klines[klines.length - 1].close;
-                const open24h = klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open;
+                // Convert Decimal to numbers for calculation/storage
+                const price = klines[klines.length - 1].close.toNumber();
+                const open24h = klines.length >= 24 ? klines[klines.length - 24].open.toNumber() : klines[0].open.toNumber();
                 const change24h = ((price - open24h) / open24h) * 100;
 
                 // Trend 4H (based on EMA 50 vs EMA 200 or Price vs EMA 200)
-                const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
+                const ema200Val = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value;
+                const ema200_4h = ema200Val ? ema200Val.toNumber() : 0;
                 const trend4h = price > ema200_4h ? "bullish" : "bearish";
 
                 // RSI 1H
-                const rsi1h = tech1h.oscillators["RSI"] || 50;
+                const rsiVal = tech1h.oscillators.find(o => o.name === "RSI")?.value;
+                const rsi1h = rsiVal ? rsiVal.toNumber() : 50;
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
                 if (rsi1h > 70) condition = "overbought";

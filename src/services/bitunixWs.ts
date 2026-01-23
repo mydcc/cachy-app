@@ -210,11 +210,15 @@ class BitunixWebSocketService {
     marketState.connectionStatus = "connecting";
 
     try {
+      // Clear existing timeout before creating new connection
+      if (this.connectionTimeoutPublic) {
+        clearTimeout(this.connectionTimeoutPublic);
+        this.connectionTimeoutPublic = null;
+      }
+
       const ws = new WebSocket(WS_PUBLIC_URL);
       this.wsPublic = ws;
 
-      if (this.connectionTimeoutPublic)
-        clearTimeout(this.connectionTimeoutPublic);
       this.connectionTimeoutPublic = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
@@ -304,11 +308,15 @@ class BitunixWebSocketService {
     }
 
     try {
+      // Clear existing timeout before creating new connection
+      if (this.connectionTimeoutPrivate) {
+        clearTimeout(this.connectionTimeoutPrivate);
+        this.connectionTimeoutPrivate = null;
+      }
+
       const ws = new WebSocket(WS_PRIVATE_URL);
       this.wsPrivate = ws;
 
-      if (this.connectionTimeoutPrivate)
-        clearTimeout(this.connectionTimeoutPrivate);
       this.connectionTimeoutPrivate = setTimeout(() => {
         if (this.isDestroyed) return;
         if (ws.readyState !== WebSocket.OPEN) {
