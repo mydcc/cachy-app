@@ -99,7 +99,9 @@ class BitgetWebSocketService {
           // Bitget is quiet if no updates, but we ping.
         }
 
-        if (status !== "disconnected" && timeSince > 40000) {
+        // Monitor for stale connection, but ONLY if connected.
+        // If connecting, the connectionTimeout handles it.
+        if (status === "connected" && timeSince > 40000) {
           marketState.connectionStatus = "disconnected";
           this.cleanup();
           this.connect();
