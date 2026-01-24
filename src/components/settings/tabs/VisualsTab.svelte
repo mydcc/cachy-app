@@ -39,12 +39,18 @@
         { value: "floating", label: "Floating" },
     ];
 
-    let activeSubTab = $state("appearance");
+    const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
     const subTabs = [
-        { id: "appearance", label: "Look & Feel" },
-        { id: "layout", label: "Layout" },
-        { id: "background", label: "Background" },
+        {
+            id: "appearance",
+            label: $_("settings.profile.subtabs.appearance") || "Look & Feel",
+        },
+        { id: "layout", label: $_("settings.visuals.layoutTitle") || "Layout" },
+        {
+            id: "background",
+            label: $_("settings.visuals.backgroundTitle") || "Background",
+        },
     ];
 </script>
 
@@ -59,7 +65,7 @@
                 tab.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeSubTab = tab.id)}
+                onclick={() => (uiState.settingsVisualsSubTab = tab.id)}
             >
                 {tab.label}
             </button>

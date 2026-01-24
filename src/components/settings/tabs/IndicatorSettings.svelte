@@ -5,6 +5,7 @@
     import TimeframeSelector from "../../shared/TimeframeSelector.svelte";
     import { settingsState } from "../../../stores/settings.svelte";
     import { indicatorState } from "../../../stores/indicator.svelte";
+    import { uiState } from "../../../stores/ui.svelte";
     import Field from "./IndicatorField.svelte";
     import Select from "./IndicatorSelect.svelte";
 
@@ -27,16 +28,20 @@
         "1M",
     ];
 
-    let activeCategory = $state<
-        "general" | "oscillators" | "trend" | "volatility" | "volume"
-    >("general");
+    const activeCategory = $derived(uiState.settingsIndicatorCategory);
 
     const categories = [
-        { id: "general", label: "General" },
-        { id: "oscillators", label: "Oscillators" },
-        { id: "trend", label: "Trend" },
-        { id: "volatility", label: "Volatility" },
-        { id: "volume", label: "Volume" },
+        { id: "general", label: $_("settings.tabs.general") || "General" },
+        {
+            id: "oscillators",
+            label: $_("settings.technicals.oscillators") || "Oscillators",
+        },
+        { id: "trend", label: $_("settings.indicators.trend") || "Trend" },
+        {
+            id: "volatility",
+            label: $_("settings.indicators.volatility") || "Volatility",
+        },
+        { id: "volume", label: $_("settings.indicators.volume") || "Volume" },
     ] as const;
 
     const pnlModes = [
@@ -57,7 +62,8 @@
                 category.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeCategory = category.id)}
+                onclick={() =>
+                    (uiState.settingsIndicatorCategory = category.id)}
             >
                 {category.label}
             </button>

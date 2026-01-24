@@ -21,12 +21,18 @@
         window.location.reload();
     }
 
-    let activeSubTab = $state("performance");
+    const activeSubTab = $derived(uiState.settingsSystemSubTab);
 
     const subTabs = [
-        { id: "performance", label: "Performance" },
-        { id: "data", label: "Data & Backup" },
-        { id: "maintenance", label: "Maintenance" },
+        {
+            id: "performance",
+            label: $_("settings.system.performance") || "Performance",
+        },
+        { id: "data", label: $_("settings.tabs.data") || "Data & Backup" },
+        {
+            id: "maintenance",
+            label: $_("settings.tabs.maintenance") || "Maintenance",
+        },
     ];
 </script>
 
@@ -41,7 +47,7 @@
                 tab.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeSubTab = tab.id)}
+                onclick={() => (uiState.settingsSystemSubTab = tab.id)}
             >
                 {tab.label}
             </button>

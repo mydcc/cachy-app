@@ -2,6 +2,7 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import { uiState } from "../../../stores/ui.svelte";
     import { RSS_PRESETS } from "../../../config/rssPresets";
 
     // Helper for masking inputs
@@ -42,12 +43,18 @@
         localStorage.removeItem("cachy_news_cache");
     }
 
-    let activeSubTab = $state("exchanges");
+    const activeSubTab = $derived(uiState.settingsConnectionsSubTab);
 
     const subTabs = [
-        { id: "exchanges", label: "Exchanges" },
-        { id: "data", label: "Data Services" },
-        { id: "rss", label: "News Feeds" },
+        {
+            id: "exchanges",
+            label: $_("settings.tabs.connections") || "Exchanges",
+        },
+        {
+            id: "data",
+            label: $_("settings.tabs.integrations") || "Data Services",
+        },
+        { id: "rss", label: $_("settings.connections.rss") || "News Feeds" },
     ];
 </script>
 
@@ -66,7 +73,7 @@
                 tab.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeSubTab = tab.id)}
+                onclick={() => (uiState.settingsConnectionsSubTab = tab.id)}
             >
                 {tab.label}
             </button>

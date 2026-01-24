@@ -4,6 +4,7 @@
     import Toggle from "../../shared/Toggle.svelte";
     import HotkeySettings from "../HotkeySettings.svelte";
     import IndicatorSettings from "./IndicatorSettings.svelte";
+    import { uiState } from "../../../stores/ui.svelte";
 
     const intervals = [
         { value: 1000, label: "1s (Ultra)" },
@@ -12,12 +13,19 @@
         { value: 10000, label: "10s (Eco)" },
     ];
 
-    let activeSubTab = $state("market");
+    const activeSubTab = $derived(uiState.settingsTradingSubTab);
 
     const subTabs = [
-        { id: "market", label: "Market & Execution" },
-        { id: "chart", label: "Chart & Technicals" },
-        { id: "hotkeys", label: "Controls" },
+        {
+            id: "market",
+            label:
+                $_("settings.trading.executionTitle") || "Market & Execution",
+        },
+        {
+            id: "chart",
+            label: $_("settings.trading.chartTitle") || "Chart & Technicals",
+        },
+        { id: "hotkeys", label: $_("settings.tabs.hotkeys") || "Controls" },
     ];
 </script>
 
@@ -32,7 +40,7 @@
                 tab.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeSubTab = tab.id)}
+                onclick={() => (uiState.settingsTradingSubTab = tab.id)}
             >
                 {tab.label}
             </button>

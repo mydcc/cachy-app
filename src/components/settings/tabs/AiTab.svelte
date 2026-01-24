@@ -2,6 +2,7 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
+    import { uiState } from "../../../stores/ui.svelte";
 
     const aiProviders = [
         { value: "openai", label: "OpenAI (GPT-4o)" },
@@ -35,12 +36,15 @@
         settingsState.xMonitors = newMonitors;
     }
 
-    let activeSubTab = $state("intelligence");
+    const activeSubTab = $derived(uiState.settingsAiSubTab);
 
     const subTabs = [
-        { id: "intelligence", label: "Intelligence" },
-        { id: "behavior", label: "Behavior" },
-        { id: "agents", label: "Agents" },
+        {
+            id: "intelligence",
+            label: $_("settings.tabs.ai_assistant") || "Intelligence",
+        },
+        { id: "behavior", label: $_("settings.ai.behavior") || "Behavior" },
+        { id: "agents", label: $_("settings.ai.agents") || "Agents" },
     ];
 </script>
 
@@ -55,7 +59,7 @@
                 tab.id
                     ? 'bg-[var(--accent-color)] text-white'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
-                onclick={() => (activeSubTab = tab.id)}
+                onclick={() => (uiState.settingsAiSubTab = tab.id)}
             >
                 {tab.label}
             </button>

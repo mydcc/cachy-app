@@ -59,7 +59,13 @@ class UiManager {
   symbolSuggestions = $state<string[]>([]);
   showSymbolSuggestions = $state(false);
   showSettingsModal = $state(false);
-  settingsTab = $state("profile");
+  settingsTab = $state("trading");
+  settingsTradingSubTab = $state("market");
+  settingsVisualsSubTab = $state("appearance");
+  settingsAiSubTab = $state("intelligence");
+  settingsConnectionsSubTab = $state("exchanges");
+  settingsSystemSubTab = $state("performance");
+  settingsIndicatorCategory = $state("general");
   settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
   settingsWorkspaceTab = $state("sidebar");
   showMarketDashboardModal = $state(false);
@@ -124,6 +130,11 @@ class UiManager {
         showSymbolSuggestions: this.showSymbolSuggestions,
         showSettingsModal: this.showSettingsModal,
         settingsTab: this.settingsTab,
+        settingsTradingSubTab: this.settingsTradingSubTab,
+        settingsVisualsSubTab: this.settingsVisualsSubTab,
+        settingsAiSubTab: this.settingsAiSubTab,
+        settingsConnectionsSubTab: this.settingsConnectionsSubTab,
+        settingsSystemSubTab: this.settingsSystemSubTab,
         settingsProfileTab: this.settingsProfileTab,
         settingsWorkspaceTab: this.settingsWorkspaceTab,
         isLoading: this.isLoading,
@@ -161,6 +172,11 @@ class UiManager {
       showSymbolSuggestions: this.showSymbolSuggestions,
       showSettingsModal: this.showSettingsModal,
       settingsTab: this.settingsTab,
+      settingsTradingSubTab: this.settingsTradingSubTab,
+      settingsVisualsSubTab: this.settingsVisualsSubTab,
+      settingsAiSubTab: this.settingsAiSubTab,
+      settingsConnectionsSubTab: this.settingsConnectionsSubTab,
+      settingsSystemSubTab: this.settingsSystemSubTab,
       settingsProfileTab: this.settingsProfileTab,
       settingsWorkspaceTab: this.settingsWorkspaceTab,
       isLoading: this.isLoading,
@@ -290,9 +306,18 @@ class UiManager {
     this.showMarketDashboardModal = show;
   }
 
-  openSettings(tab = "profile") {
+  openSettings(tab = "trading") {
     this.showSettingsModal = true;
-    this.settingsTab = tab;
+
+    if (tab === "indicators") {
+      this.settingsTab = "trading";
+      this.settingsTradingSubTab = "chart";
+    } else if (tab === "profile") {
+      this.settingsTab = "visuals";
+      this.settingsVisualsSubTab = "appearance";
+    } else {
+      this.settingsTab = tab;
+    }
   }
 
   // --- Dynamic Window Management ---
