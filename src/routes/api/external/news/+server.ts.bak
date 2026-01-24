@@ -79,8 +79,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             const errorText = await response.text();
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e: any) {
-            console.warn(`[NewsProxy] Plan ${p} failed:`, e.message || String(e));
-            lastError = e.message || String(e);
+            lastError = e.message;
             continue;
           }
         }
@@ -112,14 +111,9 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
     }
 
   } catch (err: any) {
-    const errorMsg = err instanceof Error ? err.message : String(err);
-    console.error(`[NewsProxy] Error processing request for ${request.url}:`, errorMsg);
-
-    // Detailed error logging for debugging
-    if (err.cause) console.error("[NewsProxy] Cause:", err.cause);
-
+    console.error("[NewsProxy] Error:", err);
     return json(
-      { error: errorMsg || "Internal Proxy Error" },
+      { error: err.message || "Internal Proxy Error" },
       { status: 500 },
     );
   }

@@ -26,17 +26,17 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes for standard RSS
 const tweetStore = new Map<string, Map<string, any>>();
 const TWEET_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for tweets
 
-// Verified instances list (as of late 2024/2025)
 const NITTER_INSTANCES = [
-  "xcancel.com",
   "nitter.poast.org",
-  "nitter.privacydev.net",
-  "nitter.uni-sonia.com",
-  "nitter.lucabased.xyz",
-  "nitter.moomoo.me",
-  "nitter.soopy.moe",
-  "nitter.catsarch.com",
-  "nitter.salastil.com"
+  "nuku.trabun.org",
+  "nitter.cz",
+  "nitter.privacy.com.de",
+  "nitter.perennialte.ch",
+  "nitter.rawbit.ninja",
+  "xcancel.com",
+  "nitter.tinfoil-hat.net",
+  "nitter.projectsegfau.lt",
+  "nitter.eu"
 ];
 
 // In-memory blacklist with dynamic backoff
@@ -128,9 +128,9 @@ export const POST: RequestHandler = async ({ request }) => {
       const id = setTimeout(() => controller.abort(), timeout);
 
       const uas = [
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36",
-        "Mozilla/5.0 (X11; Linux x86_64; rv:123.0) Gecko/20100101 Firefox/123.0"
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
       ];
       const ua = uas[Math.floor(Math.random() * uas.length)];
 
@@ -140,14 +140,8 @@ export const POST: RequestHandler = async ({ request }) => {
           headers: {
             "User-Agent": ua,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Accept-Encoding": "gzip, deflate, br",
-            "Cache-Control": "max-age=0",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "Upgrade-Insecure-Requests": "1"
+            "Accept-Language": "en-US,en;q=0.5",
+            "Cache-Control": "no-cache"
           }
         });
 
@@ -158,12 +152,7 @@ export const POST: RequestHandler = async ({ request }) => {
         clearTimeout(id);
 
         const lower = text.toLowerCase();
-        if (
-          lower.includes("cloudflare") ||
-          lower.includes("verify you are human") ||
-          lower.includes("access denied") ||
-          text.length < 500 // Suspiciously short response
-        ) {
+        if (lower.includes("cloudflare") || lower.includes("anubis") || lower.includes("robot checking")) {
           throw new Error("Bot-Block");
         }
         return text;
@@ -199,19 +188,15 @@ export const POST: RequestHandler = async ({ request }) => {
           ? [`/${xCmd.value}`, `/search?q=from:${xCmd.value}&f=tweets`]
           : [`/search?f=tweets&q=%23${xCmd.value}`];
 
-        let failedOnMsg = "";
-
         for (const targetPath of paths) {
           try {
-            await new Promise(r => setTimeout(r, Math.random() * 1000 + 500)); // Small random delay
-            const html = await tryFetch(`https://${instance}${targetPath}`, 6000);
-
+            const html = await tryFetch(`https://${instance}${targetPath}`, 5000);
             if (!html) continue;
 
             const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
             const title = (titleMatch?.[1] || "").toLowerCase();
 
-            if (title.includes("nitter") && !title.includes(xCmd.value.toLowerCase()) && !title.includes("search")) {
+            if (title.includes("nitter") && !title.includes(xCmd.value.toLowerCase())) {
               // Likely a redirect to homepage or error page that didn't throw HTTP error
               continue;
             }
@@ -236,26 +221,15 @@ export const POST: RequestHandler = async ({ request }) => {
                 .slice(0, 40);
 
               console.log(`[X-NEWS] Success: ${instance} for ${context} (${newItems.length} new, ${allItems.length} total)`);
-              instanceBackoff.delete(instance); // Reset backoff on success
               return json({ items: allItems, feedTitle: `X: ${context}` });
             }
           } catch (e: any) {
-            failedOnMsg = e.message;
-
-            // Optimization: If user profile is blocked, search will likely be blocked too. 
-            // Don't waste time trying the second path for this instance.
-            if (e.message.includes("HTTP 403") || e.message.includes("Bot-Block") || e.message.includes("429")) {
-              break;
-            }
+            console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
+            const currentBackoff = instanceBackoff.get(instance) || 0;
+            const newBackoff = Math.min(MAX_BACKOFF, Math.max(now + BACKOFF_STEP, currentBackoff + BACKOFF_STEP));
+            instanceBackoff.set(instance, newBackoff);
+            break; // Try next instance
           }
-        }
-
-        // Log failure for this instance after trying paths
-        if (failedOnMsg) {
-          console.warn(`[X-NEWS] Instance ${instance} failed: ${failedOnMsg}`);
-          const currentBackoff = instanceBackoff.get(instance) || 0;
-          const newBackoff = Math.min(MAX_BACKOFF, Math.max(now + BACKOFF_STEP, currentBackoff + BACKOFF_STEP));
-          instanceBackoff.set(instance, newBackoff);
         }
       }
 
