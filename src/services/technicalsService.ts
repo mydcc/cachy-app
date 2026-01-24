@@ -82,8 +82,15 @@ class TechnicalsWorkerManager {
 
   private handleError(e: ErrorEvent) {
     console.error("[Technicals] Worker Error:", e);
-    // Don't kill immediately, but maybe restart if it happens often?
-    // For now, let it be.
+    // Auto-restart logic: Terminate and clear instance so next call re-initializes
+    if (this.worker) {
+      this.worker.terminate();
+      this.worker = null;
+    }
+    // Reject all pending requests to trigger immediate fallback
+    this.pendingRejects.forEach((reject) => reject(new Error("Worker Error Event")));
+    this.pendingResolves.clear();
+    this.pendingRejects.clear();
   }
 
   public async postMessage(message: any): Promise<TechnicalsData> {
