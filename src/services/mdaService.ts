@@ -17,15 +17,19 @@ export const mdaService = {
 
         // Default mappings for Bitunix (Current Primary)
         if (provider === "bitunix") {
+            // Bitunix often nests data in a .data object OR sends it as flat message
+            const d = raw.data || raw;
+
             return {
                 symbol,
                 provider,
-                lastPrice: raw.lastPrice || raw.lp || raw.mp || "0",
-                high: raw.highPrice || raw.h || "0",
-                low: raw.lowPrice || raw.l || "0",
-                volume: raw.volume || raw.v || "0",
-                quoteVolume: raw.quoteVolume || raw.qv || "0",
-                priceChangePercent: raw.priceChangePercent || raw.pc || "0",
+                // Primary fields and their short aliases (la=last, mp=mark, lp=last)
+                lastPrice: d.lastPrice || d.la || d.lp || d.mp || d.ip || "0",
+                high: d.highPrice || d.h || "0",
+                low: d.lowPrice || d.l || "0",
+                volume: d.volume || d.v || d.b || "0", // b = base volume
+                quoteVolume: d.quoteVolume || d.qv || d.q || "0", // q = quote volume
+                priceChangePercent: d.priceChangePercent || d.pc || d.r || "0", // r = rate change
                 timestamp: Date.now()
             };
         }

@@ -589,7 +589,7 @@
     <div class="text-center text-[var(--danger-color)] text-sm py-2">
       {$_("apiErrors.noMarketData") || "No market data available"}
     </div>
-  {:else if !currentPrice || currentPrice.isZero()}
+  {:else if currentPrice === null}
     <!-- Skeleton / Loading State for subsequent updates -->
     <div class="flex flex-col gap-4 py-2 animate-pulse">
       <div class="flex justify-between items-baseline">
