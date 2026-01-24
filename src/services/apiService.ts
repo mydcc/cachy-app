@@ -53,7 +53,8 @@ class RequestManager {
   private readonly MAX_CONCURRENCY = 8;
   private readonly DEFAULT_TIMEOUT = 10000;
   private readonly CACHE_TTL = 10000; // 10s cache for successful requests
-  private readonly CLEANUP_INTERVAL = 60000; // Check every 60s
+  private readonly MAX_CACHE_SIZE = 100; // Hard limit on cache size
+  private readonly CLEANUP_INTERVAL = 30000; // Check every 30s (more frequent)
 
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
@@ -68,12 +69,26 @@ class RequestManager {
   private pruneCache() {
     const now = Date.now();
     let removedCount = 0;
+
+    // 1. Time-based eviction
     this.cache.forEach((value, key) => {
       if (now - value.timestamp > this.CACHE_TTL) {
         this.cache.delete(key);
         removedCount++;
       }
     });
+
+    // 2. Hard limit eviction (FIFO-like via Map iteration order)
+    if (this.cache.size > this.MAX_CACHE_SIZE) {
+      const excess = this.cache.size - this.MAX_CACHE_SIZE;
+      let evicted = 0;
+      for (const key of this.cache.keys()) {
+        if (evicted >= excess) break;
+        this.cache.delete(key);
+        evicted++;
+        removedCount++;
+      }
+    }
 
     if (removedCount > 0 && import.meta.env.DEV && settingsState.enableNetworkLogs) {
       logger.debug("network", `[Cache] Pruned ${removedCount} items. Current size: ${this.cache.size}`);
@@ -160,6 +175,11 @@ class RequestManager {
           const result = await executeWithRetry(0);
 
           // Store in cache upon success (only if it matches the current request)
+          // Prune before adding if full
+          if (this.cache.size >= this.MAX_CACHE_SIZE) {
+            const firstKey = this.cache.keys().next().value;
+            if (firstKey) this.cache.delete(firstKey);
+          }
           this.cache.set(key, { data: result, timestamp: Date.now() });
 
           if (settingsState.enableNetworkLogs) {

@@ -26,6 +26,7 @@
     import { uiState } from "../../stores/ui.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { apiService } from "../../services/apiService";
+    import { marketState } from "../../stores/market.svelte";
     import { Decimal } from "decimal.js";
 
     let isOpen = $state(false);
