@@ -58,6 +58,8 @@ class TechnicalsWorkerManager {
   }
 
   private initWorker() {
+    // DISABLED: Worker causes memory leak.
+    /*
     if (!browser || typeof Worker === "undefined") return;
 
     try {
@@ -74,6 +76,7 @@ class TechnicalsWorkerManager {
         this.checkInterval = setInterval(() => this.checkIdle(), 10000);
       }
     } catch (e) {}
+    */
   }
 
   private checkIdle() {
