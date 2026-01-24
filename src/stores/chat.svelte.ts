@@ -12,6 +12,7 @@ import { browser } from "$app/environment";
 import { settingsState } from "./settings.svelte";
 import { journalState } from "./journal.svelte";
 import { calculator } from "../lib/calculator";
+import { Decimal } from "decimal.js";
 
 export interface ChatMessage {
   id: string;
@@ -111,8 +112,8 @@ class ChatManager {
     // Calculate own PF
     const stats = calculator.calculateJournalStats(journalState.entries);
     const pf =
-      stats.profitFactor && stats.profitFactor.isFinite()
-        ? stats.profitFactor.toNumber()
+      stats.profitFactor && new Decimal(stats.profitFactor).isFinite()
+        ? new Decimal(stats.profitFactor).toNumber()
         : 0;
 
     // Send to API

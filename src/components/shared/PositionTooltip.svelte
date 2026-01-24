@@ -31,7 +31,7 @@
     if (!pos.margin || new Decimal(pos.margin).isZero()) return 0;
     const pnl = new Decimal(pos.unrealizedPnl || 0);
     const margin = new Decimal(pos.margin);
-    return pnl.div(margin).mul(100).toNumber();
+    return new Decimal(pnl.div(margin).mul(100)).toNumber();
   }
 </script>
 
@@ -67,8 +67,8 @@
       <span
         >{formatDynamicDecimal(
           new Decimal(position.size).mul(
-            position.markPrice || position.entryPrice
-          )
+            position.markPrice || position.entryPrice,
+          ),
         )}</span
       >
     </div>

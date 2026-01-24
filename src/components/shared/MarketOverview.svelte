@@ -87,7 +87,9 @@
     const s = cp.toString();
 
     if (lastPriceStr && s !== lastPriceStr) {
-      const trend = Number(s) > Number(lastPriceStr) ? "up" : "down";
+      const trend = new Decimal(s).gt(new Decimal(lastPriceStr))
+        ? "up"
+        : "down";
       const newIndexes = new Set<number>();
 
       // Identify which digits changed and flash all digits to the right as well
@@ -154,9 +156,9 @@
       // Use correct API based on provider
       let klines = [];
       if (provider === "bitget") {
-          klines = await apiService.fetchBitgetKlines(symbol, tf, limit);
+        klines = await apiService.fetchBitgetKlines(symbol, tf, limit);
       } else {
-          klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
+        klines = await apiService.fetchBitunixKlines(symbol, tf, limit);
       }
       historyKlines = klines ?? [];
     } catch (e: any) {
@@ -221,9 +223,9 @@
         marketWatcher.unregister(symbol, "price");
         marketWatcher.unregister(symbol, "ticker");
         if (provider === "bitunix") {
-             marketWatcher.unregister(symbol, "depth_book5");
+          marketWatcher.unregister(symbol, "depth_book5");
         } else {
-             marketWatcher.unregister(symbol, "depth_book5"); // Mapped to books5 internally
+          marketWatcher.unregister(symbol, "depth_book5"); // Mapped to books5 internally
         }
         if (currentWsKlineChannel)
           marketWatcher.unregister(symbol, currentWsKlineChannel);
@@ -263,7 +265,7 @@
           atrMode: "auto" as "auto" | "manual", // Set to auto mode
         };
         if (currentPrice) {
-          newState.entryPrice = currentPrice.toNumber();
+          newState.entryPrice = new Decimal(currentPrice).toNumber();
         }
         return newState;
       });
@@ -345,11 +347,7 @@
       : indicatorState.rsi.defaultTimeframe || "1d",
   );
   $effect(() => {
-    if (
-      symbol &&
-      symbol.length >= 3 &&
-      effectiveRsiTimeframe
-    ) {
+    if (symbol && symbol.length >= 3 && effectiveRsiTimeframe) {
       untrack(() => {
         fetchHistoryKlines(effectiveRsiTimeframe);
 
@@ -442,7 +440,7 @@
 
           const rsiSeries: Decimal[] = [];
           if (values.length > length) {
-            const valuesNum = values.map((v) => v.toNumber());
+            const valuesNum = values.map((v) => new Decimal(v).toNumber());
             const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
             for (let i = 0; i < rsiSeriesNum.length; i++) {
               if (rsiSeriesNum[i] > 0) {

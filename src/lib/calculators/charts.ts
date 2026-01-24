@@ -40,7 +40,7 @@ export function getPerformanceData(journal: JournalEntry[]) {
   const equityCurve = closedTrades.map((t) => {
     const pnl = getTradePnL(t);
     cumulative = cumulative.plus(pnl);
-    return { x: t.date, y: cumulative.toNumber() };
+    return { x: t.date, y: new Decimal(cumulative).toNumber() };
   });
 
   // 2. Drawdown Series
@@ -52,7 +52,7 @@ export function getPerformanceData(journal: JournalEntry[]) {
     runningPnl = runningPnl.plus(pnl);
     if (runningPnl.gt(peak)) peak = runningPnl;
     currentDrawdown = runningPnl.minus(peak); // Should be negative or zero
-    return { x: t.date, y: currentDrawdown.toNumber() };
+    return { x: t.date, y: new Decimal(currentDrawdown).toNumber() };
   });
 
   // 3. Monthly Stats
@@ -68,7 +68,7 @@ export function getPerformanceData(journal: JournalEntry[]) {
     );
   });
   const monthlyLabels = Object.keys(monthlyStats).sort();
-  const monthlyData = monthlyLabels.map((k) => monthlyStats[k].toNumber());
+  const monthlyData = monthlyLabels.map((k) => new Decimal(monthlyStats[k]).toNumber());
 
   return { equityCurve, drawdownSeries, monthlyLabels, monthlyData };
 }
@@ -165,10 +165,10 @@ export function getQualityData(journal: JournalEntry[]) {
   const winRateShort = countShort > 0 ? (countShortWin / countShort) * 100 : 0;
 
   const detailedStats = {
-    profitFactor: profitFactor.toNumber(),
-    avgWin: avgWin.toNumber(),
-    avgLoss: avgLoss.toNumber(),
-    expectancy: expectancy.toNumber(),
+    profitFactor: new Decimal(profitFactor).toNumber(),
+    avgWin: new Decimal(avgWin).toNumber(),
+    avgLoss: new Decimal(avgLoss).toNumber(),
+    expectancy: new Decimal(expectancy).toNumber(),
     winRateLong,
     winRateShort,
   };
@@ -178,9 +178,9 @@ export function getQualityData(journal: JournalEntry[]) {
 
   closedTrades.forEach((t) => {
     // Only calculate R if riskAmount is present and positive
-    if (t.riskAmount && t.riskAmount.gt(0)) {
+    if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
       const pnl = getTradePnL(t);
-      rMultiples.push(pnl.div(t.riskAmount).toNumber());
+      rMultiples.push(new Decimal(pnl.div(t.riskAmount)).toNumber());
     }
   });
 
@@ -214,7 +214,7 @@ export function getQualityData(journal: JournalEntry[]) {
     }
 
     cumulativeR = cumulativeR.plus(r);
-    return { x: t.date, y: cumulativeR.toNumber() };
+    return { x: t.date, y: new Decimal(cumulativeR).toNumber() };
   });
 
   // 4. KPI
@@ -275,20 +275,20 @@ export function getDirectionData(journal: JournalEntry[]) {
     } else {
       cumShort = cumShort.plus(pnl);
     }
-    longCurve.push({ x: t.date, y: cumLong.toNumber() });
-    shortCurve.push({ x: t.date, y: cumShort.toNumber() });
+    longCurve.push({ x: t.date, y: new Decimal(cumLong).toNumber() });
+    shortCurve.push({ x: t.date, y: new Decimal(cumShort).toNumber() });
   });
 
   return {
-    longPnl: longPnl.toNumber(),
-    shortPnl: shortPnl.toNumber(),
+    longPnl: new Decimal(longPnl).toNumber(),
+    shortPnl: new Decimal(shortPnl).toNumber(),
     topSymbols: {
       labels: topSymbols.map((s) => s[0]),
-      data: topSymbols.map((s) => s[1].toNumber()),
+      data: topSymbols.map((s) => new Decimal(s[1]).toNumber()),
     },
     bottomSymbols: {
       labels: bottomSymbols.map((s) => s[0]),
-      data: bottomSymbols.map((s) => s[1].toNumber()),
+      data: bottomSymbols.map((s) => new Decimal(s[1]).toNumber()),
     },
     longCurve,
     shortCurve,
@@ -327,7 +327,7 @@ export function getCostData(journal: JournalEntry[]) {
       const funding = t.fundingFee || new Decimal(0);
       const trading = t.tradingFee || new Decimal(0);
       cumFees = cumFees.plus(fees).plus(funding).plus(trading);
-      return { x: t.date, y: cumFees.toNumber() };
+      return { x: t.date, y: new Decimal(cumFees).toNumber() };
     });
 
   // 3. Fee Structure
@@ -339,12 +339,12 @@ export function getCostData(journal: JournalEntry[]) {
   });
 
   return {
-    gross: totalGross.toNumber(),
-    net: totalNet.toNumber(),
+    gross: new Decimal(totalGross).toNumber(),
+    net: new Decimal(totalNet).toNumber(),
     feeCurve,
     feeStructure: {
-      trading: sumTrading.toNumber(),
-      funding: sumFunding.toNumber(),
+      trading: new Decimal(sumTrading).toNumber(),
+      funding: new Decimal(sumFunding).toNumber(),
     },
   };
 }
@@ -376,11 +376,9 @@ export function getDurationData(journal: JournalEntry[]) {
           const pnl = getTradePnL(t);
           return {
             x: durationMinutes,
-            y: pnl.toNumber(),
+            y: new Decimal(pnl).toNumber(),
             r: 6,
-            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${(
-              pnl ?? new Decimal(0)
-            ).toFixed(2)}`,
+            l: `${t.symbol}: ${Math.round(durationMinutes)}m -> $${new Decimal(pnl ?? 0).toFixed(2)}`,
           };
         }
       }
@@ -438,11 +436,9 @@ export function getRiskData(journal: JournalEntry[]) {
       const pnl = getTradePnL(t);
       return {
         x: t.riskAmount.toNumber(),
-        y: pnl.toNumber(),
+        y: new Decimal(pnl).toNumber(),
         r: 6,
-        l: `${t.symbol} (${t.status}): Risk $${(
-          t.riskAmount ?? new Decimal(0)
-        ).toFixed(2)} -> PnL $${(pnl ?? new Decimal(0)).toFixed(2)}`,
+        l: `${t.symbol} (${t.status}): Risk $${new Decimal(t.riskAmount ?? 0).toFixed(2)} -> PnL $${new Decimal(pnl ?? 0).toFixed(2)}`,
       };
     });
 
@@ -703,10 +699,10 @@ export function getExecutionEfficiencyData(journal: JournalEntry[]) {
       // We need MFE and MAE
       if (!t.mfe || !t.mae) return null;
 
-      const mfe = t.mfe.toNumber();
-      const mae = t.mae.toNumber();
-      const pnl = getTradePnL(t).toNumber();
-      const risk = t.riskAmount?.toNumber() || 0;
+      const mfe = new Decimal(t.mfe).toNumber();
+      const mae = new Decimal(t.mae).toNumber();
+      const pnl = new Decimal(getTradePnL(t)).toNumber();
+      const risk = new Decimal(t.riskAmount || 0).toNumber();
 
       // Calculate efficiency: Realized / MFE (if MFE > 0)
       const efficiency = mfe > 0 ? (pnl / mfe) * 100 : 0;

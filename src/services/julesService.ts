@@ -15,6 +15,7 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
+import { Decimal } from "decimal.js";
 import { get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 import { julesState } from "../stores/jules.svelte";
@@ -54,11 +55,11 @@ export const julesService = {
       ...settings,
       apiKeys: settings.apiKeys
         ? Object.fromEntries(
-            Object.entries(settings.apiKeys).map(([provider, keys]) => [
-              provider,
-              { ...(keys as any), apiSecret: "***REDACTED***" },
-            ]),
-          )
+          Object.entries(settings.apiKeys).map(([provider, keys]) => [
+            provider,
+            { ...(keys as any), apiSecret: "***REDACTED***" },
+          ]),
+        )
         : {},
     };
 
@@ -79,12 +80,11 @@ export const julesService = {
       // Legacy accountStore had computed props, but AccountManager splits them.
       // Let's sum up available or just take USDT.
       balance:
-        account.assets.find((a) => a.currency === "USDT")?.total.toNumber() ||
-        0,
+        new Decimal(account.assets.find((a) => a.currency === "USDT")?.total || 0).toNumber(),
       availableBalance:
-        account.assets
-          .find((a) => a.currency === "USDT")
-          ?.available.toNumber() || 0,
+        new Decimal(
+          account.assets.find((a) => a.currency === "USDT")?.available || 0,
+        ).toNumber(),
       positionsCount: account.positions.length,
       ordersCount: account.openOrders.length,
       isConnected: wsStatus === "connected",
@@ -98,27 +98,27 @@ export const julesService = {
         connected: wsStatus === "connected",
         data: marketData
           ? {
-              lastPrice: marketData.lastPrice,
-              priceChange: marketData.priceChangePercent,
-              technicals: marketData.technicals
-                ? {
-                    summary: marketData.technicals.summary,
-                    confluence: marketData.technicals.confluence,
-                    // We send key signals to AI, not entire array of 1000s of numbers
-                    signals: {
-                      rsi: marketData.technicals.oscillators.find(
-                        (o) => o.name === "RSI",
-                      )?.value,
-                      macdAction: marketData.technicals.oscillators.find(
-                        (o) => o.name === "MACD",
-                      )?.action,
-                      divergences: marketData.technicals.divergences,
-                      ichimokuAction:
-                        marketData.technicals.advanced?.ichimoku?.action,
-                    },
-                  }
-                : "Calculating...",
-            }
+            lastPrice: marketData.lastPrice,
+            priceChange: marketData.priceChangePercent,
+            technicals: marketData.technicals
+              ? {
+                summary: marketData.technicals.summary,
+                confluence: marketData.technicals.confluence,
+                // We send key signals to AI, not entire array of 1000s of numbers
+                signals: {
+                  rsi: marketData.technicals.oscillators.find(
+                    (o) => o.name === "RSI",
+                  )?.value,
+                  macdAction: marketData.technicals.oscillators.find(
+                    (o) => o.name === "MACD",
+                  )?.action,
+                  divergences: marketData.technicals.divergences,
+                  ichimokuAction:
+                    marketData.technicals.advanced?.ichimoku?.action,
+                },
+              }
+              : "Calculating...",
+          }
           : "No Data",
       },
       uiState: {
@@ -154,10 +154,10 @@ export const julesService = {
           context,
           error: error
             ? {
-                message: error.message || error.toString(),
-                stack: error.stack,
-                name: error.name,
-              }
+              message: error.message || error.toString(),
+              stack: error.stack,
+              name: error.name,
+            }
             : null,
         }),
       });

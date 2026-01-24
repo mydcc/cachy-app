@@ -54,7 +54,7 @@ export class CalculatorService {
   constructor(
     private calculator: Calculator,
     private uiManager: UiManager,
-  ) {}
+  ) { }
 
   /**
    * Main calculation and display method with robust error handling
@@ -176,10 +176,10 @@ export class CalculatorService {
         const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
         const delta = Math.abs(
           (currentTradeState.riskPercentage || 0) -
-            newRiskPercentage.toNumber(),
+          new Decimal(newRiskPercentage).toNumber(),
         );
         if (delta > 0.000001) {
-          tradeState.riskPercentage = newRiskPercentage.toNumber();
+          tradeState.riskPercentage = new Decimal(newRiskPercentage).toNumber();
         }
         values.riskPercentage = newRiskPercentage;
       }
@@ -208,18 +208,18 @@ export class CalculatorService {
         : riskAmount.div(values.accountSize).times(100);
 
       const riskPercentageDelta = Math.abs(
-        (currentTradeState.riskPercentage || 0) - newRiskPercentage.toNumber(),
+        (currentTradeState.riskPercentage || 0) - new Decimal(newRiskPercentage).toNumber(),
       );
       // riskAmount in store is number
       const riskAmountDelta = Math.abs(
-        (currentTradeState.riskAmount || 0) - riskAmount.toNumber(),
+        (currentTradeState.riskAmount || 0) - new Decimal(riskAmount).toNumber(),
       );
 
       if (riskPercentageDelta > 0.000001 || riskAmountDelta > 0.000001) {
         tradeState.update((s) => ({
           ...s,
-          riskPercentage: newRiskPercentage.toNumber(),
-          riskAmount: riskAmount.toNumber(),
+          riskPercentage: new Decimal(newRiskPercentage).toNumber(),
+          riskAmount: new Decimal(riskAmount).toNumber(),
         }));
       }
       values.riskPercentage = newRiskPercentage;
@@ -239,10 +239,10 @@ export class CalculatorService {
         const finalMetrics = baseMetrics;
         const riskAmountDelta = Math.abs(
           (currentTradeState.riskAmount || 0) -
-            finalMetrics.riskAmount.toNumber(),
+          new Decimal(finalMetrics.riskAmount).toNumber(),
         );
         if (riskAmountDelta > 0.000001) {
-          tradeState.riskAmount = finalMetrics.riskAmount.toNumber();
+          tradeState.riskAmount = new Decimal(finalMetrics.riskAmount).toNumber();
         }
       }
     }
@@ -346,7 +346,7 @@ export class CalculatorService {
     // to prevent hundreds of redundant events from reactive calculations
     onboardingService.trackFirstCalculation();
 
-    const newStopLoss = values.stopLossPrice.toNumber();
+    const newStopLoss = new Decimal(values.stopLossPrice).toNumber();
     const stopLossChange = Math.abs(
       (currentTradeState.stopLossPrice || 0) - newStopLoss,
     );
@@ -397,7 +397,7 @@ export class CalculatorService {
       atrValue: parseDecimal(currentTradeState.atrValue),
       atrMultiplier: parseDecimal(
         currentTradeState.atrMultiplier ||
-          parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
+        parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
       targets: currentTradeState.targets.map((t: any) => ({
@@ -447,9 +447,8 @@ export class CalculatorService {
       newResults.showAtrFormulaDisplay = true;
       newResults.atrFormulaText = `SL = ${values.entryPrice.toFixed(
         4,
-      )} ${operator} (${values.atrValue} × ${
-        values.atrMultiplier
-      }) = ${values.stopLossPrice.toFixed(4)}`;
+      )} ${operator} (${values.atrValue} × ${values.atrMultiplier
+        }) = ${values.stopLossPrice.toFixed(4)}`;
     } else if (values.atrValue.gt(0) && values.atrMultiplier.gt(0)) {
       return { status: CONSTANTS.STATUS_INCOMPLETE };
     }

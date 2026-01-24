@@ -208,7 +208,7 @@ export const app = {
           app.currentMarketPrice = marketData.lastPrice;
 
           if (settings.autoUpdatePriceInput) {
-            const newPrice = marketData.lastPrice.toNumber();
+            const newPrice = new Decimal(marketData.lastPrice).toNumber();
             if (state.entryPrice !== newPrice) {
               tradeState.update((s) => ({ ...s, entryPrice: newPrice }));
             }
@@ -380,7 +380,7 @@ export const app = {
       tradeState.update((s) => ({
         ...s,
         ...p,
-        entryPrice: app.currentMarketPrice?.toNumber() || s.entryPrice,
+        entryPrice: app.currentMarketPrice ? new Decimal(app.currentMarketPrice).toNumber() : s.entryPrice,
       }));
       if (p.useAtrSl) tradeState.atrMode = "auto";
       app.calculateAndDisplay();
@@ -452,7 +452,7 @@ export const app = {
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;
-      tradeState.update((s) => ({ ...s, entryPrice: priceVal.toNumber() }));
+      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toNumber() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("Preis-Fetch fehlgeschlagen.");
@@ -490,7 +490,7 @@ export const app = {
             15,
           );
       const atr = calculator.calculateATR(klines);
-      tradeState.update((s) => ({ ...s, atrValue: atr.toDP(4).toNumber() }));
+      tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(4).toNumber() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("ATR-Fetch fehlgeschlagen.");

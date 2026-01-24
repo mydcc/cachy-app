@@ -583,14 +583,14 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     // Calculate Portfolio Stats
     const totalTrades = journal.length;
     const wins = journal.filter(
-      (t: JournalEntry) => (new Decimal(t.totalNetProfit || 0).toNumber()) > 0,
+      (t: JournalEntry) => new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber() > 0,
     ).length;
     const winrate =
       totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
     const totalPnl = journal
       .reduce(
         (sum: number, t: JournalEntry) =>
-          sum + (new Decimal(t.totalNetProfit || 0).toNumber()),
+          sum + new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber(),
         0,
       )
       .toFixed(2);
@@ -609,7 +609,7 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
     const recentTrades = Array.isArray(journal)
       ? journal.slice(0, limit).map((t: JournalEntry) => {
-        const pnlNum = new Decimal(t.totalNetProfit || 0).toNumber();
+        const pnlNum = new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber();
         return {
           symbol: t.symbol,
           entry: t.entryDate,

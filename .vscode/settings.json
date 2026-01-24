@@ -1,3 +1,5 @@
 {
-    "workbench.editor.enablePreviewFromQuickOpen": true
+    "workbench.editor.enablePreviewFromQuickOpen": true,
+    "gitlens.ai.generateCommitMessage.customInstructions": "Git-Commit-Nachrichten werden ausnahmslos auf Englisch verfasst.",
+    "gitlens.ai.generateStashMessage.customInstructions": "Git-Commit-Nachrichten werden ausnahmslos auf Englisch verfasst."
 }
