@@ -39,7 +39,10 @@ const MAX_CONSECUTIVE_ERRORS = 3;
 const MAX_CACHE_ENTRIES = 50;
 
 const NITTER_INSTANCES = [
+  "xcancel.com",
   "nitter.poast.org",
+  "nitter.cz",
+  "nitter.privacy.com.de",
   "nuku.trabun.org",
   "nitter.privacyredirect.com",
   "nitter.catsarch.com",
@@ -50,7 +53,6 @@ const NITTER_INSTANCES = [
   "nitter.unixfox.eu",
   "nitter.it",
   "nitter.hu",
-  "xcancel.com",
   "nitter.net"
 ];
 
@@ -185,16 +187,30 @@ export const POST: RequestHandler = async ({ request }) => {
             const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
             if (!html) continue;
 
+            const hasTitle = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title").toLowerCase();
+
+            // Redirect detection (many instances redirect to frontpage if profile fails)
+            if (hasTitle === "nitter" || hasTitle.includes("homepage") || hasTitle.includes("welcome to nitter")) {
+              console.warn(`[X-NEWS] Instance ${instance} redirected to homepage. Skipping.`);
+              continue;
+            }
+
             const items = scrapeNitterHTML(html, instance);
             if (items.length > 0) {
               console.log(`[X-NEWS] Success with: ${instance}${targetPath} (${items.length} news)`);
               return json({ items, feedTitle: `X: ${context}` });
             }
 
-            const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
-            if (hasTitle.toLowerCase().includes("loading")) continue; // Try next path if it's a loading stub
+            // User-NotFound / Empty Detection
+            const lowerHtml = html.toLowerCase();
+            if (lowerHtml.includes("no tweets found") || lowerHtml.includes("user not found") || lowerHtml.includes("unavailable")) {
+              console.log(`[X-NEWS] Instance ${instance} reports no tweets or user not found for ${xCmd.value}. Returning empty.`);
+              return json({ items: [], feedTitle: `X: ${context} (Empty)` });
+            }
 
-            console.warn(`[X-NEWS] Instance ${instance}${targetPath} ("${hasTitle}") returned 0 news. Snippet: ${html.substring(0, 100)}`);
+            if (hasTitle.includes("loading")) continue;
+
+            console.warn(`[X-NEWS] Instance ${instance}${targetPath} ("${hasTitle}") returned 0 news. Snippet: ${html.substring(0, 100).replace(/\n/g, " ")}`);
           } catch (e: any) {
             console.warn(`[X-NEWS] Instance ${instance} failed on ${targetPath}: ${e.message}`);
             // Move to next instance if it's a hard error like Bot-Block
