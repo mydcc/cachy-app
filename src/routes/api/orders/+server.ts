@@ -29,6 +29,7 @@ import type {
   BitgetOrder,
   BitgetOrderPayload
 } from "../../../types/bitget";
+import { normalizeSymbol } from "../../../utils/symbolUtils";
 import { formatApiNum } from "../../../utils/utils";
 
 function isValidNumberString(val: unknown): boolean {
@@ -295,6 +296,11 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(result);
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
+    let hint = "";
+
+    if (exchange === "bitget" && (errorMsg.toLowerCase().includes("position mode") || errorMsg.toLowerCase().includes("side") || errorMsg.toLowerCase().includes("reduce"))) {
+        hint = " [Hint: Check One-Way vs Hedge Mode settings]";
+    }
 
     // Enhanced Logging with Redaction
     try {
@@ -302,12 +308,12 @@ export const POST: RequestHandler = async ({ request }) => {
       if (sanitizedBody.apiKey) sanitizedBody.apiKey = "***";
       if (sanitizedBody.apiSecret) sanitizedBody.apiSecret = "***";
       if (sanitizedBody.passphrase) sanitizedBody.passphrase = "***";
-      console.error(`[API] Order failed: ${type}`, {
+      console.error(`[API] Order failed: ${type}${hint}`, {
         error: errorMsg,
         body: sanitizedBody,
       });
     } catch (logErr) {
-      console.error(`[API] Order failed: ${type}`, errorMsg);
+      console.error(`[API] Order failed: ${type}${hint}`, errorMsg);
     }
 
     // Check for sensitive patterns (simple check)
@@ -326,7 +332,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(
-      { error: sanitizedMsg || `Failed to process ${type}` },
+      { error: (sanitizedMsg + hint) || `Failed to process ${type}` },
       { status: 500 },
     );
   }
@@ -497,14 +503,8 @@ async function placeBitgetOrder(
     const path = "/api/mix/v1/order/placeOrder";
 
     // Ensure symbol has _UMCBL if not present (assuming USDT-M)
-    if (!payload.symbol.includes("_")) {
-        // payload.symbol = payload.symbol + "_UMCBL";
-        // Better to rely on what was passed or force it?
-        // Frontend normalizeSymbol adds _UMCBL for bitget.
-        // But let's be safe.
-        // Actually, if we use normalizeSymbol in utils, it's safer.
-        // But here we just assume the payload is correct or minimal fix.
-    }
+    // We use the shared normalization logic to be safe and consistent
+    const safeSymbol = normalizeSymbol(payload.symbol, "bitget");
 
     // Map internal types to Bitget
     // Bitget V1: marginCoin: 'USDT' required?
@@ -539,8 +539,12 @@ async function placeBitgetOrder(
         else if (rawSide === "sell") bitgetSide = "open_short";
     }
 
+    if (!bitgetSide) {
+        throw new Error(`Invalid side for Bitget: ${rawSide}. Must be 'buy' or 'sell'.`);
+    }
+
     const bitgetBody = {
-        symbol: payload.symbol,
+        symbol: safeSymbol,
         marginCoin: "USDT",
         side: bitgetSide,
         orderType: payload.orderType, // limit, market
