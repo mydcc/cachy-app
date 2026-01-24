@@ -357,6 +357,9 @@
         class="input-field w-full px-4 py-2 rounded-md pr-16 relative z-30 touch-manipulation"
         placeholder={$_("dashboard.tradeSetupInputs.symbolPlaceholder")}
         autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
         inputmode="text"
       />
       <div
@@ -452,6 +455,10 @@
           ? 'border-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.3)]'
           : ''}"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
       />
       {#if priceDeviation > 1}
         <div
@@ -541,6 +548,10 @@
           placeholder={$_(
             "dashboard.tradeSetupInputs.manualStopLossPlaceholder",
           )}
+          autocomplete="off"
+          autocorrect="off"
+          autocapitalize="off"
+          spellcheck="false"
         />
       </div>
     {:else}
@@ -563,6 +574,10 @@
               oninput={handleAtrValueInput}
               class="input-field w-full px-4 py-2 rounded-md"
               placeholder={$_("dashboard.tradeSetupInputs.atrValuePlaceholder")}
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
             />
           </div>
           <div class="relative">
@@ -584,6 +599,10 @@
               placeholder={$_(
                 "dashboard.tradeSetupInputs.multiplierPlaceholder",
               )}
+              autocomplete="off"
+              autocorrect="off"
+              autocapitalize="off"
+              spellcheck="false"
             />
           </div>
         </div>
@@ -643,6 +662,10 @@
                 oninput={handleAtrValueInput}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
                 placeholder="ATR"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
               />
               <button
                 type="button"
@@ -692,6 +715,10 @@
                 oninput={handleAtrMultiplierInput}
                 class="input-field w-full px-4 py-2 rounded-md"
                 placeholder="1.2"
+                autocomplete="off"
+                autocorrect="off"
+                autocapitalize="off"
+                spellcheck="false"
               />
             </div>
           </div>

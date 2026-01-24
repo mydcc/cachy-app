@@ -25,6 +25,7 @@
     import { bitunixWs } from "../../services/bitunixWs";
     import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { uiState } from "../../stores/ui.svelte";
     import { apiService } from "../../services/apiService";
     import { Decimal } from "decimal.js";
 
@@ -53,7 +54,7 @@
         if (isOpen) {
             isSnapshotLoading = true;
             apiService
-                .fetchBitunixMarketSnapshot()
+                .fetchMarketSnapshot("bitunix")
                 .then((data) => {
                     const map: any = {};
                     data.forEach((t) => (map[t.symbol] = t));

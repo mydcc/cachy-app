@@ -295,6 +295,11 @@ export const POST: RequestHandler = async ({ request }) => {
     return json(result);
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
+    let hint = "";
+
+    if (exchange === "bitget" && (errorMsg.toLowerCase().includes("position mode") || errorMsg.toLowerCase().includes("side") || errorMsg.toLowerCase().includes("reduce"))) {
+        hint = " [Hint: Check One-Way vs Hedge Mode settings]";
+    }
 
     // Enhanced Logging with Redaction
     try {
@@ -302,12 +307,12 @@ export const POST: RequestHandler = async ({ request }) => {
       if (sanitizedBody.apiKey) sanitizedBody.apiKey = "***";
       if (sanitizedBody.apiSecret) sanitizedBody.apiSecret = "***";
       if (sanitizedBody.passphrase) sanitizedBody.passphrase = "***";
-      console.error(`[API] Order failed: ${type}`, {
+      console.error(`[API] Order failed: ${type}${hint}`, {
         error: errorMsg,
         body: sanitizedBody,
       });
     } catch (logErr) {
-      console.error(`[API] Order failed: ${type}`, errorMsg);
+      console.error(`[API] Order failed: ${type}${hint}`, errorMsg);
     }
 
     // Check for sensitive patterns (simple check)
@@ -326,7 +331,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
     return json(
-      { error: sanitizedMsg || `Failed to process ${type}` },
+      { error: (sanitizedMsg + hint) || `Failed to process ${type}` },
       { status: 500 },
     );
   }
