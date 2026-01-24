@@ -43,14 +43,14 @@ const NITTER_INSTANCES = [
   "nuku.trabun.org",
   "nitter.cz",
   "nitter.privacy.com.de",
-  "nitter.projectsegfau.lt",
-  "nitter.eu.org",
+  "nitter.perennialte.ch",
+  "nitter.rawbit.ninja",
   "xcancel.com"
 ];
 
 // In-memory blacklist to temporarily skip failing instances
 const instanceBackoff = new Map<string, number>();
-const BACKOFF_MS = 2 * 60 * 1000; // 2 minutes ignore after failure
+const BACKOFF_MS = 60 * 1000; // 1 minute ignore after HARD failure
 
 /**
  * Shuffles an array (Fisher-Yates)
@@ -122,11 +122,11 @@ export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json();
     const { url, xCmd } = body;
 
-    const tryFetch = async (targetUrl: string, timeout = 6000): Promise<string> => {
+    const tryFetch = async (targetUrl: string, timeout = 7000): Promise<string> => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
 
-      // Rotating User-Agents for better bypass
+      // Rotating User-Agents for better bypass (Stufe 4.0)
       const uas = [
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -180,20 +180,27 @@ export const POST: RequestHandler = async ({ request }) => {
 
       for (const instance of pool) {
         // Try multiple paths for a single instance for better resilience
+        // Stufe 4.0: Standardized search queries for users
         const paths = xCmd.type === "user"
-          ? [`/${xCmd.value}`, `/${xCmd.value}/search?f=tweets&q=%20`] // Profile first, then space-search
+          ? [`/${xCmd.value}`, `/search?q=from:${xCmd.value}&f=tweets`]
           : [`/search?f=tweets&q=%23${xCmd.value}`, `/search?f=tweets&q=${xCmd.value}`];
 
         for (const targetPath of paths) {
           try {
-            const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
+            const html = await tryFetch(`https://${instance}${targetPath}`, 5000);
             if (!html) continue;
 
             const hasTitle = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title").toLowerCase();
 
-            // Redirect detection (many instances redirect to frontpage if profile fails)
-            if (hasTitle === "nitter" || hasTitle.includes("homepage") || hasTitle.includes("welcome to nitter")) {
-              console.warn(`[X-NEWS] Instance ${instance} redirected to homepage. Skipping.`);
+            // Redirect or Auth-Gate detection
+            if (
+              hasTitle === "nitter" ||
+              hasTitle.includes("homepage") ||
+              hasTitle.includes("welcome") ||
+              hasTitle.includes("authentication") ||
+              hasTitle.includes("login")
+            ) {
+              console.warn(`[X-NEWS] Instance ${instance} hit a gate/homepage (${hasTitle}). Skipping.`);
               continue;
             }
 
@@ -206,7 +213,7 @@ export const POST: RequestHandler = async ({ request }) => {
             // User-NotFound / Empty Detection
             const lowerHtml = html.toLowerCase();
             if (lowerHtml.includes("no tweets found") || lowerHtml.includes("user not found") || lowerHtml.includes("unavailable")) {
-              console.log(`[X-NEWS] Instance ${instance} reports no tweets or user not found for ${xCmd.value}. Returning empty.`);
+              console.log(`[X-NEWS] Instance ${instance} reports no tweets/user for ${xCmd.value}. Returning empty.`);
               return json({ items: [], feedTitle: `X: ${context} (Empty)` });
             }
 
@@ -215,7 +222,7 @@ export const POST: RequestHandler = async ({ request }) => {
             console.warn(`[X-NEWS] Instance ${instance}${targetPath} ("${hasTitle}") returned 0 news. Snippet: ${html.substring(0, 100).replace(/\n/g, " ")}`);
           } catch (e: any) {
             console.warn(`[X-NEWS] Instance ${instance} failed on ${targetPath}: ${e.message}`);
-            // Move to next instance if it's a hard error like Bot-Block
+            // HARD backoff only on actual blocks or network errors
             if (e.message.includes("HTTP") || e.message === "Bot-Block") {
               instanceBackoff.set(instance, now + BACKOFF_MS);
               break;
