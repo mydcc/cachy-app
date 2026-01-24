@@ -539,6 +539,10 @@ async function placeBitgetOrder(
         else if (rawSide === "sell") bitgetSide = "open_short";
     }
 
+    if (!bitgetSide) {
+        throw new Error(`Invalid side for Bitget: ${rawSide}. Must be 'buy' or 'sell'.`);
+    }
+
     const bitgetBody = {
         symbol: payload.symbol,
         marginCoin: "USDT",
