@@ -263,14 +263,15 @@ export const POST: RequestHandler = async ({ request }) => {
             throw new Error("Invalid order type");
          }
 
-         const payload: BitgetOrderPayload = {
+         const payload: BitgetOrderPayload & { marginCoin?: string } = {
              symbol: body.symbol as string,
              side: body.side.toLowerCase(), // Bitget uses lower case buy/sell? Docs say: "buy", "sell"
              orderType: body.type.toLowerCase(), // "limit", "market"
              size: String(body.qty),
              price: body.price ? String(body.price) : undefined,
              force: "normal", // or gtc?
-             reduceOnly: isReduceOnly
+             reduceOnly: isReduceOnly,
+             marginCoin: (body.marginCoin as string) || "USDT"
          };
 
          result = await placeBitgetOrder(apiKey!, apiSecret!, passphrase!, payload);
@@ -541,7 +542,7 @@ async function placeBitgetOrder(
 
     const bitgetBody = {
         symbol: payload.symbol,
-        marginCoin: "USDT",
+        marginCoin: (payload as any).marginCoin || "USDT",
         side: bitgetSide,
         orderType: payload.orderType, // limit, market
         price: payload.price,
@@ -573,7 +574,11 @@ async function placeBitgetOrder(
 
     const res = await response.json();
     if (res.code !== "00000") {
-        throw new Error(`Bitget Error: ${res.code} ${res.msg}`);
+        let msg = res.msg;
+        if (msg && (msg.toLowerCase().includes("mode") || msg.toLowerCase().includes("position") || msg.toLowerCase().includes("side"))) {
+            msg += " (Check One-Way vs Hedge Mode)";
+        }
+        throw new Error(`Bitget Error: ${res.code} ${msg}`);
     }
 
     return res.data;

@@ -263,6 +263,10 @@ class BitunixWebSocketService {
           clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) {
           logger.warn("general", "[BitunixWS] ONOPEN triggered for stale socket. Closing.");
+          ws.onopen = null;
+          ws.onmessage = null;
+          ws.onerror = null;
+          ws.onclose = null;
           ws.close();
           return;
         }
@@ -359,7 +363,14 @@ class BitunixWebSocketService {
       ws.onopen = () => {
         if (this.connectionTimeoutPrivate)
           clearTimeout(this.connectionTimeoutPrivate);
-        if (this.wsPrivate !== ws) return;
+        if (this.wsPrivate !== ws) {
+          ws.onopen = null;
+          ws.onmessage = null;
+          ws.onerror = null;
+          ws.onclose = null;
+          ws.close();
+          return;
+        }
 
         if (settingsState.enableNetworkLogs) {
           logger.log("network", "Private connection opened");
