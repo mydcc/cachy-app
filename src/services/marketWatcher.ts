@@ -32,6 +32,7 @@ interface MarketWatchRequest {
 class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private pollingInterval: any = null;
+  private startTimeout: any = null; // Track startup delay
   private currentIntervalSeconds: number = 10;
   private fetchLocks = new Set<string>(); // "symbol:channel"
 
@@ -162,10 +163,10 @@ class MarketWatcher {
   }
 
   private startPolling() {
-    if (this.pollingInterval) clearInterval(this.pollingInterval);
+    this.stopPolling(); // Ensure clean state
 
     // Initial delay to avoid startup congestion
-    setTimeout(() => {
+    this.startTimeout = setTimeout(() => {
       this.pollingInterval = setInterval(() => {
         const paused = this.isPollingPaused();
         if (import.meta.env.DEV) {
@@ -178,6 +179,10 @@ class MarketWatcher {
   }
 
   public stopPolling() {
+    if (this.startTimeout) {
+      clearTimeout(this.startTimeout);
+      this.startTimeout = null;
+    }
     if (this.pollingInterval) {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;

@@ -914,6 +914,16 @@
     "30039": "Die Order-Menge darf nicht größer sein als die maximale Order-Menge",
     "30040": "Futures-Handel ist verboten, bitte kontaktieren Sie den Kundenservice.",
     "30041": "Trigger-Preis muss größer als 0 sein",
-    "30042": "Client ID Duplikat"
+    "30042": "Client ID Duplikat",
+    "INVALID_JSON": "Ungültiger JSON Body",
+    "VALIDATION_ERROR": "Validierungsfehler",
+    "PASSPHRASE_REQUIRED": "Passphrase für Bitget erforderlich",
+    "INVALID_AMOUNT": "Ungültiges Mengenformat",
+    "INVALID_QTY": "Ungültiges Quantitätsformat",
+    "PRICE_REQUIRED": "Preis für Limit-Order erforderlich",
+    "INVALID_PRICE": "Ungültiges Preisformat",
+    "INVALID_TRIGGER": "Ungültiges Trigger-Preis Format",
+    "BITUNIX_API_ERROR": "Bitunix API Fehler",
+    "BITGET_API_ERROR": "Bitget API Fehler"
   }
 }

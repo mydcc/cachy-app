@@ -1,40 +1,34 @@
-# Analysebericht: Cachy App (System Review)
+# Code Analysis & Risk Report (Status Quo)
 
-## 1. Einleitung
-Dieser Bericht fasst die Ergebnisse der systematischen Code-Analyse zusammen. Ziel war es, nach dem Architektur-Update auf Svelte 5 und der Einführung neuer Features (Runes, Stores) potenzielle Schwachstellen, Fehler und Inkonsistenzen zu identifizieren.
+**Date**: 2026-05-21
+**Role**: Senior Lead Developer
+**Scope**: `cachy-app` High-Frequency Trading Platform
 
-## 2. Architektur & Code-Qualität
-*   **Status:** Sehr gut. Die Migration auf Svelte 5 Runes (`$state`, `$effect`) wurde in den Stores (`src/stores/*.svelte.ts`) konsequent umgesetzt.
-*   **Positiv:**
-    *   Klare Trennung von UI (Components), State (Stores) und Logic (Services).
-    *   Einsatz von `zod` zur strengen Validierung von API-Requests und LocalStorage-Daten (`TradeStateSchema`).
-    *   Effiziente Reaktivität durch `$effect.root` in den Stores.
+## Executive Summary
+The codebase exhibits a generally solid architecture with clear separation of concerns (Services, Stores, UI). However, **CRITICAL** risks exists regarding financial data precision (Floating Point issues) and **WARNING** level issues regarding Resource Management and Internationalization (i18n).
 
-## 3. Sicherheit & Robustheit
-*   **API (`orders/+server.ts`):**
-    *   Sensible Daten (API Keys, Secrets) werden in den Logs zuverlässig unkenntlich gemacht ("redacted").
-    *   Validierung erfolgt serverseitig vor der Verarbeitung.
-    *   *Hinweis:* Die Bitget-Order-Logik verlässt sich auf implizite Annahmen bzgl. "Hedge Mode" vs. "One-Way Mode". Dies kann zu Fehlern führen, wenn der User-Account anders konfiguriert ist.
-*   **WebSocket (`bitunixWs.ts`):**
-    *   Sehr defensive Implementierung mit Heartbeats, Watchdogs und automatischem Reconnect.
-    *   Circuit Breaker für Validierungsfehler verhindert Endlosschleifen.
-    *   Speicher-Management durch `pruneThrottleMap` ist vorbildlich.
+## 1. Data Integrity & Precision (🔴 CRITICAL)
+*   **Floating Point Usage in API**: The file `src/routes/api/orders/+server.ts` aggressively converts API response data (prices, amounts) using `parseFloat()`. This permanently strips precision from the exchange data before it reaches the frontend.
+    *   *Risk*: Financial discrepancies (e.g., seeing 1.000000001 as 1.0) which can lead to incorrect PnL calculations or order sizing.
+*   **Type Mismatches**: `tradeState` (Store) uses `number | null` for prices, while `tradeService` expects `Decimal`. The conversion often happens late, relying on native JS numbers which are IEEE 754 floats.
+*   **Serialization**: `TradeExecutionService` converts `Decimal` objects back to `toNumber()` before sending to the Bitunix API. While Bitunix accepts numbers, this introduces a round-trip precision risk.
 
-## 4. Internationalisierung (i18n)
-*   **Status:** Gut, aber mit Optimierungspotenzial.
-*   **Befunde:**
-    *   In `TradeSetupInputs.svelte` sind einige Platzhalter fest codiert (z.B. "ATR", "1.2").
-    *   Die Datei `src/locales/i18n.ts` nutzt `JSON.parse(JSON.stringify(...))` zum Klonen von Objekten. Das ist in modernem JavaScript ineffizient; `structuredClone` ist hier performanter und sicherer.
-    *   Die Liste `TECHNICAL_KEYS` muss manuell gepflegt werden, was fehleranfällig bei neuen Features ist.
+## 2. Resource Management & Performance (🟡 WARNING)
+*   **WebSocket Fast Path**: `bitunixWs.ts` implements a "Fast Path" that bypasses Zod validation for performance. While effective, it lacks robust error handling. If the API schema changes slightly, this path could crash the socket worker or causing UI freezes.
+*   **Polling Intervals**: `MarketWatcher` uses `setInterval` for fallback polling. While it has logic to pause, we must ensure these are strictly cleared on component unmounts to prevent "zombie" polling in the background.
 
-## 5. UI/UX & Barrierefreiheit (A11y)
-*   **Positiv:** Das Fokus-Management in `TradeSetupInputs.svelte` verhindert, dass Benutzereingaben durch automatische Store-Updates überschrieben werden.
-*   **Verbesserungswürdig:**
-    *   Das "Smiley"-Feedback beim Kopieren hat keine ARIA-Attribute (`aria-live`), wodurch Screenreader-Nutzer kein Feedback erhalten.
-    *   Einige Buttons nutzen Inline-Styles statt CSS-Klassen.
+## 3. UI/UX & Internationalization (🟡 WARNING)
+*   **Hardcoded Backend Errors**: `src/routes/api/orders/+server.ts` returns hardcoded English strings (e.g., "Invalid quantity formatting"). These cannot be translated by the frontend `$_` mechanism, leading to a mixed-language experience for non-English users.
+*   **Error Feedback**: The API returns generic `500` errors for some logic failures, which are not "Actionable" for the user.
 
-## 6. Maßnahmenplan
-Basierend auf dieser Analyse werden folgende Schritte durchgeführt:
-1.  **i18n Fixes:** Ersetzen der Hardcoded Strings und Optimierung der `i18n.ts` Performance.
-2.  **A11y:** Hinzufügen von Screenreader-Support für Feedback-Elemente.
-3.  **Robustheit:** Erweiterung der Fehlermeldungen für die Bitget-API, um Konfigurationsfehler schneller zu finden.
+## 4. Security & Validation (🔵 REFACTOR)
+*   **Redaction**: The system correctly attempts to redact API keys from logs.
+*   **Zod Usage**: Validation is present but inconsistent. The WebSocket "Fast Path" bypasses it completely.
+
+---
+
+## Action Plan Strategy
+1.  **Harden Data Types**: Introduce `raw` string fields in Order interfaces to preserve precision from Backend to Frontend.
+2.  **Sanitize API Inputs**: Enforce `Decimal` -> `String` conversion for API payloads to avoid scientific notation issues (e.g., `1e-7`).
+3.  **Externalize Errors**: Move backend error strings to a constant map to allow for potential future localization or code-based mapping on the frontend.
+4.  **Bulletproof Hot Paths**: Wrap `bitunixWs` fast-path in try-catch blocks to prevent crashes.
