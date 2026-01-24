@@ -642,7 +642,7 @@
                 onblur={() => (isAtrValueFocused = false)}
                 oninput={handleAtrValueInput}
                 class="input-field w-full px-4 py-2 rounded-md pr-10"
-                placeholder="ATR"
+                placeholder={$_("dashboard.tradeSetupInputs.atrLabel")}
               />
               <button
                 type="button"
@@ -691,7 +691,7 @@
                 onblur={() => (isAtrMultiplierFocused = false)}
                 oninput={handleAtrMultiplierInput}
                 class="input-field w-full px-4 py-2 rounded-md"
-                placeholder="1.2"
+                placeholder={$_("dashboard.tradeSetupInputs.multiplierExample")}
               />
             </div>
           </div>
@@ -730,6 +730,8 @@
 {#if showSmiley}
   <div
     use:portal
+    role="status"
+    aria-live="polite"
     class="smiley-feedback"
     style="left: {smileyX + 10}px; top: {smileyY - 10}px;"
   >

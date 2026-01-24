@@ -390,7 +390,7 @@ async function placeBitgetOrder(
     if (res.code !== "00000") {
         let msg = res.msg;
         if (msg && (msg.toLowerCase().includes("mode") || msg.toLowerCase().includes("position") || msg.toLowerCase().includes("side"))) {
-            msg += " (Check One-Way vs Hedge Mode)";
+            msg += " (Possible cause: Mismatch between App (Hedge Mode) and Exchange settings. Check One-Way vs Hedge Mode)";
         }
         throw new Error(`Bitget Error: ${res.code} ${msg}`);
     }
