@@ -108,6 +108,16 @@ class BitunixWebSocketService {
   // Throttling for UI Blocking Updates
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
+  private readonly THROTTLE_TTL = 5000;
+
+  private pruneThrottleMap() {
+    const now = Date.now();
+    for (const [key, timestamp] of this.throttleMap) {
+      if (now - timestamp > this.THROTTLE_TTL) {
+        this.throttleMap.delete(key);
+      }
+    }
+  }
 
   private handleOnline = () => {
     if (this.isDestroyed) return;
@@ -152,6 +162,9 @@ class BitunixWebSocketService {
             marketState.connectionStatus = "disconnected";
           return;
         }
+
+        // Maintenance
+        this.pruneThrottleMap();
 
         // Governance: If Bitunix is NOT the active provider, we must NOT touch the global status
         if (settingsState.apiProvider !== "bitunix") {
@@ -199,16 +212,26 @@ class BitunixWebSocketService {
   destroy() {
     logger.log("governance", `[BitunixWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
+
+    // 1. Clear Global Monitor
     if (this.globalMonitorInterval) {
       clearInterval(this.globalMonitorInterval);
       this.globalMonitorInterval = null;
     }
+
+    // 2. Remove Listeners
     if (typeof window !== "undefined") {
       window.removeEventListener("online", this.handleOnline);
       window.removeEventListener("offline", this.handleOffline);
     }
+
+    // 3. Strict Cleanup
     this.cleanup("public");
     this.cleanup("private");
+
+    // 4. Force clear any lingering timers manually (Redundancy check)
+    if (this.reconnectTimerPublic) { clearTimeout(this.reconnectTimerPublic); this.reconnectTimerPublic = null; }
+    if (this.reconnectTimerPrivate) { clearTimeout(this.reconnectTimerPrivate); this.reconnectTimerPrivate = null; }
   }
 
   connect(force?: boolean) {

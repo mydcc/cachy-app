@@ -95,12 +95,15 @@ class MarketAnalystService {
 
             if (tech1h && tech4h) {
                 const lastKline = klines[klines.length - 1];
-                const price = new Decimal(lastKline.close).toNumber();
-                const open24h = new Decimal(klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open).toNumber();
-                const change24h = ((price - open24h) / open24h) * 100;
+                const price = new Decimal(lastKline?.close || 0).toNumber();
+
+                const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
+                const open24h = new Decimal(openKline?.open || 0).toNumber();
+
+                const change24h = open24h !== 0 ? ((price - open24h) / open24h) * 100 : 0;
 
                 const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
-                const trend4h = price > new Decimal(ema200_4h).toNumber() ? "bullish" : "bearish";
+                const trend4h = price > new Decimal(ema200_4h || 0).toNumber() ? "bullish" : "bearish";
 
                 const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
                 const rsiValue = rsiObj?.value;
