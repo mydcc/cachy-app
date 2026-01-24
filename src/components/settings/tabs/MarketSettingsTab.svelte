@@ -65,43 +65,30 @@
 </script>
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+    <!-- Presets Grid -->
+    <div class="grid grid-cols-2 gap-3">
         {#each modes as mode}
             <button
-                class="relative flex flex-col items-start p-4 rounded-xl border-2 transition-all duration-200 text-left hover:shadow-lg {settingsState.marketMode ===
-                mode.id
+                class="relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 text-center hover:shadow-md h-28
+        {settingsState.marketMode === mode.id
                     ? 'border-[var(--accent-color)] bg-[var(--bg-secondary)]'
-                    : 'border-[var(--border-color)] bg-[var(--bg-tertiary)] hover:border-[var(--text-secondary)]'}"
+                    : 'border-[var(--border-color)] bg-[var(--bg-tertiary)] hover:border-[var(--text-secondary)] opacity-80 hover:opacity-100'}"
                 onclick={() => setMode(mode.id)}
             >
-                <div class="flex justify-between w-full mb-2">
-                    <span class="text-2xl">{mode.icon}</span>
-                    {#if settingsState.marketMode === mode.id}
-                        <div class="text-[var(--accent-color)]">
-                            {@html icons.check}
-                        </div>
-                    {/if}
-                </div>
-                <h3 class="font-bold text-lg mb-1">{mode.title}</h3>
-                <p class="text-xs text-[var(--text-secondary)] mb-3">
-                    {mode.desc}
-                </p>
-                <ul class="space-y-1 mt-auto">
-                    {#each mode.benefits as benefit}
-                        <li
-                            class="text-[10px] text-[var(--text-secondary)] flex items-center gap-1.5"
-                        >
-                            <span
-                                class="w-1 h-1 rounded-full bg-[var(--accent-color)] opacity-50"
-                            ></span>
-                            {benefit}
-                        </li>
-                    {/each}
-                </ul>
+                <div class="text-3xl mb-2">{mode.icon}</div>
+                <h3 class="font-bold text-sm leading-tight">{mode.title}</h3>
+                {#if settingsState.marketMode === mode.id}
+                    <div
+                        class="absolute top-2 right-2 text-[var(--accent-color)] scale-75"
+                    >
+                        {@html icons.check}
+                    </div>
+                {/if}
             </button>
         {/each}
     </div>
 
+    <!-- AI Warning -->
     {#if settingsState.marketMode === "performance" || settingsState.marketMode === "balanced"}
         <div
             transition:fade={{ duration: 200 }}
@@ -113,95 +100,117 @@
                     KI Hinweis
                 </h4>
                 <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    In diesem Modus erhält der AI-Chat weniger aktuelle
-                    Hintergrunddaten (News/Technische Analyse). Er ist dadurch
-                    speicherschonender, aber potenziell weniger "informiert"
-                    über kurzfristige Marktbewegungen.
+                    Aktiver Modus reduziert Hintergrund-Updates. Der AI-Chat
+                    erhält dadurch potenziell ältere Marktdaten.
                 </p>
             </div>
         </div>
     {/if}
 
-    {#if settingsState.marketMode === "custom"}
+    <!-- Detailed Settings (Always Visible) -->
+    <div class="space-y-4 pt-4 border-t border-[var(--border-color)]">
+        <div class="flex items-center justify-between">
+            <h3 class="font-bold text-lg">Detaillierte Konfiguration</h3>
+            {#if settingsState.marketMode !== "custom"}
+                <span
+                    class="text-[10px] px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
+                >
+                    Nur im "Benutzerdefiniert" Modus änderbar
+                </span>
+            {/if}
+        </div>
+
+        <!-- Setting 1: Scan Interval -->
         <div
-            transition:fade={{ duration: 200 }}
-            class="space-y-4 pt-4 border-t border-[var(--border-color)]"
+            class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==
+            'custom'
+                ? 'opacity-60 grayscale'
+                : ''}"
         >
-            <h3 class="font-bold text-lg">Fein-Einstellungen</h3>
-
-            <div
-                class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg"
-            >
-                <div>
-                    <div class="font-medium text-sm">Hintergrund-Analyse</div>
-                    <div class="text-[10px] text-[var(--text-secondary)]">
-                        Berechnet RSI/Trends im Hintergrund
-                    </div>
-                </div>
-                <div class="flex items-center gap-2">
-                    <input
-                        type="number"
-                        class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-2 py-1 text-xs w-16 text-center"
-                        bind:value={settingsState.marketAnalysisInterval}
-                        min="30"
-                        max="3600"
-                    />
-                    <span class="text-xs text-[var(--text-secondary)]"
-                        >Sek.</span
-                    >
+            <div>
+                <div class="font-medium text-sm">Markt-Scan Frequenz</div>
+                <div class="text-[10px] text-[var(--text-secondary)]">
+                    Häufiger = Aktuellere Daten. Selten = Spart CPU/Akku. (300s
+                    = 5min)
                 </div>
             </div>
-
-            <div
-                class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg"
-            >
-                <div>
-                    <div class="font-medium text-sm">
-                        Alle Favoriten analysieren
-                    </div>
-                    <div class="text-[10px] text-[var(--text-secondary)]">
-                        Wenn aus, nur Top 4 (spart API Limits)
-                    </div>
-                </div>
+            <div class="flex items-center gap-2">
                 <input
-                    type="checkbox"
-                    class="toggle-checkbox"
-                    bind:checked={settingsState.analyzeAllFavorites}
+                    type="number"
+                    disabled={settingsState.marketMode !== "custom"}
+                    class="bg-[var(--bg-primary)] border border-[var(--border-color)] rounded px-2 py-1 text-xs w-16 text-center disabled:cursor-not-allowed"
+                    bind:value={settingsState.marketAnalysisInterval}
+                    min="30"
+                    max="3600"
                 />
-            </div>
-
-            <div
-                class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg"
-            >
-                <div>
-                    <div class="font-medium text-sm">
-                        News Scanner (Aggressiv)
-                    </div>
-                    <div class="text-[10px] text-[var(--text-secondary)]">
-                        Nicht empfohlen. Kann zu Timeouts führen.
-                    </div>
-                </div>
-                <input
-                    type="checkbox"
-                    bind:checked={settingsState.enableNewsScraper}
-                    class="toggle-checkbox"
-                />
-            </div>
-            <div
-                class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg"
-            >
-                <div>
-                    <div class="font-medium text-sm">News Analyse generell</div>
-                    <div class="text-[10px] text-[var(--text-secondary)]">
-                        Sammeln von News für Sentiment/KI
-                    </div>
-                </div>
-                <input
-                    type="checkbox"
-                    bind:checked={settingsState.enableNewsAnalysis}
-                    class="toggle-checkbox"
-                />
+                <span class="text-xs text-[var(--text-secondary)]">Sek.</span>
             </div>
         </div>
-    {/if}
+
+        <!-- Setting 2: Full Scan -->
+        <div
+            class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==
+            'custom'
+                ? 'opacity-60 grayscale'
+                : ''}"
+        >
+            <div>
+                <div class="font-medium text-sm">Alle Favoriten scannen</div>
+                <div class="text-[10px] text-[var(--text-secondary)]">
+                    AN: Scannt alle Coins der Watchlist (Teuer). AUS: Nur Top 4.
+                </div>
+            </div>
+            <input
+                type="checkbox"
+                disabled={settingsState.marketMode !== "custom"}
+                class="toggle-checkbox disabled:cursor-not-allowed"
+                bind:checked={settingsState.analyzeAllFavorites}
+            />
+        </div>
+
+        <!-- Setting 3: News Scraper -->
+        <div
+            class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==
+            'custom'
+                ? 'opacity-60 grayscale'
+                : ''}"
+        >
+            <div>
+                <div class="font-medium text-sm">
+                    Auto-Download Nachrichten-Inhalte
+                </div>
+                <div class="text-[10px] text-[var(--text-secondary)]">
+                    Lädt vollständige Artikel im Hintergrund. Kostet viel
+                    Bandbreite & CPU.
+                </div>
+            </div>
+            <input
+                type="checkbox"
+                disabled={settingsState.marketMode !== "custom"}
+                bind:checked={settingsState.enableNewsScraper}
+                class="toggle-checkbox disabled:cursor-not-allowed"
+            />
+        </div>
+
+        <!-- Setting 4: News Analysis -->
+        <div
+            class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==
+            'custom'
+                ? 'opacity-60 grayscale'
+                : ''}"
+        >
+            <div>
+                <div class="font-medium text-sm">News Sentiment Analyse</div>
+                <div class="text-[10px] text-[var(--text-secondary)]">
+                    Sammeln & Bewerten von News für den KI-Kontext.
+                </div>
+            </div>
+            <input
+                type="checkbox"
+                disabled={settingsState.marketMode !== "custom"}
+                bind:checked={settingsState.enableNewsAnalysis}
+                class="toggle-checkbox disabled:cursor-not-allowed"
+            />
+        </div>
+    </div>
 </div>

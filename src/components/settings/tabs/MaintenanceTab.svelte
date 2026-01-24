@@ -70,6 +70,27 @@
             isRepairing = false;
         }
     }
+    function clearAppCache() {
+        if (
+            !confirm(
+                "Alle temporären Daten (News, Sentiment, Chart-Cache) löschen?",
+            )
+        )
+            return;
+
+        // Clear specific caches
+        localStorage.removeItem("cachy_news_cache");
+        localStorage.removeItem("cachy_sentiment_cache");
+
+        // Clear any other temp keys if needed
+        statusMessage = "Cache geleert.";
+        setTimeout(() => (statusMessage = ""), 3000);
+    }
+
+    function reloadApp() {
+        if (!confirm("App neu laden um Arbeitsspeicher freizugeben?")) return;
+        window.location.reload();
+    }
 </script>
 
 <div
@@ -159,18 +180,24 @@
     </section>
 
     <!-- Market Analyst Settings -->
-    <section class="settings-section border-t border-[var(--border-color)] pt-6">
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-6"
+    >
         <h3 class="section-title">
             {$_("settings.maintenance.marketAnalyst") || "Market Analysis"}
         </h3>
-        
+
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
-               <div class="flex justify-between items-center mb-2">
+            <div
+                class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+            >
+                <div class="flex justify-between items-center mb-2">
                     <span class="text-xs font-semibold">Analysis Interval</span>
-                    <span class="text-xs font-mono text-[var(--accent-color)]">{settingsState.marketAnalysisInterval}s</span>
+                    <span class="text-xs font-mono text-[var(--accent-color)]"
+                        >{settingsState.marketAnalysisInterval}s</span
+                    >
                 </div>
-                 <input
+                <input
                     type="range"
                     min="10"
                     max="120"
@@ -178,22 +205,29 @@
                     class="w-full accent-[var(--accent-color)] h-1.5 bg-[var(--bg-tertiary)] rounded-lg appearance-none cursor-pointer"
                     bind:value={settingsState.marketAnalysisInterval}
                 />
-                 <p class="text-[10px] text-[var(--text-secondary)] mt-2">
-                    How often to recalculate indicators for favorites. Higher values save CPU.
+                <p class="text-[10px] text-[var(--text-secondary)] mt-2">
+                    How often to recalculate indicators for favorites. Higher
+                    values save CPU.
                 </p>
             </div>
 
-            <div class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]">
+            <div
+                class="p-4 rounded-xl bg-[var(--bg-secondary)] border border-[var(--border-color)]"
+            >
                 <div class="flex justify-between items-center mb-0">
                     <span class="text-xs font-semibold">Pause on Blur</span>
-                     <button
-                        class="toggle-container {settingsState.pauseAnalysisOnBlur ? 'active' : ''}"
-                        onclick={() => (settingsState.pauseAnalysisOnBlur = !settingsState.pauseAnalysisOnBlur)}
+                    <button
+                        class="toggle-container {settingsState.pauseAnalysisOnBlur
+                            ? 'active'
+                            : ''}"
+                        onclick={() =>
+                            (settingsState.pauseAnalysisOnBlur =
+                                !settingsState.pauseAnalysisOnBlur)}
                     >
                         <div class="toggle-thumb"></div>
                     </button>
                 </div>
-                 <p class="text-[10px] text-[var(--text-secondary)] mt-4">
+                <p class="text-[10px] text-[var(--text-secondary)] mt-4">
                     Stop analysis when tab is in background (saves power).
                 </p>
             </div>
