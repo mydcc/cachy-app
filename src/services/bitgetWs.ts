@@ -105,7 +105,7 @@ class BitgetWebSocketService {
         }
 
         // No autonomous reconnections here.
-      }, 1000);
+      }, 5000);
     }
   }
 

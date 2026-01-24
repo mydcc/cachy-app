@@ -37,19 +37,6 @@ class MarketWatcher {
 
   constructor() {
     if (browser) {
-      // Watch settings for provider or interval changes
-      settingsState.subscribe((settings: any) => {
-        const newInterval = settings.marketDataInterval || 10;
-
-        // If interval changed, restart polling
-        if (newInterval !== this.currentIntervalSeconds) {
-          this.currentIntervalSeconds = newInterval;
-          this.startPolling();
-        }
-
-        this.syncSubscriptions();
-      });
-
       this.startPolling();
     }
   }

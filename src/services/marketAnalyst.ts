@@ -60,7 +60,7 @@ class MarketAnalystService {
             const existing = analysisState.results[symbol];
             if (existing && (Date.now() - existing.updatedAt < DATA_FRESHNESS_TTL)) {
                 // Skip, but check slightly faster to find a stale one
-                this.timeoutId = setTimeout(() => this.processNext(), 200);
+                this.timeoutId = setTimeout(() => this.processNext(), 5000);
                 return;
             }
 

@@ -181,7 +181,7 @@ class BitunixWebSocketService {
 
         // We no longer trigger autonomous reconnections here.
         // The ConnectionManager or handleOffline/handleOnline handle lifecycle.
-      }, 1000);
+      }, 5000);
     }
   }
 
