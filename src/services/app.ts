@@ -48,6 +48,7 @@ const calculatorService = new CalculatorService(calculator, uiState);
 
 let marketStoreUnsubscribe: (() => void) | null = null;
 let tradeStoreUnsubscribe: (() => void) | null = null;
+let isInitialized = false;
 
 export const app = {
   calculator: calculator,
@@ -56,6 +57,9 @@ export const app = {
 
   init: () => {
     if (browser) {
+      if (isInitialized) return;
+      isInitialized = true;
+
       // 1. Initialise core logic
       app.populatePresetLoader();
       app.setupMarketSync();
