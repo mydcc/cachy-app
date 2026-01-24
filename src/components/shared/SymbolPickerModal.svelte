@@ -91,8 +91,8 @@
         if (minVol > 0) {
             result = result.filter((s) => {
                 const data = snapshot[s];
-                if (!data) return false; // No data yet = hide? or show? -> Hide if filtering
-                return data.quoteVolume.gte(minVol);
+                if (!data) return false;
+                return new Decimal(data.quoteVolume || 0).gte(minVol);
             });
         }
 
@@ -104,8 +104,9 @@
             } else if (viewMode === "volatile") {
                 result = result.filter((s) => {
                     // Prefer snapshot for static filtering
-                    const change =
-                        snapshot[s]?.priceChangePercent?.toNumber() || 0;
+                    const change = new Decimal(
+                        snapshot[s]?.priceChangePercent || 0,
+                    ).toNumber();
                     return Math.abs(change) >= 5;
                 });
             }
@@ -117,24 +118,32 @@
 
         if (effectiveSort === "gainers") {
             result.sort((a, b) => {
-                const changeA =
-                    snapshot[a]?.priceChangePercent?.toNumber() || 0;
-                const changeB =
-                    snapshot[b]?.priceChangePercent?.toNumber() || 0;
+                const changeA = new Decimal(
+                    snapshot[a]?.priceChangePercent || 0,
+                ).toNumber();
+                const changeB = new Decimal(
+                    snapshot[b]?.priceChangePercent || 0,
+                ).toNumber();
                 return changeB - changeA;
             });
         } else if (effectiveSort === "losers") {
             result.sort((a, b) => {
-                const changeA =
-                    snapshot[a]?.priceChangePercent?.toNumber() || 0;
-                const changeB =
-                    snapshot[b]?.priceChangePercent?.toNumber() || 0;
+                const changeA = new Decimal(
+                    snapshot[a]?.priceChangePercent || 0,
+                ).toNumber();
+                const changeB = new Decimal(
+                    snapshot[b]?.priceChangePercent || 0,
+                ).toNumber();
                 return changeA - changeB;
             });
         } else if (effectiveSort === "volume") {
             result.sort((a, b) => {
-                const volA = snapshot[a]?.quoteVolume?.toNumber() || 0;
-                const volB = snapshot[b]?.quoteVolume?.toNumber() || 0;
+                const volA = new Decimal(
+                    snapshot[a]?.quoteVolume || 0,
+                ).toNumber();
+                const volB = new Decimal(
+                    snapshot[b]?.quoteVolume || 0,
+                ).toNumber();
                 return volB - volA;
             });
         } else {
@@ -188,9 +197,10 @@
     function getChangePercent(s: string) {
         // Prioritize Live Data, Fallback to Snapshot
         const live = marketState.data[s]?.priceChangePercent;
-        if (live !== undefined && live !== null) return live.toNumber();
+        if (live !== undefined && live !== null)
+            return new Decimal(live).toNumber();
         const snap = snapshot[s]?.priceChangePercent;
-        return snap ? snap.toNumber() : null;
+        return snap ? new Decimal(snap).toNumber() : null;
     }
 
     function selectSymbol(s: string) {

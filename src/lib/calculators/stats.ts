@@ -126,11 +126,11 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const avgRR =
     totalTrades > 0
       ? closedTrades
-          .reduce(
-            (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
-            new Decimal(0),
-          )
-          .dividedBy(totalTrades)
+        .reduce(
+          (sum, t) => sum.plus(new Decimal(t.totalRR || 0)),
+          new Decimal(0),
+        )
+        .dividedBy(totalTrades)
       : new Decimal(0);
   const avgWin =
     wonTrades.length > 0
@@ -147,9 +147,9 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
   const largestProfit =
     wonTrades.length > 0
       ? Decimal.max(
-          0,
-          ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
-        )
+        0,
+        ...wonTrades.map((t) => new Decimal(t.totalNetProfit || 0)),
+      )
       : new Decimal(0);
   const largestLoss =
     lostTrades.length > 0
@@ -163,8 +163,8 @@ export function calculatePerformanceStats(journalData: JournalEntry[]) {
       const rMultiple =
         trade.status === "Won"
           ? new Decimal(trade.totalNetProfit || 0).dividedBy(
-              new Decimal(trade.riskAmount),
-            )
+            new Decimal(trade.riskAmount),
+          )
           : new Decimal(-1);
       totalRMultiples = totalRMultiples.plus(rMultiple);
       tradesWithRisk++;
@@ -327,7 +327,7 @@ export function getTagData(trades: JournalEntry[]) {
 
   // Convert to array for sorting/display
   const labels = Object.keys(tagStats);
-  const pnlData = labels.map((l) => tagStats[l].pnl.toNumber());
+  const pnlData = labels.map((l) => new Decimal(tagStats[l].pnl || 0).toNumber());
   const winRateData = labels.map(
     (l) => (tagStats[l].win / tagStats[l].count) * 100,
   );
@@ -412,13 +412,13 @@ export function getCalendarData(trades: JournalEntry[]) {
 
   return Object.entries(dailyMap).map(([date, data]) => ({
     date,
-    pnl: data.pnl.toNumber(),
+    pnl: new Decimal(data.pnl || 0).toNumber(),
     count: data.count,
     winCount: data.winCount,
     lossCount: data.lossCount,
     bestSymbol: data.bestSymbol,
     bestSymbolPnl: data.bestSymbolPnl.isFinite()
-      ? data.bestSymbolPnl.toNumber()
+      ? new Decimal(data.bestSymbolPnl).toNumber()
       : 0,
   }));
 }
@@ -458,8 +458,8 @@ export function getRollingData(
       else grossLoss = grossLoss.plus(pnl.abs());
 
       // Calculate R
-      if (t.riskAmount && t.riskAmount.gt(0)) {
-        rMultiples.push(pnl.div(t.riskAmount).toNumber());
+      if (t.riskAmount && new Decimal(t.riskAmount).gt(0)) {
+        rMultiples.push(pnl.div(new Decimal(t.riskAmount)).toNumber());
       } else {
         // Fallback if no risk info, use 0 or skip?
         // To avoid breaking SQN, we skip or use a proxy.
@@ -472,7 +472,7 @@ export function getRollingData(
     if (grossLoss.isZero()) {
       pf = grossWin.gt(0) ? 10 : 0; // Cap at 10 for visualization
     } else {
-      pf = grossWin.div(grossLoss).toNumber();
+      pf = new Decimal(grossWin.div(grossLoss)).toNumber();
     }
     profitFactors.push(pf);
 
@@ -540,20 +540,20 @@ export function getLeakageData(journal: JournalEntry[]) {
     .minus(totalGrossLoss)
     .minus(totalFees);
   const profitRetention = totalGrossProfit.gt(0)
-    ? totalNetProfit.div(totalGrossProfit).times(100).toNumber()
+    ? new Decimal(totalNetProfit.div(totalGrossProfit).times(100)).toNumber()
     : 0;
 
   // How much is lost to fees relative to Gross Profit?
   const feeImpact = totalGrossProfit.gt(0)
-    ? totalFees.div(totalGrossProfit).times(100).toNumber()
+    ? new Decimal(totalFees.div(totalGrossProfit).times(100)).toNumber()
     : 0;
 
   // Waterfall Data
   const waterfallData = {
-    grossProfit: totalGrossProfit.toNumber(),
-    fees: totalFees.negated().toNumber(), // Negative for visualization
-    grossLoss: totalGrossLoss.negated().toNumber(), // Negative for visualization
-    netResult: totalNetProfit.toNumber(),
+    grossProfit: new Decimal(totalGrossProfit).toNumber(),
+    fees: new Decimal(totalFees.negated()).toNumber(), // Negative for visualization
+    grossLoss: new Decimal(totalGrossLoss.negated()).toNumber(), // Negative for visualization
+    netResult: new Decimal(totalNetProfit).toNumber(),
   };
 
   // 2. Worst Tags (Strategy Leakage)
@@ -590,7 +590,7 @@ export function getLeakageData(journal: JournalEntry[]) {
     profitRetention,
     feeImpact,
     waterfallData,
-    totalFees: totalFees.toNumber(),
+    totalFees: new Decimal(totalFees).toNumber(),
     worstTags,
     worstHours,
     worstDays,
@@ -659,7 +659,7 @@ export function getDurationStats(journal: JournalEntry[]) {
   });
 
   const labels = buckets.map((b) => b.label);
-  const pnlData = buckets.map((b) => b.pnl.toNumber());
+  const pnlData = buckets.map((b) => new Decimal(b.pnl || 0).toNumber());
   const winRateData = buckets.map((b) =>
     b.count > 0 ? (b.win / b.count) * 100 : 0,
   );
@@ -712,12 +712,12 @@ export function getTimingData(trades: JournalEntry[]) {
   ];
 
   return {
-    hourlyPnl: hourlyNetPnl.map((d) => d.toNumber()),
-    hourlyGrossProfit: hourlyGrossProfit.map((d) => d.toNumber()),
-    hourlyGrossLoss: hourlyGrossLoss.map((d) => d.toNumber()), // Keep negative numbers negative
-    dayOfWeekPnl: reorder(dayNetPnl).map((d) => d.toNumber()),
-    dayOfWeekGrossProfit: reorder(dayGrossProfit).map((d) => d.toNumber()),
-    dayOfWeekGrossLoss: reorder(dayGrossLoss).map((d) => d.toNumber()),
+    hourlyPnl: hourlyNetPnl.map((d) => new Decimal(d).toNumber()),
+    hourlyGrossProfit: hourlyGrossProfit.map((d) => new Decimal(d).toNumber()),
+    hourlyGrossLoss: hourlyGrossLoss.map((d) => new Decimal(d).toNumber()), // Keep negative numbers negative
+    dayOfWeekPnl: reorder(dayNetPnl).map((d) => new Decimal(d).toNumber()),
+    dayOfWeekGrossProfit: reorder(dayGrossProfit).map((d) => new Decimal(d).toNumber()),
+    dayOfWeekGrossLoss: reorder(dayGrossLoss).map((d) => new Decimal(d).toNumber()),
     dayLabels: ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"],
   };
 }
@@ -751,8 +751,8 @@ export function getDisciplineData(journal: JournalEntry[]) {
   // Risk Consistency Buckets
   const riskBuckets: { [key: string]: number } = {};
   const risks = sortedTrades
-    .filter((t) => t.riskAmount && t.riskAmount.gt(0))
-    .map((t) => t.riskAmount!.toNumber());
+    .filter((t) => t.riskAmount && new Decimal(t.riskAmount).gt(0))
+    .map((t) => new Decimal(t.riskAmount!).toNumber());
 
   if (risks.length > 0) {
     const minRisk = Math.min(...risks);

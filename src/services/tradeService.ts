@@ -332,11 +332,11 @@ export class TradeExecutionService {
       symbol: params.symbol,
       side: bitunixSide,
       orderType: bitunixType,
-      qty: params.amount.toNumber(),
+      qty: new Decimal(params.amount).toNumber(),
     };
 
     if (params.type === "limit" && params.price) {
-      body.price = params.price.toNumber();
+      body.price = new Decimal(params.price).toNumber();
     }
     if (params.leverage) body.leverage = params.leverage;
     if (params.timeInForce) body.effect = params.timeInForce.toUpperCase().replace("POSTONLY", "POST_ONLY");
@@ -344,12 +344,12 @@ export class TradeExecutionService {
 
     // TP/SL
     if (params.takeProfit) {
-      body.tpPrice = params.takeProfit.toNumber();
+      body.tpPrice = new Decimal(params.takeProfit).toNumber();
       body.tpStopType = "PRICE";
       body.tpOrderType = "MARKET";
     }
     if (params.stopLoss) {
-      body.slPrice = params.stopLoss.toNumber();
+      body.slPrice = new Decimal(params.stopLoss).toNumber();
       body.slStopType = "PRICE";
       body.slOrderType = "MARKET";
     }
@@ -423,8 +423,8 @@ export class TradeExecutionService {
     logger.log("market", "Modify Order:", params);
 
     const body: any = { orderId: params.orderId };
-    if (params.price) body.price = params.price.toNumber();
-    if (params.amount) body.qty = params.amount.toNumber();
+    if (params.price) body.price = new Decimal(params.price).toNumber();
+    if (params.amount) body.qty = new Decimal(params.amount).toNumber();
     const response = await this.signedRequest<{
       orderId: string;
       symbol: string;
@@ -622,8 +622,8 @@ export class TradeExecutionService {
       symbol: o.symbol,
       side: o.side.toUpperCase(),
       orderType: o.type.toUpperCase(),
-      qty: o.amount.toNumber(),
-      ...(o.type === "limit" && o.price ? { price: o.price.toNumber() } : {}),
+      qty: new Decimal(o.amount).toNumber(),
+      ...(o.type === "limit" && o.price ? { price: new Decimal(o.price).toNumber() } : {}),
       ...(o.leverage ? { leverage: o.leverage } : {}),
       ...(o.reduceOnly ? { reduceOnly: true } : {}),
     }));
