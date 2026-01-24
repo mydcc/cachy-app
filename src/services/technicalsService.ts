@@ -45,7 +45,7 @@ class TechnicalsWorkerManager {
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private checkInterval: any = null;
   private lastActive: number = Date.now();
-  private readonly IDLE_TIMEOUT = 60000; // 1 min
+  private readonly IDLE_TIMEOUT = 5000; // 5s (Aggressive cleanup to prevent leaks)
 
   getWorker(): Worker | null {
     if (!browser) return null;
