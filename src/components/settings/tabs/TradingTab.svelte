@@ -127,6 +127,37 @@
                             bind:checked={settingsState.autoUpdatePriceInput}
                         />
                     </label>
+
+                    <!-- Confirm Deletions -->
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Confirm Trade Deletion</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Safety check before removing</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.confirmTradeDeletion}
+                        />
+                    </label>
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Confirm Bulk Deletion</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Safety check for 'Close All'</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.confirmBulkDeletion}
+                        />
+                    </label>
                 </div>
             </section>
         {/if}

@@ -107,18 +107,41 @@
 
                     <!-- Font -->
                     <div class="field-group">
-                        <label for="font-select"
-                            >{$_("settings.fontFamily")}</label
-                        >
-                        <select
-                            id="font-select"
-                            bind:value={settingsState.fontFamily}
-                            class="input-field"
-                        >
-                            {#each fonts as font}
-                                <option value={font.value}>{font.label}</option>
-                            {/each}
-                        </select>
+                        <div class="flex gap-2">
+                            <div class="flex-1">
+                                <label for="font-select"
+                                    >{$_("settings.fontFamily")}</label
+                                >
+                                <select
+                                    id="font-select"
+                                    bind:value={settingsState.fontFamily}
+                                    class="input-field"
+                                >
+                                    {#each fonts as font}
+                                        <option value={font.value}
+                                            >{font.label}</option
+                                        >
+                                    {/each}
+                                </select>
+                            </div>
+                            <div class="w-1/3">
+                                <label for="chat-font-size">Chat Size</label>
+                                <div class="flex items-center gap-2">
+                                    <input
+                                        id="chat-font-size"
+                                        type="number"
+                                        bind:value={settingsState.chatFontSize}
+                                        min="10"
+                                        max="24"
+                                        class="input-field"
+                                    />
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)]"
+                                        >px</span
+                                    >
+                                </div>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- Glassmorphism -->

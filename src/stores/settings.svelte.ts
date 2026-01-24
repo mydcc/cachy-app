@@ -27,6 +27,7 @@ export type BackgroundAnimationPreset =
   | "waves"
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
+export type AnalysisDepth = "quick" | "standard" | "deep";
 export type XMonitorType = "user" | "hashtag";
 export interface XMonitor {
   type: XMonitorType;
@@ -90,6 +91,7 @@ export interface Settings {
   geminiModel: string;
   anthropicApiKey: string;
   anthropicModel: string;
+  analysisDepth: AnalysisDepth;
   aiConfirmActions: boolean;
   aiTradeHistoryLimit: number;
   aiConfirmClear: boolean;
@@ -214,6 +216,7 @@ const defaultSettings: Settings = {
   geminiModel: "gemini-1.5-flash",
   anthropicApiKey: "",
   anthropicModel: "claude-3-5-sonnet-20240620",
+  analysisDepth: "standard",
   aiConfirmActions: false,
   aiTradeHistoryLimit: 50,
   showSpinButtons: "hover",
@@ -354,6 +357,7 @@ class SettingsManager {
   geminiModel = $state<string>(defaultSettings.geminiModel);
   anthropicApiKey = $state<string>(defaultSettings.anthropicApiKey);
   anthropicModel = $state<string>(defaultSettings.anthropicModel);
+  analysisDepth = $state<AnalysisDepth>(defaultSettings.analysisDepth);
   aiConfirmActions = $state<boolean>(defaultSettings.aiConfirmActions);
   aiTradeHistoryLimit = $state<number>(defaultSettings.aiTradeHistoryLimit);
   aiConfirmClear = $state<boolean>(defaultSettings.aiConfirmClear);
@@ -708,6 +712,7 @@ class SettingsManager {
       this.geminiModel = merged.geminiModel;
       this.anthropicApiKey = merged.anthropicApiKey;
       this.anthropicModel = merged.anthropicModel;
+      this.analysisDepth = merged.analysisDepth || defaultSettings.analysisDepth;
       this.aiConfirmActions = merged.aiConfirmActions;
       this.aiTradeHistoryLimit = merged.aiTradeHistoryLimit;
       this.aiConfirmClear = merged.aiConfirmClear;
@@ -892,6 +897,7 @@ class SettingsManager {
       geminiModel: this.geminiModel,
       anthropicApiKey: this.anthropicApiKey,
       anthropicModel: this.anthropicModel,
+      analysisDepth: this.analysisDepth,
       aiConfirmActions: this.aiConfirmActions,
       aiTradeHistoryLimit: this.aiTradeHistoryLimit,
       aiConfirmClear: this.aiConfirmClear,

@@ -173,8 +173,7 @@
                             <span class="text-sm font-medium"
                                 >{$_("settings.enableNewsAnalysis")}</span
                             >
-                            <span
-                                class="text-[10px] text-[var(--text-secondary)]"
+                            <span class="text-xs text-[var(--text-secondary)]"
                                 >{$_("settings.ai.newsDesc")}</span
                             >
                         </div>
@@ -187,13 +186,67 @@
                             <span class="text-sm font-medium"
                                 >{$_("settings.enableCmcContext")}</span
                             >
-                            <span
-                                class="text-[10px] text-[var(--text-secondary)]"
+                            <span class="text-xs text-[var(--text-secondary)]"
                                 >{$_("settings.ai.cmcDesc")}</span
                             >
                         </div>
                         <Toggle bind:checked={settingsState.enableCmcContext} />
                     </label>
+
+                    <!-- Safety & Confirmation -->
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Confirm Actions</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]"
+                                >Ask before executing trades</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.aiConfirmActions} />
+                    </label>
+
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Confirm Clear Chat</span
+                            >
+                            <span class="text-xs text-[var(--text-secondary)]"
+                                >Prevent accidental deletion</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.aiConfirmClear} />
+                    </label>
+
+                    <!-- History Limit -->
+                    <div class="field-group">
+                        <label for="history-limit">Trade History Limit</label>
+                        <input
+                            id="history-limit"
+                            type="number"
+                            bind:value={settingsState.aiTradeHistoryLimit}
+                            min="5"
+                            max="100"
+                            class="input-field"
+                        />
+                    </div>
+
+                    <!-- Analysis Depth -->
+                    <div class="field-group">
+                        <label for="analysis-depth"
+                            >Analysis Depth: {settingsState.analysisDepth ||
+                                "Standard"}</label
+                        >
+                        <select
+                            id="analysis-depth"
+                            bind:value={settingsState.analysisDepth}
+                            class="input-field"
+                        >
+                            <option value="quick">Quick (Fast)</option>
+                            <option value="standard">Standard</option>
+                            <option value="deep">Deep (Detailed)</option>
+                        </select>
+                    </div>
                 </div>
             </section>
         {/if}

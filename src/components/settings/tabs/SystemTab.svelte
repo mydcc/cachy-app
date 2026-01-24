@@ -14,9 +14,7 @@
     function clearAppCache() {
         localStorage.removeItem("cachy_news_cache");
         localStorage.removeItem("cachy_market_cache"); // Hypothetical
-        uiState.showToast(
-            $_("settings.system.cacheCleared") || "Cache cleared.",
-        );
+        alert($_("settings.system.cacheCleared") || "Cache cleared.");
     }
 
     function reloadApp() {
@@ -145,6 +143,8 @@
                             ><path d="M3 6h18" /><path
                                 d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
                             /><path
+                                d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"
+                            /><path
                                 d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
                             /></svg
                         >
@@ -171,6 +171,20 @@
                         {$_("settings.system.reloadApp") || "Reload App"}
                     </button>
                 </div>
+
+                <label class="toggle-card mt-4">
+                    <div class="flex flex-col">
+                        <span class="text-sm font-medium"
+                            >English Technical Terms</span
+                        >
+                        <span class="text-[10px] text-[var(--text-secondary)]"
+                            >Avoid translating technical words</span
+                        >
+                    </div>
+                    <Toggle
+                        bind:checked={settingsState.forceEnglishTechnicalTerms}
+                    />
+                </label>
             </section>
         {/if}
 
