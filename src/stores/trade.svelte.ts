@@ -5,6 +5,14 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { browser } from "$app/environment";
@@ -294,37 +302,23 @@ class TradeManager {
 
   resetInputs(preserveSymbol = true, preserveTradeType = true) {
     const currentSymbol = this.symbol;
+    const currentTradeType = this.tradeType;
 
-    // Reset fields
-    if (!preserveTradeType) {
-      this.tradeType = INITIAL_TRADE_STATE.tradeType;
-    }
-    // Keep account settings? Usually reset keeps account size/risk?
-    // tradeStore.ts uses JSON.parse(initialTradeState), so it resets EVERYTHING except symbol.
-    this.accountSize = INITIAL_TRADE_STATE.accountSize;
-    this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
-    this.entryPrice = null;
-    this.stopLossPrice = null;
-    this.leverage = INITIAL_TRADE_STATE.leverage;
-    this.fees = INITIAL_TRADE_STATE.fees;
-    this.atrValue = null;
-    this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
-    this.useAtrSl = false; // "User requested Auto-ATR off" logic from tradeStore
-    this.atrMode = INITIAL_TRADE_STATE.atrMode;
-    this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
-    this.tradeNotes = "";
-    this.tags = [];
-    this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-    this.isPositionSizeLocked = false;
-    this.lockedPositionSize = null;
-    this.isRiskAmountLocked = false;
-    this.riskAmount = null;
+    // Reset everything to deep copy of initial state to prevent reference issues
+    const defaults = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
+    Object.assign(this, defaults);
 
+    // Restore preserved values
     if (preserveSymbol) {
       this.symbol = currentSymbol;
-    } else {
-      this.symbol = "";
     }
+    if (preserveTradeType) {
+      this.tradeType = currentTradeType;
+    }
+
+    // Ensure reactivity for targets array if replaced completely
+    // (though Object.assign handles it, explicit re-assignment can help triggers)
+    // this.targets = defaults.targets;
   }
 
   // Helper for legacy 'update' pattern

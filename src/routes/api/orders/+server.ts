@@ -25,309 +25,153 @@ import type {
   BitunixOrderPayload,
 } from "../../../types/bitunix";
 import type {
-  BitgetResponse,
-  BitgetOrder,
   BitgetOrderPayload
 } from "../../../types/bitget";
 import { formatApiNum } from "../../../utils/utils";
-
-function isValidNumberString(val: unknown): boolean {
-  if (typeof val === "number") return !isNaN(val) && isFinite(val);
-  if (typeof val !== "string") return false;
-  return /^-?\d+(\.\d+)?$/.test(val);
-}
+import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
 
 export const POST: RequestHandler = async ({ request }) => {
-  let body: Record<string, unknown>;
+  let body: unknown;
   try {
     body = await request.json();
   } catch (e) {
     return json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  if (!body || typeof body !== "object") {
-    return json({ error: "Invalid body format" }, { status: 400 });
+  // 1. Zod Validation
+  const validation = OrderRequestSchema.safeParse(body);
+
+  if (!validation.success) {
+    // Format Zod errors
+    const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
+    return json({ error: `Validation Error: ${errors}` }, { status: 400 });
   }
 
-  const exchange = body.exchange as string | undefined;
-  const apiKey = body.apiKey as string | undefined;
-  const apiSecret = body.apiSecret as string | undefined;
-  const passphrase = body.passphrase as string | undefined;
-  const type = body.type as string | undefined;
+  const payload = validation.data;
+  const { exchange, apiKey, apiSecret, passphrase } = payload;
 
-  if (!exchange || typeof exchange !== "string") {
-     return json({ error: "Missing exchange" }, { status: 400 });
-  }
-
-  // Security: Validate API Key length
+  // 2. Key Validation (Additional Check)
   if (exchange === "bitunix") {
-    if (!apiKey || !apiSecret) return json({ error: "Missing credentials" }, { status: 400 });
-    const validationError = validateBitunixKeys(apiKey, apiSecret);
-    if (validationError) {
-      return json({ error: validationError }, { status: 400 });
-    }
+    const err = validateBitunixKeys(apiKey, apiSecret);
+    if (err) return json({ error: err }, { status: 400 });
   } else if (exchange === "bitget") {
-    if (!apiKey || !apiSecret || !passphrase) return json({ error: "Missing credentials (passphrase required)" }, { status: 400 });
-    const validationError = validateBitgetKeys(apiKey, apiSecret, passphrase);
-    if (validationError) {
-      return json({ error: validationError }, { status: 400 });
-    }
+    if (!passphrase) return json({ error: "Passphrase required for Bitget" }, { status: 400 });
+    const err = validateBitgetKeys(apiKey, apiSecret, passphrase);
+    if (err) return json({ error: err }, { status: 400 });
   }
-
-    // Security: Validate Order Parameters
-    if (type === "place-order" || type === "close-position") {
-      // Normalize quantity field: close-position uses 'amount', place-order uses 'qty'
-      const rawQty = type === "close-position" ? body.amount : body.qty;
-
-      // Strict check: valid number string AND positive
-      if (!isValidNumberString(rawQty)) {
-        return json(
-          { error: "Invalid quantity format." },
-          { status: 400 },
-        );
-      }
-
-      const qty = parseFloat(String(rawQty));
-
-      if (qty <= 0) {
-        return json(
-          { error: "Invalid quantity. Must be a positive number." },
-          { status: 400 },
-        );
-      }
-
-      const side = (body.side as string | undefined)?.toUpperCase();
-      if (side !== "BUY" && side !== "SELL") {
-        return json(
-          { error: "Invalid side. Must be BUY or SELL." },
-          { status: 400 },
-        );
-      }
-
-      if (!body.symbol || typeof body.symbol !== "string") {
-        return json(
-          { error: "Symbol is required and must be a string." },
-          { status: 400 },
-        );
-      }
-
-      // Check price for Limit orders (place-order only usually)
-      if (type === "place-order") {
-        const orderType = ((body.type as string) || "").toUpperCase();
-        const allowedTypes = [
-          "LIMIT",
-          "MARKET",
-          "STOP_LIMIT",
-          "STOP_MARKET",
-          "TAKE_PROFIT_LIMIT",
-          "TAKE_PROFIT_MARKET",
-        ];
-
-        if (!allowedTypes.includes(orderType)) {
-          return json(
-            { error: `Invalid order type: ${orderType}` },
-            { status: 400 },
-          );
-        }
-
-        if (
-          orderType === "LIMIT" ||
-          orderType === "STOP_LIMIT" ||
-          orderType === "TAKE_PROFIT_LIMIT"
-        ) {
-          // Price validation
-          if (!isValidNumberString(body.price)) {
-            return json(
-              { error: "Invalid price format for LIMIT/STOP order." },
-              { status: 400 },
-            );
-          }
-          const price = parseFloat(String(body.price));
-          if (price <= 0) {
-            return json(
-              { error: "Invalid price (must be > 0)." },
-              { status: 400 },
-            );
-          }
-        }
-
-        // Trigger Price validation for ALL conditional orders (LIMIT & MARKET)
-        if (
-          orderType === "STOP_LIMIT" ||
-          orderType === "STOP_MARKET" ||
-          orderType === "TAKE_PROFIT_LIMIT" ||
-          orderType === "TAKE_PROFIT_MARKET"
-        ) {
-          // Check triggerPrice OR stopPrice
-          const trigger = body.triggerPrice || body.stopPrice;
-          if (!isValidNumberString(trigger)) {
-             return json(
-              { error: `Invalid trigger price format for ${orderType}.` },
-              { status: 400 },
-            );
-          }
-          const triggerVal = parseFloat(String(trigger));
-          if (triggerVal <= 0) {
-            return json(
-              { error: `Trigger price must be > 0 for ${orderType}.` },
-              { status: 400 },
-            );
-          }
-        }
-      }
-    }
 
   try {
-    let result: any = null;
+    let result: unknown = null;
 
+    // --- BITUNIX ---
     if (exchange === "bitunix") {
-      // Bitunix Logic
-      if (type === "pending") {
-        const orders = await fetchBitunixPendingOrders(apiKey!, apiSecret!);
+      if (payload.type === "pending") {
+        const orders = await fetchBitunixPendingOrders(apiKey, apiSecret);
         result = { orders };
-      } else if (type === "history") {
-        let limit = 50;
-        if (body.limit !== undefined) {
-          if ((typeof body.limit === "number" && Number.isInteger(body.limit)) || (typeof body.limit === "string" && /^\d+$/.test(body.limit))) {
-            limit = Number(body.limit);
-          }
-        }
-        const safeLimit = Math.min(Math.max(limit, 1), 100);
-        const orders = await fetchBitunixHistoryOrders(apiKey!, apiSecret!, safeLimit);
+      }
+      else if (payload.type === "history") {
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit));
         result = { orders };
-      } else if (type === "place-order") {
-        const reduceOnlyRaw = String(body.reduceOnly);
-        const isReduceOnly = body.reduceOnly === true || reduceOnlyRaw === "true" || reduceOnlyRaw === "1";
-
+      }
+      else if (payload.type === "place-order") {
         const orderPayload: BitunixOrderPayload = {
-          symbol: body.symbol as string,
-          side: body.side as string,
-          type: body.type as string,
-          qty: String(body.qty),
-          price: body.price ? String(body.price) : undefined,
-          reduceOnly: isReduceOnly,
-          triggerPrice: body.triggerPrice ? String(body.triggerPrice) : undefined,
-          stopPrice: body.stopPrice ? String(body.stopPrice) : undefined,
+          symbol: payload.symbol,
+          side: payload.side,
+          type: payload.orderType, // Correct field from schema
+          qty: payload.qty,
+          price: payload.price,
+          reduceOnly: Boolean(payload.reduceOnly),
+          triggerPrice: payload.triggerPrice || payload.stopPrice,
         };
-        result = await placeBitunixOrder(apiKey!, apiSecret!, orderPayload);
-      } else if (type === "close-position") {
-        // Double check amount before creating close order (must be positive)
-        // Defensive check: ensure amount exists and is valid
-        if (
-          body.amount === undefined ||
-          body.amount === null ||
-          !isValidNumberString(body.amount)
-        ) {
-          throw new Error("Invalid amount format for closing position");
-        }
+        // Remove undefined
+        Object.keys(orderPayload).forEach(key => (orderPayload as any)[key] === undefined && delete (orderPayload as any)[key]);
 
-        const amount = parseFloat(String(body.amount));
-        if (isNaN(amount) || amount <= 0) {
-          throw new Error("Invalid amount for closing position (must be > 0)");
-        }
-
-        // Safe formatting for the amount
-        const safeAmount = formatApiNum(body.amount as string | number);
+        result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
+      }
+      else if (payload.type === "close-position") {
+        const safeAmount = formatApiNum(payload.amount);
         if (!safeAmount) throw new Error("Invalid amount formatting");
 
         const closeOrder: BitunixOrderPayload = {
-          symbol: body.symbol as string,
-          side: body.side as string,
+          symbol: payload.symbol,
+          side: payload.side,
           type: "MARKET",
           qty: safeAmount,
           reduceOnly: true,
         };
-        result = await placeBitunixOrder(apiKey!, apiSecret!, closeOrder);
+        result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
       }
-    } else if (exchange === "bitget") {
-      // Bitget Logic
-      if (type === "pending") {
-         const orders = await fetchBitgetPendingOrders(apiKey!, apiSecret!, passphrase!);
-         result = { orders };
-      } else if (type === "history") {
-         let limit = 50;
-         if (body.limit !== undefined) limit = Number(body.limit);
-         const safeLimit = Math.min(Math.max(limit, 1), 100);
-         // Bitget history requires start/end time usually, or just defaults to recent 7 days
-         // We'll fetch recent history
-         const orders = await fetchBitgetHistoryOrders(apiKey!, apiSecret!, passphrase!, safeLimit);
-         result = { orders };
-      } else if (type === "place-order") {
-         const reduceOnlyRaw = String(body.reduceOnly);
-         const isReduceOnly = body.reduceOnly === true || reduceOnlyRaw === "true" || reduceOnlyRaw === "1";
+    }
+    // --- BITGET ---
+    else if (exchange === "bitget") {
+      if (!passphrase) throw new Error("Passphrase required");
 
-         if (!body.side || typeof body.side !== "string") {
-            throw new Error("Invalid side (must be 'buy' or 'sell')");
-         }
-         if (!body.type || typeof body.type !== "string") {
-            throw new Error("Invalid order type");
-         }
-
-         const payload: BitgetOrderPayload & { marginCoin?: string } = {
-             symbol: body.symbol as string,
-             side: body.side.toLowerCase(), // Bitget uses lower case buy/sell? Docs say: "buy", "sell"
-             orderType: body.type.toLowerCase(), // "limit", "market"
-             size: String(body.qty),
-             price: body.price ? String(body.price) : undefined,
-             force: "normal", // or gtc?
-             reduceOnly: isReduceOnly,
-             marginCoin: (body.marginCoin as string) || "USDT"
+      if (payload.type === "pending") {
+        const orders = await fetchBitgetPendingOrders(apiKey, apiSecret, passphrase);
+        result = { orders };
+      }
+      else if (payload.type === "history") {
+         const orders = await fetchBitgetHistoryOrders(apiKey, apiSecret, passphrase, Number(payload.limit));
+         result = { orders };
+      }
+      else if (payload.type === "place-order") {
+         const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
+             symbol: payload.symbol,
+             side: payload.side.toLowerCase(),
+             orderType: payload.orderType.toLowerCase(),
+             size: payload.qty,
+             price: payload.price,
+             force: "normal",
+             reduceOnly: Boolean(payload.reduceOnly),
+             marginCoin: payload.marginCoin
          };
 
-         result = await placeBitgetOrder(apiKey!, apiSecret!, passphrase!, payload);
-      } else if (type === "close-position") {
-         const amount = parseFloat(String(body.amount));
-         const safeAmount = formatApiNum(body.amount as string | number);
+         result = await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
+      }
+      else if (payload.type === "close-position") {
+         const safeAmount = formatApiNum(payload.amount);
          if (!safeAmount) throw new Error("Invalid amount");
 
-         // Bitget Close: Place opposite market order with reduceOnly=true
-         const payload: BitgetOrderPayload = {
-             symbol: body.symbol as string,
-             side: (body.side as string).toLowerCase(), // Opposite side passed from frontend
+         const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
+             symbol: payload.symbol,
+             side: payload.side.toLowerCase(), // Schema ensures it's BUY/SELL (opposite of position)
              orderType: "market",
              size: safeAmount,
              force: "normal",
-             reduceOnly: true
+             reduceOnly: true,
+             marginCoin: payload.marginCoin
          };
-         result = await placeBitgetOrder(apiKey!, apiSecret!, passphrase!, payload);
+         result = await placeBitgetOrder(apiKey, apiSecret, passphrase, bitgetPayload);
       }
     }
 
     return json(result);
+
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
 
     // Enhanced Logging with Redaction
     try {
-      const sanitizedBody: any = { ...body };
+      const sanitizedBody: any = { ...(body as object) };
       if (sanitizedBody.apiKey) sanitizedBody.apiKey = "***";
       if (sanitizedBody.apiSecret) sanitizedBody.apiSecret = "***";
       if (sanitizedBody.passphrase) sanitizedBody.passphrase = "***";
-      console.error(`[API] Order failed: ${type}`, {
+      console.error(`[API] Order failed: ${(body as any)?.type}`, {
         error: errorMsg,
         body: sanitizedBody,
       });
     } catch (logErr) {
-      console.error(`[API] Order failed: ${type}`, errorMsg);
+      console.error(`[API] Order failed`, errorMsg);
     }
 
-    // Check for sensitive patterns (simple check)
-    // Defensive: ensure keys are defined before replacing (though they should be checked above)
-    // Always redact if keys are present to prevent leaks even for short keys (unlikely but safer)
+    // Redact response message
     let sanitizedMsg = errorMsg;
-
-    if (apiKey) {
-        sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
-    }
-    if (apiSecret) {
-        sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
-    }
-    if (passphrase) {
-        sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
-    }
+    if (apiKey) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+    if (apiSecret) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
+    if (passphrase) sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
 
     return json(
-      { error: sanitizedMsg || `Failed to process ${type}` },
+      { error: sanitizedMsg },
       { status: 500 },
     );
   }
@@ -346,11 +190,8 @@ async function placeBitunixOrder(
   if (!safeQty || isNaN(parseFloat(safeQty))) throw new Error("Invalid quantity formatting");
 
   const payload: BitunixOrderPayload = {
-    symbol: orderData.symbol,
-    side: orderData.side.toUpperCase(),
-    type: orderData.type.toUpperCase(),
+    ...orderData,
     qty: safeQty,
-    reduceOnly: orderData.reduceOnly || false,
   };
 
   const type = payload.type;
@@ -367,7 +208,7 @@ async function placeBitunixOrder(
     payload.triggerPrice = safeTrigger;
   }
 
-  Object.keys(payload).forEach((key) => payload[key] === undefined && delete payload[key]);
+  Object.keys(payload).forEach((key) => (payload as any)[key] === undefined && delete (payload as any)[key]);
 
   const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
 
@@ -492,57 +333,30 @@ async function placeBitgetOrder(
     apiKey: string,
     apiSecret: string,
     passphrase: string,
-    payload: BitgetOrderPayload
+    payload: BitgetOrderPayload & { marginCoin?: string }
 ): Promise<any> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/placeOrder";
 
-    // Ensure symbol has _UMCBL if not present (assuming USDT-M)
-    if (!payload.symbol.includes("_")) {
-        // payload.symbol = payload.symbol + "_UMCBL";
-        // Better to rely on what was passed or force it?
-        // Frontend normalizeSymbol adds _UMCBL for bitget.
-        // But let's be safe.
-        // Actually, if we use normalizeSymbol in utils, it's safer.
-        // But here we just assume the payload is correct or minimal fix.
-    }
-
-    // Map internal types to Bitget
-    // Bitget V1: marginCoin: 'USDT' required?
-    // payload: { symbol: 'BTCUSDT_UMCBL', marginCoin: 'USDT', side: 'open_long' | 'close_short' ... }
-    // Wait, Bitget V1 Mix uses 'side' like 'open_long', 'open_short', 'close_long', 'close_short' if NOT in 'crossed' mode?
-    // Actually, normally 'buy'/'sell' works if position mode is set?
-    // Bitget V1 docs say: side: open_long, close_short (for Buy), open_short, close_long (for Sell).
-    // This depends on "Hold mode" (One-way vs Hedge).
-    // Assuming One-way mode for simplicity or standard implementation?
-    // Most users use Hedge mode on Bitget by default?
-    // Let's assume standard mapping:
-    // Buy -> open_long
-    // Sell -> open_short
-    // (If closing, side passed from frontend should be opposite, e.g. Close Long -> Sell -> close_long)
-    // This is complex.
-
-    // SIMPLIFICATION:
-    // If side is BUY, send 'open_long'.
-    // If side is SELL, send 'open_short'.
-    // If reduceOnly (Close), map accordingly?
-    // If reduceOnly is true:
-    //   If BUY (closing a short): 'close_short'
-    //   If SELL (closing a long): 'close_long'
-
+    // 1. Map Side
     let bitgetSide = "";
     const rawSide = payload.side.toLowerCase();
+
+    // Robust mapping for One-Way Mode (Standard)
     if (payload.reduceOnly) {
-        if (rawSide === "buy") bitgetSide = "close_short";
-        else if (rawSide === "sell") bitgetSide = "close_long";
+        // Closing a position
+        if (rawSide === "buy") bitgetSide = "close_short"; // Buying to close Short
+        else if (rawSide === "sell") bitgetSide = "close_long"; // Selling to close Long
     } else {
+        // Opening a position
         if (rawSide === "buy") bitgetSide = "open_long";
         else if (rawSide === "sell") bitgetSide = "open_short";
     }
 
+    // 2. Build Payload
     const bitgetBody = {
         symbol: payload.symbol,
-        marginCoin: (payload as any).marginCoin || "USDT",
+        marginCoin: payload.marginCoin || "USDT",
         side: bitgetSide,
         orderType: payload.orderType, // limit, market
         price: payload.price,
@@ -636,23 +450,7 @@ async function fetchBitgetHistoryOrders(
 ): Promise<NormalizedOrder[]> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/order/history";
-    // Bitget history requires symbol usually.
-    // If not provided, we might need to loop or use 'productType' if supported (docs vary).
-    // Standard endpoint: /api/mix/v1/order/history
-    // Params: symbol (required), startTime, endTime, pageSize, lastEndId
-    // If symbol is required, we can't fetch generic history for all symbols easily without looping.
-    // BUT we can try productType if supported.
-    // If not, we might return empty or error if no symbol context.
-    // Assuming backend call has no symbol context in this generic 'history' handler?
-    // Bitunix supports all. Bitget might strict.
 
-    // Workaround: If we can't fetch all, return empty or implement for specific active symbol if passed.
-    // The current +server.ts handler uses body from request.
-    // body.symbol might be present if the frontend sends it.
-    // The history endpoint logic in +server.ts (Bitunix) didn't require symbol.
-
-    // For now, let's try with productType=umcbl and see if it works (some endpoints support it).
-    // If not, we might need to restrict to current symbol or ignore.
     const params: Record<string, string> = {
         productType: "umcbl",
         pageSize: String(limit),
