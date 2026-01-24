@@ -381,6 +381,75 @@
         </div>
     </section>
 
+    <!-- System & Performance -->
+    <section
+        class="settings-section border-t border-[var(--border-color)] pt-6"
+    >
+        <h3 class="section-title">System & Performance</h3>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="action-card">
+                <div class="icon bg-orange-500/10 text-orange-500">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><path
+                            d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"
+                        /><path d="M3 3v5h5" /><path
+                            d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"
+                        /><path d="M16 21h5v-5" /></svg
+                    >
+                </div>
+                <div class="content">
+                    <span class="title">Cache leeren</span>
+                    <span class="desc"
+                        >Löscht temporäre News & Analysedaten.</span
+                    >
+                </div>
+                <button class="card-btn" onclick={clearAppCache}>
+                    Bereinigen
+                </button>
+            </div>
+
+            <div class="action-card">
+                <div class="icon bg-purple-500/10 text-purple-500">
+                    <svg
+                        xmlns="http://www.w3.org/2000/svg"
+                        width="20"
+                        height="20"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                        ><path d="M12 2v4" /><path d="m16.2 7.8 2.9-2.9" /><path
+                            d="M18 12h4"
+                        /><path d="m16.2 16.2 2.9 2.9" /><path
+                            d="M12 18v4"
+                        /><path d="m4.9 19.1 2.9-2.9" /><path
+                            d="M2 12h4"
+                        /><path d="m4.9 4.9 2.9 2.9" /></svg
+                    >
+                </div>
+                <div class="content">
+                    <span class="title">RAM freigeben</span>
+                    <span class="desc"
+                        >Lädt die App neu, um Speicher freizugeben.</span
+                    >
+                </div>
+                <button class="card-btn" onclick={reloadApp}> Neustart </button>
+            </div>
+        </div>
+    </section>
+
     <!-- Developer & Danger -->
     <section
         class="settings-section border-t border-[var(--border-color)] pt-6"
