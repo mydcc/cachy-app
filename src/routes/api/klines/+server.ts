@@ -112,7 +112,8 @@ async function fetchBitunixKlines(
       throw error;
     }
 
-    console.error(`Bitunix API error ${response.status}: ${text}`);
+    const safeText = text.slice(0, 100);
+    console.error(`Bitunix API error ${response.status}: ${safeText}...`);
     const error = new Error(`Bitunix API error: ${response.status}`);
     (error as any).status = response.status;
     throw error;

@@ -295,8 +295,6 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "public");
-          // Reset error count on successful message
-          if (this.errorCountPublic > 0) this.errorCountPublic = 0;
         } catch (e) {
           this.handleInternalError("public", e);
         }
@@ -385,7 +383,6 @@ class BitunixWebSocketService {
         try {
           const message = JSON.parse(event.data);
           this.handleMessage(message, "private");
-          if (this.errorCountPrivate > 0) this.errorCountPrivate = 0;
         } catch (e) {
           this.handleInternalError("private", e);
         }
@@ -678,10 +675,6 @@ class BitunixWebSocketService {
         logger.warn("network", "[WebSocket] Invalid message structure (ignored)", validationResult.error.issues);
         return;
       }
-
-      // Reset error count on successful message parse (optional, but good for stability)
-      // We only reset if we successfully processed a valid message to avoid flapping
-      this.validationErrorCount = 0;
 
       const validatedMessage = validationResult.data;
 

@@ -101,7 +101,9 @@ class MarketAnalystService {
                 const trend4h = price > ema200Num ? "bullish" : "bearish";
 
                 // RSI 1H
-                const rsi1h = (tech1h.oscillators["RSI"] as number) || 50;
+                const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
+                const rsiVal = rsiObj ? rsiObj.value : 50;
+                const rsi1h = rsiVal instanceof Decimal ? rsiVal.toNumber() : Number(rsiVal);
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
                 if (rsi1h > 70) condition = "overbought";

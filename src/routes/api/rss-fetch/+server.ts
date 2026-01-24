@@ -192,7 +192,9 @@ export const POST: RequestHandler = async ({ request }) => {
         // If we have data and it's fresh, return it
         const items = Array.from(stored.values()).filter(i => (now - new Date(i.cached_at).getTime()) < TWEET_CACHE_TTL);
         if (items.length > 5) { // Only return if we have a decent amount of fresh data
-          console.log(`[X-NEWS] Serving from Long-term Cache: ${context} (${items.length} items)`);
+          if (import.meta.env.DEV) {
+            console.log(`[X-NEWS] Serving from Long-term Cache: ${context} (${items.length} items)`);
+          }
           return json({ items, feedTitle: `X: ${context} (Cached)` });
         }
       }
@@ -200,7 +202,9 @@ export const POST: RequestHandler = async ({ request }) => {
       const available = NITTER_INSTANCES.filter(inst => (instanceBackoff.get(inst) || 0) < now);
       const pool = shuffle(available.length > 0 ? available : NITTER_INSTANCES);
 
-      console.log(`[X-NEWS] Fetching: ${context}. Available: ${pool.length}/${NITTER_INSTANCES.length}`);
+      if (import.meta.env.DEV) {
+        console.log(`[X-NEWS] Fetching: ${context}. Available: ${pool.length}/${NITTER_INSTANCES.length}`);
+      }
 
       for (const instance of pool) {
         const paths = xCmd.type === "user"
@@ -243,7 +247,9 @@ export const POST: RequestHandler = async ({ request }) => {
                 .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
                 .slice(0, 40);
 
-              console.log(`[X-NEWS] Success: ${instance} for ${context} (${newItems.length} new, ${allItems.length} total)`);
+              if (import.meta.env.DEV) {
+                console.log(`[X-NEWS] Success: ${instance} for ${context} (${newItems.length} new, ${allItems.length} total)`);
+              }
               instanceBackoff.delete(instance); // Reset backoff on success
               return json({ items: allItems, feedTitle: `X: ${context}` });
             }
@@ -260,7 +266,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // Log failure for this instance after trying paths
         if (failedOnMsg) {
-          console.warn(`[X-NEWS] Instance ${instance} failed: ${failedOnMsg}`);
+          if (import.meta.env.DEV) {
+            console.warn(`[X-NEWS] Instance ${instance} failed: ${failedOnMsg}`);
+          }
           const currentBackoff = instanceBackoff.get(instance) || 0;
           const newBackoff = Math.min(MAX_BACKOFF, Math.max(now + BACKOFF_STEP, currentBackoff + BACKOFF_STEP));
           instanceBackoff.set(instance, newBackoff);
@@ -301,7 +309,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
   } catch (error: any) {
     if (error.message === "All instances failed") {
-      console.warn(`[RSS-FETCH] ${context} - All instances failed. Returning empty result.`);
+      if (import.meta.env.DEV) {
+        console.warn(`[RSS-FETCH] ${context} - All instances failed. Returning empty result.`);
+      }
       return json({
         items: [],
         feedTitle: `X: ${context} (Unavailable)`,
