@@ -206,6 +206,16 @@ class BitunixWebSocketService {
     return false;
   }
 
+  private pruneThrottleMap() {
+    const now = Date.now();
+    this.throttleMap.forEach((lastTime, key) => {
+      // Prune entries older than 5 seconds (excessive margin over 200ms throttle)
+      if (now - lastTime > 5000) {
+        this.throttleMap.delete(key);
+      }
+    });
+  }
+
   destroy() {
     logger.log("governance", `[BitunixWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
