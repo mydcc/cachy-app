@@ -226,30 +226,20 @@ class BitunixWebSocketService {
       return;
     }
 
+    // 1. Precise guard against overlapping connection attempts
     if (this.wsPublic) {
-      if (
-        this.wsPublic.readyState === WebSocket.OPEN ||
-        this.wsPublic.readyState === WebSocket.CONNECTING
-      ) {
-        // If it's connecting for too long, cleanup and force a new one
-        const now = Date.now();
-        if (
-          this.wsPublic.readyState === WebSocket.CONNECTING &&
-          now - this.lastMessageTimePublic > 5000
-        ) {
-          this.cleanup("public");
-        } else {
-          return;
-        }
+      const state = this.wsPublic.readyState;
+      if (state === WebSocket.OPEN || state === WebSocket.CONNECTING) {
+        if (!force) return;
+        this.cleanup("public"); // Force close if requested
       }
-      this.cleanup("public");
     }
 
     marketState.connectionStatus = "connecting";
 
     try {
       const ws = new WebSocket(WS_PUBLIC_URL);
-      this.wsPublic = ws;
+      this.wsPublic = ws; // Immediate assignment to prevent race
 
       if (this.connectionTimeoutPublic)
         clearTimeout(this.connectionTimeoutPublic);
