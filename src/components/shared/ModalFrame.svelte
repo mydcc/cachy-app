@@ -27,6 +27,7 @@
     children?: import("svelte").Snippet;
     headerExtra?: import("svelte").Snippet;
     bodyClass?: string;
+    fullMobile?: boolean;
   }
 
   let {
@@ -38,6 +39,7 @@
     children,
     headerExtra,
     bodyClass = "",
+    fullMobile = false,
   }: Props = $props();
 
   function handleClose() {
@@ -64,7 +66,9 @@
     aria-labelledby="modal-title"
   >
     <div
-      class="modal-content glass-panel {extraClasses}"
+      class="modal-content glass-panel {extraClasses} {fullMobile
+        ? 'full-mobile'
+        : ''}"
       transition:fly|local={{ y: -20, duration: 200 }}
     >
       <div class="modal-header">
@@ -111,6 +115,19 @@
     flex-direction: column;
     overflow: hidden;
   }
+
+  @media (max-width: 768px) {
+    .modal-content.full-mobile {
+      width: 100% !important;
+      height: 100% !important;
+      max-width: 100% !important;
+      max-height: 100% !important;
+      border-radius: 0 !important;
+      margin: 0 !important;
+      padding: 1rem !important;
+    }
+  }
+
   .modal-header {
     display: flex;
     justify-content: space-between;
