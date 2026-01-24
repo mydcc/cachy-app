@@ -305,14 +305,6 @@
 </div>
 
 <style>
-    .icon-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-    }
     .settings-section {
         margin-bottom: 0;
     }

@@ -235,6 +235,7 @@
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeDiscordChannel(i)}
+                                    aria-label="Remove channel"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
@@ -291,6 +292,7 @@
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeXMonitor(i)}
+                                    aria-label="Remove monitor"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"

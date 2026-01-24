@@ -140,11 +140,13 @@
                     >
                         <div class="field-group">
                             <label
+                                for="glass-blur"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
                                 Blur: {settingsState.glassBlur}px
                             </label>
                             <input
+                                id="glass-blur"
                                 type="range"
                                 bind:value={settingsState.glassBlur}
                                 min="0"
@@ -154,6 +156,7 @@
                         </div>
                         <div class="field-group">
                             <label
+                                for="glass-opacity"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
                                 Opacity: {Math.round(
@@ -161,6 +164,7 @@
                                 )}%
                             </label>
                             <input
+                                id="glass-opacity"
                                 type="range"
                                 bind:value={settingsState.glassOpacity}
                                 min="0"
@@ -171,11 +175,13 @@
                         </div>
                         <div class="field-group">
                             <label
+                                for="glass-saturate"
                                 class="text-[10px] uppercase font-bold text-[var(--text-secondary)]"
                             >
                                 Saturate: {settingsState.glassSaturate}%
                             </label>
                             <input
+                                id="glass-saturate"
                                 type="range"
                                 bind:value={settingsState.glassSaturate}
                                 min="50"
@@ -222,9 +228,9 @@
 
                 {#if settingsState.enableSidePanel}
                     <div class="field-group mt-4">
-                        <label
-                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2"
-                            >Side Panel Mode</label
+                        <span
+                            class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                            >Side Panel Mode</span
                         >
                         <div class="flex gap-2">
                             {#each layoutModes as mode}

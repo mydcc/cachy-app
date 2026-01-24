@@ -115,6 +115,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitunix_k")}
+                                        aria-label="Toggle key visibility"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -158,6 +159,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitunix_s")}
+                                        aria-label="Toggle secret visibility"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -216,6 +218,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_k")}
+                                        aria-label="Toggle key visibility"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -260,6 +263,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_s")}
+                                        aria-label="Toggle secret visibility"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -304,6 +308,7 @@
                                         class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
                                         onclick={() =>
                                             toggleKeyVisibility("bitget_p")}
+                                        aria-label="Toggle passphrase visibility"
                                     >
                                         <svg
                                             xmlns="http://www.w3.org/2000/svg"
@@ -491,6 +496,7 @@
                                 <button
                                     class="text-red-500 hover:text-red-400 p-2"
                                     onclick={() => removeCustomFeed(i)}
+                                    aria-label="Remove feed"
                                 >
                                     <svg
                                         xmlns="http://www.w3.org/2000/svg"
