@@ -541,6 +541,10 @@
     "rssFilterBySymbol": "Filter by Active Symbol",
     "rssFilterBySymbolDesc": "Only show RSS news matching the current chart symbol",
     "ai": {
+      "status": {
+        "confirmed": "Confirmed",
+        "rejected": "Rejected"
+      },
       "intelligenceTitle": "Intelligence Core",
       "providerDesc": "Select your primary AI engine for market analysis and automated actions.",
       "modelTitle": "Model & Prompting",
@@ -764,6 +768,18 @@
         "resetConfirm": "Reset all background settings?"
       }
     }
+  },
+  "symbolPicker": {
+    "title": "Select Symbol",
+    "searchPlaceholder": "Search...",
+    "favorites": "Favorites",
+    "gainers": "Top Gainers",
+    "volatile": "Volatile (>5%)",
+    "all": "All Symbols",
+    "minVol": "Min Vol",
+    "hideAlts": "Hide Alts",
+    "noSymbolsFound": "No symbols found.",
+    "syncing": "Syncing Market..."
   },
   "common": {
     "save": "Save",

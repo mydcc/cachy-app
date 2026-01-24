@@ -279,7 +279,7 @@
 
 <ModalFrame
     {isOpen}
-    title="Symbol auswählen"
+    title={$_("symbolPicker.title")}
     onclose={handleClose}
     extraClasses="modal-size-lg"
 >
@@ -289,7 +289,7 @@
                 class="header-btn"
                 class:active={viewMode === "favorites"}
                 onclick={() => (viewMode = "favorites")}
-                title="Favoriten"
+                title={$_("symbolPicker.favorites")}
             >
                 <span class="icon">★</span>
             </button>
@@ -297,7 +297,7 @@
                 class="header-btn"
                 class:active={viewMode === "gainers"}
                 onclick={() => (viewMode = "gainers")}
-                title="Top Gainers"
+                title={$_("symbolPicker.gainers")}
             >
                 <span class="icon">📈</span>
             </button>
@@ -305,7 +305,7 @@
                 class="header-btn"
                 class:active={viewMode === "volatile"}
                 onclick={() => (viewMode = "volatile")}
-                title="Volatile (>5%)"
+                title={$_("symbolPicker.volatile")}
             >
                 <span class="icon">🔥</span>
             </button>
@@ -313,7 +313,7 @@
                 class="header-btn"
                 class:active={viewMode === "all"}
                 onclick={() => (viewMode = "all")}
-                title="Alle Symbole"
+                title={$_("symbolPicker.all")}
             >
                 <span class="label">ALL</span>
             </button>
@@ -327,7 +327,7 @@
             <input
                 type="text"
                 bind:value={searchQuery}
-                placeholder="Suchen..."
+                placeholder={$_("symbolPicker.searchPlaceholder")}
                 class="input-field w-full px-4 py-2 rounded-md"
                 autocomplete="off"
             />
@@ -338,7 +338,7 @@
                 <!-- Volume Filter -->
                 <div class="flex items-center gap-2">
                     <span class="text-xs font-medium uppercase tracking-wider"
-                        >Min Vol</span
+                        >{$_("symbolPicker.minVol")}</span
                     >
                     <select
                         bind:value={minVolumeStr}
@@ -362,7 +362,7 @@
                         class="checkbox checkbox-xs border-[var(--border-color)]"
                     />
                     <span class="text-xs font-medium uppercase tracking-wider"
-                        >Hide Alts</span
+                        >{$_("symbolPicker.hideAlts")}</span
                     >
                 </label>
 
@@ -400,7 +400,7 @@
                 {#if isSnapshotLoading}
                     <span
                         class="animate-pulse text-[var(--accent-color)] ml-auto text-xs"
-                        >Syncing Market...</span
+                        >{$_("symbolPicker.syncing")}</span
                     >
                 {:else}
                     <span class="ml-auto text-xs opacity-50"
@@ -413,7 +413,7 @@
         <div class="symbol-grid scrollbar-thin overflow-y-auto h-[65vh] pr-1">
             {#if sortedAndFilteredSymbols.length === 0}
                 <div class="text-center py-8 text-[var(--text-secondary)]">
-                    Keine Symbole gefunden.
+                    {$_("symbolPicker.noSymbolsFound")}
                 </div>
             {:else}
                 <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">

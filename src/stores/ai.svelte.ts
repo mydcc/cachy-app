@@ -9,6 +9,8 @@
 
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 
 import { settingsState, type AiProvider } from "./settings.svelte";
 import { tradeState } from "./trade.svelte";
@@ -761,13 +763,13 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
 
       marketDetails = {
         currentPrice: marketData.lastPrice
-          ? parseFloat(marketData.lastPrice.toFixed(4))
+          ? marketData.lastPrice.toString()
           : "Unknown",
         high24h: marketData.highPrice
-          ? parseFloat(marketData.highPrice.toFixed(4))
+          ? marketData.highPrice.toString()
           : undefined,
         low24h: marketData.lowPrice
-          ? parseFloat(marketData.lowPrice.toFixed(4))
+          ? marketData.lowPrice.toString()
           : undefined,
         volume24h: marketData.volume
           ? Math.round(Number(marketData.volume)).toLocaleString()
@@ -786,10 +788,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
             spreadStatus,
             topBids: marketData.depth.bids
               .slice(0, 3)
-              .map((b: any) => parseFloat(Number(b[0]).toFixed(4))),
+              .map((b: any) => Number(b[0])),
             topAsks: marketData.depth.asks
               .slice(0, 3)
-              .map((a: any) => parseFloat(Number(a[0]).toFixed(4))),
+              .map((a: any) => Number(a[0])),
           }
           : null,
         metricsTrend: marketData.metricsHistory
@@ -1037,7 +1039,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
     );
     if (idx !== -1) {
       const statusEmoji = status === "confirmed" ? "✅" : "❌";
-      const statusText = status === "confirmed" ? "Bestätigt" : "Abgelehnt";
+      const t = get(_);
+      const statusText = status === "confirmed" ? t("settings.ai.status.confirmed") : t("settings.ai.status.rejected");
 
       // Remove [PENDING:id] and add status
       this.messages[idx].content = this.messages[idx].content.replace(
