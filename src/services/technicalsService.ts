@@ -155,14 +155,17 @@ export const technicalsService = {
         settings
       });
 
+      // 2. Rehydrate Decimals (Worker returns POJOs)
+      const rehydrated = this.rehydrateDecimals(result);
+
       // Cache result
       if (calculationCache.size >= MAX_CACHE_SIZE) {
         const firstKey = calculationCache.keys().next().value;
         if (firstKey) calculationCache.delete(firstKey);
       }
-      calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+      calculationCache.set(cacheKey, { data: rehydrated, timestamp: Date.now() });
 
-      return result;
+      return rehydrated;
     } catch (e) {
       if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
       return this.calculateTechnicalsInline(klinesInput, settings);
@@ -229,6 +232,39 @@ export const technicalsService = {
     calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
 
     return result;
+  },
+
+  /**
+   * Recursively converts plain objects that look like serialized Decimals 
+   * (containing s, e, c properties) back into Decimal instances.
+   */
+  rehydrateDecimals(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
+
+    // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
+    if (typeof obj === 'object' && obj.s !== undefined && obj.e !== undefined && obj.c !== undefined) {
+      try {
+        return new Decimal(obj);
+      } catch (e) {
+        return obj;
+      }
+    }
+
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.rehydrateDecimals(item));
+    }
+
+    if (typeof obj === 'object') {
+      const result: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          result[key] = this.rehydrateDecimals(obj[key]);
+        }
+      }
+      return result;
+    }
+
+    return obj;
   },
 
   getEmptyData(): TechnicalsData {
