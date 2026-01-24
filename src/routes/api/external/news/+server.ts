@@ -72,6 +72,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
               newsCache.set(cacheKey, { data, timestamp: Date.now() });
               return data;
             }
+            if (response.status === 429) {
+              const errorText = await response.text();
+              throw new Error(`Upstream error (${p}): 429 - ${errorText}`);
+            }
             if (response.status === 404) {
               lastError = `404 Not Found for plan: ${p}`;
               continue;
@@ -79,8 +83,10 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
             const errorText = await response.text();
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e: any) {
-            console.warn(`[NewsProxy] Plan ${p} failed:`, e.message || String(e));
-            lastError = e.message || String(e);
+            const msg = e.message || String(e);
+            if (msg.includes("429")) throw e;
+            console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
+            lastError = msg;
             continue;
           }
         }
