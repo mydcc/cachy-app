@@ -261,6 +261,10 @@ class BitunixWebSocketService {
         logger.log("governance", `[BitunixWS] Socket event: ONOPEN. Instance: ${this.wsPublic === ws ? 'PRIMARY' : 'STALE'}`);
         if (this.connectionTimeoutPublic)
           clearTimeout(this.connectionTimeoutPublic);
+
+        // Guard: Stale Socket Check
+        // If 'this.wsPublic' has changed since we started connecting (e.g. by a forced reconnect),
+        // this 'ws' instance is now stale and should be discarded to prevent ghost connections.
         if (this.wsPublic !== ws) {
           logger.warn("general", "[BitunixWS] ONOPEN triggered for stale socket. Closing.");
           ws.onopen = null;
@@ -363,6 +367,8 @@ class BitunixWebSocketService {
       ws.onopen = () => {
         if (this.connectionTimeoutPrivate)
           clearTimeout(this.connectionTimeoutPrivate);
+
+        // Guard: Stale Socket Check
         if (this.wsPrivate !== ws) {
           ws.onopen = null;
           ws.onmessage = null;
@@ -963,6 +969,9 @@ class BitunixWebSocketService {
 
       if (this.errorCountPublic >= this.ERROR_THRESHOLD) {
         logger.warn("network", `[WebSocket] Public: Excessive errors (${this.errorCountPublic}), forcing reconnect.`);
+        // NOTE: We do not reset the error counter here to ensure that if the new connection
+        // fails immediately, we catch it quickly without waiting for another threshold.
+        // The counter will only reset if the connection is stable for ERROR_WINDOW_MS.
         this.cleanup("public");
         this.scheduleReconnect("public");
       }
