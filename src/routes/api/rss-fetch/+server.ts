@@ -39,21 +39,13 @@ const MAX_CONSECUTIVE_ERRORS = 3;
 const MAX_CACHE_ENTRIES = 50;
 
 const NITTER_INSTANCES = [
-  "xcancel.com",
   "nitter.poast.org",
+  "nuku.trabun.org",
   "nitter.cz",
   "nitter.privacy.com.de",
-  "nuku.trabun.org",
-  "nitter.privacyredirect.com",
-  "nitter.catsarch.com",
-  "nitter.tiekoetter.com",
-  "nitter.space",
-  "lightbrd.com",
-  "nitter.popper.org",
-  "nitter.unixfox.eu",
-  "nitter.it",
-  "nitter.hu",
-  "nitter.net"
+  "nitter.projectsegfau.lt",
+  "nitter.eu.org",
+  "xcancel.com"
 ];
 
 // In-memory blacklist to temporarily skip failing instances
@@ -130,23 +122,32 @@ export const POST: RequestHandler = async ({ request }) => {
     const body = await request.json();
     const { url, xCmd } = body;
 
-    const tryFetch = async (targetUrl: string, timeout = 5000): Promise<string> => {
+    const tryFetch = async (targetUrl: string, timeout = 6000): Promise<string> => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
+
+      // Rotating User-Agents for better bypass
+      const uas = [
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+      ];
+      const ua = uas[Math.floor(Math.random() * uas.length)];
 
       try {
         const response = await fetch(targetUrl, {
           signal: controller.signal,
           headers: {
-            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Cache-Control": "no-cache"
+            "User-Agent": ua,
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.5",
+            "Cache-Control": "no-cache",
+            "Upgrade-Insecure-Requests": "1"
           }
         });
 
         if (response.status === 429 || response.status === 403) throw new Error(`HTTP ${response.status}`);
-        if (!response.ok) return ""; // Silent skip for other errors
+        if (!response.ok) return "";
 
         const text = await response.text();
         clearTimeout(id);
@@ -157,7 +158,8 @@ export const POST: RequestHandler = async ({ request }) => {
           lower.includes("anubis") ||
           lower.includes("robot checking") ||
           lower.includes("verifying your request") ||
-          lower.includes("detected unusual activity")
+          lower.includes("detected unusual activity") ||
+          (lower.includes("ddos") && lower.includes("protection"))
         ) {
           throw new Error("Bot-Block");
         }
