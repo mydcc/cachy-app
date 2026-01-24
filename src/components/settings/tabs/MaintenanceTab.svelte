@@ -308,6 +308,7 @@
                             {@render logToggle("General", "general")}
                             {@render logToggle("AI Logic", "ai")}
                             {@render logToggle("Market Data", "market")}
+                            {@render logToggle("Governance", "governance")}
 
                             <!-- Technicals Special Case -->
                             <div

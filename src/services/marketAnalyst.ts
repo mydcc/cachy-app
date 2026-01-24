@@ -15,8 +15,8 @@ import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
 
-const DELAY_BETWEEN_SYMBOLS = 5000; // 5 seconds between checks
-const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes (Don't re-analyze if fresh)
+const DELAY_BETWEEN_SYMBOLS = 15000; // Increased to 15 seconds to save CPU
+const DATA_FRESHNESS_TTL = 10 * 60 * 1000; // 10 minutes cache
 
 class MarketAnalystService {
     private isRunning = false;
@@ -25,12 +25,8 @@ class MarketAnalystService {
 
     start() {
         if (!browser || this.isRunning) return;
-        // [DEBUG] Completely disabled analysis loop to check CPU
-        logger.log("general", "Market Analyst logic DISABLED (Internal Loop Blocked).");
-        return;
-
         this.isRunning = true;
-        logger.log("general", "Market Analyst started.");
+        logger.log("general", "Market Analyst started (Optimized Cycle).");
         this.processNext();
     }
 

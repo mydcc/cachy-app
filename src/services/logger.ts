@@ -14,6 +14,7 @@ export type LogCategory =
     | "ai"
     | "market"
     | "general"
+    | "governance"
     | "journal"
     | "ui";
 
@@ -73,6 +74,7 @@ class LoggerService {
             case "market": return "color: #fd8; font-weight: bold;";
             case "journal": return "color: #f8a; font-weight: bold;";
             case "ui": return "color: #8df; font-weight: bold;";
+            case "governance": return "color: #fca; font-weight: bold; border-left: 3px solid #f84; padding-left: 4px;";
             default: return "color: #ccc;";
         }
     }

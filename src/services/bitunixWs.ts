@@ -129,7 +129,7 @@ class BitunixWebSocketService {
 
   constructor() {
     this.instanceId = ++BitunixWebSocketService.instanceCount;
-    logger.log("general", `[BitunixWS] Instance #${this.instanceId} Created`);
+    logger.log("governance", `[BitunixWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -196,7 +196,7 @@ class BitunixWebSocketService {
   }
 
   destroy() {
-    logger.log("general", `[BitunixWS] #${this.instanceId} destroy() called.`);
+    logger.log("governance", `[BitunixWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
     if (this.globalMonitorInterval) {
       clearInterval(this.globalMonitorInterval);
@@ -211,14 +211,14 @@ class BitunixWebSocketService {
   }
 
   connect(force?: boolean) {
-    logger.log("general", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
+    logger.log("governance", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
     this.isDestroyed = false;
     this.connectPublic(force);
     this.connectPrivate(force);
   }
 
   private connectPublic(force = false) {
-    logger.log("general", `[BitunixWS] #${this.instanceId} connectPublic(force=${force}) - isDestroyed: ${this.isDestroyed}`);
+    logger.log("governance", `[BitunixWS] #${this.instanceId} connectPublic(force=${force}) - isDestroyed: ${this.isDestroyed}`);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
@@ -266,7 +266,7 @@ class BitunixWebSocketService {
       }, CONNECTION_TIMEOUT_MS);
 
       ws.onopen = () => {
-        logger.log("general", `[BitunixWS] Socket event: ONOPEN. Instance: ${this.wsPublic === ws ? 'PRIMARY' : 'STALE'}`);
+        logger.log("governance", `[BitunixWS] Socket event: ONOPEN. Instance: ${this.wsPublic === ws ? 'PRIMARY' : 'STALE'}`);
         if (this.connectionTimeoutPublic)
           clearTimeout(this.connectionTimeoutPublic);
         if (this.wsPublic !== ws) {

@@ -28,17 +28,17 @@ class ConnectionManager {
 
     constructor() {
         this.instanceId = ++ConnectionManager.instanceCount;
-        logger.log("general", `[ConnectionManager] Instance #${this.instanceId} created.`);
+        logger.log("governance", `[ConnectionManager] Instance #${this.instanceId} created.`);
     }
 
     public registerProvider(name: string, service: ManagedService) {
         this.providers.set(name, service);
-        logger.log("general", `[ConnectionManager] Provider registered: ${name}`);
+        logger.log("governance", `[ConnectionManager] Provider registered: ${name}`);
     }
 
     public registerPolling(service: PollingService) {
         this.pollingService = service;
-        logger.log("general", `[ConnectionManager] Polling service registered`);
+        logger.log("governance", `[ConnectionManager] Polling service registered`);
     }
 
     /**
@@ -51,7 +51,7 @@ class ConnectionManager {
         const oldProvider = this.activeProvider;
         if (oldProvider === newProvider && !options.force) return;
 
-        logger.log("general", `[ConnectionManager] Switching from ${oldProvider || 'NONE'} to ${newProvider}`);
+        logger.log("governance", `[ConnectionManager] Switching from ${oldProvider || 'NONE'} to ${newProvider}`);
 
         this.isDestroying = true;
 
@@ -61,7 +61,7 @@ class ConnectionManager {
 
             // 2. Update active state
             this.activeProvider = newProvider;
-            logger.log("general", `[ConnectionManager] Active provider is now: ${this.activeProvider} (Instance #${this.instanceId})`);
+            logger.log("governance", `[ConnectionManager] Active provider is now: ${this.activeProvider} (Instance #${this.instanceId})`);
 
             // 3. Start Polling as a safety bridge
             if (this.pollingService) {
@@ -73,7 +73,7 @@ class ConnectionManager {
             if (service) {
                 service.connect(options.force);
             } else {
-                logger.warn("general", `[ConnectionManager] Switch failed: Provider ${newProvider} not found`);
+                logger.warn("governance", `[ConnectionManager] Switch failed: Provider ${newProvider} not found`);
             }
 
         } finally {
@@ -85,7 +85,7 @@ class ConnectionManager {
      * Hard kills all connections and timers.
      */
     public async killAll() {
-        logger.log("general", `[ConnectionManager] Killing all connections...`);
+        logger.log("governance", `[ConnectionManager] Killing all connections...`);
 
         // Stop Polling first to prevent it from respawning while we disconnect
         if (this.pollingService) {
@@ -97,7 +97,7 @@ class ConnectionManager {
             try {
                 service.destroy();
             } catch (e) {
-                logger.error("general", `[ConnectionManager] Error destroying ${name}`, e);
+                logger.error("governance", `[ConnectionManager] Error destroying ${name}`, e);
             }
         }
 
@@ -108,14 +108,14 @@ class ConnectionManager {
      * Signal from a provider that it is successfully connected.
      */
     public onProviderConnected(name: string) {
-        logger.log("general", `[ConnectionManager] ${name} reports SUCCESS. Active is: ${this.activeProvider} (Instance #${this.instanceId})`);
+        logger.log("governance", `[ConnectionManager] ${name} reports SUCCESS. Active is: ${this.activeProvider} (Instance #${this.instanceId})`);
         if (name !== this.activeProvider) {
-            logger.warn("general", `[ConnectionManager] Late connection from inactive provider ${name}. Killing it.`);
+            logger.warn("governance", `[ConnectionManager] Late connection from inactive provider ${name}. Killing it.`);
             this.providers.get(name)?.destroy();
             return;
         }
 
-        logger.log("general", `[ConnectionManager] Provider ${name} is ACTIVE and CONNECTED.`);
+        logger.log("governance", `[ConnectionManager] Provider ${name} is ACTIVE and CONNECTED.`);
 
         // Successfully connected? Stop Polling redundant data.
         if (this.pollingService) {
@@ -129,7 +129,7 @@ class ConnectionManager {
     public onProviderDisconnected(name: string) {
         if (name !== this.activeProvider) return;
 
-        logger.warn("general", `[ConnectionManager] Active provider ${name} disconnected. Enabling Fallback-Polling.`);
+        logger.warn("governance", `[ConnectionManager] Active provider ${name} disconnected. Enabling Fallback-Polling.`);
 
         // Start Polling as fallback
         if (this.pollingService) {

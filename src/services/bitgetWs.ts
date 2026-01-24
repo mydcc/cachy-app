@@ -71,7 +71,7 @@ class BitgetWebSocketService {
 
   constructor() {
     this.instanceId = ++BitgetWebSocketService.instanceCount;
-    logger.log("general", `[BitgetWS] Instance #${this.instanceId} Created`);
+    logger.log("governance", `[BitgetWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -120,7 +120,7 @@ class BitgetWebSocketService {
   }
 
   destroy() {
-    logger.log("general", `[BitgetWS] #${this.instanceId} destroy() called.`);
+    logger.log("governance", `[BitgetWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
     if (this.globalMonitorInterval) {
       clearInterval(this.globalMonitorInterval);
@@ -134,7 +134,7 @@ class BitgetWebSocketService {
   }
 
   connect(force?: boolean) {
-    logger.log("general", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
+    logger.log("governance", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
     this.isDestroyed = false;
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;

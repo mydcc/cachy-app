@@ -153,6 +153,7 @@ export interface Settings {
     ai: boolean;
     market: boolean;
     general: boolean;
+    governance: boolean;
     technicalsVerbose?: boolean;
   };
   discordBotToken?: string;
@@ -263,6 +264,7 @@ const defaultSettings: Settings = {
     ai: true,
     market: false,
     general: true,
+    governance: true,
     technicalsVerbose: false,
   },
   discordBotToken: "",
