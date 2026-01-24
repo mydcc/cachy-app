@@ -68,22 +68,27 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Super-robust HTML Scraper for Nitter timeline
+ * Ultra-robust HTML Scraper for Nitter timeline
  */
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
-  // Fuzzy splitting: handle different styles of class declaration
-  const parts = html.split(/class\s*=\s*["']timeline-item/);
+
+  // Look for any div that contains 'timeline-item' in its class list
+  // Matches: <div class="timeline-item"> OR <div class="some-other timeline-item filtered">
+  const parts = html.split(/<div[^>]*class\s*=\s*["'][^"']*timeline-item[^"']*["'][^>]*>/);
 
   for (let i = 1; i < parts.length; i++) {
     const chunk = parts[i];
-    // Find content using fuzzy class matching
-    const contentMatch = chunk.match(/class\s*=\s*["']tweet-content[^"']*["']>([\s\S]*?)<\/div>/);
-    // Find date using fuzzy class matching
-    const dateLinkMatch = chunk.match(/class\s*=\s*["']tweet-date["']><a\s+href\s*=\s*["']([^"']*)["']\s+title\s*=\s*["']([^"']*)["']>/);
+
+    // Extract Tweet text: look for 'tweet-content' class anywhere in the attribute
+    const contentMatch = chunk.match(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/);
+    // Extract Link and Date: look for 'tweet-date' class
+    const dateLinkMatch = chunk.match(/class\s*=\s*["'][^"']*tweet-date[^"']*["'][^>]*><a\s+href\s*=\s*["']([^"']*)["']\s+title\s*=\s*["']([^"']*)["']>/);
 
     if (contentMatch) {
       const fullText = contentMatch[1].replace(/<[^>]*>/g, "").trim();
+      if (!fullText) continue;
+
       const relativeLink = dateLinkMatch ? dateLinkMatch[1] : "";
       const dateTitle = dateLinkMatch ? dateLinkMatch[2] : new Date().toISOString();
 
@@ -125,7 +130,8 @@ export const POST: RequestHandler = async ({ request }) => {
         const text = await response.text();
         clearTimeout(id);
 
-        if (text.toLowerCase().includes("cloudflare") || text.toLowerCase().includes("anubis")) {
+        const lower = text.toLowerCase();
+        if (lower.includes("cloudflare") || lower.includes("anubis") || lower.includes("robot checking")) {
           throw new Error("Blocked by Bot Protection (HTML Challenge)");
         }
         return text;
@@ -158,9 +164,10 @@ export const POST: RequestHandler = async ({ request }) => {
           }
 
           // Diagnostic snippet for empty results
-          const snippet = html.substring(0, 200).replace(/\s+/g, " ");
+          const snippet = html.substring(0, 150).replace(/\s+/g, " ");
           const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
-          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 items. Snippet: "${snippet}..."`);
+          const divCount = (html.match(/<div/g) || []).length;
+          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 items. Divs: ${divCount}. Snippet: "${snippet}..."`);
         } catch (e: any) {
           console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
           instanceBackoff.set(instance, now + BACKOFF_MS);
