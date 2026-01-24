@@ -76,6 +76,16 @@
   let contextMenuX = $state(0);
   let contextMenuY = $state(0);
 
+  function translateError(data: any): string {
+    if (data.code && typeof $_ === "function") {
+      const key = `bitunixErrors.${data.code}`;
+      const translation = $_(key);
+      // Basic check if translation exists (usually if it returns same key, it's missing)
+      if (translation && translation !== key) return translation;
+    }
+    return data.error || "Unknown Error";
+  }
+
   async function fetchPositions() {
     const provider = settingsState.apiProvider || "bitunix";
     const keys = settingsState.apiKeys[provider];
@@ -95,7 +105,7 @@
         }),
       });
       const data = await response.json();
-      if (data.error) errorPositions = data.error;
+      if (data.error) errorPositions = translateError(data);
       else {
         // Initial Population of Store if needed, or just let WS handle it?
         // For now, let's trust the WS to update, but initial fetch is good.
@@ -107,7 +117,7 @@
         }
       }
     } catch (e) {
-      errorPositions = "Failed to load positions";
+      errorPositions = typeof $_ === "function" ? $_("apiErrors.generic") : "Failed to load positions";
     } finally {
       loadingPositions = false;
     }
@@ -139,14 +149,15 @@
       });
       const data = await response.json();
       if (data.error) {
-        if (type === "pending") errorOrders = data.error;
-        else errorHistory = data.error;
+        const msg = translateError(data);
+        if (type === "pending") errorOrders = msg;
+        else errorHistory = msg;
       } else {
         if (type === "pending") openOrders = data.orders || [];
         else historyOrders = data.orders || [];
       }
     } catch (e) {
-      const msg = `Failed to load ${type} orders`;
+      const msg = typeof $_ === "function" ? $_("apiErrors.generic") : `Failed to load ${type} orders`;
       if (type === "pending") errorOrders = msg;
       else errorHistory = msg;
     } finally {

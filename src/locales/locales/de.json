@@ -112,6 +112,8 @@
       "header": "Trade Setup",
       "atrModeManual": "Manuell",
       "atrModeAuto": "Auto",
+      "toggleAutoUpdatePrice": "Automatische Preisaktualisierung umschalten",
+      "copyToClipboard": "In Zwischenablage kopieren",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
       "atrMultiplierLabel": "Multiplier",
