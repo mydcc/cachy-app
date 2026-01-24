@@ -26,17 +26,17 @@ const CACHE_TTL = 15 * 60 * 1000; // 15 minutes for standard RSS
 const tweetStore = new Map<string, Map<string, any>>();
 const TWEET_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for tweets
 
-// Verified instances list (as of late 2024/2025)
+// Verified instances list (User Provided)
 const NITTER_INSTANCES = [
   "xcancel.com",
+  "nitter.tiekoetter.com",
+  "nitter.privacyredirect.com",
   "nitter.poast.org",
-  "nitter.privacydev.net",
-  "nitter.uni-sonia.com",
-  "nitter.lucabased.xyz",
-  "nitter.moomoo.me",
-  "nitter.soopy.moe",
   "nitter.catsarch.com",
-  "nitter.salastil.com"
+  "nitter.space",
+  "nitter.net",
+  "lightbrd.com",
+  "nuku.trabun.org"
 ];
 
 // In-memory blacklist with dynamic backoff
