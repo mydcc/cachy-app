@@ -33,8 +33,7 @@ export const rssParserService = {
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        console.warn(`[rssParser] Failed to fetch ${url}:`, errorData.error);
+        // Silent fail for single feeds as the server might be rotating anyway
         return [];
       }
 

@@ -38,7 +38,17 @@ const HEALTH_BACKOFF = 15 * 60 * 1000; // 15 minutes backoff for failing hosts
 const MAX_CONSECUTIVE_ERRORS = 3;
 const MAX_CACHE_ENTRIES = 50;
 
-const NITTER_PROXY = "twiiit.com";
+const NITTER_INSTANCES = [
+  "xcancel.com",
+  "nuku.trabun.org",
+  "nitter.tiekoetter.com",
+  "nitter.space",
+  "nitter.privacyredirect.com",
+  "nitter.poast.org",
+  "nitter.net",
+  "nitter.catsarch.com",
+  "lightbrd.com"
+];
 
 export const POST: RequestHandler = async ({ request }) => {
   let url = "unknown";
@@ -51,7 +61,7 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing or invalid URL parameter" }, { status: 400 });
     }
 
-    const tryFetch = async (targetUrl: string, timeout = 10000): Promise<any> => {
+    const tryFetch = async (targetUrl: string, timeout = 5000): Promise<any> => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
 
@@ -59,11 +69,11 @@ export const POST: RequestHandler = async ({ request }) => {
         const response = await fetch(targetUrl, {
           signal: controller.signal,
           headers: {
-            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
             "Accept": "application/rss+xml, application/xml, text/xml, */*",
             "Accept-Language": "en-US,en;q=0.9",
             "Cache-Control": "no-cache",
-            "Referer": "https://twiiit.com/"
+            "Referer": "https://google.com/"
           }
         });
 
@@ -73,6 +83,11 @@ export const POST: RequestHandler = async ({ request }) => {
 
         const xml = await response.text();
         clearTimeout(id);
+
+        if (!xml.trim().startsWith("<")) {
+          throw new Error("Invalid response format (not XML)");
+        }
+
         const parsed = await parser.parseString(xml);
         if (!parsed || !parsed.items || parsed.items.length === 0) {
           throw new Error("Empty feed or incompatible format");
@@ -84,21 +99,32 @@ export const POST: RequestHandler = async ({ request }) => {
       }
     };
 
-    // Special logic for X/Twitter via Twiiit
-    const isX = url.includes("nitter") || url.includes("x.com") || url.includes("twitter.com");
+    // Special logic for X/Twitter
+    const isX = url.includes("nitter") || url.includes("x.com") || url.includes("twitter.com") || url.includes("xcancel");
     let feedData: any = null;
 
     if (isX) {
+      console.log(`[RSS-FETCH] X-News Rotation started for: ${url}`);
+      let lastError: any = null;
       const urlObj = new URL(url);
-      const twiiitUrl = url.replace(urlObj.hostname, NITTER_PROXY);
-      console.log(`[RSS-FETCH] Using Twiiit Meta-Proxy for: ${url}`);
 
-      try {
-        feedData = await tryFetch(twiiitUrl, 12000);
-      } catch (e: any) {
-        console.error(`[RSS-FETCH] Twiiit attempt failed: ${e.message}`);
-        throw e;
+      for (const instance of NITTER_INSTANCES) {
+        const testUrl = url.replace(urlObj.hostname, instance);
+        console.log(`[RSS-FETCH] Trying instance: ${instance}...`);
+
+        try {
+          feedData = await tryFetch(testUrl, 4000); // 4s timeout for each
+          if (feedData) {
+            console.log(`[RSS-FETCH] Success with instance: ${instance}`);
+            break;
+          }
+        } catch (e: any) {
+          lastError = e;
+          console.warn(`[RSS-FETCH] Instance ${instance} failed: ${e.message}`);
+          continue;
+        }
       }
+      if (!feedData && lastError) throw lastError;
     } else {
       feedData = await tryFetch(url, 8000);
     }

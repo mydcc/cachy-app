@@ -270,7 +270,7 @@ const defaultSettings: Settings = {
   discordBotToken: "",
   discordChannels: [],
   xMonitors: [], // e.g. [{type: 'user', value: 'elonmusk'}, {type: 'hashtag', value: 'BTC'}]
-  nitterInstance: "https://nitter.net",
+  nitterInstance: "https://xcancel.com",
 };
 
 class SettingsManager {
