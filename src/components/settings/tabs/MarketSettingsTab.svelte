@@ -166,6 +166,27 @@
             />
         </div>
 
+        <!-- Setting 3b: Pause on Blur -->
+        <div
+            class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==
+            'custom'
+                ? 'opacity-60 grayscale'
+                : ''}"
+        >
+            <div>
+                <div class="font-medium text-sm">Pause im Hintergrund</div>
+                <div class="text-[10px] text-[var(--text-secondary)]">
+                    Stoppt Analyse wenn Tab inaktiv ist (Spart Akku).
+                </div>
+            </div>
+            <input
+                type="checkbox"
+                disabled={settingsState.marketMode !== "custom"}
+                bind:checked={settingsState.pauseAnalysisOnBlur}
+                class="toggle-checkbox disabled:cursor-not-allowed"
+            />
+        </div>
+
         <!-- Setting 4: News Analysis -->
         <div
             class="flex items-center justify-between p-3 bg-[var(--bg-tertiary)] rounded-lg {settingsState.marketMode !==

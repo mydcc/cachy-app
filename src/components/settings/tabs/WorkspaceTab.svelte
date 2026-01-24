@@ -442,7 +442,7 @@
                     <div class="field-group">
                         <label for="market-activity-interval-global"
                             >{$_("settings.marketDataInterval") ||
-                                "Update Speed"}</label
+                                "Ticker-Rate (Live Preise)"}</label
                         >
                         <select
                             id="market-activity-interval-global"
