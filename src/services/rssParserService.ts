@@ -13,10 +13,7 @@ import { logger } from "./logger";
 export const rssParserService = {
   async parseRssFeed(input: string): Promise<NewsItem[]> {
     try {
-      const isXCommand = input.startsWith("x:");
-      const body = isXCommand
-        ? { xCmd: { type: input.split(":")[1], value: input.split(":")[2] } }
-        : { url: input };
+      const body = { url: input };
 
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s client timeout

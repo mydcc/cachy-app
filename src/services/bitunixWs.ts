@@ -21,6 +21,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
+import { mdaService } from "./mdaService";
 import { logger } from "./logger";
 import CryptoJS from "crypto-js";
 import type {
@@ -727,91 +728,35 @@ class BitunixWebSocketService {
 
       // 4. Handle price updates
       if (validatedMessage.ch === "price") {
-        const rawSymbol = validatedMessage.symbol;
-
-        // Validate symbol
-        if (!validateSymbol(rawSymbol)) {
-          // In DEV, warn loudly. In PROD, we just ignore to prevent crashing or weird state,
-          // but we might consider a way to notify the UI if this is the ACTIVE symbol.
-          logger.warn("network", "[WebSocket] Invalid symbol in price update", rawSymbol);
-          return;
-        }
-
+        const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
+        const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
-        // Validate price data with Zod
-        const priceValidation = BitunixPriceDataSchema.safeParse(
-          validatedMessage.data,
-        );
-        if (!priceValidation.success) {
-          logger.warn("network", "[WebSocket] Invalid price data", priceValidation.error.issues);
-          return;
-        }
-
-        const data = priceValidation.data;
-
-        // Build update object
-        const update: Partial<{
-          price: string | number;
-          indexPrice: string | number;
-          fundingRate: string | number;
-          nextFundingTime: string | number;
-        }> = {};
-        if (data.mp !== undefined) update.price = data.mp;
-        if (data.ip !== undefined) update.indexPrice = data.ip;
-        if (data.fr !== undefined) update.fundingRate = data.fr;
-        if (data.nft !== undefined) update.nextFundingTime = String(data.nft);
-
-        if (Object.keys(update).length > 0) {
-          if (!this.shouldThrottle(`${symbol}:price`)) {
-            marketState.updatePrice(symbol, update);
-          }
+        if (!this.shouldThrottle(`${symbol}:price`)) {
+          marketState.updateSymbol(symbol, {
+            lastPrice: normalized.lastPrice,
+            // Funding data if present in validatedMessage.data
+            fundingRate: (validatedMessage.data as any).fr,
+            nextFundingTime: (validatedMessage.data as any).nft ? String((validatedMessage.data as any).nft) : undefined
+          });
         }
       } else if (validatedMessage.ch === "ticker") {
-        const rawSymbol = validatedMessage.symbol;
-
-        if (!validateSymbol(rawSymbol)) {
-          logger.warn("network", "[WebSocket] Invalid symbol in ticker update", rawSymbol);
-          return;
-        }
-
+        const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
+        const normalized = mdaService.normalizeTicker(validatedMessage, "bitunix");
 
-        // Validate ticker data with Zod
-        const tickerValidation = BitunixTickerDataSchema.safeParse(
-          validatedMessage.data,
-        );
-        if (!tickerValidation.success) {
-          logger.warn("network", "[WebSocket] Invalid ticker data", tickerValidation.error.issues);
-          return;
+        if (!this.shouldThrottle(`${symbol}:ticker`)) {
+          marketState.updateSymbol(symbol, {
+            lastPrice: normalized.lastPrice,
+            highPrice: normalized.high,
+            lowPrice: normalized.low,
+            volume: normalized.volume,
+            quoteVolume: normalized.quoteVolume,
+            priceChangePercent: normalized.priceChangePercent
+          });
         }
-
-        const data = tickerValidation.data;
-
-        // Build update object
-        const update: Partial<{
-          lastPrice: string | number;
-          high: string | number;
-          low: string | number;
-          vol: string | number;
-          quoteVol: string | number;
-          change: string | number;
-          open: string | number;
-        }> = {};
-        if (data.la !== undefined) update.lastPrice = data.la;
-        if (data.h !== undefined) update.high = data.h;
-        if (data.l !== undefined) update.low = data.l;
-        if (data.b !== undefined) update.vol = data.b;
-        if (data.q !== undefined) update.quoteVol = data.q;
-        if (data && data.r !== undefined) update.change = data.r;
-        if (data.o !== undefined) update.open = data.o;
-
-        if (Object.keys(update).length > 0) {
-          if (!this.shouldThrottle(`${symbol}:ticker`)) {
-            marketState.updateTicker(symbol, update);
-          }
-        }
-      } else if (validatedMessage.ch === "depth_book5") {
+      }
+      else if (validatedMessage.ch === "depth_book5") {
         const rawSymbol = validatedMessage.symbol;
         if (!rawSymbol) return;
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
@@ -826,8 +771,7 @@ class BitunixWebSocketService {
         (validatedMessage.ch.startsWith("market_kline_") ||
           validatedMessage.ch === "mark_kline_1day")
       ) {
-        const rawSymbol = validatedMessage.symbol;
-        if (!rawSymbol) return;
+        const rawSymbol = validatedMessage.symbol || "";
         const symbol = normalizeSymbol(rawSymbol, "bitunix");
         const data = validatedMessage.data;
         if (symbol && data) {
@@ -851,16 +795,11 @@ class BitunixWebSocketService {
               timeframe = revMap[bitunixTf] || bitunixTf;
             }
           }
-          marketState.updateKline(symbol, timeframe, {
-            o: data.o,
-            h: data.h,
-            l: data.l,
-            c: data.c,
-            b: data.b || data.v,
-            t: data.t || data.id || data.ts || Date.now(),
-          });
+          const normalizedKlines = mdaService.normalizeKlines([data], "bitunix");
+          marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines);
         }
-      } else if (validatedMessage.ch === "position") {
+      }
+      else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))

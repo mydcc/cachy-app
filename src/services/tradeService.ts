@@ -36,6 +36,9 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { logger } from "../services/logger";
+import { omsService } from "./omsService";
+import { rmsService } from "./rmsService";
+import type { OMSOrder } from "./omsTypes";
 import Decimal from "decimal.js";
 import crypto from "crypto";
 
@@ -138,7 +141,7 @@ class TradeExecutionGuard {
     if (!settingsState.capabilities.tradeExecution) {
       throw new Error(
         "UNAUTHORIZED: Trade execution requires Pro license and API credentials. " +
-          "Please enable PowerToggle and configure API Secret Key in Settings > Integrations.",
+        "Please enable PowerToggle and configure API Secret Key in Settings > Integrations.",
       );
     }
 
@@ -148,7 +151,7 @@ class TradeExecutionGuard {
     if (!apiKey || !apiSecret) {
       throw new Error(
         "API_CREDENTIALS_MISSING: Trade execution requires API Key and Secret. " +
-          "Please configure in Settings > Integrations.",
+        "Please configure in Settings > Integrations.",
       );
     }
   }
@@ -304,7 +307,17 @@ export class TradeExecutionService {
   async placeOrder(params: PlaceOrderParams): Promise<OrderResult> {
     TradeExecutionGuard.ensureAuthorized();
 
-    logger.log("market", "Place Order:", params);
+    // 0. Risk Management Validation
+    const approxPrice = params.price || new Decimal(0);
+    const amountUsdt = params.amount.times(approxPrice);
+    const riskCheck = rmsService.validateTrade(params.symbol, params.side, amountUsdt);
+
+    if (!riskCheck.allowed) {
+      logger.error("market", "RMS Validation Failed:", riskCheck.reason);
+      throw new Error(`RISK_LIMIT_EXCEEDED: ${riskCheck.reason}`);
+    }
+
+    logger.log("market", "Place Order (RMS Approved):", params);
 
     // 1. Validate parameters
     if (params.type === "limit" && !params.price) {
@@ -322,34 +335,19 @@ export class TradeExecutionService {
       qty: params.amount.toNumber(),
     };
 
-    // Add price for limit orders
     if (params.type === "limit" && params.price) {
       body.price = params.price.toNumber();
     }
+    if (params.leverage) body.leverage = params.leverage;
+    if (params.timeInForce) body.effect = params.timeInForce.toUpperCase().replace("POSTONLY", "POST_ONLY");
+    if (params.reduceOnly) body.reduceOnly = true;
 
-    // Add optional parameters
-    if (params.leverage) {
-      body.leverage = params.leverage;
-    }
-
-    if (params.timeInForce) {
-      body.effect = params.timeInForce
-        .toUpperCase()
-        .replace("POSTONLY", "POST_ONLY");
-    }
-
-    if (params.reduceOnly) {
-      body.reduceOnly = true;
-    }
-
-    // Add Take Profit (if provided)
+    // TP/SL
     if (params.takeProfit) {
       body.tpPrice = params.takeProfit.toNumber();
       body.tpStopType = "PRICE";
       body.tpOrderType = "MARKET";
     }
-
-    // Add Stop Loss (if provided)
     if (params.stopLoss) {
       body.slPrice = params.stopLoss.toNumber();
       body.slStopType = "PRICE";
@@ -357,31 +355,35 @@ export class TradeExecutionService {
     }
 
     // 3. Execute API call
-    const response = await this.signedRequest<{
-      orderId: string;
-      symbol: string;
-      side: string;
-      orderType: string;
-      price: string;
-      qty: string;
-      filledQty: string;
-      status: string;
-      createTime: number;
-    }>("POST", "/api/v1/futures/trade/place_order", body);
+    const response = await this.signedRequest<any>("POST", "/api/v1/futures/trade/place_order", body);
 
-    // 4. Map response to OrderResult
-    const result: OrderResult = {
-      orderId: response.data!.orderId,
+    // 4. Update OMS
+    const raw = response.data;
+    const omsOrder: OMSOrder = {
+      id: raw.orderId,
       symbol: params.symbol,
       side: params.side,
-      status: this.mapOrderStatus(response.data!.status),
-      price: params.price || params.amount, // Use params price or amount for market
-      amount: params.amount,
-      timestamp: response.data!.createTime,
+      type: params.type,
+      status: this.mapOrderStatus(raw.status) as any,
+      price: new Decimal(raw.price || params.price || 0),
+      amount: new Decimal(raw.qty),
+      filledAmount: new Decimal(raw.filledQty || 0),
+      timestamp: raw.createTime
+    };
+    omsService.updateOrder(omsOrder);
+
+    // 5. Map response to OrderResult (Keep for compatibility)
+    const result: OrderResult = {
+      orderId: omsOrder.id,
+      symbol: omsOrder.symbol,
+      side: omsOrder.side,
+      status: omsOrder.status as any,
+      price: omsOrder.price,
+      amount: omsOrder.amount,
+      timestamp: omsOrder.timestamp,
     };
 
-    logger.log("market", "Order placed successfully:", result);
-
+    logger.log("market", "Order placed and synced with OMS:", result.orderId);
     return result;
   }
 
@@ -661,37 +663,35 @@ export class TradeExecutionService {
 
     logger.log("market", "Get Pending Orders, symbol: " + (symbol || "all"));
 
-    // Build query params
     const params = symbol ? `?symbol=${symbol}` : "";
+    const response = await this.signedRequest<any>("GET", `/api/v1/futures/trade/get_pending_orders${params}`);
 
-    // Bitunix API: Get pending orders
-    const response = await this.signedRequest<{
-      orders: Array<{
-        orderId: string;
-        symbol: string;
-        side: string;
-        orderType: string;
-        price: string;
-        qty: string;
-        filledQty: string;
-        status: string;
-        createTime: number;
-      }>;
-    }>("GET", `/api/v1/futures/trade/get_pending_orders${params}`);
+    const orders = (response.data?.orders || []).map((o: any) => {
+      const omsOrder: OMSOrder = {
+        id: o.orderId,
+        symbol: o.symbol,
+        side: o.side.toLowerCase() as any,
+        type: o.orderType.toLowerCase() as any,
+        status: this.mapOrderStatus(o.status) as any,
+        price: new Decimal(o.price),
+        amount: new Decimal(o.qty),
+        filledAmount: new Decimal(o.filledQty || 0),
+        timestamp: o.createTime
+      };
+      omsService.updateOrder(omsOrder);
 
-    // Map to OrderResult array
-    const orders = (response.data?.orders || []).map((order) => ({
-      orderId: order.orderId,
-      symbol: order.symbol,
-      side: order.side.toLowerCase() as OrderSide,
-      status: this.mapOrderStatus(order.status),
-      price: new Decimal(order.price),
-      amount: new Decimal(order.qty),
-      timestamp: order.createTime,
-    }));
+      return {
+        orderId: omsOrder.id,
+        symbol: omsOrder.symbol,
+        side: omsOrder.side as any,
+        status: omsOrder.status as any,
+        price: omsOrder.price,
+        amount: omsOrder.amount,
+        timestamp: omsOrder.timestamp,
+      };
+    });
 
     logger.log("market", "Found " + orders.length + " pending orders");
-
     return orders;
   }
 
@@ -748,28 +748,34 @@ export class TradeExecutionService {
     logger.log("market", "Get History Orders, symbol: " + (symbol || "all") + " limit: " + limit);
 
     const params = `?${symbol ? `symbol=${symbol}&` : ""}limit=${limit}`;
-    const response = await this.signedRequest<{
-      orders: Array<{
-        orderId: string;
-        symbol: string;
-        side: string;
-        orderType: string;
-        price: string;
-        qty: string;
-        filledQty: string;
-        status: string;
-        createTime: number;
-      }>;
-    }>("GET", `/api/v1/futures/trade/get_history_orders${params}`);
-    return (response.data?.orders || []).map((o) => ({
-      orderId: o.orderId,
-      symbol: o.symbol,
-      side: o.side.toLowerCase() as OrderSide,
-      status: this.mapOrderStatus(o.status),
-      price: new Decimal(o.price),
-      amount: new Decimal(o.qty),
-      timestamp: o.createTime,
-    }));
+    const response = await this.signedRequest<any>("GET", `/api/v1/futures/trade/get_history_orders${params}`);
+
+    const orders = (response.data?.orders || []).map((o: any) => {
+      const omsOrder: OMSOrder = {
+        id: o.orderId,
+        symbol: o.symbol,
+        side: o.side.toLowerCase() as any,
+        type: o.orderType.toLowerCase() as any,
+        status: this.mapOrderStatus(o.status) as any,
+        price: new Decimal(o.price),
+        amount: new Decimal(o.qty),
+        filledAmount: new Decimal(o.filledQty || 0),
+        timestamp: o.createTime
+      };
+      omsService.updateOrder(omsOrder);
+
+      return {
+        orderId: omsOrder.id,
+        symbol: omsOrder.symbol,
+        side: omsOrder.side as any,
+        status: omsOrder.status as any,
+        price: omsOrder.price,
+        amount: omsOrder.amount,
+        timestamp: omsOrder.timestamp,
+      };
+    });
+
+    return orders;
   }
 
   /**

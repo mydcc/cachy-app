@@ -157,10 +157,10 @@ class MarketManager {
     while (Object.keys(this.data).length > MAX_CACHE_SIZE) {
       const toEvict = this.evictLRU();
       if (!toEvict) {
-         // Fallback: If metadata is out of sync, delete arbitrary key
-         const key = Object.keys(this.data)[0];
-         if (key) delete this.data[key];
-         break;
+        // Fallback: If metadata is out of sync, delete arbitrary key
+        const key = Object.keys(this.data)[0];
+        if (key) delete this.data[key];
+        break;
       }
       delete this.data[toEvict];
     }
@@ -192,28 +192,32 @@ class MarketManager {
     this.enforceCacheLimit();
   }
 
-  private applyUpdate(symbol: string, partial: Partial<MarketData>) {
+  private applyUpdate(symbol: string, partial: any) {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
     current.lastUpdated = Date.now();
 
-    if (partial.lastPrice !== undefined) current.lastPrice = partial.lastPrice;
-    if (partial.indexPrice !== undefined)
-      current.indexPrice = partial.indexPrice;
-    if (partial.highPrice !== undefined) current.highPrice = partial.highPrice;
-    if (partial.lowPrice !== undefined) current.lowPrice = partial.lowPrice;
-    if (partial.volume !== undefined) current.volume = partial.volume;
-    if (partial.quoteVolume !== undefined)
-      current.quoteVolume = partial.quoteVolume;
-    if (partial.priceChangePercent !== undefined)
-      current.priceChangePercent = partial.priceChangePercent;
-    if (partial.fundingRate !== undefined)
-      current.fundingRate = partial.fundingRate;
-    if (partial.nextFundingTime !== undefined)
-      current.nextFundingTime = partial.nextFundingTime;
+    const toDecimal = (val: any) => (val !== undefined && val !== null ? new Decimal(val) : undefined);
+
+    if (partial.lastPrice !== undefined) current.lastPrice = toDecimal(partial.lastPrice) ?? current.lastPrice;
+    if (partial.indexPrice !== undefined) current.indexPrice = toDecimal(partial.indexPrice) ?? current.indexPrice;
+    if (partial.highPrice !== undefined) current.highPrice = toDecimal(partial.highPrice) ?? current.highPrice;
+    if (partial.lowPrice !== undefined) current.lowPrice = toDecimal(partial.lowPrice) ?? current.lowPrice;
+    if (partial.volume !== undefined) current.volume = toDecimal(partial.volume) ?? current.volume;
+    if (partial.quoteVolume !== undefined) current.quoteVolume = toDecimal(partial.quoteVolume) ?? current.quoteVolume;
+    if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
+    if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
+
+    if (partial.nextFundingTime !== undefined) {
+      if (typeof partial.nextFundingTime === "string") {
+        current.nextFundingTime = parseInt(partial.nextFundingTime, 10);
+      } else {
+        current.nextFundingTime = partial.nextFundingTime;
+      }
+    }
+
     if (partial.depth !== undefined) current.depth = partial.depth;
-    if (partial.technicals !== undefined)
-      current.technicals = partial.technicals;
+    if (partial.technicals !== undefined) current.technicals = partial.technicals;
   }
 
   updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {

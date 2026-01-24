@@ -40,14 +40,17 @@ class MarketAnalystService {
     private async processNext() {
         if (!this.isRunning) return;
 
-        if (!settingsState.capabilities.marketData || settingsState.marketAnalysisInterval <= 0) {
+        const { capabilities, marketAnalysisInterval, pauseAnalysisOnBlur, analyzeAllFavorites } = settingsState;
+
+        if (!capabilities.marketData || marketAnalysisInterval <= 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 10000);
             return;
         }
 
-        // Pause if tab is hidden and setting is enabled
-        if (settingsState.pauseAnalysisOnBlur && document.hidden) {
-            this.timeoutId = setTimeout(() => this.processNext(), 5000); // Re-check in 5s
+        // Pause / Slow down if hidden
+        const isHidden = browser && document.hidden;
+        if (pauseAnalysisOnBlur && isHidden) {
+            this.timeoutId = setTimeout(() => this.processNext(), 15000);
             return;
         }
 
@@ -57,69 +60,57 @@ class MarketAnalystService {
             return;
         }
 
-        // --- NEW LOGIC: Respect "Balanced" Mode (Top 4 only) ---
-        const limit = settingsState.analyzeAllFavorites ? favorites.length : Math.min(favorites.length, 4);
-
-        // Ensure index wraps correctly within the limit
+        const limit = analyzeAllFavorites ? favorites.length : Math.min(favorites.length, 6);
         this.currentSymbolIndex = (this.currentSymbolIndex + 1) % limit;
         const symbol = favorites[this.currentSymbolIndex];
 
         try {
-            // Skip if data is fresh enough options
             const existing = analysisState.results[symbol];
-            if (existing && (Date.now() - existing.updatedAt < DATA_FRESHNESS_TTL)) {
-                // Skip, but check slightly faster to find a stale one
-                this.timeoutId = setTimeout(() => this.processNext(), 5000);
+            const freshnessThreshold = isHidden ? DATA_FRESHNESS_TTL * 2 : DATA_FRESHNESS_TTL;
+
+            if (existing && (Date.now() - existing.updatedAt < freshnessThreshold)) {
+                this.timeoutId = setTimeout(() => this.processNext(), 2000); // Check next favorite quickly
                 return;
             }
 
             analysisState.isAnalyzing = true;
-            logger.log("technicals", `Analyzing ${symbol} (Background)...`);
+            logger.log("technicals", `Analyst: Processing ${symbol}...`);
 
             const provider = settingsState.apiProvider;
 
-            // 1. Fetch Data (1h for general confluence)
+            // Use 'normal' priority for background analysis to not interfere with trade UI
             const klines = await (provider === "bitget"
-                ? apiService.fetchBitgetKlines(symbol, "1h", 200)
-                : apiService.fetchBitunixKlines(symbol, "1h", 200));
+                ? apiService.fetchBitgetKlines(symbol, "1h", 200, undefined, undefined, "normal")
+                : apiService.fetchBitunixKlines(symbol, "1h", 200, undefined, undefined, "normal"));
 
-            if (!klines || klines.length < 50) {
-                throw new Error("Insufficient klines");
-            }
+            if (!klines || klines.length < 50) throw new Error("MIN_DATA_REQUIRED");
 
-            // 2. Fetch Trend Data (4h)
             const klines4h = await (provider === "bitget"
-                ? apiService.fetchBitgetKlines(symbol, "4h", 100)
-                : apiService.fetchBitunixKlines(symbol, "4h", 100));
+                ? apiService.fetchBitgetKlines(symbol, "4h", 100, undefined, undefined, "normal")
+                : apiService.fetchBitunixKlines(symbol, "4h", 100, undefined, undefined, "normal"));
 
-            // 3. Calculate 1H Technicals
+            // Offload to worker via technicalsService
             const tech1h = await technicalsService.calculateTechnicals(klines, indicatorState);
             const tech4h = await technicalsService.calculateTechnicals(klines4h, indicatorState);
 
             if (tech1h && tech4h) {
-                // 4. Derive Insights
-                // Convert Decimal to number for arithmetic
-                const price = new Decimal(klines[klines.length - 1].close).toNumber();
-                const openVal = klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open;
-                const open24h = new Decimal(openVal).toNumber();
+                const lastKline = klines[klines.length - 1];
+                const price = new Decimal(lastKline.close).toNumber();
+                const open24h = new Decimal(klines.length >= 24 ? klines[klines.length - 24].open : klines[0].open).toNumber();
                 const change24h = ((price - open24h) / open24h) * 100;
 
-                // Trend 4H (based on EMA 50 vs EMA 200 or Price vs EMA 200)
                 const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
-                const ema200Num = new Decimal(ema200_4h).toNumber();
-                const trend4h = price > ema200Num ? "bullish" : "bearish";
+                const trend4h = price > new Decimal(ema200_4h).toNumber() ? "bullish" : "bearish";
 
-                // RSI 1H
                 const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
-                const rsiVal = rsiObj ? rsiObj.value : 50;
-                const rsi1h = rsiVal instanceof Decimal ? rsiVal.toNumber() : Number(rsiVal);
+                const rsi1h = rsiObj ? (rsiObj.value instanceof Decimal ? rsiObj.value.toNumber() : Number(rsiObj.value)) : 50;
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
                 if (rsi1h > 70) condition = "overbought";
                 else if (rsi1h < 30) condition = "oversold";
                 else if (Math.abs(change24h) > 5) condition = "trending";
 
-                const analysis: SymbolAnalysis = {
+                analysisState.updateAnalysis(symbol, {
                     symbol,
                     updatedAt: Date.now(),
                     price,
@@ -128,29 +119,15 @@ class MarketAnalystService {
                     rsi1h,
                     confluenceScore: tech1h.confluence?.score || 0,
                     condition
-                };
-
-                analysisState.updateAnalysis(symbol, analysis);
-                logger.log("technicals", `Analysis complete for ${symbol}: Score ${analysis.confluenceScore}`);
+                });
             }
-
         } catch (e) {
-            if (import.meta.env.DEV) {
-                logger.warn("general", `Analyst failed for ${symbol}`, e);
-            }
+            // Silently handle analysis errors to keep the loop alive
         } finally {
             analysisState.isAnalyzing = false;
-
-            // Dynamic delay from settings
-            let delay = (settingsState.marketAnalysisInterval || 60) * 1000;
-
-            // Check for Pause on Blur
-            if (settingsState.pauseAnalysisOnBlur && document.hidden) {
-                delay = 30000; // Slow trickle check (30s) if hidden
-                // Note: Main check happens at start of processNext, so this just schedules the next check.
-            }
-
-            this.timeoutId = setTimeout(() => this.processNext(), delay);
+            const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
+            const finalDelay = isHidden ? baseDelay * 2 : baseDelay;
+            this.timeoutId = setTimeout(() => this.processNext(), finalDelay);
         }
     }
 }

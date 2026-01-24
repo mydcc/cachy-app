@@ -10,7 +10,6 @@
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { rssParserService } from "./rssParserService";
-import { xService } from "./xService.svelte";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
@@ -185,7 +184,7 @@ export const newsService = {
           logger.error("market", "Failed to fetch Discord", e);
         }
 
-        // RSS Feeds & Scraping (Only if enabled in settings)
+        // RSS Feeds (Only if enabled in settings)
         if (settingsState.enableNewsScraper) {
           const rssUrls = [
             ...getPresetUrls(settingsState.rssPresets || []),

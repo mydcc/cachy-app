@@ -28,11 +28,6 @@ export type BackgroundAnimationPreset =
   | "aurora";
 export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
-export type XMonitorType = "user" | "hashtag";
-export interface XMonitor {
-  type: XMonitorType;
-  value: string;
-}
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 
@@ -164,7 +159,6 @@ export interface Settings {
   };
   discordBotToken?: string;
   discordChannels: string[];
-  xMonitors: XMonitor[];
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -282,7 +276,6 @@ const defaultSettings: Settings = {
   },
   discordBotToken: "",
   discordChannels: [],
-  xMonitors: [], // e.g. [{type: 'user', value: 'elonmusk'}, {type: 'hashtag', value: 'BTC'}]
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -499,7 +492,6 @@ class SettingsManager {
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
-  xMonitors = $state<XMonitor[]>(defaultSettings.xMonitors);
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
@@ -792,7 +784,6 @@ class SettingsManager {
       this.discordBotToken = merged.discordBotToken;
       this.discordChannels =
         merged.discordChannels || defaultSettings.discordChannels;
-      this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
 
       this._marketMode = merged.marketMode || defaultSettings.marketMode;
       this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
@@ -953,7 +944,6 @@ class SettingsManager {
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,
       discordChannels: $state.snapshot(this.discordChannels),
-      xMonitors: $state.snapshot(this.xMonitors),
       marketMode: this.marketMode,
       analyzeAllFavorites: this.analyzeAllFavorites,
       enableNewsScraper: this.enableNewsScraper,
