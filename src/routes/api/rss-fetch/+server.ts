@@ -68,31 +68,28 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Super-lightweight HTML Scraper for Nitter timeline
+ * Super-robust HTML Scraper for Nitter timeline
  */
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
-  const itemRegex = /<div class="timeline-item[^"]*">([\s\S]*?)<\/div>\s*<\/div>/g;
-  const contentRegex = /<div class="tweet-content[^>]*>([\s\S]*?)<\/div>/;
-  const dateRegex = /<span class="tweet-date"><a href="([^"]*)" title="([^"]*)">/;
+  const parts = html.split('class="timeline-item');
 
-  let match;
-  while ((match = itemRegex.exec(html)) !== null) {
-    const block = match[1];
-    const contentMatch = block.match(contentRegex);
-    const dateMatch = block.match(dateRegex);
+  for (let i = 1; i < parts.length; i++) {
+    const chunk = parts[i];
+    const contentMatch = chunk.match(/class="tweet-content[^>]*>([\s\S]*?)<\/div>/);
+    const dateLinkMatch = chunk.match(/class="tweet-date"><a href="([^"]*)" title="([^"]*)">/);
 
     if (contentMatch) {
-      const text = contentMatch[1].replace(/<[^>]*>/g, "").trim();
-      const relativeLink = dateMatch ? dateMatch[1] : "";
-      const dateStr = dateMatch ? dateMatch[2] : new Date().toISOString();
+      const fullText = contentMatch[1].replace(/<[^>]*>/g, "").trim();
+      const relativeLink = dateLinkMatch ? dateLinkMatch[1] : "";
+      const dateTitle = dateLinkMatch ? dateLinkMatch[2] : new Date().toISOString();
 
       items.push({
-        title: text.substring(0, 80) + (text.length > 80 ? "..." : ""),
+        title: fullText.substring(0, 100) + (fullText.length > 100 ? "..." : ""),
         url: relativeLink ? `https://${baseUrl}${relativeLink}` : "",
         source: baseUrl,
-        published_at: dateStr,
-        description: text
+        published_at: dateTitle,
+        description: fullText
       });
     }
   }
@@ -156,7 +153,10 @@ export const POST: RequestHandler = async ({ request }) => {
             console.log(`[X-NEWS] Success with: ${instance} (${items.length} news)`);
             return json({ items, feedTitle: `X: ${context}` });
           }
-          console.warn(`[X-NEWS] Instance ${instance} returned no items`);
+
+          // Diagnostic snippet for empty results
+          const snippet = html.substring(0, 150).replace(/\s+/g, " ");
+          console.warn(`[X-NEWS] Instance ${instance} returned no items. Content starts: "${snippet}..."`);
         } catch (e: any) {
           console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
           instanceBackoff.set(instance, now + BACKOFF_MS);
