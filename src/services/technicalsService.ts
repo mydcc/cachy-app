@@ -193,15 +193,13 @@ export const technicalsService = {
     )}`;
 
     const toDec = (
-      val: number | string | Decimal | undefined,
+      val: any,
       fallback: Decimal,
     ): Decimal => {
       if (val instanceof Decimal) return val;
+      if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
       if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
-      if (typeof val === "string") {
-        const parsed = parseFloat(val);
-        if (!isNaN(parsed)) return new Decimal(val);
-      }
+      if (typeof val === "string") return new Decimal(val);
       return fallback;
     };
 

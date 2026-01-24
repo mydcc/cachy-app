@@ -29,12 +29,12 @@ export function calculateAllIndicators(
   if (klines.length < 2) return getEmptyData();
 
   // Prepare data arrays (number[] for speed)
-  const highsNum = klines.map((k) => k.high.toNumber());
-  const lowsNum = klines.map((k) => k.low.toNumber());
-  const closesNum = klines.map((k) => k.close.toNumber());
-  const opensNum = klines.map((k) => k.open.toNumber());
-  const volumesNum = klines.map((k) => k.volume.toNumber());
-  const currentPrice = klines[klines.length - 1].close;
+  const highsNum = klines.map((k) => new Decimal(k.high).toNumber());
+  const lowsNum = klines.map((k) => new Decimal(k.low).toNumber());
+  const closesNum = klines.map((k) => new Decimal(k.close).toNumber());
+  const opensNum = klines.map((k) => new Decimal(k.open).toNumber());
+  const volumesNum = klines.map((k) => new Decimal(k.volume).toNumber());
+  const currentPrice = new Decimal(klines[klines.length - 1].close);
 
   // Helper to get source array based on config
   const getSource = (sourceType: string): number[] => {
@@ -46,10 +46,10 @@ export function calculateAllIndicators(
       case "low":
         return lowsNum;
       case "hl2":
-        return klines.map((k) => k.high.plus(k.low).div(2).toNumber());
+        return klines.map((k) => new Decimal(k.high).plus(new Decimal(k.low)).div(2).toNumber());
       case "hlc3":
         return klines.map((k) =>
-          k.high.plus(k.low).plus(k.close).div(3).toNumber(),
+          new Decimal(k.high).plus(new Decimal(k.low)).plus(new Decimal(k.close)).div(3).toNumber(),
         );
       default:
         return closesNum;
