@@ -95,7 +95,7 @@ export class ConfluenceAnalyzer {
     if (data.advanced?.vwap && data.pivotBasis?.close) {
       const close = data.pivotBasis.close;
       const vwap = data.advanced.vwap;
-      if (close.gt(vwap)) adjust(5, "Price > VWAP");
+      if (new Decimal(close).gt(new Decimal(vwap))) adjust(5, "Price > VWAP");
       else adjust(-5, "Price < VWAP");
     }
 

@@ -428,7 +428,7 @@ export const JSIndicators = {
     // the consumer must handle the "future" plotting or we shift array here?
     // Standard: Span A/B value at index `i` is plotted at `i + displacement`.
     // To make it easy for "Current Status" checks:
-    // The "Cloud" valid for TODAY (index i) comes from calculations made `displacement` bars ago.
+    // The "Cloud" valid for TODAY (index i) comes from calculations made `displacement` ago.
 
     const displacement = basePeriod; // Often 26
 
@@ -799,7 +799,7 @@ export function getRsiAction(
   oversold: number,
 ) {
   if (!val) return "Neutral";
-  const v = val instanceof Decimal ? val.toNumber() : val;
+  const v = new Decimal(val || 0).toNumber();
   if (v >= overbought) return "Sell";
   if (v <= oversold) return "Buy";
   return "Neutral";
@@ -812,9 +812,7 @@ export const indicators = {
     period: number = 14,
   ): Decimal | null {
     if (prices.length < period + 1) return null;
-    const nums = prices.map((p) =>
-      typeof p === "object" ? p.toNumber() : Number(p),
-    );
+    const nums = prices.map((p) => new Decimal(p || 0).toNumber());
     const rsiArr = JSIndicators.rsi(nums, period);
     const last = rsiArr[rsiArr.length - 1];
     return new Decimal(last);
@@ -825,9 +823,7 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) =>
-      typeof p === "object" ? p.toNumber() : Number(p),
-    );
+    const nums = data.map((p) => new Decimal(p || 0).toNumber());
     const res = JSIndicators.sma(nums, period);
     return new Decimal(res[res.length - 1]);
   },
@@ -837,9 +833,7 @@ export const indicators = {
     period: number,
   ): Decimal | null {
     if (data.length < period) return null;
-    const nums = data.map((p) =>
-      typeof p === "object" ? p.toNumber() : Number(p),
-    );
+    const nums = data.map((p) => new Decimal(p || 0).toNumber());
     const res = JSIndicators.ema(nums, period);
     return new Decimal(res[res.length - 1]);
   },

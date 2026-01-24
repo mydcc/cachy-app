@@ -1,6 +1,6 @@
 # **Master-Konfiguration und Arbeitsanweisungen für SvelteKit**
 
-Dieses Dokument definiert die verbindlichen Regeln, Prozesse und den Kontext für alle Interaktionen. Es dient als primäre Anweisungsgrundlage für die Entwicklung von SvelteKit-Webanwendungen.Antowrte immer auf deutsch! Verfasse Analysen und Pläne sowie die Walkthroughs in Deutsch! Git-Commit-Nachrichten sollen immer in Englisch verfasst werden.
+Dieses Dokument definiert die verbindlichen Regeln, Prozesse und den Kontext für alle Interaktionen. Es dient als primäre Anweisungsgrundlage für die Entwicklung von SvelteKit-Webanwendungen.Antowrte immer auf deutsch! Verfasse Analysen und Pläne sowie die Walkthroughs in Deutsch!
 
 ## **1\. Primärer Arbeitsprozess: Der 5-Phasen-Prozess**
 
@@ -57,6 +57,7 @@ Das Löschen von Code ist eine kritische Operation und unterliegt strengen Regel
 ## **4\. Allgemeine Verhaltensregeln**
 
 - **Sprache:** Die Kommunikation erfolgt ausschließlich auf Deutsch.
+- **Commits:** Git-Commit-Nachrichten werden ausnahmslos auf Englisch verfasst.
 - **Ton:** Der Stil ist reiner Klartext – direkt, bodenständig, in ganzen Sätzen und ohne Füllfragen.
 - **Faktenbasis:** Antworten basieren nur auf gesicherten Fakten. Quellen werden genannt. Wissenslücken werden klar kommuniziert.
 - **Fehlerkultur:** Bei Fehlern wird nicht entschuldigt, sondern direkt korrigiert.
@@ -111,7 +112,7 @@ Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu
 
 - **Beispiel für einen Commit:**
 
-  ```
+  ```markdown
   feat: Implementierung der Benutzer-Authentifizierung via E-Mail
 
   Ermöglicht Benutzern das Erstellen eines Kontos und das Anmelden.
@@ -119,13 +120,13 @@ Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu
 
 - **Beispiel für einen Breaking Change Commit:**
 
-  ```
+  ```markdown
   refactor: Überarbeitung der API-Endpunkte für Konsistenz
 
   BREAKING CHANGE: Der Endpunkt `/api/user` wurde zu `/api/users` umbenannt.
   ```
 
-# General development conventions
+## **7. General development conventions**
 
 - NEVER make changes the user hasn't asked for without checking.
 - Please modify files as minimally as possible to accomplish the task.
@@ -163,13 +164,13 @@ Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu
 
 The user is a detail-oriented anal-retentive control freak. Only do things they specifically ask you to do.
 
-# Modifying code
+## **8. Modifying code**
 
 - Use the quoted code as the source of truth about the current state of the code in a file.
 - Do not assume your previous patches have been applied.
 - The user may modify the code between your changes so always check the original source.
 
-# Debugging process
+## **9. Debugging process**
 
 - Examine the program output or test output and the source code.
 - Review both carefully and form one or more hypotheses about what we observe versus what we expect/want.
@@ -179,7 +180,7 @@ The user is a detail-oriented anal-retentive control freak. Only do things they 
 If the user asks you to follow "debugging process", perform the steps above and give answers in plain english.
 When following the "debugging process" don't change any code until asked.
 
-# --- DEBUGGING (CRITICAL RULES) ---
+## **10. --- DEBUGGING (CRITICAL RULES) ---**
 
 - Based on the code, start with one or more hypotheses about what's causing the bug. Do not jump to conclusions.
 - If there is a test suite add one or more test cases that replicate the bug.
@@ -198,7 +199,7 @@ This is a strict, non-negotiable rule.
 3. The only exception is if the user **explicitly and verbatim** asks you to "remove the debugging statements". Do not infer this request.
 4. If you believe the task is complete, present the code with the debugging statements still in place and wait for the user's next instruction. Do not move on to a "cleanup" step.
 
-# Comment guidelines
+## **11. Comment guidelines**
 
 - DO NOT add comments that explain changes made (like '// added x'). Comments should only explain what the code does.
 - GOOD comment: `const x = 1; // set initial counter value`
@@ -206,11 +207,11 @@ This is a strict, non-negotiable rule.
 - Avoid adding comments unless they clarify non-obvious intent or complex logic.
 - Do not add superfluous or verbose comments.
 
-# Markdown style
+## **12. Markdown style**
 
 - Always add one empty line after headings.
 
-# Command line tools
+## **13. Command line tools**
 
 If the user asks you to behave in an agentic manner, performing tasks, use the "```bash" block technique to run commands.
 
@@ -231,7 +232,7 @@ rgrep src 'hello'
 
 The user will then run this code and give you the response. You can also write more complex scripts to perform tasks and then run them with a bash block. Generally store these in `./bin`. NEVER split one-liners over multiple lines with a backslash ("\") as they won't be parsed correctly.
 
-# Communication style
+## **14. Communication style**
 
 - The user is a senior software developer.
 - You DO NOT need to tell the user (unless asked):
@@ -240,18 +241,18 @@ The user will then run this code and give you the response. You can also write m
   - To run the dev server.
   - To run `make watch`.
 
-# Reporting outputs
+## **15. Reporting outputs**
 
 A good general information heirarchy you should should use in Markdown reports and other outputs, is to show easy to read summary lists at the start and then more detailed content below.
 
-# Common bugs to avoid
+## **16. Common bugs to avoid**
 
 - You can't put comments in JSON importmaps.
 - Avoid the string "data" with a colon directly after it. Assemble this string if you need it.
 - In LISP code be very careful about matching braces and check brace counts twice.
 - Don't name vars after built-ins like 'val'.
 
-# STRONGLY FAVOURED PARADIGMS
+## **17. STRONGLY FAVOURED PARADIGMS**
 
 - Immutability
 - Idempotency
