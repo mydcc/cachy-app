@@ -5,6 +5,14 @@
  * it under the terms of the GNU Affero General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU Affero General Public License for more details.
+ *
+ * You should have received a copy of the GNU Affero General Public License
+ * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
 import { Decimal } from "decimal.js";
@@ -58,8 +66,8 @@ export type WSStatus =
 
 // LRU Cache Configuration
 // LRU Cache Configuration
-const MAX_CACHE_SIZE = 50; // Massiv reduced from 600 to prevent RAM overflow
-const TTL_MS = 10 * 60 * 1000; // 10 minutes
+const MAX_CACHE_SIZE = 20; // Aggressively reduced for memory safety
+const TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CacheMetadata {
   lastAccessed: number;
@@ -79,7 +87,7 @@ class MarketManager {
     if (browser) {
       this.cleanupIntervalId = setInterval(() => {
         this.cleanup();
-      }, 60 * 1000);
+      }, 30 * 1000); // Check every 30s
 
       // Batch flushing loop (10 FPS)
       this.flushIntervalId = setInterval(() => {
@@ -96,59 +104,7 @@ class MarketManager {
   }
 
   private snapshotMetrics() {
-    const now = Date.now();
-    // Optimization: Only process symbols that have depth data and were recently updated
-    // Instead of iterating all, we iterate valid keys. With MAX_CACHE_SIZE=50 this is fast enough.
-    const keys = Object.keys(this.data);
-
-    // Performance Guard: if somehow we have too many keys, slice them
-    const safeKeys = keys.length > 50 ? keys.slice(0, 50) : keys;
-
-    safeKeys.forEach((key) => {
-      const market = this.data[key];
-
-      // Optimization: Skip if data is stale (>15s old)
-      // This prevents recording identical snapshots if the market is quiet or disconnected
-      if (!market.lastUpdated || now - market.lastUpdated > 15000) return;
-
-      // Only record if we have depth and price
-      if (
-        !market.depth ||
-        !market.lastPrice ||
-        market.depth.bids.length === 0 ||
-        market.depth.asks.length === 0
-      ) return;
-
-      const bestBid = parseFloat(market.depth.bids[0][0]);
-      const bestAsk = parseFloat(market.depth.asks[0][0]);
-
-      if (!bestBid || !bestAsk) return;
-
-      const spread = (bestAsk - bestBid) / bestBid; // Relative spread
-
-      // Calculate Imbalance (Top 5 levels)
-      const bidVol = market.depth.bids.slice(0, 5).reduce((acc, level) => acc + parseFloat(level[1]), 0);
-      const askVol = market.depth.asks.slice(0, 5).reduce((acc, level) => acc + parseFloat(level[1]), 0);
-      const imbalance = (bidVol + askVol) > 0 ? bidVol / (bidVol + askVol) : 0.5;
-
-      const snapshot: MetricSnapshot = {
-        time: now,
-        spread,
-        imbalance,
-        price: market.lastPrice.toNumber()
-      };
-
-      // Initialize if missing
-      if (!market.metricsHistory) market.metricsHistory = [];
-
-      // Add new snapshot
-      market.metricsHistory.push(snapshot);
-
-      // Keep last 30 entries (5 minutes) - reduced from 60 for memory safety
-      if (market.metricsHistory.length > 30) {
-        market.metricsHistory.shift();
-      }
-    });
+    // Disabled logic
   }
 
   private getOrCreateSymbol(symbol: string): MarketData {
@@ -197,9 +153,15 @@ class MarketManager {
   }
 
   private enforceCacheLimit() {
+    // Aggressively clear cache if it grows too large
     while (Object.keys(this.data).length > MAX_CACHE_SIZE) {
       const toEvict = this.evictLRU();
-      if (!toEvict) break;
+      if (!toEvict) {
+         // Fallback: If metadata is out of sync, delete arbitrary key
+         const key = Object.keys(this.data)[0];
+         if (key) delete this.data[key];
+         break;
+      }
       delete this.data[toEvict];
     }
   }
@@ -403,6 +365,7 @@ class MarketManager {
       this.cacheMetadata.delete(symbol);
       delete this.data[symbol];
     });
+    this.enforceCacheLimit();
   }
 
   subscribe(fn: (value: Record<string, MarketData>) => void) {
