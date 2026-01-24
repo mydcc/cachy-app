@@ -328,15 +328,16 @@ export class TradeExecutionService {
     const bitunixSide = params.side.toUpperCase() as "BUY" | "SELL";
     const bitunixType = params.type.toUpperCase() as "LIMIT" | "MARKET";
 
+    // Use string format for financial values to preserve precision
     const body: any = {
       symbol: params.symbol,
       side: bitunixSide,
       orderType: bitunixType,
-      qty: new Decimal(params.amount).toNumber(),
+      qty: new Decimal(params.amount).toString(),
     };
 
     if (params.type === "limit" && params.price) {
-      body.price = new Decimal(params.price).toNumber();
+      body.price = new Decimal(params.price).toString();
     }
     if (params.leverage) body.leverage = params.leverage;
     if (params.timeInForce) body.effect = params.timeInForce.toUpperCase().replace("POSTONLY", "POST_ONLY");
@@ -344,12 +345,12 @@ export class TradeExecutionService {
 
     // TP/SL
     if (params.takeProfit) {
-      body.tpPrice = new Decimal(params.takeProfit).toNumber();
+      body.tpPrice = new Decimal(params.takeProfit).toString();
       body.tpStopType = "PRICE";
       body.tpOrderType = "MARKET";
     }
     if (params.stopLoss) {
-      body.slPrice = new Decimal(params.stopLoss).toNumber();
+      body.slPrice = new Decimal(params.stopLoss).toString();
       body.slStopType = "PRICE";
       body.slOrderType = "MARKET";
     }
@@ -423,8 +424,8 @@ export class TradeExecutionService {
     logger.log("market", "Modify Order:", params);
 
     const body: any = { orderId: params.orderId };
-    if (params.price) body.price = new Decimal(params.price).toNumber();
-    if (params.amount) body.qty = new Decimal(params.amount).toNumber();
+    if (params.price) body.price = new Decimal(params.price).toString();
+    if (params.amount) body.qty = new Decimal(params.amount).toString();
     const response = await this.signedRequest<{
       orderId: string;
       symbol: string;
@@ -622,8 +623,8 @@ export class TradeExecutionService {
       symbol: o.symbol,
       side: o.side.toUpperCase(),
       orderType: o.type.toUpperCase(),
-      qty: new Decimal(o.amount).toNumber(),
-      ...(o.type === "limit" && o.price ? { price: new Decimal(o.price).toNumber() } : {}),
+      qty: new Decimal(o.amount).toString(),
+      ...(o.type === "limit" && o.price ? { price: new Decimal(o.price).toString() } : {}),
       ...(o.leverage ? { leverage: o.leverage } : {}),
       ...(o.reduceOnly ? { reduceOnly: true } : {}),
     }));

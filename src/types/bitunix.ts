@@ -67,8 +67,11 @@ export interface NormalizedOrder {
   type: string;
   side: string;
   price: number;
+  priceStr: string; // High-precision string
   amount: number;
+  amountStr: string; // High-precision string
   filled: number;
+  filledStr: string; // High-precision string
   status: string;
   time: number;
   mtime?: number;
@@ -77,7 +80,9 @@ export interface NormalizedOrder {
   positionMode?: string;
   reduceOnly?: boolean;
   fee: number;
+  feeStr: string; // High-precision string
   realizedPNL: number;
+  realizedPNLStr: string; // High-precision string
   tpPrice?: string;
   tpStopType?: string;
   tpOrderType?: string;
@@ -85,6 +90,7 @@ export interface NormalizedOrder {
   slStopType?: string;
   slOrderType?: string;
   avgPrice?: number;
+  avgPriceStr?: string; // High-precision string
   role?: string;
 }
 

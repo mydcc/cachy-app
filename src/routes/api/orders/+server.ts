@@ -30,12 +30,26 @@ import type {
 import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
 
+// Centralized Error Messages for i18n/consistency
+const ORDER_ERRORS = {
+  INVALID_JSON: "Invalid JSON body",
+  VALIDATION_ERROR: "Validation Error",
+  PASSPHRASE_REQUIRED: "Passphrase required for Bitget",
+  INVALID_AMOUNT: "Invalid amount formatting",
+  INVALID_QTY: "Invalid quantity formatting",
+  PRICE_REQUIRED: "Price required for limit order",
+  INVALID_PRICE: "Invalid price formatting",
+  INVALID_TRIGGER: "Invalid triggerPrice formatting",
+  BITUNIX_API_ERROR: "Bitunix API error",
+  BITGET_API_ERROR: "Bitget API error",
+};
+
 export const POST: RequestHandler = async ({ request }) => {
   let body: unknown;
   try {
     body = await request.json();
   } catch (e) {
-    return json({ error: "Invalid JSON body" }, { status: 400 });
+    return json({ error: ORDER_ERRORS.INVALID_JSON }, { status: 400 });
   }
 
   // 1. Zod Validation
@@ -44,7 +58,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!validation.success) {
     // Format Zod errors
     const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
-    return json({ error: `Validation Error: ${errors}`, code: "VALIDATION_ERROR", details: errors }, { status: 400 });
+    return json({ error: `${ORDER_ERRORS.VALIDATION_ERROR}: ${errors}`, code: "VALIDATION_ERROR", details: errors }, { status: 400 });
   }
 
   const payload = validation.data;
@@ -55,7 +69,7 @@ export const POST: RequestHandler = async ({ request }) => {
     const err = validateBitunixKeys(apiKey, apiSecret);
     if (err) return json({ error: err }, { status: 400 });
   } else if (exchange === "bitget") {
-    if (!passphrase) return json({ error: "Passphrase required for Bitget" }, { status: 400 });
+    if (!passphrase) return json({ error: ORDER_ERRORS.PASSPHRASE_REQUIRED }, { status: 400 });
     const err = validateBitgetKeys(apiKey, apiSecret, passphrase);
     if (err) return json({ error: err }, { status: 400 });
   }
@@ -92,7 +106,7 @@ export const POST: RequestHandler = async ({ request }) => {
       }
       else if (payload.type === "close-position") {
         const safeAmount = formatApiNum(payload.amount);
-        if (!safeAmount) throw new Error("Invalid amount formatting");
+        if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
 
         const closeOrder: BitunixOrderPayload = {
           symbol: payload.symbol,
@@ -106,7 +120,7 @@ export const POST: RequestHandler = async ({ request }) => {
     }
     // --- BITGET ---
     else if (exchange === "bitget") {
-      if (!passphrase) throw new Error("Passphrase required");
+      if (!passphrase) throw new Error(ORDER_ERRORS.PASSPHRASE_REQUIRED);
 
       if (payload.type === "pending") {
         const orders = await fetchBitgetPendingOrders(apiKey, apiSecret, passphrase);
@@ -132,7 +146,7 @@ export const POST: RequestHandler = async ({ request }) => {
       }
       else if (payload.type === "close-position") {
          const safeAmount = formatApiNum(payload.amount);
-         if (!safeAmount) throw new Error("Invalid amount");
+         if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
 
          const bitgetPayload: BitgetOrderPayload & { marginCoin?: string } = {
              symbol: payload.symbol,
@@ -197,7 +211,7 @@ async function placeBitunixOrder(
   const path = "/api/v1/futures/trade/place_order";
 
   const safeQty = formatApiNum(orderData.qty);
-  if (!safeQty || isNaN(parseFloat(safeQty))) throw new Error("Invalid quantity formatting");
+  if (!safeQty || isNaN(parseFloat(safeQty))) throw new Error(ORDER_ERRORS.INVALID_QTY);
 
   const payload: BitunixOrderPayload = {
     ...orderData,
@@ -206,15 +220,15 @@ async function placeBitunixOrder(
 
   const type = payload.type;
   if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
-    if (!orderData.price) throw new Error("Price required for limit order");
+    if (!orderData.price) throw new Error(ORDER_ERRORS.PRICE_REQUIRED);
     const safePrice = formatApiNum(orderData.price);
-    if (!safePrice) throw new Error("Invalid price formatting");
+    if (!safePrice) throw new Error(ORDER_ERRORS.INVALID_PRICE);
     payload.price = safePrice;
   }
 
   if (orderData.triggerPrice) {
     const safeTrigger = formatApiNum(orderData.triggerPrice);
-    if (!safeTrigger) throw new Error("Invalid triggerPrice formatting");
+    if (!safeTrigger) throw new Error(ORDER_ERRORS.INVALID_TRIGGER);
     payload.triggerPrice = safeTrigger;
   }
 
@@ -236,7 +250,7 @@ async function placeBitunixOrder(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`Bitunix API error: ${response.status} ${text.slice(0, 200)}`);
+    throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status} ${text.slice(0, 200)}`);
   }
 
   const res: BitunixResponse<BitunixOrder> = await response.json();
@@ -265,7 +279,7 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     },
   });
 
-  if (!response.ok) throw new Error(`Bitunix API error: ${response.status}`);
+  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
   const res = (await response.json()) as BitunixResponse<BitunixOrder[] | BitunixOrderListWrapper>;
   if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
@@ -285,12 +299,17 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     type: o.type,
     side: o.side,
     price: parseFloat(o.price || "0"),
+    priceStr: String(o.price || "0"),
     amount: parseFloat(o.qty || "0"),
+    amountStr: String(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
+    filledStr: String(o.tradeQty || "0"),
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
     fee: parseFloat(o.fee || "0"),
+    feeStr: String(o.fee || "0"),
     realizedPNL: parseFloat(o.realizedPNL || "0"),
+    realizedPNLStr: String(o.realizedPNL || "0"),
   }));
 }
 
@@ -311,7 +330,7 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     },
   });
 
-  if (!response.ok) throw new Error(`Bitunix API error: ${response.status}`);
+  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
   const res = (await response.json());
   if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
 
@@ -329,11 +348,17 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     type: o.type,
     side: o.side,
     price: parseFloat(o.price || "0"),
+    priceStr: String(o.price || "0"),
     amount: parseFloat(o.qty || "0"),
+    amountStr: String(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
+    filledStr: String(o.tradeQty || "0"),
     avgPrice: parseFloat(o.avgPrice || o.averagePrice || "0"),
+    avgPriceStr: String(o.avgPrice || o.averagePrice || "0"),
     realizedPNL: parseFloat(o.realizedPNL || "0"),
+    realizedPNLStr: String(o.realizedPNL || "0"),
     fee: parseFloat(o.fee || "0"),
+    feeStr: String(o.fee || "0"),
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
   }));
@@ -395,7 +420,7 @@ async function placeBitgetOrder(
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`Bitget API Error: ${response.status} ${text.slice(0, 100)}`);
+        throw new Error(`${ORDER_ERRORS.BITGET_API_ERROR}: ${response.status} ${text.slice(0, 100)}`);
     }
 
     const res = await response.json();
@@ -433,7 +458,7 @@ async function fetchBitgetPendingOrders(
         }
     });
 
-    if (!response.ok) throw new Error("Bitget API Error");
+    if (!response.ok) throw new Error(ORDER_ERRORS.BITGET_API_ERROR);
     const res = await response.json();
     if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
@@ -445,12 +470,17 @@ async function fetchBitgetPendingOrders(
         type: o.orderType,
         side: o.side, // open_long etc
         price: parseFloat(o.price || "0"),
+        priceStr: String(o.price || "0"),
         amount: parseFloat(o.size || "0"),
+        amountStr: String(o.size || "0"),
         filled: parseFloat(o.filledQty || "0"),
+        filledStr: String(o.filledQty || "0"),
         status: o.status, // new, partial_fill
         time: parseInt(o.cTime),
         fee: parseFloat(o.fee || "0"),
-        realizedPNL: 0
+        feeStr: String(o.fee || "0"),
+        realizedPNL: 0,
+        realizedPNLStr: "0",
     }));
 }
 
@@ -493,12 +523,18 @@ async function fetchBitgetHistoryOrders(
         type: o.orderType,
         side: o.side,
         price: parseFloat(o.price || "0"),
+        priceStr: String(o.price || "0"),
         amount: parseFloat(o.size || "0"),
+        amountStr: String(o.size || "0"),
         filled: parseFloat(o.filledQty || "0"),
+        filledStr: String(o.filledQty || "0"),
         avgPrice: parseFloat(o.priceAvg || "0"),
+        avgPriceStr: String(o.priceAvg || "0"),
         status: o.state, // filled, canceled
         time: parseInt(o.cTime),
         fee: parseFloat(o.fee || "0"),
-        realizedPNL: 0
+        feeStr: String(o.fee || "0"),
+        realizedPNL: 0,
+        realizedPNLStr: "0",
     }));
 }

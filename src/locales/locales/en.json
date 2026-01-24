@@ -860,6 +860,16 @@
     "30039": "The order qty can't be greater than the max order qty",
     "30040": "Futures trading is prohibited, please contact customer service.",
     "30041": "Trigger price must be greater than 0",
-    "30042": "Client ID duplicate"
+    "30042": "Client ID duplicate",
+    "INVALID_JSON": "Invalid JSON body",
+    "VALIDATION_ERROR": "Validation Error",
+    "PASSPHRASE_REQUIRED": "Passphrase required for Bitget",
+    "INVALID_AMOUNT": "Invalid amount formatting",
+    "INVALID_QTY": "Invalid quantity formatting",
+    "PRICE_REQUIRED": "Price required for limit order",
+    "INVALID_PRICE": "Invalid price formatting",
+    "INVALID_TRIGGER": "Invalid triggerPrice formatting",
+    "BITUNIX_API_ERROR": "Bitunix API error",
+    "BITGET_API_ERROR": "Bitget API error"
   }
 }
