@@ -1,6 +1,6 @@
 # **Master-Konfiguration und Arbeitsanweisungen für SvelteKit**
 
-Dieses Dokument definiert die verbindlichen Regeln, Prozesse und den Kontext für alle Interaktionen. Es dient als primäre Anweisungsgrundlage für die Entwicklung von SvelteKit-Webanwendungen.Antowrte immer auf deutsch!
+Dieses Dokument definiert die verbindlichen Regeln, Prozesse und den Kontext für alle Interaktionen. Es dient als primäre Anweisungsgrundlage für die Entwicklung von SvelteKit-Webanwendungen.Antowrte immer auf deutsch! Verfasse Analysen und Pläne sowie die Walkthroughs in Deutsch!
 
 ## **1\. Primärer Arbeitsprozess: Der 5-Phasen-Prozess**
 
