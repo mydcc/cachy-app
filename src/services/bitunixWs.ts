@@ -681,7 +681,7 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data) {
+          if (symbol && data && typeof data === "object") {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:price`)) {
               marketState.updateSymbol(symbol, {
@@ -698,7 +698,7 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data) {
+          if (symbol && data && typeof data === "object") {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:ticker`)) {
               marketState.updateSymbol(symbol, {
@@ -718,7 +718,7 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data) {
+          if (symbol && data && Array.isArray(data.b) && Array.isArray(data.a)) {
             if (!this.shouldThrottle(`${symbol}:depth`)) {
               marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
             }

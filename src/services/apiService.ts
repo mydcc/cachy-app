@@ -59,11 +59,21 @@ class RequestManager {
   // Logging for debugging latency
   private readonly LOG_LIMIT = 50;
 
+  private cleanupInterval: ReturnType<typeof setInterval> | null = null;
+
   constructor() {
     // Start periodic cleanup to prevent memory leaks
     if (typeof setInterval !== "undefined") {
-      setInterval(() => this.pruneCache(), this.CLEANUP_INTERVAL);
+      this.cleanupInterval = setInterval(() => this.pruneCache(), this.CLEANUP_INTERVAL);
     }
+  }
+
+  public destroy() {
+    if (this.cleanupInterval) {
+      clearInterval(this.cleanupInterval);
+      this.cleanupInterval = null;
+    }
+    this.clearCache();
   }
 
   private pruneCache() {
@@ -237,6 +247,12 @@ class RequestManager {
 
 export const requestManager = new RequestManager();
 
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    requestManager.destroy();
+  });
+}
+
 export function clearApiCache() {
   requestManager.clearCache();
 }
@@ -324,11 +340,15 @@ export const apiService = {
             throw error;
           }
           const data = validatedRes.data[0];
-          const lastPrice = Number(data.lastPrice);
-          if (isNaN(lastPrice) || !isFinite(lastPrice)) {
+          try {
+            const lastPrice = new Decimal(data.lastPrice);
+            if (lastPrice.isNaN() || !lastPrice.isFinite()) {
+              throw new Error("apiErrors.invalidResponse");
+            }
+            return lastPrice;
+          } catch {
             throw new Error("apiErrors.invalidResponse");
           }
-          return new Decimal(lastPrice);
         } catch (e: any) {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
@@ -621,41 +641,35 @@ export const apiService = {
               throw new Error("apiErrors.invalidResponse");
             }
             const ticker = data.data[0];
-            const openRaw =
-              ticker.open !== undefined && ticker.open !== null
-                ? Number(ticker.open)
-                : 0;
-            const lastRaw =
-              ticker.lastPrice !== undefined && ticker.lastPrice !== null
-                ? Number(ticker.lastPrice)
-                : NaN; // Keep NaN for validation below
-            const highRaw =
-              ticker.high !== undefined && ticker.high !== null
-                ? Number(ticker.high)
-                : NaN;
-            const lowRaw =
-              ticker.low !== undefined && ticker.low !== null
-                ? Number(ticker.low)
-                : NaN;
-            const baseVolRaw =
-              ticker.baseVol !== undefined && ticker.baseVol !== null
-                ? Number(ticker.baseVol)
-                : 0;
-            const quoteVolRaw =
-              ticker.quoteVol !== undefined && ticker.quoteVol !== null
-                ? Number(ticker.quoteVol)
-                : 0;
 
-            if (isNaN(lastRaw) || !isFinite(lastRaw)) {
-              throw new Error("apiErrors.invalidResponse");
+            // Helper to safe parse decimal
+            const toDec = (val: any, defaultVal = "0") => {
+              if (val === undefined || val === null || val === "") return new Decimal(defaultVal);
+              try {
+                const d = new Decimal(val);
+                return d.isNaN() ? new Decimal(defaultVal) : d;
+              } catch {
+                return new Decimal(defaultVal);
+              }
+            };
+
+            // Critical check for Last Price
+            if (ticker.lastPrice === undefined || ticker.lastPrice === null) {
+               throw new Error("apiErrors.invalidResponse");
+            }
+            let last: Decimal;
+            try {
+               last = new Decimal(ticker.lastPrice);
+               if (last.isNaN() || !last.isFinite()) throw new Error();
+            } catch {
+               throw new Error("apiErrors.invalidResponse");
             }
 
-            const open = new Decimal(isNaN(openRaw) ? 0 : openRaw);
-            const last = new Decimal(lastRaw);
-            const high = new Decimal(isNaN(highRaw) ? lastRaw : highRaw);
-            const low = new Decimal(isNaN(lowRaw) ? lastRaw : lowRaw);
-            const baseVol = new Decimal(isNaN(baseVolRaw) ? 0 : baseVolRaw);
-            const quoteVol = new Decimal(isNaN(quoteVolRaw) ? 0 : quoteVolRaw);
+            const open = toDec(ticker.open);
+            const high = ticker.high ? toDec(ticker.high) : last;
+            const low = ticker.low ? toDec(ticker.low) : last;
+            const baseVol = toDec(ticker.baseVol);
+            const quoteVol = toDec(ticker.quoteVol);
 
             let change = new Decimal(0);
             if (!open.isZero()) {

@@ -572,6 +572,10 @@
       "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
     },
     "ai": {
+      "status": {
+        "confirmed": "Bestätigt",
+        "rejected": "Abgelehnt"
+      },
       "intelligenceTitle": "KI-Core",
       "providerDesc": "Wähle deine primäre KI-Engine für Marktanalysen und Aktionen.",
       "modelTitle": "Modell & Prompting",
@@ -834,6 +838,18 @@
       "networkLogsTitle": "Netzwerk-Protokollierung",
       "networkLogsDesc": "Echtzeit-API & Serveraktivität in der Konsole anzeigen."
     }
+  },
+  "symbolPicker": {
+    "title": "Symbol auswählen",
+    "searchPlaceholder": "Suchen...",
+    "favorites": "Favoriten",
+    "gainers": "Top Gewinner",
+    "volatile": "Volatil (>5%)",
+    "all": "Alle Symbole",
+    "minVol": "Min Vol",
+    "hideAlts": "Alts ausblenden",
+    "noSymbolsFound": "Keine Symbole gefunden.",
+    "syncing": "Synchronisiere Markt..."
   },
   "common": {
     "save": "Speichern",
