@@ -58,6 +58,8 @@ class TechnicalsWorkerManager {
   }
 
   private initWorker() {
+    // DISABLED: Worker causes memory leak.
+    /*
     if (!browser || typeof Worker === "undefined") return;
 
     try {
@@ -74,6 +76,7 @@ class TechnicalsWorkerManager {
         this.checkInterval = setInterval(() => this.checkIdle(), 10000);
       }
     } catch (e) {}
+    */
   }
 
   private checkIdle() {
@@ -329,6 +332,9 @@ export const technicalsService = {
     const cleanSettings = JSON.parse(JSON.stringify(settings || {}));
 
     // --- Worker Offloading ---
+    // DISABLED: Worker causes high memory usage/leak in Chrome ("Dedicated Worker" > 1GB).
+    // Running inline is efficient enough for 200 candles.
+    /*
     if (browser && window.Worker) {
       try {
         const result = await workerManager.calculate({
@@ -341,6 +347,7 @@ export const technicalsService = {
         // Fallback continues below
       }
     }
+    */
 
     // Fallback or SSR
     return this.calculateTechnicalsInline(klinesInput, settings);
