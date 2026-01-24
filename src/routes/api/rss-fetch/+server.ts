@@ -44,12 +44,12 @@ const NITTER_INSTANCES = [
   "nitter.cz",
   "nitter.privacydev.net",
   "nitter.it",
-  "nitter.tinfoil-hat.net"
+  "nitter.tinfoil-hat.net",
+  "nitter.dr460negg.ca"
 ];
 
 export const POST: RequestHandler = async ({ request }) => {
   let url = "unknown";
-  let host = "unknown";
 
   try {
     const body = await request.json();
@@ -59,11 +59,17 @@ export const POST: RequestHandler = async ({ request }) => {
       return json({ error: "Missing or invalid URL parameter" }, { status: 400 });
     }
 
-    const tryFetch = async (targetUrl: string): Promise<any> => {
+    const tryFetch = async (targetUrl: string, timeout = 3000): Promise<any> => {
+      const controller = new AbortController();
+      const id = setTimeout(() => controller.abort(), timeout);
+
       try {
-        const feed = await parser.parseURL(targetUrl);
-        return feed;
+        const response = await fetch(targetUrl, { signal: controller.signal });
+        const xml = await response.text();
+        clearTimeout(id);
+        return await parser.parseString(xml);
       } catch (e: any) {
+        clearTimeout(id);
         throw e;
       }
     };
@@ -73,30 +79,34 @@ export const POST: RequestHandler = async ({ request }) => {
     let feedData: any = null;
 
     if (isNitter) {
-      // Try multiple Nitter instances if one fails
-      let lastError = null;
+      console.log(`[RSS-FETCH] Nitter Rotation started for: ${url}`);
+      let lastError: any = null;
       for (const instance of NITTER_INSTANCES) {
-        // Replace the current host with a new one from the list
-        const currentUrl = new URL(url);
-        const testUrl = url.replace(currentUrl.hostname, instance);
+        const urlObj = new URL(url);
+        const testUrl = url.replace(urlObj.hostname, instance);
 
+        console.log(`[RSS-FETCH] Trying Nitter instance: ${instance}...`);
         try {
-          feedData = await tryFetch(testUrl);
-          if (feedData) break;
-        } catch (e) {
+          feedData = await tryFetch(testUrl, 3000); // 3s Timeout
+          if (feedData) {
+            console.log(`[RSS-FETCH] Success with instance: ${instance}`);
+            break;
+          }
+        } catch (e: any) {
           lastError = e;
+          console.warn(`[RSS-FETCH] Instance ${instance} failed: ${e.message}`);
           continue;
         }
       }
       if (!feedData && lastError) throw lastError;
     } else {
-      feedData = await tryFetch(url);
+      feedData = await tryFetch(url, 8000); // Normal feeds get 8s
     }
 
     if (!feedData) throw new Error("No data fetched");
 
     // Success! Normalize to NewsItem format
-    const newsItems = feedData.items.map((item: any) => ({
+    const newsItems = (feedData.items || []).map((item: any) => ({
       title: item.title || "Untitled",
       url: item.link || url,
       source: feedData.title || new URL(url).hostname,
@@ -104,23 +114,21 @@ export const POST: RequestHandler = async ({ request }) => {
       description: item.contentSnippet || item.content || "",
     }));
 
-    const responseData = {
+    return json({
       items: newsItems,
       feedTitle: feedData.title,
-    };
-
-    return json(responseData);
+    });
 
   } catch (error: any) {
-    const isParsingError = error.message?.includes("Invalid XML") || error.message?.includes("Unable to parse XML");
+    const isParsingError = error.message?.includes("Invalid XML") ||
+      error.message?.includes("Unable to parse XML") ||
+      error.name === "AbortError";
 
-    if (isParsingError) {
-      console.error(`[RSS-FIX] Critical Format Error for ${url}: ${error.message}`);
-    }
+    console.error(`[RSS-FETCH] Final Error for ${url}: ${error.message}`);
 
     return json(
       {
-        error: "Failed to fetch RSS feed",
+        error: "Failed to fetch RSS feed after all attempts",
         details: error.message,
         isFormatError: isParsingError
       },
