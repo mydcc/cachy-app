@@ -33,6 +33,8 @@ export interface XMonitor {
   value: string;
 }
 
+export type MarketMode = "performance" | "balanced" | "pro" | "custom";
+
 
 export interface ApiKeys {
   key: string;
@@ -161,6 +163,11 @@ export interface Settings {
   discordBotToken?: string;
   discordChannels: string[];
   xMonitors: XMonitor[];
+
+  // Market & Performance Settings
+  marketMode: MarketMode;
+  analyzeAllFavorites: boolean; // if false, only top 4
+  enableNewsScraper: boolean; // if false, only on-demand
 }
 
 const defaultSettings: Settings = {
@@ -273,6 +280,10 @@ const defaultSettings: Settings = {
   discordBotToken: "",
   discordChannels: [],
   xMonitors: [], // e.g. [{type: 'user', value: 'elonmusk'}, {type: 'hashtag', value: 'BTC'}]
+
+  marketMode: "balanced",
+  analyzeAllFavorites: false, // Default to top 4 only for balanced
+  enableNewsScraper: false, // Default to disabled (no Nitter)
 };
 
 class SettingsManager {
@@ -486,7 +497,45 @@ class SettingsManager {
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
   xMonitors = $state<XMonitor[]>(defaultSettings.xMonitors);
 
+  // Market & Performance State
+  private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
+  analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
+  enableNewsScraper = $state<boolean>(defaultSettings.enableNewsScraper);
 
+  get marketMode() {
+    return this._marketMode;
+  }
+
+  set marketMode(v: MarketMode) {
+    if (v !== this._marketMode) {
+      this._marketMode = v;
+      this.applyMarketMode(v);
+    }
+  }
+
+  // Pre-defined profiles
+  private applyMarketMode(mode: MarketMode) {
+    if (mode === "performance") {
+      this.marketAnalysisInterval = 0; // Disabled background analysis usually, or very slow
+      this.enableNewsAnalysis = false;
+      this.showMarketActivity = false;
+      this.analyzeAllFavorites = false;
+      this.enableNewsScraper = false;
+    } else if (mode === "balanced") {
+      this.marketAnalysisInterval = 300; // 5 minutes
+      this.enableNewsAnalysis = true;
+      this.showMarketActivity = true;
+      this.analyzeAllFavorites = false; // Only Top 4
+      this.enableNewsScraper = false;
+    } else if (mode === "pro") {
+      this.marketAnalysisInterval = 60; // 1 minute
+      this.enableNewsAnalysis = true;
+      this.showMarketActivity = true;
+      this.analyzeAllFavorites = true; // All 12
+      this.enableNewsScraper = true; // Full power
+    }
+    // "custom" touches nothing, user decides
+  }
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
   private listeners: Set<(value: Settings) => void> = new Set();
@@ -740,6 +789,10 @@ class SettingsManager {
         merged.discordChannels || defaultSettings.discordChannels;
       this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
 
+      this._marketMode = merged.marketMode || defaultSettings.marketMode;
+      this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
+      this.enableNewsScraper = merged.enableNewsScraper ?? defaultSettings.enableNewsScraper;
+
 
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
@@ -895,6 +948,9 @@ class SettingsManager {
       discordBotToken: this.discordBotToken,
       discordChannels: $state.snapshot(this.discordChannels),
       xMonitors: $state.snapshot(this.xMonitors),
+      marketMode: this.marketMode,
+      analyzeAllFavorites: this.analyzeAllFavorites,
+      enableNewsScraper: this.enableNewsScraper,
     };
   }
 

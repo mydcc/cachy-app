@@ -45,11 +45,13 @@
   import IntegrationsTab from "./tabs/IntegrationsTab.svelte";
   import MaintenanceTab from "./tabs/MaintenanceTab.svelte";
   import CloudTab from "./tabs/CloudTab.svelte";
+  import MarketSettingsTab from "./tabs/MarketSettingsTab.svelte";
 
   // Tab State
   type TabType =
     | "profile"
     | "workspace"
+    | "market"
     | "analysis"
     | "ai_assistant"
     | "integrations"
@@ -252,6 +254,11 @@
       label: $_("settings.tabs.workspace") || "Workspace & Sidebar",
     },
     {
+      id: "market",
+      icon: `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`, // Asterisk/Gear mix
+      label: "Markt & Performance",
+    },
+    {
       id: "analysis",
       icon: `<path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/>`,
       label: $_("settings.tabs.analysis") || "Analysis Logic",
@@ -353,6 +360,8 @@
         <ProfileTab {themes} />
       {:else if activeTab === "workspace"}
         <WorkspaceTab />
+      {:else if activeTab === "market"}
+        <MarketSettingsTab />
       {:else if activeTab === "analysis"}
         <AnalysisTab {availableTimeframes} />
       {:else if activeTab === "ai_assistant"}

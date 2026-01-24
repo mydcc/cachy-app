@@ -107,7 +107,9 @@ export const app = {
       settingsState.showMarketActivity = true; // Show details in tiles
       settingsState.showSidebarActivity = false; // Hide sidebar
       settingsState.showMarketSentiment = true;
+      settingsState.showMarketSentiment = true;
       settingsState.enableNewsAnalysis = true;
+      settingsState.marketMode = "balanced"; // Default to smart balanced mode
 
       localStorage.setItem(INIT_KEY, "true");
 

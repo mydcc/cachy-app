@@ -40,7 +40,7 @@ class MarketAnalystService {
     private async processNext() {
         if (!this.isRunning) return;
 
-        if (!settingsState.capabilities.marketData) {
+        if (!settingsState.capabilities.marketData || settingsState.marketAnalysisInterval <= 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 10000);
             return;
         }
@@ -57,8 +57,11 @@ class MarketAnalystService {
             return;
         }
 
-        // Round-robin selection
-        this.currentSymbolIndex = (this.currentSymbolIndex + 1) % favorites.length;
+        // --- NEW LOGIC: Respect "Balanced" Mode (Top 4 only) ---
+        const limit = settingsState.analyzeAllFavorites ? favorites.length : Math.min(favorites.length, 4);
+
+        // Ensure index wraps correctly within the limit
+        this.currentSymbolIndex = (this.currentSymbolIndex + 1) % limit;
         const symbol = favorites[this.currentSymbolIndex];
 
         try {
