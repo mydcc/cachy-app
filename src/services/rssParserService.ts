@@ -22,14 +22,19 @@ export const rssParserService = {
    * @param url - RSS feed URL
    * @returns Array of normalized NewsItem objects
    */
-  async parseRssFeed(url: string): Promise<NewsItem[]> {
+  async parseRssFeed(input: string): Promise<NewsItem[]> {
     try {
+      const isXCommand = input.startsWith("x:");
+      const body = isXCommand
+        ? { xCmd: { type: input.split(":")[1], value: input.split(":")[2] } }
+        : { url: input };
+
       const response = await fetch("/api/rss-fetch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ url }),
+        body: JSON.stringify(body),
       });
 
       if (!response.ok) {
@@ -48,7 +53,7 @@ export const rssParserService = {
         currencies: [], // RSS feeds don't typically have currency tags
       }));
     } catch (error) {
-      console.error(`[rssParser] Error parsing RSS feed ${url}:`, error);
+      console.error(`[rssParser] Error parsing Feed ${input}:`, error);
       return []; // Graceful fallback: return empty array
     }
   },

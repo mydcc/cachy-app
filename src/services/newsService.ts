@@ -10,7 +10,7 @@
 import { settingsState } from "../stores/settings.svelte";
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import { rssParserService } from "./rssParserService";
-import { xService } from "./xService";
+import { xService } from "./xService.svelte";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
@@ -191,7 +191,7 @@ export const newsService = {
           ...(settingsState.customRssFeeds || []).filter(
             (u) => u && u.trim().length > 0,
           ),
-          ...xService.getXFeedUrls(),
+          ...xService.getXMonitorCommands().map((cmd: { type: string, value: string }) => `x:${cmd.type}:${cmd.value}`)
         ];
 
         if (rssUrls.length > 0) {

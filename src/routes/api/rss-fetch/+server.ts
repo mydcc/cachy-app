@@ -41,15 +41,19 @@ const MAX_CACHE_ENTRIES = 50;
 const NITTER_INSTANCES = [
   "xcancel.com",
   "nuku.trabun.org",
+  "nitter.privacyredirect.com",
+  "lightbrd.com",
+  "nitter.catsarch.com",
   "nitter.tiekoetter.com",
   "nitter.space",
-  "nitter.privacyredirect.com",
   "nitter.poast.org",
   "nitter.net",
-  "nitter.catsarch.com",
-  "nitter.popper.org",
-  "lightbrd.com"
+  "nitter.popper.org"
 ];
+
+// In-memory blacklist to temporarily skip failing instances
+const instanceBackoff = new Map<string, number>();
+const BACKOFF_MS = 5 * 60 * 1000; // 5 minutes ignore after failure
 
 /**
  * Shuffles an array (Fisher-Yates)
@@ -63,18 +67,46 @@ function shuffle<T>(array: T[]): T[] {
   return result;
 }
 
+/**
+ * Super-lightweight HTML Scraper for Nitter timeline
+ */
+function scrapeNitterHTML(html: string, baseUrl: string): any[] {
+  const items: any[] = [];
+  const itemRegex = /<div class="timeline-item[^"]*">([\s\S]*?)<\/div>\s*<\/div>/g;
+  const contentRegex = /<div class="tweet-content[^>]*>([\s\S]*?)<\/div>/;
+  const dateRegex = /<span class="tweet-date"><a href="([^"]*)" title="([^"]*)">/;
+
+  let match;
+  while ((match = itemRegex.exec(html)) !== null) {
+    const block = match[1];
+    const contentMatch = block.match(contentRegex);
+    const dateMatch = block.match(dateRegex);
+
+    if (contentMatch) {
+      const text = contentMatch[1].replace(/<[^>]*>/g, "").trim();
+      const relativeLink = dateMatch ? dateMatch[1] : "";
+      const dateStr = dateMatch ? dateMatch[2] : new Date().toISOString();
+
+      items.push({
+        title: text.substring(0, 80) + (text.length > 80 ? "..." : ""),
+        url: relativeLink ? `https://${baseUrl}${relativeLink}` : "",
+        source: baseUrl,
+        published_at: dateStr,
+        description: text
+      });
+    }
+  }
+  return items;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
-  let url = "unknown";
+  let context = "unknown";
 
   try {
     const body = await request.json();
-    url = body.url;
+    const { url, xCmd } = body;
 
-    if (!url || typeof url !== "string") {
-      return json({ error: "Missing or invalid URL parameter" }, { status: 400 });
-    }
-
-    const tryFetch = async (targetUrl: string, timeout = 5000): Promise<any> => {
+    const tryFetch = async (targetUrl: string, timeout = 5000): Promise<string> => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
 
@@ -82,93 +114,75 @@ export const POST: RequestHandler = async ({ request }) => {
         const response = await fetch(targetUrl, {
           signal: controller.signal,
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
-            "Accept": "application/rss+xml,application/xml;q=0.9,text/xml;q=0.8,*/*;q=0.7",
-            "Accept-Language": "en-US,en;q=0.5",
-            "Cache-Control": "max-age=0",
-            "Referer": new URL(targetUrl).origin + "/"
+            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Cache-Control": "no-cache"
           }
         });
 
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}`);
-        }
-
-        const xml = await response.text();
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        const text = await response.text();
         clearTimeout(id);
 
-        if (!xml.trim().startsWith("<")) {
-          const preview = xml.substring(0, 100).replace(/\s+/g, " ");
-          throw new Error(`Invalid format (Expected XML, got: "${preview}...")`);
+        if (text.toLowerCase().includes("cloudflare") || text.toLowerCase().includes("anubis")) {
+          throw new Error("Blocked by Bot Protection (HTML Challenge)");
         }
-
-        const parsed = await parser.parseString(xml);
-        if (!parsed || !parsed.items || parsed.items.length === 0) {
-          throw new Error("Empty feed or incompatible structure");
-        }
-        return parsed;
+        return text;
       } catch (e: any) {
         clearTimeout(id);
         throw e;
       }
     };
 
-    // Special logic for X/Twitter
-    const isX = url.includes("nitter") || url.includes("x.com") || url.includes("twitter.com") || url.includes("xcancel");
-    let feedData: any = null;
+    if (xCmd) {
+      context = `@${xCmd.value}`;
+      const now = Date.now();
+      const available = NITTER_INSTANCES.filter(inst => (instanceBackoff.get(inst) || 0) < now);
+      const pool = shuffle(available.length > 0 ? available : NITTER_INSTANCES);
 
-    if (isX) {
-      const urlObj = new URL(url);
-      const path = urlObj.pathname + urlObj.search;
-      const pool = shuffle(NITTER_INSTANCES);
+      console.log(`[X-NEWS] COMMAND: ${xCmd.type} for ${xCmd.value}. Trying ${pool.length} instances...`);
 
-      console.log(`[X-NEWS] Request for path: ${path}. Shuffling instances...`);
-
-      let lastError: any = null;
       for (const instance of pool) {
-        const testUrl = `https://${instance}${path}`;
+        const targetPath = xCmd.type === "user"
+          ? `/${xCmd.value}`
+          : `/search?f=tweets&q=%23${xCmd.value}`;
+
         try {
-          feedData = await tryFetch(testUrl, 4000);
-          if (feedData) {
-            console.log(`[X-NEWS] Success with: ${instance}`);
-            break;
+          const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
+          const items = scrapeNitterHTML(html, instance);
+
+          if (items.length > 0) {
+            console.log(`[X-NEWS] Success with: ${instance} (${items.length} news)`);
+            return json({ items, feedTitle: `X: ${context}` });
           }
+          console.warn(`[X-NEWS] Instance ${instance} returned no items`);
         } catch (e: any) {
-          lastError = e;
           console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
-          continue;
+          instanceBackoff.set(instance, now + BACKOFF_MS);
         }
       }
-      if (!feedData && lastError) throw lastError;
+      throw new Error("All X-instances failed or blocked.");
+    } else if (url) {
+      const xml = await tryFetch(url, 8000);
+      const parsed = await parser.parseString(xml);
+      return json({
+        items: (parsed.items || []).map((item: any) => ({
+          title: item.title || "Untitled",
+          url: item.link || url,
+          source: parsed.title || new URL(url).hostname,
+          published_at: item.isoDate || item.pubDate || new Date().toISOString(),
+          description: item.contentSnippet || item.content || "",
+        })),
+        feedTitle: parsed.title,
+      });
     } else {
-      feedData = await tryFetch(url, 8000);
+      return json({ error: "Missing parameters" }, { status: 400 });
     }
 
-    if (!feedData) throw new Error("No data fetched after all rotation attempts");
-
-    const newsItems = (feedData.items || []).map((item: any) => ({
-      title: item.title || "Untitled",
-      url: item.link || url,
-      source: feedData.title || new URL(url).hostname,
-      published_at: item.isoDate || item.pubDate || new Date().toISOString(),
-      description: item.contentSnippet || item.content || "",
-    }));
-
-    return json({
-      items: newsItems,
-      feedTitle: feedData.title,
-    });
-
   } catch (error: any) {
-    console.error(`[RSS-FETCH] Final Error for ${url}: ${error.message}`);
-    return json(
-      {
-        error: "Failed to fetch RSS feed",
-        details: error.message,
-        isFormatError: true
-      },
-      { status: 500 },
-    );
+    console.error(`[RSS-FETCH] Error: ${error.message}`);
+    return json({ error: error.message }, { status: 500 });
   }
 };
 
