@@ -66,7 +66,7 @@
 
 <div class="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
     <!-- Presets Grid -->
-    <div class="grid grid-cols-2 gap-3">
+    <div class="grid grid-cols-4 gap-3">
         {#each modes as mode}
             <button
                 class="relative flex flex-col items-center justify-center p-3 rounded-xl border-2 transition-all duration-200 text-center hover:shadow-md h-28
@@ -88,36 +88,10 @@
         {/each}
     </div>
 
-    <!-- AI Warning -->
-    {#if settingsState.marketMode === "performance" || settingsState.marketMode === "balanced"}
-        <div
-            transition:fade={{ duration: 200 }}
-            class="bg-[var(--bg-tertiary)] border border-[var(--warning-color)]/30 rounded-lg p-3 flex gap-3"
-        >
-            <div class="text-xl">🤖</div>
-            <div>
-                <h4 class="text-sm font-bold text-[var(--warning-color)] mb-1">
-                    KI Hinweis
-                </h4>
-                <p class="text-xs text-[var(--text-secondary)] leading-relaxed">
-                    Aktiver Modus reduziert Hintergrund-Updates. Der AI-Chat
-                    erhält dadurch potenziell ältere Marktdaten.
-                </p>
-            </div>
-        </div>
-    {/if}
-
     <!-- Detailed Settings (Always Visible) -->
     <div class="space-y-4 pt-4 border-t border-[var(--border-color)]">
         <div class="flex items-center justify-between">
             <h3 class="font-bold text-lg">Detaillierte Konfiguration</h3>
-            {#if settingsState.marketMode !== "custom"}
-                <span
-                    class="text-[10px] px-2 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)] border border-[var(--border-color)]"
-                >
-                    Nur im "Benutzerdefiniert" Modus änderbar
-                </span>
-            {/if}
         </div>
 
         <!-- Setting 1: Scan Interval -->
