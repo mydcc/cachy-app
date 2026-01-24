@@ -104,10 +104,18 @@ function scrapeNitterHTML(html: string, baseUrl: string): any[] {
 
     const tweetId = hashString(textContent);
 
+    // Try to find the tweet link
+    const linkMatch = block.match(/<a\s+[^>]*href=["']([^"']+)["'][^>]*class=["'][^"']*tweet-link[^"']*["']/);
+    let tweetUrl = `https://x.com/search?q=${encodeURIComponent(textContent.substring(0, 50))}`;
+
+    if (linkMatch && linkMatch[1]) {
+      tweetUrl = `https://x.com${linkMatch[1]}`;
+    }
+
     items.push({
       id: tweetId,
       title: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
-      url: `https://${baseUrl}`,
+      url: tweetUrl,
       source: baseUrl,
       published_at: new Date().toISOString(),
       description: textContent
