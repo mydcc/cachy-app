@@ -39,16 +39,16 @@ const MAX_CONSECUTIVE_ERRORS = 3;
 const MAX_CACHE_ENTRIES = 50;
 
 const NITTER_INSTANCES = [
-  "xcancel.com",
+  "nitter.poast.org",
   "nuku.trabun.org",
   "nitter.privacyredirect.com",
-  "lightbrd.com",
   "nitter.catsarch.com",
   "nitter.tiekoetter.com",
   "nitter.space",
-  "nitter.poast.org",
-  "nitter.net",
-  "nitter.popper.org"
+  "lightbrd.com",
+  "nitter.popper.org",
+  "xcancel.com",
+  "nitter.net"
 ];
 
 // In-memory blacklist to temporarily skip failing instances
@@ -74,25 +74,20 @@ function shuffle<T>(array: T[]): T[] {
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
 
-  // Find all tweet content blocks - they are the heart of every tweet
-  const contentParts = html.split(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>/);
+  // Find all tweet content blocks using a more flexible regex
+  // Matches <div class="..."> where the class contains 'tweet-content'
+  const tweetRegex = /<div[^>]*class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi;
+  let match;
 
-  for (let i = 1; i < contentParts.length; i++) {
-    const chunk = contentParts[i];
-    // The text is everything until the first closing div
-    const textEnd = chunk.indexOf("</div>");
-    if (textEnd === -1) continue;
+  while ((match = tweetRegex.exec(html)) !== null) {
+    const contentHtml = match[1];
+    const fullText = contentHtml.replace(/<[^>]*>/g, "").trim();
 
-    const fullText = chunk.substring(0, textEnd).replace(/<[^>]*>/g, "").trim();
     if (!fullText || fullText.length < 3) continue;
-
-    // Look backward from the content to find the link (it's usually in the preceding HTML)
-    // Actually, simpler: Nitter usually has the link in the current or preceding chunk.
-    // For now, let's keep it simple: if we find content, we have a tweet.
 
     items.push({
       title: fullText.substring(0, 100) + (fullText.length > 100 ? "..." : ""),
-      url: `https://${baseUrl}`, // Fallback to instance root if specific link not found
+      url: `https://${baseUrl}`, // Fallback to instance root
       source: baseUrl,
       published_at: new Date().toISOString(),
       description: fullText
@@ -130,7 +125,13 @@ export const POST: RequestHandler = async ({ request }) => {
         clearTimeout(id);
 
         const lower = text.toLowerCase();
-        if (lower.includes("cloudflare") || lower.includes("anubis") || lower.includes("robot checking")) {
+        if (
+          lower.includes("cloudflare") ||
+          lower.includes("anubis") ||
+          lower.includes("robot checking") ||
+          lower.includes("verifying your request") ||
+          lower.includes("detected unusual activity")
+        ) {
           throw new Error("Bot-Block");
         }
         return text;
