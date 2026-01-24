@@ -72,12 +72,15 @@ function shuffle<T>(array: T[]): T[] {
  */
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
-  const parts = html.split('class="timeline-item');
+  // Fuzzy splitting: handle different styles of class declaration
+  const parts = html.split(/class\s*=\s*["']timeline-item/);
 
   for (let i = 1; i < parts.length; i++) {
     const chunk = parts[i];
-    const contentMatch = chunk.match(/class="tweet-content[^>]*>([\s\S]*?)<\/div>/);
-    const dateLinkMatch = chunk.match(/class="tweet-date"><a href="([^"]*)" title="([^"]*)">/);
+    // Find content using fuzzy class matching
+    const contentMatch = chunk.match(/class\s*=\s*["']tweet-content[^"']*["']>([\s\S]*?)<\/div>/);
+    // Find date using fuzzy class matching
+    const dateLinkMatch = chunk.match(/class\s*=\s*["']tweet-date["']><a\s+href\s*=\s*["']([^"']*)["']\s+title\s*=\s*["']([^"']*)["']>/);
 
     if (contentMatch) {
       const fullText = contentMatch[1].replace(/<[^>]*>/g, "").trim();
@@ -155,8 +158,9 @@ export const POST: RequestHandler = async ({ request }) => {
           }
 
           // Diagnostic snippet for empty results
-          const snippet = html.substring(0, 150).replace(/\s+/g, " ");
-          console.warn(`[X-NEWS] Instance ${instance} returned no items. Content starts: "${snippet}..."`);
+          const snippet = html.substring(0, 200).replace(/\s+/g, " ");
+          const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
+          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 items. Snippet: "${snippet}..."`);
         } catch (e: any) {
           console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
           instanceBackoff.set(instance, now + BACKOFF_MS);
