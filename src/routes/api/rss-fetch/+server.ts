@@ -28,11 +28,15 @@ const TWEET_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for tweets
 
 // Verified instances list (User Provided)
 const NITTER_INSTANCES = [
-  "nitter.poast.org",
+  "xcancel.com",
   "nitter.tiekoetter.com",
   "nitter.privacyredirect.com",
-  "nitter.lucabased.xyz",
-  "nitter.freedit.eu"
+  "nitter.poast.org",
+  "nitter.catsarch.com",
+  "nitter.space",
+  "nitter.net",
+  "lightbrd.com",
+  "nuku.trabun.org"
 ];
 
 // In-memory blacklist with dynamic backoff
