@@ -218,7 +218,6 @@ class BitunixWebSocketService {
   }
 
   private connectPublic(force = false) {
-    logger.log("governance", `[BitunixWS] #${this.instanceId} connectPublic(force=${force}) - isDestroyed: ${this.isDestroyed}`);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {
@@ -234,6 +233,9 @@ class BitunixWebSocketService {
         this.cleanup("public"); // Force close if requested
       }
     }
+
+    // ONLY LOG IF WE ACTUALLY PROCEED
+    logger.log("governance", `[BitunixWS] #${this.instanceId} connectPublic(force=${force}) - START CONNECTING`);
 
     marketState.connectionStatus = "connecting";
 
