@@ -103,12 +103,13 @@ class MarketAnalystService {
                 const trend4h = price > new Decimal(ema200_4h).toNumber() ? "bullish" : "bearish";
 
                 const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
-                const rsi1h = rsiObj ? (rsiObj.value instanceof Decimal ? rsiObj.value.toNumber() : Number(rsiObj.value)) : 50;
+                const rsiValue = rsiObj?.value;
+                const rsi1h = rsiValue !== undefined ? new Decimal(rsiValue).toNumber() : 50;
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
-                if (rsi1h > 70) condition = "overbought";
-                else if (rsi1h < 30) condition = "oversold";
-                else if (Math.abs(change24h) > 5) condition = "trending";
+                if (new Decimal(rsi1h).greaterThan(70)) condition = "overbought";
+                else if (new Decimal(rsi1h).lessThan(30)) condition = "oversold";
+                else if (new Decimal(change24h).abs().greaterThan(5)) condition = "trending";
 
                 analysisState.updateAnalysis(symbol, {
                     symbol,

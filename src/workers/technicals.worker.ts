@@ -49,23 +49,23 @@ function serializeResult(data: TechnicalsData): SerializedTechnicalsData {
     },
     pivotBasis: data.pivotBasis
       ? {
-          high: data.pivotBasis.high.toString(),
-          low: data.pivotBasis.low.toString(),
-          close: data.pivotBasis.close.toString(),
-          open: data.pivotBasis.open.toString(),
-        }
+        high: data.pivotBasis.high.toString(),
+        low: data.pivotBasis.low.toString(),
+        close: data.pivotBasis.close.toString(),
+        open: data.pivotBasis.open.toString(),
+      }
       : undefined,
     summary: data.summary,
     volatility: data.volatility
       ? {
-          atr: data.volatility.atr.toString(),
-          bb: {
-            upper: data.volatility.bb.upper.toString(),
-            middle: data.volatility.bb.middle.toString(),
-            lower: data.volatility.bb.lower.toString(),
-            percentP: data.volatility.bb.percentP.toString(),
-          },
-        }
+        atr: data.volatility.atr.toString(),
+        bb: {
+          upper: data.volatility.bb.upper.toString(),
+          middle: data.volatility.bb.middle.toString(),
+          lower: data.volatility.bb.lower.toString(),
+          percentP: data.volatility.bb.percentP.toString(),
+        },
+      }
       : undefined,
     divergences: data.divergences?.map((d) => ({
       ...d,
@@ -77,69 +77,69 @@ function serializeResult(data: TechnicalsData): SerializedTechnicalsData {
     confluence: data.confluence,
     advanced: data.advanced
       ? {
-          vwap: data.advanced.vwap?.toString(),
-          mfi: data.advanced.mfi
-            ? {
-                value: data.advanced.mfi.value.toString(),
-                action: data.advanced.mfi.action,
-              }
-            : undefined,
-          stochRsi: data.advanced.stochRsi
-            ? {
-                k: data.advanced.stochRsi.k.toString(),
-                d: data.advanced.stochRsi.d.toString(),
-                action: data.advanced.stochRsi.action,
-              }
-            : undefined,
-          williamsR: data.advanced.williamsR
-            ? {
-                value: data.advanced.williamsR.value.toString(),
-                action: data.advanced.williamsR.action,
-              }
-            : undefined,
-          choppiness: data.advanced.choppiness
-            ? {
-                value: data.advanced.choppiness.value.toString(),
-                state: data.advanced.choppiness.state,
-              }
-            : undefined,
-          ichimoku: data.advanced.ichimoku
-            ? {
-                conversion: data.advanced.ichimoku.conversion.toString(),
-                base: data.advanced.ichimoku.base.toString(),
-                spanA: data.advanced.ichimoku.spanA.toString(),
-                spanB: data.advanced.ichimoku.spanB.toString(),
-                action: data.advanced.ichimoku.action,
-              }
-            : undefined,
-          parabolicSar: data.advanced.parabolicSar?.toString(),
-          // Phase 5: Pro Serialization
-          superTrend: data.advanced.superTrend
-            ? {
-                value: data.advanced.superTrend.value.toString(),
-                trend: data.advanced.superTrend.trend,
-              }
-            : undefined,
-          atrTrailingStop: data.advanced.atrTrailingStop
-            ? {
-                buy: data.advanced.atrTrailingStop.buy.toString(),
-                sell: data.advanced.atrTrailingStop.sell.toString(),
-              }
-            : undefined,
-          obv: data.advanced.obv?.toString(),
-          volumeProfile: data.advanced.volumeProfile
-            ? {
-                poc: data.advanced.volumeProfile.poc.toString(),
-                vaHigh: data.advanced.volumeProfile.vaHigh.toString(),
-                vaLow: data.advanced.volumeProfile.vaLow.toString(),
-                rows: data.advanced.volumeProfile.rows.map((r) => ({
-                  priceStart: r.priceStart.toString(),
-                  priceEnd: r.priceEnd.toString(),
-                  volume: r.volume.toString(),
-                })),
-              }
-            : undefined,
-        }
+        vwap: data.advanced.vwap?.toString(),
+        mfi: data.advanced.mfi
+          ? {
+            value: data.advanced.mfi.value.toString(),
+            action: data.advanced.mfi.action,
+          }
+          : undefined,
+        stochRsi: data.advanced.stochRsi
+          ? {
+            k: data.advanced.stochRsi.k.toString(),
+            d: data.advanced.stochRsi.d.toString(),
+            action: data.advanced.stochRsi.action,
+          }
+          : undefined,
+        williamsR: data.advanced.williamsR
+          ? {
+            value: data.advanced.williamsR.value.toString(),
+            action: data.advanced.williamsR.action,
+          }
+          : undefined,
+        choppiness: data.advanced.choppiness
+          ? {
+            value: data.advanced.choppiness.value.toString(),
+            state: data.advanced.choppiness.state,
+          }
+          : undefined,
+        ichimoku: data.advanced.ichimoku
+          ? {
+            conversion: data.advanced.ichimoku.conversion.toString(),
+            base: data.advanced.ichimoku.base.toString(),
+            spanA: data.advanced.ichimoku.spanA.toString(),
+            spanB: data.advanced.ichimoku.spanB.toString(),
+            action: data.advanced.ichimoku.action,
+          }
+          : undefined,
+        parabolicSar: data.advanced.parabolicSar?.toString(),
+        // Phase 5: Pro Serialization
+        superTrend: data.advanced.superTrend
+          ? {
+            value: data.advanced.superTrend.value.toString(),
+            trend: data.advanced.superTrend.trend,
+          }
+          : undefined,
+        atrTrailingStop: data.advanced.atrTrailingStop
+          ? {
+            buy: data.advanced.atrTrailingStop.buy.toString(),
+            sell: data.advanced.atrTrailingStop.sell.toString(),
+          }
+          : undefined,
+        obv: data.advanced.obv?.toString(),
+        volumeProfile: data.advanced.volumeProfile
+          ? {
+            poc: data.advanced.volumeProfile.poc.toString(),
+            vaHigh: data.advanced.volumeProfile.vaHigh.toString(),
+            vaLow: data.advanced.volumeProfile.vaLow.toString(),
+            rows: data.advanced.volumeProfile.rows.map((r) => ({
+              priceStart: r.priceStart.toString(),
+              priceEnd: r.priceEnd.toString(),
+              volume: r.volume.toString(),
+            })),
+          }
+          : undefined,
+      }
       : undefined,
   };
 }
@@ -166,12 +166,9 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
       const result = calculateAllIndicators(klinesDec, settings);
 
-      // Serialize back to string for transport
-      const serialized = serializeResult(result);
-
       const response: WorkerMessage = {
         type: "RESULT",
-        payload: serialized,
+        payload: result,
         id,
       };
       ctx.postMessage(response);

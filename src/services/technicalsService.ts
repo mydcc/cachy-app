@@ -68,12 +68,12 @@ class TechnicalsWorkerManager {
   }
 
   private handleMessage(e: MessageEvent) {
-    const { id, data, error } = e.data;
+    const { id, payload, error } = e.data;
     if (this.pendingResolves.has(id)) {
       if (error) {
         this.pendingRejects.get(id)?.(error);
       } else {
-        this.pendingResolves.get(id)?.(data);
+        this.pendingResolves.get(id)?.(payload);
       }
       this.pendingResolves.delete(id);
       this.pendingRejects.delete(id);
@@ -241,8 +241,14 @@ export const technicalsService = {
   rehydrateDecimals(obj: any): any {
     if (obj === null || obj === undefined) return obj;
 
+    // Check if it's already a Decimal (or a Proxy of one that behaves like one)
+    if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
+      return obj;
+    }
+
     // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
-    if (typeof obj === 'object' && obj.s !== undefined && obj.e !== undefined && obj.c !== undefined) {
+    // We check for 'c' and 's' which are core to Decimal.js internal state
+    if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
       try {
         return new Decimal(obj);
       } catch (e) {
@@ -255,6 +261,7 @@ export const technicalsService = {
     }
 
     if (typeof obj === 'object') {
+      // Create a fresh object to avoid Proxy issues
       const result: any = {};
       for (const key in obj) {
         if (Object.prototype.hasOwnProperty.call(obj, key)) {

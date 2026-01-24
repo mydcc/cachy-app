@@ -435,9 +435,9 @@
                 >
                 <span class="font-mono text-[var(--text-primary)]"
                   >{formatVal(
-                    data.volatility.bb.upper
-                      .minus(data.volatility.bb.lower)
-                      .div(data.volatility.bb.middle)
+                    new Decimal(data.volatility.bb.upper)
+                      .minus(new Decimal(data.volatility.bb.lower))
+                      .div(new Decimal(data.volatility.bb.middle))
                       .times(100),
                     2,
                   )}%</span
