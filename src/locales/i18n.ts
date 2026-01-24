@@ -133,15 +133,16 @@ function setNestedValue(obj: any, path: string, value: any) {
 }
 
 // Prepare the base dictionaries (we might need to clone them to avoid mutating imports if they are frozen)
-const enDict = JSON.parse(JSON.stringify(en));
-const deDict = JSON.parse(JSON.stringify(de));
+// We use structuredClone which is more efficient than JSON.parse/stringify
+const enDict = structuredClone({ ...en });
+const deDict = structuredClone({ ...de });
 
 // Register standard locales
 register("en", () => Promise.resolve(enDict));
 register("de", () => Promise.resolve(deDict));
 
 // Create a special "de-tech" locale that is German + English Technical Terms
-const deTechDict = JSON.parse(JSON.stringify(deDict));
+const deTechDict = structuredClone(deDict);
 
 // Overwrite technical keys in deTechDict with values from enDict
 TECHNICAL_KEYS.forEach((key) => {
