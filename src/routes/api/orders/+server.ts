@@ -83,8 +83,10 @@ export const POST: RequestHandler = async ({ request }) => {
           reduceOnly: Boolean(payload.reduceOnly),
           triggerPrice: payload.triggerPrice || payload.stopPrice,
         };
-        // Remove undefined
-        Object.keys(orderPayload).forEach(key => (orderPayload as any)[key] === undefined && delete (orderPayload as any)[key]);
+        // Remove undefined safe
+        Object.keys(orderPayload).forEach(key => {
+            if ((orderPayload as any)[key] === undefined) delete (orderPayload as any)[key];
+        });
 
         result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
       }
@@ -152,10 +154,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Enhanced Logging with Redaction
     try {
-      const sanitizedBody: any = { ...(body as object) };
-      if (sanitizedBody.apiKey) sanitizedBody.apiKey = "***";
-      if (sanitizedBody.apiSecret) sanitizedBody.apiSecret = "***";
-      if (sanitizedBody.passphrase) sanitizedBody.passphrase = "***";
+      let sanitizedBody: any = {};
+      if (typeof body === 'object' && body !== null) {
+          sanitizedBody = { ...body };
+          if ('apiKey' in sanitizedBody) sanitizedBody.apiKey = "***";
+          if ('apiSecret' in sanitizedBody) sanitizedBody.apiSecret = "***";
+          if ('passphrase' in sanitizedBody) sanitizedBody.passphrase = "***";
+      } else {
+          sanitizedBody = { raw: String(body) };
+      }
+
       console.error(`[API] Order failed: ${(body as any)?.type}`, {
         error: errorMsg,
         body: sanitizedBody,
@@ -166,9 +174,9 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Redact response message
     let sanitizedMsg = errorMsg;
-    if (apiKey) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
-    if (apiSecret) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
-    if (passphrase) sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
+    if (apiKey && apiKey.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+    if (apiSecret && apiSecret.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
+    if (passphrase && passphrase.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
 
     return json(
       { error: sanitizedMsg },
