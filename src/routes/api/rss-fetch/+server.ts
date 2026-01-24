@@ -47,13 +47,16 @@ const NITTER_INSTANCES = [
   "nitter.space",
   "lightbrd.com",
   "nitter.popper.org",
+  "nitter.unixfox.eu",
+  "nitter.it",
+  "nitter.hu",
   "xcancel.com",
   "nitter.net"
 ];
 
 // In-memory blacklist to temporarily skip failing instances
 const instanceBackoff = new Map<string, number>();
-const BACKOFF_MS = 5 * 60 * 1000; // 5 minutes ignore after failure
+const BACKOFF_MS = 2 * 60 * 1000; // 2 minutes ignore after failure
 
 /**
  * Shuffles an array (Fisher-Yates)
@@ -74,23 +77,45 @@ function shuffle<T>(array: T[]): T[] {
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
 
-  // Find all tweet content blocks using a more flexible regex
-  // Matches <div class="..."> where the class contains 'tweet-content'
-  const tweetRegex = /<div[^>]*class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi;
-  let match;
+  // Split into chunks by a reliable tweet container marker
+  const blocks = html.split(/class\s*=\s*["'][^"']*(?:timeline-item|tweet-body)[^"']*["']/);
 
-  while ((match = tweetRegex.exec(html)) !== null) {
-    const contentHtml = match[1];
-    const fullText = contentHtml.replace(/<[^>]*>/g, "").trim();
+  for (let i = 1; i < blocks.length; i++) {
+    const block = blocks[i];
+    // Find the start of the tweet-content div
+    const contentMatch = block.match(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>/);
+    if (!contentMatch) continue;
 
-    if (!fullText || fullText.length < 3) continue;
+    const startIndex = block.indexOf(contentMatch[0]) + contentMatch[0].length;
+    const contentRaw = block.substring(startIndex);
+
+    // Robust parsing of nested DIVs: count opening/closing tags to find the matching end
+    let divDepth = 1;
+    let pos = 0;
+    while (divDepth > 0 && pos < contentRaw.length) {
+      const nextOpen = contentRaw.indexOf("<div", pos);
+      const nextClose = contentRaw.indexOf("</div>", pos);
+
+      if (nextClose === -1) break;
+
+      if (nextOpen !== -1 && nextOpen < nextClose) {
+        divDepth++;
+        pos = nextOpen + 4;
+      } else {
+        divDepth--;
+        pos = nextClose + 6;
+      }
+    }
+
+    const textContent = contentRaw.substring(0, Math.max(0, pos - 6)).replace(/<[^>]*>/g, "").trim();
+    if (!textContent || textContent.length < 3) continue;
 
     items.push({
-      title: fullText.substring(0, 100) + (fullText.length > 100 ? "..." : ""),
+      title: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
       url: `https://${baseUrl}`, // Fallback to instance root
       source: baseUrl,
       published_at: new Date().toISOString(),
-      description: fullText
+      description: textContent
     });
   }
   return items;
@@ -150,26 +175,34 @@ export const POST: RequestHandler = async ({ request }) => {
       console.log(`[X-NEWS] COMMAND: ${xCmd.type} for ${xCmd.value}. Trying ${pool.length} instances...`);
 
       for (const instance of pool) {
-        // Force the search view for better stability and bypass on some instances
-        const targetPath = xCmd.type === "user"
-          ? `/${xCmd.value}/search?f=tweets&q=%23` // Hidden trick: search within user profile
-          : `/search?f=tweets&q=%23${xCmd.value}`;
+        // Try multiple paths for a single instance for better resilience
+        const paths = xCmd.type === "user"
+          ? [`/${xCmd.value}`, `/${xCmd.value}/search?f=tweets&q=%20`] // Profile first, then space-search
+          : [`/search?f=tweets&q=%23${xCmd.value}`, `/search?f=tweets&q=${xCmd.value}`];
 
-        try {
-          const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
-          if (!html) continue;
+        for (const targetPath of paths) {
+          try {
+            const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
+            if (!html) continue;
 
-          const items = scrapeNitterHTML(html, instance);
-          if (items.length > 0) {
-            console.log(`[X-NEWS] Success with: ${instance} (${items.length} news)`);
-            return json({ items, feedTitle: `X: ${context}` });
+            const items = scrapeNitterHTML(html, instance);
+            if (items.length > 0) {
+              console.log(`[X-NEWS] Success with: ${instance}${targetPath} (${items.length} news)`);
+              return json({ items, feedTitle: `X: ${context}` });
+            }
+
+            const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
+            if (hasTitle.toLowerCase().includes("loading")) continue; // Try next path if it's a loading stub
+
+            console.warn(`[X-NEWS] Instance ${instance}${targetPath} ("${hasTitle}") returned 0 news. Snippet: ${html.substring(0, 100)}`);
+          } catch (e: any) {
+            console.warn(`[X-NEWS] Instance ${instance} failed on ${targetPath}: ${e.message}`);
+            // Move to next instance if it's a hard error like Bot-Block
+            if (e.message.includes("HTTP") || e.message === "Bot-Block") {
+              instanceBackoff.set(instance, now + BACKOFF_MS);
+              break;
+            }
           }
-
-          const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
-          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 news items.`);
-        } catch (e: any) {
-          console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
-          instanceBackoff.set(instance, now + BACKOFF_MS);
         }
       }
       throw new Error("All X-instances failed or returned empty content.");
@@ -195,4 +228,3 @@ export const POST: RequestHandler = async ({ request }) => {
     return json({ error: error.message }, { status: 500 });
   }
 };
-
