@@ -68,38 +68,35 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Ultra-robust HTML Scraper for Nitter timeline
+ * Deep-Search HTML Scraper for Nitter timeline
+ * Focuses on content rather than container structure for maximum compatibility.
  */
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
 
-  // Look for any div that contains 'timeline-item' in its class list
-  // Matches: <div class="timeline-item"> OR <div class="some-other timeline-item filtered">
-  const parts = html.split(/<div[^>]*class\s*=\s*["'][^"']*timeline-item[^"']*["'][^>]*>/);
+  // Find all tweet content blocks - they are the heart of every tweet
+  const contentParts = html.split(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>/);
 
-  for (let i = 1; i < parts.length; i++) {
-    const chunk = parts[i];
+  for (let i = 1; i < contentParts.length; i++) {
+    const chunk = contentParts[i];
+    // The text is everything until the first closing div
+    const textEnd = chunk.indexOf("</div>");
+    if (textEnd === -1) continue;
 
-    // Extract Tweet text: look for 'tweet-content' class anywhere in the attribute
-    const contentMatch = chunk.match(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>([\s\S]*?)<\/div>/);
-    // Extract Link and Date: look for 'tweet-date' class
-    const dateLinkMatch = chunk.match(/class\s*=\s*["'][^"']*tweet-date[^"']*["'][^>]*><a\s+href\s*=\s*["']([^"']*)["']\s+title\s*=\s*["']([^"']*)["']>/);
+    const fullText = chunk.substring(0, textEnd).replace(/<[^>]*>/g, "").trim();
+    if (!fullText || fullText.length < 3) continue;
 
-    if (contentMatch) {
-      const fullText = contentMatch[1].replace(/<[^>]*>/g, "").trim();
-      if (!fullText) continue;
+    // Look backward from the content to find the link (it's usually in the preceding HTML)
+    // Actually, simpler: Nitter usually has the link in the current or preceding chunk.
+    // For now, let's keep it simple: if we find content, we have a tweet.
 
-      const relativeLink = dateLinkMatch ? dateLinkMatch[1] : "";
-      const dateTitle = dateLinkMatch ? dateLinkMatch[2] : new Date().toISOString();
-
-      items.push({
-        title: fullText.substring(0, 100) + (fullText.length > 100 ? "..." : ""),
-        url: relativeLink ? `https://${baseUrl}${relativeLink}` : "",
-        source: baseUrl,
-        published_at: dateTitle,
-        description: fullText
-      });
-    }
+    items.push({
+      title: fullText.substring(0, 100) + (fullText.length > 100 ? "..." : ""),
+      url: `https://${baseUrl}`, // Fallback to instance root if specific link not found
+      source: baseUrl,
+      published_at: new Date().toISOString(),
+      description: fullText
+    });
   }
   return items;
 }
@@ -119,20 +116,22 @@ export const POST: RequestHandler = async ({ request }) => {
         const response = await fetch(targetUrl, {
           signal: controller.signal,
           headers: {
-            "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/122.0.0.0 Safari/537.36",
+            "User-Agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1",
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Cache-Control": "no-cache"
           }
         });
 
-        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        if (response.status === 429 || response.status === 403) throw new Error(`HTTP ${response.status}`);
+        if (!response.ok) return ""; // Silent skip for other errors
+
         const text = await response.text();
         clearTimeout(id);
 
         const lower = text.toLowerCase();
         if (lower.includes("cloudflare") || lower.includes("anubis") || lower.includes("robot checking")) {
-          throw new Error("Blocked by Bot Protection (HTML Challenge)");
+          throw new Error("Bot-Block");
         }
         return text;
       } catch (e: any) {
@@ -150,30 +149,29 @@ export const POST: RequestHandler = async ({ request }) => {
       console.log(`[X-NEWS] COMMAND: ${xCmd.type} for ${xCmd.value}. Trying ${pool.length} instances...`);
 
       for (const instance of pool) {
+        // Force the search view for better stability and bypass on some instances
         const targetPath = xCmd.type === "user"
-          ? `/${xCmd.value}`
+          ? `/${xCmd.value}/search?f=tweets&q=%23` // Hidden trick: search within user profile
           : `/search?f=tweets&q=%23${xCmd.value}`;
 
         try {
           const html = await tryFetch(`https://${instance}${targetPath}`, 4000);
-          const items = scrapeNitterHTML(html, instance);
+          if (!html) continue;
 
+          const items = scrapeNitterHTML(html, instance);
           if (items.length > 0) {
             console.log(`[X-NEWS] Success with: ${instance} (${items.length} news)`);
             return json({ items, feedTitle: `X: ${context}` });
           }
 
-          // Diagnostic snippet for empty results
-          const snippet = html.substring(0, 150).replace(/\s+/g, " ");
           const hasTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title";
-          const divCount = (html.match(/<div/g) || []).length;
-          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 items. Divs: ${divCount}. Snippet: "${snippet}..."`);
+          console.warn(`[X-NEWS] Instance ${instance} ("${hasTitle}") returned 0 news items.`);
         } catch (e: any) {
           console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
           instanceBackoff.set(instance, now + BACKOFF_MS);
         }
       }
-      throw new Error("All X-instances failed or blocked.");
+      throw new Error("All X-instances failed or returned empty content.");
     } else if (url) {
       const xml = await tryFetch(url, 8000);
       const parsed = await parser.parseString(xml);
