@@ -312,16 +312,16 @@ export const POST: RequestHandler = async ({ request }) => {
 
     // Check for sensitive patterns (simple check)
     // Defensive: ensure keys are defined before replacing (though they should be checked above)
-    // Only redact if keys are actually present and have a safe minimum length to avoid redacting "abc" or similar
+    // Always redact if keys are present to prevent leaks even for short keys (unlikely but safer)
     let sanitizedMsg = errorMsg;
 
-    if (apiKey && apiKey.length > 3) {
+    if (apiKey) {
         sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
     }
-    if (apiSecret && apiSecret.length > 3) {
+    if (apiSecret) {
         sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
     }
-    if (passphrase && passphrase.length > 3) {
+    if (passphrase) {
         sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
     }
 

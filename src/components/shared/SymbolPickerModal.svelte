@@ -24,6 +24,7 @@
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
     import { uiState } from "../../stores/ui.svelte";
+    import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { apiService } from "../../services/apiService";
     import { Decimal } from "decimal.js";
