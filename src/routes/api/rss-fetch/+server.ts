@@ -20,108 +20,112 @@ const parser = new Parser({
   },
 });
 
-// Simple In-Memory Cache for RSS Feeds
+// Simple In-Memory Cache and Health Tracker for RSS Feeds
 interface CachedFeed {
   data: any;
   timestamp: number;
 }
+interface HostHealth {
+  consecutiveErrors: number;
+  lastErrorTime: number;
+}
+
 const feedCache = new Map<string, CachedFeed>();
+const hostHealth = new Map<string, HostHealth>();
+
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const HEALTH_BACKOFF = 15 * 60 * 1000; // 15 minutes backoff for failing hosts
+const MAX_CONSECUTIVE_ERRORS = 3;
 const MAX_CACHE_ENTRIES = 50;
+
+const NITTER_INSTANCES = [
+  "nitter.net",
+  "nitter.poast.org",
+  "nitter.cz",
+  "nitter.privacydev.net",
+  "nitter.it",
+  "nitter.tinfoil-hat.net"
+];
 
 export const POST: RequestHandler = async ({ request }) => {
   let url = "unknown";
+  let host = "unknown";
 
   try {
     const body = await request.json();
     url = body.url;
 
     if (!url || typeof url !== "string") {
-      return json(
-        { error: "Missing or invalid URL parameter" },
-        { status: 400 },
-      );
+      return json({ error: "Missing or invalid URL parameter" }, { status: 400 });
     }
 
-    // Validate URL format
-    try {
-      new URL(url);
-    } catch {
-      return json({ error: "Invalid URL format" }, { status: 400 });
+    const tryFetch = async (targetUrl: string): Promise<any> => {
+      try {
+        const feed = await parser.parseURL(targetUrl);
+        return feed;
+      } catch (e: any) {
+        throw e;
+      }
+    };
+
+    // Special logic for Nitter/X
+    const isNitter = NITTER_INSTANCES.some(inst => url.includes(inst));
+    let feedData: any = null;
+
+    if (isNitter) {
+      // Try multiple Nitter instances if one fails
+      let lastError = null;
+      for (const instance of NITTER_INSTANCES) {
+        // Replace the current host with a new one from the list
+        const currentUrl = new URL(url);
+        const testUrl = url.replace(currentUrl.hostname, instance);
+
+        try {
+          feedData = await tryFetch(testUrl);
+          if (feedData) break;
+        } catch (e) {
+          lastError = e;
+          continue;
+        }
+      }
+      if (!feedData && lastError) throw lastError;
+    } else {
+      feedData = await tryFetch(url);
     }
 
-    // 1. Check Cache
-    const cached = feedCache.get(url);
-    const now = Date.now();
-    if (cached && now - cached.timestamp < CACHE_TTL) {
-      return json(cached.data);
-    }
+    if (!feedData) throw new Error("No data fetched");
 
-    // 2. Fetch and parse RSS feed
-    const feed = await parser.parseURL(url);
-
-    // Normalize to NewsItem format
-    const newsItems = feed.items.map((item) => ({
+    // Success! Normalize to NewsItem format
+    const newsItems = feedData.items.map((item: any) => ({
       title: item.title || "Untitled",
       url: item.link || url,
-      source: feed.title || new URL(url).hostname,
+      source: feedData.title || new URL(url).hostname,
       published_at: item.isoDate || item.pubDate || new Date().toISOString(),
       description: item.contentSnippet || item.content || "",
     }));
 
     const responseData = {
       items: newsItems,
-      feedTitle: feed.title,
-      feedDescription: feed.description,
+      feedTitle: feedData.title,
     };
 
-    // 3. Update Cache
-    if (feedCache.size >= MAX_CACHE_ENTRIES) {
-      // Remove oldest entry (FIFO-ish)
-      const firstEntry = feedCache.keys().next().value;
-      if (firstEntry) feedCache.delete(firstEntry);
-    }
-    feedCache.set(url, { data: responseData, timestamp: now });
-
     return json(responseData);
+
   } catch (error: any) {
-    // Check if we have a stale cache entry during error (Stale-While-Revalidate fallback)
-    const staleCached = feedCache.get(url);
-    if (staleCached) {
-      // console.log(`[rss-fetch] Serving stale content for ${url} due to error`);
-      return json(staleCached.data);
-    }
+    const isParsingError = error.message?.includes("Invalid XML") || error.message?.includes("Unable to parse XML");
 
-    if (error.message?.includes("Status code 429")) {
-      return json(
-        { error: "Rate limit hit (Provider side). Returning stale content." },
-        { status: 429 },
-      );
+    if (isParsingError) {
+      console.error(`[RSS-FIX] Critical Format Error for ${url}: ${error.message}`);
     }
-
-    if (error.code === "ENOTFOUND") {
-      return json({ error: "Feed URL not found (DNS error)" }, { status: 404 });
-    } else if (error.code === "ETIMEDOUT") {
-      return json({ error: "Feed request timed out" }, { status: 504 });
-    } else if (
-      error.message?.includes("Invalid XML") ||
-      error.message?.includes("Unable to parse XML")
-    ) {
-      return json({ error: "Invalid RSS/XML format" }, { status: 422 });
-    }
-
-    // Log unexpected errors
-    console.error(`[rss-fetch] Unexpected Error for ${url}:`, {
-      message: error.message,
-      code: error.code,
-    });
 
     return json(
       {
         error: "Failed to fetch RSS feed",
         details: error.message,
+        isFormatError: isParsingError
       },
       { status: 500 },
     );
   }
 };
+

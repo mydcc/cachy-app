@@ -219,16 +219,23 @@ class MarketWatcher {
   private async performPollingCycle() {
     const settings = settingsState;
     const provider = settings.apiProvider;
-    const interval = this.currentIntervalSeconds;
+
+    // Spread out requests over the first cycle to avoid burst
+    let stagger = 0;
 
     this.requests.forEach((channels, symbol) => {
       channels.forEach((_, channel) => {
         const lockKey = `${symbol}:${channel}`;
         if (this.fetchLocks.has(lockKey)) return;
 
-        // Check if we need to poll this specific channel for this symbol
-        // (Simple time-based check could be added, for now we just poll)
-        this.pollSymbolChannel(symbol, channel, provider);
+        const currentStagger = stagger;
+        stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
+
+        setTimeout(() => {
+          if (!this.fetchLocks.has(lockKey)) {
+            this.pollSymbolChannel(symbol, channel, provider);
+          }
+        }, currentStagger);
       });
     });
   }
