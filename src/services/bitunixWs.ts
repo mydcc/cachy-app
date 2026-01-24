@@ -137,6 +137,8 @@ class BitunixWebSocketService {
       this.globalMonitorInterval = setInterval(() => {
         if (this.isDestroyed) return;
 
+        this.pruneThrottleMap();
+
         const now = Date.now();
         const timeSincePublic = now - this.lastMessageTimePublic;
         const status = marketState.connectionStatus;
@@ -183,6 +185,15 @@ class BitunixWebSocketService {
         // The ConnectionManager or handleOffline/handleOnline handle lifecycle.
       }, 5000);
     }
+  }
+
+  private pruneThrottleMap() {
+    const now = Date.now();
+    this.throttleMap.forEach((lastTime, key) => {
+      if (now - lastTime > 5000) {
+        this.throttleMap.delete(key);
+      }
+    });
   }
 
   private shouldThrottle(key: string): boolean {
