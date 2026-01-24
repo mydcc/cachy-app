@@ -282,9 +282,10 @@
                     </p>
 
                     {#if settingsState.logSettings}
+                        {@const logs = settingsState.logSettings}
                         <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
                             <!-- Helper for Toggles -->
-                            {#snippet logToggle(label, key)}
+                            {#snippet logToggle(label: string, key: string)}
                                 <label
                                     class="flex items-center justify-between p-2 rounded bg-[var(--bg-tertiary)] cursor-pointer hover:bg-[var(--bg-primary)] transition-colors border border-[var(--border-color)]"
                                 >
@@ -294,12 +295,12 @@
                                     <input
                                         type="checkbox"
                                         class="accent-[var(--accent-color)]"
-                                        checked={settingsState.logSettings[key]}
+                                        checked={logs?.[
+                                            key as keyof typeof logs
+                                        ] ?? false}
                                         onchange={(e) => {
-                                            if (settingsState.logSettings) {
-                                                settingsState.logSettings[key] =
-                                                    e.currentTarget.checked;
-                                            }
+                                            (logs as any)[key] =
+                                                e.currentTarget.checked;
                                         }}
                                     />
                                 </label>
@@ -323,17 +324,14 @@
                                     <input
                                         type="checkbox"
                                         class="accent-[var(--accent-color)]"
-                                        checked={settingsState.logSettings
-                                            .technicals}
+                                        checked={logs.technicals}
                                         onchange={(e) => {
-                                            if (settingsState.logSettings) {
-                                                settingsState.logSettings.technicals =
-                                                    e.currentTarget.checked;
-                                            }
+                                            logs.technicals =
+                                                e.currentTarget.checked;
                                         }}
                                     />
                                 </label>
-                                {#if settingsState.logSettings.technicals}
+                                {#if logs.technicals}
                                     <label
                                         class="flex items-center justify-between mt-1 pt-1 border-t border-[var(--border-color)] cursor-pointer"
                                     >
@@ -344,13 +342,10 @@
                                         <input
                                             type="checkbox"
                                             class="w-3 h-3 accent-[var(--accent-color)]"
-                                            checked={settingsState.logSettings
-                                                .technicalsVerbose}
+                                            checked={logs.technicalsVerbose}
                                             onchange={(e) => {
-                                                if (settingsState.logSettings) {
-                                                    settingsState.logSettings.technicalsVerbose =
-                                                        e.currentTarget.checked;
-                                                }
+                                                logs.technicalsVerbose =
+                                                    e.currentTarget.checked;
                                             }}
                                         />
                                     </label>
