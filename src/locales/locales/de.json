@@ -585,7 +585,9 @@
       "gemmaOpen": "Gemma 3 27b (Offenes Modell ✨)",
       "confirmActionsDesc": "Fordert Bestätigung vor KI-Aktionen",
       "confirmClearHistory": "Verlauf löschen bestätigen",
-      "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs"
+      "confirmClearHistoryDesc": "Fordert Bestätigung vor dem Löschen des Chat-Verlaufs",
+      "behavior": "Verhalten & Persona",
+      "agents": "Autonome Agenten"
     },
     "technicals": {
       "oscillators": "Oszillatoren",
@@ -630,7 +632,50 @@
       "sidebar": "Sidebar",
       "indicators": "Technicals",
       "system": "System",
-      "data": "Daten-Wartung"
+      "data": "Daten-Wartung",
+      "visuals": "Optik & Design",
+      "trading": "Handel & Markt",
+      "connections": "Verbindungen"
+    },
+    "system": {
+      "performance": "Performance",
+      "pauseApp": "Im Hintergrund pausieren",
+      "pauseAppDesc": "Stoppt rechenintensive Aufgaben, wenn der Tab nicht aktiv ist.",
+      "networkLogs": "Netzwerk-Logs",
+      "networkLogsDesc": "Zeigt API-Verkehr in der Konsole an.",
+      "debugMode": "Debug Modus",
+      "debugModeDesc": "Erweiterte Logs und Entwickler-Funktionen anzeigen.",
+      "clearCache": "Cache leeren",
+      "reloadApp": "App neu laden",
+      "cacheCleared": "Cache wurde geleert.",
+      "dataMaintenance": "Daten & Backup",
+      "backup": "Backup erstellen",
+      "backupDesc": "Sichere deine Einstellungen & Daten als Datei.",
+      "restore": "Backup laden",
+      "restoreDesc": "Importiere eine Sicherung aus einer Datei.",
+      "dangerZone": "Gefahrenzone",
+      "factoryReset": "Werkseinstellungen",
+      "factoryResetDesc": "Alles löschen und frisch starten. Nicht umkehrbar.",
+      "resetNow": "Jetzt zurücksetzen"
+    },
+    "connections": {
+      "exchanges": "Börsen",
+      "apiKey": "API Key",
+      "apiSecret": "API Secret",
+      "passphrase": "Passphrase",
+      "dataServices": "Datendienste",
+      "rss": "RSS Feeds",
+      "customFeeds": "Eigene Feeds",
+      "addFeed": "Feed hinzufügen"
+    },
+    "visuals": {
+      "appearanceTitle": "Optik & Design",
+      "layoutTitle": "Layout & Struktur",
+      "backgroundTitle": "Hintergrund"
+    },
+    "trading": {
+      "executionTitle": "Exekution & Gebühren",
+      "chartTitle": "Chart & Daten"
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",
