@@ -18,7 +18,7 @@ export const xService = {
         const { xMonitors } = settingsState;
 
         // Backend will auto-rotate this placeholder to a random healthy instance
-        const baseUrl = "https://nitter.local";
+        const baseUrl = "https://nitter.service";
 
         return xMonitors.map((monitor) => {
             const value = monitor.value.trim();
