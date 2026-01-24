@@ -18,13 +18,18 @@ export const rssParserService = {
         ? { xCmd: { type: input.split(":")[1], value: input.split(":")[2] } }
         : { url: input };
 
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s client timeout
+
       const response = await fetch("/api/rss-fetch", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+      clearTimeout(timeoutId);
 
       if (!response.ok) {
         return [];

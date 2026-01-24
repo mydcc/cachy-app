@@ -25,6 +25,11 @@ class NewsStore {
   async refresh(symbol?: string, force = false) {
     if (!settingsState.enableNewsAnalysis) return;
 
+    // Prevent concurrent loads for the same symbol
+    if (this.isLoading && symbol === this.lastSymbol && !force) {
+        return;
+    }
+
     // Avoid redundant loads for same symbol unless forced
     if (
       !force &&
