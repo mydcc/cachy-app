@@ -21,6 +21,10 @@ class NewsStore {
   isLoading = $state(false);
   error = $state<string | null>(null);
   lastSymbol = $state<string | undefined>(undefined);
+  lastFetchTime = $state(0);
+
+  // Cooldown to prevent infinite loops when API returns empty/fails silently
+  private readonly FETCH_COOLDOWN = 60000; // 60s
 
   async refresh(symbol?: string, force = false) {
     if (!settingsState.enableNewsAnalysis) return;
@@ -30,14 +34,22 @@ class NewsStore {
         return;
     }
 
+    const now = Date.now();
+
     // Avoid redundant loads for same symbol unless forced
-    if (
-      !force &&
-      symbol === this.lastSymbol &&
-      this.news.length > 0 &&
-      !this.error
-    ) {
-      return;
+    if (!force && symbol === this.lastSymbol) {
+      const isRecent = (now - this.lastFetchTime) < this.FETCH_COOLDOWN;
+
+      // If we have data and no error, skip
+      if (this.news.length > 0 && !this.error) return;
+
+      // If we failed or got empty results recently, SKIP to prevent spam loop
+      // This is crucial if rss-fetch returns 500 (empty) repeatedly
+      if (isRecent) {
+        // Only skip if we are within cooldown.
+        // If it's been > 1 min, we try again.
+        return;
+      }
     }
 
     this.isLoading = true;
@@ -47,6 +59,7 @@ class NewsStore {
     try {
       const items = await newsService.fetchNews(symbol);
       this.news = items || [];
+      this.lastFetchTime = Date.now();
 
       if (this.news.length > 0) {
         const analysis = await newsService.analyzeSentiment(this.news);
@@ -57,6 +70,8 @@ class NewsStore {
     } catch (e: any) {
       logger.error("market", "Refresh failed", e);
       this.error = e.message || "Failed to load news";
+      // Update fetch time even on error to enforce cooldown
+      this.lastFetchTime = Date.now();
     } finally {
       this.isLoading = false;
     }
