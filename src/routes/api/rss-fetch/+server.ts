@@ -1,12 +1,3 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- */
-
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import Parser from "rss-parser";
@@ -20,23 +11,20 @@ const parser = new Parser({
   },
 });
 
-// Simple In-Memory Cache and Health Tracker for RSS Feeds
+// Advanced Cache and Persistent Store for Tweets
 interface CachedFeed {
   data: any;
   timestamp: number;
 }
-interface HostHealth {
-  consecutiveErrors: number;
-  lastErrorTime: number;
-}
 
+// Memory Cache for active session
 const feedCache = new Map<string, CachedFeed>();
-const hostHealth = new Map<string, HostHealth>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes for standard RSS
 
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
-const HEALTH_BACKOFF = 15 * 60 * 1000; // 15 minutes backoff for failing hosts
-const MAX_CONSECUTIVE_ERRORS = 3;
-const MAX_CACHE_ENTRIES = 50;
+// Long-term Tweet Store (in-memory for now, could be persisted to disk if needed)
+// Map<UserHandle/Hashtag, Map<TweetID/TitleHash, Tweet>>
+const tweetStore = new Map<string, Map<string, any>>();
+const TWEET_CACHE_TTL = 4 * 60 * 60 * 1000; // 4 hours for tweets
 
 const NITTER_INSTANCES = [
   "nitter.poast.org",
@@ -45,12 +33,29 @@ const NITTER_INSTANCES = [
   "nitter.privacy.com.de",
   "nitter.perennialte.ch",
   "nitter.rawbit.ninja",
-  "xcancel.com"
+  "xcancel.com",
+  "nitter.tinfoil-hat.net",
+  "nitter.projectsegfau.lt",
+  "nitter.eu"
 ];
 
-// In-memory blacklist to temporarily skip failing instances
+// In-memory blacklist with dynamic backoff
 const instanceBackoff = new Map<string, number>();
-const BACKOFF_MS = 60 * 1000; // 1 minute ignore after HARD failure
+const BACKOFF_STEP = 5 * 60 * 1000; // 5 minutes base backoff
+const MAX_BACKOFF = 60 * 60 * 1000; // Max 1 hour backoff
+
+/**
+ * Generates a simple hash for deduplication if no ID is available
+ */
+function hashString(str: string): string {
+  let hash = 0;
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i);
+    hash = ((hash << 5) - hash) + char;
+    hash = hash & hash;
+  }
+  return hash.toString(16);
+}
 
 /**
  * Shuffles an array (Fisher-Yates)
@@ -65,33 +70,26 @@ function shuffle<T>(array: T[]): T[] {
 }
 
 /**
- * Deep-Search HTML Scraper for Nitter timeline
- * Focuses on content rather than container structure for maximum compatibility.
+ * Improved HTML Scraper for Nitter
  */
 function scrapeNitterHTML(html: string, baseUrl: string): any[] {
   const items: any[] = [];
-
-  // Split into chunks by a reliable tweet container marker
   const blocks = html.split(/class\s*=\s*["'][^"']*(?:timeline-item|tweet-body)[^"']*["']/);
 
   for (let i = 1; i < blocks.length; i++) {
     const block = blocks[i];
-    // Find the start of the tweet-content div
     const contentMatch = block.match(/class\s*=\s*["'][^"']*tweet-content[^"']*["'][^>]*>/);
     if (!contentMatch) continue;
 
     const startIndex = block.indexOf(contentMatch[0]) + contentMatch[0].length;
     const contentRaw = block.substring(startIndex);
 
-    // Robust parsing of nested DIVs: count opening/closing tags to find the matching end
     let divDepth = 1;
     let pos = 0;
     while (divDepth > 0 && pos < contentRaw.length) {
       const nextOpen = contentRaw.indexOf("<div", pos);
       const nextClose = contentRaw.indexOf("</div>", pos);
-
       if (nextClose === -1) break;
-
       if (nextOpen !== -1 && nextOpen < nextClose) {
         divDepth++;
         pos = nextOpen + 4;
@@ -104,9 +102,12 @@ function scrapeNitterHTML(html: string, baseUrl: string): any[] {
     const textContent = contentRaw.substring(0, Math.max(0, pos - 6)).replace(/<[^>]*>/g, "").trim();
     if (!textContent || textContent.length < 3) continue;
 
+    const tweetId = hashString(textContent);
+
     items.push({
+      id: tweetId,
       title: textContent.substring(0, 100) + (textContent.length > 100 ? "..." : ""),
-      url: `https://${baseUrl}`, // Fallback to instance root
+      url: `https://${baseUrl}`,
       source: baseUrl,
       published_at: new Date().toISOString(),
       description: textContent
@@ -126,7 +127,6 @@ export const POST: RequestHandler = async ({ request }) => {
       const controller = new AbortController();
       const id = setTimeout(() => controller.abort(), timeout);
 
-      // Rotating User-Agents for better bypass (Stufe 4.0)
       const uas = [
         "Mozilla/5.0 (iPhone; CPU iPhone OS 17_2 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.2 Mobile/15E148 Safari/604.1",
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36",
@@ -141,8 +141,7 @@ export const POST: RequestHandler = async ({ request }) => {
             "User-Agent": ua,
             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.5",
-            "Cache-Control": "no-cache",
-            "Upgrade-Insecure-Requests": "1"
+            "Cache-Control": "no-cache"
           }
         });
 
@@ -153,14 +152,7 @@ export const POST: RequestHandler = async ({ request }) => {
         clearTimeout(id);
 
         const lower = text.toLowerCase();
-        if (
-          lower.includes("cloudflare") ||
-          lower.includes("anubis") ||
-          lower.includes("robot checking") ||
-          lower.includes("verifying your request") ||
-          lower.includes("detected unusual activity") ||
-          (lower.includes("ddos") && lower.includes("protection"))
-        ) {
+        if (lower.includes("cloudflare") || lower.includes("anubis") || lower.includes("robot checking")) {
           throw new Error("Bot-Block");
         }
         return text;
@@ -173,68 +165,90 @@ export const POST: RequestHandler = async ({ request }) => {
     if (xCmd) {
       context = `@${xCmd.value}`;
       const now = Date.now();
+
+      // 1. Check Long-term Cache first
+      const storeKey = `${xCmd.type}:${xCmd.value}`;
+      const stored = tweetStore.get(storeKey);
+      if (stored) {
+        // If we have data and it's fresh, return it
+        const items = Array.from(stored.values()).filter(i => (now - new Date(i.cached_at).getTime()) < TWEET_CACHE_TTL);
+        if (items.length > 5) { // Only return if we have a decent amount of fresh data
+          console.log(`[X-NEWS] Serving from Long-term Cache: ${context} (${items.length} items)`);
+          return json({ items, feedTitle: `X: ${context} (Cached)` });
+        }
+      }
+
       const available = NITTER_INSTANCES.filter(inst => (instanceBackoff.get(inst) || 0) < now);
       const pool = shuffle(available.length > 0 ? available : NITTER_INSTANCES);
 
-      console.log(`[X-NEWS] COMMAND: ${xCmd.type} for ${xCmd.value}. Trying ${pool.length} instances...`);
+      console.log(`[X-NEWS] Fetching: ${context}. Available: ${pool.length}/${NITTER_INSTANCES.length}`);
 
       for (const instance of pool) {
-        // Try multiple paths for a single instance for better resilience
-        // Stufe 4.0: Standardized search queries for users
         const paths = xCmd.type === "user"
           ? [`/${xCmd.value}`, `/search?q=from:${xCmd.value}&f=tweets`]
-          : [`/search?f=tweets&q=%23${xCmd.value}`, `/search?f=tweets&q=${xCmd.value}`];
+          : [`/search?f=tweets&q=%23${xCmd.value}`];
 
         for (const targetPath of paths) {
           try {
             const html = await tryFetch(`https://${instance}${targetPath}`, 5000);
             if (!html) continue;
 
-            const hasTitle = (html.match(/<title>([^<]*)<\/title>/i)?.[1] || "No Title").toLowerCase();
+            const titleMatch = html.match(/<title>([^<]*)<\/title>/i);
+            const title = (titleMatch?.[1] || "").toLowerCase();
 
-            // Redirect or Auth-Gate detection
-            if (
-              hasTitle === "nitter" ||
-              hasTitle.includes("homepage") ||
-              hasTitle.includes("welcome") ||
-              hasTitle.includes("authentication") ||
-              hasTitle.includes("login")
-            ) {
-              console.warn(`[X-NEWS] Instance ${instance} hit a gate/homepage (${hasTitle}). Skipping.`);
+            if (title.includes("nitter") && !title.includes(xCmd.value.toLowerCase())) {
+              // Likely a redirect to homepage or error page that didn't throw HTTP error
               continue;
             }
 
-            const items = scrapeNitterHTML(html, instance);
-            if (items.length > 0) {
-              console.log(`[X-NEWS] Success with: ${instance}${targetPath} (${items.length} news)`);
-              return json({ items, feedTitle: `X: ${context}` });
+            const newItems = scrapeNitterHTML(html, instance);
+            if (newItems.length > 0) {
+              // Merge with store
+              let userStore = tweetStore.get(storeKey);
+              if (!userStore) {
+                userStore = new Map();
+                tweetStore.set(storeKey, userStore);
+              }
+
+              newItems.forEach(item => {
+                if (!userStore!.has(item.id)) {
+                  userStore!.set(item.id, { ...item, cached_at: new Date().toISOString() });
+                }
+              });
+
+              const allItems = Array.from(userStore.values())
+                .sort((a, b) => new Date(b.published_at).getTime() - new Date(a.published_at).getTime())
+                .slice(0, 40);
+
+              console.log(`[X-NEWS] Success: ${instance} for ${context} (${newItems.length} new, ${allItems.length} total)`);
+              return json({ items: allItems, feedTitle: `X: ${context}` });
             }
-
-            // User-NotFound / Empty Detection
-            const lowerHtml = html.toLowerCase();
-            if (lowerHtml.includes("no tweets found") || lowerHtml.includes("user not found") || lowerHtml.includes("unavailable")) {
-              console.log(`[X-NEWS] Instance ${instance} reports no tweets/user for ${xCmd.value}. Returning empty.`);
-              return json({ items: [], feedTitle: `X: ${context} (Empty)` });
-            }
-
-            if (hasTitle.includes("loading")) continue;
-
-            console.warn(`[X-NEWS] Instance ${instance}${targetPath} ("${hasTitle}") returned 0 news. Snippet: ${html.substring(0, 100).replace(/\n/g, " ")}`);
           } catch (e: any) {
-            console.warn(`[X-NEWS] Instance ${instance} failed on ${targetPath}: ${e.message}`);
-            // HARD backoff only on actual blocks or network errors
-            if (e.message.includes("HTTP") || e.message === "Bot-Block") {
-              instanceBackoff.set(instance, now + BACKOFF_MS);
-              break;
-            }
+            console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
+            const currentBackoff = instanceBackoff.get(instance) || 0;
+            const newBackoff = Math.min(MAX_BACKOFF, Math.max(now + BACKOFF_STEP, currentBackoff + BACKOFF_STEP));
+            instanceBackoff.set(instance, newBackoff);
+            break; // Try next instance
           }
         }
       }
-      throw new Error("All X-instances failed or returned empty content.");
+
+      // Final fallback: Return what we have in store even if old
+      if (stored && stored.size > 0) {
+        return json({ items: Array.from(stored.values()), feedTitle: `X: ${context} (Stale)` });
+      }
+
+      throw new Error("All instances failed");
     } else if (url) {
+      // Standard RSS with memory cache
+      const cached = feedCache.get(url);
+      if (cached && (Date.now() - cached.timestamp < CACHE_TTL)) {
+        return json(cached.data);
+      }
+
       const xml = await tryFetch(url, 8000);
       const parsed = await parser.parseString(xml);
-      return json({
+      const result = {
         items: (parsed.items || []).map((item: any) => ({
           title: item.title || "Untitled",
           url: item.link || url,
@@ -243,7 +257,10 @@ export const POST: RequestHandler = async ({ request }) => {
           description: item.contentSnippet || item.content || "",
         })),
         feedTitle: parsed.title,
-      });
+      };
+
+      feedCache.set(url, { data: result, timestamp: Date.now() });
+      return json(result);
     } else {
       return json({ error: "Missing parameters" }, { status: 400 });
     }

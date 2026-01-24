@@ -10,6 +10,16 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 
+// In-Memory Cache for News Proxy
+interface CachedResponse {
+  data: any;
+  timestamp: number;
+}
+
+const newsCache = new Map<string, CachedResponse>();
+const pendingRequests = new Map<string, Promise<any>>();
+const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+
 export const POST: RequestHandler = async ({ request, fetch }) => {
   try {
     const { source, apiKey, params, plan } = await request.json();
@@ -18,69 +28,88 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    if (source === "cryptopanic") {
-      const query = new URLSearchParams(params).toString();
-      const plans: ("developer" | "growth" | "enterprise")[] = [
-        "developer",
-        "growth",
-        "enterprise",
-      ];
+    const cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}`;
+    const now = Date.now();
 
-      // If a specific plan is requested, try it first
-      if (plan && plans.includes(plan)) {
-        const idx = plans.indexOf(plan);
-        plans.splice(idx, 1);
-        plans.unshift(plan);
-      }
-
-      let lastError = "";
-      for (const p of plans) {
-        // Correct structure: https://cryptopanic.com/api/<plan>/v2/posts/?auth_token=...
-        const url = `https://cryptopanic.com/api/${p}/v2/posts/?auth_token=${apiKey}&${query}`;
-
-        try {
-          const response = await fetch(url);
-          if (response.ok) {
-            const data = await response.json();
-            return json(data);
-          }
-          if (response.status === 404) {
-            lastError = `404 Not Found for plan: ${p}`;
-            continue; // Try next plan
-          }
-          const errorText = await response.text();
-          return json(
-            {
-              error: `Upstream error (${p}): ${response.status}`,
-              details: errorText,
-            },
-            { status: response.status },
-          );
-        } catch (e: any) {
-          lastError = e.message;
-          continue;
-        }
-      }
-      return json(
-        { error: "Could not find valid CryptoPanic endpoint", lastError },
-        { status: 404 },
-      );
-    } else if (source === "newsapi") {
-      const query = new URLSearchParams(params).toString();
-      const url = `https://newsapi.org/v2/everything?apiKey=${apiKey}&${query}`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        const errorText = await response.text();
-        return json(
-          { error: `Upstream error: ${response.status}` },
-          { status: response.status },
-        );
-      }
-      const data = await response.json();
-      return json(data);
-    } else {
-      return json({ error: "Invalid source" }, { status: 400 });
+    // Check Cache
+    const cached = newsCache.get(cacheKey);
+    if (cached && (now - cached.timestamp < CACHE_TTL)) {
+      return json(cached.data);
     }
+
+    // Check for pending request to deduplicate concurrent calls
+    if (pendingRequests.has(cacheKey)) {
+      try {
+        const data = await pendingRequests.get(cacheKey);
+        return json(data);
+      } catch (e: any) {
+        // Fallthrough to retry if pending fails
+      }
+    }
+
+    const executeRequest = async () => {
+      if (source === "cryptopanic") {
+        const query = new URLSearchParams(params).toString();
+        const plans: ("developer" | "growth" | "enterprise")[] = [
+          "developer",
+          "growth",
+          "enterprise",
+        ];
+
+        if (plan && plans.includes(plan)) {
+          const idx = plans.indexOf(plan);
+          plans.splice(idx, 1);
+          plans.unshift(plan);
+        }
+
+        let lastError = "";
+        for (const p of plans) {
+          const url = `https://cryptopanic.com/api/${p}/v2/posts/?auth_token=${apiKey}&${query}`;
+          try {
+            const response = await fetch(url);
+            if (response.ok) {
+              const data = await response.json();
+              newsCache.set(cacheKey, { data, timestamp: Date.now() });
+              return data;
+            }
+            if (response.status === 404) {
+              lastError = `404 Not Found for plan: ${p}`;
+              continue;
+            }
+            const errorText = await response.text();
+            throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
+          } catch (e: any) {
+            lastError = e.message;
+            continue;
+          }
+        }
+        throw new Error(`Could not find valid CryptoPanic endpoint. Last Error: ${lastError}`);
+      } else if (source === "newsapi") {
+        const query = new URLSearchParams(params).toString();
+        const url = `https://newsapi.org/v2/everything?apiKey=${apiKey}&${query}`;
+        const response = await fetch(url);
+        if (!response.ok) {
+          const errorText = await response.text();
+          throw new Error(`Upstream error (NewsAPI): ${response.status} - ${errorText}`);
+        }
+        const data = await response.json();
+        newsCache.set(cacheKey, { data, timestamp: Date.now() });
+        return data;
+      } else {
+        throw new Error("Invalid source");
+      }
+    };
+
+    const requestPromise = executeRequest();
+    pendingRequests.set(cacheKey, requestPromise);
+
+    try {
+      const data = await requestPromise;
+      return json(data);
+    } finally {
+      pendingRequests.delete(cacheKey);
+    }
+
   } catch (err: any) {
     console.error("[NewsProxy] Error:", err);
     return json(
