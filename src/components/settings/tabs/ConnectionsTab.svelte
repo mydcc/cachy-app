@@ -41,477 +41,490 @@
         settingsState.customRssFeeds = newFeeds;
         localStorage.removeItem("cachy_news_cache");
     }
+
+    let activeSubTab = $state("exchanges");
+
+    const subTabs = [
+        { id: "exchanges", label: "Exchanges" },
+        { id: "data", label: "Data Services" },
+        { id: "rss", label: "News Feeds" },
+    ];
 </script>
 
 <div
-    class="connections-tab flex flex-col gap-8"
+    class="connections-tab h-full flex flex-col"
     role="tabpanel"
     id="tab-connections"
 >
-    <!-- Exchanges -->
-    <section class="settings-section">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-indigo-500/10 text-indigo-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><rect width="20" height="12" x="2" y="6" rx="2" /><circle
-                        cx="12"
-                        cy="12"
-                        r="2"
-                    /><path d="M6 12h.01M18 12h.01" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.connections.exchanges") || "Exchanges"}
-            </h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- Bitunix -->
-            <div class="api-card">
-                <div class="header">
-                    <span class="font-bold text-sm">Bitunix</span>
-                    <span
-                        class="status-dot {settingsState.apiKeys.bitunix.key
-                            ? 'connected'
-                            : ''}"
-                    ></span>
-                </div>
-                <div class="body">
-                    <div class="field-group">
-                        <label for="bitunix-key"
-                            >{$_("settings.connections.apiKey") ||
-                                "API Key"}</label
-                        >
-                        <div class="input-wrapper relative">
-                            <input
-                                id="bitunix-key"
-                                type={showKeys["bitunix_k"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={settingsState.apiKeys.bitunix.key}
-                                class="api-input pr-8"
-                                placeholder="Bitunix Key"
-                            />
-                            <button
-                                class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-                                onclick={() => toggleKeyVisibility("bitunix_k")}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><path
-                                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                    /><circle cx="12" cy="12" r="3" /></svg
-                                >
-                            </button>
-                        </div>
-                    </div>
-                    <div class="field-group mt-3">
-                        <label for="bitunix-secret"
-                            >{$_("settings.connections.apiSecret") ||
-                                "API Secret"}</label
-                        >
-                        <div class="input-wrapper relative">
-                            <input
-                                id="bitunix-secret"
-                                type={showKeys["bitunix_s"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={
-                                    settingsState.apiKeys.bitunix.secret
-                                }
-                                class="api-input pr-8"
-                                placeholder="Bitunix Secret"
-                            />
-                            <button
-                                class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-                                onclick={() => toggleKeyVisibility("bitunix_s")}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><path
-                                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                    /><circle cx="12" cy="12" r="3" /></svg
-                                >
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Bitget -->
-            <div class="api-card">
-                <div class="header">
-                    <span class="font-bold text-sm">Bitget</span>
-                    <span
-                        class="status-dot {settingsState.apiKeys.bitget.key &&
-                        settingsState.apiKeys.bitget.passphrase
-                            ? 'connected'
-                            : ''}"
-                    ></span>
-                </div>
-                <div class="body">
-                    <div class="field-group">
-                        <label for="bitget-key"
-                            >{$_("settings.connections.apiKey")}</label
-                        >
-                        <div class="input-wrapper relative">
-                            <input
-                                id="bitget-key"
-                                type={showKeys["bitget_k"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={settingsState.apiKeys.bitget.key}
-                                class="api-input pr-8"
-                                placeholder="Bitget Key"
-                            />
-                            <button
-                                class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-                                onclick={() => toggleKeyVisibility("bitget_k")}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><path
-                                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                    /><circle cx="12" cy="12" r="3" /></svg
-                                >
-                            </button>
-                        </div>
-                    </div>
-                    <div class="field-group mt-3">
-                        <label for="bitget-secret"
-                            >{$_("settings.connections.apiSecret")}</label
-                        >
-                        <div class="input-wrapper relative">
-                            <input
-                                id="bitget-secret"
-                                type={showKeys["bitget_s"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={settingsState.apiKeys.bitget.secret}
-                                class="api-input pr-8"
-                                placeholder="Bitget Secret"
-                            />
-                            <button
-                                class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-                                onclick={() => toggleKeyVisibility("bitget_s")}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><path
-                                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                    /><circle cx="12" cy="12" r="3" /></svg
-                                >
-                            </button>
-                        </div>
-                    </div>
-                    <div class="field-group mt-3">
-                        <label for="bitget-pass"
-                            >{$_("settings.connections.passphrase") ||
-                                "Passphrase"}</label
-                        >
-                        <div class="input-wrapper relative">
-                            <input
-                                id="bitget-pass"
-                                type={showKeys["bitget_p"]
-                                    ? "text"
-                                    : "password"}
-                                bind:value={
-                                    settingsState.apiKeys.bitget.passphrase
-                                }
-                                class="api-input pr-8"
-                                placeholder="Passphrase"
-                            />
-                            <button
-                                class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
-                                onclick={() => toggleKeyVisibility("bitget_p")}
-                            >
-                                <svg
-                                    xmlns="http://www.w3.org/2000/svg"
-                                    width="14"
-                                    height="14"
-                                    viewBox="0 0 24 24"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="2"
-                                    stroke-linecap="round"
-                                    stroke-linejoin="round"
-                                    ><path
-                                        d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
-                                    /><circle cx="12" cy="12" r="3" /></svg
-                                >
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- Data Services -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-8"
+    <!-- Sub-Navigation -->
+    <div
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 mb-4 shrink-0"
     >
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-orange-500/10 text-orange-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.connections.dataServices") || "Data Services"}
-            </h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-            <!-- CryptoPanic -->
-            <div class="api-card">
-                <div class="header">
-                    <span class="font-bold text-sm">CryptoPanic</span>
-                </div>
-                <div class="body">
-                    <div class="field-group">
-                        <label for="cp-key">API Key</label>
-                        <input
-                            id="cp-key"
-                            type="password"
-                            bind:value={settingsState.cryptoPanicApiKey}
-                            class="api-input"
-                        />
-                    </div>
-                    <div class="grid grid-cols-2 gap-2 mt-3">
-                        <div class="field-group">
-                            <label for="cp-filter">Filter</label>
-                            <select
-                                id="cp-filter"
-                                bind:value={settingsState.cryptoPanicFilter}
-                                class="api-input py-1 text-xs"
-                            >
-                                <option value="all">All</option>
-                                <option value="hot">Hot</option>
-                                <option value="bullish">Bullish</option>
-                                <option value="bearish">Bearish</option>
-                                <option value="important">Important</option>
-                            </select>
-                        </div>
-                        <div class="field-group">
-                            <label for="cp-plan">Plan</label>
-                            <select
-                                id="cp-plan"
-                                bind:value={settingsState.cryptoPanicPlan}
-                                class="api-input py-1 text-xs"
-                            >
-                                <option value="developer">Free</option>
-                                <option value="growth">Pro</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Other APIs -->
-            <div class="flex flex-col gap-4">
-                <div class="api-card compact">
-                    <label for="cmc-key">CoinMarketCap API</label>
-                    <input
-                        id="cmc-key"
-                        type="password"
-                        bind:value={settingsState.cmcApiKey}
-                        class="api-input"
-                    />
-                </div>
-                <div class="api-card compact">
-                    <label for="news-key">NewsAPI.org</label>
-                    <input
-                        id="news-key"
-                        type="password"
-                        bind:value={settingsState.newsApiKey}
-                        class="api-input"
-                    />
-                </div>
-                <div class="api-card compact">
-                    <label for="imgbb-key">ImgBB API (Screenshots)</label>
-                    <input
-                        id="imgbb-key"
-                        type="password"
-                        bind:value={settingsState.imgbbApiKey}
-                        class="api-input"
-                    />
-                </div>
-            </div>
-        </div>
-    </section>
-
-    <!-- RSS Feeds -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-8"
-    >
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-emerald-500/10 text-emerald-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path d="M4 11a9 9 0 0 1 9 9" /><path
-                        d="M4 4a16 16 0 0 1 16 16"
-                    /><circle cx="5" cy="19" r="1" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.connections.rss") || "RSS Feeds"}
-            </h3>
-        </div>
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-            {#each RSS_PRESETS as preset}
-                <!-- svelte-ignore a11y_click_events_have_key_events -->
-                <div
-                    role="button"
-                    tabindex="0"
-                    class="api-card compact flex-row items-center justify-between cursor-pointer transition-colors"
-                    onclick={() => togglePreset(preset.id)}
-                    class:border-[var(--accent-color)]={settingsState.rssPresets?.includes(
-                        preset.id,
-                    )}
-                    class:bg-[var(--bg-secondary)]={settingsState.rssPresets?.includes(
-                        preset.id,
-                    )}
-                >
-                    <div class="flex flex-col">
-                        <span
-                            class="font-bold text-sm"
-                            class:text-[var(--accent-color)]={settingsState.rssPresets?.includes(
-                                preset.id,
-                            )}>{preset.name}</span
-                        >
-                        <span class="text-[10px] text-[var(--text-secondary)]"
-                            >{preset.url}</span
-                        >
-                    </div>
-                    <div class="pointer-events-none">
-                        <Toggle
-                            checked={settingsState.rssPresets?.includes(
-                                preset.id,
-                            ) ?? false}
-                        />
-                    </div>
-                </div>
-            {/each}
-        </div>
-
-        <!-- Custom Feeds -->
-        <h4
-            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
-        >
-            {$_("settings.connections.customFeeds") || "Custom Feeds"}
-        </h4>
-        <div class="flex flex-col gap-2">
-            {#if settingsState.customRssFeeds}
-                {#each settingsState.customRssFeeds as feed, i}
-                    <div class="flex items-center gap-2">
-                        <input
-                            type="url"
-                            bind:value={settingsState.customRssFeeds[i]}
-                            class="api-input"
-                            placeholder="https://..."
-                        />
-                        <button
-                            class="text-red-500 hover:text-red-400 p-2"
-                            onclick={() => removeCustomFeed(i)}
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><path d="M18 6 6 18" /><path
-                                    d="m6 6 12 12"
-                                /></svg
-                            >
-                        </button>
-                    </div>
-                {/each}
-            {/if}
+        {#each subTabs as tab}
             <button
-                class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                onclick={addCustomFeed}
-                disabled={(settingsState.customRssFeeds?.length || 0) >= 5}
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
+                tab.id
+                    ? 'bg-[var(--accent-color)] text-white'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
+                onclick={() => (activeSubTab = tab.id)}
             >
-                + {$_("settings.connections.addFeed") || "Add Feed"}
+                {tab.label}
             </button>
-        </div>
-    </section>
+        {/each}
+    </div>
+
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <!-- Exchanges -->
+        {#if activeSubTab === "exchanges"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.connections.exchanges") || "Exchanges"}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- Bitunix -->
+                    <div class="api-card">
+                        <div class="header">
+                            <span class="font-bold text-sm">Bitunix</span>
+                            <span
+                                class="status-dot {settingsState.apiKeys.bitunix
+                                    .key
+                                    ? 'connected'
+                                    : ''}"
+                            ></span>
+                        </div>
+                        <div class="body">
+                            <div class="field-group">
+                                <label for="bitunix-key"
+                                    >{$_("settings.connections.apiKey") ||
+                                        "API Key"}</label
+                                >
+                                <div class="input-wrapper relative">
+                                    <input
+                                        id="bitunix-key"
+                                        type={showKeys["bitunix_k"]
+                                            ? "text"
+                                            : "password"}
+                                        bind:value={
+                                            settingsState.apiKeys.bitunix.key
+                                        }
+                                        class="api-input pr-8"
+                                        placeholder="Bitunix Key"
+                                    />
+                                    <button
+                                        class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                        onclick={() =>
+                                            toggleKeyVisibility("bitunix_k")}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="field-group mt-3">
+                                <label for="bitunix-secret"
+                                    >{$_("settings.connections.apiSecret") ||
+                                        "API Secret"}</label
+                                >
+                                <div class="input-wrapper relative">
+                                    <input
+                                        id="bitunix-secret"
+                                        type={showKeys["bitunix_s"]
+                                            ? "text"
+                                            : "password"}
+                                        bind:value={
+                                            settingsState.apiKeys.bitunix.secret
+                                        }
+                                        class="api-input pr-8"
+                                        placeholder="Bitunix Secret"
+                                    />
+                                    <button
+                                        class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                        onclick={() =>
+                                            toggleKeyVisibility("bitunix_s")}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Bitget -->
+                    <div class="api-card">
+                        <div class="header">
+                            <span class="font-bold text-sm">Bitget</span>
+                            <span
+                                class="status-dot {settingsState.apiKeys.bitget
+                                    .key &&
+                                settingsState.apiKeys.bitget.passphrase
+                                    ? 'connected'
+                                    : ''}"
+                            ></span>
+                        </div>
+                        <div class="body">
+                            <div class="field-group">
+                                <label for="bitget-key"
+                                    >{$_("settings.connections.apiKey")}</label
+                                >
+                                <div class="input-wrapper relative">
+                                    <input
+                                        id="bitget-key"
+                                        type={showKeys["bitget_k"]
+                                            ? "text"
+                                            : "password"}
+                                        bind:value={
+                                            settingsState.apiKeys.bitget.key
+                                        }
+                                        class="api-input pr-8"
+                                        placeholder="Bitget Key"
+                                    />
+                                    <button
+                                        class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                        onclick={() =>
+                                            toggleKeyVisibility("bitget_k")}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="field-group mt-3">
+                                <label for="bitget-secret"
+                                    >{$_(
+                                        "settings.connections.apiSecret",
+                                    )}</label
+                                >
+                                <div class="input-wrapper relative">
+                                    <input
+                                        id="bitget-secret"
+                                        type={showKeys["bitget_s"]
+                                            ? "text"
+                                            : "password"}
+                                        bind:value={
+                                            settingsState.apiKeys.bitget.secret
+                                        }
+                                        class="api-input pr-8"
+                                        placeholder="Bitget Secret"
+                                    />
+                                    <button
+                                        class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                        onclick={() =>
+                                            toggleKeyVisibility("bitget_s")}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="field-group mt-3">
+                                <label for="bitget-pass"
+                                    >{$_("settings.connections.passphrase") ||
+                                        "Passphrase"}</label
+                                >
+                                <div class="input-wrapper relative">
+                                    <input
+                                        id="bitget-pass"
+                                        type={showKeys["bitget_p"]
+                                            ? "text"
+                                            : "password"}
+                                        bind:value={
+                                            settingsState.apiKeys.bitget
+                                                .passphrase
+                                        }
+                                        class="api-input pr-8"
+                                        placeholder="Passphrase"
+                                    />
+                                    <button
+                                        class="toggle-btn absolute right-2 top-1/2 -translate-y-1/2 text-[var(--text-secondary)]"
+                                        onclick={() =>
+                                            toggleKeyVisibility("bitget_p")}
+                                    >
+                                        <svg
+                                            xmlns="http://www.w3.org/2000/svg"
+                                            width="14"
+                                            height="14"
+                                            viewBox="0 0 24 24"
+                                            fill="none"
+                                            stroke="currentColor"
+                                            stroke-width="2"
+                                            stroke-linecap="round"
+                                            stroke-linejoin="round"
+                                            ><path
+                                                d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"
+                                            /><circle
+                                                cx="12"
+                                                cy="12"
+                                                r="3"
+                                            /></svg
+                                        >
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {/if}
+
+        <!-- Data Services -->
+        {#if activeSubTab === "data"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.connections.dataServices") || "Data Services"}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- CryptoPanic -->
+                    <div class="api-card">
+                        <div class="header">
+                            <span class="font-bold text-sm">CryptoPanic</span>
+                        </div>
+                        <div class="body">
+                            <div class="field-group">
+                                <label for="cp-key">API Key</label>
+                                <input
+                                    id="cp-key"
+                                    type="password"
+                                    bind:value={settingsState.cryptoPanicApiKey}
+                                    class="api-input"
+                                />
+                            </div>
+                            <div class="grid grid-cols-2 gap-2 mt-3">
+                                <div class="field-group">
+                                    <label for="cp-filter">Filter</label>
+                                    <select
+                                        id="cp-filter"
+                                        bind:value={
+                                            settingsState.cryptoPanicFilter
+                                        }
+                                        class="api-input py-1 text-xs"
+                                    >
+                                        <option value="all">All</option>
+                                        <option value="hot">Hot</option>
+                                        <option value="bullish">Bullish</option>
+                                        <option value="bearish">Bearish</option>
+                                        <option value="important"
+                                            >Important</option
+                                        >
+                                    </select>
+                                </div>
+                                <div class="field-group">
+                                    <label for="cp-plan">Plan</label>
+                                    <select
+                                        id="cp-plan"
+                                        bind:value={
+                                            settingsState.cryptoPanicPlan
+                                        }
+                                        class="api-input py-1 text-xs"
+                                    >
+                                        <option value="developer">Free</option>
+                                        <option value="growth">Pro</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Other APIs -->
+                    <div class="flex flex-col gap-4">
+                        <div class="api-card compact">
+                            <label for="cmc-key">CoinMarketCap API</label>
+                            <input
+                                id="cmc-key"
+                                type="password"
+                                bind:value={settingsState.cmcApiKey}
+                                class="api-input"
+                            />
+                        </div>
+                        <div class="api-card compact">
+                            <label for="news-key">NewsAPI.org</label>
+                            <input
+                                id="news-key"
+                                type="password"
+                                bind:value={settingsState.newsApiKey}
+                                class="api-input"
+                            />
+                        </div>
+                        <div class="api-card compact">
+                            <label for="imgbb-key"
+                                >ImgBB API (Screenshots)</label
+                            >
+                            <input
+                                id="imgbb-key"
+                                type="password"
+                                bind:value={settingsState.imgbbApiKey}
+                                class="api-input"
+                            />
+                        </div>
+                    </div>
+                </div>
+            </section>
+        {/if}
+
+        <!-- RSS Feeds -->
+        {#if activeSubTab === "rss"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.connections.rss") || "RSS Feeds"}
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                    {#each RSS_PRESETS as preset}
+                        <!-- svelte-ignore a11y_click_events_have_key_events -->
+                        <div
+                            role="button"
+                            tabindex="0"
+                            class="api-card compact flex-row items-center justify-between cursor-pointer transition-colors"
+                            onclick={() => togglePreset(preset.id)}
+                            class:border-[var(--accent-color)]={settingsState.rssPresets?.includes(
+                                preset.id,
+                            )}
+                            class:bg-[var(--bg-secondary)]={settingsState.rssPresets?.includes(
+                                preset.id,
+                            )}
+                        >
+                            <div class="flex flex-col">
+                                <span
+                                    class="font-bold text-sm"
+                                    class:text-[var(--accent-color)]={settingsState.rssPresets?.includes(
+                                        preset.id,
+                                    )}>{preset.name}</span
+                                >
+                                <span
+                                    class="text-[10px] text-[var(--text-secondary)]"
+                                    >{preset.url}</span
+                                >
+                            </div>
+                            <div class="pointer-events-none">
+                                <Toggle
+                                    checked={settingsState.rssPresets?.includes(
+                                        preset.id,
+                                    ) ?? false}
+                                />
+                            </div>
+                        </div>
+                    {/each}
+                </div>
+
+                <!-- Custom Feeds -->
+                <h4
+                    class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
+                >
+                    {$_("settings.connections.customFeeds") || "Custom Feeds"}
+                </h4>
+                <div class="flex flex-col gap-2">
+                    {#if settingsState.customRssFeeds}
+                        {#each settingsState.customRssFeeds as feed, i}
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="url"
+                                    bind:value={settingsState.customRssFeeds[i]}
+                                    class="api-input"
+                                    placeholder="https://..."
+                                />
+                                <button
+                                    class="text-red-500 hover:text-red-400 p-2"
+                                    onclick={() => removeCustomFeed(i)}
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path d="M18 6 6 18" /><path
+                                            d="m6 6 12 12"
+                                        /></svg
+                                    >
+                                </button>
+                            </div>
+                        {/each}
+                    {/if}
+                    <button
+                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
+                        onclick={addCustomFeed}
+                        disabled={(settingsState.customRssFeeds?.length || 0) >=
+                            5}
+                    >
+                        + {$_("settings.connections.addFeed") || "Add Feed"}
+                    </button>
+                </div>
+            </section>
+        {/if}
+    </div>
 </div>
 
 <style>
-    .icon-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-    }
     .section-title {
         font-size: 0.875rem;
         font-weight: 700;

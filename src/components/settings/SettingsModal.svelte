@@ -37,8 +37,8 @@
     | "cloud";
 
   // Use the store as the unique source of truth for the active tab
-  // Default to 'trading' or 'visuals'
-  const activeTab = $derived((uiState.settingsTab as any) || "visuals");
+  // Default to 'trading'
+  const activeTab = $derived((uiState.settingsTab as any) || "trading");
 
   function selectTab(tab: string) {
     uiState.settingsTab = tab;

@@ -34,309 +34,296 @@
         newMonitors.splice(index, 1);
         settingsState.xMonitors = newMonitors;
     }
+
+    let activeSubTab = $state("intelligence");
+
+    const subTabs = [
+        { id: "intelligence", label: "Intelligence" },
+        { id: "behavior", label: "Behavior" },
+        { id: "agents", label: "Agents" },
+    ];
 </script>
 
-<div class="ai-tab flex flex-col gap-8" role="tabpanel" id="tab-ai">
-    <!-- Model Selection -->
-    <section class="settings-section">
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-purple-500/10 text-purple-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><path d="M12 2v8" /><path d="m4.93 4.93 5.66 5.66" /><path
-                        d="M2 12h8"
-                    /><path d="m4.93 19.07 5.66-5.66" /><path
-                        d="M12 22v-8"
-                    /><path d="m19.07 19.07-5.66-5.66" /><path
-                        d="M22 12h-8"
-                    /><path d="m19.07 4.93-5.66 5.66" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.ai.intelligenceTitle") || "Intelligence Core"}
-            </h3>
-        </div>
-
-        <!-- Provider Switcher -->
-        <div class="field-group mb-6">
-            <span
-                class="text-xs font-semibold color-[var(--text-secondary)] mb-1"
-                >{$_("settings.apiProvider") || "Provider"}</span
-            >
-            <div class="segmented-control">
-                {#each aiProviders as provider}
-                    <button
-                        class="segmented-btn {settingsState.aiProvider ===
-                        provider.value
-                            ? 'active'
-                            : ''}"
-                        onclick={() =>
-                            (settingsState.aiProvider = provider.value as any)}
-                    >
-                        {provider.label}
-                    </button>
-                {/each}
-                <div
-                    class="segmented-bg"
-                    style="width: 33.33%; transform: translateX({settingsState.aiProvider ===
-                    'openai'
-                        ? '0%'
-                        : settingsState.aiProvider === 'gemini'
-                          ? '100%'
-                          : '200%'})"
-                ></div>
-            </div>
-            <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                {$_("settings.ai.providerDesc")}
-            </p>
-        </div>
-
-        <!-- API Keys (Quick Access or just Models?) -->
-        <!-- Just Models here, Keys are in Intelligence Tab -->
-
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div class="field-group">
-                <label for="openai-model">{$_("settings.ai.openaiModel")}</label
-                >
-                <input
-                    id="openai-model"
-                    bind:value={settingsState.openaiModel}
-                    placeholder="gpt-4o"
-                    class="input-field"
-                />
-            </div>
-            <div class="field-group">
-                <label for="gemini-model">{$_("settings.ai.geminiModel")}</label
-                >
-                <select
-                    id="gemini-model"
-                    bind:value={settingsState.geminiModel}
-                    class="input-field"
-                >
-                    <option value="gemini-2.5-flash"
-                        >{$_("settings.ai.geminiRecommended")}</option
-                    >
-                    <option value="gemini-2.0-flash"
-                        >{$_("settings.ai.geminiStable")}</option
-                    >
-                    <option value="gemini-3-flash-preview"
-                        >{$_("settings.ai.geminiPreview")}</option
-                    >
-                    <option value="gemini-3-pro-preview"
-                        >{$_("settings.ai.geminiPro")}</option
-                    >
-                    <option value="gemma-3-27b-it"
-                        >{$_("settings.ai.gemmaOpen")}</option
-                    >
-                </select>
-            </div>
-        </div>
-    </section>
-
-    <!-- Behavior & Persona -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-8"
+<div class="ai-tab h-full flex flex-col" role="tabpanel" id="tab-ai">
+    <!-- Sub-Navigation -->
+    <div
+        class="flex flex-wrap gap-2 border-b border-[var(--border-color)] pb-2 mb-4 shrink-0"
     >
-        <h3 class="section-title mb-4">
-            {$_("settings.ai.behavior") || "Behavior & Persona"}
-        </h3>
-
-        <div class="field-group mb-6">
-            <label for="sys-prompt"
-                >{$_("settings.ai.customSystemPrompt")}</label
+        {#each subTabs as tab}
+            <button
+                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
+                tab.id
+                    ? 'bg-[var(--accent-color)] text-white'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
+                onclick={() => (activeSubTab = tab.id)}
             >
-            <textarea
-                id="sys-prompt"
-                bind:value={settingsState.customSystemPrompt}
-                placeholder={$_("settings.ai.systemPromptPlaceholder")}
-                class="textarea-field"
-            ></textarea>
-        </div>
+                {tab.label}
+            </button>
+        {/each}
+    </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <!-- Context Toggles -->
-            <label class="toggle-card">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.enableNewsAnalysis")}</span
+    <div class="flex-1 overflow-y-auto custom-scrollbar pr-2">
+        <!-- Model Selection -->
+        {#if activeSubTab === "intelligence"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.ai.intelligenceTitle") || "Intelligence Core"}
+                </h3>
+
+                <!-- Provider Switcher -->
+                <div class="field-group mb-6">
+                    <span
+                        class="text-xs font-semibold color-[var(--text-secondary)] mb-1"
+                        >{$_("settings.apiProvider") || "Provider"}</span
                     >
-                    <span class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.ai.newsDesc")}</span
-                    >
+                    <div class="segmented-control">
+                        {#each aiProviders as provider}
+                            <button
+                                class="segmented-btn {settingsState.aiProvider ===
+                                provider.value
+                                    ? 'active'
+                                    : ''}"
+                                onclick={() =>
+                                    (settingsState.aiProvider =
+                                        provider.value as any)}
+                            >
+                                {provider.label}
+                            </button>
+                        {/each}
+                        <div
+                            class="segmented-bg"
+                            style="width: 33.33%; transform: translateX({settingsState.aiProvider ===
+                            'openai'
+                                ? '0%'
+                                : settingsState.aiProvider === 'gemini'
+                                  ? '100%'
+                                  : '200%'})"
+                        ></div>
+                    </div>
+                    <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                        {$_("settings.ai.providerDesc")}
+                    </p>
                 </div>
-                <Toggle bind:checked={settingsState.enableNewsAnalysis} />
-            </label>
-            <label class="toggle-card">
-                <div class="flex flex-col">
-                    <span class="text-sm font-medium"
-                        >{$_("settings.enableCmcContext")}</span
-                    >
-                    <span class="text-[10px] text-[var(--text-secondary)]"
-                        >{$_("settings.ai.cmcDesc")}</span
-                    >
-                </div>
-                <Toggle bind:checked={settingsState.enableCmcContext} />
-            </label>
-        </div>
-    </section>
 
-    <!-- Agents (Social) -->
-    <section
-        class="settings-section border-t border-[var(--border-color)] pt-8"
-    >
-        <div class="flex items-center gap-2 mb-4">
-            <div class="icon-box bg-pink-500/10 text-pink-500">
-                <svg
-                    xmlns="http://www.w3.org/2000/svg"
-                    width="20"
-                    height="20"
-                    viewBox="0 0 24 24"
-                    fill="none"
-                    stroke="currentColor"
-                    stroke-width="2"
-                    stroke-linecap="round"
-                    stroke-linejoin="round"
-                    ><circle cx="12" cy="12" r="10" /><path
-                        d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"
-                    /><path d="M2 12h20" /></svg
-                >
-            </div>
-            <h3 class="section-title mb-0">
-                {$_("settings.ai.agents") || "Autonomous Agents"}
-            </h3>
-        </div>
-
-        <!-- Discord Bot -->
-        <h4
-            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
-        >
-            Discord Bot
-        </h4>
-        <div class="field-group mb-4">
-            <label for="discord-token">Bot Token</label>
-            <input
-                id="discord-token"
-                type="password"
-                bind:value={settingsState.discordBotToken}
-                class="input-field"
-            />
-        </div>
-        <div class="flex flex-col gap-2 mb-6">
-            {#if settingsState.discordChannels}
-                {#each settingsState.discordChannels as channel, i}
-                    <div class="flex items-center gap-2">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div class="field-group">
+                        <label for="openai-model"
+                            >{$_("settings.ai.openaiModel")}</label
+                        >
                         <input
-                            type="text"
-                            bind:value={settingsState.discordChannels[i]}
+                            id="openai-model"
+                            bind:value={settingsState.openaiModel}
+                            placeholder="gpt-4o"
                             class="input-field"
-                            placeholder="Channel ID"
                         />
-                        <button
-                            class="text-red-500 hover:text-red-400 p-2"
-                            onclick={() => removeDiscordChannel(i)}
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><path d="M18 6 6 18" /><path
-                                    d="m6 6 12 12"
-                                /></svg
-                            >
-                        </button>
                     </div>
-                {/each}
-            {/if}
-            <button
-                class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                onclick={addDiscordChannel}
-                aria-label="Add Channel"
-            >
-                + Add Channel
-            </button>
-        </div>
-
-        <!-- X Monitors -->
-        <h4
-            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
-        >
-            X / Twitter Monitors
-        </h4>
-        <div class="flex flex-col gap-2">
-            {#if settingsState.xMonitors}
-                {#each settingsState.xMonitors as monitor, i}
-                    <div class="flex items-center gap-2">
+                    <div class="field-group">
+                        <label for="gemini-model"
+                            >{$_("settings.ai.geminiModel")}</label
+                        >
                         <select
-                            bind:value={monitor.type}
-                            class="input-field w-24"
+                            id="gemini-model"
+                            bind:value={settingsState.geminiModel}
+                            class="input-field"
                         >
-                            <option value="user">User</option>
-                            <option value="hashtag">Hash</option>
-                        </select>
-                        <input
-                            type="text"
-                            bind:value={monitor.value}
-                            class="input-field flex-1"
-                            placeholder={monitor.type === "user"
-                                ? "@username"
-                                : "#crypto"}
-                        />
-                        <button
-                            class="text-red-500 hover:text-red-400 p-2"
-                            onclick={() => removeXMonitor(i)}
-                        >
-                            <svg
-                                xmlns="http://www.w3.org/2000/svg"
-                                width="16"
-                                height="16"
-                                viewBox="0 0 24 24"
-                                fill="none"
-                                stroke="currentColor"
-                                stroke-width="2"
-                                stroke-linecap="round"
-                                stroke-linejoin="round"
-                                ><path d="M18 6 6 18" /><path
-                                    d="m6 6 12 12"
-                                /></svg
+                            <option value="gemini-2.5-flash"
+                                >{$_("settings.ai.geminiRecommended")}</option
                             >
-                        </button>
+                            <option value="gemini-2.0-flash"
+                                >{$_("settings.ai.geminiStable")}</option
+                            >
+                            <option value="gemini-3-flash-preview"
+                                >{$_("settings.ai.geminiPreview")}</option
+                            >
+                            <option value="gemini-3-pro-preview"
+                                >{$_("settings.ai.geminiPro")}</option
+                            >
+                            <option value="gemma-3-27b-it"
+                                >{$_("settings.ai.gemmaOpen")}</option
+                            >
+                        </select>
                     </div>
-                {/each}
-            {/if}
-            <button
-                class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                onclick={addXMonitor}
-                aria-label="Add X Monitor"
-            >
-                + Add Monitor
-            </button>
-        </div>
-    </section>
+                </div>
+            </section>
+        {/if}
+
+        <!-- Behavior & Persona -->
+        {#if activeSubTab === "behavior"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.ai.behavior") || "Behavior & Persona"}
+                </h3>
+
+                <div class="field-group mb-6">
+                    <label for="sys-prompt"
+                        >{$_("settings.ai.customSystemPrompt")}</label
+                    >
+                    <textarea
+                        id="sys-prompt"
+                        bind:value={settingsState.customSystemPrompt}
+                        placeholder={$_("settings.ai.systemPromptPlaceholder")}
+                        class="textarea-field"
+                    ></textarea>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Context Toggles -->
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.enableNewsAnalysis")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.ai.newsDesc")}</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.enableNewsAnalysis}
+                        />
+                    </label>
+                    <label class="toggle-card">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >{$_("settings.enableCmcContext")}</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >{$_("settings.ai.cmcDesc")}</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.enableCmcContext} />
+                    </label>
+                </div>
+            </section>
+        {/if}
+
+        <!-- Agents (Social) -->
+        {#if activeSubTab === "agents"}
+            <section class="settings-section animate-fade-in">
+                <h3 class="section-title mb-4">
+                    {$_("settings.ai.agents") || "Autonomous Agents"}
+                </h3>
+
+                <!-- Discord Bot -->
+                <h4
+                    class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
+                >
+                    Discord Bot
+                </h4>
+                <div class="field-group mb-4">
+                    <label for="discord-token">Bot Token</label>
+                    <input
+                        id="discord-token"
+                        type="password"
+                        bind:value={settingsState.discordBotToken}
+                        class="input-field"
+                    />
+                </div>
+                <div class="flex flex-col gap-2 mb-6">
+                    {#if settingsState.discordChannels}
+                        {#each settingsState.discordChannels as channel, i}
+                            <div class="flex items-center gap-2">
+                                <input
+                                    type="text"
+                                    bind:value={
+                                        settingsState.discordChannels[i]
+                                    }
+                                    class="input-field"
+                                    placeholder="Channel ID"
+                                />
+                                <button
+                                    class="text-red-500 hover:text-red-400 p-2"
+                                    onclick={() => removeDiscordChannel(i)}
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path d="M18 6 6 18" /><path
+                                            d="m6 6 12 12"
+                                        /></svg
+                                    >
+                                </button>
+                            </div>
+                        {/each}
+                    {/if}
+                    <button
+                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
+                        onclick={addDiscordChannel}
+                        aria-label="Add Channel"
+                    >
+                        + Add Channel
+                    </button>
+                </div>
+
+                <!-- X Monitors -->
+                <h4
+                    class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
+                >
+                    X / Twitter Monitors
+                </h4>
+                <div class="flex flex-col gap-2">
+                    {#if settingsState.xMonitors}
+                        {#each settingsState.xMonitors as monitor, i}
+                            <div class="flex items-center gap-2">
+                                <select
+                                    bind:value={monitor.type}
+                                    class="input-field w-24"
+                                >
+                                    <option value="user">User</option>
+                                    <option value="hashtag">Hash</option>
+                                </select>
+                                <input
+                                    type="text"
+                                    bind:value={monitor.value}
+                                    class="input-field flex-1"
+                                    placeholder={monitor.type === "user"
+                                        ? "@username"
+                                        : "#crypto"}
+                                />
+                                <button
+                                    class="text-red-500 hover:text-red-400 p-2"
+                                    onclick={() => removeXMonitor(i)}
+                                >
+                                    <svg
+                                        xmlns="http://www.w3.org/2000/svg"
+                                        width="16"
+                                        height="16"
+                                        viewBox="0 0 24 24"
+                                        fill="none"
+                                        stroke="currentColor"
+                                        stroke-width="2"
+                                        stroke-linecap="round"
+                                        stroke-linejoin="round"
+                                        ><path d="M18 6 6 18" /><path
+                                            d="m6 6 12 12"
+                                        /></svg
+                                    >
+                                </button>
+                            </div>
+                        {/each}
+                    {/if}
+                    <button
+                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
+                        onclick={addXMonitor}
+                        aria-label="Add X Monitor"
+                    >
+                        + Add Monitor
+                    </button>
+                </div>
+            </section>
+        {/if}
+    </div>
 </div>
 
 <style>
-    .icon-box {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        width: 32px;
-        height: 32px;
-        border-radius: 8px;
-    }
     .section-title {
         font-size: 0.875rem;
         font-weight: 700;
