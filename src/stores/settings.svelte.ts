@@ -159,7 +159,6 @@ export interface Settings {
   discordBotToken?: string;
   discordChannels: string[];
   xMonitors: XMonitor[];
-  nitterInstance: string;
 }
 
 const defaultSettings: Settings = {
@@ -270,7 +269,6 @@ const defaultSettings: Settings = {
   discordBotToken: "",
   discordChannels: [],
   xMonitors: [], // e.g. [{type: 'user', value: 'elonmusk'}, {type: 'hashtag', value: 'BTC'}]
-  nitterInstance: "https://xcancel.com",
 };
 
 class SettingsManager {
@@ -481,7 +479,7 @@ class SettingsManager {
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
   xMonitors = $state<XMonitor[]>(defaultSettings.xMonitors);
-  nitterInstance = $state<string>(defaultSettings.nitterInstance);
+
 
   // Private state
   private effectActive = false; // Controls whether $effect should trigger saves
@@ -735,8 +733,7 @@ class SettingsManager {
       this.discordChannels =
         merged.discordChannels || defaultSettings.discordChannels;
       this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
-      this.nitterInstance =
-        merged.nitterInstance || defaultSettings.nitterInstance;
+
 
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
@@ -890,7 +887,6 @@ class SettingsManager {
       discordBotToken: this.discordBotToken,
       discordChannels: $state.snapshot(this.discordChannels),
       xMonitors: $state.snapshot(this.xMonitors),
-      nitterInstance: this.nitterInstance,
     };
   }
 

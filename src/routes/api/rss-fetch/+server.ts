@@ -50,6 +50,18 @@ const NITTER_INSTANCES = [
   "lightbrd.com"
 ];
 
+/**
+ * Shuffles an array (Fisher-Yates)
+ */
+function shuffle<T>(array: T[]): T[] {
+  const result = [...array];
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  return result;
+}
+
 export const POST: RequestHandler = async ({ request }) => {
   let url = "unknown";
 
@@ -90,7 +102,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         const parsed = await parser.parseString(xml);
         if (!parsed || !parsed.items || parsed.items.length === 0) {
-          throw new Error("Empty feed or incompatible format");
+          throw new Error("Empty feed or incompatible structure");
         }
         return parsed;
       } catch (e: any) {
@@ -104,23 +116,24 @@ export const POST: RequestHandler = async ({ request }) => {
     let feedData: any = null;
 
     if (isX) {
-      console.log(`[RSS-FETCH] X-News Rotation started for: ${url}`);
-      let lastError: any = null;
       const urlObj = new URL(url);
+      const path = urlObj.pathname + urlObj.search;
+      const pool = shuffle(NITTER_INSTANCES);
 
-      for (const instance of NITTER_INSTANCES) {
-        const testUrl = url.replace(urlObj.hostname, instance);
-        console.log(`[RSS-FETCH] Trying instance: ${instance}...`);
+      console.log(`[X-NEWS] Request for path: ${path}. Shuffling instances...`);
 
+      let lastError: any = null;
+      for (const instance of pool) {
+        const testUrl = `https://${instance}${path}`;
         try {
-          feedData = await tryFetch(testUrl, 4000); // 4s timeout for each
+          feedData = await tryFetch(testUrl, 4000);
           if (feedData) {
-            console.log(`[RSS-FETCH] Success with instance: ${instance}`);
+            console.log(`[X-NEWS] Success with: ${instance}`);
             break;
           }
         } catch (e: any) {
           lastError = e;
-          console.warn(`[RSS-FETCH] Instance ${instance} failed: ${e.message}`);
+          console.warn(`[X-NEWS] Instance ${instance} failed: ${e.message}`);
           continue;
         }
       }
@@ -129,7 +142,7 @@ export const POST: RequestHandler = async ({ request }) => {
       feedData = await tryFetch(url, 8000);
     }
 
-    if (!feedData) throw new Error("No data fetched");
+    if (!feedData) throw new Error("No data fetched after all rotation attempts");
 
     const newsItems = (feedData.items || []).map((item: any) => ({
       title: item.title || "Untitled",

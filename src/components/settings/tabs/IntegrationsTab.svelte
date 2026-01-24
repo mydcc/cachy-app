@@ -261,7 +261,8 @@
                     <div class="header">
                         <span class="font-bold text-sm">Bitget</span>
                         <span
-                            class="status-dot {settingsState.apiKeys.bitget.key && settingsState.apiKeys.bitget.passphrase
+                            class="status-dot {settingsState.apiKeys.bitget
+                                .key && settingsState.apiKeys.bitget.passphrase
                                 ? 'connected'
                                 : ''}"
                         ></span>
@@ -398,8 +399,7 @@
                             </div>
                         </div>
                         <div class="field-group mt-3">
-                            <label for="bitget-api-passphrase"
-                                >Passphrase</label
+                            <label for="bitget-api-passphrase">Passphrase</label
                             >
                             <div class="input-wrapper relative">
                                 <input
@@ -877,17 +877,6 @@
                     >
                 </div>
                 <div class="body">
-                    <div class="field-group mb-4">
-                        <label for="nitter-instance">Nitter Instance URL</label>
-                        <input
-                            id="nitter-instance"
-                            type="text"
-                            bind:value={settingsState.nitterInstance}
-                            class="api-input"
-                            placeholder="https://nitter.net"
-                        />
-                    </div>
-
                     <div class="flex items-center justify-between mb-2">
                         <span
                             class="text-xs font-bold text-[var(--text-secondary)] uppercase"

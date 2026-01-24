@@ -15,23 +15,20 @@ export const xService = {
      * Uses the configured Nitter instance to create bridge URLs.
      */
     getXFeedUrls(): string[] {
-        const { xMonitors, nitterInstance } = settingsState;
+        const { xMonitors } = settingsState;
 
-        // Ensure nitter instance doesn't have a trailing slash for consistent formatting
-        const baseUrl = nitterInstance.replace(/\/$/, "");
+        // Backend will auto-rotate this placeholder to a random healthy instance
+        const baseUrl = "https://nitter.local";
 
         return xMonitors.map((monitor) => {
             const value = monitor.value.trim();
             if (!value) return "";
 
             if (monitor.type === "user") {
-                // Remove @ if present
                 const username = value.replace(/^@/, "");
                 return `${baseUrl}/${username}/rss`;
             } else if (monitor.type === "hashtag") {
-                // Remove # if present
                 const tag = value.replace(/^#/, "");
-                // Nitter search RSS format: /search/rss?q=%23hashtag
                 return `${baseUrl}/search/rss?q=%23${tag}`;
             }
             return "";
