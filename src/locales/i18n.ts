@@ -51,6 +51,7 @@ const TECHNICAL_KEYS = [
   "dashboard.exitFeeLabel",
   "dashboard.visualBar.entry",
   "dashboard.visualBar.netProfitLabel",
+  "dashboard.riskRewardRatio",
 
   // Journal
   "journal.entry",
@@ -58,6 +59,37 @@ const TECHNICAL_KEYS = [
   "journal.table.exit",
   "journal.table.type",
   "journal.table.sl",
+  "journal.stats.winRate",
+  "journal.stats.profitFactor",
+  "journal.stats.avgRR",
+  "journal.stats.maxDrawdown",
+
+  // Deep Dive Charts (Titles)
+  "journal.deepDive.charts.titles.equityCurve",
+  "journal.deepDive.charts.titles.drawdown",
+  "journal.deepDive.charts.titles.winRate",
+  "journal.deepDive.charts.titles.longVsShort",
+  "journal.deepDive.charts.titles.cumulativeR",
+  "journal.deepDive.charts.titles.riskConsistency",
+  "journal.deepDive.charts.titles.grossVsNet",
+  "journal.deepDive.charts.titles.cumulativeFees",
+  "journal.deepDive.charts.titles.feeBreakdown",
+  "journal.deepDive.charts.titles.durationVsPnl",
+  "journal.deepDive.charts.titles.strategyEvolution",
+  "journal.deepDive.charts.titles.mfeVsMae",
+  "journal.deepDive.charts.titles.riskRadar",
+  "journal.deepDive.charts.titles.atrMatrix",
+
+  // Deep Dive Labels
+  "journal.deepDive.charts.labels.winRate",
+  "journal.deepDive.charts.labels.profitFactor",
+  "journal.deepDive.charts.labels.expectancy",
+  "journal.deepDive.charts.labels.drawdown",
+  "journal.deepDive.charts.labels.grossProfit",
+  "journal.deepDive.charts.labels.grossLoss",
+  "journal.deepDive.charts.labels.netResult",
+  "journal.deepDive.charts.labels.netPnl",
+  "journal.deepDive.charts.labels.equity",
 
   // Technicals Settings
   "settings.technicals.oscillators",

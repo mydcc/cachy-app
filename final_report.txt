@@ -1,0 +1,98 @@
+=== Missing Keys in German Translation ===
+
+=== Identical Values (English text in German file?) ===
+app.title: Cachy
+app.journalButton: Journal
+app.changelogTitle: Changelog
+app.version: Version
+app.whitepaper: Whitepaper
+dashboard.orders: Orders
+dashboard.margin: Margin
+dashboard.takeProfit: Take Profit
+dashboard.generalInputs.longButton: Long
+dashboard.generalInputs.shortButton: Short
+dashboard.portfolioInputs.header: Portfolio
+dashboard.tradeSetupInputs.header: Trade Setup
+dashboard.tradeSetupInputs.atrModeAuto: Auto
+dashboard.tradeSetupInputs.atrTimeframeLabel: Timeframe
+dashboard.tradeSetupInputs.atrMultiplierLabel: Multiplier
+dashboard.tradeSetupInputs.atrStopLossLabel: ATR Stop-Loss
+dashboard.takeProfitRow.winLabel: Win:
+dashboard.takeProfitRow.rrLabel: R/R:
+dashboard.account.margin: Margin
+dashboard.account.marginLevel: Margin Level
+dashboard.account.bonus: Bonus
+dashboard.account.crossPnl: Cross PnL
+dashboard.account.isoPnl: Iso PnL
+dashboard.visualBar.rrLabel: R/R:
+journal.title: Trade Journal
+journal.symbol: Symbol
+journal.status: Status
+journal.trades: Trades
+journal.labels.status: Status
+journal.labels.long: Long
+journal.labels.short: Short
+journal.labels.screenshotAlt: Trade Screenshot
+journal.labels.topAsset: Top Asset
+journal.table.symbol: Symbol
+journal.table.exit: Exit
+journal.table.funding: Funding
+journal.table.efficiency: Eff.
+journal.table.status: Status
+journal.table.screenshot: Screenshot
+journal.table.tags: Tags
+journal.messages.min5Trades: (Min. 5 Trades)
+journal.messages.min20Trades: (Min. 20 Trades)
+journal.deepDive.title: Deep Dive
+journal.deepDive.performance: Performance
+journal.deepDive.charts.heatmap: PnL Heatmap
+journal.deepDive.charts.titles.drawdown: Drawdown
+journal.deepDive.charts.titles.winRate: Win Rate
+journal.deepDive.charts.titles.longVsShort: Long vs Short PnL
+journal.deepDive.charts.titles.tagPerformance: Tag Performance (PnL)
+journal.deepDive.charts.assetBubble: Asset Performance Matrix
+journal.deepDive.charts.riskRewardScatter: Risk/Reward Scatter
+journal.deepDive.charts.longShortWinRate: Long vs Short Win Rate
+journal.deepDive.charts.tagPerformance: Tag Performance (PnL)
+journal.deepDive.charts.labels.trends: Trends
+journal.deepDive.charts.labels.equity: Equity
+journal.deepDive.charts.labels.winLong: Win Long
+journal.deepDive.charts.labels.winShort: Win Short
+journal.deepDive.charts.labels.lossLong: Loss Long
+journal.deepDive.charts.labels.lossShort: Loss Short
+journal.deepDive.charts.labels.beLong: BE Long
+journal.deepDive.charts.labels.beShort: BE Short
+journal.deepDive.charts.labels.winRateLS: Win Rate L/S
+journal.deepDive.charts.labels.trades: Trades
+journal.deepDive.charts.labels.drawdown: Drawdown
+journal.deepDive.charts.labels.trading: Trading
+journal.deepDive.charts.labels.funding: Funding
+journal.deepDive.charts.labels.topAsset: Top Asset
+journal.deepDive.charts.labels.simMedian: Median
+journal.deepDive.charts.labels.simRandom: Sim #
+journal.deepDive.charts.labels.rollingWinRate: Rolling Win Rate
+journal.deepDive.charts.labels.rollingPF: Rolling Profit Factor
+journal.deepDive.charts.labels.rollingSQN: Rolling SQN
+journal.deepDive.charts.labels.longWinRate: Long Win Rate
+journal.deepDive.charts.labels.shortWinRate: Short Win Rate
+journal.deepDive.charts.labels.winRate: Win Rate
+journal.deepDive.charts.units.minutes: (Min)
+journal.deepDive.charts.units.trades: Trades
+journal.deepDive.assets: Assets
+marketOverview.signal: Signal
+settings.apiIntegration: API Integration
+settings.sidePanelLayout: Layout
+settings.imgbbApiKey: API Key
+settings.technicals.pivots: Pivots
+settings.technicals.neutral: Neutral
+settings.tabs.system: System
+settings.workspace.standard: Standard (Aside)
+settings.profile.workspace.subtabs.system: System
+settings.profile.background.typeMedia: Img / Vid
+settings.profile.background.typeVideo: Video
+settings.profile.background.typeAnimation: Animation
+settings.profile.background.urlPlaceholder: https://example.com/background.jpg
+settings.profile.background.presetLabel: Animation
+settings.profile.background.presetGradient: Gradient Flow
+settings.profile.background.presetBreathing: Breathing
+settings.profile.background.presetAurora: Aurora
