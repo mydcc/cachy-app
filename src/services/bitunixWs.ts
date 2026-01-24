@@ -187,15 +187,6 @@ class BitunixWebSocketService {
     }
   }
 
-  private pruneThrottleMap() {
-    const now = Date.now();
-    this.throttleMap.forEach((lastTime, key) => {
-      if (now - lastTime > 5000) {
-        this.throttleMap.delete(key);
-      }
-    });
-  }
-
   private shouldThrottle(key: string): boolean {
     const now = Date.now();
     const last = this.throttleMap.get(key) || 0;

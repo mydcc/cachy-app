@@ -29,6 +29,7 @@ import type {
   BitgetOrder,
   BitgetOrderPayload
 } from "../../../types/bitget";
+import { normalizeSymbol } from "../../../utils/symbolUtils";
 import { formatApiNum } from "../../../utils/utils";
 
 function isValidNumberString(val: unknown): boolean {
@@ -502,14 +503,8 @@ async function placeBitgetOrder(
     const path = "/api/mix/v1/order/placeOrder";
 
     // Ensure symbol has _UMCBL if not present (assuming USDT-M)
-    if (!payload.symbol.includes("_")) {
-        // payload.symbol = payload.symbol + "_UMCBL";
-        // Better to rely on what was passed or force it?
-        // Frontend normalizeSymbol adds _UMCBL for bitget.
-        // But let's be safe.
-        // Actually, if we use normalizeSymbol in utils, it's safer.
-        // But here we just assume the payload is correct or minimal fix.
-    }
+    // We use the shared normalization logic to be safe and consistent
+    const safeSymbol = normalizeSymbol(payload.symbol, "bitget");
 
     // Map internal types to Bitget
     // Bitget V1: marginCoin: 'USDT' required?
@@ -549,7 +544,7 @@ async function placeBitgetOrder(
     }
 
     const bitgetBody = {
-        symbol: payload.symbol,
+        symbol: safeSymbol,
         marginCoin: "USDT",
         side: bitgetSide,
         orderType: payload.orderType, // limit, market
