@@ -125,6 +125,7 @@
       "manualStopLossPlaceholder": "Manual Stop Loss",
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
+      "multiplierExample": "1.2",
       "tagsPlaceholder": "Add tags... (e.g. #trend)"
     },
     "takeProfitRow": {

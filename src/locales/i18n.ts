@@ -133,8 +133,9 @@ function setNestedValue(obj: any, path: string, value: any) {
 }
 
 // Prepare the base dictionaries (we might need to clone them to avoid mutating imports if they are frozen)
-const enDict = structuredClone(en);
-const deDict = structuredClone(de);
+// We use structuredClone which is more efficient than JSON.parse/stringify
+const enDict = structuredClone({ ...en });
+const deDict = structuredClone({ ...de });
 
 // Register standard locales
 register("en", () => Promise.resolve(enDict));
