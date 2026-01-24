@@ -54,8 +54,12 @@ self.addEventListener("fetch", (event) => {
   // Ignore non-http/https requests (e.g. chrome-extension://)
   if (!event.request.url.startsWith("http")) return;
 
+  const url = new URL(event.request.url);
+
+  // Ignore API requests (let them go to the network directly)
+  if (url.pathname.startsWith("/api/")) return;
+
   async function respond() {
-    const url = new URL(event.request.url);
     const cache = await caches.open(CACHE);
 
     // Serve build assets from the cache
