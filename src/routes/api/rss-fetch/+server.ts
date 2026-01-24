@@ -292,6 +292,14 @@ export const POST: RequestHandler = async ({ request }) => {
     }
 
   } catch (error: any) {
+    if (error.message === "All instances failed") {
+      console.warn(`[RSS-FETCH] ${context} - All instances failed. Returning empty result.`);
+      return json({
+        items: [],
+        feedTitle: `X: ${context} (Unavailable)`,
+        error: "Unavailable",
+      });
+    }
     console.error(`[RSS-FETCH] Error: ${error.message}`);
     return json({ error: error.message }, { status: 500 });
   }
