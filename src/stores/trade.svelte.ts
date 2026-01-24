@@ -18,6 +18,7 @@
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { debounce } from "../utils/utils";
 import { Decimal } from "decimal.js";
 import { z } from "zod";
 
@@ -149,7 +150,12 @@ class TradeManager {
       // Auto-save effect
       $effect.root(() => {
         $effect(() => {
-          this.save();
+          // Explicitly track dependencies by reading snapshot
+          const snap = this.getSnapshot();
+          this.saveDebounced(snap);
+
+          // Immediate update for in-memory listeners (UI sync, etc.)
+          this.notifyListeners(snap);
         });
       });
     }
@@ -243,11 +249,11 @@ class TradeManager {
       this.riskAmount = INITIAL_TRADE_STATE.riskAmount;
   }
 
-  private save() {
+  private saveDebounced = debounce((snapshot: any) => {
     if (!browser) return;
     try {
-      const s = this.getSnapshot();
-      const toSave: any = { ...s };
+      const toSave: any = { ...snapshot };
+
       delete toSave.currentTradeData;
       delete toSave.remoteLeverage;
       delete toSave.remoteMarginMode;
@@ -261,12 +267,19 @@ class TradeManager {
           toSave.lockedPositionSize = toSave.lockedPositionSize.toString();
       }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
-      this.notifyListeners();
     } catch (e) {
       if (import.meta.env.DEV) {
         console.error("Failed to save trade state", e);
       }
     }
+  }, 1000);
+
+  private save() {
+    // Legacy sync save if needed, or alias to immediate execution
+    // But for Runes effect we use saveDebounced directly.
+    const snap = this.getSnapshot();
+    this.saveDebounced(snap);
+    this.notifyListeners(snap);
   }
 
   setSymbol(
@@ -410,10 +423,10 @@ class TradeManager {
   private listeners = new Set<(value: any) => void>();
   // private notifyTimer: any = null; // Removed debounce for sync updates
 
-  private notifyListeners() {
+  private notifyListeners(snap?: any) {
     // Synchronous notification to prevent race conditions
-    const snap = this.getSnapshot();
-    this.listeners.forEach((fn) => fn(snap));
+    const s = snap || this.getSnapshot();
+    this.listeners.forEach((fn) => fn(s));
   }
 
   subscribe(fn: (value: any) => void): () => void {
