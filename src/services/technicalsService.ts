@@ -34,64 +34,81 @@ class TechnicalsWorkerManager {
   private pendingResolves: Map<string, (value: TechnicalsData) => void> =
     new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
-  private checkInterval: any = null;
   private lastActive: number = Date.now();
-  private readonly IDLE_TIMEOUT = 5000; // 5s
+  private readonly IDLE_TIMEOUT = 30000; // 30s keep-alive
 
   getWorker(): Worker | null {
     if (!browser) return null;
-    // Revive if missing (currently disabled)
-    // if (!this.worker) { this.initWorker(); }
+
+    // Singleton Init
+    if (!this.worker) {
+      this.initWorker();
+    }
     return this.worker;
   }
 
-  /*
   private initWorker() {
-    // DISABLED: Worker causes memory leak.
     if (!browser || typeof Worker === "undefined") return;
 
     try {
       this.worker = new Worker(
         new URL("../workers/technicals.worker.ts", import.meta.url),
-        { type: "module" },
+        { type: "module" }
       );
       this.worker.onmessage = this.handleMessage.bind(this);
       this.worker.onerror = this.handleError.bind(this);
-      this.lastActive = Date.now();
 
-      // Watchdog
-      if (!this.checkInterval) {
-        this.checkInterval = setInterval(() => this.checkIdle(), 10000);
+      if (import.meta.env.DEV) {
+        console.log("[Technicals] Worker started (Singleton).");
       }
-    } catch (e) {}
-  }
-  */
-
-  private checkIdle() {
-    if (
-      this.worker &&
-      this.pendingResolves.size === 0 &&
-      Date.now() - this.lastActive > this.IDLE_TIMEOUT
-    ) {
-      this.terminate();
-    }
-  }
-
-  private terminate() {
-    if (this.worker) {
-      this.worker.terminate();
+    } catch (e) {
+      console.error("[Technicals] Failed to start worker", e);
       this.worker = null;
     }
-    this.pendingResolves.clear();
-    this.pendingRejects.clear();
-    if (this.checkInterval) {
-      clearInterval(this.checkInterval);
-      this.checkInterval = null;
+  }
+
+  private handleMessage(e: MessageEvent) {
+    const { id, data, error } = e.data;
+    if (this.pendingResolves.has(id)) {
+      if (error) {
+        this.pendingRejects.get(id)?.(error);
+      } else {
+        this.pendingResolves.get(id)?.(data);
+      }
+      this.pendingResolves.delete(id);
+      this.pendingRejects.delete(id);
     }
   }
 
-  // ... (handleMessage, rehydrate, etc. omitted for brevity if not used)
-  // Keeping class structure for future re-enablement if needed, but methods are largely dormant.
+  private handleError(e: ErrorEvent) {
+    console.error("[Technicals] Worker Error:", e);
+    // Don't kill immediately, but maybe restart if it happens often?
+    // For now, let it be.
+  }
+
+  public async postMessage(message: any): Promise<TechnicalsData> {
+    const w = this.getWorker();
+    if (!w) throw new Error("Worker not available");
+
+    const id = crypto.randomUUID();
+    return new Promise((resolve, reject) => {
+      this.pendingResolves.set(id, resolve);
+      this.pendingRejects.set(id, reject);
+
+      w.postMessage({ ...message, id });
+
+      // Safety timeout
+      setTimeout(() => {
+        if (this.pendingResolves.has(id)) {
+          this.pendingRejects.get(id)?.(new Error("Worker Timeout"));
+          this.pendingResolves.delete(id);
+          this.pendingRejects.delete(id);
+        }
+      }, 5000);
+    });
+  }
+
+  // No termination logic - Keep alive as singleton
 }
 
 const workerManager = new TechnicalsWorkerManager();
@@ -121,9 +138,35 @@ export const technicalsService = {
       return cached.data;
     }
 
-    // Worker is DISABLED to prevent leaks.
-    // Proceed directly to inline calculation.
-    return this.calculateTechnicalsInline(klinesInput, settings);
+    // 1. Try Walker (Singleton)
+    try {
+      const serializedKlines = klinesInput.map(k => ({
+        ...k,
+        open: k.open.toString(),
+        high: k.high.toString(),
+        low: k.low.toString(),
+        close: k.close.toString(),
+        volume: k.volume?.toString() || "0"
+      }));
+
+      const result = await workerManager.postMessage({
+        type: "CALCULATE",
+        klines: serializedKlines,
+        settings
+      });
+
+      // Cache result
+      if (calculationCache.size >= MAX_CACHE_SIZE) {
+        const firstKey = calculationCache.keys().next().value;
+        if (firstKey) calculationCache.delete(firstKey);
+      }
+      calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+
+      return result;
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
+      return this.calculateTechnicalsInline(klinesInput, settings);
+    }
   },
 
   calculateTechnicalsInline(

@@ -191,7 +191,7 @@ export const newsService = {
           ...(settingsState.customRssFeeds || []).filter(
             (u) => u && u.trim().length > 0,
           ),
-          ...xService.getXMonitorCommands().map((cmd: { type: string, value: string }) => `x:${cmd.type}:${cmd.value}`)
+          // ...xService.getXMonitorCommands().map((cmd: { type: string, value: string }) => `x:${cmd.type}:${cmd.value}`)
         ];
 
         if (rssUrls.length > 0) {

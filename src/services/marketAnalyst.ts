@@ -15,7 +15,7 @@ import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
 
-const DELAY_BETWEEN_SYMBOLS = 15000; // Increased to 15 seconds to save CPU
+// DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
 const DATA_FRESHNESS_TTL = 10 * 60 * 1000; // 10 minutes cache
 
 class MarketAnalystService {
@@ -42,6 +42,12 @@ class MarketAnalystService {
 
         if (!settingsState.capabilities.marketData) {
             this.timeoutId = setTimeout(() => this.processNext(), 10000);
+            return;
+        }
+
+        // Pause if tab is hidden and setting is enabled
+        if (settingsState.pauseAnalysisOnBlur && document.hidden) {
+            this.timeoutId = setTimeout(() => this.processNext(), 5000); // Re-check in 5s
             return;
         }
 
@@ -131,7 +137,17 @@ class MarketAnalystService {
             }
         } finally {
             analysisState.isAnalyzing = false;
-            this.timeoutId = setTimeout(() => this.processNext(), DELAY_BETWEEN_SYMBOLS);
+
+            // Dynamic delay from settings
+            let delay = (settingsState.marketAnalysisInterval || 60) * 1000;
+
+            // Check for Pause on Blur
+            if (settingsState.pauseAnalysisOnBlur && document.hidden) {
+                delay = 30000; // Slow trickle check (30s) if hidden
+                // Note: Main check happens at start of processNext, so this just schedules the next check.
+            }
+
+            this.timeoutId = setTimeout(() => this.processNext(), delay);
         }
     }
 }

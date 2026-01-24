@@ -119,6 +119,8 @@ export interface Settings {
   enableCmcContext: boolean;
   showMarketOverviewLinks: boolean;
   showMarketActivity: boolean;
+  marketAnalysisInterval: number;
+  pauseAnalysisOnBlur: boolean;
   showMarketSentiment: boolean;
   showTechnicalsSummary: boolean;
   showTechnicalsConfluence: boolean;
@@ -164,6 +166,8 @@ export interface Settings {
 const defaultSettings: Settings = {
   apiProvider: "bitunix",
   marketDataInterval: 10,
+  marketAnalysisInterval: 60,
+  pauseAnalysisOnBlur: true,
   autoUpdatePriceInput: true,
   autoFetchBalance: false,
   showSidebars: true,
@@ -378,6 +382,8 @@ class SettingsManager {
     defaultSettings.showMarketOverviewLinks,
   );
   showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
+  marketAnalysisInterval = $state<number>(defaultSettings.marketAnalysisInterval);
+  pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
   get effectiveShowSidebarActivity() {
     return this.isPro && this.showSidebarActivity;
@@ -797,6 +803,8 @@ class SettingsManager {
     return {
       apiProvider: this.apiProvider,
       marketDataInterval: this.marketDataInterval,
+      marketAnalysisInterval: this.marketAnalysisInterval,
+      pauseAnalysisOnBlur: this.pauseAnalysisOnBlur,
       autoUpdatePriceInput: this.autoUpdatePriceInput,
       autoFetchBalance: this.autoFetchBalance,
       showSidebars: this.showSidebars,
