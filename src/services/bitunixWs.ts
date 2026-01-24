@@ -52,6 +52,8 @@ interface Subscription {
 }
 
 class BitunixWebSocketService {
+  private static instanceCount = 0;
+  private instanceId = 0;
   private wsPublic: WebSocket | null = null;
   private wsPrivate: WebSocket | null = null;
 
@@ -126,7 +128,8 @@ class BitunixWebSocketService {
   };
 
   constructor() {
-    logger.log("general", "[BitunixWS] Service Instance Created");
+    this.instanceId = ++BitunixWebSocketService.instanceCount;
+    logger.log("general", `[BitunixWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -138,8 +141,9 @@ class BitunixWebSocketService {
         const timeSincePublic = now - this.lastMessageTimePublic;
         const status = marketState.connectionStatus;
 
-        if (now % 2000 < 1000) {
-          console.warn(`[Bitunix Monitor] Status: ${status}, LastMsg: ${timeSincePublic}ms ago, ActiveProvider: ${settingsState.apiProvider}`);
+        if (now % 10000 < 1000) {
+          // [MONITOR] Reduced internal noise.
+          // console.log(`[Bitunix Monitor] Status: ${status}, LastMsg: ${now - this.lastMessageTimePublic}ms ago, ActiveProvider: ${settingsState.apiProvider}`);
         }
 
         if (typeof navigator !== "undefined" && !navigator.onLine) {
@@ -148,10 +152,7 @@ class BitunixWebSocketService {
           return;
         }
 
-        // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
-        // Only monitor if we are actually supposed to be using bitunix AND market data is enabled
-        // If Bitunix is NOT the active provider, we must NOT touch the global status,
-        // because Bitget might be connected. Just ensure our own socket is closed.
+        // Governance: If Bitunix is NOT the active provider, we must NOT touch the global status
         if (settingsState.apiProvider !== "bitunix") {
           this.cleanup("public");
           this.cleanup("private");
@@ -178,9 +179,8 @@ class BitunixWebSocketService {
           this.cleanup("public");
         }
 
-        if (status === "disconnected" && timeSincePublic > 7000) {
-          this.handleOnline();
-        }
+        // We no longer trigger autonomous reconnections here.
+        // The ConnectionManager or handleOffline/handleOnline handle lifecycle.
       }, 1000);
     }
   }
@@ -196,6 +196,7 @@ class BitunixWebSocketService {
   }
 
   destroy() {
+    logger.log("general", `[BitunixWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
     if (this.globalMonitorInterval) {
       clearInterval(this.globalMonitorInterval);
@@ -210,13 +211,14 @@ class BitunixWebSocketService {
   }
 
   connect(force?: boolean) {
-    logger.log("general", `[BitunixWS] Service connect() called. Force: ${force}`);
+    logger.log("general", `[BitunixWS] #${this.instanceId} connect(force=${force}) - isDestroyed was ${this.isDestroyed}`);
+    this.isDestroyed = false;
     this.connectPublic(force);
     this.connectPrivate(force);
   }
 
   private connectPublic(force = false) {
-    logger.log("general", `[BitunixWS] connectPublic(force=${force}) - Capabilities: ${settingsState.capabilities.marketData}, isDestroyed: ${this.isDestroyed}`);
+    logger.log("general", `[BitunixWS] #${this.instanceId} connectPublic(force=${force}) - isDestroyed: ${this.isDestroyed}`);
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
 
     if (!force && typeof navigator !== "undefined" && !navigator.onLine) {

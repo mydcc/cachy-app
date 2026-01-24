@@ -33,6 +33,8 @@ const RECONNECT_DELAY = 1000;
 const CONNECTION_TIMEOUT_MS = 5000;
 
 class BitgetWebSocketService {
+  private static instanceCount = 0;
+  private instanceId = 0;
   private ws: WebSocket | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
@@ -68,7 +70,8 @@ class BitgetWebSocketService {
   };
 
   constructor() {
-    logger.log("general", "[BitgetWS] Service Instance Created");
+    this.instanceId = ++BitgetWebSocketService.instanceCount;
+    logger.log("general", `[BitgetWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
       window.addEventListener("online", this.handleOnline);
       window.addEventListener("offline", this.handleOffline);
@@ -87,7 +90,6 @@ class BitgetWebSocketService {
         }
 
         // If Bitget is NOT the active provider, we must NOT touch the global status,
-        // because Bitunix might be connected. Just ensure our own socket is closed.
         if (settingsState.apiProvider !== "bitget") {
           this.cleanup();
           return;
@@ -102,19 +104,7 @@ class BitgetWebSocketService {
           return;
         }
 
-        if (status === "connected" && timeSince > 10000) {
-          // No message for 10s? Suspicious.
-          // marketState.connectionStatus = "reconnecting";
-          // Bitget is quiet if no updates, but we ping.
-        }
-
-        // Monitor for stale connection, but ONLY if connected.
-        // If connecting, the connectionTimeout handles it.
-        if (status === "connected" && timeSince > 40000) {
-          marketState.connectionStatus = "disconnected";
-          this.cleanup();
-          this.connect();
-        }
+        // No autonomous reconnections here.
       }, 1000);
     }
   }
@@ -130,6 +120,7 @@ class BitgetWebSocketService {
   }
 
   destroy() {
+    logger.log("general", `[BitgetWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
     if (this.globalMonitorInterval) {
       clearInterval(this.globalMonitorInterval);
@@ -143,7 +134,8 @@ class BitgetWebSocketService {
   }
 
   connect(force?: boolean) {
-    logger.log("general", `[BitgetWS] Service connect() called. Force: ${force}`);
+    logger.log("general", `[BitgetWS] #${this.instanceId} connect(force=${force}) entering. isDestroyed was: ${this.isDestroyed}`);
+    this.isDestroyed = false;
     if (this.isDestroyed || !settingsState.capabilities.marketData) return;
     if (settingsState.apiProvider !== "bitget") return;
 
