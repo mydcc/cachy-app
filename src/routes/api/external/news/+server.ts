@@ -76,22 +76,11 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
               lastError = `404 Not Found for plan: ${p}`;
               continue;
             }
-            if (response.status === 429 || response.status === 401) {
-              const errorText = await response.text();
-              // Critical auth/quota error: Do not try other plans, they will share the same limit/key.
-              throw new Error(`CRITICAL: Upstream error (${p}): ${response.status} - ${errorText}`);
-            }
-
             const errorText = await response.text();
             throw new Error(`Upstream error (${p}): ${response.status} - ${errorText}`);
           } catch (e: any) {
-            const msg = e.message || String(e);
-            if (msg.includes("CRITICAL")) {
-              lastError = msg;
-              break; // Stop loop immediately
-            }
-            console.warn(`[NewsProxy] Plan ${p} failed:`, msg);
-            lastError = msg;
+            console.warn(`[NewsProxy] Plan ${p} failed:`, e.message || String(e));
+            lastError = e.message || String(e);
             continue;
           }
         }
