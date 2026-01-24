@@ -83,10 +83,6 @@ class MarketAnalystService {
                 ? apiService.fetchBitgetKlines(symbol, "4h", 100)
                 : apiService.fetchBitunixKlines(symbol, "4h", 100));
 
-            // Ensure sorting to guarantee index logic works (API might change order)
-            klines.sort((a, b) => a.time - b.time);
-            klines4h.sort((a, b) => a.time - b.time);
-
             // 3. Calculate 1H Technicals
             const tech1h = await technicalsService.calculateTechnicals(klines, indicatorState);
             const tech4h = await technicalsService.calculateTechnicals(klines4h, indicatorState);
@@ -105,8 +101,7 @@ class MarketAnalystService {
                 const trend4h = price > ema200Num ? "bullish" : "bearish";
 
                 // RSI 1H
-                const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
-                const rsi1h = rsiObj ? rsiObj.value.toNumber() : 50;
+                const rsi1h = (tech1h.oscillators["RSI"] as number) || 50;
 
                 let condition: SymbolAnalysis["condition"] = "neutral";
                 if (rsi1h > 70) condition = "overbought";

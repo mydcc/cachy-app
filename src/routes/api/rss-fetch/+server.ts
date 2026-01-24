@@ -147,21 +147,15 @@ export const POST: RequestHandler = async ({ request }) => {
           signal: controller.signal,
           headers: {
             "User-Agent": ua,
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
             "Accept-Language": "en-US,en;q=0.9",
             "Accept-Encoding": "gzip, deflate, br",
             "Cache-Control": "max-age=0",
-            "Sec-Ch-Ua": '"Chromium";v="122", "Not(A:Brand";v="24", "Google Chrome";v="122"',
-            "Sec-Ch-Ua-Mobile": "?0",
-            "Sec-Ch-Ua-Platform": '"Windows"',
             "Sec-Fetch-Dest": "document",
             "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none", // Starts as none (direct navigation)
+            "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
-            "Upgrade-Insecure-Requests": "1",
-            "Priority": "u=0, i",
-            // Some instances check for Referer even if empty is standard for direct nav
-            "Referer": "https://www.google.com/"
+            "Upgrade-Insecure-Requests": "1"
           }
         });
 
@@ -266,8 +260,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
         // Log failure for this instance after trying paths
         if (failedOnMsg) {
-          // Optimization: Silence individual failures unless debugging. 
-          // console.warn(`[X-NEWS] Instance ${instance} failed: ${failedOnMsg}`);
+          console.warn(`[X-NEWS] Instance ${instance} failed: ${failedOnMsg}`);
           const currentBackoff = instanceBackoff.get(instance) || 0;
           const newBackoff = Math.min(MAX_BACKOFF, Math.max(now + BACKOFF_STEP, currentBackoff + BACKOFF_STEP));
           instanceBackoff.set(instance, newBackoff);
