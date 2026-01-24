@@ -99,13 +99,14 @@ export function parseDecimal(
  * Uses high precision (20 decimals) and trims trailing zeros.
  */
 export function formatApiNum(
-  val: string | number | undefined | null,
+  val: string | number | undefined | null | Decimal,
 ): string | undefined {
   if (val === undefined || val === null) return undefined;
   try {
     // Use Decimal to ensure we get a full string representation (no 1e-7)
     // toFixed(20) ensures high precision, then we strip trailing zeros
-    return new Decimal(val).toFixed(20).replace(/\.?0+$/, "");
+    const d = val instanceof Decimal ? val : new Decimal(val);
+    return d.toFixed(20).replace(/\.?0+$/, "");
   } catch (e) {
     return String(val);
   }

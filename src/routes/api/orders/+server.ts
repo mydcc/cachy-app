@@ -44,7 +44,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!validation.success) {
     // Format Zod errors
     const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
-    return json({ error: `Validation Error: ${errors}` }, { status: 400 });
+    return json({ error: `Validation Error: ${errors}`, code: "VALIDATION_ERROR", details: errors }, { status: 400 });
   }
 
   const payload = validation.data;
@@ -151,6 +151,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
+    const errorCode = (e as any).code;
 
     // Enhanced Logging with Redaction
     try {
@@ -166,6 +167,7 @@ export const POST: RequestHandler = async ({ request }) => {
 
       console.error(`[API] Order failed: ${(body as any)?.type}`, {
         error: errorMsg,
+        code: errorCode,
         body: sanitizedBody,
       });
     } catch (logErr) {
@@ -179,7 +181,7 @@ export const POST: RequestHandler = async ({ request }) => {
     if (passphrase && passphrase.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
 
     return json(
-      { error: sanitizedMsg },
+      { error: sanitizedMsg, code: errorCode },
       { status: 500 },
     );
   }
@@ -239,7 +241,9 @@ async function placeBitunixOrder(
 
   const res: BitunixResponse<BitunixOrder> = await response.json();
   if (String(res.code) !== "0") {
-    throw new Error(`Bitunix API error code: ${res.code} - ${res.msg}`);
+    const err: any = new Error(res.msg); // Use msg as main error text for legacy compatibility
+    err.code = String(res.code);
+    throw err;
   }
 
   return res.data;

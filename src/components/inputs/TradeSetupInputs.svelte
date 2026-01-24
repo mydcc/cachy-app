@@ -473,7 +473,7 @@
           ? $_("dashboard.tradeSetupInputs.autoUpdateOn")
           : $_("dashboard.tradeSetupInputs.autoUpdateOff")}
         onclick={toggleAutoUpdatePrice}
-        aria-label="Toggle Auto Update Price"
+        aria-label={$_("dashboard.tradeSetupInputs.toggleAutoUpdatePrice")}
       ></button>
     </div>
   </div>
@@ -718,7 +718,7 @@
                 copyStopLossToClipboard(result.trim(), e);
               }
             }}
-            title="In Zwischenablage kopieren">{result}</span
+            title={$_("dashboard.tradeSetupInputs.copyToClipboard")}>{result}</span
           >
         </div>
       {/if}

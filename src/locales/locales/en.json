@@ -109,6 +109,8 @@
       "header": "Trade Setup",
       "atrModeManual": "Manual",
       "atrModeAuto": "Auto",
+      "toggleAutoUpdatePrice": "Toggle auto-update price",
+      "copyToClipboard": "Copy to clipboard",
       "atrTimeframeLabel": "Timeframe",
       "atrLabel": "ATR",
       "atrMultiplierLabel": "Multiplier",
