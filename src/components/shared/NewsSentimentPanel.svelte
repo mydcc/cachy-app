@@ -47,21 +47,19 @@
     !analysis ? 50 : ((analysis.score + 1) / 2) * 100,
   );
 
-  onMount(() => {
-    // Only load if enabled and keys are present
-    if (
-      settingsState.enableNewsAnalysis &&
-      (settingsState.cryptoPanicApiKey || settingsState.newsApiKey)
-    ) {
-      newsStore.refresh(symbol);
-    }
-  });
-
   $effect(() => {
     // React to symbol changes automatically
-    if (settingsState.enableNewsAnalysis) {
-      // Trigger refresh when symbol changes. newsStore handles deduplication.
-      newsStore.refresh(symbol);
+    if (
+      settingsState.enableNewsAnalysis &&
+      symbol // Ensure symbol is defined
+    ) {
+      untrack(() => {
+        // Only trigger if not already loading for this symbol to avoid race conditions
+        // although store handles deduplication, we want to be safe in the effect
+        if (!newsStore.isLoading || newsStore.lastSymbol !== symbol) {
+           newsStore.refresh(symbol);
+        }
+      });
     }
   });
 
