@@ -53,6 +53,7 @@ interface Subscription {
 }
 
 class BitunixWebSocketService {
+  public static activeInstance: BitunixWebSocketService | null = null;
   private static instanceCount = 0;
   private instanceId = 0;
   private wsPublic: WebSocket | null = null;
@@ -139,6 +140,19 @@ class BitunixWebSocketService {
   };
 
   constructor() {
+    // Singleton Enforcement: Kill any previous instance (zombie)
+    if (
+      BitunixWebSocketService.activeInstance &&
+      BitunixWebSocketService.activeInstance !== this
+    ) {
+      logger.warn(
+        "governance",
+        `[BitunixWS] Zombie instance detected! Destroying #${BitunixWebSocketService.activeInstance.instanceId}`,
+      );
+      BitunixWebSocketService.activeInstance.destroy();
+    }
+    BitunixWebSocketService.activeInstance = this;
+
     this.instanceId = ++BitunixWebSocketService.instanceCount;
     logger.log("governance", `[BitunixWS] Instance #${this.instanceId} Created`);
     if (typeof window !== "undefined") {
@@ -212,6 +226,10 @@ class BitunixWebSocketService {
   destroy() {
     logger.log("governance", `[BitunixWS] #${this.instanceId} destroy() called.`);
     this.isDestroyed = true;
+
+    if (BitunixWebSocketService.activeInstance === this) {
+      BitunixWebSocketService.activeInstance = null;
+    }
 
     // 1. Clear Global Monitor
     if (this.globalMonitorInterval) {

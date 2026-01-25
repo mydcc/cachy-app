@@ -175,6 +175,14 @@ class MarketManager {
     // Simple spread is efficient for gathering updates.
     this.pendingUpdates.set(symbol, { ...existing, ...partial });
 
+    // Safety: Prevent memory leak if flush interval stalls
+    if (this.pendingUpdates.size > 100) {
+      if (import.meta.env.DEV) {
+        console.warn("[Market] Flush buffer overflow, forcing flush.");
+      }
+      this.flushUpdates();
+    }
+
     // Note: We do NOT touch LRU here to save CPU. LRU touch will happen on flush.
   }
 
