@@ -21,7 +21,7 @@ import { marketState } from "../stores/market.svelte";
 import { bitunixWs } from "./bitunixWs";
 import { bitgetWs } from "./bitgetWs"; // Import Bitget WS
 import { favoritesState } from "../stores/favorites.svelte";
-import { _ } from "../locales/i18n";
+import { _, locale } from "../locales/i18n";
 import { syncService } from "./syncService";
 import { csvService } from "./csvService";
 import { apiService } from "./apiService";
@@ -281,7 +281,7 @@ export const app = {
   addTrade: () => {
     const currentAppState = tradeState;
     if (!currentAppState.currentTradeData?.positionSize?.gt(0)) {
-      uiState.showError("Ungültiger Trade.");
+      uiState.showError("errors.invalidTrade");
       return;
     }
     const journalData = app.getJournal();
@@ -328,8 +328,8 @@ export const app = {
 
   async clearJournal() {
     const confirmed = await modalState.show(
-      "Reset bestätigen",
-      "Journal löschen?",
+      "modals.clearJournal.title",
+      "modals.clearJournal.message",
       "confirm",
     );
     if (confirmed) {
@@ -357,8 +357,8 @@ export const app = {
   savePreset: async () => {
     if (!browser) return;
     const name = await modalState.show(
-      "Preset speichern",
-      "Name eingeben:",
+      "modals.savePreset.title",
+      "modals.savePreset.prompt",
       "prompt",
     );
     if (typeof name === "string" && name) {
@@ -416,6 +416,7 @@ export const app = {
   },
 
   exportToCSV: () => {
+    if (!browser) return; // SSR-Guard
     const journalData = journalState.entries;
     if (journalData.length === 0) return;
     const csv = csvService.generateCSV(journalData);
@@ -431,9 +432,10 @@ export const app = {
       const text = e.target?.result as string;
       const entries = csvService.parseCSVContent(text);
       if (entries.length > 0) {
+        const t = locale.get();
         const confirmed = await modalState.show(
-          "Import",
-          `${entries.length} Trades importieren?`,
+          t("modals.import.title"),
+          t("modals.import.message", { values: { count: entries.length } }),
           "confirm",
         );
         if (confirmed) {
@@ -464,7 +466,7 @@ export const app = {
       tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
       app.calculateAndDisplay();
     } catch (e) {
-      if (!isAuto) uiState.showError("Preis-Fetch fehlgeschlagen.");
+      if (!isAuto) uiState.showError("errors.priceFetchFailed");
     } finally {
       if (!isAuto) uiState.isPriceFetching = false;
     }
@@ -502,7 +504,7 @@ export const app = {
       tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(20).toString() }));
       app.calculateAndDisplay();
     } catch (e) {
-      if (!isAuto) uiState.showError("ATR-Fetch fehlgeschlagen.");
+      if (!isAuto) uiState.showError("errors.atrFetchFailed");
     } finally {
       if (!isAuto) uiState.isAtrFetching = false;
     }

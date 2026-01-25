@@ -23,6 +23,7 @@ import { marketState } from "../stores/market.svelte";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
+import { logger } from "./logger";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -35,6 +36,10 @@ class MarketWatcher {
   private startTimeout: any = null; // Track startup delay
   private currentIntervalSeconds: number = 10;
   private fetchLocks = new Set<string>(); // "symbol:channel"
+  private maxConcurrentPolls = 12;
+  private inFlight = 0;
+  private lastErrorLog = 0;
+  private readonly errorLogIntervalMs = 30000;
 
   constructor() {
     if (browser) {
@@ -214,27 +219,38 @@ class MarketWatcher {
     const settings = settingsState;
     const provider = settings.apiProvider;
 
-    // Spread out requests over the first cycle to avoid burst
-    let stagger = 0;
+    const allowed = Math.max(this.maxConcurrentPolls - this.inFlight, 0);
+    if (allowed <= 0) return;
+
+    const tasks: Array<{ symbol: string; channel: string; lockKey: string }> = [];
 
     this.requests.forEach((channels, symbol) => {
       channels.forEach((_, channel) => {
         const lockKey = `${symbol}:${channel}`;
         if (this.fetchLocks.has(lockKey)) return;
-
-        const currentStagger = stagger;
-        stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
-
-        setTimeout(() => {
-          // Zombie Guard: If polling was stopped in the meantime, abort
-          if (!this.pollingInterval) return;
-
-          if (!this.fetchLocks.has(lockKey)) {
-            this.pollSymbolChannel(symbol, channel, provider);
-          }
-        }, currentStagger);
+        tasks.push({ symbol, channel, lockKey });
       });
     });
+
+    if (tasks.length === 0) return;
+
+    const scheduleCount = Math.min(allowed, tasks.length);
+
+    // Spread out requests over the first cycle to avoid burst
+    let stagger = 0;
+    for (let i = 0; i < scheduleCount; i++) {
+      const { symbol, channel, lockKey } = tasks[i];
+      const currentStagger = stagger;
+      stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
+
+      setTimeout(() => {
+        if (!this.pollingInterval) return; // Zombie Guard
+        if (this.inFlight >= this.maxConcurrentPolls) return;
+        if (!this.fetchLocks.has(lockKey)) {
+          this.pollSymbolChannel(symbol, channel, provider);
+        }
+      }, currentStagger);
+    }
   }
 
   private async pollSymbolChannel(
@@ -245,6 +261,7 @@ class MarketWatcher {
     if (!settingsState.capabilities.marketData) return;
     const lockKey = `${symbol}:${channel}`;
     this.fetchLocks.add(lockKey);
+    this.inFlight++;
 
     // Determine priority: high for the main trading symbol, normal for the rest
     const isMainSymbol =
@@ -279,12 +296,17 @@ class MarketWatcher {
       }
       // Depth not yet polled for Binance (requires specific API we logic)
     } catch (e) {
-      // Silently fail in polling
+      const now = Date.now();
+      if (now - this.lastErrorLog > this.errorLogIntervalMs) {
+        logger.warn("market", `[MarketWatcher] Polling error for ${symbol}/${channel}`, e);
+        this.lastErrorLog = now;
+      }
     } finally {
       // Re-allow polling after interval
       setTimeout(() => {
         this.fetchLocks.delete(lockKey);
       }, this.currentIntervalSeconds * 1000);
+      this.inFlight = Math.max(0, this.inFlight - 1);
     }
   }
 

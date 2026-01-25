@@ -969,5 +969,49 @@
     "INVALID_TRIGGER": "Ungültiges Trigger-Preis Format",
     "BITUNIX_API_ERROR": "Bitunix API Fehler",
     "BITGET_API_ERROR": "Bitget API Fehler"
+  },
+  "connection": {
+    "connected": "✓ Verbunden",
+    "connecting": "⟳ Verbinde...",
+    "connectingTo": "⟳ Verbinde mit {provider}...",
+    "reconnecting": "⟳ Verbindung wird wiederhergestellt...",
+    "reconnectingTo": "⟳ Verbindung zu {provider} wird wiederhergestellt...",
+    "disconnected": "✗ Warte auf Verbindung...",
+    "error": "✗ Verbindungsfehler"
+  },
+  "errors": {
+    "invalidTrade": "Ungültiger Trade.",
+    "priceFetchFailed": "Preis-Abruf fehlgeschlagen.",
+    "atrFetchFailed": "ATR-Abruf fehlgeschlagen.",
+    "saveFailed": "Speichern fehlgeschlagen."
+  },
+  "modals": {
+    "savePreset": {
+      "title": "Preset speichern",
+      "prompt": "Name eingeben:"
+    },
+    "clearJournal": {
+      "title": "Zurücksetzen bestätigen",
+      "message": "Journal löschen?"
+    },
+    "deletePreset": {
+      "title": "Preset löschen",
+      "message": "Wirklich löschen?"
+    },
+    "import": {
+      "title": "Import",
+      "message": "{count} Trades importieren?"
+    }
+  },
+  "ui": {
+    "loading": "Lädt..."
+  },
+  "offline": {
+    "title": "Verbindung unterbrochen",
+    "message": "Keine Verbindung zum Marktdaten-Provider. Ihre Berechnungen und Ihr Journal sind sicher gespeichert.",
+    "reconnect": "Neu verbinden",
+    "switchProvider": "Provider wechseln",
+    "checkSettings": "Einstellungen prüfen",
+    "diagnostics": "Diagnose anzeigen"
   }
 }

@@ -1,5 +1,6 @@
 <script lang="ts">
   import { marketState } from "../../stores/market.svelte";
+  import { _ } from "../../locales/i18n";
 
   let wsStatus = $derived(marketState.connectionStatus);
 
@@ -15,12 +16,12 @@
   // Detailed status text for tooltip
   let statusText = $derived(
     wsStatus === "connected"
-      ? "✓ Connected"
+      ? $_("connection.connected")
       : wsStatus === "connecting"
-        ? "⟳ Connecting to Bitunix..."
+        ? $_("connection.connecting")
         : wsStatus === "reconnecting"
-          ? "⟳ Reconnecting to Bitunix..."
-          : "✗ Waiting for connection...",
+          ? $_("connection.reconnecting")
+          : $_("connection.disconnected"),
   );
 
   let isAnimated = $derived(wsStatus !== "connected");

@@ -48,22 +48,30 @@ export const rssParserService = {
   },
 
   async parseMultipleFeeds(urls: string[]): Promise<NewsItem[]> {
-    const results = await Promise.allSettled(
-      urls.map((url) => this.parseRssFeed(url)),
-    );
+    if (!urls || urls.length === 0) return [];
 
+    const concurrency = Math.min(4, Math.max(1, urls.length));
     const allItems: NewsItem[] = [];
-    results.forEach((result, index) => {
-      if (result.status === "fulfilled") {
-        allItems.push(...result.value);
-      } else {
-        logger.warn(
-          "market",
-          `[rssParser] Failed to fetch feed ${urls[index]}`,
-          result.reason,
-        );
+    let index = 0;
+
+    const worker = async () => {
+      while (true) {
+        const current = index < urls.length ? urls[index++] : null;
+        if (!current) break;
+        try {
+          const items = await this.parseRssFeed(current);
+          allItems.push(...items);
+        } catch (e) {
+          logger.warn(
+            "market",
+            `[rssParser] Failed to fetch feed ${current}`,
+            e,
+          );
+        }
       }
-    });
+    };
+
+    await Promise.all(new Array(concurrency).fill(0).map(() => worker()));
 
     return allItems;
   },

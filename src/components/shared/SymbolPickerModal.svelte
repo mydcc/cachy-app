@@ -29,6 +29,9 @@
     import { apiService } from "../../services/apiService";
     import { Decimal } from "decimal.js";
 
+    // Ref for A11y focus management
+    let searchInputRef: HTMLInputElement | undefined = $state();
+
     let isOpen = $state(false);
     let searchQuery = $state("");
     let viewMode = $state<"favorites" | "gainers" | "volatile" | "all">(
@@ -236,9 +239,8 @@
     function handleGlobalKeydown(e: KeyboardEvent) {
         if (!isOpen) return;
 
-        const input = document.querySelector(
-            ".symbol-picker-container input",
-        ) as HTMLInputElement;
+        // Use ref instead of querySelector
+        const input = searchInputRef;
         if (!input) return;
 
         if (document.activeElement !== input) {
@@ -261,10 +263,8 @@
         if (isOpen) {
             window.addEventListener("keydown", handleGlobalKeydown);
             setTimeout(() => {
-                const input = document.querySelector(
-                    ".symbol-picker-container input",
-                ) as HTMLInputElement;
-                input?.focus();
+                // Use ref instead of querySelector
+                searchInputRef?.focus();
             }, 60);
         } else {
             window.removeEventListener("keydown", handleGlobalKeydown);
@@ -325,6 +325,7 @@
             class="search-container mb-4 sticky top-0 bg-[var(--bg-secondary)] pb-2 z-10"
         >
             <input
+                bind:this={searchInputRef}
                 type="text"
                 bind:value={searchQuery}
                 placeholder={$_("symbolPicker.searchPlaceholder")}

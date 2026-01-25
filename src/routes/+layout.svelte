@@ -28,6 +28,7 @@
   import FloatingIframe from "../components/shared/FloatingIframe.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
+  import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { onMount } from "svelte";
   import { initZoomPlugin } from "../lib/chartSetup";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
@@ -253,6 +254,7 @@
 </svelte:head>
 
 <div class="app-container">
+  <OfflineBanner />
   <BackgroundRenderer />
   {@render children?.()}
 

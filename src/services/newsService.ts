@@ -14,6 +14,34 @@ import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
 
+const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
+
+function safeReadCache<T>(key: string): T | null {
+  if (!isBrowser) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+    return JSON.parse(raw) as T;
+  } catch (e) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    logger.warn("ai", `[newsService] Corrupted cache cleared for ${key}`);
+    return null;
+  }
+}
+
+function safeWriteCache<T>(key: string, value: T) {
+  if (!isBrowser) return;
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+  } catch (e) {
+    logger.warn("ai", `[newsService] Failed to persist cache ${key}`);
+  }
+}
+
 export interface NewsItem {
   title: string;
   url: string;
@@ -84,15 +112,13 @@ export const newsService = {
 
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
-        const cached = localStorage.getItem(CACHE_KEY_NEWS);
-        if (cached) {
-          const { data, timestamp, cachedSymbol } = JSON.parse(cached);
-          if (
-            Date.now() - timestamp < CACHE_TTL_NEWS &&
-            ((!symbol && !cachedSymbol) || symbol === cachedSymbol)
-          ) {
-            return data;
-          }
+        const cached = safeReadCache<{ data: NewsItem[]; timestamp: number; cachedSymbol?: string }>(CACHE_KEY_NEWS);
+        if (
+          cached &&
+          Date.now() - cached.timestamp < CACHE_TTL_NEWS &&
+          ((!symbol && !cached.cachedSymbol) || symbol === cached.cachedSymbol)
+        ) {
+          return cached.data;
         }
 
         const { cryptoPanicApiKey, newsApiKey } = settingsState;
@@ -216,14 +242,11 @@ export const newsService = {
             new Date(a.published_at).getTime(),
         );
 
-        localStorage.setItem(
-          CACHE_KEY_NEWS,
-          JSON.stringify({
-            data: newsItems,
-            timestamp: Date.now(),
-            cachedSymbol: symbol,
-          }),
-        );
+        safeWriteCache(CACHE_KEY_NEWS, {
+          data: newsItems,
+          timestamp: Date.now(),
+          cachedSymbol: symbol,
+        });
 
         return newsItems;
       } finally {
@@ -243,17 +266,16 @@ export const newsService = {
       return pendingSentimentFetches.get(newsHash)!;
     }
 
+    // Immer serverseitig, kein allowClientSideAi mehr
     const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
-        const cached = localStorage.getItem(CACHE_KEY_SENTIMENT);
-        if (cached) {
-          const { data, timestamp, newsHash: cachedHash } = JSON.parse(cached);
-          if (
-            Date.now() - timestamp < CACHE_TTL_SENTIMENT &&
-            cachedHash === newsHash
-          ) {
-            return data;
-          }
+        const cached = safeReadCache<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>(CACHE_KEY_SENTIMENT);
+        if (
+          cached &&
+          Date.now() - cached.timestamp < CACHE_TTL_SENTIMENT &&
+          cached.newsHash === newsHash
+        ) {
+          return cached.data;
         }
 
         const { aiProvider, geminiApiKey, openaiApiKey } = settingsState;
@@ -315,14 +337,11 @@ export const newsService = {
             .trim(),
         );
 
-        localStorage.setItem(
-          CACHE_KEY_SENTIMENT,
-          JSON.stringify({
-            data: analysis,
-            timestamp: Date.now(),
-            newsHash,
-          }),
-        );
+        safeWriteCache(CACHE_KEY_SENTIMENT, {
+          data: analysis,
+          timestamp: Date.now(),
+          newsHash,
+        });
 
         return analysis;
       } catch (e: any) {

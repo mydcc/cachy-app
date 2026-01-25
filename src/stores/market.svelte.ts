@@ -18,6 +18,7 @@
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
+import { settingsState } from "./settings.svelte";
 
 export interface MarketData {
   symbol: string;
@@ -65,9 +66,14 @@ export type WSStatus =
   | "reconnecting";
 
 // LRU Cache Configuration
-// LRU Cache Configuration
-const MAX_CACHE_SIZE = 20; // Aggressively reduced for memory safety
+// Configurable via settingsState.marketCacheSize (default: 20)
+// Increased cache improves performance for power users tracking many symbols
+const DEFAULT_CACHE_SIZE = 20;
 const TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+function getMaxCacheSize(): number {
+  return settingsState.marketCacheSize || DEFAULT_CACHE_SIZE;
+}
 
 interface CacheMetadata {
   lastAccessed: number;
@@ -101,6 +107,24 @@ class MarketManager {
       }, 10 * 1000);
       */
     }
+  }
+
+  /**
+   * Cleanup method for HMR and proper disposal
+   * Clears all intervals to prevent memory leaks
+   */
+  destroy() {
+    if (this.cleanupIntervalId) {
+      clearInterval(this.cleanupIntervalId);
+      this.cleanupIntervalId = null;
+    }
+    if (this.flushIntervalId) {
+      clearInterval(this.flushIntervalId);
+      this.flushIntervalId = null;
+    }
+    this.cacheMetadata.clear();
+    this.pendingUpdates.clear();
+    this.data = {};
   }
 
   private snapshotMetrics() {
@@ -153,8 +177,9 @@ class MarketManager {
   }
 
   private enforceCacheLimit() {
-    // Aggressively clear cache if it grows too large
-    while (Object.keys(this.data).length > MAX_CACHE_SIZE) {
+    // Dynamically respect settingsState.marketCacheSize
+    const maxSize = getMaxCacheSize();
+    while (Object.keys(this.data).length > maxSize) {
       const toEvict = this.evictLRU();
       if (!toEvict) {
         // Fallback: If metadata is out of sync, delete arbitrary key
@@ -400,3 +425,10 @@ class MarketManager {
 }
 
 export const marketState = new MarketManager();
+
+// HMR: Cleanup on module disposal to prevent timer leaks
+if (import.meta.hot) {
+  import.meta.hot.dispose(() => {
+    marketState.destroy();
+  });
+}

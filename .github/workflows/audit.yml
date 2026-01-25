@@ -1,0 +1,90 @@
+name: Code Quality Audit
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  i18n-lint:
+    name: i18n String Compliance
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Check for hardcoded strings
+        run: node scripts/lint-i18n.js
+
+  decimal-check:
+    name: Decimal.js Enforcement
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Check for unsafe number arithmetic in critical files
+        run: |
+          # Search for Number() / parseFloat / toFixed in critical trading services
+          echo "Checking for unsafe number operations in critical files..."
+
+          VIOLATIONS=0
+
+          for file in src/services/tradeService.ts src/services/apiService.ts src/lib/calculator.ts; do
+            if [ -f "$file" ]; then
+              MATCHES=$(grep -n -E '(Number\(|parseFloat\(|parseFloat |toFixed\()' "$file" || true)
+              if [ ! -z "$MATCHES" ]; then
+                echo "❌ Unsafe number operations found in $file:"
+                echo "$MATCHES"
+                VIOLATIONS=$((VIOLATIONS + 1))
+              fi
+            fi
+          done
+
+          if [ $VIOLATIONS -gt 0 ]; then
+            echo ""
+            echo "Please use Decimal.js for all financial calculations."
+            exit 1
+          else
+            echo "✅ All critical files use Decimal.js correctly."
+          fi
+
+  test-critical:
+    name: Critical Tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run critical tests
+        run: npm run test -- src/tests/decimal-enforcement.test.ts src/tests/flash-close.test.ts src/tests/provider-switch.test.ts --run
+
+  type-check:
+    name: TypeScript Type Check
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run svelte-check
+        run: npm run check

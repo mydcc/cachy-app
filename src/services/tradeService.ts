@@ -310,25 +310,40 @@ export class TradeExecutionService {
     TradeExecutionGuard.ensureAuthorized();
 
     // 0. Risk Management Validation
-    let approxPrice = params.price;
-    if (!approxPrice || approxPrice.isZero()) {
-        // For Market Orders, try to get price from Store or API
-        const fromStore = marketState.data[params.symbol]?.lastPrice;
-        if (fromStore) {
-            approxPrice = fromStore;
-        } else {
-            try {
-                // Fallback: Fetch fresh price
-                approxPrice = await apiService.fetchBitunixPrice(params.symbol, "high", 3000);
-            } catch (e) {
-                logger.warn("market", "Could not fetch price for risk check, assuming 0 (Risk Bypass Warning)");
-                approxPrice = new Decimal(0);
-            }
-        }
+    // Defensive validation: reject empty/negative amounts early
+    if (!params.amount || params.amount.lte(0) || !params.amount.isFinite()) {
+      throw new Error("VALIDATION_ERROR: Amount must be greater than zero");
     }
 
-    // Calculate Notional Value
-    const finalPrice = approxPrice || new Decimal(0);
+    let approxPrice = params.price;
+    if (params.type === "limit") {
+      if (!approxPrice) {
+        throw new Error("VALIDATION_ERROR: Price required for limit orders");
+      }
+      if (approxPrice.lte(0) || !approxPrice.isFinite()) {
+        throw new Error("VALIDATION_ERROR: Price must be greater than zero");
+      }
+    }
+
+    if (!approxPrice || approxPrice.lte(0)) {
+      // For Market Orders, try to get price from Store or API
+      const fromStore = marketState.data[params.symbol]?.lastPrice;
+      if (fromStore && fromStore.gt(0)) {
+        approxPrice = fromStore;
+      } else {
+        // Fallback: Fetch fresh price; if unavailable, fail safe.
+        approxPrice = await apiService.fetchBitunixPrice(params.symbol, "high", 3000).catch((e) => {
+          logger.error("market", "Price lookup failed for risk check", e);
+          return null;
+        });
+        if (!approxPrice || approxPrice.lte(0)) {
+          throw new Error("PRICE_UNAVAILABLE: Cannot validate notional without a positive price");
+        }
+      }
+    }
+
+    // Calculate Notional Value (guaranteed >0 here)
+    const finalPrice = approxPrice;
     const amountUsdt = params.amount.times(finalPrice);
     const riskCheck = rmsService.validateTrade(params.symbol, params.side, amountUsdt);
 
@@ -563,23 +578,26 @@ export class TradeExecutionService {
     const oppositeSide: OrderSide =
       params.positionSide === "long" ? "sell" : "buy";
 
-    // Safe Max Amount strategy:
-    // 1. Try to get exact size from OMS
-    // 2. Fallback to 1 Quadrillion (1e15) which fits in int64 (max ~9e18)
-    //    100 Quintillion (1e20) would overflow standard backend integers.
+    // CRITICAL: Strict position size binding to prevent overfills
     let closeAmount: Decimal;
 
     if (params.amount) {
+      // User-specified partial close
       closeAmount = params.amount;
     } else {
+      // Full close: MUST use known position from OMS
       const positions = omsService.getPositions();
       const knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+
       if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
         closeAmount = knownPos.amount;
-        logger.log("market", `[ClosePosition] Using known OMS size: ${closeAmount}`);
+        logger.log("market", `[ClosePosition] Using OMS size: ${closeAmount}`);
       } else {
-        closeAmount = new Decimal("1000000000000000"); // 1 Quadrillion
-        logger.log("market", `[ClosePosition] Size unknown, using safe max: ${closeAmount}`);
+        // CRITICAL: If position is unknown, FAIL SAFE - do not execute
+        throw new Error(
+          "POSITION_UNKNOWN: Cannot close position without known size. " +
+          "Please sync OMS data or specify amount explicitly."
+        );
       }
     }
 
@@ -635,11 +653,23 @@ export class TradeExecutionService {
     logger.log("market", "Flash Close Position: " + symbol + " " + positionSide);
 
     const oppositeSide: OrderSide = positionSide === "long" ? "sell" : "buy";
+
+    // CRITICAL: Use known position size from OMS
+    const positions = omsService.getPositions();
+    const knownPos = positions.find(p => p.symbol === symbol && p.side === positionSide);
+
+    if (!knownPos || !knownPos.amount || !knownPos.amount.gt(0)) {
+      throw new Error(
+        "POSITION_UNKNOWN: Cannot flash close without known position. " +
+        "Please sync OMS data first."
+      );
+    }
+
     return await this.placeOrder({
       symbol,
       side: oppositeSide,
       type: "market",
-      amount: new Decimal(1_000_000_000_000), // Safe large number for "Close All"
+      amount: knownPos.amount, // Exact position size
       reduceOnly: true,
     });
   }

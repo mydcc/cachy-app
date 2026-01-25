@@ -901,5 +901,49 @@
     "INVALID_TRIGGER": "Invalid triggerPrice formatting",
     "BITUNIX_API_ERROR": "Bitunix API error",
     "BITGET_API_ERROR": "Bitget API error"
+  },
+  "connection": {
+    "connected": "✓ Connected",
+    "connecting": "⟳ Connecting...",
+    "connectingTo": "⟳ Connecting to {provider}...",
+    "reconnecting": "⟳ Reconnecting...",
+    "reconnectingTo": "⟳ Reconnecting to {provider}...",
+    "disconnected": "✗ Waiting for connection...",
+    "error": "✗ Connection error"
+  },
+  "errors": {
+    "invalidTrade": "Invalid trade.",
+    "priceFetchFailed": "Price fetch failed.",
+    "atrFetchFailed": "ATR fetch failed.",
+    "saveFailed": "Save failed."
+  },
+  "modals": {
+    "savePreset": {
+      "title": "Save Preset",
+      "prompt": "Enter name:"
+    },
+    "clearJournal": {
+      "title": "Confirm Reset",
+      "message": "Delete journal?"
+    },
+    "deletePreset": {
+      "title": "Delete Preset",
+      "message": "Really delete?"
+    },
+    "import": {
+      "title": "Import",
+      "message": "Import {count} trades?"
+    }
+  },
+  "ui": {
+    "loading": "Loading..."
+  },
+  "offline": {
+    "title": "Connection Lost",
+    "message": "Unable to reach market data provider. Your calculations and journal remain safe.",
+    "reconnect": "Reconnect",
+    "switchProvider": "Switch Provider",
+    "checkSettings": "Check Settings",
+    "diagnostics": "View Diagnostics"
   }
 }
