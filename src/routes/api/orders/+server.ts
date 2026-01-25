@@ -23,6 +23,7 @@ import type {
   BitunixOrderListWrapper,
   NormalizedOrder,
   BitunixOrderPayload,
+  BitunixPosition,
 } from "../../../types/bitunix";
 import type {
   BitgetOrderPayload
@@ -117,6 +118,10 @@ export const POST: RequestHandler = async ({ request }) => {
           reduceOnly: true,
         };
         result = await placeBitunixOrder(apiKey, apiSecret, closeOrder);
+      }
+      else if (payload.type === "positions") {
+        const positions = await fetchBitunixPositions(apiKey, apiSecret);
+        result = { positions };
       }
     }
     // --- BITGET ---
@@ -376,6 +381,29 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
   }));
+}
+
+async function fetchBitunixPositions(apiKey: string, apiSecret: string): Promise<BitunixPosition[]> {
+  const baseUrl = "https://fapi.bitunix.com";
+  const path = "/api/v1/futures/position/my_position";
+  const { nonce, timestamp, signature } = generateBitunixSignature(apiKey, apiSecret, {}, "");
+
+  const response = await fetch(`${baseUrl}${path}`, {
+    method: "GET",
+    headers: {
+      "api-key": apiKey,
+      timestamp: timestamp,
+      nonce: nonce,
+      sign: signature,
+      "Content-Type": "application/json",
+    },
+  });
+
+  if (!response.ok) throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status}`);
+  const res = (await response.json()) as BitunixResponse<BitunixPosition[]>;
+  if (String(res.code) !== "0") throw new Error(`Bitunix error: ${res.code}`);
+
+  return res.data || [];
 }
 
 // --- Bitget Helpers ---

@@ -27,10 +27,15 @@ class RiskManagementService {
     /**
      * Validates if a proposed trade complies with risk rules.
      */
-    public validateTrade(symbol: string, side: string, amountUsdt: Decimal): { allowed: boolean; reason?: string } {
+    public validateTrade(symbol: string, side: string, amountUsdt: Decimal, isReduceOnly: boolean = false): { allowed: boolean; reason?: string } {
         // 1. Max Size Check
         if (amountUsdt.gt(this.profile.maxPositionSizeUsdt)) {
             return { allowed: false, reason: "EXCEEDS_MAX_POSITION_SIZE" };
+        }
+
+        // Safety: If explicitly reduceOnly, skip margin check
+        if (isReduceOnly) {
+            return { allowed: true };
         }
 
         // 2. Margin Check (Prevent Suicide Trades)

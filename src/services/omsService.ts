@@ -13,7 +13,17 @@ class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
 
+    private readonly MAX_ORDERS = 500;
+    private readonly MAX_POSITIONS = 50;
+
     public updateOrder(order: OMSOrder) {
+        // Enforce limit: Prune oldest finalized orders first, then any oldest
+        if (this.orders.size >= this.MAX_ORDERS && !this.orders.has(order.id)) {
+            // optimized simple FIFO for now to prevent O(n) scan
+            const firstKey = this.orders.keys().next().value;
+            if (firstKey) this.orders.delete(firstKey);
+        }
+
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
 
@@ -25,7 +35,15 @@ class OrderManagementSystem {
     }
 
     public updatePosition(position: OMSPosition) {
-        this.positions.set(position.symbol + ":" + position.side, position);
+        const key = position.symbol + ":" + position.side;
+
+        // Enforce limit
+        if (this.positions.size >= this.MAX_POSITIONS && !this.positions.has(key)) {
+            const firstKey = this.positions.keys().next().value;
+            if (firstKey) this.positions.delete(firstKey);
+        }
+
+        this.positions.set(key, position);
         logger.log("market", `[OMS] Position Updated: ${position.symbol} ${position.side}`);
     }
 

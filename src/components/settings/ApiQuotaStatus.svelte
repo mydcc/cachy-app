@@ -56,7 +56,7 @@
 
 <div class="quota-panel">
     <h4 class="text-sm font-semibold text-[var(--text-primary)] mb-3">
-        API Quota Monitoring
+        {$_("settings.apiQuota.title")}
     </h4>
 
     {#if cryptoPanicStats}
@@ -76,13 +76,13 @@
                 class="stats-grid text-xs text-[var(--text-secondary)] space-y-1"
             >
                 <div class="flex justify-between">
-                    <span>Calls insgesamt:</span>
+                    <span>{$_("settings.apiQuota.callsTotal")}</span>
                     <span class="text-[var(--text-primary)]"
                         >{cryptoPanicStats.totalCalls}</span
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Fehler:</span>
+                    <span>{$_("settings.apiQuota.errors")}</span>
                     <span
                         class="font-semibold"
                         style="color: {cryptoPanicStats.failedCalls > 0
@@ -93,14 +93,14 @@
                 </div>
                 {#if cryptoPanicStats.last429At}
                     <div class="flex justify-between">
-                        <span>Letzter 429:</span>
+                        <span>{$_("settings.apiQuota.last429")}</span>
                         <span class="text-[var(--danger-color)] font-semibold"
                             >{formatDate(cryptoPanicStats.last429At)}</span
                         >
                     </div>
                 {/if}
                 <div class="flex justify-between">
-                    <span>Reset am:</span>
+                    <span>{$_("settings.apiQuota.resetAt")}</span>
                     <span class="text-[var(--text-primary)]"
                         >{formatDate(cryptoPanicStats.resetDate)}</span
                     >
@@ -132,13 +132,13 @@
                 class="stats-grid text-xs text-[var(--text-secondary)] space-y-1"
             >
                 <div class="flex justify-between">
-                    <span>Calls insgesamt:</span>
+                    <span>{$_("settings.apiQuota.callsTotal")}</span>
                     <span class="text-[var(--text-primary)]"
                         >{newsApiStats.totalCalls}</span
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Fehler:</span>
+                    <span>{$_("settings.apiQuota.errors")}</span>
                     <span
                         class="font-semibold"
                         style="color: {newsApiStats.failedCalls > 0
@@ -148,7 +148,7 @@
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Reset am:</span>
+                    <span>{$_("settings.apiQuota.resetAt")}</span>
                     <span class="text-[var(--text-primary)]"
                         >{formatDate(newsApiStats.resetDate)}</span
                     >

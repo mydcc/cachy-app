@@ -110,6 +110,8 @@
       "header": "Allgemein",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverageLabel": "Hebel",
+      "feesLabel": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "feesPlaceholder": "Gebühren pro Trade (%)"
     },
@@ -522,6 +524,22 @@
     "restore": "Wiederherstellen",
     "reset": "Daten zurücksetzen",
     "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
+    "apiQuota": {
+      "title": "API Status",
+      "callsTotal": "Calls insgesamt:",
+      "errors": "Fehler:",
+      "last429": "Letzter 429:",
+      "resetAt": "Reset am:"
+    },
+    "calculation": {
+       "title": "Berechnungseinstellungen",
+       "advanced": "Erweiterte Einstellungen",
+       "perfProfiles": "Leistungsprofile",
+       "analysisInterval": "Analyse-Intervall",
+       "analyzeAllFavorites": "Alle Favoriten analysieren",
+       "pauseWhenInactive": "Pause bei Inaktivität",
+       "smartThrottle": "Smart Throttle"
+    },
     "apiProvider": "API Anbieter",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",

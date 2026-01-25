@@ -112,6 +112,8 @@
       "header": "General",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverageLabel": "Leverage",
+      "feesLabel": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
       "feesPlaceholder": "Fees per Trade (%)"
     },
@@ -524,6 +526,22 @@
     "restore": "Restore",
     "reset": "Reset Data",
     "resetConfirm": "Are you sure you want to reset all data? This cannot be undone.",
+    "apiQuota": {
+      "title": "API Status",
+      "callsTotal": "Total Calls:",
+      "errors": "Errors:",
+      "last429": "Last 429:",
+      "resetAt": "Reset At:"
+    },
+    "calculation": {
+       "title": "Calculation Settings",
+       "advanced": "Advanced Settings",
+       "perfProfiles": "Performance Profiles",
+       "analysisInterval": "Analysis Interval",
+       "analyzeAllFavorites": "Analyze All Favorites",
+       "pauseWhenInactive": "Pause Analysis When Inactive",
+       "smartThrottle": "Smart Throttle"
+    },
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",

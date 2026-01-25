@@ -24,6 +24,9 @@ import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { logger } from "./logger";
 import CryptoJS from "crypto-js";
+import { Decimal } from "decimal.js";
+import { omsService } from "./omsService";
+import type { OMSPosition } from "./omsTypes";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -935,11 +938,12 @@ class BitunixWebSocketService {
       else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) =>
-              accountState.updatePositionFromWs(item),
-            );
-          else accountState.updatePositionFromWs(data);
+          const items = Array.isArray(data) ? data : [data];
+          items.forEach((item: any) => {
+            accountState.updatePositionFromWs(item);
+            const omsPos = this.mapToOMSPosition(item);
+            if (omsPos) omsService.updatePosition(omsPos);
+          });
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
@@ -1083,6 +1087,23 @@ class BitunixWebSocketService {
     }
 
     logger.warn("network", `[WebSocket] ${type} error handled`, error);
+  }
+
+  private mapToOMSPosition(data: any): OMSPosition | null {
+    if (!data.symbol) return null;
+
+    const toDec = (v: any) => (v ? new Decimal(v) : new Decimal(0));
+
+    return {
+      symbol: data.symbol,
+      side: (data.side || "long").toLowerCase() as "long" | "short",
+      amount: toDec(data.qty),
+      entryPrice: toDec(data.averagePrice || data.avgOpenPrice),
+      unrealizedPnl: toDec(data.unrealizedPNL),
+      leverage: Number(data.leverage || 0),
+      marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
+      liquidationPrice: toDec(data.liquidationPrice),
+    };
   }
 }
 

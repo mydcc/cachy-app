@@ -20,6 +20,8 @@ import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { settingsState } from "../stores/settings.svelte";
+import { omsService } from "./omsService";
+import type { OMSPosition } from "./omsTypes";
 import { logger } from "./logger";
 import type { Kline } from "./technicalsTypes";
 import {
@@ -719,5 +721,57 @@ export const apiService = {
       1,
       timeout,
     );
+  },
+
+  async fetchPositions(
+    provider: "bitunix" | "bitget" = "bitunix",
+  ): Promise<OMSPosition[]> {
+    // Only Bitunix supported for now via this specific endpoint shape
+    if (provider !== "bitunix") return [];
+
+    const settings = settingsState;
+    const apiKey = settings.apiKeys?.[provider]?.key;
+    const apiSecret = settings.apiKeys?.[provider]?.secret;
+
+    if (!apiKey || !apiSecret) {
+      throw new Error("apiErrors.missingCredentials");
+    }
+
+    const payload = {
+      exchange: provider,
+      apiKey,
+      apiSecret,
+      type: "positions",
+    };
+
+    const response = await fetch("/api/orders", {
+      method: "POST",
+      body: JSON.stringify(payload),
+      headers: { "Content-Type": "application/json" },
+    });
+
+    const res = await apiService.safeJson(response);
+    if (res.error) throw new Error(res.error);
+
+    const positions: any[] = res.positions || [];
+    const omsPositions: OMSPosition[] = [];
+
+    positions.forEach((p) => {
+      // Map to OMSPosition
+      const omsPos: OMSPosition = {
+        symbol: p.symbol,
+        side: (p.side || "long").toLowerCase() as "long" | "short",
+        amount: new Decimal(p.qty || 0),
+        entryPrice: new Decimal(p.avgOpenPrice || p.averagePrice || 0),
+        unrealizedPnl: new Decimal(p.unrealizedPNL || 0),
+        leverage: Number(p.leverage || 0),
+        marginMode: (p.marginMode || "cross").toLowerCase() as "cross" | "isolated",
+        liquidationPrice: new Decimal(p.liquidationPrice || 0),
+      };
+      omsService.updatePosition(omsPos);
+      omsPositions.push(omsPos);
+    });
+
+    return omsPositions;
   },
 };

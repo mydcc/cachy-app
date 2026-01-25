@@ -86,6 +86,12 @@ export const PendingSchema = BaseRequestSchema.extend({
   symbol: z.string().optional(),
 });
 
+// --- Positions ---
+export const PositionsSchema = BaseRequestSchema.extend({
+  type: z.literal("positions"),
+  symbol: z.string().optional(),
+});
+
 // --- Union Schema for the Route ---
 // Since the 'type' discriminator is inside the body, Zod Discriminated Union is perfect.
 // However, the input body has 'type' as the Action ("place-order"), not the OrderType ("LIMIT").
@@ -95,7 +101,8 @@ export const OrderRequestSchema = z.discriminatedUnion("type", [
   PlaceOrderSchema,
   ClosePositionSchema,
   HistorySchema,
-  PendingSchema
+  PendingSchema,
+  PositionsSchema
 ]);
 
 export type PlaceOrderPayload = z.infer<typeof PlaceOrderSchema>;

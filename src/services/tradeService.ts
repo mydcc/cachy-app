@@ -345,7 +345,7 @@ export class TradeExecutionService {
     // Calculate Notional Value (guaranteed >0 here)
     const finalPrice = approxPrice;
     const amountUsdt = params.amount.times(finalPrice);
-    const riskCheck = rmsService.validateTrade(params.symbol, params.side, amountUsdt);
+    const riskCheck = rmsService.validateTrade(params.symbol, params.side, amountUsdt, params.reduceOnly);
 
     if (!riskCheck.allowed) {
       logger.error("market", "RMS Validation Failed:", riskCheck.reason);
@@ -586,8 +586,19 @@ export class TradeExecutionService {
       closeAmount = params.amount;
     } else {
       // Full close: MUST use known position from OMS
-      const positions = omsService.getPositions();
-      const knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+      let positions = omsService.getPositions();
+      let knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+
+      if (!knownPos) {
+        // Attempt recovery
+        try {
+            await apiService.fetchPositions("bitunix");
+            positions = omsService.getPositions();
+            knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+        } catch (e) {
+            logger.warn("market", "Failed to fetch positions during Close", e);
+        }
+      }
 
       if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
         closeAmount = knownPos.amount;
@@ -629,9 +640,46 @@ export class TradeExecutionService {
 
     logger.log("market", "Close ALL Positions");
 
-    throw new Error(
-      "NOT_YET_IMPLEMENTED: closeAllPositions requires position data API. Use closePosition() for individual positions.",
-    );
+    // 1. Fetch latest state
+    try {
+      await apiService.fetchPositions("bitunix");
+    } catch (e) {
+      logger.warn("market", "Failed to refresh positions before Close All", e);
+    }
+
+    const positions = omsService.getPositions();
+    if (positions.length === 0) return [];
+
+    const results: OrderResult[] = [];
+    const errors: string[] = [];
+
+    // 2. Parallel Close
+    const outcomes = await Promise.allSettled(positions.map(async (p) => {
+      // Determine correct close side
+      // Close Long -> Sell, Close Short -> Buy
+      // But closePosition() takes 'positionSide' ('long'/'short')
+      return this.closePosition({
+        symbol: p.symbol,
+        positionSide: p.side,
+        amount: p.amount
+      });
+    }));
+
+    outcomes.forEach((outcome, index) => {
+      if (outcome.status === "fulfilled") {
+        results.push(outcome.value);
+      } else {
+        const p = positions[index];
+        errors.push(`${p.symbol}: ${outcome.reason?.message || "Unknown error"}`);
+      }
+    });
+
+    if (errors.length > 0) {
+      logger.error("market", "Partial failure in Close All", errors);
+      throw new Error(`CLOSE_ALL_PARTIAL_FAILURE: ${errors.join(", ")}`);
+    }
+
+    return results;
   }
 
   /**

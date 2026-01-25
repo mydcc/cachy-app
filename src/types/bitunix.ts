@@ -58,6 +58,29 @@ export interface BitunixOrderListWrapper {
   [key: string]: any; // Allow other pagination fields
 }
 
+export interface BitunixPosition {
+  positionId: string;
+  symbol: string;
+  side: string; // LONG, SHORT
+  positionSide?: string;
+  holdSide?: string;
+  marginCoin?: string;
+  marginMode?: string;
+  leverage?: string;
+  qty: string;
+  available?: string;
+  frozen?: string;
+  avgOpenPrice?: string;
+  averagePrice?: string;
+  entryPrice?: string;
+  maintMargin?: string;
+  realizedPNL?: string;
+  unrealizedPNL?: string;
+  liquidationPrice?: string;
+  ctime?: number;
+  uTime?: number;
+}
+
 // Normalized Internal Order Interface
 export interface NormalizedOrder {
   id: string;

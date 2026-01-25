@@ -24,8 +24,12 @@
   let visible = $state(false);
 
   onMount(() => {
+    if (settingsState.disclaimerAccepted) return;
+
     const timer = setTimeout(() => {
-      visible = true;
+      if (!settingsState.disclaimerAccepted) {
+        visible = true;
+      }
     }, 4000);
 
     return () => clearTimeout(timer);
