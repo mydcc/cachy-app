@@ -35,9 +35,11 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
+import { marketState } from "../stores/market.svelte";
 import { logger } from "../services/logger";
 import { omsService } from "./omsService";
 import { rmsService } from "./rmsService";
+import { apiService } from "./apiService";
 import type { OMSOrder } from "./omsTypes";
 import Decimal from "decimal.js";
 import crypto from "crypto";
@@ -308,8 +310,26 @@ export class TradeExecutionService {
     TradeExecutionGuard.ensureAuthorized();
 
     // 0. Risk Management Validation
-    const approxPrice = params.price || new Decimal(0);
-    const amountUsdt = params.amount.times(approxPrice);
+    let approxPrice = params.price;
+    if (!approxPrice || approxPrice.isZero()) {
+        // For Market Orders, try to get price from Store or API
+        const fromStore = marketState.data[params.symbol]?.lastPrice;
+        if (fromStore) {
+            approxPrice = fromStore;
+        } else {
+            try {
+                // Fallback: Fetch fresh price
+                approxPrice = await apiService.fetchBitunixPrice(params.symbol, "high", 3000);
+            } catch (e) {
+                logger.warn("market", "Could not fetch price for risk check, assuming 0 (Risk Bypass Warning)");
+                approxPrice = new Decimal(0);
+            }
+        }
+    }
+
+    // Calculate Notional Value
+    const finalPrice = approxPrice || new Decimal(0);
+    const amountUsdt = params.amount.times(finalPrice);
     const riskCheck = rmsService.validateTrade(params.symbol, params.side, amountUsdt);
 
     if (!riskCheck.allowed) {
@@ -548,7 +568,7 @@ export class TradeExecutionService {
       symbol: params.symbol,
       side: oppositeSide,
       type: "market", // Market order for immediate close
-      amount: params.amount || new Decimal(999999), // Large amount = close entire position
+      amount: params.amount || new Decimal(1_000_000_000_000), // Large amount (1T) = close entire position safely (even PEPE/SHIB)
       reduceOnly: true, // CRITICAL: Prevents opening opposite position
     };
 
@@ -599,7 +619,7 @@ export class TradeExecutionService {
       symbol,
       side: oppositeSide,
       type: "market",
-      amount: new Decimal(999999),
+      amount: new Decimal(1_000_000_000_000), // Safe large number for "Close All"
       reduceOnly: true,
     });
   }

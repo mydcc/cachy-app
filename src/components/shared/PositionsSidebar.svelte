@@ -20,6 +20,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeState } from "../../stores/trade.svelte";
   import { accountState } from "../../stores/account.svelte";
+  import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
 
   // Sub-components
@@ -300,12 +301,13 @@
 
       const res = await response.json();
       if (res.error) {
-        alert(`Error closing position: ${res.error}`);
+        uiState.showError($_("dashboard.alerts.closePositionError", { values: { error: res.error } }));
       } else {
+        uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
         // Trigger refresh or wait for WS
       }
     } catch (e) {
-      alert("Failed to send close order.");
+      uiState.showError($_("dashboard.alerts.failedClose"));
     }
   }
 
@@ -320,8 +322,9 @@
       quantity: Number(pos.size),
       leverage: Number(pos.leverage),
     }));
-    alert(
-      `Loaded ${pos.symbol} into trade inputs. Configure TP/SL there and submit.`,
+    uiState.showToast(
+      $_("dashboard.alerts.loadedIntoInputs", { values: { symbol: pos.symbol } }),
+      "info"
     );
   }
 </script>
@@ -344,9 +347,7 @@
     aria-expanded={isOpen}
   >
     <h3 class="font-bold text-sm text-[var(--text-primary)]">
-      {typeof $_ === "function"
-        ? $_("dashboard.marketActivity")
-        : "Market Activity"}
+      {$_("dashboard.marketActivity")}
     </h3>
     <div
       class="text-[var(--text-secondary)] transform transition-transform duration-200"
@@ -418,7 +419,7 @@
         class:border-transparent={activeTab !== "tpsl"}
         onclick={() => (activeTab = "tpsl")}
       >
-        TP/SL
+        {$_("dashboard.tpsl")}
       </button>
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -469,20 +470,20 @@
     <div
       class="px-3 py-1 text-[var(--text-secondary)] font-bold border-b border-[var(--border-color)] mb-1"
     >
-      View Mode
+      {$_("dashboard.viewMode")}
     </div>
     <button
       class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
       onclick={() => setViewMode("detailed")}
     >
-      Detailed
+      {$_("dashboard.detailed")}
       {#if settingsState.positionViewMode === "detailed"}✓{/if}
     </button>
     <button
       class="w-full text-left px-3 py-1.5 hover:bg-[var(--bg-secondary)] text-[var(--text-primary)] flex justify-between"
       onclick={() => setViewMode("focus")}
     >
-      Focus
+      {$_("dashboard.focus")}
       {#if settingsState.positionViewMode === "focus"}✓{/if}
     </button>
   </div>
