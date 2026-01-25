@@ -129,6 +129,9 @@ Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu
 ## **7. General development conventions**
 
 - NEVER make changes the user hasn't asked for without checking.
+- Always proof new or existing translations keys and values with for en and de locales.
+- When making code changes, ALWAYS run svelte-check and eslint --fix on the changed files.
+- If there are unit tests or E2E tests affected, ALWAYS mention them and whether they need to be updated. 
 - Please modify files as minimally as possible to accomplish the task.
 - Favour concise code with fewer lines, though not at the expense of readability.
 - Make liberal use of debug statements with clear labels (e.g., `console.log('Processing data:', data)`) that identify location and context.
