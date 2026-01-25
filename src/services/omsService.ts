@@ -12,8 +12,28 @@ import { logger } from "./logger";
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
+    private readonly MAX_ORDERS = 500;
 
     public updateOrder(order: OMSOrder) {
+        // Prevent memory leak by capping map size
+        if (this.orders.size >= this.MAX_ORDERS && !this.orders.has(order.id)) {
+            // CRITICAL FIX: Only evict finalized orders. Never evict open orders.
+            let keyToRemove: string | null = null;
+            for (const [key, val] of this.orders) {
+                if (val.status === 'filled' || val.status === 'cancelled') {
+                    keyToRemove = key;
+                    break; // Evict oldest finalized order (Map iterates in insertion order)
+                }
+            }
+
+            if (keyToRemove) {
+                this.orders.delete(keyToRemove);
+            } else {
+                logger.warn("market", `[OMS] Capacity reached (${this.MAX_ORDERS}) but all orders are active. Cannot prune.`);
+                // We allow it to grow beyond limit slightly rather than losing active state
+            }
+        }
+
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
 

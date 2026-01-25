@@ -714,10 +714,13 @@ class BitunixWebSocketService {
              if (d.lastPrice || d.lp || d.la || d.fr) {
                 const normalized = mdaService.normalizeTicker(message, "bitunix");
                 if (!this.shouldThrottle(`${symbol}:price`)) {
+                  const safeFr = (typeof d.fr === 'string' || typeof d.fr === 'number') ? d.fr : undefined;
+                  const safeNft = (d.nft && (typeof d.nft === 'string' || typeof d.nft === 'number')) ? String(d.nft) : undefined;
+
                   marketState.updateSymbol(symbol, {
                     lastPrice: normalized.lastPrice,
-                    fundingRate: d.fr,
-                    nextFundingTime: d.nft ? String(d.nft) : undefined
+                    fundingRate: safeFr,
+                    nextFundingTime: safeNft
                   });
                 }
              }

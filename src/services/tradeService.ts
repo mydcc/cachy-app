@@ -629,9 +629,47 @@ export class TradeExecutionService {
 
     logger.log("market", "Close ALL Positions");
 
-    throw new Error(
-      "NOT_YET_IMPLEMENTED: closeAllPositions requires position data API. Use closePosition() for individual positions.",
+    const positions = omsService.getPositions().filter((p) => p.amount && p.amount.gt(0));
+
+    if (positions.length === 0) {
+        logger.log("market", "No open positions to close.");
+        return [];
+    }
+
+    logger.log("market", `Attempting to close ${positions.length} positions...`);
+
+    const promises = positions.map((p) =>
+        this.closePosition({
+            symbol: p.symbol,
+            positionSide: p.side,
+            amount: p.amount
+        })
     );
+
+    const outcomes = await Promise.allSettled(promises);
+    const results: OrderResult[] = [];
+    const errors: string[] = [];
+
+    outcomes.forEach((result, index) => {
+        if (result.status === "fulfilled") {
+            results.push(result.value);
+        } else {
+            const pos = positions[index];
+            const msg = `Failed to close ${pos.symbol} (${pos.side}): ${result.reason.message}`;
+            logger.error("market", msg);
+            errors.push(msg);
+        }
+    });
+
+    if (errors.length > 0) {
+        // CRITICAL: Alert user even if some positions were closed successfully.
+        // Partial failure must not be silent in a panic scenario.
+        throw new Error(
+            `CLOSE_ALL_PARTIAL_FAILURE: ${results.length} closed, ${errors.length} failed. Details: ${errors.join("; ")}`
+        );
+    }
+
+    return results;
   }
 
   /**
