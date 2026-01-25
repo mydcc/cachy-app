@@ -19,10 +19,30 @@ import {
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
-// Cache for indicator calculations - AGGRESSIVE LRU eviction
+// Cache for indicator calculations - Dynamic configuration from settings
+let MAX_CACHE_SIZE = 20;
+let CACHE_TTL_MS = 60 * 1000; // 1 minute default
+
+// Update cache settings dynamically
+export function updateCacheSettings(cacheSize: number, cacheTTL: number) {
+  MAX_CACHE_SIZE = cacheSize;
+  CACHE_TTL_MS = cacheTTL * 1000;
+
+  if (import.meta.env.DEV) {
+    console.log(`[Technicals] Cache config updated: size=${MAX_CACHE_SIZE}, TTL=${CACHE_TTL_MS}ms`);
+  }
+}
+
+// Get current cache stats for monitoring
+export function getCacheStats() {
+  return {
+    size: calculationCache.size,
+    maxSize: MAX_CACHE_SIZE,
+    ttl: CACHE_TTL_MS,
+  };
+}
+
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
-const MAX_CACHE_SIZE = 5; // Reduced from 20 to 5 (per symbol, not global)
-const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface TechnicalsResultCacheEntry {
   data: TechnicalsData;
@@ -151,46 +171,179 @@ export const technicalsService = {
       volume?: number | string | Decimal;
     }[],
     settings?: IndicatorSettings,
+    enabledIndicators?: Partial<Record<string, boolean>>,
   ): Promise<TechnicalsData> {
     if (klinesInput.length === 0) return this.getEmptyData();
 
     // Cleanup stale cache every call
     cleanupStaleCache();
 
-    // 0. Cache Check - Use ONLY the LAST kline for cache key (not all klines!)
-    // This prevents cache explosion from incremental data
+    // 0. Cache Check - Include enabled indicators in cache key
     const lastKline = klinesInput[klinesInput.length - 1];
-    const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
+    const lastPrice = lastKline.close?.toString() || "0";
+    const settingsJson = JSON.stringify(settings);
+    const indicatorsHash = enabledIndicators
+      ? Object.entries(enabledIndicators)
+        .filter(([_, enabled]) => enabled)
+        .map(([name]) => name)
+        .sort()
+        .join(',')
+      : 'all';
+
+    const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
 
     const cached = calculationCache.get(cacheKey);
     if (cached) {
       cached.lastAccessed = Date.now();
+      if (import.meta.env.DEV) {
+        console.log('[Technicals] Cache HIT');
+      }
       return cached.data;
     }
 
-    // 1. Try Worker (Singleton)
+    if (import.meta.env.DEV) {
+      console.log('[Technicals] Cache MISS, calculating...');
+    }
+
     try {
+      // 1. Serialize klines for Worker (convert Decimals → Numbers)
       const serializedKlines = klinesInput.map(k => ({
-        ...k,
-        open: k.open.toString(),
-        high: k.high.toString(),
-        low: k.low.toString(),
-        close: k.close.toString(),
-        volume: k.volume?.toString() || "0"
+        time: k.time,
+        open: k.open instanceof Decimal ? parseFloat(k.open.toString()) : parseFloat(String(k.open)),
+        high: k.high instanceof Decimal ? parseFloat(k.high.toString()) : parseFloat(String(k.high)),
+        low: k.low instanceof Decimal ? parseFloat(k.low.toString()) : parseFloat(String(k.low)),
+        close: k.close instanceof Decimal ? parseFloat(k.close.toString()) : parseFloat(String(k.close)),
+        volume: k.volume ? (k.volume instanceof Decimal ? parseFloat(k.volume.toString()) : parseFloat(String(k.volume))) : 0,
       }));
 
       const result = await workerManager.postMessage({
         type: "CALCULATE",
         klines: serializedKlines,
-        settings
+        settings,
+        enabledIndicators
+      });
+      // This prevents cache explosion from incremental data
+      const lastKline = klinesInput[klinesInput.length - 1];
+      const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
+
+      const cached = calculationCache.get(cacheKey);
+      if (cached) {
+        cached.lastAccessed = Date.now();
+        return cached.data;
+      }
+
+      // 1. Try Worker (Singleton)
+      try {
+        const serializedKlines = klinesInput.map(k => ({
+          ...k,
+          open: k.open.toString(),
+          high: k.high.toString(),
+          low: k.low.toString(),
+          close: k.close.toString(),
+          volume: k.volume?.toString() || "0"
+        }));
+
+        const result = await workerManager.postMessage({
+          type: "CALCULATE",
+          klines: serializedKlines,
+          settings,
+          enabledIndicators
+        });
+
+        // 2. Rehydrate Decimals (Worker returns POJOs)
+        const rehydrated = this.rehydrateDecimals(result);
+
+        // Cache result with aggressive eviction
+        if (calculationCache.size >= MAX_CACHE_SIZE) {
+          // Find oldest entry by lastAccessed time
+          let oldestKey: string | null = null;
+          let oldestTime = Infinity;
+
+          calculationCache.forEach((entry, key) => {
+            const accessTime = entry.lastAccessed || entry.timestamp;
+            if (accessTime < oldestTime) {
+              oldestTime = accessTime;
+              oldestKey = key;
+            }
+          });
+
+          if (oldestKey) {
+            calculationCache.delete(oldestKey);
+            if (import.meta.env.DEV) {
+              console.log('[Technicals] Evicted LRU cache entry');
+            }
+          }
+        }
+        calculationCache.set(cacheKey, {
+          data: rehydrated,
+          timestamp: Date.now(),
+          lastAccessed: Date.now()
+        });
+
+        return rehydrated;
+      } catch (e) {
+        if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
+        return this.calculateTechnicalsInline(klinesInput, settings);
+      }
+    },
+
+    calculateTechnicalsInline(
+      klinesInput: {
+        time: number;
+        open: number | string | Decimal;
+        high: number | string | Decimal;
+        low: number | string | Decimal;
+        close: number | string | Decimal;
+        volume?: number | string | Decimal;
+      }[],
+      settings ?: IndicatorSettings,
+      enabledIndicators ?: Partial<Record<string, boolean>>,
+    ): TechnicalsData {
+      // 1. Normalize Data to strict Kline format with Decimals
+      const klines: Kline[] = [];
+      let prevClose = new Decimal(0);
+      const lastKline = klinesInput[klinesInput.length - 1];
+      const indicatorsHash = enabledIndicators
+        ? Object.entries(enabledIndicators)
+          .filter(([_, enabled]) => enabled)
+          .map(([name]) => name)
+          .sort()
+          .join(',')
+        : 'all';
+      const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}-${indicatorsHash}`;
+
+      const toDec = (
+        val: any,
+        fallback: Decimal,
+      ): Decimal => {
+        if (val instanceof Decimal) return val;
+        if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
+        if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
+        if (typeof val === "string") return new Decimal(val);
+        return fallback;
+      };
+
+      klinesInput.forEach((k) => {
+        const time = k.time;
+        const close = toDec(k.close, prevClose);
+        const safeClose =
+          close.isZero() && !prevClose.isZero() ? prevClose : close;
+        const open = toDec(k.open, safeClose);
+        const high = toDec(k.high, safeClose);
+        const low = toDec(k.low, safeClose);
+        const volume = toDec(k.volume, new Decimal(0));
+
+        if (!safeClose.isZero()) {
+          klines.push({ open, high, low, close: safeClose, volume, time });
+          prevClose = safeClose;
+        }
       });
 
-      // 2. Rehydrate Decimals (Worker returns POJOs)
-      const rehydrated = this.rehydrateDecimals(result);
+      // Use Shared Calculator with enabled indicators filter
+      const result = calculateAllIndicators(klines, settings, enabledIndicators);
 
-      // Cache result with aggressive eviction
+      // Store in cache with aggressive eviction
       if (calculationCache.size >= MAX_CACHE_SIZE) {
-        // Find oldest entry by lastAccessed time
         let oldestKey: string | null = null;
         let oldestTime = Infinity;
 
@@ -204,138 +357,58 @@ export const technicalsService = {
 
         if (oldestKey) {
           calculationCache.delete(oldestKey);
-          if (import.meta.env.DEV) {
-            console.log('[Technicals] Evicted LRU cache entry');
-          }
         }
       }
       calculationCache.set(cacheKey, {
-        data: rehydrated,
+        data: result,
         timestamp: Date.now(),
         lastAccessed: Date.now()
       });
 
-      return rehydrated;
-    } catch (e) {
-      if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
-      return this.calculateTechnicalsInline(klinesInput, settings);
-    }
-  },
+      return result;
+    },
 
-  calculateTechnicalsInline(
-    klinesInput: {
-      time: number;
-      open: number | string | Decimal;
-      high: number | string | Decimal;
-      low: number | string | Decimal;
-      close: number | string | Decimal;
-      volume?: number | string | Decimal;
-    }[],
-    settings?: IndicatorSettings,
-  ): TechnicalsData {
-    // 1. Normalize Data to strict Kline format with Decimals
-    const klines: Kline[] = [];
-    let prevClose = new Decimal(0);
-    const lastKline = klinesInput[klinesInput.length - 1];
-    const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
+    /**
+     * Recursively converts plain objects that look like serialized Decimals 
+     * (containing s, e, c properties) back into Decimal instances.
+     */
+    rehydrateDecimals(obj: any): any {
+      if (obj === null || obj === undefined) return obj;
 
-    const toDec = (
-      val: any,
-      fallback: Decimal,
-    ): Decimal => {
-      if (val instanceof Decimal) return val;
-      if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
-      if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
-      if (typeof val === "string") return new Decimal(val);
-      return fallback;
-    };
-
-    klinesInput.forEach((k) => {
-      const time = k.time;
-      const close = toDec(k.close, prevClose);
-      const safeClose =
-        close.isZero() && !prevClose.isZero() ? prevClose : close;
-      const open = toDec(k.open, safeClose);
-      const high = toDec(k.high, safeClose);
-      const low = toDec(k.low, safeClose);
-      const volume = toDec(k.volume, new Decimal(0));
-
-      if (!safeClose.isZero()) {
-        klines.push({ open, high, low, close: safeClose, volume, time });
-        prevClose = safeClose;
-      }
-    });
-
-    // Use Shared Calculator
-    const result = calculateAllIndicators(klines, settings);
-
-    // Store in cache with aggressive eviction
-    if (calculationCache.size >= MAX_CACHE_SIZE) {
-      let oldestKey: string | null = null;
-      let oldestTime = Infinity;
-
-      calculationCache.forEach((entry, key) => {
-        const accessTime = entry.lastAccessed || entry.timestamp;
-        if (accessTime < oldestTime) {
-          oldestTime = accessTime;
-          oldestKey = key;
-        }
-      });
-
-      if (oldestKey) {
-        calculationCache.delete(oldestKey);
-      }
-    }
-    calculationCache.set(cacheKey, {
-      data: result,
-      timestamp: Date.now(),
-      lastAccessed: Date.now()
-    });
-
-    return result;
-  },
-
-  /**
-   * Recursively converts plain objects that look like serialized Decimals 
-   * (containing s, e, c properties) back into Decimal instances.
-   */
-  rehydrateDecimals(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
-
-    // Check if it's already a Decimal (or a Proxy of one that behaves like one)
-    if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
-      return obj;
-    }
-
-    // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
-    // We check for 'c' and 's' which are core to Decimal.js internal state
-    if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
-      try {
-        return new Decimal(obj);
-      } catch (e) {
+      // Check if it's already a Decimal (or a Proxy of one that behaves like one)
+      if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
         return obj;
       }
-    }
 
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.rehydrateDecimals(item));
-    }
-
-    if (typeof obj === 'object') {
-      // Create a fresh object to avoid Proxy issues
-      const result: any = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          result[key] = this.rehydrateDecimals(obj[key]);
+      // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
+      // We check for 'c' and 's' which are core to Decimal.js internal state
+      if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
+        try {
+          return new Decimal(obj);
+        } catch (e) {
+          return obj;
         }
       }
-      return result;
-    }
 
-    return obj;
-  },
+      if (Array.isArray(obj)) {
+        return obj.map(item => this.rehydrateDecimals(item));
+      }
 
-  getEmptyData(): TechnicalsData {
-    return getEmptyData();
-  },
-};
+      if (typeof obj === 'object') {
+        // Create a fresh object to avoid Proxy issues
+        const result: any = {};
+        for (const key in obj) {
+          if (Object.prototype.hasOwnProperty.call(obj, key)) {
+            result[key] = this.rehydrateDecimals(obj[key]);
+          }
+        }
+        return result;
+      }
+
+      return obj;
+    },
+
+    getEmptyData(): TechnicalsData {
+      return getEmptyData();
+    },
+  };

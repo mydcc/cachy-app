@@ -152,7 +152,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
   if (type === "CALCULATE" && payload) {
     try {
       const calculatePayload = payload as WorkerCalculatePayload;
-      const { klines, settings } = calculatePayload;
+      const { klines, settings, enabledIndicators } = calculatePayload;
 
       // Rehydrate Klines to Decimal for calculation
       const klinesDec: Kline[] = klines.map((k) => ({
@@ -164,7 +164,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
         volume: new Decimal(k.volume),
       }));
 
-      const result = calculateAllIndicators(klinesDec, settings);
+      const result = calculateAllIndicators(klinesDec, settings, enabledIndicators);
 
       const response: WorkerMessage = {
         type: "RESULT",

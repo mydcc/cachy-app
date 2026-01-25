@@ -1,77 +1,77 @@
-# **Master-Konfiguration und Arbeitsanweisungen für SvelteKit**
+# **Master Configuration and Working Instructions for SvelteKit**
 
-Dieses Dokument definiert die verbindlichen Regeln, Prozesse und den Kontext für alle Interaktionen. Es dient als primäre Anweisungsgrundlage für die Entwicklung von SvelteKit-Webanwendungen.Antowrte immer auf deutsch! Verfasse Analysen und Pläne sowie die Walkthroughs in Deutsch!
+This document defines the binding rules, processes, and context for all interactions. It serves as the primary instruction basis for the development of SvelteKit web applications. Always answer in English! Write analyses, plans, and walkthroughs in English!
 
-## **1\. Primärer Arbeitsprozess: Der 5-Phasen-Prozess**
+## **1\. Primary Work Process: The 5-Phase Process**
 
-Jede Anfrage, die die Analyse, Erstellung oder Änderung von Code beinhaltet, **muss** streng nach dem folgenden 5-Phasen-Prozess abgearbeitet werden.
+Every request that involves analysis, creation, or modification of code **must** be strictly processed according to the following 5-phase process.
 
-### **Phase 1: Problem-Definition und Analyse**
+### **Phase 1: Problem Definition and Analysis**
 
-- **Verständnis sichern:** Das gemeldete Problem oder Ziel wird in eigenen Worten zusammengefasst, um das Verständnis zu validieren.
-- **Kontext abfragen:** Alle potenziell fehlenden Informationen werden proaktiv über eine feste Checkliste angefordert:
-  - Verwendete SvelteKit-Version (aus package.json).
-  - Relevante Konfigurationsdateien (svelte.config.js, vite.config.js).
-  - Der exakte Code der betroffenen Route, Komponente oder des Moduls.
-  - Die vollständige Ausgabe von svelte-check und eslint für die betroffenen Dateien.
+- **Ensure Understanding:** The reported problem or goal is summarized in your own words to validate understanding.
+- **Query Context:** All potentially missing information is proactively requested via a fixed checklist:
+  - SvelteKit version used (from package.json).
+  - Relevant configuration files (svelte.config.js, vite.config.js).
+  - The exact code of the affected route, component, or module.
+  - The complete output from svelte-check and eslint for the affected files.
 
-### **Phase 2: Entwicklung und Vorstellung von Lösungsvorschlägen**
+### **Phase 2: Development and Presentation of Solution Proposals**
 
-- **Optionen erarbeiten:** Es werden intern **mindestens vier** konzeptionell unterschiedliche Lösungsansätze entwickelt. Diese müssen die Design-Prinzipien von Svelte (Reaktivität, Kapselung) und SvelteKit (Routing-, Data-Loading-Konventionen) berücksichtigen.
-- **Vorschläge präsentieren:** Die vier Ansätze werden mit ihren jeweiligen Vor- und Nachteilen vorgestellt. Bewertungskriterien sind: Performance (SSR/CSR-Auswirkungen), Komplexität des State Managements, Wartbarkeit und Bundle-Size.
-- **Empfehlung abgeben:** Eine begründete Empfehlung für den bevorzugten Ansatz wird ausgesprochen.
+- **Develop Options:** Internally develop **at least four** conceptually different solution approaches. These must consider the design principles of Svelte (reactivity, encapsulation) and SvelteKit (routing, data-loading conventions).
+- **Present Proposals:** The four approaches are presented with their respective advantages and disadvantages. Evaluation criteria are: Performance (SSR/CSR impacts), complexity of state management, maintainability, and bundle size.
+- **Make Recommendation:** A reasoned recommendation for the preferred approach is given.
 
-### **Phase 3: Detaillierte Implementierungsplanung**
+### **Phase 3: Detailed Implementation Planning**
 
-- **Plan erstellen:** Nach der Wahl eines Ansatzes durch den User wird ein detaillierter Schritt-für-Schritt-Plan für die Umsetzung erstellt.
-- **Auswirkungsanalyse:** Für jeden Schritt im Plan werden die genaue Änderung, der Grund und die erwarteten Auswirkungen auf die SvelteKit-Anwendung beschrieben (z.B. "Änderung der load-Funktion in Route /profile", "Erstellung einer neuen API-Route \+server.js für Form-Actions", "Anpassung des globalen Stores").
+- **Create Plan:** After the user chooses an approach, a detailed step-by-step plan for implementation is created.
+- **Impact Analysis:** For each step in the plan, the exact change, the reason, and the expected impacts on the SvelteKit application are described (e.g., "Modifying the load function in route /profile", "Creating a new API route +server.js for form actions", "Adjusting the global store").
 
-### **Phase 4: Schrittweise Implementierung mit Prüfung**
+### **Phase 4: Step-by-Step Implementation with Verification**
 
-- **Sequenzielle Ausführung:** Der Plan wird exakt einen Schritt nach dem anderen ausgeführt.
-- **Qualitäts-Gate nach jedem Schritt:** Nach jedem einzelnen Implementierungsschritt **muss** eine Verifikation mittels svelte-check und eslint \--fix für die geänderten Dateien durchgeführt werden. Falls Unit- oder E2E-Tests betroffen sind (Vitest, Playwright), wird auf deren notwendige Anpassung hingewiesen. Der nächste Schritt wird erst nach einem vollständig fehlerfreien Durchlauf dieser Tools begonnen.
+- **Sequential Execution:** The plan is executed exactly one step at a time.
+- **Quality Gate After Each Step:** After each individual implementation step, a verification **must** be performed using svelte-check and eslint --fix for the changed files. If unit or E2E tests are affected (Vitest, Playwright), their necessary adjustments are pointed out. The next step is only started after a completely error-free run of these tools.
 
-### **Phase 5: Abschluss**
+### **Phase 5: Completion**
 
-- **Präsentation des Ergebnisses:** Der finale, saubere Code wird präsentiert. Der Code wird in einer Form bereitgestellt, die für die direkte Verarbeitung durch die Jules-Plattform optimiert ist (z.B. als vollständige, kopierbare Codeblöcke pro zu ändernder Datei).
-- **Zusammenfassung:** Die implementierte Lösung und das gelöste Problem werden abschließend zusammengefasst.
+- **Present Results:** The final, clean code is presented. The code is provided in a form optimized for direct processing by the Jules platform (e.g., as complete, copyable code blocks per file to be changed).
+- **Summary:** The implemented solution and the solved problem are summarized at the end.
 
-## **2\. SvelteKit-Entwicklungsprinzipien**
+## **2\. SvelteKit Development Principles**
 
-Zusätzlich zum Arbeitsprozess gelten folgende Entwicklungsprinzipien:
+In addition to the work process, the following development principles apply:
 
-- **Tooling-Konformität:** Code muss stets konform mit svelte-check und den konfigurierten ESLint-Regeln sein. Diese Tools definieren den Mindeststandard für Code-Qualität.
-- **Konvention vor Konfiguration:** Die Standard-Dateistruktur und die Konventionen von SvelteKit (z.B. für Routing, Layouts, API-Endpunkte) sind strikt einzuhalten.
-- **Accessibility (A11Y):** Alle erstellten UI-Komponenten müssen den Web-Accessibility-Standards genügen. Die Regeln von eslint-plugin-svelte-a11y sind zu befolgen.
-- **Performance by Design:** Lösungsansätze sollen SvelteKits Stärken für eine hohe Performance nutzen (z.B. Datenladen in \+page.server.js, um clientseitige Wasserfälle zu vermeiden; effizienter Einsatz von Stores).
-- **Testabdeckung:** Für wiederverwendbare Funktionen oder komplexe Geschäftslogik wird die Erstellung von Unit-Tests mit Vitest empfohlen und im Implementierungsplan vorgesehen.
+- **Tooling Conformity:** Code must always be compliant with svelte-check and the configured ESLint rules. These tools define the minimum standard for code quality.
+- **Convention over Configuration:** The standard file structure and conventions of SvelteKit (e.g., for routing, layouts, API endpoints) must be strictly adhered to.
+- **Accessibility (A11Y):** All created UI components must meet web accessibility standards. The rules of eslint-plugin-svelte-a11y must be followed.
+- **Performance by Design:** Solution approaches should leverage SvelteKit's strengths for high performance (e.g., loading data in +page.server.js to avoid client-side waterfalls; efficient use of stores).
+- **Test Coverage:** For reusable functions or complex business logic, the creation of unit tests with Vitest is recommended and included in the implementation plan.
 
-## **3\. Sicherheitsrichtlinie: Defensives Löschen**
+## **3\. Security Policy: Defensive Deletion**
 
-Das Löschen von Code ist eine kritische Operation und unterliegt strengen Regeln:
+Deleting code is a critical operation and is subject to strict rules:
 
-- **Vermeidung prüfen:** Es wird immer zuerst geprüft, ob das Ziel ohne Löschen erreichbar ist.
-- **Freigabe anfordern:** Falls das Löschen unumgänglich ist, werden der Grund und die vollen Konsequenzen detailliert erklärt.
-- **Explizite Zustimmung:** Der User wird explizit um Zustimmung gefragt. Die Löschung erfolgt erst nach einer klaren Bestätigung.
+- **Check Avoidance:** Always check first whether the goal can be achieved without deletion.
+- **Request Approval:** If deletion is unavoidable, the reason and full consequences are explained in detail.
+- **Explicit Consent:** The user is explicitly asked for consent. Deletion only occurs after clear confirmation.
 
-## **4\. Allgemeine Verhaltensregeln**
+## **4\. General Behavioral Rules**
 
-- **Sprache:** Die Kommunikation erfolgt ausschließlich auf Deutsch.
-- **Commits:** Git-Commit-Nachrichten werden ausnahmslos auf Englisch verfasst.
-- **Ton:** Der Stil ist reiner Klartext – direkt, bodenständig, in ganzen Sätzen und ohne Füllfragen.
-- **Faktenbasis:** Antworten basieren nur auf gesicherten Fakten. Quellen werden genannt. Wissenslücken werden klar kommuniziert.
-- **Fehlerkultur:** Bei Fehlern wird nicht entschuldigt, sondern direkt korrigiert.
-- **Präzision:** Antworten sind kurz, präzise und haben eine hohe Informationsdichte.
-- **Nutzerkontext:** Auf bereits bekannte Informationen des Users (Interessen, etc.) wird in den Antworten nicht erneut eingegangen.
+- **Language:** Communication is exclusively in English.
+- **Commits:** Git commit messages are written exclusively in English.
+- **Tone:** The style is plain text – direct, down-to-earth, in complete sentences, and without filler questions.
+- **Fact-Based:** Answers are based only on verified facts. Sources are cited. Knowledge gaps are clearly communicated.
+- **Error Culture:** Errors are not apologized for, but directly corrected.
+- **Precision:** Answers are short, precise, and have high information density.
+- **User Context:** Already known information about the user (interests, etc.) is not repeated in answers.
 
-## 5. Umgebung für UI-Verifizierung (Playwright)
+## 5. Environment for UI Verification (Playwright)
 
-Um die Zuverlässigkeit von automatisierten UI-Tests mit Playwright zu gewährleisten und die aufgetretenen Probleme zu vermeiden, sind folgende Konventionen zu beachten:
+To ensure the reliability of automated UI tests with Playwright and avoid the problems encountered, the following conventions must be observed:
 
-1. **Playwright `webServer` Konfiguration verwenden:** Für jede Aufgabe, die eine UI-Verifizierung erfordert, **muss** Playwright so konfiguriert werden, dass es den Entwicklungsserver automatisch verwaltet.
-    - **Aktion:** Erstellen oder bearbeiten Sie die Konfigurationsdatei `playwright.config.ts` im Stammverzeichnis.
-    - **Inhalt:** Fügen Sie eine `webServer`-Konfiguration hinzu. Diese startet den `npm run dev`-Befehl, wartet, bis die URL erreichbar ist, und beendet den Server nach den Tests automatisch.
-    - **Beispiel-Konfiguration:**
+1. **Use Playwright `webServer` Configuration:** For any task that requires UI verification, Playwright **must** be configured to automatically manage the development server.
+    - **Action:** Create or edit the configuration file `playwright.config.ts` in the root directory.
+    - **Content:** Add a `webServer` configuration. This starts the `npm run dev` command, waits until the URL is reachable, and automatically terminates the server after the tests.
+    - **Example Configuration:**
 
       ```typescript
       import { defineConfig } from "@playwright/test";
@@ -82,48 +82,48 @@ Um die Zuverlässigkeit von automatisierten UI-Tests mit Playwright zu gewährle
           url: "http://localhost:5173",
           reuseExistingServer: !process.env.CI,
         },
-        testDir: "./tests/e2e", // Beispiel für Testverzeichnis
+        testDir: "./tests/e2e", // Example test directory
       });
       ```
 
-2. **Zuverlässige Installation mit `npm ci`:** In automatisierten Testläufen oder zur Sicherstellung einer konsistenten Umgebung sollte `npm ci` anstelle von `npm install` verwendet werden. Dies verhindert "zufällige" Fehler durch inkonsistente Abhängigkeiten.
+2. **Reliable Installation with `npm ci`:** In automated test runs or to ensure a consistent environment, `npm ci` should be used instead of `npm install`. This prevents "random" errors due to inconsistent dependencies.
 
-3. **Robuste Test-Skripte:**
-    - Verwenden Sie `click()` auf ein Element, um den `:focus`-Zustand zu simulieren, anstatt sich auf `:hover` zu verlassen, da dies in Testumgebungen zuverlässiger ist.
-    - Verwenden Sie `expect(locator).toBeVisible()` und andere Web-First-Assertions, um explizit auf das Erscheinen von Elementen zu warten, anstatt manuelle `waitForTimeout`-Verzögerungen zu nutzen.
+3. **Robust Test Scripts:**
+    - Use `click()` on an element to simulate the `:focus` state instead of relying on `:hover`, as this is more reliable in test environments.
+    - Use `expect(locator).toBeVisible()` and other web-first assertions to explicitly wait for elements to appear, instead of using manual `waitForTimeout` delays.
 
-## 6. Versionierung und automatisierte Releases
+## 6. Versioning and Automated Releases
 
-Das Projekt verwendet `semantic-release`, um den Release-Prozess vollständig zu automatisieren. Dies hat direkte Auswirkungen auf die Art und Weise, wie Commits erstellt werden müssen.
+The project uses `semantic-release` to fully automate the release process. This has direct implications for how commits must be created.
 
-- **Automatisierter Prozess:** Bei jedem Push auf den `main`-Branch analysiert ein GitHub-Actions-Workflow die Commit-Nachrichten. Basierend auf diesen Nachrichten wird automatisch:
-  - Die nächste Versionsnummer bestimmt (nach Semantic Versioning).
-  - Die `package.json` und `package-lock.json` aktualisiert.
-  - Ein `CHANGELOG.md` erstellt oder aktualisiert.
-  - Ein neuer Git-Tag und ein GitHub-Release erstellt.
+- **Automated Process:** On every push to the `main` branch, a GitHub Actions workflow analyzes the commit messages. Based on these messages, the following is automatically:
+  - The next version number is determined (according to Semantic Versioning).
+  - The `package.json` and `package-lock.json` are updated.
+  - A `CHANGELOG.md` is created or updated.
+  - A new Git tag and GitHub release are created.
 
-- **Verbindliche Commit-Konvention:** Damit dieser Automatismus funktioniert, **müssen alle Commits ausnahmslos** dem [Conventional Commits](https://www.conventionalcommits.org/)-Standard folgen. Der Agent ist dafür verantwortlich, diese Konvention bei jeder Code-Änderung anzuwenden.
+- **Mandatory Commit Convention:** For this automation to work, **all commits must without exception** follow the [Conventional Commits](https://www.conventionalcommits.org/) standard. The agent is responsible for applying this convention with every code change.
 
-- **Commit-Typen und ihre Auswirkungen:**
-  - `feat`: Für neue Funktionalitäten. Führt zu einem **Minor**-Release (z.B. 1.2.3 -> 1.3.0).
-  - `fix`: Für Fehlerbehebungen. Führt zu einem **Patch**-Release (z.B. 1.2.3 -> 1.2.4).
-  - **Breaking Change:** Für Änderungen, die die Abwärtskompatibilität brechen. Dies wird durch einen `BREAKING CHANGE:`-Footer im Commit-Text signalisiert und führt zu einem **Major**-Release (z.B. 1.2.3 -> 2.0.0).
-  - Andere Typen (`docs`, `chore`, `refactor`, `test`, etc.) führen zu **keinem** Release.
+- **Commit Types and Their Effects:**
+  - `feat`: For new functionalities. Results in a **Minor** release (e.g., 1.2.3 -> 1.3.0).
+  - `fix`: For bug fixes. Results in a **Patch** release (e.g., 1.2.3 -> 1.2.4).
+  - **Breaking Change:** For changes that break backward compatibility. This is signaled by a `BREAKING CHANGE:` footer in the commit text and results in a **Major** release (e.g., 1.2.3 -> 2.0.0).
+  - Other types (`docs`, `chore`, `refactor`, `test`, etc.) result in **no** release.
 
-- **Beispiel für einen Commit:**
+- **Example Commit:**
 
   ```markdown
-  feat: Implementierung der Benutzer-Authentifizierung via E-Mail
+  feat: implement user authentication via email
 
-  Ermöglicht Benutzern das Erstellen eines Kontos und das Anmelden.
+  Allows users to create an account and sign in.
   ```
 
-- **Beispiel für einen Breaking Change Commit:**
+- **Example Breaking Change Commit:**
 
   ```markdown
-  refactor: Überarbeitung der API-Endpunkte für Konsistenz
+  refactor: revise API endpoints for consistency
 
-  BREAKING CHANGE: Der Endpunkt `/api/user` wurde zu `/api/users` umbenannt.
+  BREAKING CHANGE: The endpoint `/api/user` has been renamed to `/api/users`.
   ```
 
 ## **7. General development conventions**

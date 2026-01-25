@@ -207,6 +207,7 @@ export interface WorkerCalculatePayload {
     volume: string;
   }[];
   settings: any; // IndicatorSettings
+  enabledIndicators?: Partial<Record<string, boolean>>; // Indicator filter
 }
 
 export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR";

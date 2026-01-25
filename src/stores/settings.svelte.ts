@@ -30,7 +30,38 @@ export type AnimationIntensity = "low" | "medium" | "high";
 export type AnalysisDepth = "quick" | "standard" | "deep";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
+export type TechnicalsUpdateMode = "realtime" | "fast" | "balanced" | "conservative";
 
+export const TECHNICALS_UPDATE_PRESETS = {
+  realtime: {
+    interval: 100,
+    cacheSize: 30,
+    cacheTTL: 10,
+    historyLimit: 500,
+    description: "Maximum responsiveness, higher CPU usage"
+  },
+  fast: {
+    interval: 250,
+    cacheSize: 20,
+    cacheTTL: 30,
+    historyLimit: 750,
+    description: "Fast updates, moderate CPU usage"
+  },
+  balanced: {
+    interval: 500,
+    cacheSize: 15,
+    cacheTTL: 60,
+    historyLimit: 750,
+    description: "Balanced performance and accuracy"
+  },
+  conservative: {
+    interval: 2000,
+    cacheSize: 10,
+    cacheTTL: 300,
+    historyLimit: 500,
+    description: "Lower CPU usage, slower updates"
+  }
+} as const;
 
 export interface ApiKeys {
   key: string;
@@ -166,6 +197,41 @@ export interface Settings {
   analyzeAllFavorites: boolean; // if false, only top 4
   enableNewsScraper: boolean; // if false, only on-demand
   marketCacheSize: number; // LRU cache size for market data (default: 20)
+
+  // Technicals Performance Settings
+  technicalsUpdateMode: TechnicalsUpdateMode;
+  technicalsUpdateInterval?: number; // Custom interval in ms (optional override)
+  technicalsCacheSize: number; // Separate cache size for technicals
+  technicalsCacheTTL: number; // Cache TTL in seconds
+  maxTechnicalsHistory: number; // Max klines to keep in memory
+  enableIndicatorOptimization: boolean; // Only calculate enabled indicators
+
+  // Individual Indicator Toggles
+  enabledIndicators: {
+    rsi: boolean;
+    stochRsi: boolean;
+    macd: boolean;
+    stochastic: boolean;
+    williamsR: boolean;
+    cci: boolean;
+    adx: boolean;
+    ao: boolean;
+    momentum: boolean;
+    mfi: boolean;
+    ema: boolean;
+    sma: boolean;
+    bollingerBands: boolean;
+    atr: boolean;
+    vwap: boolean;
+    volumeMa: boolean;
+    volumeProfile: boolean;
+    pivots: boolean;
+    superTrend: boolean;
+    ichimoku: boolean;
+    parabolicSar: boolean;
+    divergences: boolean;
+    marketStructure: boolean;
+  };
 }
 
 const defaultSettings: Settings = {
@@ -284,6 +350,41 @@ const defaultSettings: Settings = {
   analyzeAllFavorites: false, // Default to top 4 only for balanced
   enableNewsScraper: false, // Default to disabled (no Nitter)
   marketCacheSize: 20, // Default LRU cache size
+
+  // Technicals Performance Defaults
+  technicalsUpdateMode: "balanced",
+  technicalsUpdateInterval: undefined,
+  technicalsCacheSize: 20,
+  technicalsCacheTTL: 60, // 1 minute
+  maxTechnicalsHistory: 750,
+  enableIndicatorOptimization: true,
+
+  // Core indicators enabled by default
+  enabledIndicators: {
+    rsi: true,
+    macd: true,
+    ema: true,
+    bollingerBands: true,
+    atr: true,
+    vwap: true,
+    pivots: true,
+    stochRsi: false,
+    stochastic: false,
+    williamsR: false,
+    cci: false,
+    adx: false,
+    ao: false,
+    momentum: false,
+    mfi: false,
+    sma: false,
+    volumeMa: false,
+    volumeProfile: false,
+    superTrend: false,
+    ichimoku: false,
+    parabolicSar: false,
+    divergences: false,
+    marketStructure: false,
+  },
 };
 
 class SettingsManager {
@@ -503,6 +604,15 @@ class SettingsManager {
   analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
   enableNewsScraper = $state<boolean>(defaultSettings.enableNewsScraper);
   marketCacheSize = $state<number>(defaultSettings.marketCacheSize);
+
+  // Technicals Performance State
+  technicalsUpdateMode = $state<TechnicalsUpdateMode>(defaultSettings.technicalsUpdateMode);
+  technicalsUpdateInterval = $state<number | undefined>(defaultSettings.technicalsUpdateInterval);
+  technicalsCacheSize = $state<number>(defaultSettings.technicalsCacheSize);
+  technicalsCacheTTL = $state<number>(defaultSettings.technicalsCacheTTL);
+  maxTechnicalsHistory = $state<number>(defaultSettings.maxTechnicalsHistory);
+  enableIndicatorOptimization = $state<boolean>(defaultSettings.enableIndicatorOptimization);
+  enabledIndicators = $state(defaultSettings.enabledIndicators);
 
   get marketMode() {
     return this._marketMode;
@@ -956,6 +1066,13 @@ class SettingsManager {
       analyzeAllFavorites: this.analyzeAllFavorites,
       enableNewsScraper: this.enableNewsScraper,
       marketCacheSize: this.marketCacheSize,
+      technicalsUpdateMode: this.technicalsUpdateMode,
+      technicalsUpdateInterval: this.technicalsUpdateInterval,
+      technicalsCacheSize: this.technicalsCacheSize,
+      technicalsCacheTTL: this.technicalsCacheTTL,
+      maxTechnicalsHistory: this.maxTechnicalsHistory,
+      enableIndicatorOptimization: this.enableIndicatorOptimization,
+      enabledIndicators: $state.snapshot(this.enabledIndicators),
     };
   }
 

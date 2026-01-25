@@ -25,8 +25,13 @@ import type {
 export function calculateAllIndicators(
   klines: Kline[],
   settings?: IndicatorSettings,
+  enabledIndicators?: Partial<Record<string, boolean>>,
 ): TechnicalsData {
   if (klines.length < 2) return getEmptyData();
+
+  // Helper to check if indicator should be calculated
+  const shouldCalculate = (name: string) =>
+    !enabledIndicators || enabledIndicators[name] !== false;
 
   // Prepare data arrays (number[] for speed)
   const highsNum = klines.map((k) => new Decimal(k.high).toNumber());
@@ -65,126 +70,137 @@ export function calculateAllIndicators(
 
   try {
     // 1. RSI
-    const rsiLen = settings?.rsi?.length || 14;
-    const rsiSource = getSource(settings?.rsi?.source || "close");
-    const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
-    indSeries["RSI"] = rsiResults;
-    const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
+    if (shouldCalculate('rsi')) {
+      const rsiLen = settings?.rsi?.length || 14;
+      const rsiSource = getSource(settings?.rsi?.source || "close");
+      const rsiResults = JSIndicators.rsi(rsiSource, rsiLen);
+      indSeries["RSI"] = rsiResults;
+      const rsiVal = new Decimal(rsiResults[rsiResults.length - 1]);
 
-    oscillators.push({
-      name: "RSI",
-      value: rsiVal,
-      params: rsiLen.toString(),
-      action: getRsiAction(
-        rsiVal,
-        settings?.rsi?.overbought || 70,
-        settings?.rsi?.oversold || 30,
-      ),
-    });
-
-    // 2. Stochastic
-    const stochK = settings?.stochastic?.kPeriod || 14;
-    const stochD = settings?.stochastic?.dPeriod || 3;
-    const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
-
-    let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
-    if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
-    const dLine = JSIndicators.sma(kLine, stochD);
-    indSeries["StochK"] = kLine;
-
-    const stochKVal = new Decimal(kLine[kLine.length - 1]);
-    const stochDVal = new Decimal(dLine[dLine.length - 1]);
-
-    let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-    // Classic Stoch Strategy
-    if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal))
-      stochAction = "Buy";
-    else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal))
-      stochAction = "Sell";
-
-    oscillators.push({
-      name: "Stoch",
-      params: `${stochK}, ${stochKSmooth}, ${stochD}`,
-      value: stochKVal,
-      action: stochAction,
-      signal: stochDVal,
-    });
-
-    // 3. CCI
-    const cciLen = settings?.cci?.length || 20;
-    const cciSmoothLen = settings?.cci?.smoothingLength || 1;
-    const cciSource = getSource(settings?.cci?.source || "hlc3");
-    let cciResults = JSIndicators.cci(cciSource, cciLen);
-    if (cciSmoothLen > 1)
-      cciResults = JSIndicators.sma(cciResults, cciSmoothLen); // Default SMA smoothing
-    const cciVal = new Decimal(cciResults[cciResults.length - 1]);
-    const cciThreshold = settings?.cci?.threshold || 100;
-    indSeries["CCI"] = cciResults;
-
-    oscillators.push({
-      name: "CCI",
-      value: cciVal,
-      params:
-        cciSmoothLen > 1 ? `${cciLen}, ${cciSmoothLen}` : cciLen.toString(),
-      action: cciVal.gt(cciThreshold)
-        ? "Sell"
-        : cciVal.lt(-cciThreshold)
-          ? "Buy"
-          : "Neutral",
-    });
-
-    // 4. ADX (Trend Strength)
-    const adxLen = settings?.adx?.adxSmoothing || 14;
-    const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
-    const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
-    // Note: JSIndicators.adx implementation might use a single length for both currently.
-    // If we want separate DI length, we'd need to update JSIndicators.adx signature.
-    // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
-    const adxVal = new Decimal(adxResults[adxResults.length - 1]);
-    const adxThreshold = settings?.adx?.threshold || 25;
-    indSeries["ADX"] = adxResults;
-
-    let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
-    // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
-    // If strong trend, we assume continuation of current short term trend
-    if (adxVal.gt(adxThreshold)) {
-      const prevClose = closesNum[closesNum.length - 2];
-      adxAction = new Decimal(currentPrice).toNumber() > prevClose ? "Buy" : "Sell";
+      oscillators.push({
+        name: "RSI",
+        value: rsiVal,
+        params: rsiLen.toString(),
+        action: getRsiAction(
+          rsiVal,
+          settings?.rsi?.overbought || 70,
+          settings?.rsi?.oversold || 30,
+        ),
+      });
     }
 
-    oscillators.push({
-      name: "ADX",
-      value: adxVal,
-      params: adxLen.toString(),
-      action: adxAction,
-    });
+    // 2. Stochastic
+    if (shouldCalculate('stochastic')) {
+      const stochK = settings?.stochastic?.kPeriod || 14;
+      const stochD = settings?.stochastic?.dPeriod || 3;
+      const stochKSmooth = settings?.stochastic?.kSmoothing || 1;
+
+      let kLine = JSIndicators.stoch(highsNum, lowsNum, closesNum, stochK);
+      if (stochKSmooth > 1) kLine = JSIndicators.sma(kLine, stochKSmooth);
+      const dLine = JSIndicators.sma(kLine, stochD);
+      indSeries["StochK"] = kLine;
+
+      const stochKVal = new Decimal(kLine[kLine.length - 1]);
+      const stochDVal = new Decimal(dLine[dLine.length - 1]);
+
+      let stochAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+      // Classic Stoch Strategy
+      if (stochKVal.lt(20) && stochDVal.lt(20) && stochKVal.gt(stochDVal))
+        stochAction = "Buy";
+      else if (stochKVal.gt(80) && stochDVal.gt(80) && stochKVal.lt(stochDVal))
+        stochAction = "Sell";
+
+      oscillators.push({
+        name: "Stoch",
+        params: `${stochK}, ${stochKSmooth}, ${stochD}`,
+        value: stochKVal,
+        action: stochAction,
+        signal: stochDVal,
+      });
+    }
+
+    // 3. CCI
+    if (shouldCalculate('cci')) {
+      const cciLen = settings?.cci?.length || 20;
+      const cciSmoothLen = settings?.cci?.smoothingLength || 1;
+      const cciSource = getSource(settings?.cci?.source || "hlc3");
+      let cciResults = JSIndicators.cci(cciSource, cciLen);
+      if (cciSmoothLen > 1)
+        cciResults = JSIndicators.sma(cciResults, cciSmoothLen); // Default SMA smoothing
+      const cciVal = new Decimal(cciResults[cciResults.length - 1]);
+      const cciThreshold = settings?.cci?.threshold || 100;
+      indSeries["CCI"] = cciResults;
+
+      oscillators.push({
+        name: "CCI",
+        value: cciVal,
+        params:
+          cciSmoothLen > 1 ? `${cciLen}, ${cciSmoothLen}` : cciLen.toString(),
+        action: cciVal.gt(cciThreshold)
+          ? "Sell"
+          : cciVal.lt(-cciThreshold)
+            ? "Buy"
+            : "Neutral",
+      });
+    }
+
+    // 4. ADX (Trend Strength)
+    if (shouldCalculate('adx')) {
+      const adxLen = settings?.adx?.adxSmoothing || 14;
+      const adxDiLen = settings?.adx?.diLength || 14; // Default to 14 if not set
+      const adxResults = JSIndicators.adx(highsNum, lowsNum, closesNum, adxLen);
+      // Note: JSIndicators.adx implementation might use a single length for both currently.
+      // If we want separate DI length, we'd need to update JSIndicators.adx signature.
+      // For now, we assume the underlying impl uses the passed length for both or as main smoothing.
+      const adxVal = new Decimal(adxResults[adxResults.length - 1]);
+      const adxThreshold = settings?.adx?.threshold || 25;
+      indSeries["ADX"] = adxResults;
+
+      let adxAction: "Buy" | "Sell" | "Neutral" = "Neutral";
+      // ADX itself just means trend strength, direction comes from price or DMI (omitted for brevity here but could add)
+      // If strong trend, we assume continuation of current short term trend
+      if (adxVal.gt(adxThreshold)) {
+        const prevClose = closesNum[closesNum.length - 2];
+        adxAction = new Decimal(currentPrice).toNumber() > prevClose ? "Buy" : "Sell";
+      }
+
+      oscillators.push({
+        name: "ADX",
+        value: adxVal,
+        params: adxLen.toString(),
+        action: adxAction,
+      });
+    }
 
     // 5. Awesome Oscillator
-    const aoFast = settings?.ao?.fastLength || 5;
-    const aoSlow = settings?.ao?.slowLength || 34;
-    const aoVal = new Decimal(
-      calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow),
-    );
-    // We'd need the full series for divergence, but AO helper returns single value.
-    // We'll skip AO divergence for now unless we refactor helper.
+    if (shouldCalculate('ao')) {
+      const aoFast = settings?.ao?.fastLength || 5;
+      const aoSlow = settings?.ao?.slowLength || 34;
+      const aoVal = new Decimal(
+        calculateAwesomeOscillator(highsNum, lowsNum, aoFast, aoSlow),
+      );
+      // We'd need the full series for divergence, but AO helper returns single value.
+      // We'll skip AO divergence for now unless we refactor helper.
 
-    oscillators.push({
-      name: "Awesome Osc.",
-      params: `${aoFast}, ${aoSlow}`,
-      value: aoVal,
-      action: aoVal.gt(0) ? "Buy" : "Sell",
-    });
+      oscillators.push({
+        name: "Awesome Osc.",
+        params: `${aoFast}, ${aoSlow}`,
+        value: aoVal,
+        action: aoVal.gt(0) ? "Buy" : "Sell",
+      });
+    }
 
     // 6. MACD
-    const macdFast = settings?.macd?.fastLength || 12;
-    const macdSlow = settings?.macd?.slowLength || 26;
-    const macdSig = settings?.macd?.signalLength || 9;
-    const macdSource = getSource(settings?.macd?.source || "close");
-    const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
-    const macdVal = new Decimal(macdRes.macd[macdRes.macd.length - 1]);
-    const macdSignalVal = new Decimal(
-      macdRes.signal[macdRes.signal.length - 1],
-    );
+    if (shouldCalculate('macd')) {
+      const macdFast = settings?.macd?.fastLength || 12;
+      const macdSlow = settings?.macd?.slowLength || 26;
+      const macdSig = settings?.macd?.signalLength || 9;
+      const macdSource = getSource(settings?.macd?.source || "close");
+      const macdRes = JSIndicators.macd(macdSource, macdFast, macdSlow, macdSig);
+      const macdVal = new Decimal(macdRes.macd[macdRes.macd.length - 1]);
+      const macdSignalVal = new Decimal(
+        macdRes.signal[macdRes.signal.length - 1],
+      );
     const macdHist = macdVal.minus(macdSignalVal);
     indSeries["MACD"] = macdRes.macd; // Scan divergences on MACD line
 
