@@ -12,6 +12,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { newsStore } from "../../stores/news.svelte";
+  import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import CachyIcon from "./CachyIcon.svelte";
@@ -57,7 +58,7 @@
         // Only trigger if not already loading for this symbol to avoid race conditions
         // although store handles deduplication, we want to be safe in the effect
         if (!newsStore.isLoading || newsStore.lastSymbol !== symbol) {
-           newsStore.refresh(symbol);
+          newsStore.refresh(symbol);
         }
       });
     }
@@ -77,6 +78,11 @@
   function handleRefresh(e: Event) {
     e.stopPropagation();
     newsStore.refresh(symbol, true);
+  }
+
+  function handleArticleClick(e: MouseEvent, url: string, title: string) {
+    e.preventDefault();
+    floatingWindowsStore.openWindow(url, title);
   }
 </script>
 
@@ -185,11 +191,10 @@
             class="flex flex-col gap-1.5 max-h-48 overflow-y-auto pr-1 custom-scrollbar"
           >
             {#each news.slice(0, 5) as item}
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="group block p-1.5 hover:bg-[var(--bg-tertiary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)]"
+              <button
+                type="button"
+                onclick={(e) => handleArticleClick(e, item.url, item.title)}
+                class="group block p-1.5 hover:bg-[var(--bg-tertiary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full bg-transparent cursor-pointer"
               >
                 <div
                   class="text-[11px] font-medium group-hover:text-[var(--accent-color)] leading-snug"
@@ -207,7 +212,7 @@
                     })}</span
                   >
                 </div>
-              </a>
+              </button>
             {/each}
           </div>
         {:else}
@@ -248,7 +253,9 @@
               {analysis.regime} ({(analysis.score * 100).toFixed(0)}%)
             </span>
           {:else}
-            <span class="text-xs text-[var(--text-secondary)]">{$_("journal.noData")}</span>
+            <span class="text-xs text-[var(--text-secondary)]"
+              >{$_("journal.noData")}</span
+            >
           {/if}
         </div>
       </div>
@@ -309,11 +316,10 @@
             class="flex flex-col gap-2 max-h-64 overflow-y-auto pr-1 custom-scrollbar"
           >
             {#each news.slice(0, 5) as item}
-              <a
-                href={item.url}
-                target="_blank"
-                rel="noopener noreferrer"
-                class="block p-2 hover:bg-[var(--bg-secondary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)]"
+              <button
+                type="button"
+                onclick={(e) => handleArticleClick(e, item.url, item.title)}
+                class="block p-2 hover:bg-[var(--bg-secondary)] rounded transition-colors border border-transparent hover:border-[var(--border-color)] text-left w-full bg-transparent cursor-pointer"
               >
                 <span class="text-sm font-medium leading-tight block"
                   >{item.title}</span
@@ -327,7 +333,7 @@
                     minute: "2-digit",
                   })}</span
                 >
-              </a>
+              </button>
             {/each}
           </div>
         {:else}

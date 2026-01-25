@@ -26,6 +26,7 @@
   import CustomModal from "../components/shared/CustomModal.svelte";
   import SymbolPickerModal from "../components/shared/SymbolPickerModal.svelte";
   import FloatingIframe from "../components/shared/FloatingIframe.svelte";
+  import FloatingWindowsContainer from "../components/shared/FloatingWindowsContainer.svelte";
   import PositionTooltip from "../components/shared/PositionTooltip.svelte";
   import OrderDetailsTooltip from "../components/shared/OrderDetailsTooltip.svelte";
   import OfflineBanner from "../components/shared/OfflineBanner.svelte";
@@ -355,6 +356,8 @@
 {#if !settingsState.disclaimerAccepted}
   <DisclaimerModal />
 {/if}
+
+<FloatingWindowsContainer />
 
 {#if uiState.tooltip.visible}
   <div

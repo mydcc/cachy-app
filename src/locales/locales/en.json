@@ -801,7 +801,8 @@
     "cancel": "Cancel",
     "ok": "OK",
     "close": "Close",
-    "warning": "Warning"
+    "warning": "Warning",
+    "resize": "Resize"
   },
   "analyst": {
     "trend": {

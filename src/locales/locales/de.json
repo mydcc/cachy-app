@@ -871,7 +871,8 @@
     "cancel": "Abbrechen",
     "ok": "OK",
     "close": "Schließen",
-    "warning": "Warnung"
+    "warning": "Warnung",
+    "resize": "Größe ändern"
   },
   "analyst": {
     "trend": {
