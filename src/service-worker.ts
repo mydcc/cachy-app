@@ -16,10 +16,15 @@
  */
 
 /// <reference types="@sveltejs/kit" />
+/// <reference lib="webworker" />
 import { build, files, version } from "$service-worker";
+
+declare const self: ServiceWorkerGlobalScope;
 
 // Create a unique cache name for this deployment
 const CACHE = `cache-${version}`;
+const RUNTIME_CACHE = `runtime-${version}`;
+const MAX_RUNTIME_CACHE_ENTRIES = 50; // Limit runtime cache size
 
 const ASSETS = [
   ...build, // the app itself
@@ -33,28 +38,32 @@ self.addEventListener("install", (event) => {
     await cache.addAll(ASSETS);
   }
 
-  event.waitUntil(addFilesToCache());
+  (event as ExtendableEvent).waitUntil(addFilesToCache());
 });
 
 self.addEventListener("activate", (event) => {
   // Remove previous caches
   async function deleteOldCaches() {
     for (const key of await caches.keys()) {
-      if (key !== CACHE) await caches.delete(key);
+      if (key !== CACHE && key !== RUNTIME_CACHE) {
+        await caches.delete(key);
+      }
     }
   }
 
-  event.waitUntil(deleteOldCaches());
+  (event as ExtendableEvent).waitUntil(deleteOldCaches());
 });
 
 self.addEventListener("fetch", (event) => {
+  const fetchEvent = event as FetchEvent;
+
   // ignore POST requests etc
-  if (event.request.method !== "GET") return;
+  if (fetchEvent.request.method !== "GET") return;
 
   // Ignore non-http/https requests (e.g. chrome-extension://)
-  if (!event.request.url.startsWith("http")) return;
+  if (!fetchEvent.request.url.startsWith("http")) return;
 
-  const url = new URL(event.request.url);
+  const url = new URL(fetchEvent.request.url);
 
   // Ignore API requests (let them go to the network directly)
   if (url.pathname.startsWith("/api/")) return;
@@ -69,7 +78,7 @@ self.addEventListener("fetch", (event) => {
     }
 
     try {
-      const response = await fetch(event.request);
+      const response = await fetch(fetchEvent.request);
 
       // if we're offline, fetch can return a value that is not a Response
       // instead of throwing - and we can't consume it in this case
@@ -77,16 +86,22 @@ self.addEventListener("fetch", (event) => {
         throw new Error("invalid response from fetch");
       }
 
-      // Avoid caching API responses and other dynamic data
-      if (response.status === 200 && !url.pathname.startsWith("/api/")) {
-        cache.put(event.request, response.clone()).catch((err) => {
+      // CRITICAL FIX: Only cache static assets, NOT dynamic content
+      // This prevents Service Worker memory explosion from caching klines, news, API responses
+      const isCacheable =
+        response.status === 200 &&
+        ASSETS.includes(url.pathname) && // ONLY cache known static assets
+        !url.pathname.startsWith("/api/");
+
+      if (isCacheable) {
+        cache.put(fetchEvent.request, response.clone()).catch((err) => {
           console.warn("Failed to cache response:", err);
         });
       }
 
       return response;
     } catch (err) {
-      const response = await cache.match(event.request);
+      const response = await cache.match(fetchEvent.request);
 
       if (response) {
         return response;
@@ -98,5 +113,5 @@ self.addEventListener("fetch", (event) => {
     }
   }
 
-  event.respondWith(respond());
+  fetchEvent.respondWith(respond());
 });
