@@ -14,6 +14,7 @@ import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
+import { safeSub, safeDiv, safeMul } from "../utils/utils";
 
 // DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
 const DATA_FRESHNESS_TTL = 10 * 60 * 1000; // 10 minutes cache
@@ -94,46 +95,23 @@ class MarketAnalystService {
             const tech4h = await technicalsService.calculateTechnicals(klines4h, indicatorState);
 
             if (tech1h && tech4h) {
-                const safeNum = (v: any) => (v !== null && v !== undefined && !isNaN(Number(v))) ? Number(v) : 0;
-
                 const lastKline = klines[klines.length - 1];
-                const price = safeNum(lastKline?.close);
-
                 const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
-                const open24h = safeNum(openKline?.open);
-
-                const change24h = open24h !== 0 ? ((price - open24h) / open24h) * 100 : 0;
-
                 const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
-                // Use safe comparison
-                const trend4h = price > safeNum(ema200_4h) ? "bullish" : "bearish";
-
                 const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
-                const rsiValue = rsiObj?.value;
-                // Safe Decimal conversion for RSI
-                const rsi1h = (rsiValue !== undefined && !isNaN(Number(rsiValue))) ? new Decimal(rsiValue).toNumber() : 50;
 
-                let condition: SymbolAnalysis["condition"] = "neutral";
-
-                try {
-                    const rsiDec = new Decimal(rsi1h);
-                    if (rsiDec.greaterThan(70)) condition = "overbought";
-                    else if (rsiDec.lessThan(30)) condition = "oversold";
-                    else if (!isNaN(change24h) && new Decimal(change24h).abs().greaterThan(5)) condition = "trending";
-                } catch (err) {
-                    // Fallback if Decimal fails
-                    condition = "neutral";
-                }
+                const metrics = calculateAnalysisMetrics(
+                    lastKline?.close,
+                    openKline?.open,
+                    ema200_4h,
+                    rsiObj?.value
+                );
 
                 analysisState.updateAnalysis(symbol, {
                     symbol,
                     updatedAt: Date.now(),
-                    price,
-                    change24h,
-                    trend4h,
-                    rsi1h,
                     confluenceScore: tech1h.confluence?.score || 0,
-                    condition
+                    ...metrics
                 });
             }
         } catch (e) {
@@ -149,3 +127,55 @@ class MarketAnalystService {
 
 export const marketAnalyst = new MarketAnalystService();
 // export const marketAnalyst = null as any;
+
+export function calculateAnalysisMetrics(
+    lastClose: Decimal.Value | null | undefined,
+    open24h: Decimal.Value | null | undefined,
+    ema200: Decimal.Value | null | undefined,
+    rsiValue: Decimal.Value | null | undefined
+) {
+    const safeDec = (v: Decimal.Value | null | undefined): Decimal => {
+        try {
+            if (v === null || v === undefined) return new Decimal(0);
+            return new Decimal(v);
+        } catch {
+            return new Decimal(0);
+        }
+    };
+
+    const priceDec = safeDec(lastClose);
+    const price = priceDec.toNumber();
+
+    const open24hDec = safeDec(open24h);
+
+    let change24h = 0;
+    if (!open24hDec.isZero()) {
+        change24h = safeDiv(safeSub(priceDec, open24hDec), open24hDec).times(100).toNumber();
+    }
+
+    const ema200Dec = safeDec(ema200);
+
+    // Use safe comparison
+    const trend4h = priceDec.greaterThan(ema200Dec) ? "bullish" : "bearish";
+
+    const rsiDec = safeDec(rsiValue || 50);
+    const rsi1h = rsiDec.toNumber();
+
+    let condition: SymbolAnalysis["condition"] = "neutral";
+
+    try {
+        if (rsiDec.greaterThan(70)) condition = "overbought";
+        else if (rsiDec.lessThan(30)) condition = "oversold";
+        else if (new Decimal(change24h).abs().greaterThan(5)) condition = "trending";
+    } catch (err) {
+        condition = "neutral";
+    }
+
+    return {
+        price,
+        change24h,
+        trend4h,
+        rsi1h,
+        condition
+    };
+}

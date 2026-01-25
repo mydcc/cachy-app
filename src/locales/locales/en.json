@@ -785,7 +785,20 @@
     "save": "Save",
     "cancel": "Cancel",
     "ok": "OK",
-    "close": "Close"
+    "close": "Close",
+    "warning": "Warning"
+  },
+  "analyst": {
+    "trend": {
+      "bullish": "Bullish",
+      "bearish": "Bearish",
+      "neutral": "Neutral"
+    },
+    "condition": {
+      "overbought": "Overbought",
+      "oversold": "Oversold",
+      "trending": "Trending"
+    }
   },
   "apiErrors": {
     "symbolNotFound": "Symbol not found (Bitunix Code 2)",
