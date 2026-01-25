@@ -298,9 +298,9 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     symbol: o.symbol,
     type: o.type,
     side: o.side,
-    price: parseFloat(o.price || "0"),
+    price: parseFloat(o.price || "0"), // @deprecated - Use priceStr for precision
     priceStr: String(o.price || "0"),
-    amount: parseFloat(o.qty || "0"),
+    amount: parseFloat(o.qty || "0"), // @deprecated - Use amountStr
     amountStr: String(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
     filledStr: String(o.tradeQty || "0"),
@@ -347,13 +347,13 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     symbol: o.symbol,
     type: o.type,
     side: o.side,
-    price: parseFloat(o.price || "0"),
+    price: parseFloat(o.price || "0"), // @deprecated
     priceStr: String(o.price || "0"),
-    amount: parseFloat(o.qty || "0"),
+    amount: parseFloat(o.qty || "0"), // @deprecated
     amountStr: String(o.qty || "0"),
     filled: parseFloat(o.tradeQty || "0"),
     filledStr: String(o.tradeQty || "0"),
-    avgPrice: parseFloat(o.avgPrice || o.averagePrice || "0"),
+    avgPrice: parseFloat(o.avgPrice || o.averagePrice || "0"), // @deprecated
     avgPriceStr: String(o.avgPrice || o.averagePrice || "0"),
     realizedPNL: parseFloat(o.realizedPNL || "0"),
     realizedPNLStr: String(o.realizedPNL || "0"),

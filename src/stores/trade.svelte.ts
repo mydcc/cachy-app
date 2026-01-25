@@ -27,8 +27,8 @@ import { z } from "zod";
 // For now, I will mirror the structure.
 
 export interface TradeTarget {
-  price: number | null;
-  percent: number | null;
+  price: string | null;
+  percent: string | null;
   isLocked: boolean;
 }
 
@@ -36,23 +36,32 @@ const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
 // Define Zod Schema for TradeTarget
 const TradeTargetSchema = z.object({
-  price: z.number().nullable(),
-  percent: z.number().nullable(),
+  price: z.union([z.string(), z.number()]).transform(v => v === null ? null : String(v)).nullable(),
+  percent: z.union([z.string(), z.number()]).transform(v => v === null ? null : String(v)).nullable(),
   isLocked: z.boolean(),
 });
+
+// Helper to transform number/string to string safely, ensuring strict numeric format
+const stringSchema = z.union([
+    z.string().regex(/^\d*\.?\d*$/, "Must be a valid number"),
+    z.number()
+]).transform(val => {
+    if (val === null || val === undefined) return null;
+    return String(val);
+}).nullable();
 
 // Define Zod Schema for TradeState
 const TradeStateSchema = z.object({
   tradeType: z.string(),
-  accountSize: z.number(),
-  riskPercentage: z.number(),
-  entryPrice: z.number().nullable(),
-  stopLossPrice: z.number().nullable(),
-  leverage: z.number().nullable(),
-  fees: z.number().nullable(),
+  accountSize: z.number(), // Kept as number for now (usually integer-ish)
+  riskPercentage: z.number(), // Kept as number (usually 1-2 decimals)
+  entryPrice: stringSchema,
+  stopLossPrice: stringSchema,
+  leverage: stringSchema,
+  fees: stringSchema,
   symbol: z.string(),
-  atrValue: z.number().nullable(),
-  atrMultiplier: z.number(),
+  atrValue: stringSchema,
+  atrMultiplier: z.number(), // Multiplier is usually simple float (1.5)
   useAtrSl: z.boolean(),
   atrMode: z.enum(["auto", "manual"]).catch("auto"),
   atrTimeframe: z.string(),
@@ -66,7 +75,7 @@ const TradeStateSchema = z.object({
      return new Decimal(val);
   }).nullable(),
   isRiskAmountLocked: z.boolean(),
-  riskAmount: z.number().nullable(),
+  riskAmount: stringSchema,
   journalSearchQuery: z.string().optional().default(""),
   journalFilterStatus: z.string().optional().default("all"),
 });
@@ -75,12 +84,12 @@ export const INITIAL_TRADE_STATE = {
   tradeType: CONSTANTS.TRADE_TYPE_LONG,
   accountSize: 1000,
   riskPercentage: 1,
-  entryPrice: null as number | null,
-  stopLossPrice: null as number | null,
-  leverage: parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
-  fees: parseFloat(CONSTANTS.DEFAULT_FEES),
+  entryPrice: null as string | null,
+  stopLossPrice: null as string | null,
+  leverage: CONSTANTS.DEFAULT_LEVERAGE, // String in constants?
+  fees: CONSTANTS.DEFAULT_FEES,
   symbol: "BTCUSDT",
-  atrValue: null as number | null,
+  atrValue: null as string | null,
   atrMultiplier: 1.2,
   useAtrSl: true,
   atrMode: "auto" as "auto" | "manual",
@@ -92,7 +101,7 @@ export const INITIAL_TRADE_STATE = {
   isPositionSizeLocked: false,
   lockedPositionSize: null as Decimal | null,
   isRiskAmountLocked: false,
-  riskAmount: null as number | null,
+  riskAmount: null as string | null,
   journalSearchQuery: "",
   journalFilterStatus: "all",
   // Transient / Remote data placeholders
@@ -111,8 +120,8 @@ class TradeManager {
   riskPercentage = $state(INITIAL_TRADE_STATE.riskPercentage);
   entryPrice = $state(INITIAL_TRADE_STATE.entryPrice);
   stopLossPrice = $state(INITIAL_TRADE_STATE.stopLossPrice);
-  leverage = $state<number | null>(INITIAL_TRADE_STATE.leverage);
-  fees = $state<number | null>(INITIAL_TRADE_STATE.fees);
+  leverage = $state(INITIAL_TRADE_STATE.leverage);
+  fees = $state(INITIAL_TRADE_STATE.fees);
   symbol = $state(INITIAL_TRADE_STATE.symbol);
   atrValue = $state(INITIAL_TRADE_STATE.atrValue);
   atrMultiplier = $state(INITIAL_TRADE_STATE.atrMultiplier);
@@ -199,7 +208,7 @@ class TradeManager {
 
             // Logic for targets
             const hasAnyPrice = data.targets?.some(
-              (t: any) => t.price !== null && t.price !== 0,
+              (t: any) => t.price !== null && t.price !== "0",
             );
             if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
                this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));

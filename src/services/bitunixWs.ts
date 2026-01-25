@@ -701,7 +701,7 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data && typeof data === "object") {
+          if (symbol && data && typeof data === "object" && !Array.isArray(data)) {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:price`)) {
               marketState.updateSymbol(symbol, {
@@ -718,7 +718,7 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data && typeof data === "object") {
+          if (symbol && data && typeof data === "object" && !Array.isArray(data)) {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:ticker`)) {
               marketState.updateSymbol(symbol, {
