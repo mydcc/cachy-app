@@ -91,6 +91,21 @@
     "showInstructionsTitle": "Anleitung anzeigen",
     "showInstructionsAriaLabel": "Anleitung anzeigen",
     "savedFeedback": "Gespeichert!",
+    "marketSentiment": "Marktstimmung",
+    "analyzing": "Analysiere externe Welt...",
+    "noNews": "Keine Nachrichten gefunden.",
+    "connectNews": "Verbinde deine News-APIs um die Stimmung zu sehen.",
+    "configure": "Konfigurieren",
+    "tpsl": "TP/SL",
+    "viewMode": "Ansichtsmodus",
+    "detailed": "Detailliert",
+    "focus": "Fokus",
+    "alerts": {
+      "closePositionError": "Fehler beim Schließen: {error}",
+      "closePositionSuccess": "Close-Order gesendet!",
+      "loadedIntoInputs": "{symbol} in Trade-Eingaben geladen. Konfiguriere dort TP/SL.",
+      "failedClose": "Senden der Close-Order fehlgeschlagen."
+    },
     "generalInputs": {
       "header": "Allgemein",
       "longButton": "Long",

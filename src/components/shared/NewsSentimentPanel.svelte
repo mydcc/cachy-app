@@ -96,7 +96,7 @@
       <div class="flex items-center gap-2">
         <span class="text-lg">📰</span>
         <h3 class="font-bold text-sm text-[var(--text-primary)]">
-          Market Sentiment
+          {$_("dashboard.marketSentiment")}
         </h3>
       </div>
       <div class="flex items-center gap-2">
@@ -107,7 +107,7 @@
         {:else}
           <button
             class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] p-1 rounded hover:bg-[var(--bg-primary)] transition-colors"
-            title="Refresh Sentiment"
+            title="Refresh"
             onclick={handleRefresh}
           >
             {@html icons.refresh}
@@ -136,13 +136,13 @@
         {#if error === "no_api_key"}
           <div class="text-center py-2">
             <p class="text-[10px] text-[var(--text-secondary)] mb-2">
-              Setup API Keys in Settings
+              {$_("dashboard.configureApiKeys")}
             </p>
             <button
               class="btn-primary-action text-[10px] px-2 py-1 rounded"
               onclick={() => uiState.toggleSettingsModal(true)}
             >
-              Configure
+              {$_("dashboard.configure")}
             </button>
           </div>
         {:else if isLoading}
@@ -212,7 +212,7 @@
           </div>
         {:else}
           <div class="text-center py-2 text-[var(--text-secondary)] text-xs">
-            No data.
+            {$_("journal.noData")}
           </div>
         {/if}
       </div>
@@ -233,22 +233,22 @@
           <h3
             class="font-bold text-sm uppercase tracking-wider text-[var(--text-primary)]"
           >
-            Market Sentiment
+            {$_("dashboard.marketSentiment")}
           </h3>
           {#if error === "no_api_key"}
             <span class="text-xs text-[var(--text-secondary)]"
-              >Setup API Keys in Settings</span
+              >{$_("dashboard.configureApiKeys")}</span
             >
           {:else if isLoading}
             <span class="text-xs text-[var(--text-secondary)]"
-              >Analyzing external world...</span
+              >{$_("dashboard.analyzing")}</span
             >
           {:else if analysis}
             <span class="text-xs font-bold" style:color={sentimentColor}>
               {analysis.regime} ({(analysis.score * 100).toFixed(0)}%)
             </span>
           {:else}
-            <span class="text-xs text-[var(--text-secondary)]">No data</span>
+            <span class="text-xs text-[var(--text-secondary)]">{$_("journal.noData")}</span>
           {/if}
         </div>
       </div>
@@ -284,12 +284,12 @@
         {#if error === "no_api_key"}
           <div class="text-center py-4">
             <p class="text-sm text-[var(--text-secondary)] mb-2">
-              Connect your news APIs to view sentiment analysis.
+              {$_("dashboard.connectNews")}
             </p>
             <button
               class="btn-primary-action text-xs px-3 py-2 rounded"
               onclick={() => uiState.toggleSettingsModal(true)}
-              >Configure</button
+              >{$_("dashboard.configure")}</button
             >
           </div>
         {:else if news.length > 0}
@@ -332,7 +332,7 @@
           </div>
         {:else}
           <div class="text-center py-4 text-[var(--text-secondary)] text-sm">
-            No news found.
+            {$_("dashboard.noNews")}
           </div>
         {/if}
       </div>

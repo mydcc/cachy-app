@@ -88,6 +88,21 @@
     "showInstructionsTitle": "Show Instructions",
     "showInstructionsAriaLabel": "Show Instructions",
     "savedFeedback": "Saved!",
+    "marketSentiment": "Market Sentiment",
+    "analyzing": "Analyzing external world...",
+    "noNews": "No news found.",
+    "connectNews": "Connect your news APIs to view sentiment analysis.",
+    "configure": "Configure",
+    "tpsl": "TP/SL",
+    "viewMode": "View Mode",
+    "detailed": "Detailed",
+    "focus": "Focus",
+    "alerts": {
+      "closePositionError": "Error closing position: {error}",
+      "closePositionSuccess": "Close order sent!",
+      "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
+      "failedClose": "Failed to send close order."
+    },
     "generalInputs": {
       "header": "General",
       "longButton": "Long",
