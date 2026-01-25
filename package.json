@@ -10,6 +10,9 @@
     "test": "vitest",
     "check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
     "check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+    "check:translations": "bash check_translations.sh",
+    "audit:translations": "python3 audit_translations.py .",
+    "verify:translations": "python3 verify_translations.py .",
     "lint": "prettier --plugin-search-dir . --check . && eslint .",
     "format": "prettier --plugin-search-dir . --write .",
     "start": "node server.js"
