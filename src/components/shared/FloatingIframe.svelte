@@ -22,8 +22,10 @@
     let { iframeState, onClose }: Props = $props();
 
     let containerEl: HTMLDivElement | undefined = $state();
+    let iframeEl: HTMLIFrameElement | undefined = $state();
     let isInteracting = $state(false);
     let isMobile = $state(false);
+    let iframeLoaded = $state(false);
 
     $effect(() => {
         const checkMobile = () => {
@@ -38,6 +40,60 @@
         return () => {
             window.removeEventListener("resize", checkMobile);
         };
+    });
+
+    // ✅ CRITICAL FIX: Lazy IFrame loading + Complete destruction on close
+    // This ensures WebGL context is fully released from memory
+    $effect(() => {
+        if (!iframeState.visible) {
+            // 🔴 WHEN CLOSING: Remove iframe DOM node completely
+            // This triggers WebGL context destruction + garbage collection
+            if (iframeEl) {
+                iframeEl.src = "about:blank"; // Clear content first
+                setTimeout(() => {
+                    if (iframeEl?.parentNode) {
+                        iframeEl.parentNode.removeChild(iframeEl);
+                        iframeEl = undefined;
+                        iframeLoaded = false;
+                    }
+                }, 100);
+            }
+            return;
+        }
+
+        // 🟢 WHEN OPENING: Create iframe dynamically (lazy loading)
+        if (iframeState.visible && !iframeLoaded && containerEl) {
+            const contentDiv = containerEl.querySelector(".iframe-content");
+            if (contentDiv && !iframeEl) {
+                const newIframe = document.createElement("iframe");
+                newIframe.src =
+                    iframeState.url ||
+                    "https://space.cachy.app/index.php?plot_id=genesis";
+                newIframe.title = iframeState.title;
+                newIframe.className = "w-full h-full border-none";
+                newIframe.allow =
+                    "xr-spatial-tracking; pointer-lock; gamepad; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture";
+                newIframe.allowFullscreen = true;
+
+                // Bind interacting state
+                newIframe.style.pointerEvents = isInteracting ? "none" : "auto";
+
+                contentDiv.appendChild(newIframe);
+                iframeEl = newIframe;
+                iframeLoaded = true;
+
+                if (import.meta.env.DEV) {
+                    console.log(
+                        `[FloatingIframe] Lazy-loaded iframe: ${iframeState.id}`,
+                    );
+                }
+            }
+        }
+
+        // Update pointer-events based on interaction state
+        if (iframeEl) {
+            iframeEl.style.pointerEvents = isInteracting ? "none" : "auto";
+        }
     });
 
     $effect(() => {
@@ -184,20 +240,15 @@
         </div>
 
         <!-- Content/Iframe -->
-        <div class="flex-1 w-full bg-black relative">
-            <iframe
-                src={iframeState.url ||
-                    "https://space.cachy.app/index.php?plot_id=genesis"}
-                title={iframeState.title}
-                class="w-full h-full border-none"
-                class:pointer-events-none={isInteracting}
-                allow="xr-spatial-tracking; pointer-lock; gamepad; camera; microphone; fullscreen; display-capture; accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                allowfullscreen
-            ></iframe>
+        <div class="iframe-content flex-1 w-full bg-black relative">
+            <!-- IFrame wird dynamisch hier eingefügt via JavaScript -->
+            <!-- Vorher: statisches <iframe> Tag (speichert WebGL in Memory)
+                 Nachher: dynamisch erstellt beim Öffnen, vollständig gelöscht beim Schließen
+            -->
 
             <!-- Visual Resizing indicator for bottom corners -->
             <div
-                class="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity"
+                class="absolute bottom-0 right-0 w-4 h-4 cursor-nwse-resize opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none"
             >
                 <svg
                     viewBox="0 0 10 10"
