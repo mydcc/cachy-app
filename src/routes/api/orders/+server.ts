@@ -32,16 +32,16 @@ import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/ord
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
-  INVALID_JSON: "Invalid JSON body",
-  VALIDATION_ERROR: "Validation Error",
-  PASSPHRASE_REQUIRED: "Passphrase required for Bitget",
-  INVALID_AMOUNT: "Invalid amount formatting",
-  INVALID_QTY: "Invalid quantity formatting",
-  PRICE_REQUIRED: "Price required for limit order",
-  INVALID_PRICE: "Invalid price formatting",
-  INVALID_TRIGGER: "Invalid triggerPrice formatting",
-  BITUNIX_API_ERROR: "Bitunix API error",
-  BITGET_API_ERROR: "Bitget API error",
+  INVALID_JSON: "bitunixErrors.INVALID_JSON",
+  VALIDATION_ERROR: "bitunixErrors.VALIDATION_ERROR",
+  PASSPHRASE_REQUIRED: "bitunixErrors.PASSPHRASE_REQUIRED",
+  INVALID_AMOUNT: "bitunixErrors.INVALID_AMOUNT",
+  INVALID_QTY: "bitunixErrors.INVALID_QTY",
+  PRICE_REQUIRED: "bitunixErrors.PRICE_REQUIRED",
+  INVALID_PRICE: "bitunixErrors.INVALID_PRICE",
+  INVALID_TRIGGER: "bitunixErrors.INVALID_TRIGGER",
+  BITUNIX_API_ERROR: "bitunixErrors.BITUNIX_API_ERROR",
+  BITGET_API_ERROR: "bitunixErrors.BITGET_API_ERROR",
 };
 
 export const POST: RequestHandler = async ({ request }) => {
@@ -58,7 +58,7 @@ export const POST: RequestHandler = async ({ request }) => {
   if (!validation.success) {
     // Format Zod errors
     const errors = validation.error.issues.map(i => `${i.path.join(".")}: ${i.message}`).join(", ");
-    return json({ error: `${ORDER_ERRORS.VALIDATION_ERROR}: ${errors}`, code: "VALIDATION_ERROR", details: errors }, { status: 400 });
+    return json({ error: ORDER_ERRORS.VALIDATION_ERROR, code: "VALIDATION_ERROR", details: errors }, { status: 400 });
   }
 
   const payload = validation.data;
@@ -166,6 +166,7 @@ export const POST: RequestHandler = async ({ request }) => {
   } catch (e: unknown) {
     const errorMsg = e instanceof Error ? e.message : String(e);
     const errorCode = (e as any).code;
+    const details = (e as any).details;
 
     // Enhanced Logging with Redaction
     try {
@@ -188,14 +189,25 @@ export const POST: RequestHandler = async ({ request }) => {
       console.error(`[API] Order failed`, errorMsg);
     }
 
-    // Redact response message
+    // Redact response message and details
     let sanitizedMsg = errorMsg;
-    if (apiKey && apiKey.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
-    if (apiSecret && apiSecret.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
-    if (passphrase && passphrase.length > 3) sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
+    let sanitizedDetails = details ? String(details) : undefined;
+
+    if (apiKey && apiKey.length > 3) {
+      sanitizedMsg = sanitizedMsg.replaceAll(apiKey, "***");
+      if (sanitizedDetails) sanitizedDetails = sanitizedDetails.replaceAll(apiKey, "***");
+    }
+    if (apiSecret && apiSecret.length > 3) {
+      sanitizedMsg = sanitizedMsg.replaceAll(apiSecret, "***");
+      if (sanitizedDetails) sanitizedDetails = sanitizedDetails.replaceAll(apiSecret, "***");
+    }
+    if (passphrase && passphrase.length > 3) {
+      sanitizedMsg = sanitizedMsg.replaceAll(passphrase, "***");
+      if (sanitizedDetails) sanitizedDetails = sanitizedDetails.replaceAll(passphrase, "***");
+    }
 
     return json(
-      { error: sanitizedMsg, code: errorCode },
+      { error: sanitizedMsg, code: errorCode, details: sanitizedDetails },
       { status: 500 },
     );
   }
@@ -250,7 +262,9 @@ async function placeBitunixOrder(
 
   if (!response.ok) {
     const text = await response.text();
-    throw new Error(`${ORDER_ERRORS.BITUNIX_API_ERROR}: ${response.status} ${text.slice(0, 200)}`);
+    const err = new Error(ORDER_ERRORS.BITUNIX_API_ERROR);
+    (err as any).details = `${response.status} ${text.slice(0, 200)}`;
+    throw err;
   }
 
   const res: BitunixResponse<BitunixOrder> = await response.json();
@@ -420,7 +434,9 @@ async function placeBitgetOrder(
 
     if (!response.ok) {
         const text = await response.text();
-        throw new Error(`${ORDER_ERRORS.BITGET_API_ERROR}: ${response.status} ${text.slice(0, 100)}`);
+        const err = new Error(ORDER_ERRORS.BITGET_API_ERROR);
+        (err as any).details = `${response.status} ${text.slice(0, 100)}`;
+        throw err;
     }
 
     const res = await response.json();
