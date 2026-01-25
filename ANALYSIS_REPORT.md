@@ -1,56 +1,40 @@
-# Status- & Risiko-Bericht (System Hardening Analysis)
+# Status- & Risiko-Bericht
 
-**Datum:** 2026-01-25
-**Autor:** Senior Lead Developer (Jules)
-**Scope:** Cachy-App (Pro-Trading Platform)
+Datum: 2026-05-21
+Reviewer: Jules (Senior Lead Developer)
+Scope: Systematische Wartung & Hardening
 
-## Zusammenfassung
-Die Analyse der Codebasis hat mehrere kritische Bereiche identifiziert, in denen "Institutional Grade" Standards nicht eingehalten wurden. Insbesondere die Verwendung von nativen Floating-Point-Operationen in finanzrelevanten Berechnungen und das Fehlen von Ressourcen-Limits bei WebSocket-Verbindungen stellten signifikante Risiken dar.
+## 🔴 CRITICAL (Sofortiger Handlungsbedarf)
 
-Nachfolgend sind die Findings priorisiert aufgelistet.
+### 1. Gefährliche "Close All" Logik
+- **Datei:** `src/services/tradeService.ts`
+- **Problem:** Die Methode `closePosition` verwendet `new Decimal(999999)` als Default-Menge.
+- **Risiko:** Bei High-Supply Token (z.B. SHIB, PEPE) führt dies zu unvollständigen Schließungen. User bleiben exponiert.
+- **Empfehlung:** Ersetzen durch `Number.MAX_SAFE_INTEGER` oder Implementierung eines expliziten "Close All" Flags/Logik.
 
----
+### 2. Latentes Memory Leak Risiko
+- **Datei:** `src/stores/market.svelte.ts`
+- **Problem:** `metricsHistory` wird im (derzeit auskommentierten) `snapshotMetrics` Code ohne Größenbeschränkung befüllt.
+- **Risiko:** Zukünftige Aktivierung führt zu Absturz.
+- **Empfehlung:** Array-Größe (Slice) erzwingen (Ring Buffer Pattern).
 
-## 🔴 CRITICAL (Kritische Risiken)
+## 🟡 WARNING (Stabilität & UX)
 
-### 1. Floating-Point Math in Indikatoren (`src/services/marketAnalyst.ts`)
-*   **Problem:** Die Berechnung von `change24h` und RSI-Vergleichen nutzte native JavaScript `Number`-Typen.
-    *   Code: `((price - open24h) / open24h) * 100`
-*   **Risiko:** Ungenauigkeiten bei der Berechnung (z.B. `0.1 + 0.2 !== 0.3`), was zu falschen Trading-Signalen ("Trending" vs "Neutral") führen kann.
-*   **Status:** ✅ **Behoben**. Umstellung auf `Decimal.js` und `safeDiv`/`safeSub` Helper.
+### 1. Fehlende Lokalisierung (i18n)
+- **Problem:** Hardcoded Strings in `NewsSentimentPanel.svelte`, `CloudTab.svelte`, `GeneralInputs.svelte`.
+- **Risiko:** Inkonsistente UX.
 
-### 2. API Payload Präzision
-*   **Problem:** Der API-Endpunkt `orders/+server.ts` akzeptiert `number` im JSON-Body.
-*   **Risiko:** Bei extrem kleinen Werten (z.B. PEPE Coins) können native JSON-Parser Rundungsfehler einführen, bevor die Validierung greift.
-*   **Status:** 🟡 **Mitigated**. Das Zod-Schema validiert strikt, und `formatApiNum` wird server-seitig genutzt. Frontend-seitig wurde die `parseAiValue` Logik gehärtet.
+### 2. Heuristische Timestamp-Erkennung
+- **Datei:** `src/utils/utils.ts`
+- **Problem:** `parseTimestamp` nutzt `< 10 Mrd` Grenzwert für Sekunden-Erkennung.
+- **Risiko:** Edge-Cases bei fehlerhaften API-Daten.
 
----
+### 3. WebSocket "Fast Path" Validierung
+- **Datei:** `src/services/bitunixWs.ts`
+- **Problem:** Direkter Property-Zugriff ohne Optional Chaining im High-Frequency Pfad.
+- **Risiko:** Runtime-Crash bei malformed Dataframes.
 
-## 🟡 WARNING (Warnungen)
+## 🔵 REFACTOR (Technische Schuld)
 
-### 1. Memory Leak in WebSocket (`src/services/bitunixWs.ts`)
-*   **Problem:** Das Set `publicSubscriptions` wuchs unbegrenzt an, wenn viele Symbole nacheinander aufgerufen wurden. Es gab keinen automatischen "Garbage Collection" Mechanismus.
-*   **Risiko:** Langsames Volllaufen des Speichers bei langer Laufzeit (Dashboard).
-*   **Status:** ✅ **Behoben**. Implementierung von `MAX_PUBLIC_SUBSCRIPTIONS = 50` und LRU-Pruning Logik in `subscribe()`.
-
-### 2. Fehlende Localization & Hardcoded Strings
-*   **Problem:** `TradeSetupInputs.svelte` nutzte hardcodierte Symbole ("⚠️"). Analyst-Status ("bullish", "bearish") waren nicht übersetzbar.
-*   **Risiko:** Schlechte UX für internationale Nutzer und Barrierefreiheits-Probleme.
-*   **Status:** ✅ **Behoben**. Neue Keys in `en.json`/`de.json` eingefügt und UI aktualisiert.
-
----
-
-## 🔵 REFACTOR (Technische Verbesserungen)
-
-### 1. Type Safety & Math Utils
-*   **Problem:** Inkonsistente Nutzung von Math-Libraries.
-*   **Lösung:** Einführung zentraler `safeAdd`, `safeSub`, `safeMul`, `safeDiv` Helper in `src/utils/utils.ts`.
-
----
-
-## Umgesetzte Maßnahmen (Step 2)
-
-1.  **Math Hardening:** Refactoring von `utils.ts` und `marketAnalyst.ts` zur strikten Nutzung von `Decimal.js`.
-2.  **Resource Management:** Einbau von Limits für WebSocket-Subscriptions.
-3.  **UI/UX:** Entfernung hardcodierter Strings und Erweiterung der Locales.
-4.  **Testing:** Hinzufügen von Unit-Tests für kritische Markt-Logik (`marketAnalyst.test.ts`).
+1. **Redundante Validierungslogik:** `tradeService.ts` vs `api/orders/+server.ts`.
+2. **Error Swallowing:** `marketAnalyst.ts` fängt Fehler stumm ab.
