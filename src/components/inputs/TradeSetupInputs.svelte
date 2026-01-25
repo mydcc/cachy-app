@@ -243,10 +243,10 @@
   // Helper to safely treat input as string, ensuring it's valid numeric format
   function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
-    // Strict regex: optional digits, optional dot, optional digits.
+    // Strict regex: Must have at least one digit. Disallows lone dot ".".
     // Matches: "123", "123.", ".123", "123.456"
-    // Does NOT match: "1.2.3", "abc", "123a"
-    if (/^\d*\.?\d*$/.test(val)) {
+    // Does NOT match: ".", "1.2.3", "abc"
+    if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(val)) {
         return val;
     }
     return undefined; // Invalid input
