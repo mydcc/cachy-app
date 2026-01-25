@@ -59,6 +59,7 @@ class UiManager {
   showWhitepaperModal = $state(false);
   showCopyFeedback = $state(false);
   showSaveFeedback = $state(false);
+  toastMessage = $state("");
   errorMessage = $state("");
   showErrorMessage = $state(false);
   isPriceFetching = $state(false);
@@ -412,11 +413,17 @@ class UiManager {
 
   showFeedback(type: "copy" | "save", duration = 2000) {
     if (type === "copy") this.showCopyFeedback = true;
-    else this.showSaveFeedback = true;
+    else {
+      this.showSaveFeedback = true;
+      this.toastMessage = "";
+    }
 
     setTimeout(() => {
       if (type === "copy") this.showCopyFeedback = false;
-      else this.showSaveFeedback = false;
+      else {
+        this.showSaveFeedback = false;
+        this.toastMessage = "";
+      }
     }, duration);
   }
 
@@ -458,13 +465,12 @@ class UiManager {
     if (type === "error") {
       this.showError(message);
     } else {
-      // Fallback for success messages: trigger save feedback (displays "Saved!" checkmark)
-      // and log the detailed message.
-      // Future TODO: Implement generic toast UI in Layout.
       console.log(`[Toast ${type}] ${message}`);
+      this.toastMessage = message;
       this.showSaveFeedback = true;
       setTimeout(() => {
         this.showSaveFeedback = false;
+        this.toastMessage = "";
       }, 2000);
     }
   }

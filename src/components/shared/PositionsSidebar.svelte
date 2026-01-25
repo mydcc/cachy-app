@@ -84,7 +84,7 @@
       // Basic check if translation exists (usually if it returns same key, it's missing)
       if (translation && translation !== key) return translation;
     }
-    return data.error || "Unknown Error";
+    return data.error || $_("apiErrors.generic");
   }
 
   async function fetchPositions() {
@@ -118,7 +118,7 @@
         }
       }
     } catch (e) {
-      errorPositions = typeof $_ === "function" ? $_("apiErrors.generic") : "Failed to load positions";
+      errorPositions = $_("apiErrors.failedToLoadPositions");
     } finally {
       loadingPositions = false;
     }
@@ -158,7 +158,7 @@
         else historyOrders = data.orders || [];
       }
     } catch (e) {
-      const msg = typeof $_ === "function" ? $_("apiErrors.generic") : `Failed to load ${type} orders`;
+      const msg = $_("apiErrors.failedToLoadOrders");
       if (type === "pending") errorOrders = msg;
       else errorHistory = msg;
     } finally {
@@ -398,8 +398,7 @@
         onclick={() => (activeTab = "positions")}
         oncontextmenu={handleContextMenu}
       >
-        {typeof $_ === "function" ? $_("dashboard.positions") : "Positions"} ({accountState
-          .positions.length})
+        {$_("dashboard.positions")} ({accountState.positions.length})
       </button>
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -409,7 +408,7 @@
         class:border-transparent={activeTab !== "orders"}
         onclick={() => (activeTab = "orders")}
       >
-        {typeof $_ === "function" ? $_("dashboard.orders") : "Orders"} ({openOrders.length})
+        {$_("dashboard.orders")} ({openOrders.length})
       </button>
       <button
         class="flex-1 py-2 text-xs font-bold transition-colors border-b-2"
@@ -429,7 +428,7 @@
         class:border-transparent={activeTab !== "history"}
         onclick={() => (activeTab = "history")}
       >
-        {typeof $_ === "function" ? $_("dashboard.history") : "History"}
+        {$_("dashboard.history")}
       </button>
     </div>
 

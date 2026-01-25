@@ -20,11 +20,41 @@ interface CachedFeed {
 // Memory Cache for active session
 const feedCache = new Map<string, CachedFeed>();
 const CACHE_TTL = 15 * 60 * 1000; // 15 minutes for standard RSS
+const MAX_CACHE_SIZE = 100;
+
+// Security: Allowlist for RSS sources (SSRF Protection)
+const ALLOWED_DOMAINS = [
+  "nitter.net", "nitter.cz", "nitter.it", "nitter.poast.org", "nitter.privacydev.net",
+  "cointelegraph.com", "coindesk.com", "decrypt.co", "theblock.co",
+  "rss.app", "polymarket.com", "medium.com"
+];
+
+function isUrlAllowed(urlStr: string): boolean {
+  try {
+    const u = new URL(urlStr);
+    // 1. Block non-http/https
+    if (u.protocol !== "http:" && u.protocol !== "https:") return false;
+
+    // 2. Block private IPs (Basic check, effectively covered by domain allowlist, but good practice)
+    if (u.hostname === "localhost" || u.hostname === "127.0.0.1" || u.hostname.startsWith("192.168.") || u.hostname.startsWith("10.")) {
+      return false;
+    }
+
+    // 3. Strict Domain Allowlist
+    return ALLOWED_DOMAINS.some(d => u.hostname === d || u.hostname.endsWith("." + d));
+  } catch {
+    return false;
+  }
+}
 
 export const POST: RequestHandler = async ({ request }) => {
   try {
     const body = await request.json();
     const { url } = body;
+
+    if (!url || !isUrlAllowed(url)) {
+      return json({ error: "Invalid or prohibited URL" }, { status: 403 });
+    }
 
     const tryFetch = async (targetUrl: string, timeout = 7000): Promise<string> => {
       const controller = new AbortController();
@@ -95,6 +125,12 @@ export const POST: RequestHandler = async ({ request }) => {
         })),
         feedTitle: parsed.title,
       };
+
+      // Enforce Cache Limit (LRU-ish: delete oldest if full)
+      if (feedCache.size >= MAX_CACHE_SIZE) {
+        const oldestKey = feedCache.keys().next().value;
+        if (oldestKey) feedCache.delete(oldestKey);
+      }
 
       feedCache.set(url, { data: result, timestamp: Date.now() });
       return json(result);

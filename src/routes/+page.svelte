@@ -697,7 +697,7 @@
               id="save-feedback"
               class="save-feedback"
               class:visible={uiState.showSaveFeedback}
-              >{$_("dashboard.savedFeedback")}</span
+              >{uiState.toastMessage || $_("dashboard.savedFeedback")}</span
             >{/if}
         </div>
         <div class="mt-4 flex justify-between items-center">
