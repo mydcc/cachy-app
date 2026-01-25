@@ -26,7 +26,12 @@
     "backupPasswordEntryPrompt": "This backup is encrypted. Please enter the password:",
     "backupWrongPassword": "Wrong password. Restore failed.",
     "passwordRequiredTitle": "Password Required",
-    "enterBackupPassword": "Please enter the password for this backup:"
+    "enterBackupPassword": "Please enter the password for this backup:",
+    "marketDashboard": {
+      "buttonTitle": "Open Market Overview",
+      "point": "Market Overview",
+      "title": "Global Market Analysis"
+    }
   },
   "legal": {
     "disclaimerTitle": "Legal Disclaimer",
@@ -782,6 +787,78 @@
         "reset": "Reset",
         "resetConfirm": "Reset all background settings?"
       }
+    },
+    "connections": {
+      "addFeed": "Add Feed",
+      "apiKey": "API Key",
+      "apiSecret": "API Secret",
+      "customFeeds": "Custom Feeds",
+      "dataServices": "Data Services",
+      "exchanges": "Exchanges",
+      "passphrase": "Passphrase",
+      "rss": "RSS Feeds"
+    },
+    "imgbbExpiration": "Expiration Time",
+    "integrations": {
+      "addFeed": "Add Feed",
+      "analytics": "News & Market Data",
+      "apiKey": "API Key",
+      "apiSecret": "API Secret",
+      "autoExpiration": "Auto-Delete (Sec)",
+      "cmcApi": "CoinMarketCap API",
+      "customRssFeeds": "Custom RSS Feeds",
+      "customRssFeedsDesc": "Add up to 5 custom RSS feeds (Advanced)",
+      "enterKey": "Enter API Key",
+      "enterSecret": "Enter Secret",
+      "exchanges": "Exchange Connection",
+      "filter": "Filter",
+      "imgbbPrimary": "ImgBB (Primary)",
+      "imgurClientId": "Imgur Client ID",
+      "imgurOther": "Imgur / Other",
+      "intelligence": "AI Provider Keys",
+      "newsApi": "NewsAPI.org Key",
+      "plan": "Plan",
+      "removeFeed": "Remove",
+      "rssFilterBySymbol": "Filter by active symbol",
+      "rssFilterBySymbolDesc": "Show only RSS news matching the chart symbol (e.g., BTC)",
+      "rssPresets": "RSS News Sources",
+      "rssPresetsDesc": "Select curated news sources for AI context",
+      "utilities": "Media Storage"
+    },
+    "system": {
+      "backup": "Create Backup",
+      "backupDesc": "Backup your settings & data as a file.",
+      "cacheCleared": "Cache cleared.",
+      "clearCache": "Clear Cache",
+      "dangerZone": "Danger Zone",
+      "dashboard": "Dashboard",
+      "dangerZoneDesc": "Warning: Use these functions only if you know what you're doing",
+      "deleteAllData": "Delete All Data",
+      "deleteAllDataDesc": "Deletes all journal entries and resets the app",
+      "deleteAllDataConfirm": "Really delete all data? This cannot be undone!",
+      "dataMaintenance": "Data & Backup",
+      "debugMode": "Debug Mode",
+      "debugModeDesc": "Show extended logs and developer features.",
+      "factoryReset": "Factory Reset",
+      "factoryResetDesc": "Delete everything and start fresh. Not reversible.",
+      "networkLogs": "Network Logs",
+      "networkLogsDesc": "Display API traffic in the console.",
+      "pauseApp": "Pause in Background",
+      "pauseAppDesc": "Stop resource-intensive tasks when the tab is not active.",
+      "performance": "Performance",
+      "reloadApp": "Reload App",
+      "resetNow": "Reset Now",
+      "restore": "Load Backup",
+      "restoreDesc": "Import a backup from a file."
+    },
+    "trading": {
+      "chartTitle": "Chart & Data",
+      "executionTitle": "Execution & Fees"
+    },
+    "visuals": {
+      "appearanceTitle": "Appearance & Design",
+      "backgroundTitle": "Background",
+      "layoutTitle": "Layout & Structure"
     }
   },
   "symbolPicker": {
@@ -946,5 +1023,9 @@
     "switchProvider": "Switch Provider",
     "checkSettings": "Check Settings",
     "diagnostics": "View Diagnostics"
+  },
+  "marketDashboard": {
+    "buttonTitle": "Open Market Overview",
+    "title": "Global Market Analysis"
   }
 }

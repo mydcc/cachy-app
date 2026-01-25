@@ -685,7 +685,8 @@
       "dangerZone": "Gefahrenzone",
       "factoryReset": "Werkseinstellungen",
       "factoryResetDesc": "Alles löschen und frisch starten. Nicht umkehrbar.",
-      "resetNow": "Jetzt zurücksetzen"
+      "resetNow": "Jetzt zurücksetzen",
+      "dashboard": "Dashboard"
     },
     "connections": {
       "exchanges": "Börsen",
@@ -891,7 +892,9 @@
     "invalidResponse": "Ungültige Antwort von der API.",
     "klineError": "Kerzendaten konnten nicht geladen werden.",
     "generic": "Ein unbekannter API-Fehler ist aufgetreten.",
-    "noMarketData": "Keine Marktdaten verfügbar."
+    "noMarketData": "Keine Marktdaten verfügbar.",
+    "failedToLoadOrders": "Failed to load orders.",
+    "failedToLoadPositions": "Failed to load positions."
   },
   "bitunixErrors": {
     "10001": "Netzwerkfehler",
@@ -1014,5 +1017,9 @@
     "switchProvider": "Provider wechseln",
     "checkSettings": "Einstellungen prüfen",
     "diagnostics": "Diagnose anzeigen"
+  },
+  "marketDashboard": {
+    "buttonTitle": "Marktübersicht öffnen",
+    "title": "Globale Marktanalyse"
   }
 }
