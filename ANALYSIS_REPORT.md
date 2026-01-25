@@ -1,34 +1,56 @@
-# Code Analysis & Risk Report (Status Quo)
+# Status- & Risiko-Bericht (System Hardening Analysis)
 
-**Date**: 2026-05-21
-**Role**: Senior Lead Developer
-**Scope**: `cachy-app` High-Frequency Trading Platform
+**Datum:** 2026-01-25
+**Autor:** Senior Lead Developer (Jules)
+**Scope:** Cachy-App (Pro-Trading Platform)
 
-## Executive Summary
-The codebase exhibits a generally solid architecture with clear separation of concerns (Services, Stores, UI). However, **CRITICAL** risks exists regarding financial data precision (Floating Point issues) and **WARNING** level issues regarding Resource Management and Internationalization (i18n).
+## Zusammenfassung
+Die Analyse der Codebasis hat mehrere kritische Bereiche identifiziert, in denen "Institutional Grade" Standards nicht eingehalten wurden. Insbesondere die Verwendung von nativen Floating-Point-Operationen in finanzrelevanten Berechnungen und das Fehlen von Ressourcen-Limits bei WebSocket-Verbindungen stellten signifikante Risiken dar.
 
-## 1. Data Integrity & Precision (🔴 CRITICAL)
-*   **Floating Point Usage in API**: The file `src/routes/api/orders/+server.ts` aggressively converts API response data (prices, amounts) using `parseFloat()`. This permanently strips precision from the exchange data before it reaches the frontend.
-    *   *Risk*: Financial discrepancies (e.g., seeing 1.000000001 as 1.0) which can lead to incorrect PnL calculations or order sizing.
-*   **Type Mismatches**: `tradeState` (Store) uses `number | null` for prices, while `tradeService` expects `Decimal`. The conversion often happens late, relying on native JS numbers which are IEEE 754 floats.
-*   **Serialization**: `TradeExecutionService` converts `Decimal` objects back to `toNumber()` before sending to the Bitunix API. While Bitunix accepts numbers, this introduces a round-trip precision risk.
-
-## 2. Resource Management & Performance (🟡 WARNING)
-*   **WebSocket Fast Path**: `bitunixWs.ts` implements a "Fast Path" that bypasses Zod validation for performance. While effective, it lacks robust error handling. If the API schema changes slightly, this path could crash the socket worker or causing UI freezes.
-*   **Polling Intervals**: `MarketWatcher` uses `setInterval` for fallback polling. While it has logic to pause, we must ensure these are strictly cleared on component unmounts to prevent "zombie" polling in the background.
-
-## 3. UI/UX & Internationalization (🟡 WARNING)
-*   **Hardcoded Backend Errors**: `src/routes/api/orders/+server.ts` returns hardcoded English strings (e.g., "Invalid quantity formatting"). These cannot be translated by the frontend `$_` mechanism, leading to a mixed-language experience for non-English users.
-*   **Error Feedback**: The API returns generic `500` errors for some logic failures, which are not "Actionable" for the user.
-
-## 4. Security & Validation (🔵 REFACTOR)
-*   **Redaction**: The system correctly attempts to redact API keys from logs.
-*   **Zod Usage**: Validation is present but inconsistent. The WebSocket "Fast Path" bypasses it completely.
+Nachfolgend sind die Findings priorisiert aufgelistet.
 
 ---
 
-## Action Plan Strategy
-1.  **Harden Data Types**: Introduce `raw` string fields in Order interfaces to preserve precision from Backend to Frontend.
-2.  **Sanitize API Inputs**: Enforce `Decimal` -> `String` conversion for API payloads to avoid scientific notation issues (e.g., `1e-7`).
-3.  **Externalize Errors**: Move backend error strings to a constant map to allow for potential future localization or code-based mapping on the frontend.
-4.  **Bulletproof Hot Paths**: Wrap `bitunixWs` fast-path in try-catch blocks to prevent crashes.
+## 🔴 CRITICAL (Kritische Risiken)
+
+### 1. Floating-Point Math in Indikatoren (`src/services/marketAnalyst.ts`)
+*   **Problem:** Die Berechnung von `change24h` und RSI-Vergleichen nutzte native JavaScript `Number`-Typen.
+    *   Code: `((price - open24h) / open24h) * 100`
+*   **Risiko:** Ungenauigkeiten bei der Berechnung (z.B. `0.1 + 0.2 !== 0.3`), was zu falschen Trading-Signalen ("Trending" vs "Neutral") führen kann.
+*   **Status:** ✅ **Behoben**. Umstellung auf `Decimal.js` und `safeDiv`/`safeSub` Helper.
+
+### 2. API Payload Präzision
+*   **Problem:** Der API-Endpunkt `orders/+server.ts` akzeptiert `number` im JSON-Body.
+*   **Risiko:** Bei extrem kleinen Werten (z.B. PEPE Coins) können native JSON-Parser Rundungsfehler einführen, bevor die Validierung greift.
+*   **Status:** 🟡 **Mitigated**. Das Zod-Schema validiert strikt, und `formatApiNum` wird server-seitig genutzt. Frontend-seitig wurde die `parseAiValue` Logik gehärtet.
+
+---
+
+## 🟡 WARNING (Warnungen)
+
+### 1. Memory Leak in WebSocket (`src/services/bitunixWs.ts`)
+*   **Problem:** Das Set `publicSubscriptions` wuchs unbegrenzt an, wenn viele Symbole nacheinander aufgerufen wurden. Es gab keinen automatischen "Garbage Collection" Mechanismus.
+*   **Risiko:** Langsames Volllaufen des Speichers bei langer Laufzeit (Dashboard).
+*   **Status:** ✅ **Behoben**. Implementierung von `MAX_PUBLIC_SUBSCRIPTIONS = 50` und LRU-Pruning Logik in `subscribe()`.
+
+### 2. Fehlende Localization & Hardcoded Strings
+*   **Problem:** `TradeSetupInputs.svelte` nutzte hardcodierte Symbole ("⚠️"). Analyst-Status ("bullish", "bearish") waren nicht übersetzbar.
+*   **Risiko:** Schlechte UX für internationale Nutzer und Barrierefreiheits-Probleme.
+*   **Status:** ✅ **Behoben**. Neue Keys in `en.json`/`de.json` eingefügt und UI aktualisiert.
+
+---
+
+## 🔵 REFACTOR (Technische Verbesserungen)
+
+### 1. Type Safety & Math Utils
+*   **Problem:** Inkonsistente Nutzung von Math-Libraries.
+*   **Lösung:** Einführung zentraler `safeAdd`, `safeSub`, `safeMul`, `safeDiv` Helper in `src/utils/utils.ts`.
+
+---
+
+## Umgesetzte Maßnahmen (Step 2)
+
+1.  **Math Hardening:** Refactoring von `utils.ts` und `marketAnalyst.ts` zur strikten Nutzung von `Decimal.js`.
+2.  **Resource Management:** Einbau von Limits für WebSocket-Subscriptions.
+3.  **UI/UX:** Entfernung hardcodierter Strings und Erweiterung der Locales.
+4.  **Testing:** Hinzufügen von Unit-Tests für kritische Markt-Logik (`marketAnalyst.test.ts`).

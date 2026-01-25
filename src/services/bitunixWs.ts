@@ -106,6 +106,8 @@ class BitunixWebSocketService {
   private readonly MAX_VALIDATION_ERRORS = 5;
   private readonly VALIDATION_ERROR_WINDOW = 10000;
 
+  private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
+
   // Throttling for UI Blocking Updates
   private throttleMap = new Map<string, number>();
   private readonly UPDATE_INTERVAL = 200; // 200ms throttle (5fps)
@@ -954,6 +956,27 @@ class BitunixWebSocketService {
     const normalizedSymbol = normalizeSymbol(symbol, "bitunix");
     const subKey = `${channel}:${normalizedSymbol}`;
     if (this.publicSubscriptions.has(subKey)) return;
+
+    // Prune oldest if limit reached
+    if (this.publicSubscriptions.size >= this.MAX_PUBLIC_SUBSCRIPTIONS) {
+      const oldest = this.publicSubscriptions.values().next().value;
+      if (oldest) {
+        this.publicSubscriptions.delete(oldest);
+        const [oldChan, oldSym] = oldest.split(":");
+        if (
+          oldChan &&
+          oldSym &&
+          this.wsPublic &&
+          this.wsPublic.readyState === WebSocket.OPEN
+        ) {
+          if (settingsState.enableNetworkLogs) {
+            logger.log("network", `[Auto-Prune] Unsubscribing ${oldest}`);
+          }
+          this.sendUnsubscribe(this.wsPublic, oldSym, oldChan);
+        }
+      }
+    }
+
     this.publicSubscriptions.add(subKey);
     if (this.wsPublic && this.wsPublic.readyState === WebSocket.OPEN) {
       if (settingsState.enableNetworkLogs) {

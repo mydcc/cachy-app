@@ -33,6 +33,34 @@ export function debounce<T extends (...args: unknown[]) => void>(
   return debounced;
 }
 
+/**
+ * Safely adds two numbers using Decimal.js
+ */
+export function safeAdd(a: Decimal.Value, b: Decimal.Value): Decimal {
+  return new Decimal(a).plus(b);
+}
+
+/**
+ * Safely subtracts two numbers using Decimal.js
+ */
+export function safeSub(a: Decimal.Value, b: Decimal.Value): Decimal {
+  return new Decimal(a).minus(b);
+}
+
+/**
+ * Safely multiplies two numbers using Decimal.js
+ */
+export function safeMul(a: Decimal.Value, b: Decimal.Value): Decimal {
+  return new Decimal(a).times(b);
+}
+
+/**
+ * Safely divides two numbers using Decimal.js
+ */
+export function safeDiv(a: Decimal.Value, b: Decimal.Value): Decimal {
+  return new Decimal(a).div(b);
+}
+
 export function parseDecimal(
   value: string | number | null | undefined | Decimal,
 ): Decimal {
@@ -443,12 +471,12 @@ export function parseAiValue(value: string | number | boolean): number {
   let str = String(value).trim().toLowerCase();
 
   // Multipliers
-  let multiplier = 1;
+  let multiplier = new Decimal(1);
   if (str.endsWith("k")) {
-    multiplier = 1000;
+    multiplier = new Decimal(1000);
     str = str.slice(0, -1);
   } else if (str.endsWith("m")) {
-    multiplier = 1000000;
+    multiplier = new Decimal(1000000);
     str = str.slice(0, -1);
   }
 
@@ -510,6 +538,11 @@ export function parseAiValue(value: string | number | boolean): number {
     // "1.200" -> treated as 1.2 in standard JS.
   }
 
-  const parsed = parseFloat(str);
-  return isNaN(parsed) ? 0 : parsed * multiplier;
+  try {
+    const d = new Decimal(str);
+    if (d.isNaN()) return 0;
+    return d.times(multiplier).toNumber();
+  } catch (e) {
+    return 0;
+  }
 }
