@@ -4,6 +4,7 @@
     import Toggle from "../../shared/Toggle.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import { RSS_PRESETS } from "../../../config/rssPresets";
+    import ApiQuotaStatus from "../ApiQuotaStatus.svelte";
 
     // Helper for masking inputs
     let showKeys: Record<string, boolean> = $state({});
@@ -435,6 +436,11 @@
                             />
                         </div>
                     </div>
+                </div>
+
+                <!-- API Quota Status -->
+                <div class="mt-6">
+                    <ApiQuotaStatus />
                 </div>
             </section>
         {/if}

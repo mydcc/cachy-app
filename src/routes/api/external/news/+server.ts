@@ -18,9 +18,11 @@ interface CachedResponse {
 
 const newsCache = new Map<string, CachedResponse>();
 const pendingRequests = new Map<string, Promise<any>>();
-const CACHE_TTL = 15 * 60 * 1000; // 15 minutes
+const CACHE_TTL = 60 * 60 * 1000; // 60 Minuten (erh\u00f6ht f\u00fcr Quota-Schonung)
 
 export const POST: RequestHandler = async ({ request, fetch }) => {
+  let cacheKey = ""; // Scope erweitern für catch-Block
+
   try {
     const { source, apiKey, params, plan } = await request.json();
 
@@ -28,7 +30,7 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
       return json({ error: "Missing API Key" }, { status: 400 });
     }
 
-    const cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}`;
+    cacheKey = `${source}:${JSON.stringify(params)}:${plan || "default"}`;
     const now = Date.now();
 
     // Check Cache
@@ -123,6 +125,15 @@ export const POST: RequestHandler = async ({ request, fetch }) => {
 
     // Detailed error logging for debugging
     if (err.cause) console.error("[NewsProxy] Cause:", err.cause);
+
+    // 429-Error → Nutze stale cache falls vorhanden
+    if (errorMsg.includes("429") || errorMsg.includes("quota")) {
+      const staleCache = newsCache.get(cacheKey);
+      if (staleCache) {
+        console.warn("[NewsProxy] Using stale cache due to quota exhaustion");
+        return json(staleCache.data);
+      }
+    }
 
     return json(
       { error: errorMsg || "Internal Proxy Error" },

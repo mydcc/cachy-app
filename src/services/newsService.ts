@@ -13,6 +13,7 @@ import { rssParserService } from "./rssParserService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
+import { apiQuotaTracker } from "./apiQuotaTracker";
 
 const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
 
@@ -48,6 +49,7 @@ export interface NewsItem {
   source: string;
   published_at: string;
   currencies?: { code: string; title: string }[];
+  id?: string; // Hash für Deduplizierung
 }
 
 export interface SentimentAnalysis {
@@ -89,10 +91,21 @@ function matchesSymbol(text: string, symbol: string): boolean {
   return keywords.some((k) => lowerText.includes(k.toLowerCase()));
 }
 
-const CACHE_KEY_NEWS = "cachy_news_cache";
+const CACHE_PREFIX_NEWS_COIN = "cachy_news_coin_"; // Pro-Coin-Cache
+const CACHE_KEY_NEWS_GLOBAL = "cachy_news_global"; // Globaler Pool
 const CACHE_KEY_SENTIMENT = "cachy_sentiment_cache";
-const CACHE_TTL_NEWS = 1000 * 60 * 5; // 5 minutes
+const CACHE_TTL_NEWS = 1000 * 60 * 60 * 24; // 24 Stunden
 const CACHE_TTL_SENTIMENT = 1000 * 60 * 15; // 15 minutes
+const MIN_NEWS_PER_COIN = 10; // Mindestanzahl News pro Coin
+const MAX_NEWS_AGE_MS = 1000 * 60 * 60 * 24; // 24h max Alter
+const MAX_SYMBOLS_CACHED = 20; // Max. Symbole im Cache
+
+interface NewsCacheEntry {
+  symbol: string;
+  items: NewsItem[];
+  timestamp: number;
+  lastApiCall: number;
+}
 
 // Deduplication trackers
 const pendingNewsFetches = new Map<string, Promise<NewsItem[]>>();
@@ -101,31 +114,122 @@ const pendingSentimentFetches = new Map<
   Promise<SentimentAnalysis | null>
 >();
 
+/**
+ * Prüft, ob News für ein Symbol abgerufen werden müssen
+ */
+function shouldFetchNews(symbol: string | undefined): boolean {
+  const symbolKey = symbol || "global";
+  const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
+  const cached = safeReadCache<NewsCacheEntry>(cacheKey);
+
+  if (!cached) {
+    console.log(`[shouldFetchNews] No cache for ${symbolKey}`);
+    return true;
+  }
+
+  const now = Date.now();
+  const ageMs = now - cached.timestamp;
+
+  // Bedingung 1: Cache älter als 24h
+  if (ageMs > MAX_NEWS_AGE_MS) {
+    console.log(`[shouldFetchNews] Cache expired for ${symbolKey} (${Math.round(ageMs / 1000 / 60)}min old)`);
+    return true;
+  }
+
+  // Bedingung 2: Weniger als MIN_NEWS_PER_COIN News
+  if (cached.items.length < MIN_NEWS_PER_COIN) {
+    console.log(`[shouldFetchNews] Insufficient news for ${symbolKey} (${cached.items.length}/${MIN_NEWS_PER_COIN})`);
+    return true;
+  }
+
+  // Bedingung 3: Älteste News ist > 24h alt
+  if (cached.items.length > 0) {
+    const oldestNews = cached.items[cached.items.length - 1];
+    const oldestNewsAge = now - new Date(oldestNews.published_at).getTime();
+    if (oldestNewsAge > MAX_NEWS_AGE_MS) {
+      console.log(`[shouldFetchNews] Oldest news too old for ${symbolKey} (${Math.round(oldestNewsAge / 1000 / 60 / 60)}h)`);
+      return true;
+    }
+  }
+
+  console.log(`[shouldFetchNews] Cache valid for ${symbolKey} (${cached.items.length} items, ${Math.round(ageMs / 1000 / 60)}min old)`);
+  return false;
+}
+
+/**
+ * Bereinigt alte Caches wenn zu viele Symbole gespeichert sind
+ */
+function pruneOldCaches() {
+  if (!isBrowser) return;
+
+  try {
+    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX_NEWS_COIN));
+
+    if (keys.length > MAX_SYMBOLS_CACHED) {
+      // Sortiere nach Alter (älteste zuerst)
+      const sorted = keys
+        .map(k => ({
+          key: k,
+          entry: safeReadCache<NewsCacheEntry>(k),
+        }))
+        .filter(x => x.entry !== null)
+        .sort((a, b) => a.entry!.timestamp - b.entry!.timestamp);
+
+      // Lösche älteste bis unter Limit
+      const toDelete = sorted.slice(0, keys.length - MAX_SYMBOLS_CACHED);
+      toDelete.forEach(x => {
+        localStorage.removeItem(x.key);
+        console.log(`[pruneOldCaches] Removed old cache: ${x.key}`);
+      });
+    }
+  } catch (e) {
+    logger.warn("market", "[pruneOldCaches] Failed to prune caches", e);
+  }
+}
+
+/**
+ * Generiert eine eindeutige ID für News-Items (für Deduplizierung)
+ */
+function generateNewsId(item: NewsItem): string {
+  // Einfacher Hash aus URL + Titel
+  return btoa(encodeURIComponent(item.url + item.title)).substring(0, 32);
+}
+
 export const newsService = {
   async fetchNews(symbol?: string): Promise<NewsItem[]> {
     const symbolKey = symbol || "global";
+    const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
 
     // Check if a request for this symbol is already in progress
     if (pendingNewsFetches.has(symbolKey)) {
+      console.log(`[fetchNews] Deduplicating request for ${symbolKey}`);
       return pendingNewsFetches.get(symbolKey)!;
     }
 
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
-        const cached = safeReadCache<{ data: NewsItem[]; timestamp: number; cachedSymbol?: string }>(CACHE_KEY_NEWS);
-        if (
-          cached &&
-          Date.now() - cached.timestamp < CACHE_TTL_NEWS &&
-          ((!symbol && !cached.cachedSymbol) || symbol === cached.cachedSymbol)
-        ) {
-          return cached.data;
+        // 1. Cache-Validierung mit intelligenter Logik
+        const cached = safeReadCache<NewsCacheEntry>(cacheKey);
+        if (cached && !shouldFetchNews(symbol)) {
+          console.log(`[fetchNews] Using cached news for ${symbolKey} (${cached.items.length} items)`);
+          return cached.items;
+        }
+
+        // 2. Prüfe Quota-Status
+        const isQuotaExhausted = apiQuotaTracker.isQuotaExhausted("cryptopanic");
+        if (isQuotaExhausted) {
+          logger.warn("market", `[fetchNews] API quota exhausted, using stale cache or fallback for ${symbolKey}`);
+          // Nutze alte Cache-Daten wenn vorhanden
+          if (cached && cached.items.length > 0) {
+            return cached.items;
+          }
         }
 
         const { cryptoPanicApiKey, newsApiKey } = settingsState;
         let newsItems: NewsItem[] = [];
 
-        // Prioritize CryptoPanic
-        if (cryptoPanicApiKey) {
+        // Prioritize CryptoPanic (wenn Quota nicht erschöpft)
+        if (cryptoPanicApiKey && !isQuotaExhausted) {
           try {
             const params: any = {
               filter: settingsState.cryptoPanicFilter || "important",
@@ -156,15 +260,24 @@ export const newsService = {
                 source: item.source?.title || "Unknown",
                 published_at: item.published_at,
                 currencies: item.currencies,
+                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
               }));
+              apiQuotaTracker.logCall("cryptopanic", true);
+              console.log(`[fetchNews] CryptoPanic returned ${newsItems.length} items for ${symbolKey}`);
+            } else {
+              const errorText = await res.text();
+              apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
+              logger.error("market", `CryptoPanic error: ${res.status}`, errorText);
             }
-          } catch (e) {
+          } catch (e: any) {
+            const errorMsg = e?.message || String(e);
+            apiQuotaTracker.logCall("cryptopanic", false, errorMsg);
             logger.error("market", "Failed to fetch CryptoPanic", e);
           }
         }
 
-        // NewsAPI Fallback
-        if (newsItems.length < 5 && newsApiKey) {
+        // NewsAPI Fallback (wenn noch zu wenig News)
+        if (newsItems.length < MIN_NEWS_PER_COIN && newsApiKey) {
           try {
             const q = symbol ? symbol : "crypto bitcoin ethereum";
             const params = {
@@ -191,10 +304,18 @@ export const newsService = {
                 source: item.source.name,
                 published_at: item.publishedAt,
                 currencies: [],
+                id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
               }));
               newsItems = [...newsItems, ...mapped];
+              apiQuotaTracker.logCall("newsapi", true);
+              console.log(`[fetchNews] NewsAPI returned ${mapped.length} items`);
+            } else {
+              const errorText = await res.text();
+              apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
             }
-          } catch (e) {
+          } catch (e: any) {
+            const errorMsg = e?.message || String(e);
+            apiQuotaTracker.logCall("newsapi", false, errorMsg);
             logger.error("market", "Failed to fetch NewsAPI", e);
           }
         }
@@ -236,18 +357,36 @@ export const newsService = {
           }
         }
 
+        // Deduplizierung basierend auf ID
+        const uniqueNews = new Map<string, NewsItem>();
+        newsItems.forEach(item => {
+          const id = item.id || generateNewsId(item);
+          if (!uniqueNews.has(id)) {
+            uniqueNews.set(id, { ...item, id });
+          }
+        });
+        newsItems = Array.from(uniqueNews.values());
+
+        // Sortierung nach Datum (neueste zuerst)
         newsItems.sort(
           (a, b) =>
             new Date(b.published_at).getTime() -
             new Date(a.published_at).getTime(),
         );
 
-        safeWriteCache(CACHE_KEY_NEWS, {
-          data: newsItems,
+        // Cache-Update mit neuer Struktur
+        const cacheEntry: NewsCacheEntry = {
+          symbol: symbolKey,
+          items: newsItems,
           timestamp: Date.now(),
-          cachedSymbol: symbol,
-        });
+          lastApiCall: Date.now(),
+        };
+        safeWriteCache(cacheKey, cacheEntry);
 
+        // Bereinige alte Caches
+        pruneOldCaches();
+
+        console.log(`[fetchNews] Cached ${newsItems.length} news items for ${symbolKey}`);
         return newsItems;
       } finally {
         pendingNewsFetches.delete(symbolKey);
