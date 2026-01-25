@@ -14,7 +14,7 @@ import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
-import { safeSub, safeDiv, safeMul } from "../utils/utils";
+import { safeSub, safeDiv } from "../utils/utils";
 
 // DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
 const DATA_FRESHNESS_TTL = 10 * 60 * 1000; // 10 minutes cache
@@ -78,33 +78,74 @@ class MarketAnalystService {
             console.log(`[TECHNICALS] Analyst: Processing ${symbol}... (Started)`);
 
             const provider = settingsState.apiProvider;
+            const timeframes = settingsState.analysisTimeframes;
 
-            // Use 'normal' priority for background analysis to not interfere with trade UI
-            const klines = await (provider === "bitget"
-                ? apiService.fetchBitgetKlines(symbol, "1h", 200, undefined, undefined, "normal")
-                : apiService.fetchBitunixKlines(symbol, "1h", 200, undefined, undefined, "normal"));
+            // Determine kline counts per timeframe
+            const klineCountMap: Record<string, number> = {
+                "5m": 200,
+                "15m": 200,
+                "1h": 200,
+                "4h": 100,
+                "1d": 100
+            };
 
-            if (!klines || klines.length < 50) throw new Error("MIN_DATA_REQUIRED");
-            console.log(`[TECHNICALS] Analyst: ${symbol} 1h klines fetched (${klines.length} candles)`);
+            // PARALLEL: Fetch all timeframes at once
+            console.log(`[TECHNICALS] Analyst: ${symbol} Fetching ${timeframes.length} timeframes in parallel...`);
+            const startFetch = performance.now();
 
-            const klines4h = await (provider === "bitget"
-                ? apiService.fetchBitgetKlines(symbol, "4h", 100, undefined, undefined, "normal")
-                : apiService.fetchBitunixKlines(symbol, "4h", 100, undefined, undefined, "normal"));
+            const klinesPromises = timeframes.map(tf => {
+                const count = klineCountMap[tf] || 100;
+                return provider === "bitget"
+                    ? apiService.fetchBitgetKlines(symbol, tf, count, undefined, undefined, "normal")
+                    : apiService.fetchBitunixKlines(symbol, tf, count, undefined, undefined, "normal");
+            });
 
-            console.log(`[TECHNICALS] Analyst: ${symbol} 4h klines fetched (${klines4h.length} candles)`);
+            const klinesResults = await Promise.all(klinesPromises);
+            const fetchTime = performance.now() - startFetch;
+            console.log(`[TECHNICALS] Analyst: ${symbol} All klines fetched in ${fetchTime.toFixed(0)}ms`);
 
-            // Offload to worker via technicalsService
-            console.log(`[TECHNICALS] Analyst: ${symbol} Starting technicals calc...`);
-            const tech1h = await technicalsService.calculateTechnicals(klines, indicatorState);
-            console.log(`[TECHNICALS] Analyst: ${symbol} 1h technicals done`);
-            const tech4h = await technicalsService.calculateTechnicals(klines4h, indicatorState);
-            console.log(`[TECHNICALS] Analyst: ${symbol} 4h technicals done`);
+            // Build a map of timeframe -> klines
+            const klinesMap: Record<string, typeof klinesResults[0]> = {};
+            timeframes.forEach((tf, i) => {
+                klinesMap[tf] = klinesResults[i];
+            });
 
-            if (tech1h && tech4h) {
+            // Validate minimum data
+            const primaryTf = timeframes.includes("1h") ? "1h" : timeframes[0];
+            const primaryKlines = klinesMap[primaryTf];
+            if (!primaryKlines || primaryKlines.length < 50) throw new Error("MIN_DATA_REQUIRED");
+
+            // PARALLEL: Calculate technicals for all timeframes
+            console.log(`[TECHNICALS] Analyst: ${symbol} Calculating technicals for ${timeframes.length} timeframes...`);
+            const startCalc = performance.now();
+
+            const techPromises = timeframes.map(tf => {
+                const klines = klinesMap[tf];
+                if (!klines || klines.length < 20) return Promise.resolve(null);
+                return technicalsService.calculateTechnicals(klines, indicatorState);
+            });
+
+            const techResults = await Promise.all(techPromises);
+            const calcTime = performance.now() - startCalc;
+            console.log(`[TECHNICALS] Analyst: ${symbol} All technicals done in ${calcTime.toFixed(0)}ms`);
+
+            // Build a map of timeframe -> technicals
+            const techMap: Record<string, typeof techResults[0]> = {};
+            timeframes.forEach((tf, i) => {
+                techMap[tf] = techResults[i];
+            });
+
+            // Extract metrics from available data
+            const tech1h = techMap["1h"];
+            const tech4h = techMap["4h"];
+            const techPrimary = tech1h || techMap[primaryTf];
+
+            if (techPrimary) {
+                const klines = primaryKlines;
                 const lastKline = klines[klines.length - 1];
                 const openKline = klines.length >= 24 ? klines[klines.length - 24] : klines[0];
-                const ema200_4h = tech4h.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
-                const rsiObj = tech1h.oscillators.find((o) => o.name === "RSI");
+                const ema200_4h = tech4h?.movingAverages.find(m => m.name === "EMA 200")?.value || 0;
+                const rsiObj = techPrimary.oscillators.find((o) => o.name === "RSI");
 
                 const metrics = calculateAnalysisMetrics(
                     lastKline?.close,
@@ -116,9 +157,11 @@ class MarketAnalystService {
                 analysisState.updateAnalysis(symbol, {
                     symbol,
                     updatedAt: Date.now(),
-                    confluenceScore: tech1h.confluence?.score || 0,
+                    confluenceScore: techPrimary.confluence?.score || 0,
                     ...metrics
                 });
+
+                console.log(`[TECHNICALS] Analyst: ${symbol} COMPLETE - Fetch: ${fetchTime.toFixed(0)}ms, Calc: ${calcTime.toFixed(0)}ms, Total: ${(fetchTime + calcTime).toFixed(0)}ms`);
             }
         } catch (e) {
             // Log the actual error to understand what's failing
@@ -166,7 +209,7 @@ export function calculateAnalysisMetrics(
     const ema200Dec = safeDec(ema200);
 
     // Use safe comparison
-    const trend4h = priceDec.greaterThan(ema200Dec) ? "bullish" : "bearish";
+    const trend4h: SymbolAnalysis["trend4h"] = priceDec.greaterThan(ema200Dec) ? "bullish" : "bearish";
 
     const rsiDec = safeDec(rsiValue || 50);
     const rsi1h = rsiDec.toNumber();

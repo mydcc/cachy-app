@@ -22,10 +22,12 @@ class AnalysisManager {
     results = $state<Record<string, SymbolAnalysis>>({});
     isAnalyzing = $state(false);
     lastUpdate = $state(0);
+    lastAnalysisTime = $state(0);
 
     updateAnalysis(symbol: string, data: SymbolAnalysis) {
         this.results[symbol] = data;
         this.lastUpdate = Date.now();
+        this.lastAnalysisTime = Date.now();
     }
 
     get sortedByScore() {

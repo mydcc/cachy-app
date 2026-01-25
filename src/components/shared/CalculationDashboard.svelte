@@ -1,0 +1,534 @@
+<!--
+  Calculation Dashboard
+  Live monitoring of analysis cycles, cache usage, and performance metrics
+-->
+
+<script lang="ts">
+    import { settingsState } from "../../stores/settings.svelte";
+    import { analysisState } from "../../stores/analysis.svelte";
+
+    let currentTime = $state(Date.now());
+    let nextCycleIn = $state(0);
+    let cycleProgress = $state(0); // 0-100%
+
+    // Update every 1 second
+    $effect(() => {
+        const interval = setInterval(() => {
+            currentTime = Date.now();
+        }, 1000);
+        return () => clearInterval(interval);
+    });
+
+    // Calculate next cycle time
+    $effect(() => {
+        if (analysisState.lastAnalysisTime > 0) {
+            const interval = settingsState.marketAnalysisInterval * 1000;
+            const nextCycle = analysisState.lastAnalysisTime + interval;
+            nextCycleIn = Math.max(0, nextCycle - currentTime);
+            cycleProgress = Math.min(
+                100,
+                ((interval - nextCycleIn) / interval) * 100,
+            );
+        }
+    });
+
+    function formatTime(ms: number): string {
+        const seconds = Math.floor(ms / 1000);
+        if (seconds < 60) return `${seconds}s`;
+        const minutes = Math.floor(seconds / 60);
+        if (minutes < 60) return `${minutes}m ${seconds % 60}s`;
+        const hours = Math.floor(minutes / 60);
+        return `${hours}h ${minutes % 60}m`;
+    }
+
+    function getHealthStatus(): "good" | "warning" | "critical" {
+        const analyzed = Object.keys(analysisState.results).length;
+        const cacheUsage = analyzed / settingsState.marketCacheSize;
+
+        if (cacheUsage > 0.9) return "critical";
+        if (cacheUsage > 0.7) return "warning";
+        return "good";
+    }
+
+    function getMemoryEstimate(): number {
+        // Rough estimate: ~50KB per analyzed symbol + base overhead
+        const analyzed = Object.keys(analysisState.results).length;
+        return (analyzed * 50 + 100) / 1024; // in MB
+    }
+</script>
+
+<div class="calculation-dashboard">
+    <!-- Status Overview -->
+    <section class="status-overview">
+        <h3>Live Analysis Status</h3>
+
+        <div class="status-grid">
+            <!-- Cycle Status -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-label">Next Cycle In</span>
+                    <span
+                        class="status-indicator {analysisState.isAnalyzing
+                            ? 'active'
+                            : ''}"
+                    >
+                        {analysisState.isAnalyzing
+                            ? "🔄 Analyzing"
+                            : "⏱️ Waiting"}
+                    </span>
+                </div>
+                <div class="card-value">{formatTime(nextCycleIn)}</div>
+                <div class="progress-bar">
+                    <div
+                        class="progress-fill"
+                        style="width: {cycleProgress}%"
+                    ></div>
+                </div>
+                <p class="card-desc">
+                    Interval: {settingsState.marketAnalysisInterval}s
+                </p>
+            </div>
+
+            <!-- Cache Usage -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-label">Cache Usage</span>
+                    <span class="status-indicator {getHealthStatus()}">
+                        {#if getHealthStatus() === "critical"}
+                            🔴 Critical
+                        {:else if getHealthStatus() === "warning"}
+                            🟡 Warning
+                        {:else}
+                            🟢 Healthy
+                        {/if}
+                    </span>
+                </div>
+                <div class="card-value">
+                    {Object.keys(analysisState.results).length} / {settingsState.marketCacheSize}
+                </div>
+                <div class="progress-bar">
+                    <div
+                        class="progress-fill {getHealthStatus()}"
+                        style="width: {(Object.keys(analysisState.results)
+                            .length /
+                            settingsState.marketCacheSize) *
+                            100}%"
+                    ></div>
+                </div>
+                <p class="card-desc">Symbols in memory</p>
+            </div>
+
+            <!-- Estimated Memory -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-label">Est. Memory</span>
+                    <span class="card-value-small"
+                        >{getMemoryEstimate().toFixed(1)} MB</span
+                    >
+                </div>
+                <div class="memory-bar">
+                    <div
+                        class="memory-fill"
+                        style="width: {Math.min(
+                            100,
+                            (getMemoryEstimate() / 50) * 100,
+                        )}%"
+                    ></div>
+                </div>
+                <p class="card-desc">Rough estimate for analysis data</p>
+            </div>
+
+            <!-- Performance Profile -->
+            <div class="status-card">
+                <div class="card-header">
+                    <span class="card-label">Profile</span>
+                    <span class="profile-badge">
+                        {#if settingsState.marketAnalysisInterval === 300}
+                            💡 Light
+                        {:else if settingsState.marketAnalysisInterval === 60}
+                            ⚖️ Balanced
+                        {:else if settingsState.marketAnalysisInterval === 10}
+                            ⚡ Pro
+                        {:else}
+                            🔧 Custom
+                        {/if}
+                    </span>
+                </div>
+                <div class="card-value-small">
+                    {settingsState.analyzeAllFavorites
+                        ? "All Favorites"
+                        : "Top 4"}
+                </div>
+                <p class="card-desc">Active configuration</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Current Symbols Being Tracked -->
+    <section class="tracked-symbols">
+        <h3>Currently Analyzing</h3>
+
+        {#if Object.keys(analysisState.results).length === 0}
+            <p class="empty-state">
+                No symbols analyzed yet. Add favorites to get started.
+            </p>
+        {:else}
+            <div class="symbols-list">
+                {#each Object.entries(analysisState.results)
+                    .slice(0, 8)
+                    .sort(([, a], [, b]) => (b.updatedAt || 0) - (a.updatedAt || 0)) as [symbol, data] (symbol)}
+                    <div class="symbol-item">
+                        <div class="symbol-name">{symbol}</div>
+                        <div class="symbol-info">
+                            <span class="info-tag">
+                                {#if data.updatedAt}
+                                    {formatTime(currentTime - data.updatedAt)} ago
+                                {:else}
+                                    Pending
+                                {/if}
+                            </span>
+                            {#if data.confluenceScore !== undefined}
+                                <span
+                                    class="info-tag score"
+                                    title="Confluence score"
+                                >
+                                    {data.confluenceScore.toFixed(0)}%
+                                </span>
+                            {/if}
+                            {#if data.condition}
+                                <span
+                                    class="info-tag condition"
+                                    class:trending={data.condition ===
+                                        "trending"}
+                                    class:overbought={data.condition ===
+                                        "overbought"}
+                                    class:oversold={data.condition ===
+                                        "oversold"}
+                                >
+                                    {data.condition}
+                                </span>
+                            {/if}
+                        </div>
+                    </div>
+                {/each}
+            </div>
+
+            {#if Object.keys(analysisState.results).length > 8}
+                <p class="more-text">
+                    +{Object.keys(analysisState.results).length - 8} more symbols...
+                </p>
+            {/if}
+        {/if}
+    </section>
+
+    <!-- Configuration Hints -->
+    <section class="hints">
+        <h3>⚡ Quick Tips</h3>
+        <div class="hints-list">
+            {#if settingsState.marketAnalysisInterval < 20}
+                <div class="hint warning">
+                    <strong>High frequency:</strong> Analysis runs every {settingsState.marketAnalysisInterval}s.
+                    Consider Light or Balanced profile if CPU is high.
+                </div>
+            {/if}
+
+            {#if settingsState.analyzeAllFavorites && settingsState.favoriteSymbols.length > 10}
+                <div class="hint warning">
+                    <strong>Many favorites:</strong> Analyzing {settingsState
+                        .favoriteSymbols.length} symbols can increase CPU. Consider
+                    Light profile or disable "Analyze All Favorites".
+                </div>
+            {/if}
+
+            {#if Object.keys(analysisState.results).length / settingsState.marketCacheSize > 0.85}
+                <div class="hint critical">
+                    <strong>Cache nearly full:</strong> Consider increasing cache
+                    size or disabling analysis.
+                </div>
+            {/if}
+
+            {#if !settingsState.pauseAnalysisOnBlur}
+                <div class="hint info">
+                    <strong>Smart pause disabled:</strong> Analysis will continue
+                    even when browser is inactive.
+                </div>
+            {/if}
+
+            {#if getHealthStatus() === "good"}
+                <div class="hint good">
+                    <strong>✓ All systems normal:</strong> Configuration is optimal
+                    for current load.
+                </div>
+            {/if}
+        </div>
+    </section>
+</div>
+
+<style>
+    .calculation-dashboard {
+        display: flex;
+        flex-direction: column;
+        gap: 2rem;
+        padding: 1.5rem;
+    }
+
+    section {
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    h3 {
+        font-size: 1.1rem;
+        font-weight: 600;
+        margin: 0;
+        color: var(--text-primary);
+    }
+
+    /* Status Grid */
+    .status-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1rem;
+    }
+
+    .status-card {
+        padding: 1rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .card-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .card-label {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        font-weight: 500;
+    }
+
+    .status-indicator {
+        display: inline-flex;
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.4rem;
+        font-size: 0.75rem;
+        font-weight: 600;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+    }
+
+    .status-indicator.active {
+        background: #4caf50;
+        color: white;
+        animation: pulse 1s infinite;
+    }
+
+    @keyframes pulse {
+        0%,
+        100% {
+            opacity: 1;
+        }
+        50% {
+            opacity: 0.7;
+        }
+    }
+
+    .status-indicator.good {
+        background: #4caf50;
+        color: white;
+    }
+
+    .status-indicator.warning {
+        background: #ff9800;
+        color: white;
+    }
+
+    .status-indicator.critical {
+        background: #f44336;
+        color: white;
+    }
+
+    .card-value {
+        font-size: 1.75rem;
+        font-weight: 700;
+        color: var(--primary-color);
+    }
+
+    .card-value-small {
+        font-size: 1.1rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    .progress-bar {
+        height: 6px;
+        background: var(--bg-tertiary);
+        border-radius: 3px;
+        overflow: hidden;
+    }
+
+    .progress-fill {
+        height: 100%;
+        background: linear-gradient(90deg, #4caf50, #8bc34a);
+        transition: width 0.3s ease;
+    }
+
+    .progress-fill.warning {
+        background: linear-gradient(90deg, #ff9800, #ffc107);
+    }
+
+    .progress-fill.critical {
+        background: linear-gradient(90deg, #f44336, #e91e63);
+    }
+
+    .memory-bar {
+        height: 4px;
+        background: var(--bg-tertiary);
+        border-radius: 2px;
+        overflow: hidden;
+    }
+
+    .memory-fill {
+        height: 100%;
+        background: #2196f3;
+        transition: width 0.3s ease;
+    }
+
+    .card-desc {
+        font-size: 0.8rem;
+        color: var(--text-tertiary);
+        margin: 0;
+    }
+
+    .profile-badge {
+        font-size: 0.85rem;
+        font-weight: 600;
+        color: var(--primary-color);
+    }
+
+    /* Symbols List */
+    .symbols-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .symbol-item {
+        padding: 0.75rem;
+        background: var(--bg-secondary);
+        border: 1px solid var(--border-color);
+        border-radius: 0.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+
+    .symbol-name {
+        font-weight: 600;
+        color: var(--text-primary);
+        flex: 1;
+    }
+
+    .symbol-info {
+        display: flex;
+        gap: 0.5rem;
+        flex-wrap: wrap;
+    }
+
+    .info-tag {
+        padding: 0.25rem 0.5rem;
+        border-radius: 0.3rem;
+        font-size: 0.75rem;
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+        white-space: nowrap;
+    }
+
+    .info-tag.score {
+        background: #2196f3;
+        color: white;
+    }
+
+    .info-tag.condition {
+        background: var(--bg-tertiary);
+        color: var(--text-secondary);
+    }
+
+    .info-tag.condition.trending {
+        background: #4caf50;
+        color: white;
+    }
+
+    .info-tag.condition.overbought {
+        background: #f44336;
+        color: white;
+    }
+
+    .info-tag.condition.oversold {
+        background: #2196f3;
+        color: white;
+    }
+
+    .empty-state {
+        color: var(--text-secondary);
+        text-align: center;
+        padding: 1rem;
+    }
+
+    .more-text {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        text-align: center;
+        margin: 0;
+    }
+
+    /* Hints */
+    .hints-list {
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .hint {
+        padding: 0.75rem;
+        border-radius: 0.5rem;
+        border-left: 3px solid;
+        font-size: 0.85rem;
+        background: var(--bg-secondary);
+    }
+
+    .hint strong {
+        color: var(--text-primary);
+    }
+
+    .hint.info {
+        border-color: #2196f3;
+        background: rgba(33, 150, 243, 0.05);
+    }
+
+    .hint.warning {
+        border-color: #ff9800;
+        background: rgba(255, 152, 0, 0.05);
+        color: var(--text-primary);
+    }
+
+    .hint.critical {
+        border-color: #f44336;
+        background: rgba(244, 67, 54, 0.05);
+        color: var(--text-primary);
+    }
+
+    .hint.good {
+        border-color: #4caf50;
+        background: rgba(76, 175, 80, 0.05);
+        color: var(--text-primary);
+    }
+</style>

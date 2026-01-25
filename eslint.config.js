@@ -51,6 +51,8 @@ export default [
       ...js.configs.recommended.rules,
       ...tsPlugin.configs.recommended.rules,
       ...svelte.configs.recommended.rules,
+      // Allow function declarations inside Svelte script blocks
+      "no-inner-declarations": "off",
     },
   },
 

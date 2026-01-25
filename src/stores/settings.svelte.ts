@@ -120,6 +120,7 @@ export interface Settings {
   showMarketActivity: boolean;
   marketAnalysisInterval: number;
   pauseAnalysisOnBlur: boolean;
+  analysisTimeframes: string[]; // e.g. ["5m", "15m", "1h", "4h"]
   showMarketSentiment: boolean;
   showTechnicalsSummary: boolean;
   showTechnicalsConfluence: boolean;
@@ -172,6 +173,7 @@ const defaultSettings: Settings = {
   marketDataInterval: 10,
   marketAnalysisInterval: 60,
   pauseAnalysisOnBlur: true,
+  analysisTimeframes: ["1h", "4h"],
   autoUpdatePriceInput: true,
   autoFetchBalance: false,
   showSidebars: true,
@@ -394,6 +396,7 @@ class SettingsManager {
   showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
   marketAnalysisInterval = $state<number>(defaultSettings.marketAnalysisInterval);
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
+  analysisTimeframes = $state<string[]>(defaultSettings.analysisTimeframes);
   showSidebarActivity = $state<boolean>(defaultSettings.showSidebarActivity);
   get effectiveShowSidebarActivity() {
     return this.isPro && this.showSidebarActivity;
@@ -858,6 +861,7 @@ class SettingsManager {
       marketDataInterval: this.marketDataInterval,
       marketAnalysisInterval: this.marketAnalysisInterval,
       pauseAnalysisOnBlur: this.pauseAnalysisOnBlur,
+      analysisTimeframes: $state.snapshot(this.analysisTimeframes),
       autoUpdatePriceInput: this.autoUpdatePriceInput,
       autoFetchBalance: this.autoFetchBalance,
       showSidebars: this.showSidebars,

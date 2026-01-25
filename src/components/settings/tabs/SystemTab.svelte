@@ -2,8 +2,9 @@
     import { _ } from "../../../locales/i18n";
     import { settingsState } from "../../../stores/settings.svelte";
     import Toggle from "../../shared/Toggle.svelte";
-    import { modalState } from "../../../stores/modal.svelte";
     import { uiState } from "../../../stores/ui.svelte";
+    import CalculationSettings from "../CalculationSettings.svelte";
+    import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
 
     let { onBackup, onRestore, onReset } = $props<{
         onBackup: () => void;
@@ -27,6 +28,10 @@
         {
             id: "performance",
             label: $_("settings.system.performance") || "Performance",
+        },
+        {
+            id: "dashboard",
+            label: $_("settings.system.dashboard") || "Dashboard",
         },
         { id: "data", label: $_("settings.tabs.data") || "Data & Backup" },
         {
@@ -62,28 +67,10 @@
                     {$_("settings.system.performance") || "Performance"}
                 </h3>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <!-- Pause on Blur -->
-                    <div
-                        class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
-                    >
-                        <div>
-                            <div class="font-bold text-sm">
-                                {$_("settings.system.pauseApp") ||
-                                    "Pause in Background"}
-                            </div>
-                            <div
-                                class="text-[10px] text-[var(--text-secondary)]"
-                            >
-                                {$_("settings.system.pauseAppDesc") ||
-                                    "Stops heavy tasks when tab is not active."}
-                            </div>
-                        </div>
-                        <Toggle
-                            bind:checked={settingsState.pauseAnalysisOnBlur}
-                        />
-                    </div>
+                <!-- Calculation Settings Component -->
+                <CalculationSettings />
 
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                     <!-- Network Logs -->
                     <div
                         class="action-card flex items-center justify-between p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
@@ -191,6 +178,13 @@
                         bind:checked={settingsState.forceEnglishTechnicalTerms}
                     />
                 </label>
+            </section>
+        {/if}
+
+        <!-- Dashboard Tab -->
+        {#if activeSubTab === "dashboard"}
+            <section class="settings-section animate-fade-in">
+                <CalculationDashboard />
             </section>
         {/if}
 
