@@ -95,8 +95,8 @@ export const app = {
       tradeState.update((s) => ({
         ...s,
         symbol: "BTCUSDT",
-        entryPrice: 88480.2, // User screenshot value
-        atrValue: 45.5,
+        entryPrice: "88480.2", // User screenshot value
+        atrValue: "45.5",
         atrMultiplier: 1.2,
         useAtrSl: true,
         atrMode: "auto",
@@ -212,7 +212,7 @@ export const app = {
           app.currentMarketPrice = marketData.lastPrice;
 
           if (settings.autoUpdatePriceInput) {
-            const newPrice = new Decimal(marketData.lastPrice).toNumber();
+            const newPrice = new Decimal(marketData.lastPrice).toString();
             if (state.entryPrice !== newPrice) {
               tradeState.update((s) => ({ ...s, entryPrice: newPrice }));
             }
@@ -381,10 +381,15 @@ export const app = {
     );
     const p = presets[name];
     if (p) {
+      // Ensure strings for legacy presets
+      if (typeof p.entryPrice === 'number') p.entryPrice = String(p.entryPrice);
+      if (typeof p.stopLossPrice === 'number') p.stopLossPrice = String(p.stopLossPrice);
+      if (typeof p.riskAmount === 'number') p.riskAmount = String(p.riskAmount);
+
       tradeState.update((s) => ({
         ...s,
         ...p,
-        entryPrice: app.currentMarketPrice ? new Decimal(app.currentMarketPrice).toNumber() : s.entryPrice,
+        entryPrice: app.currentMarketPrice ? new Decimal(app.currentMarketPrice).toString() : s.entryPrice,
       }));
       if (p.useAtrSl) tradeState.atrMode = "auto";
       app.calculateAndDisplay();
@@ -456,7 +461,7 @@ export const app = {
       const priceVal = ticker.lastPrice;
 
       app.currentMarketPrice = priceVal;
-      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toNumber() }));
+      tradeState.update((s) => ({ ...s, entryPrice: new Decimal(priceVal).toString() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("Preis-Fetch fehlgeschlagen.");
@@ -494,7 +499,7 @@ export const app = {
             15,
           );
       const atr = calculator.calculateATR(klines);
-      tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(4).toNumber() }));
+      tradeState.update((s) => ({ ...s, atrValue: new Decimal(atr).toDP(20).toString() }));
       app.calculateAndDisplay();
     } catch (e) {
       if (!isAuto) uiState.showError("ATR-Fetch fehlgeschlagen.");

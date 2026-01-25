@@ -219,7 +219,7 @@ export class CalculatorService {
         tradeState.update((s) => ({
           ...s,
           riskPercentage: new Decimal(newRiskPercentage).toNumber(),
-          riskAmount: new Decimal(riskAmount).toNumber(),
+          riskAmount: new Decimal(riskAmount).toString(),
         }));
       }
       values.riskPercentage = newRiskPercentage;
@@ -238,11 +238,11 @@ export class CalculatorService {
       if (baseMetrics) {
         const finalMetrics = baseMetrics;
         const riskAmountDelta = Math.abs(
-          (currentTradeState.riskAmount || 0) -
+          Number(currentTradeState.riskAmount || 0) -
           new Decimal(finalMetrics.riskAmount).toNumber(),
         );
         if (riskAmountDelta > 0.000001) {
-          tradeState.riskAmount = new Decimal(finalMetrics.riskAmount).toNumber();
+          tradeState.riskAmount = new Decimal(finalMetrics.riskAmount).toString();
         }
       }
     }
@@ -346,9 +346,9 @@ export class CalculatorService {
     // to prevent hundreds of redundant events from reactive calculations
     onboardingService.trackFirstCalculation();
 
-    const newStopLoss = new Decimal(values.stopLossPrice).toNumber();
+    const newStopLoss = new Decimal(values.stopLossPrice).toString();
     const stopLossChange = Math.abs(
-      (currentTradeState.stopLossPrice || 0) - newStopLoss,
+      Number(currentTradeState.stopLossPrice || 0) - Number(newStopLoss),
     );
     const hasNoData = !currentTradeState.currentTradeData;
 

@@ -31,16 +31,17 @@
   import { modalState } from "../../stores/modal.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { app } from "../../services/app";
+  import { Decimal } from "decimal.js";
 
   const dispatch = createEventDispatcher();
 
   interface Props {
     symbol: string;
-    entryPrice: number | null;
+    entryPrice: string | null;
     useAtrSl: boolean;
-    atrValue: number | null;
-    atrMultiplier: number | null;
-    stopLossPrice: number | null;
+    atrValue: string | null;
+    atrMultiplier: number; // Multiplier kept as number (1.2 etc)
+    stopLossPrice: string | null;
     atrMode: "manual" | "auto";
     atrTimeframe: string;
     atrFormulaDisplay: string;
@@ -73,7 +74,7 @@
   let isSymbolFocused = $state(false);
   let selectedSuggestionIndex = $state(-1);
 
-  const format = (val: number | null) =>
+  const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
   // Local state for numeric inputs (Buffer to prevent "vanishing decimal" bug)
@@ -96,10 +97,18 @@
     const currentPrice = marketState.data[normSymbol]?.lastPrice;
 
     if (!localSymbol || !entryPrice || !currentPrice) return 0;
-    const market = currentPrice.toNumber();
-    if (market <= 0) return 0;
-    const dev = Math.abs((entryPrice - market) / market) * 100;
-    return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
+
+    try {
+        const entry = new Decimal(entryPrice);
+        const market = currentPrice; // Already Decimal
+
+        if (market.isZero() || entry.isNaN()) return 0;
+
+        const dev = entry.minus(market).div(market).abs().times(100).toNumber();
+        return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
+    } catch {
+        return 0;
+    }
   });
 
   // Sync local state when prop changes (e.g. from Preset or internal selection)
@@ -231,20 +240,26 @@
     }
   }
 
-  // Helper to parse input safely
-  function parseInputVal(val: string): number | null {
+  // Helper to safely treat input as string, ensuring it's valid numeric format
+  function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
-    const parsed = parseFloat(val);
-    return isNaN(parsed) ? null : parsed;
+    // Strict regex: optional digits, optional dot, optional digits.
+    // Matches: "123", "123.", ".123", "123.456"
+    // Does NOT match: "1.2.3", "abc", "123a"
+    if (/^\d*\.?\d*$/.test(val)) {
+        return val;
+    }
+    return undefined; // Invalid input
   }
 
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    localEntryPrice = value; // Update buffer
-    const num = parseInputVal(value);
-    if (entryPrice !== num) {
-      tradeState.update((s) => ({ ...s, entryPrice: num }));
+    localEntryPrice = value;
+
+    const validated = parseInputVal(value);
+    if (validated !== undefined && entryPrice !== validated) {
+      tradeState.update((s) => ({ ...s, entryPrice: validated }));
     }
   }
 
@@ -252,9 +267,10 @@
     const target = e.target as HTMLInputElement;
     const value = target.value;
     localAtrValue = value;
-    const num = parseInputVal(value);
-    if (atrValue !== num) {
-      tradeState.update((s) => ({ ...s, atrValue: num }));
+
+    const validated = parseInputVal(value);
+    if (validated !== undefined && atrValue !== validated) {
+      tradeState.update((s) => ({ ...s, atrValue: validated }));
     }
   }
 
@@ -262,9 +278,13 @@
     const target = e.target as HTMLInputElement;
     const value = target.value;
     localAtrMultiplier = value;
-    const num = parseInputVal(value);
-    if (atrMultiplier !== num) {
-      tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+
+    // Multiplier is still number in Store
+    if (/^\d*\.?\d*$/.test(value)) {
+        const num = value === "" ? 0 : parseFloat(value);
+        if (!isNaN(num) && atrMultiplier !== num) {
+            tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+        }
     }
   }
 
@@ -272,9 +292,10 @@
     const target = e.target as HTMLInputElement;
     const value = target.value;
     localStopLossPrice = value;
-    const num = parseInputVal(value);
-    if (stopLossPrice !== num) {
-      tradeState.update((s) => ({ ...s, stopLossPrice: num }));
+
+    const validated = parseInputVal(value);
+    if (validated !== undefined && stopLossPrice !== validated) {
+      tradeState.update((s) => ({ ...s, stopLossPrice: validated }));
     }
   }
 
@@ -290,9 +311,9 @@
 
   // Determine dynamic step based on price magnitude
   let priceStep = $derived(
-    entryPrice && entryPrice > 1000
+    entryPrice && parseFloat(entryPrice) > 1000
       ? 0.5
-      : entryPrice && entryPrice > 100
+      : entryPrice && parseFloat(entryPrice) > 100
         ? 0.1
         : 0.01,
   );
@@ -433,7 +454,7 @@
         id="entry-price-input"
         name="entryPrice"
         type="text"
-        use:numberInput={{ maxDecimalPlaces: 4 }}
+        use:numberInput={{ maxDecimalPlaces: 20 }}
         use:enhancedInput={{
           step: priceStep,
           min: 0,
@@ -541,7 +562,7 @@
           id="stop-loss-price-input"
           name="stopLossPrice"
           type="text"
-          use:numberInput={{ maxDecimalPlaces: 4 }}
+          use:numberInput={{ maxDecimalPlaces: 20 }}
           use:enhancedInput={{
             step: priceStep,
             min: 0,
@@ -564,7 +585,7 @@
               id="atr-value-input"
               name="atrValue"
               type="text"
-              use:numberInput={{ maxDecimalPlaces: 4 }}
+              use:numberInput={{ maxDecimalPlaces: 20 }}
               use:enhancedInput={{
                 step: 0.1,
                 min: 0,
@@ -643,7 +664,7 @@
                 id="atr-value-input-auto"
                 name="atrValueAuto"
                 type="text"
-                use:numberInput={{ maxDecimalPlaces: 4 }}
+                use:numberInput={{ maxDecimalPlaces: 20 }}
                 use:enhancedInput={{
                   step: 0.1,
                   min: 0,
