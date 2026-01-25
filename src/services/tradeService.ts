@@ -563,18 +563,32 @@ export class TradeExecutionService {
     const oppositeSide: OrderSide =
       params.positionSide === "long" ? "sell" : "buy";
 
-    // Safe Max Amount for "Close All": 100 Quintillion
-    // This ensures even high-supply tokens (e.g. PEPE ~420T) are fully closed
-    // without requiring an additional API call to fetch the position size.
-    // Exchanges typically accept this if ReduceOnly is set.
-    const SAFE_MAX_AMOUNT = new Decimal("100000000000000000000");
+    // Safe Max Amount strategy:
+    // 1. Try to get exact size from OMS
+    // 2. Fallback to 1 Quadrillion (1e15) which fits in int64 (max ~9e18)
+    //    100 Quintillion (1e20) would overflow standard backend integers.
+    let closeAmount: Decimal;
+
+    if (params.amount) {
+      closeAmount = params.amount;
+    } else {
+      const positions = omsService.getPositions();
+      const knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+      if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
+        closeAmount = knownPos.amount;
+        logger.log("market", `[ClosePosition] Using known OMS size: ${closeAmount}`);
+      } else {
+        closeAmount = new Decimal("1000000000000000"); // 1 Quadrillion
+        logger.log("market", `[ClosePosition] Size unknown, using safe max: ${closeAmount}`);
+      }
+    }
 
     // Use placeOrder with reduceOnly flag
     const orderParams: PlaceOrderParams = {
       symbol: params.symbol,
       side: oppositeSide,
       type: "market", // Market order for immediate close
-      amount: params.amount || SAFE_MAX_AMOUNT,
+      amount: closeAmount,
       reduceOnly: true, // CRITICAL: Prevents opening opposite position
     };
 

@@ -224,6 +224,9 @@ class MarketWatcher {
         stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
 
         setTimeout(() => {
+          // Zombie Guard: If polling was stopped in the meantime, abort
+          if (!this.pollingInterval) return;
+
           if (!this.fetchLocks.has(lockKey)) {
             this.pollSymbolChannel(symbol, channel, provider);
           }

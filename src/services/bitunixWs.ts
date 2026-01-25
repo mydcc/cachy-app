@@ -217,6 +217,10 @@ class BitunixWebSocketService {
 
   private shouldThrottle(key: string): boolean {
     const now = Date.now();
+    // Safety: Prevent map from growing indefinitely if user cycles symbols
+    if (this.throttleMap.size > 1000) {
+      this.throttleMap.clear();
+    }
     const last = this.throttleMap.get(key) || 0;
     if (now - last < this.UPDATE_INTERVAL) {
       return true;
@@ -697,79 +701,83 @@ class BitunixWebSocketService {
       // --- FAST PATH OPTIMIZATION ---
       // Check high-frequency messages (price, ticker, depth) BEFORE expensive Zod validation
       if (message && message.ch) {
+        const rawSymbol = message.symbol || "";
+        const symbol = normalizeSymbol(rawSymbol, "bitunix");
+        const data = message.data;
+
+        // Common guard for object data (price, ticker, kline) - Ensure strict object type
+        const isObjectData = data && typeof data === "object" && !Array.isArray(data);
+
         if (message.ch === "price") {
-          const rawSymbol = message.symbol || "";
-          const symbol = normalizeSymbol(rawSymbol, "bitunix");
-          const data = message.data as any;
-          // [FAST PATH GUARD] Ensure essential price fields exist
-          if (symbol && data && typeof data === "object" && !Array.isArray(data) && (data.lastPrice || data.lp || data.la || data.fr)) {
-            const normalized = mdaService.normalizeTicker(message, "bitunix");
-            if (!this.shouldThrottle(`${symbol}:price`)) {
-              marketState.updateSymbol(symbol, {
-                lastPrice: normalized.lastPrice,
-                fundingRate: data.fr,
-                nextFundingTime: data.nft ? String(data.nft) : undefined
-              });
-            }
+          if (symbol && isObjectData) {
+             const d = data as any;
+             if (d.lastPrice || d.lp || d.la || d.fr) {
+                const normalized = mdaService.normalizeTicker(message, "bitunix");
+                if (!this.shouldThrottle(`${symbol}:price`)) {
+                  marketState.updateSymbol(symbol, {
+                    lastPrice: normalized.lastPrice,
+                    fundingRate: d.fr,
+                    nextFundingTime: d.nft ? String(d.nft) : undefined
+                  });
+                }
+             }
           }
           return;
         }
 
         if (message.ch === "ticker") {
-          const rawSymbol = message.symbol || "";
-          const symbol = normalizeSymbol(rawSymbol, "bitunix");
-          const data = message.data as any;
-          // [FAST PATH GUARD] Check for volume or price fields
-          if (symbol && data && typeof data === "object" && !Array.isArray(data) && (data.volume || data.v || data.lastPrice || data.close)) {
-            const normalized = mdaService.normalizeTicker(message, "bitunix");
-            if (!this.shouldThrottle(`${symbol}:ticker`)) {
-              marketState.updateSymbol(symbol, {
-                lastPrice: normalized.lastPrice,
-                highPrice: normalized.high,
-                lowPrice: normalized.low,
-                volume: normalized.volume,
-                quoteVolume: normalized.quoteVolume,
-                priceChangePercent: normalized.priceChangePercent
-              });
+          if (symbol && isObjectData) {
+            const d = data as any;
+            if (d.volume || d.v || d.lastPrice || d.close) {
+              const normalized = mdaService.normalizeTicker(message, "bitunix");
+              if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                marketState.updateSymbol(symbol, {
+                  lastPrice: normalized.lastPrice,
+                  highPrice: normalized.high,
+                  lowPrice: normalized.low,
+                  volume: normalized.volume,
+                  quoteVolume: normalized.quoteVolume,
+                  priceChangePercent: normalized.priceChangePercent
+                });
+              }
             }
           }
           return;
         }
 
         if (message.ch === "depth_book5") {
-          const rawSymbol = message.symbol || "";
-          const symbol = normalizeSymbol(rawSymbol, "bitunix");
-          const data = message.data as any;
-          if (symbol && data && Array.isArray(data.b) && Array.isArray(data.a)) {
-            if (!this.shouldThrottle(`${symbol}:depth`)) {
-              marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
+          if (symbol && isObjectData) {
+            const d = data as any;
+            if (Array.isArray(d.b) && Array.isArray(d.a)) {
+              if (!this.shouldThrottle(`${symbol}:depth`)) {
+                marketState.updateDepth(symbol, { bids: d.b, asks: d.a });
+              }
             }
           }
           return;
         }
 
-        // Klines are also semi-frequent
+        // Klines
         if (message.ch.startsWith("market_kline_") || message.ch === "mark_kline_1day") {
-           const rawSymbol = message.symbol || "";
-           const symbol = normalizeSymbol(rawSymbol, "bitunix");
-           const data = message.data as any;
-           // [FAST PATH GUARD] Check for close or open price
-           if (symbol && data && (data.close || data.c || data.open || data.o)) {
-             let timeframe = "1h";
-             if (message.ch === "mark_kline_1day") timeframe = "1d";
-             else {
-               const match = message.ch.match(/market_kline_(.+)/);
-               if (match) {
-                 const bitunixTf = match[1];
-                 const revMap: Record<string, string> = {
-                   "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
-                   "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
-                 };
-                 timeframe = revMap[bitunixTf] || bitunixTf;
+           if (symbol && isObjectData) {
+             const d = data as any;
+             if (d.close || d.c || d.open || d.o) {
+               let timeframe = "1h";
+               if (message.ch === "mark_kline_1day") timeframe = "1d";
+               else {
+                 const match = message.ch.match(/market_kline_(.+)/);
+                 if (match) {
+                   const bitunixTf = match[1];
+                   const revMap: Record<string, string> = {
+                     "1min": "1m", "5min": "5m", "15min": "15m", "30min": "30m",
+                     "60min": "1h", "4h": "4h", "1day": "1d", "1week": "1w", "1month": "1M",
+                   };
+                   timeframe = revMap[bitunixTf] || bitunixTf;
+                 }
                }
+               const normalizedKlines = mdaService.normalizeKlines([d], "bitunix");
+               marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines);
              }
-             const normalizedKlines = mdaService.normalizeKlines([data], "bitunix");
-             marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines);
            }
            return;
         }

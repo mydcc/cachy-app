@@ -29,6 +29,7 @@ import type {
 } from "../../../types/bitget";
 import { formatApiNum } from "../../../utils/utils";
 import { OrderRequestSchema, type OrderRequestPayload } from "../../../types/orderSchemas";
+import { Decimal } from "decimal.js";
 
 // Centralized Error Messages for i18n/consistency
 const ORDER_ERRORS = {
@@ -106,7 +107,7 @@ export const POST: RequestHandler = async ({ request }) => {
       }
       else if (payload.type === "close-position") {
         const safeAmount = formatApiNum(payload.amount);
-        if (!safeAmount) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
+        if (!safeAmount || new Decimal(safeAmount).lte(0)) throw new Error(ORDER_ERRORS.INVALID_AMOUNT);
 
         const closeOrder: BitunixOrderPayload = {
           symbol: payload.symbol,
@@ -223,7 +224,7 @@ async function placeBitunixOrder(
   const path = "/api/v1/futures/trade/place_order";
 
   const safeQty = formatApiNum(orderData.qty);
-  if (!safeQty || isNaN(parseFloat(safeQty))) throw new Error(ORDER_ERRORS.INVALID_QTY);
+  if (!safeQty || new Decimal(safeQty).lte(0)) throw new Error(ORDER_ERRORS.INVALID_QTY);
 
   const payload: BitunixOrderPayload = {
     ...orderData,
@@ -232,9 +233,8 @@ async function placeBitunixOrder(
 
   const type = payload.type;
   if (type === "LIMIT" || type === "STOP_LIMIT" || type === "TAKE_PROFIT_LIMIT") {
-    if (!orderData.price) throw new Error(ORDER_ERRORS.PRICE_REQUIRED);
     const safePrice = formatApiNum(orderData.price);
-    if (!safePrice) throw new Error(ORDER_ERRORS.INVALID_PRICE);
+    if (!safePrice || new Decimal(safePrice).lte(0)) throw new Error(ORDER_ERRORS.INVALID_PRICE);
     payload.price = safePrice;
   }
 
@@ -313,17 +313,17 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     type: o.type,
     side: o.side,
     price: Number(o.price || "0"), // Precision: Use priceStr
-    priceStr: String(o.price || "0"),
+    priceStr: formatApiNum(o.price) || "0",
     amount: Number(o.qty || "0"), // Precision: Use amountStr
-    amountStr: String(o.qty || "0"),
+    amountStr: formatApiNum(o.qty) || "0",
     filled: Number(o.tradeQty || "0"),
-    filledStr: String(o.tradeQty || "0"),
+    filledStr: formatApiNum(o.tradeQty) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
     fee: parseFloat(o.fee || "0"),
-    feeStr: String(o.fee || "0"),
+    feeStr: formatApiNum(o.fee) || "0",
     realizedPNL: parseFloat(o.realizedPNL || "0"),
-    realizedPNLStr: String(o.realizedPNL || "0"),
+    realizedPNLStr: formatApiNum(o.realizedPNL) || "0",
   }));
 }
 
@@ -362,17 +362,17 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     type: o.type,
     side: o.side,
     price: Number(o.price || "0"),
-    priceStr: String(o.price || "0"),
+    priceStr: formatApiNum(o.price) || "0",
     amount: Number(o.qty || "0"),
-    amountStr: String(o.qty || "0"),
+    amountStr: formatApiNum(o.qty) || "0",
     filled: Number(o.tradeQty || "0"),
-    filledStr: String(o.tradeQty || "0"),
+    filledStr: formatApiNum(o.tradeQty) || "0",
     avgPrice: Number(o.avgPrice || o.averagePrice || "0"),
-    avgPriceStr: String(o.avgPrice || o.averagePrice || "0"),
+    avgPriceStr: formatApiNum(o.avgPrice || o.averagePrice) || "0",
     realizedPNL: Number(o.realizedPNL || "0"),
-    realizedPNLStr: String(o.realizedPNL || "0"),
+    realizedPNLStr: formatApiNum(o.realizedPNL) || "0",
     fee: Number(o.fee || "0"),
-    feeStr: String(o.fee || "0"),
+    feeStr: formatApiNum(o.fee) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
   }));
