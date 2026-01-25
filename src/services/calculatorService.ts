@@ -15,7 +15,7 @@ import type {
   IndividualTpResult,
   BaseMetrics,
 } from "../stores/types";
-import { tradeState, type TradeTarget } from "../stores/trade.svelte";
+import { tradeState, type TradeTarget, type TradeStateSnapshot } from "../stores/trade.svelte";
 import {
   resultsState,
   type ResultsState,
@@ -164,7 +164,7 @@ export class CalculatorService {
   }
 
   private performCalculation(
-    currentTradeState: any, // Typed as 'any' to avoid strict mapped type issues, referencing tradeState instance
+    currentTradeState: TradeStateSnapshot,
     values: TradeValues,
     newResults: ResultsState,
   ) {
@@ -374,7 +374,7 @@ export class CalculatorService {
   }
 
   private getAndValidateInputs(
-    currentTradeState: any, // using any/dynamic access to tradeState
+    currentTradeState: TradeStateSnapshot,
     newResults: ResultsState,
   ): {
     status: string;

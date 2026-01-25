@@ -32,6 +32,39 @@ export interface TradeTarget {
   isLocked: boolean;
 }
 
+export interface TradeStateSnapshot {
+  tradeType: string;
+  accountSize: number;
+  riskPercentage: number;
+  entryPrice: string | null;
+  stopLossPrice: string | null;
+  leverage: string | null;
+  fees: string | null;
+  symbol: string;
+  atrValue: string | null;
+  atrMultiplier: number;
+  useAtrSl: boolean;
+  atrMode: "auto" | "manual";
+  atrTimeframe: string;
+  analysisTimeframe: string;
+  tradeNotes: string;
+  tags: string[];
+  targets: TradeTarget[];
+  isPositionSizeLocked: boolean;
+  lockedPositionSize: Decimal | null;
+  isRiskAmountLocked: boolean;
+  riskAmount: string | null;
+  journalSearchQuery: string;
+  journalFilterStatus: string;
+  currentTradeData: Record<string, any> | null;
+  remoteLeverage: number | undefined;
+  remoteMarginMode: string | undefined;
+  remoteMakerFee: number | undefined;
+  remoteTakerFee: number | undefined;
+  feeMode: "maker_taker" | "flat";
+  exitFees: number | undefined;
+}
+
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
 
 // Define Zod Schema for TradeTarget
@@ -393,7 +426,7 @@ class TradeManager {
     }
   }
 
-  getSnapshot() {
+  getSnapshot(): TradeStateSnapshot {
     return {
       tradeType: this.tradeType,
       accountSize: this.accountSize,

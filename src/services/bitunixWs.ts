@@ -701,7 +701,8 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data && typeof data === "object" && !Array.isArray(data)) {
+          // [FAST PATH GUARD] Ensure essential price fields exist
+          if (symbol && data && typeof data === "object" && !Array.isArray(data) && (data.lastPrice || data.lp || data.la || data.fr)) {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:price`)) {
               marketState.updateSymbol(symbol, {
@@ -718,7 +719,8 @@ class BitunixWebSocketService {
           const rawSymbol = message.symbol || "";
           const symbol = normalizeSymbol(rawSymbol, "bitunix");
           const data = message.data as any;
-          if (symbol && data && typeof data === "object" && !Array.isArray(data)) {
+          // [FAST PATH GUARD] Check for volume or price fields
+          if (symbol && data && typeof data === "object" && !Array.isArray(data) && (data.volume || data.v || data.lastPrice || data.close)) {
             const normalized = mdaService.normalizeTicker(message, "bitunix");
             if (!this.shouldThrottle(`${symbol}:ticker`)) {
               marketState.updateSymbol(symbol, {
@@ -751,7 +753,8 @@ class BitunixWebSocketService {
            const rawSymbol = message.symbol || "";
            const symbol = normalizeSymbol(rawSymbol, "bitunix");
            const data = message.data as any;
-           if (symbol && data) {
+           // [FAST PATH GUARD] Check for close or open price
+           if (symbol && data && (data.close || data.c || data.open || data.o)) {
              let timeframe = "1h";
              if (message.ch === "mark_kline_1day") timeframe = "1d";
              else {

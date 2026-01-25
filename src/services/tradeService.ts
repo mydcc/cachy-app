@@ -563,12 +563,18 @@ export class TradeExecutionService {
     const oppositeSide: OrderSide =
       params.positionSide === "long" ? "sell" : "buy";
 
+    // Safe Max Amount for "Close All": 100 Quintillion
+    // This ensures even high-supply tokens (e.g. PEPE ~420T) are fully closed
+    // without requiring an additional API call to fetch the position size.
+    // Exchanges typically accept this if ReduceOnly is set.
+    const SAFE_MAX_AMOUNT = new Decimal("100000000000000000000");
+
     // Use placeOrder with reduceOnly flag
     const orderParams: PlaceOrderParams = {
       symbol: params.symbol,
       side: oppositeSide,
       type: "market", // Market order for immediate close
-      amount: params.amount || new Decimal(1_000_000_000_000), // Large amount (1T) = close entire position safely (even PEPE/SHIB)
+      amount: params.amount || SAFE_MAX_AMOUNT,
       reduceOnly: true, // CRITICAL: Prevents opening opposite position
     };
 
