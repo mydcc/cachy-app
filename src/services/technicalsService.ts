@@ -19,13 +19,33 @@ import {
 export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
-// Cache for indicator calculations
+// Cache for indicator calculations - AGGRESSIVE LRU eviction
 const calculationCache = new Map<string, TechnicalsResultCacheEntry>();
-const MAX_CACHE_SIZE = 20;
+const MAX_CACHE_SIZE = 5; // Reduced from 20 to 5 (per symbol, not global)
+const CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface TechnicalsResultCacheEntry {
   data: TechnicalsData;
   timestamp: number;
+  lastAccessed: number; // Track LRU
+}
+
+// Cleanup cache entries older than TTL
+function cleanupStaleCache() {
+  const now = Date.now();
+  const staleKeys: string[] = [];
+
+  calculationCache.forEach((entry, key) => {
+    if (now - entry.timestamp > CACHE_TTL_MS) {
+      staleKeys.push(key);
+    }
+  });
+
+  staleKeys.forEach(key => calculationCache.delete(key));
+
+  if (import.meta.env.DEV && staleKeys.length > 0) {
+    console.log(`[Technicals] Cleaned ${staleKeys.length} stale cache entries`);
+  }
 }
 
 // --- Worker Manager (Singleton) ---
@@ -134,18 +154,21 @@ export const technicalsService = {
   ): Promise<TechnicalsData> {
     if (klinesInput.length === 0) return this.getEmptyData();
 
-    // 0. Cache Check
+    // Cleanup stale cache every call
+    cleanupStaleCache();
+
+    // 0. Cache Check - Use ONLY the LAST kline for cache key (not all klines!)
+    // This prevents cache explosion from incremental data
     const lastKline = klinesInput[klinesInput.length - 1];
-    const lastPrice = lastKline.close?.toString() || "0";
-    const cacheKey = `${klinesInput.length}-${lastKline.time}-${lastPrice}-${JSON.stringify(
-      settings,
-    )}`;
+    const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
+
     const cached = calculationCache.get(cacheKey);
     if (cached) {
+      cached.lastAccessed = Date.now();
       return cached.data;
     }
 
-    // 1. Try Walker (Singleton)
+    // 1. Try Worker (Singleton)
     try {
       const serializedKlines = klinesInput.map(k => ({
         ...k,
@@ -165,12 +188,32 @@ export const technicalsService = {
       // 2. Rehydrate Decimals (Worker returns POJOs)
       const rehydrated = this.rehydrateDecimals(result);
 
-      // Cache result
+      // Cache result with aggressive eviction
       if (calculationCache.size >= MAX_CACHE_SIZE) {
-        const firstKey = calculationCache.keys().next().value;
-        if (firstKey) calculationCache.delete(firstKey);
+        // Find oldest entry by lastAccessed time
+        let oldestKey: string | null = null;
+        let oldestTime = Infinity;
+
+        calculationCache.forEach((entry, key) => {
+          const accessTime = entry.lastAccessed || entry.timestamp;
+          if (accessTime < oldestTime) {
+            oldestTime = accessTime;
+            oldestKey = key;
+          }
+        });
+
+        if (oldestKey) {
+          calculationCache.delete(oldestKey);
+          if (import.meta.env.DEV) {
+            console.log('[Technicals] Evicted LRU cache entry');
+          }
+        }
       }
-      calculationCache.set(cacheKey, { data: rehydrated, timestamp: Date.now() });
+      calculationCache.set(cacheKey, {
+        data: rehydrated,
+        timestamp: Date.now(),
+        lastAccessed: Date.now()
+      });
 
       return rehydrated;
     } catch (e) {
@@ -194,10 +237,7 @@ export const technicalsService = {
     const klines: Kline[] = [];
     let prevClose = new Decimal(0);
     const lastKline = klinesInput[klinesInput.length - 1];
-    const lastPrice = lastKline.close?.toString() || "0";
-    const cacheKey = `${klinesInput.length}-${lastKline.time}-${lastPrice}-${JSON.stringify(
-      settings,
-    )}`;
+    const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
 
     const toDec = (
       val: any,
@@ -229,12 +269,28 @@ export const technicalsService = {
     // Use Shared Calculator
     const result = calculateAllIndicators(klines, settings);
 
-    // Store in cache
+    // Store in cache with aggressive eviction
     if (calculationCache.size >= MAX_CACHE_SIZE) {
-      const firstKey = calculationCache.keys().next().value;
-      if (firstKey) calculationCache.delete(firstKey);
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
+
+      calculationCache.forEach((entry, key) => {
+        const accessTime = entry.lastAccessed || entry.timestamp;
+        if (accessTime < oldestTime) {
+          oldestTime = accessTime;
+          oldestKey = key;
+        }
+      });
+
+      if (oldestKey) {
+        calculationCache.delete(oldestKey);
+      }
     }
-    calculationCache.set(cacheKey, { data: result, timestamp: Date.now() });
+    calculationCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now(),
+      lastAccessed: Date.now()
+    });
 
     return result;
   },
