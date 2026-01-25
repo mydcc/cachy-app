@@ -75,7 +75,7 @@ class MarketAnalystService {
             }
 
             analysisState.isAnalyzing = true;
-            logger.log("technicals", `Analyst: Processing ${symbol}...`);
+            console.log(`[TECHNICALS] Analyst: Processing ${symbol}... (Started)`);
 
             const provider = settingsState.apiProvider;
 
@@ -85,14 +85,20 @@ class MarketAnalystService {
                 : apiService.fetchBitunixKlines(symbol, "1h", 200, undefined, undefined, "normal"));
 
             if (!klines || klines.length < 50) throw new Error("MIN_DATA_REQUIRED");
+            console.log(`[TECHNICALS] Analyst: ${symbol} 1h klines fetched (${klines.length} candles)`);
 
             const klines4h = await (provider === "bitget"
                 ? apiService.fetchBitgetKlines(symbol, "4h", 100, undefined, undefined, "normal")
                 : apiService.fetchBitunixKlines(symbol, "4h", 100, undefined, undefined, "normal"));
 
+            console.log(`[TECHNICALS] Analyst: ${symbol} 4h klines fetched (${klines4h.length} candles)`);
+
             // Offload to worker via technicalsService
+            console.log(`[TECHNICALS] Analyst: ${symbol} Starting technicals calc...`);
             const tech1h = await technicalsService.calculateTechnicals(klines, indicatorState);
+            console.log(`[TECHNICALS] Analyst: ${symbol} 1h technicals done`);
             const tech4h = await technicalsService.calculateTechnicals(klines4h, indicatorState);
+            console.log(`[TECHNICALS] Analyst: ${symbol} 4h technicals done`);
 
             if (tech1h && tech4h) {
                 const lastKline = klines[klines.length - 1];
@@ -115,11 +121,15 @@ class MarketAnalystService {
                 });
             }
         } catch (e) {
-            // Silently handle analysis errors to keep the loop alive
+            // Log the actual error to understand what's failing
+            const errorMsg = e instanceof Error ? e.message : String(e);
+            console.error(`[TECHNICALS] Analyst: ERROR for ${symbol}:`, errorMsg);
+            logger.log("general", `Market Analyst error for ${symbol}: ${errorMsg}`);
         } finally {
             analysisState.isAnalyzing = false;
             const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
             const finalDelay = isHidden ? baseDelay * 2 : baseDelay;
+            console.log(`[TECHNICALS] Analyst: Scheduling next cycle in ${finalDelay}ms`);
             this.timeoutId = setTimeout(() => this.processNext(), finalDelay);
         }
     }
