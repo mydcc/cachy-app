@@ -123,7 +123,6 @@ function shouldFetchNews(symbol: string | undefined): boolean {
   const cached = safeReadCache<NewsCacheEntry>(cacheKey);
 
   if (!cached) {
-    console.log(`[shouldFetchNews] No cache for ${symbolKey}`);
     return true;
   }
 
@@ -132,13 +131,11 @@ function shouldFetchNews(symbol: string | undefined): boolean {
 
   // Bedingung 1: Cache älter als 24h
   if (ageMs > MAX_NEWS_AGE_MS) {
-    console.log(`[shouldFetchNews] Cache expired for ${symbolKey} (${Math.round(ageMs / 1000 / 60)}min old)`);
     return true;
   }
 
   // Bedingung 2: Weniger als MIN_NEWS_PER_COIN News
   if (cached.items.length < MIN_NEWS_PER_COIN) {
-    console.log(`[shouldFetchNews] Insufficient news for ${symbolKey} (${cached.items.length}/${MIN_NEWS_PER_COIN})`);
     return true;
   }
 
@@ -147,12 +144,10 @@ function shouldFetchNews(symbol: string | undefined): boolean {
     const oldestNews = cached.items[cached.items.length - 1];
     const oldestNewsAge = now - new Date(oldestNews.published_at).getTime();
     if (oldestNewsAge > MAX_NEWS_AGE_MS) {
-      console.log(`[shouldFetchNews] Oldest news too old for ${symbolKey} (${Math.round(oldestNewsAge / 1000 / 60 / 60)}h)`);
       return true;
     }
   }
 
-  console.log(`[shouldFetchNews] Cache valid for ${symbolKey} (${cached.items.length} items, ${Math.round(ageMs / 1000 / 60)}min old)`);
   return false;
 }
 
@@ -179,7 +174,6 @@ function pruneOldCaches() {
       const toDelete = sorted.slice(0, keys.length - MAX_SYMBOLS_CACHED);
       toDelete.forEach(x => {
         localStorage.removeItem(x.key);
-        console.log(`[pruneOldCaches] Removed old cache: ${x.key}`);
       });
     }
   } catch (e) {
@@ -202,7 +196,6 @@ export const newsService = {
 
     // Check if a request for this symbol is already in progress
     if (pendingNewsFetches.has(symbolKey)) {
-      console.log(`[fetchNews] Deduplicating request for ${symbolKey}`);
       return pendingNewsFetches.get(symbolKey)!;
     }
 
@@ -211,7 +204,6 @@ export const newsService = {
         // 1. Cache-Validierung mit intelligenter Logik
         const cached = safeReadCache<NewsCacheEntry>(cacheKey);
         if (cached && !shouldFetchNews(symbol)) {
-          console.log(`[fetchNews] Using cached news for ${symbolKey} (${cached.items.length} items)`);
           return cached.items;
         }
 
@@ -263,7 +255,6 @@ export const newsService = {
                 id: generateNewsId({ title: item.title, url: item.url, source: "", published_at: "" }),
               }));
               apiQuotaTracker.logCall("cryptopanic", true);
-              console.log(`[fetchNews] CryptoPanic returned ${newsItems.length} items for ${symbolKey}`);
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("cryptopanic", false, `${res.status}: ${errorText}`);
@@ -308,7 +299,6 @@ export const newsService = {
               }));
               newsItems = [...newsItems, ...mapped];
               apiQuotaTracker.logCall("newsapi", true);
-              console.log(`[fetchNews] NewsAPI returned ${mapped.length} items`);
             } else {
               const errorText = await res.text();
               apiQuotaTracker.logCall("newsapi", false, `${res.status}: ${errorText}`);
@@ -386,7 +376,6 @@ export const newsService = {
         // Bereinige alte Caches
         pruneOldCaches();
 
-        console.log(`[fetchNews] Cached ${newsItems.length} news items for ${symbolKey}`);
         return newsItems;
       } finally {
         pendingNewsFetches.delete(symbolKey);

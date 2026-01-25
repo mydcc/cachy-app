@@ -129,31 +129,25 @@ export const apiQuotaTracker = {
                 quota[key].last429At = null;
                 quota[key].resetDate = getNextMonthStart();
                 hasChanges = true;
-                console.log(`[apiQuotaTracker] Reset quota for ${key}`);
-            }
-        });
 
-        if (hasChanges) {
-            safeWriteCache(QUOTA_STORAGE_KEY, quota);
-        }
-    },
-
-    /**
-     * Manueller Reset (für Tests/Admin)
-     */
-    manualReset(provider?: "cryptopanic" | "newsapi") {
-        if (provider) {
-            const quota = safeReadCache<Record<string, QuotaEntry>>(QUOTA_STORAGE_KEY) || {};
-            if (quota[provider]) {
-                quota[provider].totalCalls = 0;
-                quota[provider].failedCalls = 0;
-                quota[provider].lastError = null;
-                quota[provider].last429At = null;
                 safeWriteCache(QUOTA_STORAGE_KEY, quota);
             }
-        } else {
-            localStorage.removeItem(QUOTA_STORAGE_KEY);
-        }
-        console.log(`[apiQuotaTracker] Manual reset for ${provider || "all"}`);
-    },
-};
+        },
+
+            /**
+             * Manueller Reset (für Tests/Admin)
+             */
+            manualReset(provider ?: "cryptopanic" | "newsapi") {
+            if(provider) {
+                const quota = safeReadCache<Record<string, QuotaEntry>>(QUOTA_STORAGE_KEY) || {};
+                if (quota[provider]) {
+                    quota[provider].totalCalls = 0;
+                    quota[provider].failedCalls = 0;
+                    quota[provider].lastError = null;
+                    quota[provider].last429At = null;
+                    safeWriteCache(QUOTA_STORAGE_KEY, quota);
+                }
+            } else {
+                localStorage.removeItem(QUOTA_STORAGE_KEY);
+            }
+
