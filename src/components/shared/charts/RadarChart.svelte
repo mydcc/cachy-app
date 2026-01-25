@@ -28,6 +28,7 @@
     RadarController,
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
+  import { throttle } from "lodash-es";
 
   // Register necessary components for Radar
   Chart.register(
@@ -133,12 +134,17 @@
     }
   });
 
-  $effect(() => {
+  // Throttled chart update (max 4 updates/sec)
+  const throttledChartUpdate = throttle(() => {
     if (chart) {
       chart.data = chartData;
       chart.options = options;
       chart.update();
     }
+  }, 250);
+
+  $effect(() => {
+    throttledChartUpdate();
   });
 </script>
 

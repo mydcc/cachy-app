@@ -25,6 +25,7 @@
     LinearScale,
   } from "chart.js";
   import Tooltip from "../Tooltip.svelte";
+  import { throttle } from "lodash-es";
 
   Chart.register(LinearScale, PointElement, ChartTooltip, Legend);
 
@@ -41,7 +42,7 @@
     title = "",
     xLabel = "",
     yLabel = "",
-    description = ""
+    description = "",
   }: Props = $props();
 
   let canvas: HTMLCanvasElement;
@@ -114,12 +115,17 @@
     }
   });
 
-  $effect(() => {
+  // Throttled chart update (max 4 updates/sec)
+  const throttledChartUpdate = throttle(() => {
     if (chart) {
       chart.data = data;
       chart.options = options;
       chart.update();
     }
+  }, 250);
+
+  $effect(() => {
+    throttledChartUpdate();
   });
 </script>
 

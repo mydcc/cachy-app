@@ -187,6 +187,8 @@ class MarketWatcher {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+    // Clear pending fetch locks to prevent memory leaks
+    this.fetchLocks.clear();
   }
 
   public resumePolling() {

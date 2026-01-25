@@ -20,6 +20,7 @@
   import { Chart } from "chart.js";
   import "../../../lib/chartSetup";
   import Tooltip from "../Tooltip.svelte";
+  import { throttle } from "lodash-es";
 
   interface Props {
     data: any;
@@ -34,7 +35,7 @@
     title = "",
     horizontal = false,
     description = "",
-    options = undefined
+    options = undefined,
   }: Props = $props();
 
   let canvas: HTMLCanvasElement;
@@ -71,12 +72,17 @@
     }
   });
 
-  $effect(() => {
+  // Throttled chart update (max 4 updates/sec)
+  const throttledChartUpdate = throttle(() => {
     if (chart) {
       chart.data = data;
       chart.options = options || defaultOptions;
       chart.update();
     }
+  }, 250);
+
+  $effect(() => {
+    throttledChartUpdate();
   });
 </script>
 

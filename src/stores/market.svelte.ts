@@ -89,10 +89,10 @@ class MarketManager {
         this.cleanup();
       }, 30 * 1000); // Check every 30s
 
-      // Batch flushing loop (10 FPS)
+      // Batch flushing loop (4 FPS for better CPU efficiency)
       this.flushIntervalId = setInterval(() => {
         this.flushUpdates();
-      }, 100);
+      }, 250);
 
       // Start metrics history recording (every 10s)
       /* TEMPORARILY DISABLED FOR CPU DEBUGGING
