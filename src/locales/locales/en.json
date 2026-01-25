@@ -112,7 +112,9 @@
       "header": "General",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverageLabel": "Leverage",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
+      "feesLabel": "Fees (%)",
       "feesPlaceholder": "Fees per Trade (%)"
     },
     "portfolioInputs": {

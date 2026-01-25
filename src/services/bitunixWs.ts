@@ -706,7 +706,8 @@ class BitunixWebSocketService {
         const data = message.data;
 
         // Common guard for object data (price, ticker, kline) - Ensure strict object type
-        const isObjectData = data && typeof data === "object" && !Array.isArray(data);
+        // SAFETY: Explicitly check for null because typeof null is 'object'
+        const isObjectData = data !== null && typeof data === "object" && !Array.isArray(data);
 
         if (message.ch === "price") {
           if (symbol && isObjectData) {

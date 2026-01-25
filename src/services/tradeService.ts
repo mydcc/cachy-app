@@ -476,8 +476,8 @@ export class TradeExecutionService {
       symbol: response.data!.symbol,
       side: response.data!.side.toLowerCase() as OrderSide,
       status: this.mapOrderStatus(response.data!.status),
-      price: new Decimal(response.data!.price),
-      amount: new Decimal(response.data!.qty),
+      price: new Decimal((response.data as any).priceStr || response.data!.price || 0),
+      amount: new Decimal((response.data as any).qtyStr || response.data!.qty || 0),
       timestamp: response.data!.createTime,
     };
   }
@@ -744,9 +744,10 @@ export class TradeExecutionService {
         side: o.side.toLowerCase() as any,
         type: o.orderType.toLowerCase() as any,
         status: this.mapOrderStatus(o.status) as any,
-        price: new Decimal(o.price),
-        amount: new Decimal(o.qty),
-        filledAmount: new Decimal(o.filledQty || 0),
+        // CRITICAL: Prioritize string fields for precision
+        price: new Decimal(o.priceStr || o.price || 0),
+        amount: new Decimal(o.qtyStr || o.amountStr || o.qty || 0),
+        filledAmount: new Decimal(o.filledQtyStr || o.filledStr || o.filledQty || 0),
         timestamp: o.createTime
       };
       omsService.updateOrder(omsOrder);
@@ -795,8 +796,8 @@ export class TradeExecutionService {
       symbol: response.data!.symbol,
       side: response.data!.side.toLowerCase() as OrderSide,
       status: this.mapOrderStatus(response.data!.status),
-      price: new Decimal(response.data!.price),
-      amount: new Decimal(response.data!.qty),
+      price: new Decimal((response.data as any).priceStr || response.data!.price || 0),
+      amount: new Decimal((response.data as any).qtyStr || response.data!.qty || 0),
       timestamp: response.data!.createTime,
     };
   }
@@ -828,9 +829,10 @@ export class TradeExecutionService {
         side: o.side.toLowerCase() as any,
         type: o.orderType.toLowerCase() as any,
         status: this.mapOrderStatus(o.status) as any,
-        price: new Decimal(o.price),
-        amount: new Decimal(o.qty),
-        filledAmount: new Decimal(o.filledQty || 0),
+        // CRITICAL: Prioritize string fields for precision
+        price: new Decimal(o.priceStr || o.price || 0),
+        amount: new Decimal(o.qtyStr || o.amountStr || o.qty || 0),
+        filledAmount: new Decimal(o.filledQtyStr || o.filledStr || o.filledQty || 0),
         timestamp: o.createTime
       };
       omsService.updateOrder(omsOrder);
