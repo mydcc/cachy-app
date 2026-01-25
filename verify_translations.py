@@ -4,9 +4,16 @@ Final verification and summary report
 """
 
 import json
+import sys
 from pathlib import Path
 
-PROJECT_ROOT = Path('/home/pat/Dokumente/GitHub/cachy-app')
+# Auto-detect project root or use provided path
+if len(sys.argv) > 1:
+    PROJECT_ROOT = Path(sys.argv[1]).resolve()
+else:
+    # Use script location to find project root
+    PROJECT_ROOT = Path(__file__).parent.resolve()
+
 DE_FILE = PROJECT_ROOT / 'src/locales/locales/de.json'
 EN_FILE = PROJECT_ROOT / 'src/locales/locales/en.json'
 

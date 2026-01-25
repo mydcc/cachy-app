@@ -1,0 +1,53 @@
+name: Translation Check
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  # Optional: Regelmäßige Prüfung
+  schedule:
+    # Jeden Tag um 9:00 UTC
+    - cron: '0 9 * * *'
+
+jobs:
+  check-translations:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.x'
+    
+    - name: Make scripts executable
+      run: chmod +x check_translations.sh verify_translations.py audit_translations.py
+    
+    - name: Run translation check
+      run: ./check_translations.sh
+      
+    - name: Generate detailed report on failure
+      if: failure()
+      run: |
+        echo "## Translation Audit Report" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo "Translation check failed. Here's the detailed report:" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+        python3 audit_translations.py . 2>&1 | head -100 >> $GITHUB_STEP_SUMMARY
+        echo '```' >> $GITHUB_STEP_SUMMARY
+    
+    - name: Comment on PR (on failure)
+      if: failure() && github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '⚠️ **Translation check failed!**\n\nPlease run `./audit_translations.py` locally to see detailed issues.'
+          })

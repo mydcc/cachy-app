@@ -11,11 +11,17 @@ Checks for:
 import json
 import os
 import re
+import sys
 from pathlib import Path
 from collections import defaultdict
 
-# Base paths
-PROJECT_ROOT = Path('/home/pat/Dokumente/GitHub/cachy-app')
+# Auto-detect project root or use provided path
+if len(sys.argv) > 1:
+    PROJECT_ROOT = Path(sys.argv[1]).resolve()
+else:
+    # Use script location to find project root
+    PROJECT_ROOT = Path(__file__).parent.resolve()
+
 SRC_DIR = PROJECT_ROOT / 'src'
 DE_TRANSLATIONS = SRC_DIR / 'locales/locales/de.json'
 EN_TRANSLATIONS = SRC_DIR / 'locales/locales/en.json'
