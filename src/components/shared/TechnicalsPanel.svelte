@@ -186,7 +186,7 @@
       </div>
 
       <!-- Status Dot -->
-      {#if isStale || loading}
+      {#if loading}
         <div
           class="animate-pulse w-2 h-2 bg-[var(--accent-color)] rounded-full"
         ></div>
