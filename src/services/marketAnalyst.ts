@@ -178,8 +178,8 @@ class MarketAnalystService {
     }
 }
 
-export const marketAnalyst = new MarketAnalystService();
-// export const marketAnalyst = null as any;
+// export const marketAnalyst = new MarketAnalystService();
+export const marketAnalyst = { start: () => { }, stop: () => { } } as any;
 
 export function calculateAnalysisMetrics(
     lastClose: Decimal.Value | null | undefined,

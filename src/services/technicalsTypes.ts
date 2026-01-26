@@ -116,6 +116,7 @@ export interface TechnicalsData {
       rows: { priceStart: Decimal; priceEnd: Decimal; volume: Decimal }[];
     };
   };
+  lastUpdated?: number;
 }
 
 export interface SerializedIndicatorResult {

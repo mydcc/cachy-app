@@ -185,12 +185,25 @@
         </div>
       </div>
 
-      <!-- Status Dot -->
-      {#if loading}
-        <div
-          class="animate-pulse w-2 h-2 bg-[var(--accent-color)] rounded-full"
-        ></div>
-      {/if}
+      <!-- Status Dot & Time -->
+      <div class="flex items-center gap-2">
+        {#if data?.lastUpdated}
+          <span class="text-[9px] text-[var(--text-tertiary)] font-mono">
+            {new Date().toLocaleTimeString()}
+          </span>
+        {/if}
+        {#if loading}
+          <div
+            class="animate-pulse w-2 h-2 bg-[var(--accent-color)] rounded-full"
+          ></div>
+        {:else}
+          <div
+            class="w-2 h-2 rounded-full {data
+              ? 'bg-green-500'
+              : 'bg-red-500'} opacity-50"
+          ></div>
+        {/if}
+      </div>
     </div>
 
     {#if loading && !data}

@@ -216,7 +216,16 @@ class ActiveTechnicalsManager {
         const settings = indicatorState; // Global indicator settings
 
         try {
+            if (import.meta.env.DEV) {
+                console.log(`[RT-TECH] Calcing ${key} | History: ${history.length} | Price: ${marketData.lastPrice}`);
+            }
             const result = await technicalsService.calculateTechnicals(this.historyCache.get(key) || [], settings);
+
+
+            // Inject timestamp
+            if (result) {
+                result.lastUpdated = Date.now();
+            }
 
             // Push result back to MarketState so UI can see it
             marketState.updateSymbol(symbol, { technicals: result });
