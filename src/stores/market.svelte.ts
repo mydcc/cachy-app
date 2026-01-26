@@ -250,7 +250,10 @@ class MarketManager {
     }
 
     if (partial.depth !== undefined) current.depth = partial.depth;
-    if (partial.technicals !== undefined) current.technicals = partial.technicals;
+    if (partial.technicals !== undefined) {
+      current.technicals = partial.technicals;
+      console.log(`[Market] Updated technicals for ${symbol}`);
+    }
   }
 
   updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {

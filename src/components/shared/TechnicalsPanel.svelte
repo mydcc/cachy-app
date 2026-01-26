@@ -189,7 +189,7 @@
       <div class="flex items-center gap-2">
         {#if data?.lastUpdated}
           <span class="text-[9px] text-[var(--text-tertiary)] font-mono">
-            {new Date().toLocaleTimeString()}
+            {new Date(data.lastUpdated).toLocaleTimeString()}
           </span>
         {/if}
         {#if loading}
