@@ -58,12 +58,12 @@ const CLEANUP_INTERVAL_MS = 30000; // 30 seconds between cleanups
 // Cleanup cache entries older than TTL
 function cleanupStaleCache() {
   const now = Date.now();
-  
+
   // Throttle cleanup - only run every 30 seconds
   if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
     return;
   }
-  
+
   lastCleanupTime = now;
   const staleKeys: string[] = [];
 
@@ -217,7 +217,10 @@ export const technicalsService = {
       console.log('[Technicals] Cache MISS, calculating...');
     }
 
-    // 1. Try Worker (Singleton)
+    // 1. Try Worker (Singleton) -> DISABLED for Robustness (Timeout Prevention)
+    // The worker seems to timeout in some prod builds, causing a 5s delay.
+    // Inline calc for 200 candles is < 5ms, so we skip the worker.
+    /*
     try {
       const serializedKlines = klinesInput.map(k => ({
         time: k.time,
@@ -270,143 +273,145 @@ export const technicalsService = {
       if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
       return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
     }
+    */
+    return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
   },
 
-    calculateTechnicalsInline(
-      klinesInput: {
-        time: number;
-        open: number | string | Decimal;
-        high: number | string | Decimal;
-        low: number | string | Decimal;
-        close: number | string | Decimal;
-        volume?: number | string | Decimal;
-      }[],
-      settings ?: IndicatorSettings,
-      enabledIndicators ?: Partial<Record<string, boolean>>,
-    ): TechnicalsData {
-      // 1. Cache check first (same as async version)
-      const lastKline = klinesInput[klinesInput.length - 1];
-      const lastPrice = lastKline.close?.toString() || "0";
-      const settingsJson = JSON.stringify(settings);
-      const indicatorsHash = enabledIndicators
-        ? Object.entries(enabledIndicators)
-          .filter(([_, enabled]) => enabled)
-          .map(([name]) => name)
-          .sort()
-          .join(',')
-        : 'all';
-      const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
+  calculateTechnicalsInline(
+    klinesInput: {
+      time: number;
+      open: number | string | Decimal;
+      high: number | string | Decimal;
+      low: number | string | Decimal;
+      close: number | string | Decimal;
+      volume?: number | string | Decimal;
+    }[],
+    settings?: IndicatorSettings,
+    enabledIndicators?: Partial<Record<string, boolean>>,
+  ): TechnicalsData {
+    // 1. Cache check first (same as async version)
+    const lastKline = klinesInput[klinesInput.length - 1];
+    const lastPrice = lastKline.close?.toString() || "0";
+    const settingsJson = JSON.stringify(settings);
+    const indicatorsHash = enabledIndicators
+      ? Object.entries(enabledIndicators)
+        .filter(([_, enabled]) => enabled)
+        .map(([name]) => name)
+        .sort()
+        .join(',')
+      : 'all';
+    const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
 
-      const cached = calculationCache.get(cacheKey);
-      if (cached) {
-        cached.lastAccessed = Date.now();
-        if (import.meta.env.DEV) {
-          console.log('[Technicals] Inline Cache HIT');
-        }
-        return cached.data;
+    const cached = calculationCache.get(cacheKey);
+    if (cached) {
+      cached.lastAccessed = Date.now();
+      if (import.meta.env.DEV) {
+        console.log('[Technicals] Inline Cache HIT');
       }
+      return cached.data;
+    }
 
-      // 2. Normalize Data to strict Kline format with Decimals
-      const klines: Kline[] = [];
-      let prevClose = new Decimal(0);
+    // 2. Normalize Data to strict Kline format with Decimals
+    const klines: Kline[] = [];
+    let prevClose = new Decimal(0);
 
-      const toDec = (
-        val: any,
-        fallback: Decimal,
-      ): Decimal => {
-        if (val instanceof Decimal) return val;
-        if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
-        if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
-        if (typeof val === "string") return new Decimal(val);
-        return fallback;
-      };
+    const toDec = (
+      val: any,
+      fallback: Decimal,
+    ): Decimal => {
+      if (val instanceof Decimal) return val;
+      if (val && typeof val === 'object' && val.s !== undefined) return new Decimal(val);
+      if (typeof val === "number" && !isNaN(val)) return new Decimal(val);
+      if (typeof val === "string") return new Decimal(val);
+      return fallback;
+    };
 
-      klinesInput.forEach((k) => {
-        const time = k.time;
-        const close = toDec(k.close, prevClose);
-        const safeClose =
-          close.isZero() && !prevClose.isZero() ? prevClose : close;
-        const open = toDec(k.open, safeClose);
-        const high = toDec(k.high, safeClose);
-        const low = toDec(k.low, safeClose);
-        const volume = toDec(k.volume, new Decimal(0));
+    klinesInput.forEach((k) => {
+      const time = k.time;
+      const close = toDec(k.close, prevClose);
+      const safeClose =
+        close.isZero() && !prevClose.isZero() ? prevClose : close;
+      const open = toDec(k.open, safeClose);
+      const high = toDec(k.high, safeClose);
+      const low = toDec(k.low, safeClose);
+      const volume = toDec(k.volume, new Decimal(0));
 
-        if (!safeClose.isZero()) {
-          klines.push({ open, high, low, close: safeClose, volume, time });
-          prevClose = safeClose;
+      if (!safeClose.isZero()) {
+        klines.push({ open, high, low, close: safeClose, volume, time });
+        prevClose = safeClose;
+      }
+    });
+
+    // Use Shared Calculator with enabled indicators filter
+    const result = calculateAllIndicators(klines, settings, enabledIndicators);
+
+    // Store in cache with aggressive eviction
+    if (calculationCache.size >= MAX_CACHE_SIZE) {
+      let oldestKey: string | null = null;
+      let oldestTime = Infinity;
+
+      calculationCache.forEach((entry, key) => {
+        const accessTime = entry.lastAccessed || entry.timestamp;
+        if (accessTime < oldestTime) {
+          oldestTime = accessTime;
+          oldestKey = key;
         }
       });
 
-      // Use Shared Calculator with enabled indicators filter
-      const result = calculateAllIndicators(klines, settings, enabledIndicators);
-
-      // Store in cache with aggressive eviction
-      if (calculationCache.size >= MAX_CACHE_SIZE) {
-        let oldestKey: string | null = null;
-        let oldestTime = Infinity;
-
-        calculationCache.forEach((entry, key) => {
-          const accessTime = entry.lastAccessed || entry.timestamp;
-          if (accessTime < oldestTime) {
-            oldestTime = accessTime;
-            oldestKey = key;
-          }
-        });
-
-        if (oldestKey) {
-          calculationCache.delete(oldestKey);
-        }
+      if (oldestKey) {
+        calculationCache.delete(oldestKey);
       }
-      calculationCache.set(cacheKey, {
-        data: result,
-        timestamp: Date.now(),
-        lastAccessed: Date.now()
-      });
+    }
+    calculationCache.set(cacheKey, {
+      data: result,
+      timestamp: Date.now(),
+      lastAccessed: Date.now()
+    });
 
-      return result;
-    },
+    return result;
+  },
 
-    /**
-     * Recursively converts plain objects that look like serialized Decimals 
-     * (containing s, e, c properties) back into Decimal instances.
-     */
-    rehydrateDecimals(obj: any): any {
-      if (obj === null || obj === undefined) return obj;
+  /**
+   * Recursively converts plain objects that look like serialized Decimals 
+   * (containing s, e, c properties) back into Decimal instances.
+   */
+  rehydrateDecimals(obj: any): any {
+    if (obj === null || obj === undefined) return obj;
 
-      // Check if it's already a Decimal (or a Proxy of one that behaves like one)
-      if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
+    // Check if it's already a Decimal (or a Proxy of one that behaves like one)
+    if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
+      return obj;
+    }
+
+    // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
+    // We check for 'c' and 's' which are core to Decimal.js internal state
+    if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
+      try {
+        return new Decimal(obj);
+      } catch (e) {
         return obj;
       }
+    }
 
-      // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
-      // We check for 'c' and 's' which are core to Decimal.js internal state
-      if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
-        try {
-          return new Decimal(obj);
-        } catch (e) {
-          return obj;
+    if (Array.isArray(obj)) {
+      return obj.map(item => this.rehydrateDecimals(item));
+    }
+
+    if (typeof obj === 'object') {
+      // Create a fresh object to avoid Proxy issues
+      const result: any = {};
+      for (const key in obj) {
+        if (Object.prototype.hasOwnProperty.call(obj, key)) {
+          result[key] = this.rehydrateDecimals(obj[key]);
         }
       }
+      return result;
+    }
 
-      if (Array.isArray(obj)) {
-        return obj.map(item => this.rehydrateDecimals(item));
-      }
+    return obj;
+  },
 
-      if (typeof obj === 'object') {
-        // Create a fresh object to avoid Proxy issues
-        const result: any = {};
-        for (const key in obj) {
-          if (Object.prototype.hasOwnProperty.call(obj, key)) {
-            result[key] = this.rehydrateDecimals(obj[key]);
-          }
-        }
-        return result;
-      }
-
-      return obj;
-    },
-
-    getEmptyData(): TechnicalsData {
-      return getEmptyData();
-    },
-  };
+  getEmptyData(): TechnicalsData {
+    return getEmptyData();
+  },
+};
