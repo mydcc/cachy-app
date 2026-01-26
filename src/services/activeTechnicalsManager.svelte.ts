@@ -75,7 +75,7 @@ class ActiveTechnicalsManager {
 
         // 1. Ensure Market Watcher provides the data
         marketWatcher.register(symbol, `kline_${timeframe}`);
-        marketWatcher.register(symbol, "price"); // Ensure we have latest price for real-time candle updates
+        marketWatcher.register(symbol, "ticker"); // Ensure we have latest price for real-time candle updates
 
         // 2. Start Reactive Effect
         // We use $effect.root because we are outside component context
@@ -125,7 +125,7 @@ class ActiveTechnicalsManager {
 
         // 3. Unregister from Market Watcher
         marketWatcher.unregister(symbol, `kline_${timeframe}`);
-        marketWatcher.unregister(symbol, "price");
+        marketWatcher.unregister(symbol, "ticker");
 
         if (import.meta.env.DEV) {
             logger.debug("technicals", `[ActiveManager] Stopped monitoring ${key}`);
@@ -216,9 +216,7 @@ class ActiveTechnicalsManager {
         const settings = indicatorState; // Global indicator settings
 
         try {
-            // if (import.meta.env.DEV) {
-            console.log(`[RT-TECH] Calcing ${key} | History: ${history.length} | Price: ${marketData.lastPrice}`);
-            // }
+            console.log(`[RT-TECH] Calcing ${key} | History: ${history.length} | Price: ${marketData.lastPrice?.toString()} | Close: ${history[history.length - 1].close?.toString()}`);
             const result = await technicalsService.calculateTechnicals(this.historyCache.get(key) || [], settings);
 
 
