@@ -50,9 +50,20 @@ interface TechnicalsResultCacheEntry {
   lastAccessed: number; // Track LRU
 }
 
+// Track last cleanup time to avoid excessive cleanup calls
+let lastCleanupTime = 0;
+const CLEANUP_INTERVAL_MS = 30000; // 30 seconds between cleanups
+
 // Cleanup cache entries older than TTL
 function cleanupStaleCache() {
   const now = Date.now();
+  
+  // Throttle cleanup - only run every 30 seconds
+  if (now - lastCleanupTime < CLEANUP_INTERVAL_MS) {
+    return;
+  }
+  
+  lastCleanupTime = now;
   const staleKeys: string[] = [];
 
   calculationCache.forEach((entry, key) => {
@@ -272,10 +283,10 @@ export const technicalsService = {
       settings ?: IndicatorSettings,
       enabledIndicators ?: Partial<Record<string, boolean>>,
     ): TechnicalsData {
-      // 1. Normalize Data to strict Kline format with Decimals
-      const klines: Kline[] = [];
-      let prevClose = new Decimal(0);
+      // 1. Cache check first (same as async version)
       const lastKline = klinesInput[klinesInput.length - 1];
+      const lastPrice = lastKline.close?.toString() || "0";
+      const settingsJson = JSON.stringify(settings);
       const indicatorsHash = enabledIndicators
         ? Object.entries(enabledIndicators)
           .filter(([_, enabled]) => enabled)
@@ -283,7 +294,20 @@ export const technicalsService = {
           .sort()
           .join(',')
         : 'all';
-      const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}-${indicatorsHash}`;
+      const cacheKey = `${lastKline.time}-${lastPrice}-${settingsJson}-${indicatorsHash}`;
+
+      const cached = calculationCache.get(cacheKey);
+      if (cached) {
+        cached.lastAccessed = Date.now();
+        if (import.meta.env.DEV) {
+          console.log('[Technicals] Inline Cache HIT');
+        }
+        return cached.data;
+      }
+
+      // 2. Normalize Data to strict Kline format with Decimals
+      const klines: Kline[] = [];
+      let prevClose = new Decimal(0);
 
       const toDec = (
         val: any,
