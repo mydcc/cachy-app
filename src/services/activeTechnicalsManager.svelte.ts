@@ -212,6 +212,12 @@ class ActiveTechnicalsManager {
             this.updateHistoryWithKline(key, lastKlineUpdate, timeframe, marketData.lastPrice);
         }
 
+        // FORCE SYNC: Ensure the latest candle reflects the purely realtime price tick
+        // regardless of Kline lagging.
+        if (marketData.lastPrice) {
+            this.injectRealtimePrice(key, timeframe, marketData.lastPrice);
+        }
+
         // Now calculate
         const settings = indicatorState; // Global indicator settings
 
@@ -249,6 +255,55 @@ class ActiveTechnicalsManager {
             }
         } catch (e) {
             logger.error("technicals", `Initial fetch failed for ${symbol}:${timeframe}`, e);
+        }
+    }
+
+    private injectRealtimePrice(key: string, timeframe: string, price: Decimal) {
+        let history = this.historyCache.get(key);
+        if (!history || history.length === 0) return;
+
+        const lastIdx = history.length - 1;
+        const lastCandle = history[lastIdx];
+
+        // Check if current time matches the last candle's bucket
+        // If so, we update the Last Candle's Close/High/Low to match the tick
+        // This assumes the history is at least up to date with the current wall-clock interval
+        const now = Date.now();
+        const intervalMs = getIntervalMs(timeframe);
+        const currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
+
+        if (lastCandle.time === currentPeriodStart) {
+            // Update in place
+            let close = price;
+            let high = lastCandle.high;
+            let low = lastCandle.low;
+
+            if (close.greaterThan(high)) high = close;
+            if (close.lessThan(low)) low = close;
+
+            history[lastIdx] = {
+                ...lastCandle,
+                close, high, low
+            };
+            this.historyCache.set(key, history);
+        } else if (currentPeriodStart > lastCandle.time) {
+            // We need a NEW candle! The history is behind wall-clock.
+            // We create a new candle seeded with current price.
+            const newCandle: Kline = {
+                time: currentPeriodStart,
+                open: price,
+                high: price,
+                low: price,
+                close: price,
+                volume: new Decimal(0)
+            };
+            history.push(newCandle);
+            // Prune
+            const limit = (indicatorState.historyLimit || 1000) + 100;
+            if (history.length > limit) {
+                history = history.slice(-limit);
+            }
+            this.historyCache.set(key, history);
         }
     }
 
