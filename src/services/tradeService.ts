@@ -42,7 +42,7 @@ import { rmsService } from "./rmsService";
 import { apiService } from "./apiService";
 import type { OMSOrder } from "./omsTypes";
 import Decimal from "decimal.js";
-import crypto from "crypto";
+import CryptoJS from "crypto-js";
 
 // ==================== TYPES ====================
 
@@ -180,7 +180,8 @@ class TradeExecutionGuard {
  * Generates a random nonce string (32 characters)
  */
 function generateNonce(): string {
-  return crypto.randomBytes(16).toString("hex");
+  // Use crypto-js for browser compatibility
+  return CryptoJS.lib.WordArray.random(16).toString(CryptoJS.enc.Hex);
 }
 
 // ==================== SERVICE ====================
@@ -227,16 +228,10 @@ export class TradeExecutionService {
 
     // 5. Generate signature (Bitunix double SHA256)
     // Step 1: digest = SHA256(nonce + timestamp + api-key + body)
-    const digest = crypto
-      .createHash("sha256")
-      .update(nonce + timestamp + apiKey + bodyString)
-      .digest("hex");
+    const digest = CryptoJS.SHA256(nonce + timestamp + apiKey + bodyString).toString(CryptoJS.enc.Hex);
 
     // Step 2: sign = SHA256(digest + secretKey)
-    const signature = crypto
-      .createHash("sha256")
-      .update(digest + apiSecret)
-      .digest("hex");
+    const signature = CryptoJS.SHA256(digest + apiSecret).toString(CryptoJS.enc.Hex);
 
     // 6. Prepare headers
     const headers: Record<string, string> = {

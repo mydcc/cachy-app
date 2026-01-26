@@ -11,6 +11,7 @@
     "dompurify": "^3.2.7",
     "lodash-es": "^4.17.21",
     "spacetimedb": "^1.11.4",
-    "undici": "^6.23.0"
+    "undici": "^6.23.0",
+    "zod": "^3.23.8"
   }
 }
