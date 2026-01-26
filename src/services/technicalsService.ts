@@ -20,7 +20,7 @@ export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
 // Cache for indicator calculations - Dynamic configuration from settings
-let MAX_CACHE_SIZE = 20;
+let MAX_CACHE_SIZE = 15;
 let CACHE_TTL_MS = 60 * 1000; // 1 minute default
 
 // Update cache settings dynamically
@@ -205,8 +205,8 @@ export const technicalsService = {
       console.log('[Technicals] Cache MISS, calculating...');
     }
 
+    // 1. Try Worker (Singleton)
     try {
-      // 1. Serialize klines for Worker (convert Decimals → Numbers)
       const serializedKlines = klinesInput.map(k => ({
         time: k.time,
         open: k.open instanceof Decimal ? parseFloat(k.open.toString()) : parseFloat(String(k.open)),
@@ -222,70 +222,43 @@ export const technicalsService = {
         settings,
         enabledIndicators
       });
-      // This prevents cache explosion from incremental data
-      const lastKline = klinesInput[klinesInput.length - 1];
-      const cacheKey = `${lastKline.time}-${lastKline.close?.toString()}-${lastKline.high?.toString()}-${JSON.stringify(settings)}`;
 
-      const cached = calculationCache.get(cacheKey);
-      if (cached) {
-        cached.lastAccessed = Date.now();
-        return cached.data;
-      }
+      // 2. Rehydrate Decimals (Worker returns POJOs)
+      const rehydrated = this.rehydrateDecimals(result);
 
-      // 1. Try Worker (Singleton)
-      try {
-        const serializedKlines = klinesInput.map(k => ({
-          ...k,
-          open: k.open.toString(),
-          high: k.high.toString(),
-          low: k.low.toString(),
-          close: k.close.toString(),
-          volume: k.volume?.toString() || "0"
-        }));
+      // Cache result with aggressive eviction
+      if (calculationCache.size >= MAX_CACHE_SIZE) {
+        // Find oldest entry by lastAccessed time
+        let oldestKey: string | null = null;
+        let oldestTime = Infinity;
 
-        const result = await workerManager.postMessage({
-          type: "CALCULATE",
-          klines: serializedKlines,
-          settings,
-          enabledIndicators
+        calculationCache.forEach((entry, key) => {
+          const accessTime = entry.lastAccessed || entry.timestamp;
+          if (accessTime < oldestTime) {
+            oldestTime = accessTime;
+            oldestKey = key;
+          }
         });
 
-        // 2. Rehydrate Decimals (Worker returns POJOs)
-        const rehydrated = this.rehydrateDecimals(result);
-
-        // Cache result with aggressive eviction
-        if (calculationCache.size >= MAX_CACHE_SIZE) {
-          // Find oldest entry by lastAccessed time
-          let oldestKey: string | null = null;
-          let oldestTime = Infinity;
-
-          calculationCache.forEach((entry, key) => {
-            const accessTime = entry.lastAccessed || entry.timestamp;
-            if (accessTime < oldestTime) {
-              oldestTime = accessTime;
-              oldestKey = key;
-            }
-          });
-
-          if (oldestKey) {
-            calculationCache.delete(oldestKey);
-            if (import.meta.env.DEV) {
-              console.log('[Technicals] Evicted LRU cache entry');
-            }
+        if (oldestKey) {
+          calculationCache.delete(oldestKey);
+          if (import.meta.env.DEV) {
+            console.log('[Technicals] Evicted LRU cache entry');
           }
         }
-        calculationCache.set(cacheKey, {
-          data: rehydrated,
-          timestamp: Date.now(),
-          lastAccessed: Date.now()
-        });
-
-        return rehydrated;
-      } catch (e) {
-        if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
-        return this.calculateTechnicalsInline(klinesInput, settings);
       }
-    },
+      calculationCache.set(cacheKey, {
+        data: rehydrated,
+        timestamp: Date.now(),
+        lastAccessed: Date.now()
+      });
+
+      return rehydrated;
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
+      return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
+    }
+  },
 
     calculateTechnicalsInline(
       klinesInput: {

@@ -217,8 +217,23 @@
     }
   });
 
-  // Start Market Analyst
+  // Start Market Analyst and initialize cache settings
   onMount(() => {
+    // Initialize technicals cache settings from store
+    import("../services/technicalsService").then(({ updateCacheSettings }) => {
+      updateCacheSettings(
+        settingsState.technicalsCacheSize,
+        settingsState.technicalsCacheTTL
+      );
+
+      // Also watch for changes to cache settings
+      $effect(() => {
+        const cacheSize = settingsState.technicalsCacheSize;
+        const cacheTTL = settingsState.technicalsCacheTTL;
+        updateCacheSettings(cacheSize, cacheTTL);
+      });
+    });
+
     import("../services/marketAnalyst").then(({ marketAnalyst }) => {
       marketAnalyst.start();
     });
