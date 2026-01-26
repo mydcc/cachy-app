@@ -22,8 +22,10 @@ import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
+import { omsService } from "./omsService";
 import { logger } from "./logger";
 import CryptoJS from "crypto-js";
+import { Decimal } from "decimal.js";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -935,11 +937,29 @@ class BitunixWebSocketService {
       else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
+          const updateOms = (item: any) => {
+            accountState.updatePositionFromWs(item);
+            // Sync to OMS
+            try {
+              if (!item.symbol || !item.side) return;
+              omsService.updatePosition({
+                symbol: normalizeSymbol(item.symbol, "bitunix"),
+                side: item.side.toLowerCase(),
+                amount: new Decimal(item.qty || 0),
+                entryPrice: new Decimal(item.averagePrice || item.avgOpenPrice || 0),
+                unrealizedPnl: new Decimal(item.unrealizedPNL || 0),
+                leverage: Number(item.leverage || 0),
+                marginMode: (item.marginMode || "cross").toLowerCase(),
+                liquidationPrice: new Decimal(item.liqPrice || 0)
+              });
+            } catch (e) {
+              logger.warn("network", "Failed to sync position to OMS", e);
+            }
+          };
+
           if (Array.isArray(data))
-            data.forEach((item: any) =>
-              accountState.updatePositionFromWs(item),
-            );
-          else accountState.updatePositionFromWs(data);
+            data.forEach(updateOms);
+          else updateOms(data);
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;

@@ -111,7 +111,11 @@
       "longButton": "Long",
       "shortButton": "Short",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
-      "feesPlaceholder": "Gebühren pro Trade (%)"
+      "feesPlaceholder": "Gebühren pro Trade (%)",
+      "leverageLabel": "Hebel",
+      "feesLabel": "Gebühren (%)",
+      "syncedWithApi": "Mit API synchronisiert",
+      "manualOverride": "Manuelle Eingabe (Klick zum Synchronisieren auf {value})"
     },
     "portfolioInputs": {
       "header": "Portfolio",
@@ -146,7 +150,8 @@
       "atrValuePlaceholder": "ATR Wert",
       "multiplierPlaceholder": "Multiplikator",
       "multiplierExample": "1,2",
-      "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)"
+      "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)",
+      "removeTagAria": "Tag {tag} entfernen"
     },
     "takeProfitRow": {
       "winLabel": "Win:",

@@ -36,6 +36,7 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
+import { accountState } from "../stores/account.svelte";
 import { logger } from "../services/logger";
 import { omsService } from "./omsService";
 import { rmsService } from "./rmsService";
@@ -587,11 +588,24 @@ export class TradeExecutionService {
     } else {
       // Full close: MUST use known position from OMS
       const positions = omsService.getPositions();
-      const knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+      let knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+
+      // Fallback: Check AccountState if OMS is empty (e.g. after fresh reload before full OMS sync)
+      if (!knownPos) {
+        const accPos = accountState.positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+        if (accPos) {
+           knownPos = {
+              symbol: accPos.symbol,
+              side: accPos.side,
+              amount: accPos.size,
+           } as any;
+           logger.log("market", `[ClosePosition] Recovered position from AccountState: ${accPos.size}`);
+        }
+      }
 
       if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
         closeAmount = knownPos.amount;
-        logger.log("market", `[ClosePosition] Using OMS size: ${closeAmount}`);
+        logger.log("market", `[ClosePosition] Using size: ${closeAmount}`);
       } else {
         // CRITICAL: If position is unknown, FAIL SAFE - do not execute
         throw new Error(
@@ -656,7 +670,20 @@ export class TradeExecutionService {
 
     // CRITICAL: Use known position size from OMS
     const positions = omsService.getPositions();
-    const knownPos = positions.find(p => p.symbol === symbol && p.side === positionSide);
+    let knownPos = positions.find(p => p.symbol === symbol && p.side === positionSide);
+
+    // Fallback: Check AccountState
+    if (!knownPos) {
+      const accPos = accountState.positions.find(p => p.symbol === symbol && p.side === positionSide);
+      if (accPos) {
+          knownPos = {
+            symbol: accPos.symbol,
+            side: accPos.side,
+            amount: accPos.size,
+          } as any;
+          logger.log("market", `[FlashClose] Recovered position from AccountState: ${accPos.size}`);
+      }
+    }
 
     if (!knownPos || !knownPos.amount || !knownPos.amount.gt(0)) {
       throw new Error(

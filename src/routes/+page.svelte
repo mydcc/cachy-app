@@ -57,6 +57,7 @@
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import AnalyticsButton from "../components/shared/AnalyticsButton.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
+  import OfflineBanner from "../components/shared/OfflineBanner.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
   let changelogContent = $state("");
@@ -289,6 +290,7 @@
 
 <svelte:window onkeydown={handleKeydown} />
 
+<OfflineBanner />
 <SidePanel />
 
 <!-- Global Layout Wrapper -->
