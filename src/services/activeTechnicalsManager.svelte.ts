@@ -219,6 +219,7 @@ class ActiveTechnicalsManager {
             console.log(`[RT-TECH] Calcing ${key} | History: ${history.length} | Price: ${marketData.lastPrice?.toString()} | Close: ${history[history.length - 1].close?.toString()}`);
             const result = await technicalsService.calculateTechnicals(this.historyCache.get(key) || [], settings);
 
+            console.log(`[RT-TECH] Done ${key}.`);
 
             // Inject timestamp
             if (result) {
