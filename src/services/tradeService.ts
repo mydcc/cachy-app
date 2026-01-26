@@ -629,9 +629,61 @@ export class TradeExecutionService {
 
     logger.log("market", "Close ALL Positions");
 
-    throw new Error(
-      "NOT_YET_IMPLEMENTED: closeAllPositions requires position data API. Use closePosition() for individual positions.",
-    );
+    // 1. Get positions from OMS (Source of Truth)
+    const positions = omsService.getPositions();
+    const openPositions = positions.filter(p => !p.amount.isZero() && p.amount.abs().gt(0.00000001));
+
+    if (openPositions.length === 0) {
+      logger.log("market", "No positions to close.");
+      return [];
+    }
+
+    // 2. Chunk into batches (Bitunix Max 10 per batch)
+    const BATCH_SIZE = 10;
+    const chunks = [];
+    for (let i = 0; i < openPositions.length; i += BATCH_SIZE) {
+      chunks.push(openPositions.slice(i, i + BATCH_SIZE));
+    }
+
+    const results: OrderResult[] = [];
+    const errors: string[] = [];
+
+    // 3. Execute batches sequentially to manage rate limits
+    for (const batch of chunks) {
+      try {
+        const batchParams: BatchOrderParams = {
+          orders: batch.map(p => ({
+            symbol: p.symbol,
+            side: p.side === 'long' ? 'sell' : 'buy',
+            type: 'market',
+            amount: p.amount,
+            reduceOnly: true
+          }))
+        };
+
+        const batchRes = await this.batchOrder(batchParams);
+        results.push(...batchRes);
+
+        // Minimal delay between batches if necessary (100ms)
+        if (chunks.length > 1) await new Promise(r => setTimeout(r, 100));
+
+      } catch (e: any) {
+        logger.error("market", "Batch Close Failed", e);
+        // Log all symbols in this batch as failed
+        batch.forEach(p => errors.push(`${p.symbol}: ${e.message}`));
+      }
+    }
+
+    // 4. Handle Partial Failures
+    if (errors.length > 0) {
+      logger.error("market", "Errors during Close All:", errors);
+      if (results.length === 0) {
+        throw new Error(`CLOSE_ALL_FAILED: ${errors.join("; ")}`);
+      }
+      throw new Error(`CLOSE_ALL_PARTIAL_FAILURE: Closed ${results.length}/${openPositions.length}. Errors: ${errors.join("; ")}`);
+    }
+
+    return results;
   }
 
   /**
