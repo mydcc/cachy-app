@@ -15,7 +15,7 @@
   import { normalizeTimeframeInput } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
-  import { activeTechnicalsManager } from "../../services/activeTechnicalsManager";
+  import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
 
   interface Props {
     isVisible?: boolean;
