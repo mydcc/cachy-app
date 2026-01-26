@@ -6,6 +6,7 @@
  */
 
 import { browser } from "$app/environment";
+import { settingsState } from "./settings.svelte";
 
 export interface SymbolAnalysis {
     symbol: string;
@@ -28,6 +29,32 @@ class AnalysisManager {
         this.results[symbol] = data;
         this.lastUpdate = Date.now();
         this.lastAnalysisTime = Date.now();
+        this.enforceCacheLimit();
+    }
+
+    private enforceCacheLimit() {
+        const maxSize = settingsState.marketCacheSize || 20;
+        const keys = Object.keys(this.results);
+        
+        if (keys.length <= maxSize) return;
+        
+        // Sort by updatedAt (oldest first) - LRU style
+        const sorted = keys
+            .map(k => ({ key: k, updatedAt: this.results[k].updatedAt }))
+            .sort((a, b) => a.updatedAt - b.updatedAt);
+        
+        // Remove oldest entries until under limit
+        const toRemove = sorted.slice(0, keys.length - maxSize);
+        toRemove.forEach(item => {
+            delete this.results[item.key];
+        });
+    }
+
+    reset() {
+        this.results = {};
+        this.isAnalyzing = false;
+        this.lastUpdate = 0;
+        this.lastAnalysisTime = 0;
     }
 
     get sortedByScore() {
