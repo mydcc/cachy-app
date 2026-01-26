@@ -660,33 +660,31 @@ class SettingsManager {
       // 1. Load settings synchronously (effectActive is false, so no saves)
       this.load();
 
-      // 2. Register $effect AFTER load completes (next microtask)
-      queueMicrotask(() => {
-        this.effectActive = true;
+      // 2. Register $effect for auto-saving and notifications
+      this.effectActive = true;
 
-        $effect.root(() => {
-          $effect(() => {
-            if (!this.effectActive) return;
+      $effect.root(() => {
+        $effect(() => {
+          if (!this.effectActive) return;
 
-            // Track ALL properties by calling toJSON()
-            // This ensures any property change triggers the effect
-            this.toJSON();
+          // Track ALL properties by calling toJSON()
+          // This ensures any property change triggers the effect
+          this.toJSON();
 
-            untrack(() => {
-              // Debounce saves to prevent excessive writes
-              if (this.saveTimer) clearTimeout(this.saveTimer);
-              this.saveTimer = setTimeout(() => {
-                this.save();
-                this.notifyListeners();
-              }, 500); // Increased from 200ms to 500ms
-            });
+          untrack(() => {
+            // Debounce saves to prevent excessive writes
+            if (this.saveTimer) clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+              this.save();
+              this.notifyListeners();
+            }, 500); // Increased from 200ms to 500ms
           });
         });
-
-        if (import.meta.env.DEV) {
-          console.warn("[Settings] Store ready. Provider:", this.apiProvider);
-        }
       });
+
+      if (import.meta.env.DEV) {
+        console.warn("[Settings] Store ready. Provider:", this.apiProvider);
+      }
 
       // 3. Listen for changes from other tabs
       window.addEventListener("storage", (e) => {

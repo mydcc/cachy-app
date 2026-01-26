@@ -41,6 +41,7 @@
   import { CONSTANTS } from "../lib/constants";
 
   import { julesState } from "../stores/jules.svelte";
+  import { browser } from "$app/environment";
   interface Props {
     children?: import("svelte").Snippet;
   }
@@ -48,6 +49,84 @@
   let { children }: Props = $props();
 
   // Removed local Jules state variables in favor of julesStore
+
+  // --- CachyLog Integration (Developer & Manual Opt-in) ---
+  // Connect to Server-Sent Events stream for real-time server logs
+  $effect(() => {
+    if (!browser) return;
+    let evtSource: EventSource | null = null;
+
+    const isDevDomain =
+      window.location.hostname.includes("localhost") ||
+      window.location.hostname.includes("dev.");
+
+    const shouldEnable =
+      settingsState.enableNetworkLogs || import.meta.env.DEV || isDevDomain;
+
+    if (typeof EventSource !== "undefined" && shouldEnable) {
+      try {
+        evtSource = new EventSource("/api/stream-logs");
+
+        evtSource.onmessage = (event) => {
+          try {
+            const logEntry = JSON.parse(event.data);
+            const now = new Date();
+            const timeStr =
+              now.toLocaleTimeString([], {
+                hour12: false,
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              }) +
+              "." +
+              now.getMilliseconds().toString().padStart(3, "0");
+
+            // Styling for console
+            const clStyle =
+              "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
+            const timeStyle =
+              "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
+            const levelStyle =
+              logEntry.level === "error"
+                ? "color: #ff4444; font-weight: bold;"
+                : logEntry.level === "warn"
+                  ? "color: #ffbb33; font-weight: bold;"
+                  : "color: #88ccff;";
+
+            // "CL | 22:10:24.572 [LEVEL] Message"
+            console.log(
+              `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
+              clStyle,
+              timeStyle,
+              levelStyle,
+              logEntry.data ? logEntry.data : "",
+            );
+          } catch (e) {
+            console.log(
+              "%cCL:%c [RAW]",
+              "background: #333; color: #00ff9d;",
+              "",
+              event.data,
+            );
+          }
+        };
+
+        evtSource.onerror = () => {
+          // Silence error to stay transparent
+        };
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error("CL: Failed to init EventSource", e);
+        }
+      }
+    }
+
+    return () => {
+      if (evtSource) {
+        evtSource.close();
+      }
+    };
+  });
 
   onMount(() => {
     // Initialize Zoom Plugin (Client-side only)
@@ -76,83 +155,6 @@
     window.addEventListener("unhandledrejection", handleUnhandledRejection);
 
     // Theme is already initialized in uiStore, no need to set it here
-
-    // --- CachyLog Integration (Developer & Manual Opt-in) ---
-    // Connect to Server-Sent Events stream for real-time server logs
-    $effect(() => {
-      let evtSource: EventSource | null = null;
-
-      const isDevDomain =
-        window.location.hostname.includes("localhost") ||
-        window.location.hostname.includes("dev.");
-
-      const shouldEnable =
-        settingsState.enableNetworkLogs || import.meta.env.DEV || isDevDomain;
-
-      if (typeof EventSource !== "undefined" && shouldEnable) {
-        try {
-          evtSource = new EventSource("/api/stream-logs");
-
-          evtSource.onmessage = (event) => {
-            try {
-              const logEntry = JSON.parse(event.data);
-              const now = new Date();
-              const timeStr =
-                now.toLocaleTimeString([], {
-                  hour12: false,
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                }) +
-                "." +
-                now.getMilliseconds().toString().padStart(3, "0");
-
-              // Styling for console
-              const clStyle =
-                "background: #1a1a1a; color: #00ff9d; padding: 2px 5px; border-radius: 3px 0 0 3px; font-weight: bold; border: 1px solid #333;";
-              const timeStyle =
-                "background: #333; color: #aaa; padding: 2px 5px; border-radius: 0 3px 3px 0; font-family: monospace; border: 1px solid #333; border-left: none;";
-              const levelStyle =
-                logEntry.level === "error"
-                  ? "color: #ff4444; font-weight: bold;"
-                  : logEntry.level === "warn"
-                    ? "color: #ffbb33; font-weight: bold;"
-                    : "color: #88ccff;";
-
-              // "CL | 22:10:24.572 [LEVEL] Message"
-              console.log(
-                `%cCL%c${timeStr}%c [${logEntry.level.toUpperCase()}] ${logEntry.message}`,
-                clStyle,
-                timeStyle,
-                levelStyle,
-                logEntry.data ? logEntry.data : "",
-              );
-            } catch (e) {
-              console.log(
-                "%cCL:%c [RAW]",
-                "background: #333; color: #00ff9d;",
-                "",
-                event.data,
-              );
-            }
-          };
-
-          evtSource.onerror = () => {
-            // Silence error to stay transparent
-          };
-        } catch (e) {
-          if (import.meta.env.DEV) {
-            console.error("CL: Failed to init EventSource", e);
-          }
-        }
-      }
-
-      return () => {
-        if (evtSource) {
-          evtSource.close();
-        }
-      };
-    });
 
     return () => {
       window.removeEventListener("error", handleGlobalError);
@@ -217,23 +219,20 @@
     }
   });
 
-  // Start Market Analyst and initialize cache settings
-  onMount(() => {
-    // Initialize technicals cache settings from store
+  // Watch for changes to cache settings
+  $effect(() => {
+    if (!browser) return;
+    const cacheSize = settingsState.technicalsCacheSize;
+    const cacheTTL = settingsState.technicalsCacheTTL;
+
+    // Import dynamically but register the effect correctly at top-level
     import("../services/technicalsService").then(({ updateCacheSettings }) => {
-      updateCacheSettings(
-        settingsState.technicalsCacheSize,
-        settingsState.technicalsCacheTTL
-      );
-
-      // Also watch for changes to cache settings
-      $effect(() => {
-        const cacheSize = settingsState.technicalsCacheSize;
-        const cacheTTL = settingsState.technicalsCacheTTL;
-        updateCacheSettings(cacheSize, cacheTTL);
-      });
+      updateCacheSettings(cacheSize, cacheTTL);
     });
+  });
 
+  // Start Market Analyst
+  onMount(() => {
     import("../services/marketAnalyst").then(({ marketAnalyst }) => {
       marketAnalyst.start();
     });
