@@ -98,6 +98,9 @@ class ChatManager {
       }
     } catch (e) {
       // Silent failure on poll
+      if (import.meta.env.DEV) {
+        console.warn("[Chat] Poll failed:", e);
+      }
     }
   }
 

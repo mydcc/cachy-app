@@ -1027,5 +1027,22 @@
   "marketDashboard": {
     "buttonTitle": "Open Market Overview",
     "title": "Global Market Analysis"
+  },
+  "calculator": {
+    "errors": {
+      "slBelowEntry": "Long: Stop-Loss must be below entry price.",
+      "slAboveEntry": "Short: Stop-Loss must be above entry price.",
+      "tpBelowSl": "Long: Take-Profit target {price} must be above Stop-Loss.",
+      "tpAboveEntry": "Long: Take-Profit target {price} must be above Entry.",
+      "tpAboveSl": "Short: Take-Profit target {price} must be below Stop-Loss.",
+      "tpBelowEntry": "Short: Take-Profit target {price} must be below Entry.",
+      "totalPercentExceeded": "Total sell percentage ({percent}%) must not exceed 100%.",
+      "slDistance": "Stop-Loss must have a valid distance from entry price.",
+      "generic": "An error occurred during calculation."
+    },
+    "logic": {
+      "tpGoal": "{type}: Take-Profit Target {price}",
+      "sumSold": "Sum of sell percentages ({percent}%)"
+    }
   }
 }

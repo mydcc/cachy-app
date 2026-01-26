@@ -1021,5 +1021,22 @@
   "marketDashboard": {
     "buttonTitle": "Marktübersicht öffnen",
     "title": "Globale Marktanalyse"
+  },
+  "calculator": {
+    "errors": {
+      "slBelowEntry": "Long: Stop-Loss muss unter dem Kaufpreis liegen.",
+      "slAboveEntry": "Short: Stop-Loss muss über dem Verkaufspreis liegen.",
+      "tpBelowSl": "Long: Take-Profit Ziel {price} muss über dem Stop-Loss liegen.",
+      "tpAboveEntry": "Long: Take-Profit Ziel {price} muss über dem Einstiegspreis liegen.",
+      "tpAboveSl": "Short: Take-Profit Ziel {price} muss unter dem Stop-Loss liegen.",
+      "tpBelowEntry": "Short: Take-Profit Ziel {price} muss unter dem Einstiegspreis liegen.",
+      "totalPercentExceeded": "Die Summe der Verkaufsprozente ({percent}%) darf 100% nicht überschreiten.",
+      "slDistance": "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
+      "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
+    },
+    "logic": {
+      "tpGoal": "{type}: Take-Profit Ziel {price}",
+      "sumSold": "Summe der Verkaufsprozente ({percent}%)"
+    }
   }
 }

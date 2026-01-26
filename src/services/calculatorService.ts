@@ -23,6 +23,8 @@ import {
 } from "../stores/results.svelte";
 import { trackCustomEvent } from "./trackingService";
 import { onboardingService } from "./onboardingService";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 
 // Define interfaces for dependencies to improve testability
 interface Calculator {
@@ -194,8 +196,9 @@ export class CalculatorService {
     ) {
       const riskPerUnit = values.entryPrice.minus(values.stopLossPrice).abs();
       if (riskPerUnit.lte(0)) {
+        const $t = get(_);
         this.uiManager.showError(
-          "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
+          $t("calculator.errors.slDistance"),
         );
         this.clearResults();
         return;
@@ -370,7 +373,8 @@ export class CalculatorService {
 
   private handleCalculationError(error: unknown): void {
     console.error("Calculation Error:", error);
-    this.uiManager.showError("Ein Fehler ist bei der Berechnung aufgetreten.");
+    const $t = get(_);
+    this.uiManager.showError($t("calculator.errors.generic"));
   }
 
   private getAndValidateInputs(
@@ -459,13 +463,15 @@ export class CalculatorService {
       return { status: CONSTANTS.STATUS_INCOMPLETE };
     }
 
+    const $t = get(_);
+
     if (
       currentTradeState.tradeType === CONSTANTS.TRADE_TYPE_LONG &&
       values.entryPrice.lte(values.stopLossPrice)
     ) {
       return {
         status: CONSTANTS.STATUS_INVALID,
-        message: "Long: Stop-Loss muss unter dem Kaufpreis liegen.",
+        message: $t("calculator.errors.slBelowEntry"),
         fields: ["stopLossPrice", "entryPrice"],
       };
     }
@@ -475,7 +481,7 @@ export class CalculatorService {
     ) {
       return {
         status: CONSTANTS.STATUS_INVALID,
-        message: "Short: Stop-Loss muss über dem Verkaufspreis liegen.",
+        message: $t("calculator.errors.slAboveEntry"),
         fields: ["stopLossPrice", "entryPrice"],
       };
     }
@@ -487,34 +493,26 @@ export class CalculatorService {
           if (tp.price.lte(values.stopLossPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: `Long: Take-Profit Ziel ${tp.price.toFixed(
-                4,
-              )} muss über dem Stop-Loss liegen.`,
+              message: $t("calculator.errors.tpBelowSl", { price: tp.price.toFixed(4) }),
               fields: ["targets"],
             };
           if (tp.price.lte(values.entryPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: `Long: Take-Profit Ziel ${tp.price.toFixed(
-                4,
-              )} muss über dem Einstiegspreis liegen.`,
+              message: $t("calculator.errors.tpAboveEntry", { price: tp.price.toFixed(4) }),
               fields: ["targets"],
             };
         } else {
           if (tp.price.gte(values.stopLossPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: `Short: Take-Profit Ziel ${tp.price.toFixed(
-                4,
-              )} muss unter dem Stop-Loss liegen.`,
+              message: $t("calculator.errors.tpAboveSl", { price: tp.price.toFixed(4) }),
               fields: ["targets"],
             };
           if (tp.price.gte(values.entryPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: `Short: Take-Profit Ziel ${tp.price.toFixed(
-                4,
-              )} muss unter dem Einstiegspreis liegen.`,
+              message: $t("calculator.errors.tpBelowEntry", { price: tp.price.toFixed(4) }),
               fields: ["targets"],
             };
         }
@@ -528,9 +526,7 @@ export class CalculatorService {
     if (values.totalPercentSold.gt(100)) {
       return {
         status: CONSTANTS.STATUS_INVALID,
-        message: `Die Summe der Verkaufsprozente (${values.totalPercentSold.toFixed(
-          0,
-        )}%) darf 100% nicht überschreiten.`,
+        message: $t("calculator.errors.totalPercentExceeded", { percent: values.totalPercentSold.toFixed(0) }),
         fields: [],
       };
     }
