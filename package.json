@@ -61,7 +61,7 @@
     "decimal.js": "^10.6.0",
     "dompurify": "^3.2.7",
     "lodash-es": "^4.17.21",
-    "spacetimedb-sdk": "^1.11.3",
+    "spacetimedb": "^1.11.4",
     "undici": "^6.23.0"
   }
 }
