@@ -141,20 +141,14 @@ class TradeExecutionGuard {
    */
   static ensureAuthorized(): void {
     if (!settingsState.capabilities.tradeExecution) {
-      throw new Error(
-        "UNAUTHORIZED: Trade execution requires Pro license and API credentials. " +
-        "Please enable PowerToggle and configure API Secret Key in Settings > Integrations.",
-      );
+      throw new Error("TRADE_ERRORS.UNAUTHORIZED");
     }
 
     const apiKey = settingsState.apiKeys?.bitunix?.key;
     const apiSecret = settingsState.apiKeys?.bitunix?.secret;
 
     if (!apiKey || !apiSecret) {
-      throw new Error(
-        "API_CREDENTIALS_MISSING: Trade execution requires API Key and Secret. " +
-        "Please configure in Settings > Integrations.",
-      );
+      throw new Error("TRADE_ERRORS.API_CREDENTIALS_MISSING");
     }
   }
 
@@ -312,16 +306,16 @@ export class TradeExecutionService {
     // 0. Risk Management Validation
     // Defensive validation: reject empty/negative amounts early
     if (!params.amount || params.amount.lte(0) || !params.amount.isFinite()) {
-      throw new Error("VALIDATION_ERROR: Amount must be greater than zero");
+      throw new Error("TRADE_ERRORS.AMOUNT_ZERO");
     }
 
     let approxPrice = params.price;
     if (params.type === "limit") {
       if (!approxPrice) {
-        throw new Error("VALIDATION_ERROR: Price required for limit orders");
+        throw new Error("TRADE_ERRORS.PRICE_REQUIRED");
       }
       if (approxPrice.lte(0) || !approxPrice.isFinite()) {
-        throw new Error("VALIDATION_ERROR: Price must be greater than zero");
+        throw new Error("TRADE_ERRORS.PRICE_ZERO");
       }
     }
 
@@ -337,7 +331,7 @@ export class TradeExecutionService {
           return null;
         });
         if (!approxPrice || approxPrice.lte(0)) {
-          throw new Error("PRICE_UNAVAILABLE: Cannot validate notional without a positive price");
+          throw new Error("TRADE_ERRORS.PRICE_UNAVAILABLE");
         }
       }
     }
@@ -349,14 +343,14 @@ export class TradeExecutionService {
 
     if (!riskCheck.allowed) {
       logger.error("market", "RMS Validation Failed:", riskCheck.reason);
-      throw new Error(`RISK_LIMIT_EXCEEDED: ${riskCheck.reason}`);
+      throw new Error(`TRADE_ERRORS.RISK_LIMIT_EXCEEDED: ${riskCheck.reason}`);
     }
 
     logger.log("market", "Place Order (RMS Approved):", params);
 
     // 1. Validate parameters
     if (params.type === "limit" && !params.price) {
-      throw new Error("VALIDATION_ERROR: Price required for limit orders");
+      throw new Error("TRADE_ERRORS.PRICE_REQUIRED");
     }
 
     // 2. Map to Bitunix API format
@@ -594,10 +588,7 @@ export class TradeExecutionService {
         logger.log("market", `[ClosePosition] Using OMS size: ${closeAmount}`);
       } else {
         // CRITICAL: If position is unknown, FAIL SAFE - do not execute
-        throw new Error(
-          "POSITION_UNKNOWN: Cannot close position without known size. " +
-          "Please sync OMS data or specify amount explicitly."
-        );
+        throw new Error("TRADE_ERRORS.POSITION_UNKNOWN");
       }
     }
 
@@ -629,9 +620,27 @@ export class TradeExecutionService {
 
     logger.log("market", "Close ALL Positions");
 
-    throw new Error(
-      "NOT_YET_IMPLEMENTED: closeAllPositions requires position data API. Use closePosition() for individual positions.",
-    );
+    const positions = omsService.getPositions().filter((p) => p.amount.gt(0));
+
+    if (positions.length === 0) {
+      return [];
+    }
+
+    const promises = positions.map(async (p) => {
+      try {
+        return await this.closePosition({
+          symbol: p.symbol,
+          positionSide: p.side,
+          amount: p.amount,
+        });
+      } catch (e) {
+        logger.error("market", `Failed to close ${p.symbol}`, e);
+        return null;
+      }
+    });
+
+    const outcomes = await Promise.all(promises);
+    return outcomes.filter((r): r is OrderResult => r !== null);
   }
 
   /**
@@ -659,10 +668,7 @@ export class TradeExecutionService {
     const knownPos = positions.find(p => p.symbol === symbol && p.side === positionSide);
 
     if (!knownPos || !knownPos.amount || !knownPos.amount.gt(0)) {
-      throw new Error(
-        "POSITION_UNKNOWN: Cannot flash close without known position. " +
-        "Please sync OMS data first."
-      );
+      throw new Error("TRADE_ERRORS.POSITION_UNKNOWN");
     }
 
     return await this.placeOrder({
@@ -688,7 +694,7 @@ export class TradeExecutionService {
     logger.log("market", "Batch Order: " + params.orders.length + " orders");
 
     if (params.orders.length > 10)
-      throw new Error("VALIDATION_ERROR: Max 10 orders per batch");
+      throw new Error("TRADE_ERRORS.BATCH_LIMIT");
     const bitunixOrders = params.orders.map((o) => ({
       symbol: o.symbol,
       side: o.side.toUpperCase(),

@@ -99,11 +99,9 @@ export const POST: RequestHandler = async ({ request }) => {
           triggerPrice: payload.triggerPrice || payload.stopPrice,
         };
         // Remove undefined safe
-        Object.keys(orderPayload).forEach(key => {
-            if ((orderPayload as any)[key] === undefined) delete (orderPayload as any)[key];
-        });
+        const cleanedPayload = cleanPayload(orderPayload);
 
-        result = await placeBitunixOrder(apiKey, apiSecret, orderPayload);
+        result = await placeBitunixOrder(apiKey, apiSecret, cleanedPayload);
       }
       else if (payload.type === "close-position") {
         const safeAmount = formatApiNum(payload.amount);
@@ -244,9 +242,9 @@ async function placeBitunixOrder(
     payload.triggerPrice = safeTrigger;
   }
 
-  Object.keys(payload).forEach((key) => (payload as any)[key] === undefined && delete (payload as any)[key]);
+  const finalPayload = cleanPayload(payload);
 
-  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, payload);
+  const { nonce, timestamp, signature, bodyStr } = generateBitunixSignature(apiKey, apiSecret, {}, finalPayload);
 
   const response = await fetch(`${baseUrl}${path}`, {
     method: "POST",
@@ -325,6 +323,18 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     realizedPNL: parseFloat(o.realizedPNL || "0"),
     realizedPNLStr: formatApiNum(o.realizedPNL) || "0",
   }));
+}
+
+// --- Helpers ---
+
+function cleanPayload<T extends object>(payload: T): T {
+  const cleaned = { ...payload };
+  Object.keys(cleaned).forEach((key) => {
+    if ((cleaned as any)[key] === undefined) {
+      delete (cleaned as any)[key];
+    }
+  });
+  return cleaned;
 }
 
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {

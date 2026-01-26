@@ -12,10 +12,16 @@ import { logger } from "./logger";
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
+    private readonly MAX_ORDERS = 500;
+    private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
+
+        if (this.orders.size > this.MAX_ORDERS) {
+            this.pruneOrders();
+        }
 
         // Potential integration with a dedicated omsStore later
         // For now, we sync important bits back to tradeState if it's the active symbol
@@ -24,9 +30,35 @@ class OrderManagementSystem {
         }
     }
 
+    private pruneOrders() {
+        // Iterate insertion order (oldest first in Map)
+        for (const [id, order] of this.orders) {
+            if (this.orders.size <= this.MAX_ORDERS) break;
+
+            // Only remove finalized orders
+            if (["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
+                this.orders.delete(id);
+            }
+        }
+
+        if (this.orders.size > this.MAX_ORDERS) {
+            logger.warn("market", `[OMS] Order limit exceeded (${this.orders.size}) with active orders.`);
+        }
+    }
+
     public updatePosition(position: OMSPosition) {
         this.positions.set(position.symbol + ":" + position.side, position);
         logger.log("market", `[OMS] Position Updated: ${position.symbol} ${position.side}`);
+
+        if (this.positions.size > this.MAX_POSITIONS) {
+            // Prune positions with 0 amount (closed)
+            for (const [key, pos] of this.positions) {
+                if (this.positions.size <= this.MAX_POSITIONS) break;
+                if (pos.amount.isZero()) {
+                    this.positions.delete(key);
+                }
+            }
+        }
     }
 
     public getOrder(id: string): OMSOrder | undefined {

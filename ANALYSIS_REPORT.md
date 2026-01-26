@@ -1,55 +1,56 @@
-# Deep Code Analysis & Status Report
+# Deep Code Analysis & Status Report (Updated)
 
 **Role:** Senior Lead Developer & Systems Architect
-**Date:** 2026-01-25
+**Date:** 2026-05-21
 **Scope:** `cachy-app` codebase (Systematic Maintenance & Hardening)
 
 ## Executive Summary
 
-A deep analysis of the `cachy-app` codebase was conducted to identify risks regarding data integrity, financial safety, performance, and security. The overall architecture is solid, utilizing modern patterns (Svelte Runes, Zod Validation, Decimal.js). However, critical vulnerabilities were found in trade execution logic and localization, which have been addressed in the accompanying patch.
+Following a deep analysis of the current codebase, several critical and high-priority issues were identified. While the core architecture (Svelte 5 Runes, Decimal.js, Zod) is modern and generally robust, there are specific areas in Order Management (OMS) and Error Handling that pose stability and memory risks.
 
-## prioritized Findings
+## Prioritized Findings
 
 ### 🔴 CRITICAL (Immediate Action Required)
 
-1.  **Unsafe "Close Position" Logic (`src/services/tradeService.ts`)**
-    *   **Finding:** The `closePosition` method utilized a hardcoded constant (`1_000_000_000_000`) to close positions.
-    *   **Risk:** High-supply tokens (e.g., PEPE, SHIB) often exceed this value (trillions/quadrillions). Using 1 Trillion limits the order size, resulting in a **partial close** instead of a full exit. This could lead to catastrophic financial loss during a "panic close" scenario.
-    *   **Resolution:** Implemented a `SAFE_MAX_AMOUNT` of `1e20` (100 Quintillion), ensuring full closure for all asset classes without introducing API latency.
+1.  **Memory Leak in OMS (`src/services/omsService.ts`)**
+    *   **Finding:** The `OrderManagementSystem` stores every order and position in a `Map` (`this.orders`, `this.positions`) without any eviction policy.
+    *   **Risk:** Over long sessions (e.g., a pro trader running the app for days), this map will grow indefinitely, eventually causing a browser crash (OOM).
+    *   **Recommendation:** Implement a `pruneOrders` method to keep only the last N (e.g., 500) finalized orders.
 
-2.  **Missing Type Safety in Calculator (`src/services/calculatorService.ts`)**
-    *   **Finding:** The core calculation logic (`performCalculation`) accepted `any` type for the trade state.
-    *   **Risk:** Changes to the state schema would not trigger compiler errors, potentially leading to silent calculation failures or incorrect risk assessment.
-    *   **Resolution:** Defined and implemented strict `TradeStateSnapshot` interface.
+2.  **Unimplemented "Close All" Logic (`src/services/tradeService.ts`)**
+    *   **Finding:** The `closeAllPositions` method explicitly throws `"NOT_YET_IMPLEMENTED"`.
+    *   **Risk:** In a panic scenario, if the UI exposes a "Close All" button calling this method, it will fail, potentially causing massive financial loss.
+    *   **Recommendation:** Implement iteration over `omsService.getPositions()` to trigger individual closes.
 
 ### 🟡 WARNING (Quality & Maintainability)
 
-3.  **Non-Localizable Backend Errors (`src/routes/api/orders/+server.ts`)**
-    *   **Finding:** The API returned hardcoded English strings (e.g., "Invalid JSON body").
-    *   **Risk:** The frontend could not translate these messages, leading to poor UX for non-English users.
-    *   **Resolution:** Refactored backend to return translation keys (e.g., `bitunixErrors.INVALID_JSON`) and separated dynamic details into a dedicated field.
+3.  **Hardcoded Error Strings (`src/services/tradeService.ts`)**
+    *   **Finding:** Critical errors like `UNAUTHORIZED` or `VALIDATION_ERROR` are hardcoded in English.
+    *   **Risk:** Non-English users receive untranslated error messages, reducing usability and trust.
+    *   **Recommendation:** Switch to error codes (e.g., `TRADE_ERRORS.UNAUTHORIZED`) and handle translation in the UI layer.
 
-4.  **Fragile WebSocket "Fast Path" (`src/services/bitunixWs.ts`)**
-    *   **Finding:** The performance-optimized "Fast Path" for parsing high-frequency market data lacked sufficient validation.
-    *   **Risk:** Malformed API responses (e.g., empty objects) could pollute the state with zero-values.
-    *   **Resolution:** Added "Fast Path Guards" to verify essential fields (e.g., `lastPrice`, `volume`) before processing.
+4.  **Fragile API Payload Handling (`src/routes/api/orders/+server.ts`)**
+    *   **Finding:** The server manually deletes undefined keys (`delete payload[key]`) before signing.
+    *   **Risk:** If the signature generation logic drifts from the payload cleaning logic, authentication will fail. It's also "dirty" code.
+    *   **Recommendation:** Use a strict cleaning utility or Zod transformation to ensure the payload matching the signature is exactly what is sent.
+
+5.  **Heuristic Number Parsing (`src/utils/utils.ts`)**
+    *   **Finding:** `parseDecimal` guesses between German (1.200) and English (1,200) formats.
+    *   **Risk:** Ambiguous inputs (e.g., "1.200") could be misinterpreted (1.2 vs 1200) depending on invisible heuristics.
+    *   **Recommendation:** Long-term, enforce strict localized input parsing based on user settings, rather than guessing.
 
 ### 🔵 REFACTOR (Technical Debt)
 
-5.  **Heuristic Number Parsing (`src/utils/utils.ts`)**
-    *   **Finding:** `parseDecimal` uses complex heuristics to guess German vs. English number formats.
-    *   **Risk:** Ambiguous inputs (e.g., "1.234") might be misinterpreted.
-    *   **Recommendation:** Long-term, enforce strict input formatting in the UI rather than guessing in the backend/utils.
+6.  **Unbounded State Arrays (`src/stores/trade.svelte.ts`)**
+    *   **Finding:** `targets` and `tags` arrays have no hard limits.
+    *   **Risk:** Minor memory risk if abused.
+    *   **Recommendation:** Add limits (max 20 targets, max 50 tags).
 
-## Implementation Plan Executed
+## Implementation Plan (Step 2 Preview)
 
-1.  **Hardening Trade Execution:** Modified `tradeService.ts` to use `SAFE_MAX_AMOUNT` (1e20) for closing positions.
-2.  **Type Safety:** Created `TradeStateSnapshot` interface and updated `calculatorService.ts`.
-3.  **Localization:** Updated `+server.ts` to use i18n keys and sanitized error details.
-4.  **Resilience:** Added guard clauses to `bitunixWs.ts`.
+The following plan is proposed to address these findings:
 
-## Verification
-
-*   **Logic:** Verified "Close Position" uses safe large number via code review.
-*   **Safety:** Verified API error details are sanitized (redacted) before sending to client.
-*   **i18n:** Verified frontend uses `$_()` wrapper to translate the keys returned by the backend.
+1.  **Fix OMS Memory Leak**: Add pruning logic to `omsService`.
+2.  **Implement Close All**: Activate `closeAllPositions` in `tradeService`.
+3.  **Hardening API**: Refactor `+server.ts` payload handling.
+4.  **i18n Improvements**: Refactor `tradeService` errors to use codes.
