@@ -24,8 +24,8 @@
         }
     > = {
         light: {
-            label: "💡 Light",
-            description: "Minimal CPU/Memory, slower updates",
+            label: "💡 Light (Position Trading)",
+            description: "Minimal CPU/Memory, slower updates. Best for: weeks-months timeframes",
             marketAnalysisInterval: 300, // 5 minutes
             pauseAnalysisOnBlur: true,
             analyzeAllFavorites: false,
@@ -34,8 +34,8 @@
             analysisTimeframes: ["1h", "4h"],
         },
         balanced: {
-            label: "⚖️ Balanced",
-            description: "Good performance & responsiveness",
+            label: "⚖️ Balanced (Day Trading)",
+            description: "Good performance & responsiveness. Best for: hours-days timeframes",
             marketAnalysisInterval: 60, // 1 minute
             pauseAnalysisOnBlur: true,
             analyzeAllFavorites: false,
@@ -44,8 +44,8 @@
             analysisTimeframes: ["15m", "1h", "4h"],
         },
         pro: {
-            label: "⚡ Pro",
-            description: "Maximum responsiveness, higher CPU",
+            label: "⚡ Pro (Scalping/Intraday)",
+            description: "Maximum responsiveness, higher CPU. Best for: minutes-hours timeframes",
             marketAnalysisInterval: 10, // 10 seconds
             pauseAnalysisOnBlur: false,
             analyzeAllFavorites: true,
@@ -96,7 +96,7 @@
     <section class="presets-section">
         <h3>Performance Profiles</h3>
         <p class="description">
-            Quick-select presets to balance performance and responsiveness
+            Choose a preset matching your trading style. Scalpers need faster updates, position traders can use slower intervals to save CPU.
         </p>
 
         <div class="preset-buttons">
@@ -129,11 +129,11 @@
         <!-- Market Analysis Interval -->
         <div class="setting-group">
             <label for="marketAnalysisInterval">
-                <span class="label-text">Analysis Interval</span>
+                <span class="label-text">Technical Analysis Interval</span>
                 <span class="current-value"
                     >{formatIntervalLabel(
                         settingsState.marketAnalysisInterval,
-                    )}s</span
+                    )}</span
                 >
             </label>
             <div class="slider-container">
@@ -148,13 +148,13 @@
                 />
                 <div class="slider-labels">
                     <span>10s (Aggressive)</span>
-                    <span>300s (5min)</span>
-                    <span>600s (10min)</span>
+                    <span>60s (Balanced)</span>
+                    <span>600s (Conservative)</span>
                 </div>
             </div>
             <p class="help-text">
-                How often to recalculate technicals. Lower = more CPU but
-                fresher data.
+                How often technical indicators are recalculated. Lower = more CPU but fresher data.
+                <strong>Recommendation:</strong> 10s for scalping, 60s for day trading, 300s+ for swing trading.
             </p>
         </div>
 
@@ -178,10 +178,10 @@
                 </span>
             </label>
             <p class="help-text">
-                If disabled, only top 4 favorites are analyzed each cycle (saves
-                CPU).
+                When disabled, only your top 4 favorite symbols are analyzed each cycle (saves CPU).
+                Enable this if you actively monitor a large portfolio (10+ positions).
                 {#if settingsState.analyzeAllFavorites}
-                    <span class="warning">⚠️ Enabled: Higher CPU usage</span>
+                    <span class="warning">⚠️ CPU Impact: 3-5x increase for large portfolios</span>
                 {/if}
             </p>
         </div>
@@ -194,19 +194,19 @@
                     bind:checked={settingsState.pauseAnalysisOnBlur}
                     class="checkbox"
                 />
-                <span class="label-text">Pause Analysis When Inactive</span>
+                <span class="label-text">Pause Analysis When Tab Inactive</span>
                 <span class="badge active">Smart Throttle</span>
             </label>
             <p class="help-text">
-                When browser is not focused, doubles the analysis interval
-                (saves energy).
+                When your browser tab is not focused, the analysis interval is doubled to save energy and CPU.
+                Recommended for most users. Disable only if you monitor multiple tabs simultaneously.
             </p>
         </div>
 
         <!-- Market Cache Size -->
         <div class="setting-group">
             <label for="marketCacheSize">
-                <span class="label-text">Market Cache Size</span>
+                <span class="label-text">Market Data Cache Size</span>
                 <span class="current-value"
                     >{settingsState.marketCacheSize} symbols</span
                 >
@@ -228,8 +228,8 @@
                 </div>
             </div>
             <p class="help-text">
-                Max symbols kept in memory. Higher values use more RAM but
-                improve responsiveness.
+                Maximum number of symbols kept in memory cache. Higher values improve responsiveness but use more RAM.
+                <strong>Recommendation:</strong> 10-20 for small portfolios, 50-100 for diversified portfolios (30+ positions).
             </p>
         </div>
 
@@ -271,11 +271,13 @@
                 {/each}
             </div>
             <p class="help-text">
-                More timeframes = more API calls and CPU usage.
+                Each selected timeframe multiplies API calls and CPU usage. 
+                <strong>Recommendation:</strong> Select 2-3 timeframes that match your trading style.
+                Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.
                 {#if settingsState.analysisTimeframes.length >= 4}
                     <span class="warning"
-                        >⚠️ {settingsState.analysisTimeframes.length} timeframes:
-                        Higher load</span
+                        >⚠️ {settingsState.analysisTimeframes.length} timeframes selected: 
+                        Expect {settingsState.analysisTimeframes.length}x API calls and higher CPU load</span
                     >
                 {/if}
             </p>
@@ -299,8 +301,9 @@
                 </span>
             </label>
             <p class="help-text">
-                Fetch latest news and sentiment for analyzed symbols (uses API
-                quota).
+                Fetch latest news and sentiment for analyzed symbols. 
+                <strong>Note:</strong> Consumes API quota from CryptoPanic or NewsAPI.
+                Disable this if you have limited API credits or prefer pure technical analysis.
             </p>
         </div>
     </section>

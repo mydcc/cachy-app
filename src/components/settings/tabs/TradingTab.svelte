@@ -7,10 +7,10 @@
     import { uiState } from "../../../stores/ui.svelte";
 
     const intervals = [
-        { value: 1000, label: "1s (Ultra)" },
-        { value: 2000, label: "2s (Fast)" },
-        { value: 5000, label: "5s (Normal)" },
-        { value: 10000, label: "10s (Eco)" },
+        { value: 1000, label: "1s (Ultra-Fast)", tooltip: "Best for scalping (<1min trades). High CPU usage." },
+        { value: 2000, label: "2s (Fast)", tooltip: "Great for intraday trading (1-15min). Moderate CPU." },
+        { value: 5000, label: "5s (Normal)", tooltip: "Good for day trading (15min+). Balanced." },
+        { value: 10000, label: "10s (Eco)", tooltip: "Ideal for swing trading (1h+). Low CPU." },
     ];
 
     const activeSubTab = $derived(uiState.settingsTradingSubTab);
@@ -88,20 +88,24 @@
 
                     <!-- Market Interval -->
                     <div class="field-group">
-                        <label for="market-interval"
-                            >{$_("settings.marketDataInterval")}</label
-                        >
+                        <label for="market-interval">
+                            {$_("settings.marketDataInterval")}
+                            <span class="help-icon" title="How often market prices are updated">ℹ️</span>
+                        </label>
                         <select
                             id="market-interval"
                             bind:value={settingsState.marketDataInterval}
                             class="input-field"
                         >
                             {#each intervals as interval}
-                                <option value={interval.value}
+                                <option value={interval.value} title={interval.tooltip}
                                     >{interval.label}</option
                                 >
                             {/each}
                         </select>
+                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
+                            {intervals.find(i => i.value === settingsState.marketDataInterval)?.tooltip || "Controls data freshness vs CPU usage"}
+                        </p>
                     </div>
 
                     <!-- Spin Buttons -->
@@ -234,9 +238,9 @@
                         bind:value={settingsState.hotkeyMode}
                         class="input-field w-auto py-1 text-xs"
                     >
-                        <option value="mode2">Safety Mode (Alt+)</option>
-                        <option value="mode1">Direct Mode (Fast)</option>
-                        <option value="custom">Custom</option>
+                        <option value="mode2">Safety Mode (Alt+ Required)</option>
+                        <option value="mode1">Direct Mode (Fast, No Modifier)</option>
+                        <option value="custom">Custom Configuration</option>
                     </select>
                 </div>
 
@@ -251,16 +255,16 @@
                         class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                     >
                         <p class="text-xs text-[var(--text-secondary)] mb-2">
-                            Preset Mode Active: {settingsState.hotkeyMode ===
+                            <strong>Active Preset:</strong> {settingsState.hotkeyMode ===
                             "mode1"
-                                ? 'Direct keys (e.g. "L" for Long)'
-                                : 'Safety keys (e.g. "Alt+L" for Long)'}
+                                ? '⚡ Direct Mode - Press "L" for Long, "S" for Short (fastest)'
+                                : '🛡️ Safety Mode - Press "Alt+L" for Long, "Alt+S" for Short (prevents accidents)'}
                         </p>
                         <button
                             class="text-xs text-[var(--accent-color)] underline"
                             onclick={() =>
                                 (settingsState.hotkeyMode = "custom")}
-                            >Customize Keys</button
+                            >Switch to Custom Configuration</button
                         >
                     </div>
                 {/if}
@@ -288,6 +292,23 @@
         font-size: 0.75rem;
         font-weight: 600;
         color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .help-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        font-size: 12px;
+        cursor: help;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    .help-icon:hover {
+        opacity: 1;
     }
     .input-field {
         background-color: var(--bg-secondary);

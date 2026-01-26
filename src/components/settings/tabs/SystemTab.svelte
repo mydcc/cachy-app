@@ -5,6 +5,7 @@
     import { uiState } from "../../../stores/ui.svelte";
     import CalculationSettings from "../CalculationSettings.svelte";
     import CalculationDashboard from "../../shared/CalculationDashboard.svelte";
+    import PerformanceMonitor from "../../shared/PerformanceMonitor.svelte";
 
     let { onBackup, onRestore, onReset } = $props<{
         onBackup: () => void;
@@ -184,7 +185,10 @@
         <!-- Dashboard Tab -->
         {#if activeSubTab === "dashboard"}
             <section class="settings-section animate-fade-in">
-                <CalculationDashboard />
+                <PerformanceMonitor />
+                <div class="mt-6">
+                    <CalculationDashboard />
+                </div>
             </section>
         {/if}
 
