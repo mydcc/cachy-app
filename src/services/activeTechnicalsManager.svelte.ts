@@ -209,7 +209,7 @@ class ActiveTechnicalsManager {
         // We need to keep this history updated.
 
         if (lastKlineUpdate) {
-            this.updateHistoryWithKline(key, lastKlineUpdate, timeframe);
+            this.updateHistoryWithKline(key, lastKlineUpdate, timeframe, marketData.lastPrice);
         }
 
         // Now calculate
@@ -253,7 +253,7 @@ class ActiveTechnicalsManager {
         }
     }
 
-    private updateHistoryWithKline(key: string, newKline: any, timeframe: string) {
+    private updateHistoryWithKline(key: string, newKline: any, timeframe: string, currentPrice?: Decimal | null) {
         let history = this.historyCache.get(key);
         if (!history) return;
 
@@ -262,11 +262,18 @@ class ActiveTechnicalsManager {
         const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
 
         // Convert to Decimal
-        const close = newKline.close instanceof Decimal ? newKline.close : new Decimal(newKline.close);
+        // If we have a live price, we use it as "Close" because it's newer than the Kline stream
+        let close = newKline.close instanceof Decimal ? newKline.close : new Decimal(newKline.close);
+        let high = newKline.high instanceof Decimal ? newKline.high : new Decimal(newKline.high);
+        let low = newKline.low instanceof Decimal ? newKline.low : new Decimal(newKline.low);
         const open = newKline.open instanceof Decimal ? newKline.open : new Decimal(newKline.open);
-        const high = newKline.high instanceof Decimal ? newKline.high : new Decimal(newKline.high);
-        const low = newKline.low instanceof Decimal ? newKline.low : new Decimal(newKline.low);
         const volume = newKline.volume instanceof Decimal ? newKline.volume : new Decimal(newKline.volume || 0);
+
+        if (currentPrice) {
+            close = currentPrice;
+            if (close.greaterThan(high)) high = close;
+            if (close.lessThan(low)) low = close;
+        }
 
         const candleObj: Kline = {
             time: alignedTime,
