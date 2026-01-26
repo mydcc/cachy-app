@@ -17,6 +17,7 @@
 
 import { get } from "svelte/store";
 import { settingsState } from "../../stores/settings.svelte";
+import { Decimal } from "decimal.js";
 
 export function enhancedInput(
   node: HTMLInputElement,
@@ -96,21 +97,25 @@ export function enhancedInput(
   }
 
   function updateValue(delta: number) {
-    let val = parseFloat(node.value);
-    if (isNaN(val)) val = options.min || 0;
+    let valStr = node.value;
+    // Handle empty or invalid input securely
+    if (!valStr || isNaN(parseFloat(valStr))) {
+      valStr = String(options.min !== undefined ? options.min : 0);
+    }
 
-    let newVal = val + delta;
+    try {
+      const current = new Decimal(valStr);
+      const d = new Decimal(delta);
+      let newVal = current.plus(d);
 
-    // Precision handling
-    const stepStr = String(step);
-    const decimals = stepStr.includes(".") ? stepStr.split(".")[1].length : 0;
-    newVal = parseFloat(newVal.toFixed(decimals));
+      if (options.min !== undefined && newVal.lt(options.min)) newVal = new Decimal(options.min);
+      if (options.max !== undefined && newVal.gt(options.max)) newVal = new Decimal(options.max);
 
-    if (options.min !== undefined && newVal < options.min) newVal = options.min;
-    if (options.max !== undefined && newVal > options.max) newVal = options.max;
-
-    node.value = String(newVal);
-    triggerInput();
+      node.value = newVal.toString();
+      triggerInput();
+    } catch (e) {
+      console.warn("Decimal input enhancement error:", e);
+    }
   }
 
   const handleWheel = (e: WheelEvent) => {

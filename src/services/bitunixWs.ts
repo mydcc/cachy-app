@@ -720,6 +720,8 @@ class BitunixWebSocketService {
                     nextFundingTime: d.nft ? String(d.nft) : undefined
                   });
                 }
+             } else if (import.meta.env.DEV) {
+               console.warn("[BitunixWS] FastPath failed for price. Keys:", Object.keys(d));
              }
           }
           return;
@@ -740,6 +742,8 @@ class BitunixWebSocketService {
                   priceChangePercent: normalized.priceChangePercent
                 });
               }
+            } else if (import.meta.env.DEV) {
+               console.warn("[BitunixWS] FastPath failed for ticker. Keys:", Object.keys(d));
             }
           }
           return;
@@ -752,6 +756,8 @@ class BitunixWebSocketService {
               if (!this.shouldThrottle(`${symbol}:depth`)) {
                 marketState.updateDepth(symbol, { bids: d.b, asks: d.a });
               }
+            } else if (import.meta.env.DEV) {
+               console.warn("[BitunixWS] FastPath failed for depth. Keys:", Object.keys(d));
             }
           }
           return;
