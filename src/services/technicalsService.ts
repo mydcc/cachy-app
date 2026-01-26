@@ -20,6 +20,7 @@ export { JSIndicators } from "../utils/indicators";
 export type { Kline, TechnicalsData, IndicatorResult };
 
 // Cache for indicator calculations - Dynamic configuration from settings
+// Initial defaults, will be overridden by settings on app init
 let MAX_CACHE_SIZE = 15;
 let CACHE_TTL_MS = 60 * 1000; // 1 minute default
 
