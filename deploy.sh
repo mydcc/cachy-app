@@ -235,7 +235,7 @@ main() {
     
     # 4. Dependencies
     echo "[4/9] NPM: Installiere Dependencies..."
-    npm ci --legacy-peer-deps || error_exit "npm ci failed"
+    npm install --legacy-peer-deps || error_exit "npm install failed"
     log "Dependencies installed"
     
     # 5. Build
