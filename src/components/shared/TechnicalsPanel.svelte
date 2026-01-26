@@ -11,17 +11,11 @@
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { marketState } from "../../stores/market.svelte";
-  import { marketWatcher } from "../../services/marketWatcher";
-  import { apiService } from "../../services/apiService";
-  import { technicalsService } from "../../services/technicalsService";
-  import type { Kline, TechnicalsData } from "../../services/technicalsTypes";
-  import {
-    normalizeTimeframeInput,
-    parseTimestamp,
-    getIntervalMs,
-  } from "../../utils/utils";
+  import type { TechnicalsData } from "../../services/technicalsTypes";
+  import { normalizeTimeframeInput } from "../../utils/utils";
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
+  import { activeTechnicalsManager } from "../../services/activeTechnicalsManager";
 
   interface Props {
     isVisible?: boolean;
@@ -29,117 +23,34 @@
 
   let { isVisible = false }: Props = $props();
 
-  let klinesHistory: Kline[] = $state([]);
-  let data: TechnicalsData | null = $state(null);
-  let loading = $state(false);
-  let error: string | null = $state(null);
+  // Local UI state
   let showTimeframePopup = $state(false);
   let customTimeframeInput = $state("");
-  let currentSubscription: string | null = $state(null);
   let hoverTimeout: number | null = null;
-  let isStale = $state(false);
-  let lastCalculationTime = 0;
-  const CALCULATION_THROTTLE_MS = 1000;
-  let calculationTimeout: any = null;
 
+  // Reactivity
+  let symbol = $derived(tradeState.symbol);
+  let timeframe = $derived(tradeState.analysisTimeframe || "1h");
+  let showPanel = $derived(settingsState.showTechnicals && isVisible);
+  let indicatorSettings = $derived(indicatorState);
+
+  // Data comes strictly from MarketState (pushed by ActiveTechnicalsManager)
+  let wsData = $derived(symbol ? marketState.data[symbol] : null);
+  let data: TechnicalsData | null = $derived(wsData?.technicals ?? null);
+
+  // We can infer "loading" if we have a symbol but no data yet
+  let loading = $derived(showPanel && symbol && !data);
+  let error: string | null = $state(null);
+
+  // Manage Subscription
   $effect(() => {
-    return () => {
-      if (currentSubscription) {
-        const [oldSym, oldTf] = currentSubscription.split(":");
-        marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-        marketWatcher.unregister(oldSym, "price");
-      }
-    };
+    if (showPanel && symbol && timeframe) {
+      activeTechnicalsManager.register(symbol, timeframe);
+      return () => {
+        activeTechnicalsManager.unregister(symbol, timeframe);
+      };
+    }
   });
-
-  function handleRealTimeUpdate(newKline: any) {
-    if (!klinesHistory || klinesHistory.length === 0) return;
-    if (!newKline) return;
-
-    const rawTime = parseTimestamp(newKline.time);
-    const close = newKline.close ? new Decimal(newKline.close) : new Decimal(0);
-
-    if (rawTime <= 0 || close.lte(0)) return;
-
-    const intervalMs = getIntervalMs(timeframe);
-    const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
-
-    const lastIdx = klinesHistory.length - 1;
-    const lastHistoryCandle = klinesHistory[lastIdx];
-    const lastTime = lastHistoryCandle.time || 0;
-
-    const newCandleObj: Kline = {
-      open: newKline.open ? new Decimal(newKline.open) : new Decimal(0),
-      high: newKline.high ? new Decimal(newKline.high) : new Decimal(0),
-      low: newKline.low ? new Decimal(newKline.low) : new Decimal(0),
-      close: close,
-      volume: newKline.volume ? new Decimal(newKline.volume) : new Decimal(0),
-      time: alignedTime,
-    };
-
-    if (alignedTime > lastTime && lastTime > 0) {
-      klinesHistory = [...klinesHistory, newCandleObj];
-      if (
-        klinesHistory.length >
-        (indicatorSettings?.historyLimit || 1000) + 50
-      ) {
-        klinesHistory.shift();
-      }
-    } else if (alignedTime === lastTime) {
-      const newHistory = [...klinesHistory];
-      newHistory[lastIdx] = newCandleObj;
-      klinesHistory = newHistory;
-    }
-  }
-
-  async function updateTechnicals() {
-    if (!klinesHistory.length) return;
-    try {
-      const newData = await technicalsService.calculateTechnicals(
-        klinesHistory,
-        indicatorSettings,
-      );
-      data = newData;
-      // Push to global store for AI visibility
-      if (symbol) {
-        marketState.updateSymbol(symbol, { technicals: newData });
-      }
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error("[Technicals] Calculation error:", e);
-      }
-      error = "Calculation failed";
-    }
-  }
-
-  async function fetchData(silent = false) {
-    if (!symbol || symbol.length < 3) return;
-    if (!silent) loading = true;
-    error = null;
-
-    try {
-      const limit = indicatorSettings?.historyLimit || 750;
-      const klines = await apiService.fetchBitunixKlines(
-        symbol,
-        timeframe,
-        limit,
-      );
-
-      if (`${symbol}:${timeframe}` === currentSubscription) {
-        klinesHistory = klines;
-        untrack(() => updateTechnicals());
-      }
-    } catch (e: any) {
-      if (e.message !== "apiErrors.symbolNotFound") {
-        if (import.meta.env.DEV) {
-          console.error("Technicals fetch error:", e);
-        }
-      }
-      error = e.message;
-    } finally {
-      loading = false;
-    }
-  }
 
   function handleDropdownLeave() {
     if (hoverTimeout) clearTimeout(hoverTimeout);
@@ -153,8 +64,6 @@
     if (!action) return "-";
     const key = action.toLowerCase().replace(/\s+/g, "");
     const translation = $_(`settings.technicals.${key}`);
-    // If translation key is not found, it returns the key string in some svelte-i18n configs
-    // or undefined. We want the original action if not found.
     return translation && !translation.includes("settings.technicals")
       ? translation
       : action;
@@ -162,8 +71,8 @@
 
   function getActionColor(action: string) {
     const a = action.toLowerCase();
-    if (a.includes("strong buy")) return "text-[#00ff88]"; // Brighter green
-    if (a.includes("strong sell")) return "text-[#ff0044]"; // Brighter red
+    if (a.includes("strong buy")) return "text-[#00ff88]";
+    if (a.includes("strong sell")) return "text-[#ff0044]";
     if (a.includes("buy")) return "text-[var(--success-color)]";
     if (a.includes("sell")) return "text-[var(--danger-color)]";
     return "text-[var(--text-secondary)]";
@@ -175,7 +84,7 @@
     return val.toDecimalPlaces(prec).toString();
   }
 
-  // ... (Dropdown handlers same as before) ...
+  // --- UI Event Handlers ---
   function toggleTimeframePopup() {
     showTimeframePopup = !showTimeframePopup;
   }
@@ -203,74 +112,6 @@
       showTimeframePopup = false;
     }
   }
-
-  // Reactivity
-  let symbol = $derived(tradeState.symbol);
-  let timeframe = $derived(tradeState.analysisTimeframe || "1h");
-  let showPanel = $derived(settingsState.showTechnicals && isVisible);
-  let indicatorSettings = $derived(indicatorState);
-  let wsData = $derived(symbol ? marketState.data[symbol] : null);
-  let currentKline = $derived(wsData?.klines ? wsData.klines[timeframe] : null);
-
-  $effect(() => {
-    if (showPanel && symbol && timeframe) {
-      const subKey = `${symbol}:${timeframe}`;
-      if (currentSubscription !== subKey) {
-        isStale = true;
-        const [oldSym, oldTf] = currentSubscription
-          ? currentSubscription.split(":")
-          : ["", ""];
-        if (oldSym) {
-          marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-          marketWatcher.unregister(oldSym, "price");
-        }
-        marketWatcher.register(symbol, `kline_${timeframe}`);
-        marketWatcher.register(symbol, "price");
-        fetchData().finally(() => {
-          isStale = false;
-        });
-        currentSubscription = subKey;
-      }
-    } else if (!showPanel && currentSubscription) {
-      // Cleanup if hidden
-      const [oldSym, oldTf] = currentSubscription.split(":");
-      marketWatcher.unregister(oldSym, `kline_${oldTf}`);
-      marketWatcher.unregister(oldSym, "price");
-      currentSubscription = null;
-      isStale = false;
-    }
-  });
-
-  $effect(() => {
-    if (showPanel && klinesHistory.length > 0) {
-      const _settings = indicatorSettings;
-      untrack(() => {
-        const now = Date.now();
-        if (now - lastCalculationTime >= CALCULATION_THROTTLE_MS) {
-          updateTechnicals();
-          lastCalculationTime = now;
-        } else {
-          if (calculationTimeout) clearTimeout(calculationTimeout);
-          calculationTimeout = setTimeout(
-            () => {
-              updateTechnicals();
-              lastCalculationTime = Date.now();
-            },
-            CALCULATION_THROTTLE_MS - (now - lastCalculationTime),
-          );
-        }
-      });
-    }
-  });
-
-  $effect(() => {
-    const _trigger = currentKline;
-    untrack(() => {
-      if (showPanel && currentKline && klinesHistory.length > 0 && !isStale) {
-        handleRealTimeUpdate(currentKline);
-      }
-    });
-  });
 </script>
 
 <svelte:window onclick={handleClickOutside} />
