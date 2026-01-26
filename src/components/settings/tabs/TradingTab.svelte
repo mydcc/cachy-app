@@ -292,6 +292,23 @@
         font-size: 0.75rem;
         font-weight: 600;
         color: var(--text-secondary);
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+    .help-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        width: 16px;
+        height: 16px;
+        font-size: 12px;
+        cursor: help;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+    .help-icon:hover {
+        opacity: 1;
     }
     .input-field {
         background-color: var(--bg-secondary);
