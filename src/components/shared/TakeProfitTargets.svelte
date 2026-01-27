@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import TakeProfitRow from "./TakeProfitRow.svelte";
+  import Tooltip from "./Tooltip.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
   import type { IndividualTpResult } from "../../stores/types";
@@ -42,6 +43,39 @@
 </script>
 
 <div>
+  <div class="section-header-row !mt-0 flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-secondary)] mb-2">
+    <div class="flex items-center gap-2">
+      <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
+        {$_("dashboard.takeProfitTargets.header")}
+      </span>
+    </div>
+
+    <div class="flex items-center gap-2">
+      <Tooltip text={$_("dashboard.takeProfitTargets.tooltip")} />
+
+      {#if targets.length < 10}
+        <button
+          class="text-[var(--accent-color)] hover:text-[var(--accent-hover)] transition-colors p-1"
+          onclick={addRow}
+          title={$_("dashboard.takeProfitTargets.addTargetTitle")}
+        >
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            width="20"
+            height="20"
+            fill="currentColor"
+            viewBox="0 0 16 16"
+          >
+            <path
+              fill-rule="evenodd"
+              d="M8 2a.5.5 0 0 1 .5.5v5h5a.5.5 0 0 1 0 1h-5v5a.5.5 0 0 1-1 0v-5h-5a.5.5 0 0 1 0-1h5v-5A.5.5 0 0 1 8 2z"
+            />
+          </svg>
+        </button>
+      {/if}
+    </div>
+  </div>
+
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
     {#each targets as target, i}
       <TakeProfitRow
@@ -54,24 +88,4 @@
       />
     {/each}
   </div>
-
-  {#if targets.length < 10}
-    <button
-      class="w-full mt-2 py-2 border-2 border-dashed border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors text-sm font-medium flex items-center justify-center gap-2"
-      onclick={addRow}
-    >
-      <svg
-        xmlns="http://www.w3.org/2000/svg"
-        width="16"
-        height="16"
-        fill="currentColor"
-        viewBox="0 0 16 16"
-      >
-        <path
-          d="M8 4a.5.5 0 0 1 .5.5v3h3a.5.5 0 0 1 0 1h-3v3a.5.5 0 0 1-1 0v-3h-3a.5.5 0 0 1 0-1h3v-3A.5.5 0 0 1 8 4z"
-        />
-      </svg>
-      {$_("dashboard.takeProfitTargets.addButton" as any)}
-    </button>
-  {/if}
 </div>
