@@ -244,16 +244,18 @@
   function parseInputVal(val: string): string | null | undefined {
     if (val === "") return null;
     // Strict regex: Must have at least one digit. Disallows lone dot ".".
-    // Matches: "123", "123.", ".123", "123.456"
+    // Matches: "123", "123.", ".123", "123.456" OR with comma
     // Does NOT match: ".", "1.2.3", "abc"
-    if (/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(val)) {
-        return val;
+    if (/^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(val)) {
+        return val.replace(',', '.');
     }
     return undefined; // Invalid input
   }
 
   function handleEntryPriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
+    // Normalize comma to dot immediately for UX if desired, OR keep comma and normalize only for store
+    // Here we allow local display to have comma, but store gets dot.
     const value = target.value;
     localEntryPrice = value;
 
@@ -280,8 +282,9 @@
     localAtrMultiplier = value;
 
     // Multiplier is still number in Store
-    if (/^\d*\.?\d*$/.test(value)) {
-        const num = value === "" ? 0 : parseFloat(value);
+    if (/^\d*[.,]?\d*$/.test(value)) {
+        const normalized = value.replace(',', '.');
+        const num = normalized === "" ? 0 : parseFloat(normalized);
         if (!isNaN(num) && atrMultiplier !== num) {
             tradeState.update((s) => ({ ...s, atrMultiplier: num }));
         }

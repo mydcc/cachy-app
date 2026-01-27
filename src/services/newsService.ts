@@ -14,15 +14,28 @@ import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
 import { apiQuotaTracker } from "./apiQuotaTracker";
+import { z } from "zod";
 
 const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
 
-function safeReadCache<T>(key: string): T | null {
+function safeReadCache<T>(key: string, schema?: z.ZodType<T>): T | null {
   if (!isBrowser) return null;
   try {
     const raw = localStorage.getItem(key);
     if (!raw) return null;
-    return JSON.parse(raw) as T;
+    const parsed = JSON.parse(raw);
+
+    if (schema) {
+      const validation = schema.safeParse(parsed);
+      if (!validation.success) {
+        logger.warn("ai", `[newsService] Cache validation failed for ${key}`, validation.error);
+        localStorage.removeItem(key);
+        return null;
+      }
+      return validation.data;
+    }
+
+    return parsed as T;
   } catch (e) {
     try {
       localStorage.removeItem(key);
@@ -58,6 +71,35 @@ export interface SentimentAnalysis {
   summary: string;
   keyFactors: string[];
 }
+
+const NewsItemSchema = z.object({
+  title: z.string(),
+  url: z.string(),
+  source: z.string(),
+  published_at: z.string(),
+  currencies: z.array(z.object({ code: z.string(), title: z.string() })).optional(),
+  id: z.string().optional(),
+});
+
+const NewsCacheEntrySchema = z.object({
+  symbol: z.string(),
+  items: z.array(NewsItemSchema),
+  timestamp: z.number(),
+  lastApiCall: z.number(),
+});
+
+const SentimentAnalysisSchema = z.object({
+  score: z.number(),
+  regime: z.enum(["BULLISH", "BEARISH", "NEUTRAL", "UNCERTAIN"]),
+  summary: z.string(),
+  keyFactors: z.array(z.string()),
+});
+
+const SentimentCacheSchema = z.object({
+  data: SentimentAnalysisSchema,
+  timestamp: z.number(),
+  newsHash: z.string(),
+});
 
 const COIN_ALIASES: Record<string, string[]> = {
   BTC: ["Bitcoin", "BTC"],
@@ -120,7 +162,7 @@ const pendingSentimentFetches = new Map<
 function shouldFetchNews(symbol: string | undefined): boolean {
   const symbolKey = symbol || "global";
   const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
-  const cached = safeReadCache<NewsCacheEntry>(cacheKey);
+  const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
 
   if (!cached) {
     return true;
@@ -165,7 +207,7 @@ function pruneOldCaches() {
       const sorted = keys
         .map(k => ({
           key: k,
-          entry: safeReadCache<NewsCacheEntry>(k),
+          entry: safeReadCache<NewsCacheEntry>(k, NewsCacheEntrySchema),
         }))
         .filter(x => x.entry !== null)
         .sort((a, b) => a.entry!.timestamp - b.entry!.timestamp);
@@ -202,7 +244,7 @@ export const newsService = {
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
         // 1. Cache-Validierung mit intelligenter Logik
-        const cached = safeReadCache<NewsCacheEntry>(cacheKey);
+        const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
         if (cached && !shouldFetchNews(symbol)) {
           return cached.items;
         }
@@ -397,7 +439,7 @@ export const newsService = {
     // Immer serverseitig, kein allowClientSideAi mehr
     const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
-        const cached = safeReadCache<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>(CACHE_KEY_SENTIMENT);
+        const cached = safeReadCache<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>(CACHE_KEY_SENTIMENT, SentimentCacheSchema);
         if (
           cached &&
           Date.now() - cached.timestamp < CACHE_TTL_SENTIMENT &&
