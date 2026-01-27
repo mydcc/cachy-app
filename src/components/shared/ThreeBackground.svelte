@@ -20,9 +20,38 @@
   let animationId: number | null = null;
   let themeObserver: MutationObserver | null = null;
 
+  // Helper to resolve CSS variables (handles "var(--name)" references)
+  const resolveColor = (varName: string, fallback: string = "#000000") => {
+    if (!browser) return fallback;
+
+    // 1. Get the raw value (might be "var(--other)")
+    let val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    if (!val) return fallback;
+
+    // 2. If it's a direct color (hex, rgb, etc) and not a variable reference, return it
+    if (!val.startsWith("var(") && !val.includes("var(")) {
+        return val;
+    }
+
+    // 3. If it is a variable reference, we need the browser to resolve it.
+    // We create a temp element, apply the variable as a background, and read the computed rgb.
+    try {
+        const temp = document.createElement("div");
+        temp.style.display = "none";
+        temp.style.backgroundColor = `var(${varName})`;
+        document.body.appendChild(temp);
+        const resolved = getComputedStyle(temp).backgroundColor;
+        document.body.removeChild(temp);
+        // resolved is usually "rgb(r, g, b)" or "rgba(...)" which Three.js handles
+        return resolved || fallback;
+    } catch (e) {
+        console.warn("[Galaxy] Failed to resolve color:", varName, e);
+        return fallback;
+    }
+  };
+
   const getVar = (name: string) => {
-    if (typeof getComputedStyle === "undefined") return "#000000";
-    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+      return resolveColor(name);
   };
 
   function generateGalaxy() {
@@ -66,14 +95,16 @@
     galaxyGeometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
     // Colors from Theme
-    let colorInside = new THREE.Color(getVar("--galaxy-stars-core") || getVar("--color-accent") || "#6366f1");
-    let colorOutside = new THREE.Color(getVar("--galaxy-stars-edge") || getVar("--color-text-secondary") || "#8b5cf6");
+    // We use fallback to "white" for core if undefined to ensure visibility
+    let colorInside = new THREE.Color(getVar("--galaxy-stars-core") || "#6366f1");
+    let colorOutside = new THREE.Color(getVar("--galaxy-stars-edge") || "#8b5cf6");
 
     // Determine Blending Mode based on Background Brightness
-    const bgStr = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
+    const bgStr = getVar("--galaxy-bg") || "#0a0e27";
     const bgCol = new THREE.Color(bgStr);
     const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
     const blendingMode = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+    const alphaCutoff = isLight ? 0.6 : 0.2;
 
     // Shader material
     galaxyMaterial = new THREE.ShaderMaterial({
@@ -91,6 +122,7 @@
         uSpinSpeed: { value: spin },
         uRandomnessPower: { value: randomnessPower },
         uConcentrationPower: { value: concentrationPower },
+        uAlphaCutoff: { value: alphaCutoff },
       },
       vertexShader: `
                 uniform float uTime;
@@ -110,13 +142,6 @@
 
                 void main() {
                     float particleId = float(gl_VertexID);
-                    // Use a more stable random input than vertexID if possible, but vertexID is standard here
-                    // Passing particleCount as uniform might be needed if we want exact ratio, but fract(id/count) is fine
-
-                    // We need to pass the count or use a large number to avoid patterns?
-                    // The original code used JS-injected literal: fract(particleId / ${particleCount}.0)
-                    // We can pass it as a uniform or keep injecting it. Injecting is easier for the shader string.
-
                     float radiusRatio = fract(particleId / ${particleCount.toFixed(1)});
                     float radius = pow(radiusRatio, uConcentrationPower) * uRadius;
 
@@ -142,6 +167,7 @@
       fragmentShader: `
                 uniform vec3 uColorInside;
                 uniform vec3 uColorOutside;
+                uniform float uAlphaCutoff;
                 varying float vRadiusRatio;
 
                 void main() {
@@ -152,7 +178,7 @@
                     float mixStrength = pow(1.0 - vRadiusRatio, 2.0);
                     vec3 color = mix(uColorOutside, uColorInside, mixStrength);
 
-                    float alpha = 0.1 / distanceToCenter - 0.2;
+                    float alpha = 0.1 / distanceToCenter - uAlphaCutoff;
                     alpha = clamp(alpha, 0.0, 1.0);
 
                     gl_FragColor = vec4(color, alpha);
@@ -174,23 +200,29 @@
       galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
       galaxyMaterial.uniforms.uConcentrationPower.value = s.concentrationPower;
 
-      // Update colors
-      const accent = getVar("--galaxy-stars-core") || getVar("--color-accent") || "#6366f1";
-      const highlight = getVar("--galaxy-stars-edge") || getVar("--color-text-secondary") || "#8b5cf6";
+      // Update colors with resolution
+      const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
+      const highlight = resolveColor("--galaxy-stars-edge") || "#8b5cf6";
+
       galaxyMaterial.uniforms.uColorInside.value.set(accent);
       galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
 
       // Update Blending & Background
-      const bgStr = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
+      const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
       if (scene) scene.background = new THREE.Color(bgStr);
 
       const bgCol = new THREE.Color(bgStr);
       const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
       const newBlending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+      const newCutoff = isLight ? 0.6 : 0.2;
 
       if (galaxyMaterial.blending !== newBlending) {
           galaxyMaterial.blending = newBlending;
           galaxyMaterial.needsUpdate = true;
+      }
+
+      if (galaxyMaterial.uniforms.uAlphaCutoff) {
+          galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
       }
   }
 
@@ -199,17 +231,16 @@
 
     // Scene
     scene = new THREE.Scene();
-    const bg = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
+    const bg = resolveColor("--galaxy-bg") || "#0a0e27";
     scene.background = new THREE.Color(bg);
 
     // Camera
-    // Configs from user code
     const cameraConfigs = {
         compact: { fov: 50, position: [2, 1, 3] as [number, number, number] },
         medium: { fov: 55, position: [3, 1.5, 4] as [number, number, number] },
         full: { fov: 50, position: [4, 2, 5] as [number, number, number] },
     };
-    const config = cameraConfigs.full; // Default to full
+    const config = cameraConfigs.full;
 
     camera = new THREE.PerspectiveCamera(
       config.fov,
@@ -228,9 +259,7 @@
     // Controls
     controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;
-    controls.enableZoom = false; // Disable zoom for background by default? User code allowed it (min/max distance).
-    // I will keep it enabled but maybe restrict it?
-    // "cursor: grab" in styles implies interaction.
+    controls.enableZoom = false;
     controls.minDistance = 0.1;
     controls.maxDistance = 50;
 
@@ -272,7 +301,7 @@
     });
     themeObserver.observe(document.documentElement, {
         attributes: true,
-        attributeFilter: ["class", "data-mode", "style"], // style for dynamic changes
+        attributeFilter: ["class", "data-mode", "style"],
     });
 
     return () => {
@@ -291,57 +320,9 @@
 
   // Reactivity to settings changes
   $effect(() => {
-      // Monitor specific structural changes that require regeneration
-      const { particleCount, randomness } = settingsState.galaxySettings;
-      // We need to verify if these changed significantly or just pass dependencies?
-      // Since this is $effect, it runs when dependencies change.
-      // But we want to avoid re-generating on just color/speed changes if handled by updateUniforms.
-      // However, `generateGalaxy` uses all props.
-
-      // Let's be simple: Re-generate only if count/randomness change?
-      // But `generateGalaxy` injects `particleCount` into shader string.
-      // So if `particleCount` changes, we MUST regenerate shader (so regenerate material).
-
-      // If we separate the logic:
-      // 1. Structural/Shader-baked params -> generateGalaxy()
-      // 2. Uniforms -> updateUniforms()
-
-      // For now, let's just use untrack or check changes?
-      // Actually, calling generateGalaxy() is safe enough, it disposes old ones.
-      // But we don't want to reset `uTime`.
-
-      // Let's try to optimize:
-      // We can check if `particleCount` changed?
-      // But we don't have "previous" state easily here without extra vars.
-
-      // Just re-generating is fine for settings tweaks.
-      // But wait, `uTime` reset means the galaxy jumps.
-      // We should preserve `uTime` or pass it in?
-      // The `clock` is external to `galaxyMaterial`.
-      // `animate` sets `galaxyMaterial.uniforms.uTime.value = clock.getElapsedTime()`.
-      // So if we recreate material, the next frame will set the correct time. No jump (except maybe spin phase).
-
-      // One issue: `generateGalaxy` reads ALL settings.
-      // So if I change `spin`, `generateGalaxy` runs?
-      // Yes, if I put `settingsState.galaxySettings` in the dependency.
-      // To avoid full regen on `spin` change, we can do:
-
+      // Accessing settings to trigger updates
       const s = settingsState.galaxySettings;
-
-      // We can use a tracked state for structural params?
-      // or just re-run. The user is in settings, performance is okay.
-      // But flashing might occur.
-
-      // Better approach:
-      // Use `key` block in parent? No.
-
-      // Let's just call `generateGalaxy()` when structural things change
-      // And `updateUniforms()` when others change.
-
-      // But `settingsState.galaxySettings` is a proxy object.
-      // Accessing properties creates subscriptions.
-
-      // Let's allow full regeneration for now. It's robust.
+      // We regenerate on structure changes
       generateGalaxy();
   });
 
