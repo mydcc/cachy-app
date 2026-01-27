@@ -67,7 +67,7 @@
 
     // Colors from Theme
     let colorInside = new THREE.Color(getVar("--color-accent") || "#6366f1");
-    let colorOutside = new THREE.Color(getVar("--color-text-muted") || "#8b5cf6");
+    let colorOutside = new THREE.Color(getVar("--color-text-secondary") || "#8b5cf6");
 
     // Shader material
     galaxyMaterial = new THREE.ShaderMaterial({
@@ -170,7 +170,7 @@
 
       // Update colors
       const accent = getVar("--color-accent") || "#6366f1";
-      const highlight = getVar("--color-text-muted") || "#8b5cf6";
+      const highlight = getVar("--color-text-secondary") || "#8b5cf6";
       galaxyMaterial.uniforms.uColorInside.value.set(accent);
       galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
   }
@@ -187,7 +187,7 @@
     // But the user code explicitly sets background.
     // If it's "background", it should probably be the background.
     // Let's stick to user code.
-    const bg = getVar("--color-bg-body") || "#0a0e27";
+    const bg = getVar("--color-bg-primary") || "#0a0e27";
     scene.background = new THREE.Color(bg);
 
     // Camera
@@ -256,7 +256,7 @@
 
     // Theme Observer
     themeObserver = new MutationObserver(() => {
-        const bg = getVar("--color-bg-body") || "#0a0e27";
+        const bg = getVar("--color-bg-primary") || "#0a0e27";
         if (scene) scene.background = new THREE.Color(bg);
         updateUniforms();
     });
