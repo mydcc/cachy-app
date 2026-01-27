@@ -47,6 +47,32 @@
     }
   };
 
+  // Helper to add opacity to a color string
+  function addOpacity(color: string, opacity: number): string {
+      if (!color) return `rgba(0,0,0,${opacity})`;
+
+      // Handle RGB(A)
+      if (color.startsWith('rgb')) {
+          // If rgba, we can't easily increase opacity without parsing, but usually we get rgb from computed style
+          if (color.startsWith('rgba')) return color;
+          return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
+      }
+
+      // Handle Hex
+      if (color.startsWith('#')) {
+          let hex = color.substring(1);
+          if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+          const bigint = parseInt(hex, 16);
+          const r = (bigint >> 16) & 255;
+          const g = (bigint >> 8) & 255;
+          const b = bigint & 255;
+          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+
+      // Fallback for named colors or others, return as is (no opacity added)
+      return color;
+  }
+
   function prepareChartData(candles: CandleData[]) {
     // Dynamic Spacing Logic
     // If few candles, we pad with empty labels to center them visually
@@ -96,6 +122,7 @@
           borderColor: colors,
           borderWidth: 1,
           barThickness: 20,
+          borderRadius: 2, // Rounded corners for bodies
           grouped: false,
           order: 0,
         },

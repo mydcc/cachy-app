@@ -34,9 +34,9 @@ class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private pollingInterval: any = null;
   private startTimeout: any = null; // Track startup delay
-  private currentIntervalSeconds: number = 10;
+  // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
-  private maxConcurrentPolls = 12;
+  private maxConcurrentPolls = 24; // Increased for dashboards
   private inFlight = 0;
   private lastErrorLog = 0;
   private readonly errorLogIntervalMs = 30000;
@@ -313,9 +313,12 @@ class MarketWatcher {
       }
     } finally {
       // Re-allow polling after interval
+      // Dynamic interval from settings
+      const interval = Math.max(settingsState.marketDataInterval || 5, 2); // Min 2s safety
+
       setTimeout(() => {
         this.fetchLocks.delete(lockKey);
-      }, this.currentIntervalSeconds * 1000);
+      }, interval * 1000);
       this.inFlight = Math.max(0, this.inFlight - 1);
     }
   }

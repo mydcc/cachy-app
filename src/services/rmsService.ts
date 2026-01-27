@@ -84,8 +84,8 @@ class RiskManagementService {
                 // Logic to check if position is in danger zone
                 if (pos.unrealizedPnl.isNegative()) {
                     const pnlAbs = pos.unrealizedPnl.abs();
-                    // We assume pnl is in USDT if comparing to size,
-                    // or percent if compared to drawdown limit.
+                    // We assume pnl is in USDT if comparing to size, 
+                    // or percent if compared to drawdown limit. 
                     // Let's keep it placeholder as in the original but with safe checks.
                 }
             });
