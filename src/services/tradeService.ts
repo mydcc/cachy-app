@@ -243,7 +243,6 @@ class TradeService {
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
         const qty = amount ? amount.toString() : position.amount.toString();
-        const numQty = amount || position.amount;
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 

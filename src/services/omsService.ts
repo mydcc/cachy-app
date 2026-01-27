@@ -12,7 +12,7 @@ import { logger } from "./logger";
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
-    private readonly MAX_ORDERS = 500;
+    private readonly MAX_ORDERS = 1000;
     private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {

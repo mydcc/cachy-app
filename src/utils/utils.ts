@@ -471,10 +471,10 @@ export function escapeHtml(unsafe: string | null | undefined): string {
  * - "1.5m" -> 1500000
  * - "100" -> 100
  */
-export function parseAiValue(value: string | number | boolean): number {
-  if (typeof value === "number") return value;
-  if (typeof value === "boolean") return value ? 1 : 0;
-  if (!value) return 0;
+export function parseAiValue(value: string | number | boolean): Decimal {
+  if (typeof value === "number") return new Decimal(value);
+  if (typeof value === "boolean") return value ? new Decimal(1) : new Decimal(0);
+  if (!value) return new Decimal(0);
 
   let str = String(value).trim().toLowerCase();
 
@@ -548,9 +548,9 @@ export function parseAiValue(value: string | number | boolean): number {
 
   try {
     const d = new Decimal(str);
-    if (d.isNaN()) return 0;
-    return d.times(multiplier).toNumber();
+    if (d.isNaN()) return new Decimal(0);
+    return d.times(multiplier);
   } catch (e) {
-    return 0;
+    return new Decimal(0);
   }
 }
