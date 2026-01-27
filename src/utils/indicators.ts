@@ -65,7 +65,7 @@ export const JSIndicators = {
     }
     let avgGain = sumGain / period;
     let avgLoss = sumLoss / period;
-    result[period] = 100 - 100 / (1 + avgGain / (avgLoss || 1));
+    result[period] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
 
     for (let i = period + 1; i < data.length; i++) {
       const diff = data[i] - data[i - 1];
@@ -73,7 +73,7 @@ export const JSIndicators = {
       const loss = diff < 0 ? -diff : 0;
       avgGain = (avgGain * (period - 1) + gain) / period;
       avgLoss = (avgLoss * (period - 1) + loss) / period;
-      result[i] = 100 - 100 / (1 + avgGain / (avgLoss || 1));
+      result[i] = avgLoss === 0 ? 100 : 100 - 100 / (1 + avgGain / avgLoss);
     }
     return result;
   },

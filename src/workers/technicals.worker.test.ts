@@ -64,8 +64,9 @@ describe("technicals.worker", () => {
         ema: { ema1: { length: 9 } },
       } as any);
 
-      // Should not crash, just empty or partial results
-      expect(result.movingAverages.length).toBe(0);
+      // Should not crash, just empty or partial results (MAs return 0 if not enough data)
+      expect(result.movingAverages.length).toBe(3);
+      expect(result.movingAverages[0].value.toNumber()).toBe(0);
     });
   });
 });
