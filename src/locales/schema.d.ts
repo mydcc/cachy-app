@@ -1211,4 +1211,5 @@ export type TranslationKey =
   | "workerErrors.eventError"
   | "workerErrors.notAvailable"
   | "workerErrors.timeout"
-  | "markdownErrors.fileNotFound";
+  | "markdownErrors.fileNotFound"
+  | "academy.title";

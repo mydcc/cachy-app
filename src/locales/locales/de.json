@@ -1504,5 +1504,8 @@
   },
   "markdownErrors": {
     "fileNotFound": "Markdown-Datei nicht gefunden: {path}"
+  },
+  "academy": {
+    "title": "Trading Academy"
   }
 }
