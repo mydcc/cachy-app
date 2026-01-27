@@ -57,6 +57,13 @@
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
+    "orderHistory": {
+      "fee": "Fee",
+      "side": {
+        "buy": "Buy",
+        "sell": "Sell"
+      }
+    },
     "type": "Type",
     "price": "Price",
     "amount": "Amount",
