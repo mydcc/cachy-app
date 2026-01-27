@@ -89,26 +89,14 @@ export function parseDecimal(
       str = str.replace(/,/g, "");
     }
   } else if (hasComma) {
-    // Ambiguous: 1,200 (EN) vs 1,5 (DE)
-    const parts = str.split(",");
-    if (parts.length > 2) {
-      // 1,000,000 -> EN (Multiple commas = Thousands)
-      str = str.replace(/,/g, "");
-    } else {
-      // Single comma case (and !hasDot is guaranteed here)
-      const [integerPart, decimalPart] = parts;
-
-      // Heuristic:
-      // 1. If decimal part is NOT 3 digits (e.g. "1,5", "10,99"), it is definitely a decimal separator (DE).
-      // 2. If integer part is "0" or "-0" (e.g. "0,123"), it is a decimal separator (DE).
-      // 3. Otherwise (e.g. "1,200", "10,500"), assume English Thousands for financial safety.
-      // Note: "1,200" could technically be DE 1.2, but in crypto/finance context, we prioritize English Thousands for "1,XXX" format.
-      if (decimalPart.length !== 3 || integerPart === "0" || integerPart === "-0") {
-        str = str.replace(",", ".");
-      } else {
-        str = str.replace(/,/g, "");
-      }
-    }
+    // HARDENING: Ambiguous Comma (1,200)
+    // Previous heuristic (length=3) guessed thousands separator, risking 1.2 -> 1200.
+    // New logic: Comma is ALWAYS a decimal separator if no dot is present.
+    // This prioritizes safety/European inputs (1,5) over English Thousands (1,000).
+    // Users must NOT input thousands separators.
+    // "1,200" -> "1.200" (1.2)
+    // "1,000" -> "1.000" (1)
+    str = str.replace(",", ".");
   }
   // If only dot, usually safe for Decimal (1200.50)
   // But could be 1.200 (DE thousands).

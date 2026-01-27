@@ -41,6 +41,7 @@ import { omsService } from "./omsService";
 import { rmsService } from "./rmsService";
 import { apiService } from "./apiService";
 import type { OMSOrder } from "./omsTypes";
+import type { BitunixOrder, BitunixResponse } from "../types/bitunix";
 import Decimal from "decimal.js";
 import CryptoJS from "crypto-js";
 
@@ -93,20 +94,11 @@ export interface PositionCloseParams {
 }
 
 /**
- * Bitunix API Response Interface
- */
-interface BitunixApiResponse<T = any> {
-  code: number; // 0 = success
-  msg: string;
-  data?: T;
-}
-
-/**
  * Bitunix API Error
  */
 export class BitunixApiError extends Error {
   constructor(
-    public code: number,
+    public code: number | string,
     public bitunixMessage: string,
   ) {
     super(`Bitunix Error ${code}: ${bitunixMessage}`);
@@ -115,12 +107,15 @@ export class BitunixApiError extends Error {
 
   get isUserFixable(): boolean {
     // Errors that user can fix
-    return [20003, 20005, 30001, 30013, 30018].includes(this.code);
+    // Cast code to number for comparison if possible
+    const c = Number(this.code);
+    return [20003, 20005, 30001, 30013, 30018].includes(c);
   }
 
   get requiresApiSetup(): boolean {
     // Errors that require API setup
-    return [10003, 10004, 20011].includes(this.code);
+    const c = Number(this.code);
+    return [10003, 10004, 20011].includes(c);
   }
 }
 
@@ -208,7 +203,7 @@ export class TradeExecutionService {
     method: "GET" | "POST" | "DELETE" | "PUT",
     path: string,
     body?: any,
-  ): Promise<BitunixApiResponse<T>> {
+  ): Promise<BitunixResponse<T>> {
     // 1. Ensure authorization
     TradeExecutionGuard.ensureAuthorized();
 
@@ -264,10 +259,11 @@ export class TradeExecutionService {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
 
-      const data: BitunixApiResponse<T> = await response.json();
+      const data: BitunixResponse<T> = await response.json();
 
       // 10. Check Bitunix API error
-      if (data.code !== 0) {
+      // Bitunix uses "0" (string) or 0 (number) for success
+      if (data.code !== 0 && data.code !== "0") {
         throw new BitunixApiError(data.code, data.msg);
       }
 
@@ -384,7 +380,7 @@ export class TradeExecutionService {
     }
 
     // 3. Execute API call
-    const response = await this.signedRequest<any>("POST", "/api/v1/futures/trade/place_order", body);
+    const response = await this.signedRequest<BitunixOrder>("POST", "/api/v1/futures/trade/place_order", body);
 
     // 4. Update OMS
     const raw = response.data;
@@ -393,11 +389,11 @@ export class TradeExecutionService {
       symbol: params.symbol,
       side: params.side,
       type: params.type,
-      status: this.mapOrderStatus(raw.status) as any,
+      status: this.mapOrderStatus(raw.status || "NEW") as any,
       price: new Decimal(raw.price || params.price || 0),
-      amount: new Decimal(raw.qty),
-      filledAmount: new Decimal(raw.filledQty || 0),
-      timestamp: raw.createTime
+      amount: new Decimal(raw.qty || raw.amount || 0),
+      filledAmount: new Decimal(raw.tradeQty || 0), // Use tradeQty from BitunixOrder
+      timestamp: raw.ctime || raw.createTime || Date.now()
     };
     omsService.updateOrder(omsOrder);
 
@@ -454,24 +450,18 @@ export class TradeExecutionService {
     const body: any = { orderId: params.orderId };
     if (params.price) body.price = params.price.toString();
     if (params.amount) body.qty = params.amount.toString();
-    const response = await this.signedRequest<{
-      orderId: string;
-      symbol: string;
-      side: string;
-      orderType: string;
-      price: string;
-      qty: string;
-      status: string;
-      createTime: number;
-    }>("POST", "/api/v1/futures/trade/modify_order", body);
+    // Bitunix modify returns a simplified structure or the full order?
+    // Using loose type here as modify response might differ slightly, but let's try strict.
+    const response = await this.signedRequest<BitunixOrder>("POST", "/api/v1/futures/trade/modify_order", body);
+    const data = response.data;
     return {
-      orderId: response.data!.orderId,
-      symbol: response.data!.symbol,
-      side: response.data!.side.toLowerCase() as OrderSide,
-      status: this.mapOrderStatus(response.data!.status),
-      price: new Decimal(response.data!.price),
-      amount: new Decimal(response.data!.qty),
-      timestamp: response.data!.createTime,
+      orderId: data.orderId,
+      symbol: data.symbol,
+      side: (data.side || "").toLowerCase() as OrderSide,
+      status: this.mapOrderStatus(data.status || "NEW"),
+      price: new Decimal(data.price || 0),
+      amount: new Decimal(data.qty || data.amount || 0),
+      timestamp: data.ctime || data.createTime || Date.now(),
     };
   }
 
@@ -740,19 +730,23 @@ export class TradeExecutionService {
     logger.log("market", "Get Pending Orders, symbol: " + (symbol || "all"));
 
     const params = symbol ? `?symbol=${symbol}` : "";
-    const response = await this.signedRequest<any>("GET", `/api/v1/futures/trade/get_pending_orders${params}`);
+    // Returns { orders: [...] } or list? Bitunix doc says wrapper.
+    const response = await this.signedRequest<{ orders: BitunixOrder[] }>("GET", `/api/v1/futures/trade/get_pending_orders${params}`);
 
-    const orders = (response.data?.orders || []).map((o: any) => {
+    // If it's a list directly or wrapper
+    const list = response.data.orders || (Array.isArray(response.data) ? response.data : []);
+
+    const orders = list.map((o: BitunixOrder) => {
       const omsOrder: OMSOrder = {
         id: o.orderId,
         symbol: o.symbol,
-        side: o.side.toLowerCase() as any,
-        type: o.orderType.toLowerCase() as any,
-        status: this.mapOrderStatus(o.status) as any,
-        price: new Decimal(o.price),
-        amount: new Decimal(o.qty),
-        filledAmount: new Decimal(o.filledQty || 0),
-        timestamp: o.createTime
+        side: (o.side || "").toLowerCase() as any,
+        type: (o.type || "").toLowerCase() as any,
+        status: this.mapOrderStatus(o.status || "NEW") as any,
+        price: new Decimal(o.price || 0),
+        amount: new Decimal(o.qty || o.amount || 0),
+        filledAmount: new Decimal(o.tradeQty || 0),
+        timestamp: o.ctime || o.createTime || Date.now()
       };
       omsService.updateOrder(omsOrder);
 
@@ -784,25 +778,16 @@ export class TradeExecutionService {
 
     logger.log("market", "Get Order Detail:", orderId);
 
-    const response = await this.signedRequest<{
-      orderId: string;
-      symbol: string;
-      side: string;
-      orderType: string;
-      price: string;
-      qty: string;
-      filledQty: string;
-      status: string;
-      createTime: number;
-    }>("GET", `/api/v1/futures/trade/get_order_detail?orderId=${orderId}`);
+    const response = await this.signedRequest<BitunixOrder>("GET", `/api/v1/futures/trade/get_order_detail?orderId=${orderId}`);
+    const data = response.data;
     return {
-      orderId: response.data!.orderId,
-      symbol: response.data!.symbol,
-      side: response.data!.side.toLowerCase() as OrderSide,
-      status: this.mapOrderStatus(response.data!.status),
-      price: new Decimal(response.data!.price),
-      amount: new Decimal(response.data!.qty),
-      timestamp: response.data!.createTime,
+      orderId: data.orderId,
+      symbol: data.symbol,
+      side: (data.side || "").toLowerCase() as OrderSide,
+      status: this.mapOrderStatus(data.status || "NEW"),
+      price: new Decimal(data.price || 0),
+      amount: new Decimal(data.qty || data.amount || 0),
+      timestamp: data.ctime || data.createTime || Date.now(),
     };
   }
 
@@ -824,19 +809,27 @@ export class TradeExecutionService {
     logger.log("market", "Get History Orders, symbol: " + (symbol || "all") + " limit: " + limit);
 
     const params = `?${symbol ? `symbol=${symbol}&` : ""}limit=${limit}`;
-    const response = await this.signedRequest<any>("GET", `/api/v1/futures/trade/get_history_orders${params}`);
+    const response = await this.signedRequest<{ orders: BitunixOrder[] } | BitunixOrder[]>("GET", `/api/v1/futures/trade/get_history_orders${params}`);
 
-    const orders = (response.data?.orders || []).map((o: any) => {
+    // Handle both direct list and object wrapper { orders: [...] }
+    let list: BitunixOrder[] = [];
+    if (Array.isArray(response.data)) {
+        list = response.data;
+    } else if (response.data && Array.isArray(response.data.orders)) {
+        list = response.data.orders;
+    }
+
+    const orders = list.map((o: BitunixOrder) => {
       const omsOrder: OMSOrder = {
         id: o.orderId,
         symbol: o.symbol,
-        side: o.side.toLowerCase() as any,
-        type: o.orderType.toLowerCase() as any,
-        status: this.mapOrderStatus(o.status) as any,
-        price: new Decimal(o.price),
-        amount: new Decimal(o.qty),
-        filledAmount: new Decimal(o.filledQty || 0),
-        timestamp: o.createTime
+        side: (o.side || "").toLowerCase() as any,
+        type: (o.type || "").toLowerCase() as any,
+        status: this.mapOrderStatus(o.status || "NEW") as any,
+        price: new Decimal(o.price || 0),
+        amount: new Decimal(o.qty || o.amount || 0),
+        filledAmount: new Decimal(o.tradeQty || 0),
+        timestamp: o.ctime || o.createTime || Date.now()
       };
       omsService.updateOrder(omsOrder);
 
