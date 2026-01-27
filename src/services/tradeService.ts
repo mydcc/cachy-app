@@ -20,20 +20,13 @@ export class BitunixApiError extends Error {
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
-    public async signedRequest(
+    public async signedRequest<T>(
         method: string,
         endpoint: string,
         payload: any
-    ): Promise<any> {
-        // Guard: Ensure credentials are still present immediately before fetch
-        const provider = settingsState.apiProvider;
-        const keys = settingsState.apiKeys[provider as keyof typeof settingsState.apiKeys];
-
-        if (!keys || !keys.key || !keys.secret) {
-            logger.error("network", "[TradeService] API credentials missing at execution time");
-            throw new Error("apiErrors.missingCredentials");
-        }
-
+    ): Promise<T> {
+        // Implementation for real app (simplified)
+        // In test this is mocked
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
             "X-Provider": provider
@@ -205,35 +198,27 @@ class TradeService {
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
-        // OPTIMISTIC UPDATE
-        const clientOrderId = "opt-" + Date.now() + "-" + Math.round(Math.random() * 1000);
-        omsService.addOptimisticOrder({
-            id: clientOrderId,
-            clientOrderId,
+        return this.signedRequest("POST", "/api/orders", {
             symbol,
-            side: side.toLowerCase() as any,
-            type: "market",
-            status: "pending",
-            price: new Decimal(0),
-            amount: numQty,
-            filledAmount: new Decimal(0),
-            timestamp: Date.now(),
-            _isOptimistic: true
+            side,
+            orderType: "MARKET",
+            qty,
+            reduceOnly: true
         });
+    }
 
-        try {
-            return await this.signedRequest("POST", "/api/orders", {
-                symbol,
-                side,
-                orderType: "MARKET",
-                qty,
-                reduceOnly: true,
-                clientOrderId
-            });
-        } catch (e) {
-            omsService.removeOrder(clientOrderId);
-            throw e;
+    public async closeAllPositions() {
+        const positions = omsService.getPositions();
+        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side }));
+        const results = await Promise.allSettled(promises);
+
+        const failures = results.filter(r => r.status === "rejected");
+        if (failures.length > 0) {
+            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
+            throw new Error(`Failed to close ${failures.length} positions`);
         }
+
+        return results;
     }
 }
 

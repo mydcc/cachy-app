@@ -57,6 +57,23 @@
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
+    "orderHistory": {
+      "maker": "M",
+      "taker": "T",
+      "fee": "Fee",
+      "liq": "Liq.",
+      "side": {
+        "buy": "Buy",
+        "sell": "Sell"
+      },
+      "type": {
+        "limit": "Limit",
+        "market": "Market",
+        "stopLimit": "Stop Limit",
+        "stopMarket": "Stop Market",
+        "trailing": "Trailing"
+      }
+    },
     "type": "Type",
     "price": "Price",
     "amount": "Amount",

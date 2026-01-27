@@ -9,6 +9,9 @@
 import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
+import { settingsState } from "../stores/settings.svelte";
+import { favoritesState } from "../stores/favorites.svelte";
+import { tradeState } from "../stores/trade.svelte";
 import { technicalsService } from "./technicalsService";
 import { marketWatcher } from "./marketWatcher";
 import { browser } from "$app/environment";
@@ -133,14 +136,32 @@ class ActiveTechnicalsManager {
     }
 
     private scheduleCalculation(symbol: string, timeframe: string) {
-        // Implement simple throttling (1 update per second)
         const key = `${symbol}:${timeframe}`;
         if (this.throttles.has(key)) return; // Already scheduled
+
+        // Base interval from settings (default 1s if invalid)
+        let delay = Math.max(1000, (settingsState.marketAnalysisInterval || 1) * 1000);
+
+        // Priority Logic
+        const isSelectedSymbol = tradeState.symbol === symbol;
+        const isTopFavorite = favoritesState.items.slice(0, 4).includes(symbol);
+        const isHighPriority = isSelectedSymbol || isTopFavorite;
+
+        if (!settingsState.analyzeAllFavorites && !isHighPriority) {
+            // Throttle non-priority symbols significantly (5x interval)
+            // This prevents background tiles from eating CPU
+            delay = delay * 5;
+        }
+
+        // Smart Throttle (Pause on Blur)
+        if (settingsState.pauseAnalysisOnBlur && typeof document !== "undefined" && !document.hasFocus()) {
+            delay = delay * 2;
+        }
 
         this.throttles.set(key, setTimeout(() => {
             this.throttles.delete(key);
             this.performCalculation(symbol, timeframe);
-        }, 1000));
+        }, delay));
     }
 
     // Helper for deep equality

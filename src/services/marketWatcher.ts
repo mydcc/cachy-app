@@ -323,6 +323,15 @@ class MarketWatcher {
   public getActiveSymbols(): string[] {
     return Array.from(this.requests.keys());
   }
+
+  // Safety valve: Force cleanup if ref-counting gets desynced
+  public forceCleanup() {
+    this.requests.clear();
+    this.fetchLocks.clear();
+    this.inFlight = 0;
+    this.syncSubscriptions();
+    logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
+  }
 }
 
 export const marketWatcher = new MarketWatcher();

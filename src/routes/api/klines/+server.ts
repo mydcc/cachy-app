@@ -141,7 +141,10 @@ async function fetchBitunixKlines(
       high: new Decimal(k.high || k.h || 0).toString(),
       low: new Decimal(k.low || k.l || 0).toString(),
       close: new Decimal(k.close || k.c || 0).toString(),
-      volume: new Decimal(k.volume || k.vol || k.v || k.amount || 0).toString(),
+      // Bitunix Kline API returns 'quoteVol' as the Quantity (BTC) and 'baseVol' as Turnover (USDT).
+      // This is swapped compared to standard conventions and their own Ticker API.
+      // We map k.quoteVol (Quantity) to our internal volume field.
+      volume: new Decimal(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0).toString(),
       timestamp: k.id || k.ts || k.time || 0,
     }))
     .sort((a: any, b: any) => a.timestamp - b.timestamp);
