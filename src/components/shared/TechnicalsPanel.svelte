@@ -84,6 +84,29 @@
     return val.toDecimalPlaces(prec).toString();
   }
 
+  function getOscillatorContext(name: string, val: Decimal, action: string) {
+    const v = val.toNumber();
+    if (name === "RSI") {
+      if (v >= 70) return "Overbought"; // Could be localized
+      if (v <= 30) return "Oversold";
+    }
+    if (name === "Stoch" || name === "StochRSI") {
+        if (v >= 80) return "Overbought";
+        if (v <= 20) return "Oversold";
+    }
+    if (name === "Will %R") {
+         if (v > -20) return "Overbought";
+         if (v < -80) return "Oversold";
+    }
+    if (name === "CCI") {
+        if (v > 100) return "Overbought";
+        if (v < -100) return "Oversold";
+    }
+    // Return action if no specific condition context
+    // But action is "Buy/Sell", maybe we want "Neutral" context?
+    return translateAction(action);
+  }
+
   // --- UI Event Handlers ---
   function toggleTimeframePopup() {
     showTimeframePopup = !showTimeframePopup;
@@ -224,45 +247,43 @@
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
             {#if settingsState.showTechnicalsSummary}
-              <div
-                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
-              >
-                <span
-                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{typeof $_ === "function"
-                    ? $_("settings.technicals.summaryAction")
-                    : "Summary"}</span
-                >
-                <span class="font-bold {getActionColor(data.summary.action)}"
-                  >{translateAction(data.summary.action)}</span
-                >
+              <div class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)]">
+                <div class="flex justify-between items-center text-xs px-1">
+                    <span class="text-[var(--text-secondary)] uppercase font-medium">
+                        {typeof $_ === "function" ? $_("settings.technicals.summaryAction") : "Summary"}
+                    </span>
+                    <span class="font-bold {getActionColor(data.summary.action)}">
+                        {translateAction(data.summary.action)}
+                    </span>
+                </div>
               </div>
             {/if}
 
-            <!-- Market Confluence -->
+            <!-- Market Confluence (Gauge) -->
             {#if settingsState.showTechnicalsConfluence && data.confluence}
-              <div
-                class="flex justify-between items-center text-xs py-1 border-b border-[var(--border-color)] hover:bg-[var(--bg-tertiary)] px-1 rounded transition-colors group"
-              >
-                <span
-                  class="text-[var(--text-secondary)] uppercase font-medium group-hover:text-[var(--text-primary)] transition-colors"
-                  >{typeof $_ === "function"
-                    ? $_("settings.technicals.marketConfluence")
-                    : "Confluence"}</span
-                >
-                <div
-                  class="flex items-center gap-2"
-                  title={data.confluence.contributing.join("\n")}
-                >
-                  <span
-                    class="font-bold {getActionColor(data.confluence.level)}"
-                    >{Math.round(data.confluence.score)}%</span
-                  >
-                  <span
-                    class="text-[10px] font-bold {getActionColor(
-                      data.confluence.level,
-                    )}">{translateAction(data.confluence.level)}</span
-                  >
+              <div class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)] px-1">
+                <div class="flex justify-between items-center text-xs">
+                    <span class="text-[var(--text-secondary)] uppercase font-medium">
+                        {typeof $_ === "function" ? $_("settings.technicals.marketConfluence") : "Confluence"}
+                    </span>
+                    <span class="font-bold {getActionColor(data.confluence.level)}">
+                        {Math.round(data.confluence.score)}%
+                    </span>
+                </div>
+                <!-- Linear Gauge -->
+                <div class="relative h-1.5 bg-[var(--bg-tertiary)] rounded-full mt-1 overflow-hidden" title={data.confluence.contributing.join("\n")}>
+                    <!-- Gradient Background: Red -> Yellow -> Green -->
+                    <div class="absolute inset-0 bg-gradient-to-r from-[var(--danger-color)] via-[var(--warning-color)] to-[var(--success-color)] opacity-40"></div>
+                    <!-- Marker -->
+                    <div
+                        class="absolute top-0 bottom-0 w-1 bg-[var(--text-primary)] shadow-[0_0_4px_rgba(0,0,0,0.5)] transform -translate-x-1/2 transition-all duration-500"
+                        style="left: {data.confluence.score}%"
+                    ></div>
+                </div>
+                <div class="flex justify-between text-[8px] text-[var(--text-tertiary)] mt-0.5 uppercase">
+                    <span>Sell</span>
+                    <span>Neutral</span>
+                    <span>Buy</span>
                 </div>
               </div>
             {/if}
@@ -310,15 +331,17 @@
               </div>
               {#each data.oscillators as osc}
                 <div
-                  class="grid grid-cols-[1fr_auto_auto] gap-x-2 text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded"
+                  class="grid grid-cols-[1fr_auto_auto] gap-x-2 text-xs py-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] px-1 rounded group"
                 >
                   <span class="truncate" title={osc.params}>{osc.name}</span>
                   <span class="font-mono text-right"
                     >{formatVal(osc.value)}</span
                   >
+                  <!-- Context Aware Action -->
                   <span
                     class="font-bold text-right {getActionColor(osc.action)}"
-                    >{osc.action}</span
+                    title="Action: {osc.action}"
+                    >{getOscillatorContext(osc.name, osc.value, osc.action)}</span
                   >
                 </div>
               {/each}
@@ -342,7 +365,7 @@
                   <div class="flex gap-2">
                     <span class="font-mono">{formatVal(ma.value)}</span>
                     <span class="font-bold {getActionColor(ma.action)}"
-                      >{ma.action}</span
+                      >{translateAction(ma.action)}</span
                     >
                   </div>
                 </div>
@@ -490,17 +513,22 @@
               </div>
               {#each data.divergences as div}
                 <div
-                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
+                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
                 >
-                  <span>{div.indicator}</span>
-                  <span
-                    class="font-bold {div.side === 'Bullish'
-                      ? 'text-[var(--success-color)]'
-                      : 'text-[var(--danger-color)]'}"
-                  >
-                    {div.side}
-                    {div.type}
-                  </span>
+                  <div class="flex justify-between">
+                      <span class="font-medium">{div.indicator} {div.type}</span>
+                      <span
+                        class="font-bold {div.side === 'Bullish'
+                          ? 'text-[var(--success-color)]'
+                          : 'text-[var(--danger-color)]'}"
+                      >
+                        {div.side}
+                      </span>
+                  </div>
+                  <div class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5">
+                      <span>Val: {formatVal(div.indStart, 1)} ➝ {formatVal(div.indEnd, 1)}</span>
+                      <span>Price: {formatVal(div.priceStart)} ➝ {formatVal(div.priceEnd)}</span>
+                  </div>
                 </div>
               {/each}
             </div>

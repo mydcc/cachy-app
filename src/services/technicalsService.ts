@@ -9,7 +9,7 @@
 import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import type { IndicatorSettings } from "../stores/indicator.svelte";
-import type { TechnicalsData, IndicatorResult } from "./technicalsTypes";
+import type { TechnicalsData, IndicatorResult, SerializedTechnicalsData, SerializedIndicatorResult, SerializedDivergenceItem } from "./technicalsTypes";
 import { type Kline } from "../utils/indicators";
 import {
   calculateAllIndicators,
@@ -83,7 +83,7 @@ function cleanupStaleCache() {
 // --- Worker Manager (Singleton) ---
 class TechnicalsWorkerManager {
   private worker: Worker | null = null;
-  private pendingResolves: Map<string, (value: TechnicalsData) => void> =
+  private pendingResolves: Map<string, (value: SerializedTechnicalsData) => void> =
     new Map();
   private pendingRejects: Map<string, (reason?: any) => void> = new Map();
   private lastActive: number = Date.now();
@@ -145,7 +145,7 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
   }
 
-  public async postMessage(message: any): Promise<TechnicalsData> {
+  public async postMessage(message: any): Promise<SerializedTechnicalsData> {
     const w = this.getWorker();
     if (!w) throw new Error("Worker not available");
 
@@ -217,18 +217,15 @@ export const technicalsService = {
       console.log('[Technicals] Cache MISS, calculating...');
     }
 
-    // 1. Try Worker (Singleton) -> DISABLED for Robustness (Timeout Prevention)
-    // The worker seems to timeout in some prod builds, causing a 5s delay.
-    // Inline calc for 200 candles is < 5ms, so we skip the worker.
-    /*
+    // 1. Try Worker (Singleton)
     try {
       const serializedKlines = klinesInput.map(k => ({
         time: k.time,
-        open: k.open instanceof Decimal ? parseFloat(k.open.toString()) : parseFloat(String(k.open)),
-        high: k.high instanceof Decimal ? parseFloat(k.high.toString()) : parseFloat(String(k.high)),
-        low: k.low instanceof Decimal ? parseFloat(k.low.toString()) : parseFloat(String(k.low)),
-        close: k.close instanceof Decimal ? parseFloat(k.close.toString()) : parseFloat(String(k.close)),
-        volume: k.volume ? (k.volume instanceof Decimal ? parseFloat(k.volume.toString()) : parseFloat(String(k.volume))) : 0,
+        open: k.open instanceof Decimal ? k.open.toString() : String(k.open),
+        high: k.high instanceof Decimal ? k.high.toString() : String(k.high),
+        low: k.low instanceof Decimal ? k.low.toString() : String(k.low),
+        close: k.close instanceof Decimal ? k.close.toString() : String(k.close),
+        volume: k.volume ? (k.volume instanceof Decimal ? k.volume.toString() : String(k.volume)) : "0",
       }));
 
       const result = await workerManager.postMessage({
@@ -238,8 +235,8 @@ export const technicalsService = {
         enabledIndicators
       });
 
-      // 2. Rehydrate Decimals (Worker returns POJOs)
-      const rehydrated = this.rehydrateDecimals(result);
+      // 2. Rehydrate Decimals (Worker returns Serialized Data)
+      const rehydrated = this.deserializeTechnicalsData(result);
 
       // Cache result with aggressive eviction
       if (calculationCache.size >= MAX_CACHE_SIZE) {
@@ -257,9 +254,6 @@ export const technicalsService = {
 
         if (oldestKey) {
           calculationCache.delete(oldestKey);
-          if (import.meta.env.DEV) {
-            console.log('[Technicals] Evicted LRU cache entry');
-          }
         }
       }
       calculationCache.set(cacheKey, {
@@ -273,8 +267,6 @@ export const technicalsService = {
       if (import.meta.env.DEV) console.warn("[Technicals] Worker failed, falling back to inline", e);
       return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
     }
-    */
-    return this.calculateTechnicalsInline(klinesInput, settings, enabledIndicators);
   },
 
   calculateTechnicalsInline(
@@ -371,44 +363,105 @@ export const technicalsService = {
     return result;
   },
 
-  /**
-   * Recursively converts plain objects that look like serialized Decimals 
-   * (containing s, e, c properties) back into Decimal instances.
-   */
-  rehydrateDecimals(obj: any): any {
-    if (obj === null || obj === undefined) return obj;
+  deserializeTechnicalsData(data: SerializedTechnicalsData): TechnicalsData {
+    const toDec = (v: string | undefined): Decimal => v ? new Decimal(v) : new Decimal(0);
 
-    // Check if it's already a Decimal (or a Proxy of one that behaves like one)
-    if (obj instanceof Decimal || (obj && typeof obj === 'object' && obj.toDecimalPlaces)) {
-      return obj;
-    }
-
-    // Check if it's a serialized Decimal: { s: number, e: number, c: number[] }
-    // We check for 'c' and 's' which are core to Decimal.js internal state
-    if (typeof obj === 'object' && obj.s !== undefined && obj.c !== undefined && Array.isArray(obj.c)) {
-      try {
-        return new Decimal(obj);
-      } catch (e) {
-        return obj;
-      }
-    }
-
-    if (Array.isArray(obj)) {
-      return obj.map(item => this.rehydrateDecimals(item));
-    }
-
-    if (typeof obj === 'object') {
-      // Create a fresh object to avoid Proxy issues
-      const result: any = {};
-      for (const key in obj) {
-        if (Object.prototype.hasOwnProperty.call(obj, key)) {
-          result[key] = this.rehydrateDecimals(obj[key]);
+    return {
+      oscillators: data.oscillators.map(o => ({
+        ...o,
+        value: toDec(o.value),
+        signal: o.signal ? new Decimal(o.signal) : undefined,
+        histogram: o.histogram ? new Decimal(o.histogram) : undefined,
+      })),
+      movingAverages: data.movingAverages.map(m => ({
+        ...m,
+        value: toDec(m.value),
+        signal: m.signal ? new Decimal(m.signal) : undefined,
+        histogram: m.histogram ? new Decimal(m.histogram) : undefined,
+      })),
+      pivots: {
+        classic: {
+          p: toDec(data.pivots.classic.p),
+          r1: toDec(data.pivots.classic.r1),
+          r2: toDec(data.pivots.classic.r2),
+          r3: toDec(data.pivots.classic.r3),
+          s1: toDec(data.pivots.classic.s1),
+          s2: toDec(data.pivots.classic.s2),
+          s3: toDec(data.pivots.classic.s3),
         }
-      }
-      return result;
-    }
-
-    return obj;
+      },
+      pivotBasis: data.pivotBasis ? {
+        high: toDec(data.pivotBasis.high),
+        low: toDec(data.pivotBasis.low),
+        close: toDec(data.pivotBasis.close),
+        open: toDec(data.pivotBasis.open),
+      } : undefined,
+      summary: data.summary,
+      volatility: data.volatility ? {
+        atr: toDec(data.volatility.atr),
+        bb: {
+          upper: toDec(data.volatility.bb.upper),
+          middle: toDec(data.volatility.bb.middle),
+          lower: toDec(data.volatility.bb.lower),
+          percentP: toDec(data.volatility.bb.percentP),
+        }
+      } : undefined,
+      divergences: data.divergences?.map(d => ({
+        ...d,
+        priceStart: toDec(d.priceStart),
+        priceEnd: toDec(d.priceEnd),
+        indStart: toDec(d.indStart),
+        indEnd: toDec(d.indEnd),
+      })),
+      confluence: data.confluence,
+      advanced: data.advanced ? {
+        vwap: data.advanced.vwap ? toDec(data.advanced.vwap) : undefined,
+        mfi: data.advanced.mfi ? {
+          value: toDec(data.advanced.mfi.value),
+          action: data.advanced.mfi.action
+        } : undefined,
+        stochRsi: data.advanced.stochRsi ? {
+          k: toDec(data.advanced.stochRsi.k),
+          d: toDec(data.advanced.stochRsi.d),
+          action: data.advanced.stochRsi.action
+        } : undefined,
+        williamsR: data.advanced.williamsR ? {
+          value: toDec(data.advanced.williamsR.value),
+          action: data.advanced.williamsR.action
+        } : undefined,
+        choppiness: data.advanced.choppiness ? {
+          value: toDec(data.advanced.choppiness.value),
+          state: data.advanced.choppiness.state
+        } : undefined,
+        ichimoku: data.advanced.ichimoku ? {
+          conversion: toDec(data.advanced.ichimoku.conversion),
+          base: toDec(data.advanced.ichimoku.base),
+          spanA: toDec(data.advanced.ichimoku.spanA),
+          spanB: toDec(data.advanced.ichimoku.spanB),
+          action: data.advanced.ichimoku.action
+        } : undefined,
+        parabolicSar: data.advanced.parabolicSar ? toDec(data.advanced.parabolicSar) : undefined,
+        superTrend: data.advanced.superTrend ? {
+          value: toDec(data.advanced.superTrend.value),
+          trend: data.advanced.superTrend.trend
+        } : undefined,
+        atrTrailingStop: data.advanced.atrTrailingStop ? {
+          buy: toDec(data.advanced.atrTrailingStop.buy),
+          sell: toDec(data.advanced.atrTrailingStop.sell)
+        } : undefined,
+        obv: data.advanced.obv ? toDec(data.advanced.obv) : undefined,
+        volumeProfile: data.advanced.volumeProfile ? {
+          poc: toDec(data.advanced.volumeProfile.poc),
+          vaHigh: toDec(data.advanced.volumeProfile.vaHigh),
+          vaLow: toDec(data.advanced.volumeProfile.vaLow),
+          rows: data.advanced.volumeProfile.rows.map(r => ({
+            priceStart: toDec(r.priceStart),
+            priceEnd: toDec(r.priceEnd),
+            volume: toDec(r.volume)
+          }))
+        } : undefined,
+      } : undefined
+    };
   },
 
   getEmptyData(): TechnicalsData {
