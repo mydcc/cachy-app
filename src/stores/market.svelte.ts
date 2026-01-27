@@ -38,15 +38,7 @@ export interface MarketData {
   priceChangePercent?: Decimal | null;
   klines: Record<string, Kline[]>;
   technicals?: import("../services/technicalsTypes").TechnicalsData;
-  metricsHistory?: MetricSnapshot[];
   lastUpdated?: number; // Optimization: only snapshot fresh data
-}
-
-export interface MetricSnapshot {
-  time: number;
-  spread: number;
-  imbalance: number; // Bid Ratio (0-1)
-  price: number;
 }
 
 export type WSStatus =
@@ -90,13 +82,6 @@ class MarketManager {
       this.flushIntervalId = setInterval(() => {
         this.flushUpdates();
       }, 250);
-
-      // Start metrics history recording (every 10s)
-      /* TEMPORARILY DISABLED FOR CPU DEBUGGING
-      setInterval(() => {
-        this.snapshotMetrics();
-      }, 10 * 1000);
-      */
     }
   }
 
@@ -116,10 +101,6 @@ class MarketManager {
     this.cacheMetadata.clear();
     this.pendingUpdates.clear();
     this.data = {};
-  }
-
-  private snapshotMetrics() {
-    // Disabled logic
   }
 
   private getOrCreateSymbol(symbol: string): MarketData {

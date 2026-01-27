@@ -36,6 +36,7 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
+import { accountState } from "../stores/account.svelte";
 import { logger } from "../services/logger";
 import { omsService } from "./omsService";
 import { rmsService } from "./rmsService";
@@ -568,16 +569,30 @@ export class TradeExecutionService {
       // User-specified partial close
       closeAmount = params.amount;
     } else {
-      // Full close: MUST use known position from OMS
+      // Full close: Check OMS -> AccountState
       const positions = omsService.getPositions();
-      const knownPos = positions.find(p => p.symbol === params.symbol && p.side === params.positionSide);
+      const knownPos = positions.find(
+        (p) => p.symbol === params.symbol && p.side === params.positionSide,
+      );
 
       if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
         closeAmount = knownPos.amount;
         logger.log("market", `[ClosePosition] Using OMS size: ${closeAmount}`);
       } else {
-        // CRITICAL: If position is unknown, FAIL SAFE - do not execute
-        throw new Error("TRADE_ERRORS.POSITION_UNKNOWN");
+        // Fallback: Check AccountState (e.g. if OMS is stale/empty after refresh)
+        const accPos = accountState.positions.find(
+          (p) => p.symbol === params.symbol && p.side === params.positionSide,
+        );
+        if (accPos && accPos.size && accPos.size.gt(0)) {
+          closeAmount = accPos.size;
+          logger.log(
+            "market",
+            `[ClosePosition] Using AccountState size (Fallback): ${closeAmount}`,
+          );
+        } else {
+          // CRITICAL: If position is unknown, FAIL SAFE - do not execute
+          throw new Error("TRADE_ERRORS.POSITION_UNKNOWN");
+        }
       }
     }
 
@@ -652,11 +667,26 @@ export class TradeExecutionService {
 
     const oppositeSide: OrderSide = positionSide === "long" ? "sell" : "buy";
 
-    // CRITICAL: Use known position size from OMS
+    // CRITICAL: Use known position size from OMS or Fallback
+    let size: Decimal | null = null;
     const positions = omsService.getPositions();
-    const knownPos = positions.find(p => p.symbol === symbol && p.side === positionSide);
+    const knownPos = positions.find(
+      (p) => p.symbol === symbol && p.side === positionSide,
+    );
 
-    if (!knownPos || !knownPos.amount || !knownPos.amount.gt(0)) {
+    if (knownPos && knownPos.amount && knownPos.amount.gt(0)) {
+      size = knownPos.amount;
+    } else {
+      // Fallback
+      const accPos = accountState.positions.find(
+        (p) => p.symbol === symbol && p.side === positionSide,
+      );
+      if (accPos && accPos.size && accPos.size.gt(0)) {
+        size = accPos.size;
+      }
+    }
+
+    if (!size) {
       throw new Error("TRADE_ERRORS.POSITION_UNKNOWN");
     }
 
@@ -664,7 +694,7 @@ export class TradeExecutionService {
       symbol,
       side: oppositeSide,
       type: "market",
-      amount: knownPos.amount, // Exact position size
+      amount: size, // Exact position size
       reduceOnly: true,
     });
   }

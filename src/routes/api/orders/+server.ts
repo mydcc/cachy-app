@@ -537,9 +537,9 @@ async function fetchBitgetHistoryOrders(
         }
     });
 
-    if (!response.ok) return []; // Fail gracefully
+    if (!response.ok) throw new Error(`${ORDER_ERRORS.BITGET_API_ERROR}: ${response.status}`);
     const res = await response.json();
-    if (res.code !== "00000") return [];
+    if (res.code !== "00000") throw new Error(`Bitget Error: ${res.msg}`);
 
     const orders = res.data || [];
     return orders.map((o: any) => ({

@@ -1,56 +1,61 @@
-# Deep Code Analysis & Status Report (Updated)
+# Status & Risk Report (Institutional Grade Audit)
 
-**Role:** Senior Lead Developer & Systems Architect
-**Date:** 2026-05-21
-**Scope:** `cachy-app` codebase (Systematic Maintenance & Hardening)
+## 1. Data Integrity & Mapping
 
-## Executive Summary
+### 🔴 CRITICAL: OMS Synchronization Gap
+*   **Location:** `src/services/bitunixWs.ts`, `src/services/tradeService.ts`, `src/services/omsService.ts`
+*   **Issue:** `bitunixWs.ts` updates `accountState` on WebSocket `position` events but **does not** update `omsService`.
+*   **Impact:** `tradeService.closePosition` relies exclusively on `omsService.getPositions()`. If a position changes (e.g., partial fill, liquidation, or opened on another device) and the WS updates `accountState`, `omsService` remains stale. The user **cannot close the position** via the UI because the service believes it doesn't exist or has the wrong size.
+*   **Risk:** Financial Loss (Inability to exit trade).
 
-Following a deep analysis of the current codebase, several critical and high-priority issues were identified. While the core architecture (Svelte 5 Runes, Decimal.js, Zod) is modern and generally robust, there are specific areas in Order Management (OMS) and Error Handling that pose stability and memory risks.
+### 🔴 CRITICAL: Missing Fallback in Trade Execution
+*   **Location:** `src/services/tradeService.ts` (`closePosition`)
+*   **Issue:** The method throws `TRADE_ERRORS.POSITION_UNKNOWN` immediately if `omsService` is empty. It lacks the intended fallback to `accountState` or a fresh API fetch.
+*   **Risk:** Denial of Service for critical functionality.
 
-## Prioritized Findings
+### 🟡 WARNING: Type Mismatch in State
+*   **Location:** `src/components/inputs/GeneralInputs.svelte` vs `src/stores/trade.svelte.ts`
+*   **Issue:** `GeneralInputs` parses leverage as `number` (`parseFloat`), but `tradeState` and `Zod` schemas define it as `string`.
+*   **Impact:** Potential runtime errors if `Decimal.js` or other consumers expect a string and get a number (or vice versa during serialization).
 
-### 🔴 CRITICAL (Immediate Action Required)
+## 2. Resource Management & Performance
 
-1.  **Memory Leak in OMS (`src/services/omsService.ts`)**
-    *   **Finding:** The `OrderManagementSystem` stores every order and position in a `Map` (`this.orders`, `this.positions`) without any eviction policy.
-    *   **Risk:** Over long sessions (e.g., a pro trader running the app for days), this map will grow indefinitely, eventually causing a browser crash (OOM).
-    *   **Recommendation:** Implement a `pruneOrders` method to keep only the last N (e.g., 500) finalized orders.
+### 🔵 REFACTOR: WebSocket "Fast Path" Complexity
+*   **Location:** `src/services/bitunixWs.ts`
+*   **Issue:** The "Fast Path" optimization manually parses objects to skip Zod validation. While performant, it duplicates logic and increases maintenance burden.
+*   **Status:** Currently functioning with fallback, but risky for future updates.
 
-2.  **Unimplemented "Close All" Logic (`src/services/tradeService.ts`)**
-    *   **Finding:** The `closeAllPositions` method explicitly throws `"NOT_YET_IMPLEMENTED"`.
-    *   **Risk:** In a panic scenario, if the UI exposes a "Close All" button calling this method, it will fail, potentially causing massive financial loss.
-    *   **Recommendation:** Implement iteration over `omsService.getPositions()` to trigger individual closes.
+### 🔵 REFACTOR: Unused Metrics History
+*   **Location:** `src/stores/market.svelte.ts`
+*   **Issue:** `metricsHistory` is defined in the type but commented out in logic.
+*   **Recommendation:** Remove dead code to clarify intent.
 
-### 🟡 WARNING (Quality & Maintainability)
+## 3. UI/UX & Barrierefreiheit (A11y)
 
-3.  **Hardcoded Error Strings (`src/services/tradeService.ts`)**
-    *   **Finding:** Critical errors like `UNAUTHORIZED` or `VALIDATION_ERROR` are hardcoded in English.
-    *   **Risk:** Non-English users receive untranslated error messages, reducing usability and trust.
-    *   **Recommendation:** Switch to error codes (e.g., `TRADE_ERRORS.UNAUTHORIZED`) and handle translation in the UI layer.
+### 🟡 WARNING: Hardcoded Strings (No i18n)
+*   **Location:** `src/components/inputs/GeneralInputs.svelte`
+*   **Issue:** Labels like "Leverage", "Fees (%)" and tooltips ("Synced with API") are hardcoded.
+*   **Impact:** Non-English users see mixed languages.
 
-4.  **Fragile API Payload Handling (`src/routes/api/orders/+server.ts`)**
-    *   **Finding:** The server manually deletes undefined keys (`delete payload[key]`) before signing.
-    *   **Risk:** If the signature generation logic drifts from the payload cleaning logic, authentication will fail. It's also "dirty" code.
-    *   **Recommendation:** Use a strict cleaning utility or Zod transformation to ensure the payload matching the signature is exactly what is sent.
+### 🟡 WARNING: Silent Failure in Bitget History
+*   **Location:** `src/routes/api/orders/+server.ts`
+*   **Issue:** `fetchBitgetHistoryOrders` catches errors and returns `[]` (empty list).
+*   **Impact:** User thinks they have no history when actually the API might be down or credentials invalid.
 
-5.  **Heuristic Number Parsing (`src/utils/utils.ts`)**
-    *   **Finding:** `parseDecimal` guesses between German (1.200) and English (1,200) formats.
-    *   **Risk:** Ambiguous inputs (e.g., "1.200") could be misinterpreted (1.2 vs 1200) depending on invisible heuristics.
-    *   **Recommendation:** Long-term, enforce strict localized input parsing based on user settings, rather than guessing.
+## 4. Security & Validation
 
-### 🔵 REFACTOR (Technical Debt)
+### ✅ PASS: Input Sanitization
+*   `src/routes/api/orders/+server.ts` uses `cleanPayload` and explicitly validates/redacts keys.
+*   `tradeService.ts` explicitly checks `amount.lte(0)`.
 
-6.  **Unbounded State Arrays (`src/stores/trade.svelte.ts`)**
-    *   **Finding:** `targets` and `tags` arrays have no hard limits.
-    *   **Risk:** Minor memory risk if abused.
-    *   **Recommendation:** Add limits (max 20 targets, max 50 tags).
+### ✅ PASS: Arithmetic Safety
+*   Codebase consistently uses `Decimal.js` for financial calculations.
 
-## Implementation Plan (Step 2 Preview)
+---
 
-The following plan is proposed to address these findings:
+## Action Plan (Summary)
 
-1.  **Fix OMS Memory Leak**: Add pruning logic to `omsService`.
-2.  **Implement Close All**: Activate `closeAllPositions` in `tradeService`.
-3.  **Hardening API**: Refactor `+server.ts` payload handling.
-4.  **i18n Improvements**: Refactor `tradeService` errors to use codes.
+1.  **Fix OMS Sync (Priority 1):** Ensure `bitunixWs.ts` updates `omsService` alongside `accountState`.
+2.  **Harden Close Position (Priority 1):** Add fallback to `tradeService.closePosition` to check `accountState` or fetch from API.
+3.  **Fix I18n & Types (Priority 2):** Externalize strings in `GeneralInputs` and fix `leverage` type consistency.
+4.  **Improve Error Handling (Priority 3):** Stop swallowing Bitget errors.

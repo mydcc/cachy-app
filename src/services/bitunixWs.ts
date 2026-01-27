@@ -23,6 +23,9 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { logger } from "./logger";
+import { omsService } from "./omsService";
+import type { OMSOrder, OMSPosition } from "./omsTypes";
+import { Decimal } from "decimal.js";
 import CryptoJS from "crypto-js";
 import type {
   BitunixWSMessage,
@@ -951,18 +954,28 @@ class BitunixWebSocketService {
       else if (validatedMessage.ch === "position") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) =>
-              accountState.updatePositionFromWs(item),
-            );
-          else accountState.updatePositionFromWs(data);
+          if (Array.isArray(data)) {
+            data.forEach((item: any) => {
+              accountState.updatePositionFromWs(item);
+              this.syncOmsPosition(item);
+            });
+          } else {
+            accountState.updatePositionFromWs(data);
+            this.syncOmsPosition(data);
+          }
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
-          if (Array.isArray(data))
-            data.forEach((item: any) => accountState.updateOrderFromWs(item));
-          else accountState.updateOrderFromWs(data);
+          if (Array.isArray(data)) {
+            data.forEach((item: any) => {
+              accountState.updateOrderFromWs(item);
+              this.syncOmsOrder(item);
+            });
+          } else {
+            accountState.updateOrderFromWs(data);
+            this.syncOmsOrder(data);
+          }
         }
       } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;
@@ -1099,6 +1112,69 @@ class BitunixWebSocketService {
     }
 
     logger.warn("network", `[WebSocket] ${type} error handled`, error);
+  }
+
+  private syncOmsPosition(data: any) {
+    try {
+      if (!data.symbol) return;
+      const rawSide = (data.side || "").toLowerCase();
+      // Map BUY/SELL to LONG/SHORT if needed, though Bitunix usually sends correct position side or we rely on 'qty' sign in some APIs.
+      // Assuming explicit side or standard mapping:
+      let positionSide: "long" | "short" = "long";
+      if (rawSide === "short" || rawSide === "sell") positionSide = "short";
+
+      // If it's a "close" event (qty=0), omsService.updatePosition handles it (prunes 0 amount)
+      const pos: OMSPosition = {
+        symbol: normalizeSymbol(data.symbol, "bitunix"),
+        side: positionSide,
+        amount: new Decimal(data.qty || 0),
+        entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || data.entryPrice || 0),
+        unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
+        leverage: Number(data.leverage || 0),
+        marginMode: (data.marginMode || "cross").toLowerCase() as any,
+        liquidationPrice: data.liqPrice ? new Decimal(data.liqPrice) : undefined,
+      };
+      omsService.updatePosition(pos);
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("Failed to sync OMS Position", e);
+    }
+  }
+
+  private syncOmsOrder(data: any) {
+    try {
+      if (!data.orderId || !data.symbol) return;
+      const statusMap: Record<string, string> = {
+        NEW: "pending",
+        PARTIALLY_FILLED: "pending",
+        FILLED: "filled",
+        CANCELED: "cancelled",
+        CANCELLED: "cancelled",
+        REJECTED: "rejected",
+      };
+      const rawStatus = (
+        data.orderStatus ||
+        data.status ||
+        ""
+      ).toUpperCase();
+      const status = statusMap[rawStatus] || "pending";
+
+      const order: OMSOrder = {
+        id: String(data.orderId),
+        symbol: normalizeSymbol(data.symbol, "bitunix"),
+        side: (data.side || "").toLowerCase() as any,
+        type: (data.type || "").toLowerCase() as any,
+        status: status as any,
+        price: new Decimal(data.price || 0),
+        amount: new Decimal(data.qty || data.amount || 0),
+        filledAmount: new Decimal(
+          data.tradeQty || data.cumQty || data.dealAmount || 0,
+        ),
+        timestamp: data.ctime || data.createTime || Date.now(),
+      };
+      omsService.updateOrder(order);
+    } catch (e) {
+      if (import.meta.env.DEV) console.warn("Failed to sync OMS Order", e);
+    }
   }
 }
 

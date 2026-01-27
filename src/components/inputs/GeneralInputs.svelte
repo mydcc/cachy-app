@@ -28,8 +28,8 @@
 
   interface Props {
     tradeType: string;
-    leverage: number | null;
-    fees: number | null;
+    leverage: string | null;
+    fees: string | null;
   }
 
   let {
@@ -44,33 +44,36 @@
     trackCustomEvent("Trade", "ChangeType", type);
   }
 
-  const format = (val: number | null) =>
+  const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
   function handleLeverageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    // Direct assignment
-    tradeState.leverage = value === "" ? null : parseFloat(value);
+    // Direct assignment as string to maintain precision/type safety
+    tradeState.leverage = value === "" ? null : value;
   }
 
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    // Direct assignment
-    tradeState.fees = value === "" ? null : parseFloat(value);
+    // Direct assignment as string to maintain precision/type safety
+    tradeState.fees = value === "" ? null : value;
   }
 
   // Leverage Sync Status
   let remoteLev = $derived(tradeState.remoteLeverage);
+  // remoteLev is number, leverage is string. Compare carefully.
   let isLeverageSynced = $derived(
-    remoteLev !== undefined && leverage === remoteLev,
+    remoteLev !== undefined &&
+      leverage !== null &&
+      Number(leverage) === remoteLev,
   );
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
-      // Direct assignment
-      tradeState.leverage = remoteLev;
+      // Convert number from remote to string for state
+      tradeState.leverage = String(remoteLev);
     }
   }
 
@@ -84,13 +87,15 @@
   );
 
   let isFeeSynced = $derived(
-    targetRemoteFee !== undefined && fees === targetRemoteFee,
+    targetRemoteFee !== undefined &&
+      fees !== null &&
+      new Decimal(fees || 0).eq(targetRemoteFee),
   );
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
-      // Direct assignment
-      tradeState.fees = targetRemoteFee;
+      // Direct assignment as string
+      tradeState.fees = String(targetRemoteFee);
     }
   }
 </script>
@@ -144,7 +149,7 @@
         <label
           for="leverage-input"
           class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-          >Leverage</label
+          >{$_("dashboard.generalInputs.leverageLabel")}</label
         >
         <input
           id="leverage-input"
@@ -177,8 +182,10 @@
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
             title={isLeverageSynced
-              ? "Synced with API"
-              : `Manual Override (Click to sync to ${remoteLev}x)`}
+              ? $_("dashboard.generalInputs.syncedWithApi")
+              : $_("dashboard.generalInputs.manualOverrideLeverage", {
+                  val: remoteLev,
+                })}
             onclick={syncLeverage}
           ></button>
         {/if}
@@ -189,7 +196,7 @@
         <label
           for="fees-input"
           class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-          >Fees (%)</label
+          >{$_("dashboard.generalInputs.feesLabel")}</label
         >
         <input
           id="fees-input"
@@ -216,8 +223,10 @@
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
             title={isFeeSynced
-              ? "Synced with API"
-              : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
+              ? $_("dashboard.generalInputs.syncedWithApi")
+              : $_("dashboard.generalInputs.manualOverrideFees", {
+                  val: targetRemoteFee,
+                })}
             onclick={syncFee}
           ></button>
         {/if}

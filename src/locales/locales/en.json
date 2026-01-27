@@ -113,7 +113,12 @@
       "longButton": "Long",
       "shortButton": "Short",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
-      "feesPlaceholder": "Fees per Trade (%)"
+      "feesPlaceholder": "Fees per Trade (%)",
+      "leverageLabel": "Leverage",
+      "feesLabel": "Fees (%)",
+      "syncedWithApi": "Synced with API",
+      "manualOverrideLeverage": "Manual Override (Click to sync to {val}x)",
+      "manualOverrideFees": "Manual Override (Click to sync to {val}%)"
     },
     "portfolioInputs": {
       "header": "Portfolio",
