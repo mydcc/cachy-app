@@ -62,17 +62,32 @@
 
   function translateAction(action: string | undefined): string {
     if (!action) return "-";
+    // First try exact key
     const key = action.toLowerCase().replace(/\s+/g, "");
     const translation = $_(`settings.technicals.${key}`);
-    return translation && !translation.includes("settings.technicals")
-      ? translation
-      : action;
+
+    // If not found, try generic Buy/Sell
+    if (!translation || translation.includes("settings.technicals")) {
+       if (action.includes("Buy")) return $_("common.buy") || action;
+       if (action.includes("Sell")) return $_("common.sell") || action;
+       if (action.includes("Neutral")) return $_("common.neutral") || action;
+       return action;
+    }
+    return translation;
+  }
+
+  function translateContext(context: string): string {
+      if (context === "Overbought") return $_("technicals.overbought") || "Overbought";
+      if (context === "Oversold") return $_("technicals.oversold") || "Oversold";
+      if (context === "Trend") return $_("technicals.trend") || "Trend";
+      if (context === "Range") return $_("technicals.range") || "Range";
+      return translateAction(context);
   }
 
   function getActionColor(action: string) {
     const a = action.toLowerCase();
-    if (a.includes("strong buy")) return "text-[#00ff88]";
-    if (a.includes("strong sell")) return "text-[#ff0044]";
+    if (a.includes("strong buy")) return "text-[#00ff88] font-bold";
+    if (a.includes("strong sell")) return "text-[#ff0044] font-bold";
     if (a.includes("buy")) return "text-[var(--success-color)]";
     if (a.includes("sell")) return "text-[var(--danger-color)]";
     return "text-[var(--text-secondary)]";
@@ -87,7 +102,7 @@
   function getOscillatorContext(name: string, val: Decimal, action: string) {
     const v = val.toNumber();
     if (name === "RSI") {
-      if (v >= 70) return "Overbought"; // Could be localized
+      if (v >= 70) return "Overbought";
       if (v <= 30) return "Oversold";
     }
     if (name === "Stoch" || name === "StochRSI") {
@@ -102,9 +117,7 @@
         if (v > 100) return "Overbought";
         if (v < -100) return "Oversold";
     }
-    // Return action if no specific condition context
-    // But action is "Buy/Sell", maybe we want "Neutral" context?
-    return translateAction(action);
+    return action;
   }
 
   // --- UI Event Handlers ---
@@ -281,9 +294,9 @@
                     ></div>
                 </div>
                 <div class="flex justify-between text-[8px] text-[var(--text-tertiary)] mt-0.5 uppercase">
-                    <span>Sell</span>
-                    <span>Neutral</span>
-                    <span>Buy</span>
+                    <span>{translateAction("Sell")}</span>
+                    <span>{translateAction("Neutral")}</span>
+                    <span>{translateAction("Buy")}</span>
                 </div>
               </div>
             {/if}
@@ -341,7 +354,7 @@
                   <span
                     class="font-bold text-right {getActionColor(osc.action)}"
                     title="Action: {osc.action}"
-                    >{getOscillatorContext(osc.name, osc.value, osc.action)}</span
+                    >{translateContext(getOscillatorContext(osc.name, osc.value, osc.action))}</span
                   >
                 </div>
               {/each}
@@ -416,7 +429,7 @@
               <!-- MFI -->
               {#if data.advanced.mfi}
                 <div
-                  class="flex justify-between text-xs py-1 px-1 border-b border(--border-color)"
+                  class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <span>MFI</span>
                   <div class="flex gap-2">
@@ -426,7 +439,7 @@
                     <span
                       class="font-bold {getActionColor(
                         data.advanced.mfi.action,
-                      )}">{data.advanced.mfi.action}</span
+                      )}">{translateContext(getOscillatorContext("MFI", data.advanced.mfi.value, data.advanced.mfi.action))}</span
                     >
                   </div>
                 </div>
@@ -447,7 +460,7 @@
                       'bull'
                         ? 'text-[var(--success-color)]'
                         : 'text-[var(--danger-color)]'}"
-                      >{data.advanced.superTrend.trend.toUpperCase()}</span
+                      >{translateAction(data.advanced.superTrend.trend.toUpperCase() === "BULL" ? "Buy" : "Sell")}</span
                     >
                   </div>
                 </div>
@@ -494,7 +507,7 @@
                   <span
                     class="font-bold {getActionColor(
                       data.advanced.ichimoku.action,
-                    )}">{data.advanced.ichimoku.action}</span
+                    )}">{translateAction(data.advanced.ichimoku.action)}</span
                   >
                 </div>
               {/if}
@@ -502,35 +515,32 @@
           {/if}
 
           <!-- SIGNALS SECTION (Restyled) -->
-          {#if settingsState.showTechnicalsSignals && data.divergences && data.divergences.length > 0}
-            <div
-              class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
-            >
-              <div
-                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
-              >
-                Signals (Divergences)
+          {#if settingsState.showTechnicalsSignals}
+            <div class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2">
+              <div class="text-[10px] uppercase text-[var(--text-secondary)] px-1">
+                Signals
               </div>
-              {#each data.divergences as div}
-                <div
-                  class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
-                >
-                  <div class="flex justify-between">
-                      <span class="font-medium">{div.indicator} {div.type}</span>
-                      <span
-                        class="font-bold {div.side === 'Bullish'
-                          ? 'text-[var(--success-color)]'
-                          : 'text-[var(--danger-color)]'}"
-                      >
-                        {div.side}
-                      </span>
+
+              {#if data.divergences && data.divergences.length > 0}
+                {#each data.divergences as div}
+                  <div class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                    <div class="flex justify-between">
+                        <span class="font-medium">{div.indicator} {div.type}</span>
+                        <span class="font-bold {div.side === 'Bullish' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                          {translateAction(div.side)}
+                        </span>
+                    </div>
+                    <div class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5">
+                        <span>Val: {formatVal(div.indStart, 1)} ➝ {formatVal(div.indEnd, 1)}</span>
+                        <span>Price: {formatVal(div.priceStart)} ➝ {formatVal(div.priceEnd)}</span>
+                    </div>
                   </div>
-                  <div class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5">
-                      <span>Val: {formatVal(div.indStart, 1)} ➝ {formatVal(div.indEnd, 1)}</span>
-                      <span>Price: {formatVal(div.priceStart)} ➝ {formatVal(div.priceEnd)}</span>
+                {/each}
+              {:else}
+                  <div class="text-xs text-[var(--text-secondary)] px-1 py-1 italic">
+                     {$_("technicals.noSignals") || "No divergences detected"}
                   </div>
-                </div>
-              {/each}
+              {/if}
             </div>
           {/if}
         </div>

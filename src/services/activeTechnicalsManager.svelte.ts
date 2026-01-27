@@ -158,7 +158,7 @@ class ActiveTechnicalsManager {
         // REAL-TIME SYNC:
         // Inject latest price
         if (marketData.lastPrice) {
-            this.injectRealtimePrice(history, timeframe, marketData.lastPrice);
+            this.injectRealtimePrice(history, timeframe, marketData.lastPrice, symbol);
         }
 
         // Now calculate
@@ -181,7 +181,7 @@ class ActiveTechnicalsManager {
     }
 
     // Stateless Helper: mutates a copy of the history array found in memory
-    private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal) {
+    private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal, symbol: string) {
         if (history.length === 0) return;
 
         const lastIdx = history.length - 1;
@@ -214,15 +214,31 @@ class ActiveTechnicalsManager {
             history[lastIdx] = lastCandle;
         } else if (currentPeriodStart > lastCandle.time) {
             // New phantom candle for pending period
-            // We must start with volume 0 as we only have price info from Ticker.
-            // The next 'market_kline' update via WS will fill in the volume.
+            // Calculate Proxy Volume to prevent indicators jumping to 0
+            // We use Average Interval Volume based on 24h volume
+            let proxyVolume = new Decimal(0);
+            const marketData = marketState.data[symbol];
+
+            if (marketData && marketData.volume) {
+                const msPerDay = 86400000;
+                const intervalsPerDay = msPerDay / intervalMs;
+                if (intervalsPerDay > 0) {
+                     // Conservative estimate: 50% of average volume to avoid over-weighting
+                     proxyVolume = marketData.volume.div(intervalsPerDay).times(0.5);
+                }
+            } else if (history.length > 0) {
+                // Fallback: Use 10% of previous candle volume
+                const prevVol = history[history.length - 1].volume;
+                proxyVolume = prevVol instanceof Decimal ? prevVol.times(0.1) : new Decimal(prevVol).times(0.1);
+            }
+
             const newCandle: Kline = {
                 time: currentPeriodStart,
                 open: price,
                 high: price,
                 low: price,
                 close: price,
-                volume: new Decimal(0)
+                volume: proxyVolume
             };
             history.push(newCandle);
         }
