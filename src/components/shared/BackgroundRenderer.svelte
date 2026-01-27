@@ -5,6 +5,7 @@
 <script lang="ts">
   import { settingsState } from "../../stores/settings.svelte";
   import BackgroundAnimations from "./BackgroundAnimations.svelte";
+  import ThreeBackground from "./ThreeBackground.svelte";
 
   let imageError = $state(false);
   let videoError = $state(false);
@@ -78,11 +79,21 @@
       ></video>
     {:else if settingsState.backgroundType === "animation"}
       <BackgroundAnimations />
+    {:else if settingsState.backgroundType === "threejs"}
+      <div class="three-container">
+        <ThreeBackground />
+      </div>
     {/if}
   </div>
 {/if}
 
 <style>
+  .three-container {
+    width: 100%;
+    height: 100%;
+    pointer-events: auto; /* Enable interaction for ThreeJS */
+  }
+
   .background-container {
     position: fixed;
     inset: 0;

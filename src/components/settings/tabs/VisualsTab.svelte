@@ -285,13 +285,15 @@
         {#if activeSubTab === "background"}
             <section class="settings-section animate-fade-in">
                 <!-- Type Selector -->
-                <div class="flex gap-2 mb-4">
-                    {#each [{ v: "none", l: "None" }, { v: "image", l: "Image / Video" }, { v: "animation", l: "Live Animation" }] as type}
+                <div class="flex gap-2 mb-4 flex-wrap">
+                    {#each [
+                        { v: "none", l: "None" },
+                        { v: "image", l: "Image / Video" },
+                        { v: "animation", l: "Live Animation" },
+                        { v: "threejs", l: "Galaxy (3D)" }
+                    ] as type}
                         <button
-                            class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
-                                type.v ||
-                            (type.v === 'image' &&
-                                settingsState.backgroundType === 'video')
+                            class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType === type.v || (type.v === 'image' && settingsState.backgroundType === 'video')
                                 ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                             onclick={() => {
@@ -360,6 +362,118 @@
                     </div>
                 {/if}
 
+                {#if settingsState.backgroundType === "threejs"}
+                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="field-group">
+                                <label for="galaxy-count">Particles: {settingsState.galaxySettings.particleCount}</label>
+                                <input
+                                    id="galaxy-count"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.particleCount}
+                                    min="1000"
+                                    max="50000"
+                                    step="1000"
+                                    class="range-input"
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="galaxy-size">Size: {settingsState.galaxySettings.particleSize}</label>
+                                <input
+                                    id="galaxy-size"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.particleSize}
+                                    min="0.1"
+                                    max="2.0"
+                                    step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="field-group">
+                                <label for="galaxy-radius">Radius: {settingsState.galaxySettings.radius}</label>
+                                <input
+                                    id="galaxy-radius"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.radius}
+                                    min="1"
+                                    max="20"
+                                    step="0.5"
+                                    class="range-input"
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="galaxy-branches">Branches: {settingsState.galaxySettings.branches}</label>
+                                <input
+                                    id="galaxy-branches"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.branches}
+                                    min="2"
+                                    max="10"
+                                    step="1"
+                                    class="range-input"
+                                />
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-2 gap-4">
+                            <div class="field-group">
+                                <label for="galaxy-spin">Spin Speed: {settingsState.galaxySettings.spin}</label>
+                                <input
+                                    id="galaxy-spin"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.spin}
+                                    min="0"
+                                    max="5"
+                                    step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                            <div class="field-group">
+                                <label for="galaxy-randomness">Randomness: {settingsState.galaxySettings.randomness}</label>
+                                <input
+                                    id="galaxy-randomness"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.randomness}
+                                    min="0"
+                                    max="2"
+                                    step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                        </div>
+
+                         <div class="grid grid-cols-2 gap-4">
+                            <div class="field-group">
+                                <label for="galaxy-randomness-power">Spread: {settingsState.galaxySettings.randomnessPower}</label>
+                                <input
+                                    id="galaxy-randomness-power"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.randomnessPower}
+                                    min="1"
+                                    max="10"
+                                    step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                             <div class="field-group">
+                                <label for="galaxy-concentration">Concentration: {settingsState.galaxySettings.concentrationPower}</label>
+                                <input
+                                    id="galaxy-concentration"
+                                    type="range"
+                                    bind:value={settingsState.galaxySettings.concentrationPower}
+                                    min="0.5"
+                                    max="5"
+                                    step="0.1"
+                                    class="range-input"
+                                />
+                            </div>
+                        </div>
+                    </div>
+                {/if}
+
                 {#if settingsState.backgroundType !== "none"}
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div class="field-group">
@@ -419,6 +533,22 @@
         font-size: 0.875rem;
         color: var(--text-primary);
         outline: none;
+    }
+    .range-input {
+        width: 100%;
+        height: 0.25rem;
+        background: var(--border-color);
+        border-radius: 0.5rem;
+        appearance: none;
+        cursor: pointer;
+    }
+    .range-input::-webkit-slider-thumb {
+        appearance: none;
+        width: 1rem;
+        height: 1rem;
+        background: var(--accent-color);
+        border-radius: 50%;
+        cursor: pointer;
     }
     .toggle-card {
         display: flex;
