@@ -41,20 +41,27 @@ export interface Ticker24h {
   quoteVolume?: Decimal;
 }
 
+interface QueueItem {
+  task: () => Promise<void>;
+  reject: (reason?: any) => void;
+  addedAt: number;
+}
+
 // --- Request Manager for Global Concurrency & Deduplication ---
 class RequestManager {
   private pending = new Map<string, Promise<unknown>>();
   private cache = new Map<string, { data: unknown; timestamp: number }>();
 
   // Two queues for Priority handling
-  private highPriorityQueue: (() => void)[] = [];
-  private normalQueue: (() => void)[] = [];
+  private highPriorityQueue: QueueItem[] = [];
+  private normalQueue: QueueItem[] = [];
 
   private activeCount = 0;
   private readonly MAX_CONCURRENCY = 8;
   private readonly DEFAULT_TIMEOUT = 10000;
   private readonly CACHE_TTL = 10000; // 10s cache for successful requests
   private readonly MAX_CACHE_SIZE = 100; // Hard limit on cache size
+  private readonly MAX_QUEUE_SIZE = 100; // Max items per queue
   private readonly CLEANUP_INTERVAL = 30000; // Check every 30s (more frequent)
 
   // Logging for debugging latency
@@ -219,11 +226,25 @@ class RequestManager {
         run();
       } else {
         // Enqueue based on priority
-        if (priority === "high") {
-          this.highPriorityQueue.push(run);
-        } else {
-          this.normalQueue.push(run);
+        const queue = priority === "high" ? this.highPriorityQueue : this.normalQueue;
+
+        // --- HARDENING: Enforce Queue Limits ---
+        if (queue.length >= this.MAX_QUEUE_SIZE) {
+          // Drop oldest request
+          const oldest = queue.shift();
+          if (oldest) {
+             oldest.reject(new Error("RequestQueueOverflow: Dropped stale request"));
+             if (import.meta.env.DEV) {
+                logger.warn("network", `[ReqMgr] Queue overflow. Dropped oldest request.`);
+             }
+          }
         }
+
+        queue.push({
+          task: run,
+          reject: reject, // Store reject handler for forced eviction
+          addedAt: Date.now()
+        });
       }
     });
 
@@ -235,11 +256,11 @@ class RequestManager {
     // Drain High Priority first
     if (this.activeCount < this.MAX_CONCURRENCY) {
       if (this.highPriorityQueue.length > 0) {
-        const nextTask = this.highPriorityQueue.shift();
-        nextTask?.();
+        const nextItem = this.highPriorityQueue.shift();
+        nextItem?.task();
       } else if (this.normalQueue.length > 0) {
-        const nextTask = this.normalQueue.shift();
-        nextTask?.();
+        const nextItem = this.normalQueue.shift();
+        nextItem?.task();
       }
     }
   }
@@ -247,6 +268,9 @@ class RequestManager {
   public clearCache(): void {
     this.cache.clear();
     this.pending.clear();
+    // Reject all pending items in queues before clearing
+    this.highPriorityQueue.forEach(i => i.reject(new Error("RequestManager reset")));
+    this.normalQueue.forEach(i => i.reject(new Error("RequestManager reset")));
     this.highPriorityQueue = [];
     this.normalQueue = [];
   }
