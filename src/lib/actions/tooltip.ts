@@ -24,6 +24,7 @@ import {
   type Placement,
   autoUpdate,
 } from "@floating-ui/dom";
+import DOMPurify from "dompurify";
 
 export interface TooltipOptions {
   content: string;
@@ -62,7 +63,10 @@ export function tooltip(node: HTMLElement, options: TooltipOptions | string) {
     );
     if (contentContainer) {
       if (config.allowHtml) {
-        contentContainer.innerHTML = config.content;
+        contentContainer.innerHTML = DOMPurify.sanitize(config.content, {
+          ALLOWED_TAGS: ["b", "i", "em", "strong", "u", "a", "br", "span", "div"],
+          ALLOWED_ATTR: ["href", "title", "class", "style"],
+        });
       } else {
         contentContainer.textContent = config.content;
       }

@@ -20,6 +20,7 @@ export interface OMSOrder {
     filledAmount: Decimal;
     avgPrice?: Decimal;
     timestamp: number;
+    _isOptimistic?: boolean;
 }
 
 export interface OMSPosition {
