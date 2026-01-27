@@ -129,10 +129,10 @@ export interface AppState {
   currentTradeData: CurrentTradeData | null;
 
   // Remote / Synced Data (Optional)
-  remoteLeverage?: number;
+  remoteLeverage?: Decimal;
   remoteMarginMode?: string;
-  remoteMakerFee?: number;
-  remoteTakerFee?: number;
+  remoteMakerFee?: Decimal;
+  remoteTakerFee?: Decimal;
 }
 
 export interface CurrentTradeData

@@ -1846,7 +1846,6 @@ select {
   display: flex;
   justify-content: space-between;
   align-items: baseline;
-  flex-wrap: wrap;
   padding: 0.75rem 0;
   border-bottom: 1px solid var(--bg-tertiary);
 }
@@ -1861,6 +1860,7 @@ select {
   align-items: center;
   gap: 0.5rem;
   margin-right: 1rem;
+  flex-shrink: 0;
 }
 
 .input-label {

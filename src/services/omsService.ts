@@ -16,33 +16,81 @@ class OrderManagementSystem {
     private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {
+        const isKnown = this.orders.has(order.id);
+        const isFinalized = ["filled", "cancelled", "rejected", "expired"].includes(order.status);
+
+        // Hardening: Prevent memory attacks by capping active orders
+        if (!isKnown && this.orders.size >= this.MAX_ORDERS) {
+            // If we are at limit, try to prune first
+            this.pruneOrders();
+
+            if (this.orders.size >= this.MAX_ORDERS) {
+                if (isFinalized) {
+                    // CRITICAL FIX: Allow finalized orders to bypass limit temporarily to ensure UI sync
+                    // We will trigger prune again after insertion.
+                    // This prevents "Phantom Orders" where a fill event is rejected because of full buffer.
+                    logger.warn("market", `[OMS] Order limit hit, but accepting FINALIZED order: ${order.id}`);
+                } else {
+                    logger.error("market", `[OMS] Order limit (${this.MAX_ORDERS}) hit. Rejecting new order: ${order.id}`);
+                    return; // Reject update to protect memory
+                }
+            }
+        }
+
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
 
         if (this.orders.size > this.MAX_ORDERS) {
             this.pruneOrders();
         }
+    }
 
-        // Potential integration with a dedicated omsStore later
-        // For now, we sync important bits back to tradeState if it's the active symbol
-        if (order.symbol === tradeState.symbol) {
-            // tradeState.updateCurrentOrder(...) 
+    public addOptimisticOrder(order: OMSOrder) {
+        order._isOptimistic = true;
+        this.orders.set(order.id, order);
+        logger.log("market", `[OMS] Optimistic Order Added: ${order.id}`);
+    }
+
+    public removeOrphanedOptimistic(thresholdMs: number) {
+        const now = Date.now();
+        for (const [id, order] of this.orders) {
+            if (order._isOptimistic && (now - order.timestamp) > thresholdMs) {
+                this.orders.delete(id);
+                logger.warn("market", `[OMS] Removed orphaned optimistic order: ${id}`);
+            }
         }
     }
 
     private pruneOrders() {
-        // Iterate insertion order (oldest first in Map)
-        for (const [id, order] of this.orders) {
-            if (this.orders.size <= this.MAX_ORDERS) break;
+        // Protect recent orders from being pruned immediately (UI needs to see them)
+        const PRESERVE_LATEST = 10;
 
-            // Only remove finalized orders
-            if (["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
+        // Convert to array to control iteration range
+        // Note: Map.keys() respects insertion order
+        const allKeys = Array.from(this.orders.keys());
+
+        // 1. Safe Prune: Remove oldest finalized orders first (ignoring the protected latest buffer)
+        // We only check orders that are OLDER than the preservation buffer
+        const pruneCandidates = allKeys.slice(0, Math.max(0, allKeys.length - PRESERVE_LATEST));
+
+        for (const id of pruneCandidates) {
+            if (this.orders.size <= this.MAX_ORDERS) break;
+            const order = this.orders.get(id);
+            if (order && ["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
                 this.orders.delete(id);
             }
         }
 
+        // 2. Emergency Prune: If still over limit, remove oldest orders regardless of status
+        // This ensures new updates (inserted at end) are preserved while sacrificing oldest history.
         if (this.orders.size > this.MAX_ORDERS) {
-            logger.warn("market", `[OMS] Order limit exceeded (${this.orders.size}) with active orders.`);
+            logger.warn("market", `[OMS] Emergency Prune: Dropping oldest orders to maintain limit.`);
+            // In emergency, we iterate from the start (oldest) and delete until we fit.
+            // We use the iterator directly to avoid another array copy
+            for (const [id] of this.orders) {
+                if (this.orders.size <= this.MAX_ORDERS) break;
+                this.orders.delete(id);
+            }
         }
     }
 
@@ -59,6 +107,11 @@ class OrderManagementSystem {
                 }
             }
         }
+    }
+
+    public removeOrder(id: string) {
+        this.orders.delete(id);
+        logger.log("market", `[OMS] Order Removed: ${id}`);
     }
 
     public getOrder(id: string): OMSOrder | undefined {

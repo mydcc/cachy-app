@@ -15,24 +15,37 @@
  * along with this program.  If not, see <https://www.gnu.org/licenses/>.
  */
 
-import { describe, it, expect, beforeEach } from "vitest";
-import { marketState } from "./market.svelte";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import { get } from "svelte/store";
 import { Decimal } from "decimal.js";
 
+// Mock browser environment before importing the store
+vi.mock("$app/environment", () => ({
+  browser: true,
+  dev: true
+}));
+
+// Import after mock
+import { MarketManager } from "./market.svelte";
+
 describe("marketStore", () => {
+  let marketState: MarketManager;
+
   beforeEach(() => {
-    marketState.reset();
+    vi.useFakeTimers();
+    marketState = new MarketManager();
+  });
+
+  afterEach(() => {
+    marketState.destroy();
+    vi.useRealTimers();
   });
 
   it("should have updateTicker function", () => {
     expect(typeof marketState.updateTicker).toBe("function");
   });
 
-  it("should update ticker data correctly", () => {
-    // Test with ticker update (includes open price for % calc)
-    // Access internal map via state if needed, or just test logic via public API simulation?
-    // marketState.data is the map.
+  it("should update ticker data correctly", async () => {
     marketState.updateTicker("BTCUSDT", {
       lastPrice: "52000",
       high: "53000",
@@ -43,6 +56,9 @@ describe("marketStore", () => {
       open: "50000",
     });
 
+    // Wait for flush interval (250ms)
+    await vi.advanceTimersByTimeAsync(300);
+
     const data = marketState.data["BTCUSDT"];
 
     expect(data).toBeDefined();
@@ -51,13 +67,6 @@ describe("marketStore", () => {
     expect(data.lowPrice?.toNumber()).toBe(49000);
     expect(data.volume?.toNumber()).toBe(1000);
     expect(data.quoteVolume?.toNumber()).toBe(52000000);
-
-    // Change calculation: (52000 - 50000) / 50000 * 100 = 4%
-    // The updateTicker in market.svelte.ts takes raw WS payload or partial?
-    // Looking at market.svelte.ts would confirm, assuming standard WS payload structure or internal method.
-    // Let's assume usage of updateTicker(symbol, data) if it exists, roughly matching old store.
-    // Old test used updateTicker("BTCUSDT", { ... }).
-    // We should check market.svelte.ts method signature.
     expect(data.priceChangePercent?.toNumber()).toBe(4);
   });
 });

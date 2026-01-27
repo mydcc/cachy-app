@@ -55,6 +55,23 @@
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
     "noHistory": "Keine Historie gefunden.",
+    "orderHistory": {
+      "maker": "M",
+      "taker": "T",
+      "fee": "Gebühr",
+      "liq": "Liq.",
+      "side": {
+        "buy": "Kauf",
+        "sell": "Verkauf"
+      },
+      "type": {
+        "limit": "Limit",
+        "market": "Markt",
+        "stopLimit": "Stop Limit",
+        "stopMarket": "Stop Markt",
+        "trailing": "Trailing"
+      }
+    },
     "type": "Typ",
     "price": "Preis",
     "amount": "Menge",
@@ -498,7 +515,17 @@
     "rsiSettings": "RSI Einstellungen",
     "length": "Länge",
     "source": "Quelle",
-    "signal": "Signal"
+    "signal": "Signal",
+    "tooltips": {
+      "toggleTechnicals": "Technicals umschalten",
+      "refreshStats": "Statistiken aktualisieren",
+      "liquidationHeatmap": "Liquidations-Heatmap",
+      "openOnProvider": "Auf {provider} öffnen",
+      "addFavorite": "Zu Favoriten hinzufügen",
+      "removeFavorite": "Aus Favoriten entfernen",
+      "openChannel": "Kanal öffnen",
+      "closeChannel": "Kanal schließen"
+    }
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikorechner",
@@ -633,7 +660,15 @@
       "pivots": "Pivots",
       "buy": "Kaufen",
       "sell": "Verkaufen",
-      "neutral": "Neutral"
+      "neutral": "Neutral",
+      "overbought": "Überkauft",
+      "oversold": "Überverkauft",
+      "trend": "Trend",
+      "range": "Seitwärts",
+      "noSignals": "Keine Divergenzen erkannt"
+    },
+    "candlestickPatterns": {
+      "title": "Candlestick Muster Akademie"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -905,8 +940,14 @@
     "klineError": "Kerzendaten konnten nicht geladen werden.",
     "generic": "Ein unbekannter API-Fehler ist aufgetreten.",
     "noMarketData": "Keine Marktdaten verfügbar.",
-    "failedToLoadOrders": "Failed to load orders.",
-    "failedToLoadPositions": "Failed to load positions."
+    "failedToLoadOrders": "Orders konnten nicht geladen werden.",
+    "failedToLoadPositions": "Positionen konnten nicht geladen werden.",
+    "fetchFailed": "Abruf fehlgeschlagen",
+    "missingCredentials": "API-Keys fehlen oder sind unvollständig",
+    "invalidAmount": "Ungültiger Order-Betrag",
+    "syncIncomplete": "Sync unvollständig (Zeitüberschreitung).",
+    "syncNoNewData": "Keine neuen Positionen gefunden.",
+    "syncFailed": "Sync fehlgeschlagen: {error}"
   },
   "bitunixErrors": {
     "10001": "Netzwerkfehler",
@@ -1449,5 +1490,16 @@
       "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
     },
     "title": "Candlestick Akademie"
+  },
+  "tradeErrors": {
+    "positionNotFound": "Position nicht gefunden: {symbol} {side}"
+  },
+  "workerErrors": {
+    "eventError": "Worker Fehler-Event",
+    "notAvailable": "Worker nicht verfügbar",
+    "timeout": "Worker Zeitüberschreitung"
+  },
+  "markdownErrors": {
+    "fileNotFound": "Markdown-Datei nicht gefunden: {path}"
   }
 }

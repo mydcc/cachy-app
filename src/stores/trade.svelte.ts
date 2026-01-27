@@ -57,12 +57,12 @@ export interface TradeStateSnapshot {
   journalSearchQuery: string;
   journalFilterStatus: string;
   currentTradeData: Record<string, any> | null;
-  remoteLeverage: number | undefined;
+  remoteLeverage: Decimal | undefined;
   remoteMarginMode: string | undefined;
-  remoteMakerFee: number | undefined;
-  remoteTakerFee: number | undefined;
+  remoteMakerFee: Decimal | undefined;
+  remoteTakerFee: Decimal | undefined;
   feeMode: "maker_taker" | "flat";
-  exitFees: number | undefined;
+  exitFees: Decimal | undefined;
 }
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
@@ -145,12 +145,12 @@ export const INITIAL_TRADE_STATE = {
   journalFilterStatus: "all",
   // Transient / Remote data placeholders
   currentTradeData: null as any,
-  remoteLeverage: undefined as number | undefined,
+  remoteLeverage: undefined as Decimal | undefined,
   remoteMarginMode: undefined as string | undefined,
-  remoteMakerFee: undefined as number | undefined,
-  remoteTakerFee: undefined as number | undefined,
+  remoteMakerFee: undefined as Decimal | undefined,
+  remoteTakerFee: undefined as Decimal | undefined,
   feeMode: "maker_taker" as "maker_taker" | "flat",
-  exitFees: undefined as number | undefined,
+  exitFees: undefined as Decimal | undefined,
 };
 
 class TradeManager {
@@ -184,12 +184,12 @@ class TradeManager {
    * Can be used to sync UI with real position state.
    */
   currentTradeData = $state<Record<string, any> | null>(INITIAL_TRADE_STATE.currentTradeData);
-  remoteLeverage = $state(INITIAL_TRADE_STATE.remoteLeverage);
+  remoteLeverage = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteLeverage);
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
-  remoteMakerFee = $state(INITIAL_TRADE_STATE.remoteMakerFee);
-  remoteTakerFee = $state(INITIAL_TRADE_STATE.remoteTakerFee);
+  remoteMakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteMakerFee);
+  remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
-  exitFees = $state(INITIAL_TRADE_STATE.exitFees);
+  exitFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.exitFees);
 
   constructor() {
     if (browser) {
@@ -235,7 +235,8 @@ class TradeManager {
           this.atrTimeframe = data.atrTimeframe;
           this.analysisTimeframe = data.analysisTimeframe;
           this.tradeNotes = data.tradeNotes;
-          this.tags = data.tags;
+          // Security Hardening: Cap tags to 50
+          this.tags = (data.tags || []).slice(0, 50);
           this.journalSearchQuery = data.journalSearchQuery;
           this.journalFilterStatus = data.journalFilterStatus;
 
@@ -252,7 +253,8 @@ class TradeManager {
           if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
             this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
           } else {
-            this.targets = data.targets;
+            // Security Hardening: Cap targets to 20
+            this.targets = data.targets.slice(0, 20);
           }
 
         } else {
@@ -406,8 +408,15 @@ class TradeManager {
     // Ensure reactivity for targets array if replaced completely
     // Object.assign handles this, but explicit assignment ensures Runes signal works if Object.assign behavior varies
     if (next.targets && next.targets !== this.targets) {
-      this.targets = next.targets;
+      // Security Hardening: Cap targets to 20 on update
+      this.targets = next.targets.slice(0, 20);
     }
+
+    // Security Hardening: Cap tags on update
+    if (next.tags && next.tags !== this.tags) {
+        this.tags = next.tags.slice(0, 50);
+    }
+
     this.notifyListeners();
   }
 

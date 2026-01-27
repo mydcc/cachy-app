@@ -22,6 +22,7 @@
   import { accountState } from "../../stores/account.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { _ } from "../../locales/i18n";
+  import { tradeService } from "../../services/tradeService";
 
   // Sub-components
   import PositionsList from "./PositionsList.svelte";
@@ -285,25 +286,23 @@
     const pos = event.detail;
 
     try {
-      const response = await fetch("/api/orders", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          exchange: settingsState.apiProvider,
-          apiKey: settingsState.apiKeys[settingsState.apiProvider].key,
-          apiSecret: settingsState.apiKeys[settingsState.apiProvider].secret,
-          type: "close-position", // Helper type
-          symbol: pos.symbol,
-          side: String(pos.side).toLowerCase() === "long" ? "sell" : "buy", // Close opposite
-          amount: pos.size,
-        }),
-      });
+      const res = (await tradeService.closePosition({
+        symbol: pos.symbol,
+        positionSide: String(pos.side).toLowerCase() as any,
+        amount: pos.size,
+      })) as any;
 
-      const res = await response.json();
-      if (res.error) {
-        uiState.showError($_("dashboard.alerts.closePositionError", { values: { error: res.error } }));
+      if (res && res.error) {
+        uiState.showError(
+          $_("dashboard.alerts.closePositionError", {
+            values: { error: res.error },
+          }),
+        );
       } else {
-        uiState.showToast($_("dashboard.alerts.closePositionSuccess"), "success");
+        uiState.showToast(
+          $_("dashboard.alerts.closePositionSuccess"),
+          "success",
+        );
         // Trigger refresh or wait for WS
       }
     } catch (e) {
@@ -324,8 +323,10 @@
       leverage: pos.leverage.toString(),
     }));
     uiState.showToast(
-      $_("dashboard.alerts.loadedIntoInputs", { values: { symbol: pos.symbol } }),
-      "info"
+      $_("dashboard.alerts.loadedIntoInputs", {
+        values: { symbol: pos.symbol },
+      }),
+      "info",
     );
   }
 </script>

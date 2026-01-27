@@ -13,6 +13,7 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
+import { toastService } from "./toastService.svelte";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
 import { safeSub, safeDiv } from "../utils/utils";
@@ -70,9 +71,22 @@ class MarketAnalystService {
             const existing = analysisState.results[symbol];
             const freshnessThreshold = isHidden ? DATA_FRESHNESS_TTL * 2 : DATA_FRESHNESS_TTL;
 
+            // Check freshness - if fresh, skip analysis for this symbol
             if (existing && (Date.now() - existing.updatedAt < freshnessThreshold)) {
-                this.timeoutId = setTimeout(() => this.processNext(), 2000); // Check next favorite quickly
-                return;
+                // Return early, but allow finally block to schedule the NEXT standard cycle
+                // or schedule a quick check here and PREVENT the finally block from double-scheduling?
+                // Better approach: Throw a special control flow error or use a flag,
+                // BUT simplest is to just NOT return here, but skip the work.
+
+                // Let's just skip the heavy lifting block.
+                // We will rely on the finally block to schedule the next standard interval.
+                // If we want a faster retry for the NEXT symbol, we can adjust the delay in finally.
+
+                // For now, let's just log and skip to finally.
+                // But wait, if we want to process the next symbol SOONER (2s instead of 60s),
+                // we need to signal that.
+
+                throw new Error("SKIP_FRESH");
             }
 
             analysisState.isAnalyzing = true;
@@ -165,17 +179,49 @@ class MarketAnalystService {
                 console.log(`[TECHNICALS] Analyst: ${symbol} COMPLETE - Fetch: ${fetchTime.toFixed(0)}ms, Calc: ${calcTime.toFixed(0)}ms, Total: ${(fetchTime + calcTime).toFixed(0)}ms`);
             }
         } catch (e) {
-            // Log the actual error to understand what's failing
             const errorMsg = e instanceof Error ? e.message : String(e);
+
+            if (errorMsg === "SKIP_FRESH") {
+                // Expected skip, just log debug
+                if (import.meta.env.DEV) {
+                   // console.log(`[TECHNICALS] Skipping ${symbol} (Fresh)`);
+                }
+                // Schedule next quickly
+                this.scheduleNext(2000);
+                return;
+            }
+
+            // Log the actual error to understand what's failing
             console.error(`[TECHNICALS] Analyst: ERROR for ${symbol}:`, errorMsg);
             logger.log("general", `Market Analyst error for ${symbol}: ${errorMsg}`);
+
+            // Toast for significant errors (ignore expected data shortage)
+            if (errorMsg !== "MIN_DATA_REQUIRED") {
+                toastService.error(`Analysis failed for ${symbol}: ${errorMsg}`);
+            }
         } finally {
             analysisState.isAnalyzing = false;
-            const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
-            const finalDelay = isHidden ? baseDelay * 2 : baseDelay;
-            console.log(`[TECHNICALS] Analyst: Scheduling next cycle in ${finalDelay}ms`);
-            this.timeoutId = setTimeout(() => this.processNext(), finalDelay);
+            // Only schedule standard delay if we didn't already schedule a quick one (via SKIP_FRESH)
+            // We check if timeoutId was set in the catch block?
+            // Actually, best pattern is to verify if we are still running.
+
+            if (this.isRunning && !this.timeoutId) {
+                 const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
+                 const finalDelay = isHidden ? baseDelay * 2 : baseDelay;
+                 this.scheduleNext(finalDelay);
+            }
         }
+    }
+
+    private scheduleNext(delay: number) {
+        if (this.timeoutId) clearTimeout(this.timeoutId);
+        if (!this.isRunning) return;
+
+        console.log(`[TECHNICALS] Analyst: Scheduling next cycle in ${delay}ms`);
+        this.timeoutId = setTimeout(() => {
+            this.timeoutId = null; // Clear ref before running
+            this.processNext();
+        }, delay);
     }
 }
 

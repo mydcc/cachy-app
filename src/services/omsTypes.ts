@@ -20,6 +20,7 @@ export interface OMSOrder {
     filledAmount: Decimal;
     avgPrice?: Decimal;
     timestamp: number;
+    _isOptimistic?: boolean;
 }
 
 export interface OMSPosition {
@@ -28,7 +29,7 @@ export interface OMSPosition {
     amount: Decimal;
     entryPrice: Decimal;
     unrealizedPnl: Decimal;
-    leverage: number;
+    leverage: Decimal;
     marginMode: "cross" | "isolated";
     liquidationPrice?: Decimal;
 }

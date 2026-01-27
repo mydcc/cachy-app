@@ -34,9 +34,9 @@ class MarketWatcher {
   private requests = new Map<string, Map<string, number>>(); // symbol -> { channel -> count }
   private pollingInterval: any = null;
   private startTimeout: any = null; // Track startup delay
-  private currentIntervalSeconds: number = 10;
+  // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
-  private maxConcurrentPolls = 12;
+  private maxConcurrentPolls = 24; // Increased for dashboards
   private inFlight = 0;
   private lastErrorLog = 0;
   private readonly errorLogIntervalMs = 30000;
@@ -219,6 +219,16 @@ class MarketWatcher {
     const settings = settingsState;
     const provider = settings.apiProvider;
 
+    // Safety: If fetchLocks grows too large (stale locks), prune it
+    // This handles edge cases where `finally` block might not have cleared a lock
+    // or if component logic caused orphan keys.
+    if (this.fetchLocks.size > 200) {
+        // Emergency cleanup
+        logger.warn("market", `[MarketWatcher] Pruning stale locks (${this.fetchLocks.size})`);
+        this.fetchLocks.clear();
+        this.inFlight = 0;
+    }
+
     const allowed = Math.max(this.maxConcurrentPolls - this.inFlight, 0);
     if (allowed <= 0) return;
 
@@ -303,15 +313,27 @@ class MarketWatcher {
       }
     } finally {
       // Re-allow polling after interval
+      // Dynamic interval from settings
+      const interval = Math.max(settingsState.marketDataInterval || 5, 2); // Min 2s safety
+
       setTimeout(() => {
         this.fetchLocks.delete(lockKey);
-      }, this.currentIntervalSeconds * 1000);
+      }, interval * 1000);
       this.inFlight = Math.max(0, this.inFlight - 1);
     }
   }
 
   public getActiveSymbols(): string[] {
     return Array.from(this.requests.keys());
+  }
+
+  // Safety valve: Force cleanup if ref-counting gets desynced
+  public forceCleanup() {
+    this.requests.clear();
+    this.fetchLocks.clear();
+    this.inFlight = 0;
+    this.syncSubscriptions();
+    logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");
   }
 }
 

@@ -53,6 +53,25 @@ export const JSIndicators = {
     return result;
   },
 
+  smma(data: number[], period: number): number[] {
+    // Wilder's Smoothing (RMA)
+    // alpha = 1 / period
+    const result = new Array(data.length).fill(0);
+    if (data.length < period) return result;
+
+    let sum = 0;
+    for (let i = 0; i < period; i++) sum += data[i];
+    let currentSmma = sum / period;
+    result[period - 1] = currentSmma;
+
+    for (let i = period; i < data.length; i++) {
+      // RMA formula: (Prior * (n-1) + Current) / n
+      currentSmma = (currentSmma * (period - 1) + data[i]) / period;
+      result[i] = currentSmma;
+    }
+    return result;
+  },
+
   rsi(data: number[], period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length <= period) return result;
@@ -172,9 +191,9 @@ export const JSIndicators = {
       );
     }
 
-    const plusDI_S = this.ema(upMove, period);
-    const minusDI_S = this.ema(downMove, period);
-    const tr_S = this.ema(tr, period);
+    const plusDI_S = this.smma(upMove, period);
+    const minusDI_S = this.smma(downMove, period);
+    const tr_S = this.smma(tr, period);
 
     const dx = new Array(close.length).fill(0);
     for (let i = 0; i < close.length; i++) {
@@ -184,7 +203,7 @@ export const JSIndicators = {
       dx[i] = sum === 0 ? 0 : (Math.abs(pDI - mDI) / sum) * 100;
     }
 
-    return this.ema(dx, period);
+    return this.smma(dx, period);
   },
 
   atr(
@@ -204,7 +223,7 @@ export const JSIndicators = {
       );
     }
     // ATR is usually a smoothed moving average of TR
-    return this.ema(tr, period);
+    return this.smma(tr, period);
   },
 
   bb(data: number[], period: number, stdDev: number = 2) {
@@ -231,21 +250,28 @@ export const JSIndicators = {
     low: number[],
     close: number[],
     volume: number[],
+    time?: number[],
+    anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
   ): number[] {
     const result = new Array(close.length).fill(0);
-    // VWAP is typically Intraday, resetting at start of day.
-    // However, for general timeframe usage (like TradingView's sessionless VWAP),
-    // we often need a rolling window or a full accumulation if "anchored".
-    // For this generic implementation, we'll do a simple cumulative VWAP
-    // but ideally, this should accept an "anchor" or reset periodicity.
-    // For simplicity in this context (and consistency with similar libs):
-    // We will implement a "Rolling VWAP" if period is provided, or Cumulative if not?
-    // Standard VWAP is Cumulative from start of data series here.
-
     let cumVol = 0;
     let cumVolPrice = 0;
+    let lastDay = -1;
 
     for (let i = 0; i < close.length; i++) {
+      // Reset Logic
+      if (anchor?.mode === "session" && time && time[i]) {
+        const date = new Date(time[i]);
+        const currentDay = date.getUTCDate();
+
+        // If initialized and day changed, reset
+        if (lastDay !== -1 && currentDay !== lastDay) {
+          cumVol = 0;
+          cumVolPrice = 0;
+        }
+        lastDay = currentDay;
+      }
+
       const typicalPrice = (high[i] + low[i] + close[i]) / 3;
       const vol = volume[i];
       cumVol += vol;
@@ -289,7 +315,9 @@ export const JSIndicators = {
         sumNeg += negFlow[i - j];
       }
 
-      if (sumNeg === 0) {
+      if (sumPos + sumNeg === 0) {
+        result[i] = 50;
+      } else if (sumNeg === 0) {
         result[i] = 100;
       } else {
         const mfr = sumPos / sumNeg;
@@ -675,6 +703,74 @@ export const JSIndicators = {
       vaLow: rows[Math.min(...vaRows)].priceStart,
     };
   },
+
+  psar(high: number[], low: number[], accel: number = 0.02, max: number = 0.2) {
+    // Wilder's Parabolic SAR
+    const result = new Array(high.length).fill(0);
+    if (high.length < 2) return result;
+
+    let isLong = true;
+    let af = accel;
+    let ep = high[0]; // Extreme Point
+    let sar = low[0];
+
+    // Initial guess setup
+    result[0] = sar;
+
+    for (let i = 1; i < high.length; i++) {
+      // Apply SAR Logic
+      // Next SAR = Prior SAR + Prior AF * (Prior EP - Prior SAR)
+      let nextSar = sar + af * (ep - sar);
+
+      // Constraint: SAR cannot be within previous day's range
+      if (isLong) {
+        if (i > 0 && nextSar > low[i - 1]) nextSar = low[i - 1];
+        if (i > 1 && nextSar > low[i - 2]) nextSar = low[i - 2];
+      } else {
+        if (i > 0 && nextSar < high[i - 1]) nextSar = high[i - 1];
+        if (i > 1 && nextSar < high[i - 2]) nextSar = high[i - 2];
+      }
+
+      // Check for Reversal
+      let reversed = false;
+      if (isLong) {
+        if (low[i] < nextSar) {
+          isLong = false;
+          reversed = true;
+          nextSar = ep; // SAR becomes EP on reversal
+          ep = low[i];
+          af = accel;
+        }
+      } else {
+        if (high[i] > nextSar) {
+          isLong = true;
+          reversed = true;
+          nextSar = ep;
+          ep = high[i];
+          af = accel;
+        }
+      }
+
+      if (!reversed) {
+        // Update AF and EP
+        if (isLong) {
+          if (high[i] > ep) {
+            ep = high[i];
+            af = Math.min(af + accel, max);
+          }
+        } else {
+          if (low[i] < ep) {
+            ep = low[i];
+            af = Math.min(af + accel, max);
+          }
+        }
+      }
+      sar = nextSar;
+      result[i] = sar;
+    }
+
+    return result;
+  },
 };
 
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
@@ -804,9 +900,9 @@ export function getRsiAction(
   oversold: number,
 ) {
   if (!val) return "Neutral";
-  const v = new Decimal(val || 0).toNumber();
-  if (v >= overbought) return "Sell";
-  if (v <= oversold) return "Buy";
+  const v = new Decimal(val);
+  if (v.gte(overbought)) return "Sell";
+  if (v.lte(oversold)) return "Buy";
   return "Neutral";
 }
 
