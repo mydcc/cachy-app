@@ -310,17 +310,17 @@ async function fetchBitunixPendingOrders(apiKey: string, apiSecret: string): Pro
     symbol: o.symbol,
     type: o.type,
     side: o.side,
-    price: new Decimal(o.price || "0").toNumber(), // Precision: Use priceStr
+    price: safeDecimal(o.price).toNumber(), // Precision: Use priceStr
     priceStr: formatApiNum(o.price) || "0",
-    amount: new Decimal(o.qty || "0").toNumber(), // Precision: Use amountStr
+    amount: safeDecimal(o.qty).toNumber(), // Precision: Use amountStr
     amountStr: formatApiNum(o.qty) || "0",
-    filled: new Decimal(o.tradeQty || "0").toNumber(),
+    filled: safeDecimal(o.tradeQty).toNumber(),
     filledStr: formatApiNum(o.tradeQty) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
-    fee: new Decimal(o.fee || "0").toNumber(),
+    fee: safeDecimal(o.fee).toNumber(),
     feeStr: formatApiNum(o.fee) || "0",
-    realizedPNL: new Decimal(o.realizedPNL || "0").toNumber(),
+    realizedPNL: safeDecimal(o.realizedPNL).toNumber(),
     realizedPNLStr: formatApiNum(o.realizedPNL) || "0",
   }));
 }
@@ -335,6 +335,15 @@ function cleanPayload<T extends object>(payload: T): T {
     }
   });
   return cleaned;
+}
+
+function safeDecimal(value: any): Decimal {
+  try {
+    if (value === null || value === undefined) return new Decimal(0);
+    return new Decimal(value);
+  } catch (e) {
+    return new Decimal(0);
+  }
 }
 
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
@@ -371,17 +380,17 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     symbol: o.symbol,
     type: o.type,
     side: o.side,
-    price: new Decimal(o.price || "0").toNumber(),
+    price: safeDecimal(o.price).toNumber(),
     priceStr: formatApiNum(o.price) || "0",
-    amount: new Decimal(o.qty || "0").toNumber(),
+    amount: safeDecimal(o.qty).toNumber(),
     amountStr: formatApiNum(o.qty) || "0",
-    filled: new Decimal(o.tradeQty || "0").toNumber(),
+    filled: safeDecimal(o.tradeQty).toNumber(),
     filledStr: formatApiNum(o.tradeQty) || "0",
-    avgPrice: new Decimal(o.avgPrice || o.averagePrice || "0").toNumber(),
+    avgPrice: safeDecimal(o.avgPrice || o.averagePrice).toNumber(),
     avgPriceStr: formatApiNum(o.avgPrice || o.averagePrice) || "0",
-    realizedPNL: new Decimal(o.realizedPNL || "0").toNumber(),
+    realizedPNL: safeDecimal(o.realizedPNL).toNumber(),
     realizedPNLStr: formatApiNum(o.realizedPNL) || "0",
-    fee: new Decimal(o.fee || "0").toNumber(),
+    fee: safeDecimal(o.fee).toNumber(),
     feeStr: formatApiNum(o.fee) || "0",
     status: o.status || "UNKNOWN",
     time: o.ctime || 0,
@@ -495,17 +504,17 @@ async function fetchBitgetPendingOrders(
         symbol: o.symbol,
         type: o.orderType,
         side: o.side, // open_long etc
-        price: new Decimal(o.price || "0").toNumber(),
+        price: safeDecimal(o.price).toNumber(),
         priceStr: formatApiNum(o.price) || "0",
-        amount: new Decimal(o.size || "0").toNumber(),
+        amount: safeDecimal(o.size).toNumber(),
         amountStr: formatApiNum(o.size) || "0",
-        filled: new Decimal(o.filledQty || "0").toNumber(),
+        filled: safeDecimal(o.filledQty).toNumber(),
         filledStr: formatApiNum(o.filledQty) || "0",
         status: o.status, // new, partial_fill
         time: parseInt(o.cTime),
-        fee: new Decimal(o.fee || "0").toNumber(),
+        fee: safeDecimal(o.fee).toNumber(),
         feeStr: formatApiNum(o.fee) || "0",
-        realizedPNL: new Decimal(o.totalProfits || "0").toNumber(),
+        realizedPNL: safeDecimal(o.totalProfits).toNumber(),
         realizedPNLStr: formatApiNum(o.totalProfits) || "0",
     }));
 }
@@ -548,19 +557,19 @@ async function fetchBitgetHistoryOrders(
         symbol: o.symbol,
         type: o.orderType,
         side: o.side,
-        price: new Decimal(o.price || "0").toNumber(),
+        price: safeDecimal(o.price).toNumber(),
         priceStr: formatApiNum(o.price) || "0",
-        amount: new Decimal(o.size || "0").toNumber(),
+        amount: safeDecimal(o.size).toNumber(),
         amountStr: formatApiNum(o.size) || "0",
-        filled: new Decimal(o.filledQty || "0").toNumber(),
+        filled: safeDecimal(o.filledQty).toNumber(),
         filledStr: formatApiNum(o.filledQty) || "0",
-        avgPrice: new Decimal(o.priceAvg || "0").toNumber(),
+        avgPrice: safeDecimal(o.priceAvg).toNumber(),
         avgPriceStr: formatApiNum(o.priceAvg) || "0",
         status: o.state, // filled, canceled
         time: parseInt(o.cTime),
-        fee: new Decimal(o.fee || "0").toNumber(),
+        fee: safeDecimal(o.fee).toNumber(),
         feeStr: formatApiNum(o.fee) || "0",
-        realizedPNL: new Decimal(o.totalProfits || "0").toNumber(),
+        realizedPNL: safeDecimal(o.totalProfits).toNumber(),
         realizedPNLStr: formatApiNum(o.totalProfits) || "0",
     }));
 }

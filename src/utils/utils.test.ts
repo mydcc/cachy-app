@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from "vitest";
-import { parseDateString, parseTimestamp, escapeHtml, parseAiValue } from "./utils";
+import { parseDateString, parseTimestamp, escapeHtml, parseAiValue, parseDecimal } from "./utils";
 
 describe("parseTimestamp", () => {
   const NOW = Date.now();
@@ -179,5 +179,38 @@ describe("parseAiValue", () => {
     expect(parseAiValue(null as any)).toBe(0);
     expect(parseAiValue(undefined as any)).toBe(0);
     expect(parseAiValue("")).toBe(0);
+  });
+});
+
+describe("parseDecimal", () => {
+  it("should return Decimal(0) for null/undefined", () => {
+    expect(parseDecimal(null).toNumber()).toBe(0);
+    expect(parseDecimal(undefined).toNumber()).toBe(0);
+  });
+
+  it("should parse valid numeric strings", () => {
+    expect(parseDecimal("123.45").toNumber()).toBe(123.45);
+    expect(parseDecimal("0").toNumber()).toBe(0);
+    expect(parseDecimal("-10.5").toNumber()).toBe(-10.5);
+  });
+
+  it("should parse numbers", () => {
+    expect(parseDecimal(100).toNumber()).toBe(100);
+  });
+
+  it("should handle English thousands separators", () => {
+    // 1,234.56 -> 1234.56
+    expect(parseDecimal("1,234.56").toNumber()).toBe(1234.56);
+  });
+
+  it("should handle German format", () => {
+    // 1.234,56 -> 1234.56
+    expect(parseDecimal("1.234,56").toNumber()).toBe(1234.56);
+  });
+
+  it("should handle invalid strings (like 'MARKET') by returning 0", () => {
+    expect(parseDecimal("MARKET").toNumber()).toBe(0);
+    expect(parseDecimal("LIMIT").toNumber()).toBe(0);
+    expect(parseDecimal("abc").toNumber()).toBe(0);
   });
 });
