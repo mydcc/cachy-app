@@ -11,7 +11,12 @@
   import { tradeState } from "../../stores/trade.svelte"; // For potential integration later
 
   // Setup Markdown with KaTeX
-  marked.use(markedKatex({ throwOnError: false }));
+  // Initialized only once at module level to avoid duplicate extension registration
+  try {
+      marked.use(markedKatex({ throwOnError: false }));
+  } catch (e) {
+      console.warn("Marked KaTeX extension might already be registered", e);
+  }
 
   let searchQuery = $state("");
   let selectedCategory = $state("All");
