@@ -13,6 +13,7 @@ import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { indicatorState } from "../stores/indicator.svelte";
 import { logger } from "./logger";
+import { toastService } from "./toastService.svelte";
 import { browser } from "$app/environment";
 import { Decimal } from "decimal.js";
 import { safeSub, safeDiv } from "../utils/utils";
@@ -167,8 +168,15 @@ class MarketAnalystService {
         } catch (e) {
             // Log the actual error to understand what's failing
             const errorMsg = e instanceof Error ? e.message : String(e);
+
+            // Log to console/logger always
             console.error(`[TECHNICALS] Analyst: ERROR for ${symbol}:`, errorMsg);
             logger.log("general", `Market Analyst error for ${symbol}: ${errorMsg}`);
+
+            // Toast for significant errors (ignore expected data shortage)
+            if (errorMsg !== "MIN_DATA_REQUIRED") {
+                toastService.error(`Analysis failed for ${symbol}: ${errorMsg}`);
+            }
         } finally {
             analysisState.isAnalyzing = false;
             const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;

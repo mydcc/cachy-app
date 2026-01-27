@@ -34,6 +34,8 @@
   import { initZoomPlugin } from "../lib/chartSetup";
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
+  import ToastContainer from "../components/shared/ToastContainer.svelte";
+
   import { _ } from "../locales/i18n";
 
   import "../app.css";
@@ -372,6 +374,7 @@
 {/if}
 
 <FloatingWindowsContainer />
+<ToastContainer />
 
 {#if uiState.tooltip.visible}
   <div

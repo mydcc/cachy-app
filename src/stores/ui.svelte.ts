@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { toastService } from "../services/toastService.svelte";
 
 class FloatingWindow {
   id = $state("");
@@ -468,8 +469,15 @@ class UiManager {
 
   showToast(message: string, type: "success" | "error" | "info" = "info") {
     if (type === "error") {
-      this.showError(message);
+      this.showError(message); // Keep persistent error for major issues? Or switch to toast?
+      // Let's duplicate to toast for visibility if it's an error
+      toastService.error(message);
     } else {
+      // Use the new service for transient messages
+      if (type === "success") toastService.success(message);
+      else toastService.info(message);
+
+      // Legacy support for local component feedback (like in +page.svelte footer)
       console.log(`[Toast ${type}] ${message}`);
       this.toastMessage = message;
       this.showSaveFeedback = true;

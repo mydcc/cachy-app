@@ -16,6 +16,7 @@
   import { Decimal } from "decimal.js";
   import { _ } from "../../locales/i18n";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
+  import { TechnicalsPresenter } from "../../utils/technicalsPresenter";
 
   interface Props {
     isVisible?: boolean;
@@ -83,42 +84,6 @@
       if (context === "Trend") return $_("technicals.trend" as any) || "Trend";
       if (context === "Range") return $_("technicals.range" as any) || "Range";
       return translateAction(context);
-  }
-
-  function getActionColor(action: string) {
-    const a = action.toLowerCase();
-    if (a.includes("strong buy")) return "text-[#00ff88] font-bold";
-    if (a.includes("strong sell")) return "text-[#ff0044] font-bold";
-    if (a.includes("buy")) return "text-[var(--success-color)]";
-    if (a.includes("sell")) return "text-[var(--danger-color)]";
-    return "text-[var(--text-secondary)]";
-  }
-
-  function formatVal(val: Decimal | undefined, precOverride?: number) {
-    if (!val || !val.toDecimalPlaces) return "-";
-    const prec = precOverride ?? indicatorSettings?.precision ?? 4;
-    return val.toDecimalPlaces(prec).toString();
-  }
-
-  function getOscillatorContext(name: string, val: Decimal, action: string) {
-    const v = val.toNumber();
-    if (name === "RSI") {
-      if (v >= 70) return "Overbought";
-      if (v <= 30) return "Oversold";
-    }
-    if (name === "Stoch" || name === "StochRSI") {
-        if (v >= 80) return "Overbought";
-        if (v <= 20) return "Oversold";
-    }
-    if (name === "Will %R") {
-         if (v > -20) return "Overbought";
-         if (v < -80) return "Oversold";
-    }
-    if (name === "CCI") {
-        if (v > 100) return "Overbought";
-        if (v < -100) return "Oversold";
-    }
-    return action;
   }
 
   // --- UI Event Handlers ---
@@ -266,7 +231,7 @@
                     <span class="text-[var(--text-secondary)] uppercase font-medium">
                         {typeof $_ === "function" ? $_("settings.technicals.summaryAction") : "Summary"}
                     </span>
-                    <span class="font-bold {getActionColor(data.summary.action)}">
+                    <span class="font-bold {TechnicalsPresenter.getActionColor(data.summary.action)}">
                         {translateAction(data.summary.action)}
                     </span>
                 </div>
@@ -280,7 +245,7 @@
                     <span class="text-[var(--text-secondary)] uppercase font-medium">
                         {typeof $_ === "function" ? $_("settings.technicals.marketConfluence") : "Confluence"}
                     </span>
-                    <span class="font-bold {getActionColor(data.confluence.level)}">
+                    <span class="font-bold {TechnicalsPresenter.getActionColor(data.confluence.level)}">
                         {Math.round(data.confluence.score)}%
                     </span>
                 </div>
@@ -312,7 +277,7 @@
                   >ATR</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
-                  >{formatVal(data.volatility.atr)}</span
+                  >{TechnicalsPresenter.formatVal(data.volatility.atr, indicatorSettings?.precision)}</span
                 >
               </div>
               <div
@@ -323,11 +288,12 @@
                   >BB Width</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
-                  >{formatVal(
-                    new Decimal(data.volatility.bb.upper)
-                      .minus(new Decimal(data.volatility.bb.lower))
-                      .div(new Decimal(data.volatility.bb.middle))
-                      .times(100),
+                  >{TechnicalsPresenter.formatVal(
+                    TechnicalsPresenter.calculateBollingerBandWidth(
+                        new Decimal(data.volatility.bb.upper),
+                        new Decimal(data.volatility.bb.lower),
+                        new Decimal(data.volatility.bb.middle)
+                    ),
                     2,
                   )}%</span
                 >
@@ -349,13 +315,13 @@
                 >
                   <span class="truncate" title={osc.params}>{osc.name}</span>
                   <span class="font-mono text-right"
-                    >{formatVal(osc.value)}</span
+                    >{TechnicalsPresenter.formatVal(osc.value, indicatorSettings?.precision)}</span
                   >
                   <!-- Context Aware Action -->
                   <span
-                    class="font-bold text-right {getActionColor(osc.action)}"
+                    class="font-bold text-right {TechnicalsPresenter.getActionColor(osc.action)}"
                     title="Action: {osc.action}"
-                    >{translateContext(getOscillatorContext(osc.name, osc.value, osc.action))}</span
+                    >{translateContext(TechnicalsPresenter.getOscillatorContext(osc.name, osc.value, osc.action))}</span
                   >
                 </div>
               {/each}
@@ -377,8 +343,8 @@
                 >
                   <span>{ma.name} ({ma.params})</span>
                   <div class="flex gap-2">
-                    <span class="font-mono">{formatVal(ma.value)}</span>
-                    <span class="font-bold {getActionColor(ma.action)}"
+                    <span class="font-mono">{TechnicalsPresenter.formatVal(ma.value, indicatorSettings?.precision)}</span>
+                    <span class="font-bold {TechnicalsPresenter.getActionColor(ma.action)}"
                       >{translateAction(ma.action)}</span
                     >
                   </div>
@@ -396,12 +362,12 @@
                 {$_("settings.technicals.pivotsTitle") || "Pivot Points"}
               </div>
               <div class="grid grid-cols-1 gap-y-0.5">
-                {#each [{ label: "R3", val: data.pivots.classic.r3, color: "text-[var(--danger-color)]" }, { label: "R2", val: data.pivots.classic.r2, color: "text-[var(--danger-color)]" }, { label: "R1", val: data.pivots.classic.r1, color: "text-[var(--danger-color)]" }, { label: "P", val: data.pivots.classic.p, color: "text-[var(--text-primary)]" }, { label: "S1", val: data.pivots.classic.s1, color: "text-[var(--success-color)]" }, { label: "S2", val: data.pivots.classic.s2, color: "text-[var(--success-color)]" }, { label: "S3", val: data.pivots.classic.s3, color: "text-[var(--success-color)]" }] as pivot}
+                {#each TechnicalsPresenter.getPivotsArray(data.pivots) as pivot}
                   <div
                     class="flex justify-between text-xs py-0.5 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
                   >
                     <span class="font-bold {pivot.color}">{pivot.label}</span>
-                    <span class="font-mono">{formatVal(pivot.val)}</span>
+                    <span class="font-mono">{TechnicalsPresenter.formatVal(pivot.val, indicatorSettings?.precision)}</span>
                   </div>
                 {/each}
               </div>
@@ -423,7 +389,7 @@
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <span>VWAP</span>
-                  <span class="font-mono">{formatVal(data.advanced.vwap)}</span>
+                  <span class="font-mono">{TechnicalsPresenter.formatVal(data.advanced.vwap, indicatorSettings?.precision)}</span>
                 </div>
               {/if}
 
@@ -435,12 +401,12 @@
                   <span>MFI</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
-                      >{formatVal(data.advanced.mfi.value)}</span
+                      >{TechnicalsPresenter.formatVal(data.advanced.mfi.value, indicatorSettings?.precision)}</span
                     >
                     <span
-                      class="font-bold {getActionColor(
+                      class="font-bold {TechnicalsPresenter.getActionColor(
                         data.advanced.mfi.action,
-                      )}">{translateContext(getOscillatorContext("MFI", data.advanced.mfi.value, data.advanced.mfi.action))}</span
+                      )}">{translateContext(TechnicalsPresenter.getOscillatorContext("MFI", data.advanced.mfi.value, data.advanced.mfi.action))}</span
                     >
                   </div>
                 </div>
@@ -454,13 +420,10 @@
                   <span>SuperTrend</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
-                      >{formatVal(data.advanced.superTrend.value)}</span
+                      >{TechnicalsPresenter.formatVal(data.advanced.superTrend.value, indicatorSettings?.precision)}</span
                     >
                     <span
-                      class="font-bold {data.advanced.superTrend.trend ===
-                      'bull'
-                        ? 'text-[var(--success-color)]'
-                        : 'text-[var(--danger-color)]'}"
+                      class="font-bold {TechnicalsPresenter.getSuperTrendColor(data.advanced.superTrend.trend)}"
                       >{translateAction(data.advanced.superTrend.trend.toUpperCase() === "BULL" ? "Buy" : "Sell")}</span
                     >
                   </div>
@@ -475,13 +438,13 @@
                   <div class="flex justify-between">
                     <span>ATR Stop (L)</span>
                     <span class="font-mono text-[var(--danger-color)]"
-                      >{formatVal(data.advanced.atrTrailingStop.sell)}</span
+                      >{TechnicalsPresenter.formatVal(data.advanced.atrTrailingStop.sell, indicatorSettings?.precision)}</span
                     >
                   </div>
                   <div class="flex justify-between">
                     <span>ATR Stop (S)</span>
                     <span class="font-mono text-[var(--success-color)]"
-                      >{formatVal(data.advanced.atrTrailingStop.buy)}</span
+                      >{TechnicalsPresenter.formatVal(data.advanced.atrTrailingStop.buy, indicatorSettings?.precision)}</span
                     >
                   </div>
                 </div>
@@ -494,7 +457,7 @@
                 >
                   <span>OBV</span>
                   <span class="font-mono"
-                    >{formatVal(data.advanced.obv, 0)}</span
+                    >{TechnicalsPresenter.formatVal(data.advanced.obv, 0)}</span
                   >
                 </div>
               {/if}
@@ -506,7 +469,7 @@
                 >
                   <span>Ichimoku</span>
                   <span
-                    class="font-bold {getActionColor(
+                    class="font-bold {TechnicalsPresenter.getActionColor(
                       data.advanced.ichimoku.action,
                     )}">{translateAction(data.advanced.ichimoku.action)}</span
                   >
@@ -527,13 +490,13 @@
                   <div class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
                     <div class="flex justify-between">
                         <span class="font-medium">{div.indicator} {div.type}</span>
-                        <span class="font-bold {div.side === 'Bullish' ? 'text-[var(--success-color)]' : 'text-[var(--danger-color)]'}">
+                        <span class="font-bold {TechnicalsPresenter.getDivergenceColor(div.side)}">
                           {translateAction(div.side)}
                         </span>
                     </div>
                     <div class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5">
-                        <span>Val: {formatVal(div.indStart, 1)} ➝ {formatVal(div.indEnd, 1)}</span>
-                        <span>Price: {formatVal(div.priceStart)} ➝ {formatVal(div.priceEnd)}</span>
+                        <span>Val: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(div.indEnd, 1)}</span>
+                        <span>Price: {TechnicalsPresenter.formatVal(div.priceStart, indicatorSettings?.precision)} ➝ {TechnicalsPresenter.formatVal(div.priceEnd, indicatorSettings?.precision)}</span>
                     </div>
                   </div>
                 {/each}

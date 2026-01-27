@@ -633,7 +633,15 @@
       "pivots": "Pivots",
       "buy": "Kaufen",
       "sell": "Verkaufen",
-      "neutral": "Neutral"
+      "neutral": "Neutral",
+      "overbought": "Überkauft",
+      "oversold": "Überverkauft",
+      "trend": "Trend",
+      "range": "Seitwärts",
+      "noSignals": "Keine Divergenzen erkannt"
+    },
+    "candlestickPatterns": {
+      "title": "Candlestick Muster Akademie"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",

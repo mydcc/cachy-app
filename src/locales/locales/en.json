@@ -607,7 +607,15 @@
       "pivots": "Pivots",
       "buy": "Buy",
       "sell": "Sell",
-      "neutral": "Neutral"
+      "neutral": "Neutral",
+      "overbought": "Overbought",
+      "oversold": "Oversold",
+      "trend": "Trend",
+      "range": "Range",
+      "noSignals": "No divergences detected"
+    },
+    "candlestickPatterns": {
+      "title": "Candlestick Patterns Academy"
     },
     "imgbbPermanent": "Permanent (No Auto-Delete)",
     "imgbb10m": "10 Minutes",

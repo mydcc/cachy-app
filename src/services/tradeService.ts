@@ -41,7 +41,7 @@ class TradeService {
         const data = await response.json();
 
         if (!response.ok || (data.code && data.code !== 0)) {
-             throw new BitunixApiError(data.code || -1, data.msg || data.error);
+            throw new BitunixApiError(data.code || -1, data.msg || data.error);
         }
 
         return data;
@@ -49,13 +49,29 @@ class TradeService {
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
         // 1. Get position from OMS (Source of Truth)
-        const positions = omsService.getPositions();
-        const position = positions.find(
+        let positions = omsService.getPositions();
+        let position = positions.find(
             (p) => p.symbol === symbol && p.side === positionSide
         );
 
         if (!position) {
-            logger.error("market", `[FlashClose] Position not found: ${symbol} ${positionSide}`);
+            logger.warn("market", `[FlashClose] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
+
+            try {
+                // Force sync open positions
+                await this.fetchOpenPositionsFromApi();
+                // Re-check
+                positions = omsService.getPositions();
+                position = positions.find(
+                    (p) => p.symbol === symbol && p.side === positionSide
+                );
+            } catch (e) {
+                logger.error("market", `[FlashClose] API Fallback failed`, e);
+            }
+        }
+
+        if (!position) {
+            logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
             throw new Error(`Position not found: ${symbol} ${positionSide}`);
         }
 
@@ -76,6 +92,55 @@ class TradeService {
             qty, // String for precision
             reduceOnly: true
         });
+    }
+
+    // Emergency Fallback to fetch ALL open positions directly from Bitunix/API
+    private async fetchOpenPositionsFromApi() {
+        if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
+
+        try {
+            // Re-use the sync endpoint which wraps the signed API call
+            const pendingResponse = await fetch("/api/sync/positions-pending", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                    apiKey: settingsState.apiKeys.bitunix.key,
+                    apiSecret: settingsState.apiKeys.bitunix.secret,
+                }),
+            });
+
+            if (!pendingResponse.ok) throw new Error("Fetch failed");
+
+            const pendingResult = await pendingResponse.json();
+            if (pendingResult.error) throw new Error(pendingResult.error);
+
+            const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+
+            // Map and Update OMS
+            pendingPositions.forEach((p: any) => {
+                const side = (p.side || "").toLowerCase().includes("sell") || (p.side || "").toLowerCase().includes("short") ? "short" : "long";
+
+                // Simple mapping (subset of full mapper)
+                const mappedPosition: any = {
+                    symbol: p.symbol,
+                    side: side,
+                    amount: new Decimal(p.qty || p.size || p.amount || 0),
+                    entryPrice: new Decimal(p.avgOpenPrice || p.entryPrice || 0),
+                    unrealizedPnl: new Decimal(p.unrealizedPNL || p.unrealizedPnl || 0),
+                    leverage: Number(p.leverage || 0),
+                    marginMode: (p.marginMode || "cross").toLowerCase(),
+                    liquidationPrice: p.liquidationPrice ? new Decimal(p.liquidationPrice) : undefined
+                };
+
+                omsService.updatePosition(mappedPosition);
+            });
+
+        } catch (e) {
+            logger.error("market", "[TradeService] Failed to fetch open positions", e);
+            throw e;
+        }
+
+
     }
 
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
