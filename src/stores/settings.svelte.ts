@@ -86,8 +86,6 @@ export interface GalaxySettings {
   randomness: number;
   randomnessPower: number;
   concentrationPower: number;
-  insideColor: string; // Hex
-  outsideColor: string; // Hex
 }
 
 export interface Settings {
@@ -362,8 +360,6 @@ const defaultSettings: Settings = {
     randomness: 1.0,
     randomnessPower: 8.0,
     concentrationPower: 1.5,
-    insideColor: "#6366f1",
-    outsideColor: "#8b5cf6",
   },
   enableNetworkLogs: false,
   logSettings: {
