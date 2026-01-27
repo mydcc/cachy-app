@@ -554,6 +554,7 @@ export type TranslationKey =
   | "settings.spinButtonsAlways"
   | "settings.spinButtonsHover"
   | "settings.spinButtonsHidden"
+  | "settings.hotkeys.conflictWarning"
   | "settings.tabs.general"
   | "settings.tabs.api"
   | "settings.tabs.ai"

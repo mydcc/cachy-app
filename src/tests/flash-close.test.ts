@@ -86,7 +86,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
                 leverage: 10,
                 liquidationPrice: new Decimal('45000'),
                 unrealizedPnl: new Decimal('0'),
-                timestamp: Date.now()
+                marginMode: 'cross'
             }
         ]);
 
