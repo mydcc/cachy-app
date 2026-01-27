@@ -289,7 +289,9 @@ export const JSIndicators = {
         sumNeg += negFlow[i - j];
       }
 
-      if (sumNeg === 0) {
+      if (sumPos + sumNeg === 0) {
+        result[i] = 50;
+      } else if (sumNeg === 0) {
         result[i] = 100;
       } else {
         const mfr = sumPos / sumNeg;
