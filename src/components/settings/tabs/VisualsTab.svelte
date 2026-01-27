@@ -41,6 +41,37 @@
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
+    function toggleGyro() {
+        const isEnabled = settingsState.galaxySettings.enableGyroscope;
+
+        if (!isEnabled) {
+            // Check for iOS permission requirement
+            if (
+                typeof DeviceOrientationEvent !== "undefined" &&
+                typeof (DeviceOrientationEvent as any).requestPermission === "function"
+            ) {
+                (DeviceOrientationEvent as any).requestPermission()
+                    .then((response: string) => {
+                        if (response === "granted") {
+                            settingsState.galaxySettings.enableGyroscope = true;
+                        } else {
+                            alert(
+                                "Permission denied. Gyroscope control requires access to device sensors.",
+                            );
+                        }
+                    })
+                    .catch((err: any) => {
+                        console.error(err);
+                    });
+            } else {
+                // Non-iOS or older devices (Android)
+                settingsState.galaxySettings.enableGyroscope = true;
+            }
+        } else {
+            settingsState.galaxySettings.enableGyroscope = false;
+        }
+    }
+
     const subTabs = [
         {
             id: "appearance",
@@ -505,6 +536,20 @@
                                     <input id="rot-z" type="range" min="0" max="360" step="0.1" bind:value={settingsState.galaxySettings.galaxyRot.z} class="range-input" />
                                 </div>
                             </div>
+                        </div>
+
+                        <!-- Gyroscope Control -->
+                        <div class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4">
+                            <div class="flex flex-col">
+                                <span class="text-sm font-medium">Gyroscope Control</span>
+                                <span class="text-[10px] text-[var(--text-secondary)]">Control camera with device motion (Mobile)</span>
+                            </div>
+                            <button
+                                class="w-12 h-6 rounded-full relative transition-colors {settingsState.galaxySettings.enableGyroscope ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color)]'}"
+                                onclick={toggleGyro}
+                            >
+                                <span class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState.galaxySettings.enableGyroscope ? 'translate-x-6' : 'translate-x-0'}"></span>
+                            </button>
                         </div>
                     </div>
                 {/if}

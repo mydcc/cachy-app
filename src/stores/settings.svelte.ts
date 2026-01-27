@@ -88,6 +88,7 @@ export interface GalaxySettings {
   concentrationPower: number;
   camPos: { x: number; y: number; z: number };
   galaxyRot: { x: number; y: number; z: number };
+  enableGyroscope: boolean;
 }
 
 export interface Settings {
@@ -365,6 +366,7 @@ const defaultSettings: Settings = {
     concentrationPower: 1.5,
     camPos: { x: 4, y: 2, z: 5 },
     galaxyRot: { x: 0, y: 0, z: 0 },
+    enableGyroscope: false,
   },
   enableNetworkLogs: false,
   logSettings: {

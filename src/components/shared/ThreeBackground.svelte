@@ -326,7 +326,9 @@
         galaxyMaterial.uniforms.uTime.value = elapsedTime;
       }
 
-      controls.update();
+      if (!settingsState.galaxySettings.enableGyroscope) {
+          controls.update();
+      }
       renderer.render(scene, camera);
       animationId = requestAnimationFrame(animate);
     }
@@ -381,6 +383,64 @@
 
       // Always update transforms and uniforms
       updateScene();
+  });
+
+  // Gyroscope Logic
+  let initialOrientation: { alpha: number; beta: number; gamma: number } | null = null;
+
+  function onDeviceOrientation(event: DeviceOrientationEvent) {
+      if (!camera || !settingsState.galaxySettings.enableGyroscope) return;
+
+      const alpha = event.alpha || 0;
+      const beta = event.beta || 0;
+      const gamma = event.gamma || 0;
+
+      if (!initialOrientation) {
+          initialOrientation = { alpha, beta, gamma };
+          return;
+      }
+
+      // Calculate deltas
+      let dAlpha = alpha - initialOrientation.alpha;
+      let dBeta = beta - initialOrientation.beta;
+
+      // Handle wrap-around for alpha
+      if (dAlpha > 180) dAlpha -= 360;
+      if (dAlpha < -180) dAlpha += 360;
+
+      const basePos = settingsState.galaxySettings.camPos;
+      const r = Math.sqrt(basePos.x ** 2 + basePos.y ** 2 + basePos.z ** 2) || 6;
+
+      // Azimuth (around Y)
+      // dAlpha controls rotation around Y axis
+      const theta = THREE.MathUtils.degToRad(dAlpha) + Math.atan2(basePos.x, basePos.z);
+
+      // Polar (up/down)
+      // dBeta controls elevation
+      const phi = THREE.MathUtils.degToRad(dBeta) + Math.acos(basePos.y / r);
+      const clampedPhi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
+
+      const x = r * Math.sin(clampedPhi) * Math.sin(theta);
+      const y = r * Math.cos(clampedPhi);
+      const z = r * Math.sin(clampedPhi) * Math.cos(theta);
+
+      camera.position.set(x, y, z);
+      camera.lookAt(0, 0, 0);
+  }
+
+  $effect(() => {
+      if (settingsState.galaxySettings.enableGyroscope) {
+          if (controls) controls.enabled = false;
+          initialOrientation = null;
+          window.addEventListener("deviceorientation", onDeviceOrientation);
+      } else {
+          if (controls) controls.enabled = true;
+          window.removeEventListener("deviceorientation", onDeviceOrientation);
+      }
+
+      return () => {
+          window.removeEventListener("deviceorientation", onDeviceOrientation);
+      };
   });
 
 </script>
