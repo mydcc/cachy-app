@@ -36,6 +36,7 @@ class MarketWatcher {
   private startTimeout: any = null; // Track startup delay
   // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
+  private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 24; // Increased for dashboards
   private inFlight = 0;
   private lastErrorLog = 0;
@@ -192,6 +193,11 @@ class MarketWatcher {
       clearInterval(this.pollingInterval);
       this.pollingInterval = null;
     }
+
+    // Clear pending stagger timeouts (Zombie Prevention)
+    this.staggerTimeouts.forEach((t) => clearTimeout(t));
+    this.staggerTimeouts.clear();
+
     // Clear pending fetch locks to prevent memory leaks
     this.fetchLocks.clear();
   }
@@ -253,13 +259,15 @@ class MarketWatcher {
       const currentStagger = stagger;
       stagger += Math.floor(Math.random() * 150) + 50; // Random 50-200ms increments
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
+        this.staggerTimeouts.delete(timeoutId);
         if (!this.pollingInterval) return; // Zombie Guard
         if (this.inFlight >= this.maxConcurrentPolls) return;
         if (!this.fetchLocks.has(lockKey)) {
           this.pollSymbolChannel(symbol, channel, provider);
         }
       }, currentStagger);
+      this.staggerTimeouts.add(timeoutId);
     }
   }
 

@@ -146,39 +146,39 @@ describe("escapeHtml", () => {
 
 describe("parseAiValue", () => {
   it("should handle normal integers", () => {
-    expect(parseAiValue("100")).toBe(100);
-    expect(parseAiValue(100)).toBe(100);
+    expect(parseAiValue("100").toNumber()).toBe(100);
+    expect(parseAiValue(100).toNumber()).toBe(100);
   });
 
   it("should handle English decimal format", () => {
-    expect(parseAiValue("1,200.50")).toBe(1200.5);
-    expect(parseAiValue("1200.50")).toBe(1200.5);
+    expect(parseAiValue("1,200.50").toNumber()).toBe(1200.5);
+    expect(parseAiValue("1200.50").toNumber()).toBe(1200.5);
   });
 
   it("should handle German decimal format", () => {
-    expect(parseAiValue("1.200,50")).toBe(1200.5);
-    expect(parseAiValue("50,5")).toBe(50.5);
+    expect(parseAiValue("1.200,50").toNumber()).toBe(1200.5);
+    expect(parseAiValue("50,5").toNumber()).toBe(50.5);
   });
 
   it("should handle k/m suffixes", () => {
-    expect(parseAiValue("50k")).toBe(50000);
-    expect(parseAiValue("1.5m")).toBe(1500000);
+    expect(parseAiValue("50k").toNumber()).toBe(50000);
+    expect(parseAiValue("1.5m").toNumber()).toBe(1500000);
   });
 
   it("should handle large numbers", () => {
-    expect(parseAiValue("1,000,000")).toBe(1000000);
-    expect(parseAiValue("1.000.000")).toBe(1000000);
+    expect(parseAiValue("1,000,000").toNumber()).toBe(1000000);
+    expect(parseAiValue("1.000.000").toNumber()).toBe(1000000);
   });
 
   it("should handle booleans", () => {
-    expect(parseAiValue(true)).toBe(1);
-    expect(parseAiValue(false)).toBe(0);
+    expect(parseAiValue(true).toNumber()).toBe(1);
+    expect(parseAiValue(false).toNumber()).toBe(0);
   });
 
   it("should handle null/undefined/empty", () => {
-    expect(parseAiValue(null as any)).toBe(0);
-    expect(parseAiValue(undefined as any)).toBe(0);
-    expect(parseAiValue("")).toBe(0);
+    expect(parseAiValue(null as any).toNumber()).toBe(0);
+    expect(parseAiValue(undefined as any).toNumber()).toBe(0);
+    expect(parseAiValue("").toNumber()).toBe(0);
   });
 });
 

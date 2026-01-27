@@ -591,9 +591,9 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       totalTrades > 0 ? ((wins / totalTrades) * 100).toFixed(1) + "%" : "0%";
     const totalPnl = journal
       .reduce(
-        (sum: number, t: JournalEntry) =>
-          sum + new Decimal(new Decimal(t.totalNetProfit || 0)).toNumber(),
-        0,
+        (sum: Decimal, t: JournalEntry) =>
+          sum.plus(new Decimal(t.totalNetProfit || 0)),
+        new Decimal(0),
       )
       .toFixed(2);
 
@@ -932,7 +932,8 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         case "setStopLossATR":
           const mult = action.value || action.atrMultiplier;
           if (mult !== undefined) {
-            tradeState.atrMultiplier = parseFloat(String(mult));
+            // parseAiValue returns Decimal, convert to number for tradeState
+            tradeState.atrMultiplier = parseAiValue(mult as string).toNumber();
             tradeState.useAtrSl = true;
           }
           break;

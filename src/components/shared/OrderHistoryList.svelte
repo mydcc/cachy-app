@@ -101,7 +101,7 @@
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
-      {error}
+      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error) : error}
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
@@ -144,7 +144,7 @@
                   class:text-green-300={order.side === "BUY"}
                   class:bg-red-900={order.side === "SELL"}
                   class:text-red-300={order.side === "SELL"}
-                  title={`Type: ${order.type || "Unknown"}`}
+                  title={`Type: ${order.type || "-"}`}
                 >
                   {getTypeLabel(order.type)}
                   {order.side === "BUY" ? $_("dashboard.orderHistory.side.buy") : $_("dashboard.orderHistory.side.sell")}
