@@ -102,9 +102,9 @@
     onclose={() => uiState.toggleCandlestickPatternsModal(false)}
     extraClasses="modal-size-instructions"
   >
-    <div class="flex flex-col md:flex-row h-[70vh] gap-4">
+    <div class="flex flex-col md:flex-row h-[75vh] gap-4">
         <!-- Sidebar -->
-        <div class="w-full md:w-1/3 flex flex-col gap-4 border-r border-[var(--border-color)] pr-4">
+        <div class="w-full md:w-1/4 lg:w-1/5 flex flex-col gap-4 border-r border-[var(--border-color)] pr-4">
             <!-- Search & Filter -->
             <div class="flex flex-col gap-2">
                 <input
@@ -156,8 +156,8 @@
             </div>
         </div>
 
-        <!-- Main Content -->
-        <div class="w-full md:w-2/3 flex flex-col gap-6 overflow-y-auto custom-scrollbar px-2">
+        <!-- Main Content (New Layout) -->
+        <div class="w-full md:w-3/4 lg:w-4/5 flex flex-col gap-4 overflow-y-auto custom-scrollbar px-2">
             {#if currentPattern}
                 <!-- Header -->
                 <div>
@@ -187,38 +187,43 @@
                     </div>
                 </div>
 
-                <!-- Chart Visualization -->
-                <div class="w-full">
-                    <CandlestickChart pattern={currentPattern} />
-                </div>
+                <!-- Split Layout: Chart/Desc vs Strategy/Interp -->
+                <div class="flex flex-col lg:flex-row gap-6 h-full">
 
-                <!-- Details -->
-                <div class="flex flex-col gap-6 text-[var(--text-primary)]">
+                    <!-- Left Column (66%) -->
+                    <div class="w-full lg:w-2/3 flex flex-col gap-6">
+                        <!-- Chart Visualization -->
+                        <div class="w-full">
+                            <CandlestickChart pattern={currentPattern} />
+                        </div>
 
-                    <!-- Description -->
-                    <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]">
-                        <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Description</h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(getLocalizedText(currentPattern.id, 'description'))}
+                        <!-- Description -->
+                        <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)] flex-grow">
+                            <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Description</h3>
+                            <div class="prose dark:prose-invert text-sm max-w-none">
+                                {@html renderMarkdown(getLocalizedText(currentPattern.id, 'description'))}
+                            </div>
                         </div>
                     </div>
 
-                    <!-- Interpretation -->
-                    <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]">
-                        <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Interpretation</h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(getLocalizedText(currentPattern.id, 'interpretation'))}
+                    <!-- Right Column (33%) -->
+                    <div class="w-full lg:w-1/3 flex flex-col gap-6 h-full">
+                         <!-- Strategy & Indicators -->
+                         <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]">
+                            <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Strategy & Indicators</h3>
+                            <div class="prose dark:prose-invert text-sm max-w-none">
+                                {@html renderMarkdown(getLocalizedText(currentPattern.id, 'indicatorCombination') || "No specific strategy data available.")}
+                            </div>
+                        </div>
+
+                        <!-- Interpretation -->
+                        <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)] flex-grow">
+                            <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Interpretation</h3>
+                            <div class="prose dark:prose-invert text-sm max-w-none">
+                                {@html renderMarkdown(getLocalizedText(currentPattern.id, 'interpretation'))}
+                            </div>
                         </div>
                     </div>
-
-                    <!-- Indicator Combination / Formula -->
-                    <div class="bg-[var(--bg-tertiary)] p-4 rounded-xl border border-[var(--border-color)]">
-                        <h3 class="text-sm font-bold uppercase text-[var(--text-secondary)] mb-2">Strategy & Indicators</h3>
-                        <div class="prose dark:prose-invert text-sm max-w-none">
-                            {@html renderMarkdown(getLocalizedText(currentPattern.id, 'indicatorCombination') || "No specific strategy data available.")}
-                        </div>
-                    </div>
-
                 </div>
             {/if}
         </div>
