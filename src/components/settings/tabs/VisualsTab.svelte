@@ -547,6 +547,7 @@
                             <button
                                 class="w-12 h-6 rounded-full relative transition-colors {settingsState.galaxySettings.enableGyroscope ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color)]'}"
                                 onclick={toggleGyro}
+                                aria-label="Toggle Gyroscope Control"
                             >
                                 <span class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState.galaxySettings.enableGyroscope ? 'translate-x-6' : 'translate-x-0'}"></span>
                             </button>
