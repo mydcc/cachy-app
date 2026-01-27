@@ -318,9 +318,10 @@
     tradeState.update((s) => ({
       ...s,
       symbol: pos.symbol,
-      entryPrice: Number(pos.entryPrice),
-      quantity: Number(pos.size),
-      leverage: Number(pos.leverage),
+      entryPrice: pos.entryPrice.toString(),
+      lockedPositionSize: pos.size, // Use actual Decimal from position
+      isPositionSizeLocked: true,
+      leverage: pos.leverage.toString(),
     }));
     uiState.showToast(
       $_("dashboard.alerts.loadedIntoInputs", { values: { symbol: pos.symbol } }),

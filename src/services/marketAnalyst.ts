@@ -197,14 +197,15 @@ export function calculateAnalysisMetrics(
     };
 
     const priceDec = safeDec(lastClose);
-    const price = priceDec.toNumber();
+    const price = priceDec.toString();
 
     const open24hDec = safeDec(open24h);
 
-    let change24h = 0;
+    let change24hDec = new Decimal(0);
     if (!open24hDec.isZero()) {
-        change24h = safeDiv(safeSub(priceDec, open24hDec), open24hDec).times(100).toNumber();
+        change24hDec = safeDiv(safeSub(priceDec, open24hDec), open24hDec).times(100);
     }
+    const change24h = change24hDec.toFixed(2);
 
     const ema200Dec = safeDec(ema200);
 
@@ -212,14 +213,14 @@ export function calculateAnalysisMetrics(
     const trend4h: SymbolAnalysis["trend4h"] = priceDec.greaterThan(ema200Dec) ? "bullish" : "bearish";
 
     const rsiDec = safeDec(rsiValue || 50);
-    const rsi1h = rsiDec.toNumber();
+    const rsi1h = rsiDec.toFixed(2);
 
     let condition: SymbolAnalysis["condition"] = "neutral";
 
     try {
         if (rsiDec.greaterThan(70)) condition = "overbought";
         else if (rsiDec.lessThan(30)) condition = "oversold";
-        else if (new Decimal(change24h).abs().greaterThan(5)) condition = "trending";
+        else if (change24hDec.abs().greaterThan(5)) condition = "trending";
     } catch (err) {
         condition = "neutral";
     }
