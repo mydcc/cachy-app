@@ -1,5 +1,3 @@
-import type { Decimal } from 'decimal.js';
-
 export interface CandleData {
   open: number;
   high: number;

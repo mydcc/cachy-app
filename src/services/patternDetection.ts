@@ -1,6 +1,5 @@
 
 import { CANDLESTICK_PATTERNS, type CandleData, type PatternDefinition } from './candlestickPatterns';
-import { Decimal } from 'decimal.js';
 
 export class PatternDetector {
 
@@ -64,22 +63,22 @@ export class PatternDetector {
    * - Very small upper shadow
    */
   private isHammer(candle: CandleData): boolean {
-    const open = new Decimal(candle.open);
-    const close = new Decimal(candle.close);
-    const high = new Decimal(candle.high);
-    const low = new Decimal(candle.low);
+    const open = candle.open;
+    const close = candle.close;
+    const high = candle.high;
+    const low = candle.low;
 
-    const body = open.minus(close).abs();
-    const upperShadow = high.minus(Decimal.max(open, close));
-    const lowerShadow = Decimal.min(open, close).minus(low);
-    const totalRange = high.minus(low);
+    const body = Math.abs(open - close);
+    const upperShadow = high - Math.max(open, close);
+    const lowerShadow = Math.min(open, close) - low;
+    const totalRange = high - low;
 
     // Formula 1: Lower Shadow >= 2 * Body
-    const condition1 = lowerShadow.gte(body.times(2));
+    const condition1 = lowerShadow >= body * 2;
 
     // Formula 2: Upper Shadow very small (e.g. <= 10% of range or <= body)
     // The prompt says "Upper Shadow <= 0.1 * Range"
-    const condition2 = upperShadow.lte(totalRange.times(0.1));
+    const condition2 = upperShadow <= totalRange * 0.1;
 
     // Formula 3: Body in upper third (implied by shadows, but let's check)
     // Actually condition1+2 largely covers it.
