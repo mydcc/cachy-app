@@ -17,6 +17,19 @@ export class BitunixApiError extends Error {
     }
 }
 
+export const TRADE_ERRORS = {
+    POSITION_NOT_FOUND: "trade.positionNotFound",
+    FETCH_FAILED: "trade.fetchFailed",
+    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+};
+
+export class TradeError extends Error {
+    constructor(message: string, public code: string, public details?: any) {
+        super(message);
+        this.name = "TradeError";
+    }
+}
+
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
@@ -152,7 +165,7 @@ class TradeService {
             if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
             const pendingResult = await pendingResponse.json();
-            if (pendingResult.error) throw new Error(pendingResult.error);
+            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
 
