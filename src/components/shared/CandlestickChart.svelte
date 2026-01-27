@@ -43,6 +43,32 @@
     }
   };
 
+  // Helper to add opacity to a color string
+  function addOpacity(color: string, opacity: number): string {
+      if (!color) return `rgba(0,0,0,${opacity})`;
+
+      // Handle RGB(A)
+      if (color.startsWith('rgb')) {
+          // If rgba, we can't easily increase opacity without parsing, but usually we get rgb from computed style
+          if (color.startsWith('rgba')) return color;
+          return color.replace('rgb', 'rgba').replace(')', `, ${opacity})`);
+      }
+
+      // Handle Hex
+      if (color.startsWith('#')) {
+          let hex = color.substring(1);
+          if (hex.length === 3) hex = hex.split('').map(c => c + c).join('');
+          const bigint = parseInt(hex, 16);
+          const r = (bigint >> 16) & 255;
+          const g = (bigint >> 8) & 255;
+          const b = bigint & 255;
+          return `rgba(${r}, ${g}, ${b}, ${opacity})`;
+      }
+
+      // Fallback for named colors or others, return as is (no opacity added)
+      return color;
+  }
+
   function prepareChartData(candles: CandleData[]) {
     // Dynamic Spacing Logic
     // If few candles, we pad with empty labels to center them visually
@@ -87,6 +113,7 @@
           borderColor: colors,
           borderWidth: 1,
           barThickness: 20,
+          borderRadius: 2, // Rounded corners for bodies
           grouped: false,
           order: 0
         }
@@ -103,15 +130,13 @@
       const xAxis = chart.scales.x;
       const yAxis = chart.scales.y;
 
-      const accentColor = resolveColor('--color-accent', '#FACC15');
-      const accentBg = resolveColor('--color-accent-transparent', 'rgba(250, 204, 21, 0.2)');
-      // Manually making transparency if variable not available
-      const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
-      const accentRgb = accentRgbMatch ? accentRgbMatch[0] : '250, 204, 21';
-      const accentBgManual = `rgba(${accentRgb}, 0.2)`;
+      const accentColor = resolveColor('--color-accent', '#FACC15'); // Fallback yellow
+      const accentBg = addOpacity(accentColor, 0.2);
 
-      const successBg = `rgba(${resolveColor('--success-color-rgb', '34, 197, 94')}, 0.2)`;
-      const dangerBg = `rgba(${resolveColor('--danger-color-rgb', '239, 68, 68')}, 0.2)`;
+      const successColor = resolveColor('--success-color', '#0ECB81');
+      const dangerColor = resolveColor('--danger-color', '#F6465D');
+      const successBg = addOpacity(successColor, 0.2);
+      const dangerBg = addOpacity(dangerColor, 0.2);
 
       pattern.keyFeatures.forEach(feature => {
         ctx.save();
@@ -128,7 +153,7 @@
             const yBottom = getY(Math.min(candle.open, candle.close));
             const width = 32;
 
-            ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : accentBgManual;
+            ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : accentBg;
             ctx.strokeStyle = feature.borderColor ? resolveColor(feature.borderColor, feature.borderColor) : accentColor;
             ctx.lineWidth = 1.5;
 
@@ -261,7 +286,7 @@
 
       chart = new Chart(canvas, {
         type: 'bar',
-        data: prepareChartData(pattern.candles),
+        data: prepareChartData(pattern.candles) as any,
         options: {
             responsive: true,
             maintainAspectRatio: false,
