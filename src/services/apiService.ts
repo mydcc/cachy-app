@@ -490,6 +490,7 @@ export const apiService = {
                 high: string | number;
                 low: string | number;
                 close: string | number;
+                volume?: string | number;
                 vol?: string | number;
                 timestamp?: number;
                 time?: number;
@@ -500,7 +501,8 @@ export const apiService = {
                   const high = new Decimal(kline.high || 0);
                   const low = new Decimal(kline.low || 0);
                   const close = new Decimal(kline.close || 0);
-                  const volume = new Decimal(kline.vol || 0);
+                  // The server endpoint normalizes this to 'volume', but we keep fallback to 'vol' just in case
+                  const volume = new Decimal(kline.volume || kline.vol || 0);
                   const time = parseTimestamp(
                     kline.timestamp || kline.time || kline.ts,
                   );
