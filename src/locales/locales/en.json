@@ -1493,6 +1493,9 @@
     },
     "title": "Candlestick Academy"
   },
+  "chartPatterns": {
+    "title": "Chart Patterns Academy"
+  },
   "tradeErrors": {
     "positionNotFound": "Position not found: {symbol} {side}"
   },
