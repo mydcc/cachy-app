@@ -692,6 +692,11 @@
       "resetNow": "Jetzt zurücksetzen",
       "dashboard": "Dashboard"
     },
+    "performance": {
+      "monitor": "Performance Monitor",
+      "tips": "Optimierungstipps",
+      "lastUpdate": "Zuletzt aktualisiert: {time}"
+    },
     "connections": {
       "exchanges": "Börsen",
       "apiKey": "API Key",

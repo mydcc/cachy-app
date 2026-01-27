@@ -45,6 +45,7 @@ import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { tradeCalculator } from "./tradeCalculator.svelte";
+import { marketAnalyst } from "./marketAnalyst";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -84,6 +85,9 @@ export const app = {
       // Fetch initial price data
       app.handleFetchPrice();
       app.fetchAtr(true);
+
+      // 6. Start Market Analyst
+      marketAnalyst.start();
     }
   },
 

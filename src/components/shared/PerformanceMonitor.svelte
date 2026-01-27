@@ -6,91 +6,24 @@
 <script lang="ts">
     import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
-
-    interface PerformanceMetrics {
-        cpuUsage: number;
-        memoryUsage: number;
-        apiCallsPerMinute: number;
-        cacheHitRate: number;
-        averageLatency: number;
-        activeConnections: number;
-    }
-
-    let metrics = $state<PerformanceMetrics>({
-        cpuUsage: 0,
-        memoryUsage: 0,
-        apiCallsPerMinute: 0,
-        cacheHitRate: 0,
-        averageLatency: 0,
-        activeConnections: 0,
-    });
+    import { marketState } from "../../stores/market.svelte";
 
     let apiCallHistory: number[] = $state([]);
     let lastUpdateTime = $state(Date.now());
 
-    // Track API calls (can be called from other components)
-    export function trackApiCall() {
-        const now = Date.now();
-        apiCallHistory.push(now);
-        // Keep only last 60 seconds
-        apiCallHistory = apiCallHistory.filter((t) => now - t < 60000);
-    }
-
-    // Calculate CPU usage approximation based on calculation times
-    function calculateCPUUsage(): number {
-        // This is an approximation - in browser we can't get real CPU
-        // We estimate based on calculation duration vs interval
-        const lastCalcTime = parseFloat(
-            localStorage.getItem("cachy_last_calc_time") || "0",
-        );
-        const calcInterval = parseFloat(
-            localStorage.getItem("cachy_calc_interval") || "60000",
-        );
-
-        if (lastCalcTime && calcInterval) {
-            return Math.min(100, (lastCalcTime / calcInterval) * 100);
-        }
-        return 0;
-    }
-
     // Calculate memory usage approximation
     function calculateMemoryUsage(): number {
-        if (performance && (performance as any).memory) {
+        if (
+            typeof window !== "undefined" &&
+            performance &&
+            (performance as any).memory
+        ) {
             const memory = (performance as any).memory;
             return Math.round(
                 (memory.usedJSHeapSize / memory.jsHeapSizeLimit) * 100,
             );
         }
         return 0;
-    }
-
-    // Calculate cache hit rate
-    function calculateCacheHitRate(): number {
-        const hits = parseFloat(
-            localStorage.getItem("cachy_cache_hits") || "0",
-        );
-        const misses = parseFloat(
-            localStorage.getItem("cachy_cache_misses") || "0",
-        );
-        const total = hits + misses;
-
-        return total > 0 ? Math.round((hits / total) * 100) : 0;
-    }
-
-    // Update metrics periodically
-    function updateMetrics() {
-        metrics.cpuUsage = calculateCPUUsage();
-        metrics.memoryUsage = calculateMemoryUsage();
-        metrics.apiCallsPerMinute = apiCallHistory.length;
-        metrics.cacheHitRate = calculateCacheHitRate();
-        metrics.averageLatency = parseFloat(
-            localStorage.getItem("cachy_avg_latency") || "0",
-        );
-        metrics.activeConnections = parseFloat(
-            localStorage.getItem("cachy_active_connections") || "0",
-        );
-
-        lastUpdateTime = Date.now();
     }
 
     // Get color based on value and thresholds
@@ -102,7 +35,10 @@
     }
 
     // Get status badge
-    function getStatusBadge(value: number, thresholds: [number, number]): string {
+    function getStatusBadge(
+        value: number,
+        thresholds: [number, number],
+    ): string {
         const [warning, critical] = thresholds;
         if (value >= critical) return "🔴 Critical";
         if (value >= warning) return "🟡 Warning";
@@ -110,8 +46,9 @@
     }
 
     onMount(() => {
-        updateMetrics();
-        const interval = setInterval(updateMetrics, 2000); // Update every 2 seconds
+        const interval = setInterval(() => {
+            lastUpdateTime = Date.now();
+        }, 2000);
         return () => clearInterval(interval);
     });
 </script>
@@ -126,7 +63,7 @@
     </div>
 
     <div class="metrics-grid">
-        <!-- CPU Usage -->
+        <!-- Analysis Time (was CPU Usage) -->
         <div class="metric-card">
             <div class="metric-header">
                 <svg
@@ -136,29 +73,36 @@
                     stroke="currentColor"
                     stroke-width="2"
                 >
-                    <rect x="4" y="4" width="16" height="16" rx="2" />
-                    <rect x="9" y="9" width="6" height="6" />
-                    <line x1="9" y1="1" x2="9" y2="4" />
-                    <line x1="15" y1="1" x2="15" y2="4" />
-                    <line x1="9" y1="20" x2="9" y2="23" />
-                    <line x1="15" y1="20" x2="15" y2="23" />
-                    <line x1="20" y1="9" x2="23" y2="9" />
-                    <line x1="20" y1="14" x2="23" y2="14" />
-                    <line x1="1" y1="9" x2="4" y2="9" />
-                    <line x1="1" y1="14" x2="4" y2="14" />
+                    <circle cx="12" cy="12" r="10" />
+                    <polyline points="12 6 12 12" />
+                    <line x1="12" y1="12" x2="16" y2="10" />
                 </svg>
-                <span class="metric-label">CPU Usage</span>
+                <span class="metric-label">Analysis Time</span>
             </div>
-            <div class="metric-value {getColor(metrics.cpuUsage, [40, 70])}">
-                {metrics.cpuUsage.toFixed(1)}%
+            <div
+                class="metric-value {getColor(
+                    marketState.telemetry.lastCalcDuration,
+                    [200, 500],
+                )}"
+            >
+                {marketState.telemetry.lastCalcDuration.toFixed(0)}ms
             </div>
             <div class="metric-status">
-                {getStatusBadge(metrics.cpuUsage, [40, 70])}
+                {getStatusBadge(
+                    marketState.telemetry.lastCalcDuration,
+                    [200, 500],
+                )}
             </div>
             <div class="metric-bar">
                 <div
-                    class="metric-bar-fill {getColor(metrics.cpuUsage, [40, 70])}"
-                    style="width: {metrics.cpuUsage}%"
+                    class="metric-bar-fill {getColor(
+                        marketState.telemetry.lastCalcDuration,
+                        [200, 500],
+                    )}"
+                    style="width: {Math.min(
+                        100,
+                        (marketState.telemetry.lastCalcDuration / 500) * 100,
+                    )}%"
                 ></div>
             </div>
         </div>
@@ -181,16 +125,24 @@
                 </svg>
                 <span class="metric-label">Memory</span>
             </div>
-            <div class="metric-value {getColor(metrics.memoryUsage, [60, 85])}">
-                {metrics.memoryUsage.toFixed(1)}%
+            <div
+                class="metric-value {getColor(
+                    calculateMemoryUsage(),
+                    [60, 85],
+                )}"
+            >
+                {calculateMemoryUsage().toFixed(1)}%
             </div>
             <div class="metric-status">
-                {getStatusBadge(metrics.memoryUsage, [60, 85])}
+                {getStatusBadge(calculateMemoryUsage(), [60, 85])}
             </div>
             <div class="metric-bar">
                 <div
-                    class="metric-bar-fill {getColor(metrics.memoryUsage, [60, 85])}"
-                    style="width: {metrics.memoryUsage}%"
+                    class="metric-bar-fill {getColor(
+                        calculateMemoryUsage(),
+                        [60, 85],
+                    )}"
+                    style="width: {calculateMemoryUsage()}%"
                 ></div>
             </div>
         </div>
@@ -214,16 +166,24 @@
                 </svg>
                 <span class="metric-label">API Calls/min</span>
             </div>
-            <div class="metric-value {getColor(metrics.apiCallsPerMinute, [60, 120])}">
-                {metrics.apiCallsPerMinute}
+            <div
+                class="metric-value {getColor(
+                    marketState.telemetry.apiCallsLastMinute,
+                    [60, 120],
+                )}"
+            >
+                {marketState.telemetry.apiCallsLastMinute}
             </div>
             <div class="metric-status">
-                {getStatusBadge(metrics.apiCallsPerMinute, [60, 120])}
+                {getStatusBadge(
+                    marketState.telemetry.apiCallsLastMinute,
+                    [60, 120],
+                )}
             </div>
             <div class="metric-info">
-                {#if metrics.apiCallsPerMinute > 120}
+                {#if marketState.telemetry.apiCallsLastMinute > 120}
                     ⚠️ High API usage
-                {:else if metrics.apiCallsPerMinute > 60}
+                {:else if marketState.telemetry.apiCallsLastMinute > 60}
                     ℹ️ Moderate usage
                 {:else}
                     ✓ Normal usage
@@ -246,16 +206,24 @@
                 </svg>
                 <span class="metric-label">Cache Hit Rate</span>
             </div>
-            <div class="metric-value {getColor(100 - metrics.cacheHitRate, [40, 70])}">
-                {metrics.cacheHitRate}%
+            <div
+                class="metric-value {getColor(
+                    100 - marketState.telemetry.cacheHitRate,
+                    [40, 70],
+                )}"
+            >
+                {marketState.telemetry.cacheHitRate}%
             </div>
             <div class="metric-status">
-                {getStatusBadge(100 - metrics.cacheHitRate, [40, 70])}
+                {getStatusBadge(
+                    100 - marketState.telemetry.cacheHitRate,
+                    [40, 70],
+                )}
             </div>
             <div class="metric-info">
-                {#if metrics.cacheHitRate > 80}
+                {#if marketState.telemetry.cacheHitRate > 80}
                     ✓ Excellent caching
-                {:else if metrics.cacheHitRate > 50}
+                {:else if marketState.telemetry.cacheHitRate > 50}
                     ℹ️ Good caching
                 {:else}
                     ⚠️ Consider increasing cache size
@@ -278,18 +246,23 @@
                 </svg>
                 <span class="metric-label">Avg Latency</span>
             </div>
-            <div class="metric-value {getColor(metrics.averageLatency, [200, 500])}">
-                {metrics.averageLatency.toFixed(0)}ms
+            <div
+                class="metric-value {getColor(
+                    marketState.telemetry.apiLatency,
+                    [200, 500],
+                )}"
+            >
+                {marketState.telemetry.apiLatency.toFixed(0)}ms
             </div>
             <div class="metric-status">
-                {getStatusBadge(metrics.averageLatency, [200, 500])}
+                {getStatusBadge(marketState.telemetry.apiLatency, [200, 500])}
             </div>
             <div class="metric-info">
-                {#if metrics.averageLatency < 100}
+                {#if marketState.telemetry.apiLatency < 100}
                     ⚡ Excellent
-                {:else if metrics.averageLatency < 200}
+                {:else if marketState.telemetry.apiLatency < 200}
                     ✓ Good
-                {:else if metrics.averageLatency < 500}
+                {:else if marketState.telemetry.apiLatency < 500}
                     ℹ️ Acceptable
                 {:else}
                     ⚠️ High latency
@@ -297,7 +270,7 @@
             </div>
         </div>
 
-        <!-- Active Connections -->
+        <!-- Network Status -->
         <div class="metric-card">
             <div class="metric-header">
                 <svg
@@ -313,16 +286,29 @@
                         d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"
                     />
                 </svg>
-                <span class="metric-label">Connections</span>
+                <span class="metric-label">Network Status</span>
             </div>
             <div class="metric-value text-blue-500">
-                {metrics.activeConnections}
+                {marketState.telemetry.activeConnections}
+                <span
+                    class="text-sm text-[var(--text-secondary)] font-normal ml-1"
+                    >active</span
+                >
             </div>
-            <div class="metric-info">
-                {#if metrics.activeConnections > 0}
-                    🟢 Connected
-                {:else}
-                    🔴 Offline
+            <div class="metric-info flex justify-between items-center">
+                <span>
+                    {#if marketState.telemetry.activeConnections > 0}
+                        🟢 Online
+                    {:else}
+                        🔴 Offline
+                    {/if}
+                </span>
+                {#if marketState.telemetry.wsLatency > 0}
+                    <span
+                        class="text-xs px-1.5 py-0.5 rounded bg-[var(--bg-tertiary)] text-[var(--text-secondary)]"
+                    >
+                        {marketState.telemetry.wsLatency}ms
+                    </span>
                 {/if}
             </div>
         </div>
@@ -334,16 +320,16 @@
             {$_("settings.performance.tips") || "Optimization Tips"}
         </h4>
         <div class="tips-list">
-            {#if metrics.cpuUsage > 70}
+            {#if marketState.telemetry.lastCalcDuration > 500}
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High CPU usage detected. Consider switching to Light or
-                        Balanced profile.</span
+                        >High analysis time detected. Consider switching to
+                        Light or Balanced profile.</span
                     >
                 </div>
             {/if}
-            {#if metrics.memoryUsage > 85}
+            {#if calculateMemoryUsage() > 85}
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
@@ -352,7 +338,7 @@
                     >
                 </div>
             {/if}
-            {#if metrics.apiCallsPerMinute > 120}
+            {#if marketState.telemetry.apiCallsLastMinute > 120}
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
@@ -361,7 +347,7 @@
                     >
                 </div>
             {/if}
-            {#if metrics.cacheHitRate < 50}
+            {#if marketState.telemetry.cacheHitRate < 50}
                 <div class="tip info">
                     <span class="tip-icon">ℹ️</span>
                     <span class="tip-text"
@@ -370,21 +356,21 @@
                     >
                 </div>
             {/if}
-            {#if metrics.averageLatency > 500}
+            {#if marketState.telemetry.apiLatency > 500 || marketState.telemetry.wsLatency > 500}
                 <div class="tip warning">
                     <span class="tip-icon">⚠️</span>
                     <span class="tip-text"
-                        >High latency detected. Check your internet connection
-                        or API status.</span
+                        >High network latency detected. Check your internet
+                        connection.</span
                     >
                 </div>
             {/if}
-            {#if metrics.cpuUsage < 30 && metrics.memoryUsage < 50}
+            {#if marketState.telemetry.lastCalcDuration < 200 && calculateMemoryUsage() < 50}
                 <div class="tip success">
                     <span class="tip-icon">✓</span>
                     <span class="tip-text"
-                        >Performance is optimal. You can enable more features
-                        or switch to Pro profile.</span
+                        >Performance is optimal. You can enable more features or
+                        switch to Pro profile.</span
                     >
                 </div>
             {/if}

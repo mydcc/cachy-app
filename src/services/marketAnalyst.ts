@@ -7,6 +7,7 @@
  */
 
 import { settingsState } from "../stores/settings.svelte";
+import { favoritesState } from "../stores/favorites.svelte";
 import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
 import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
@@ -55,7 +56,7 @@ class MarketAnalystService {
             return;
         }
 
-        const favorites = settingsState.favoriteSymbols;
+        const favorites = favoritesState.items;
         if (favorites.length === 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 5000);
             return;
@@ -178,8 +179,7 @@ class MarketAnalystService {
     }
 }
 
-// export const marketAnalyst = new MarketAnalystService();
-export const marketAnalyst = { start: () => { }, stop: () => { } } as any;
+export const marketAnalyst = new MarketAnalystService();
 
 export function calculateAnalysisMetrics(
     lastClose: Decimal.Value | null | undefined,

@@ -38,16 +38,16 @@ class BitgetWebSocketService {
   private ws: WebSocket | null = null;
   private pingTimer: ReturnType<typeof setInterval> | null = null;
   private watchdogTimer: ReturnType<typeof setTimeout> | null = null;
+  private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+  private lastPingTime = 0;
+  private isReconnecting = false;
 
   public subscriptions: Set<string> = new Set(); // Stores "channel:symbol"
-
-  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private isReconnecting = false;
 
   private globalMonitorInterval: ReturnType<typeof setInterval> | null = null;
 
   private lastMessageTime = Date.now();
-  private connectionTimeout: ReturnType<typeof setTimeout> | null = null;
 
   private isAuthenticated = false;
   private isDestroyed = false;
@@ -65,6 +65,7 @@ class BitgetWebSocketService {
 
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
+    marketState.updateTelemetry({ activeConnections: 0 });
     connectionManager.onProviderDisconnected("bitget");
     this.cleanup();
   };
@@ -181,6 +182,7 @@ class BitgetWebSocketService {
           console.log("%c[WS-Bitget] Connected", "color: #0fa; font-weight: bold;");
         }
         marketState.connectionStatus = "connected";
+        marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
 
         // Notify Manager
         connectionManager.onProviderConnected("bitget");
@@ -213,7 +215,16 @@ class BitgetWebSocketService {
         this.lastMessageTime = Date.now();
         this.resetWatchdog(ws);
 
-        if (event.data === "pong") return;
+        if (event.data === "pong") {
+          const now = Date.now();
+          if (this.lastPingTime > 0) {
+            const latency = now - this.lastPingTime;
+            if (latency >= 0 && latency < 10000) {
+              marketState.updateTelemetry({ wsLatency: latency });
+            }
+          }
+          return;
+        }
 
         try {
           const message = JSON.parse(event.data);
@@ -226,6 +237,7 @@ class BitgetWebSocketService {
       ws.onclose = () => {
         if (this.isDestroyed) return;
         if (this.ws === ws) {
+          marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
           } else {
@@ -265,6 +277,7 @@ class BitgetWebSocketService {
     this.pingTimer = setInterval(() => {
       if (ws && ws.readyState === WebSocket.OPEN) {
         try {
+          this.lastPingTime = Date.now();
           ws.send("ping");
         } catch (e) { }
       }
