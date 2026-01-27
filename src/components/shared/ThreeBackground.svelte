@@ -66,13 +66,19 @@
     galaxyGeometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
     // Colors from Theme
-    let colorInside = new THREE.Color(getVar("--color-accent") || "#6366f1");
-    let colorOutside = new THREE.Color(getVar("--color-text-secondary") || "#8b5cf6");
+    let colorInside = new THREE.Color(getVar("--galaxy-stars-core") || getVar("--color-accent") || "#6366f1");
+    let colorOutside = new THREE.Color(getVar("--galaxy-stars-edge") || getVar("--color-text-secondary") || "#8b5cf6");
+
+    // Determine Blending Mode based on Background Brightness
+    const bgStr = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
+    const bgCol = new THREE.Color(bgStr);
+    const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
+    const blendingMode = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
 
     // Shader material
     galaxyMaterial = new THREE.ShaderMaterial({
       depthWrite: false,
-      blending: THREE.AdditiveBlending,
+      blending: blendingMode,
       vertexColors: true,
       uniforms: {
         uTime: { value: 0 },
@@ -169,10 +175,23 @@
       galaxyMaterial.uniforms.uConcentrationPower.value = s.concentrationPower;
 
       // Update colors
-      const accent = getVar("--color-accent") || "#6366f1";
-      const highlight = getVar("--color-text-secondary") || "#8b5cf6";
+      const accent = getVar("--galaxy-stars-core") || getVar("--color-accent") || "#6366f1";
+      const highlight = getVar("--galaxy-stars-edge") || getVar("--color-text-secondary") || "#8b5cf6";
       galaxyMaterial.uniforms.uColorInside.value.set(accent);
       galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
+
+      // Update Blending & Background
+      const bgStr = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
+      if (scene) scene.background = new THREE.Color(bgStr);
+
+      const bgCol = new THREE.Color(bgStr);
+      const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
+      const newBlending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
+
+      if (galaxyMaterial.blending !== newBlending) {
+          galaxyMaterial.blending = newBlending;
+          galaxyMaterial.needsUpdate = true;
+      }
   }
 
   onMount(() => {
@@ -180,14 +199,7 @@
 
     // Scene
     scene = new THREE.Scene();
-    // Background color
-    // We want the background to be transparent or match the theme body bg?
-    // User code: const bg = getVar("--color-bg-body") || "#0a0e27"; scene.background = new THREE.Color(bg);
-    // If we are using this in BackgroundRenderer, we might want it transparent to layer over CSS gradients?
-    // But the user code explicitly sets background.
-    // If it's "background", it should probably be the background.
-    // Let's stick to user code.
-    const bg = getVar("--color-bg-primary") || "#0a0e27";
+    const bg = getVar("--galaxy-bg") || getVar("--color-bg-primary") || "#0a0e27";
     scene.background = new THREE.Color(bg);
 
     // Camera
@@ -256,8 +268,6 @@
 
     // Theme Observer
     themeObserver = new MutationObserver(() => {
-        const bg = getVar("--color-bg-primary") || "#0a0e27";
-        if (scene) scene.background = new THREE.Color(bg);
         updateUniforms();
     });
     themeObserver.observe(document.documentElement, {

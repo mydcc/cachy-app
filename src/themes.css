@@ -5,6 +5,11 @@
    ================================================================= */
 :root,
 .theme-default {
+  /* --- Galaxy Settings (Defaults) --- */
+  --galaxy-bg: var(--bg-primary);
+  --galaxy-stars-core: var(--accent-color);
+  --galaxy-stars-edge: var(--text-secondary);
+
   /* --- Palette --- */
   --blue-950: #0f172a;
   --blue-900: #1e293b;
@@ -1359,6 +1364,9 @@
    Night Owl Theme
    ================================================================= */
 .theme-night-owl {
+  /* --- Galaxy Overrides --- */
+  --galaxy-stars-edge: var(--owl-blue);
+
   /* --- Palette --- */
   --owl-bg: #011627;
   --owl-bg-light: #011a2f;
