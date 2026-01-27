@@ -94,10 +94,19 @@
     galaxyGeometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
     galaxyGeometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
 
+    // Color mixing attribute (determines which outside color to use)
+    const colorMixs = new Float32Array(particleCount);
+    for (let i = 0; i < particleCount; i++) {
+        colorMixs[i] = Math.random();
+    }
+    galaxyGeometry.setAttribute("aColorMix", new THREE.BufferAttribute(colorMixs, 1));
+
     // Colors from Theme
     // We use fallback to "white" for core if undefined to ensure visibility
     let colorInside = new THREE.Color(getVar("--galaxy-stars-core") || "#6366f1");
     let colorOutside = new THREE.Color(getVar("--galaxy-stars-edge") || "#8b5cf6");
+    let colorOutside2 = new THREE.Color(getVar("--galaxy-stars-edge-2") || "#8b5cf6");
+    let colorOutside3 = new THREE.Color(getVar("--galaxy-stars-edge-3") || "#6366f1");
 
     // Determine Blending Mode based on Background Brightness
     const bgStr = getVar("--galaxy-bg") || "#0a0e27";
@@ -117,6 +126,8 @@
         uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
         uColorInside: { value: colorInside },
         uColorOutside: { value: colorOutside },
+        uColorOutside2: { value: colorOutside2 },
+        uColorOutside3: { value: colorOutside3 },
         uRadius: { value: radius },
         uBranches: { value: branches },
         uSpinSpeed: { value: spin },
@@ -133,10 +144,16 @@
                 uniform float uSpinSpeed;
                 uniform float uRandomnessPower;
                 uniform float uConcentrationPower;
+                uniform vec3 uColorOutside;
+                uniform vec3 uColorOutside2;
+                uniform vec3 uColorOutside3;
 
                 attribute vec3 aRandom;
                 attribute float aScale;
+                attribute float aColorMix;
+
                 varying float vRadiusRatio;
+                varying vec3 vOutsideColor;
 
                 #define PI 3.14159265359
 
@@ -162,13 +179,22 @@
                     gl_PointSize *= (1.0 / -viewPosition.z);
 
                     vRadiusRatio = radiusRatio;
+
+                    if (aColorMix > 0.66) {
+                        vOutsideColor = uColorOutside3;
+                    } else if (aColorMix > 0.33) {
+                        vOutsideColor = uColorOutside2;
+                    } else {
+                        vOutsideColor = uColorOutside;
+                    }
                 }
             `,
       fragmentShader: `
                 uniform vec3 uColorInside;
-                uniform vec3 uColorOutside;
                 uniform float uAlphaCutoff;
+
                 varying float vRadiusRatio;
+                varying vec3 vOutsideColor;
 
                 void main() {
                     vec2 uv = gl_PointCoord - 0.5;
@@ -176,7 +202,7 @@
                     if (distanceToCenter > 0.5) discard;
 
                     float mixStrength = pow(1.0 - vRadiusRatio, 2.0);
-                    vec3 color = mix(uColorOutside, uColorInside, mixStrength);
+                    vec3 color = mix(vOutsideColor, uColorInside, mixStrength);
 
                     float alpha = 0.1 / distanceToCenter - uAlphaCutoff;
                     alpha = clamp(alpha, 0.0, 1.0);
@@ -187,12 +213,36 @@
     });
 
     galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
+
+    // Apply initial rotation
+    const { galaxyRot } = settingsState.galaxySettings;
+    galaxyPoints.rotation.set(
+        (galaxyRot?.x || 0) * (Math.PI / 180),
+        (galaxyRot?.y || 0) * (Math.PI / 180),
+        (galaxyRot?.z || 0) * (Math.PI / 180)
+    );
+
     scene.add(galaxyPoints);
   }
 
-  function updateUniforms() {
-      if (!galaxyMaterial) return;
+  function updateScene() {
       const s = settingsState.galaxySettings;
+
+      // Update Galaxy Rotation (convert degrees to radians)
+      if (galaxyPoints) {
+          galaxyPoints.rotation.set(
+              (s.galaxyRot?.x || 0) * (Math.PI / 180),
+              (s.galaxyRot?.y || 0) * (Math.PI / 180),
+              (s.galaxyRot?.z || 0) * (Math.PI / 180)
+          );
+      }
+
+      // Update Camera Position
+      if (camera && s.camPos) {
+          camera.position.set(s.camPos.x, s.camPos.y, s.camPos.z);
+      }
+
+      if (!galaxyMaterial) return;
       galaxyMaterial.uniforms.uSize.value = s.particleSize;
       galaxyMaterial.uniforms.uRadius.value = s.radius;
       galaxyMaterial.uniforms.uBranches.value = s.branches;
@@ -203,9 +253,13 @@
       // Update colors with resolution
       const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
       const highlight = resolveColor("--galaxy-stars-edge") || "#8b5cf6";
+      const highlight2 = resolveColor("--galaxy-stars-edge-2") || "#8b5cf6";
+      const highlight3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
 
       galaxyMaterial.uniforms.uColorInside.value.set(accent);
       galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
+      galaxyMaterial.uniforms.uColorOutside2.value.set(highlight2);
+      galaxyMaterial.uniforms.uColorOutside3.value.set(highlight3);
 
       // Update Blending & Background
       const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
@@ -235,20 +289,15 @@
     scene.background = new THREE.Color(bg);
 
     // Camera
-    const cameraConfigs = {
-        compact: { fov: 50, position: [2, 1, 3] as [number, number, number] },
-        medium: { fov: 55, position: [3, 1.5, 4] as [number, number, number] },
-        full: { fov: 50, position: [4, 2, 5] as [number, number, number] },
-    };
-    const config = cameraConfigs.full;
-
     camera = new THREE.PerspectiveCamera(
-      config.fov,
+      50,
       window.innerWidth / window.innerHeight,
       0.1,
       100
     );
-    camera.position.set(...config.position);
+    // Initial position from settings
+    const { camPos } = settingsState.galaxySettings;
+    camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
 
     // Renderer
     renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
@@ -297,7 +346,7 @@
 
     // Theme Observer
     themeObserver = new MutationObserver(() => {
-        updateUniforms();
+        updateScene();
     });
     themeObserver.observe(document.documentElement, {
         attributes: true,
@@ -319,11 +368,19 @@
   });
 
   // Reactivity to settings changes
+  let previousStructureKey = "";
   $effect(() => {
-      // Accessing settings to trigger updates
       const s = settingsState.galaxySettings;
-      // We regenerate on structure changes
-      generateGalaxy();
+      // Define a key for properties that require geometry regeneration
+      const structureKey = `${s.particleCount}_${s.radius}_${s.branches}_${s.randomness}_${s.randomnessPower}_${s.concentrationPower}`;
+
+      if (structureKey !== previousStructureKey) {
+          generateGalaxy();
+          previousStructureKey = structureKey;
+      }
+
+      // Always update transforms and uniforms
+      updateScene();
   });
 
 </script>

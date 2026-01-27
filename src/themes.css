@@ -9,6 +9,8 @@
   --galaxy-bg: var(--bg-primary);
   --galaxy-stars-core: var(--accent-color);
   --galaxy-stars-edge: var(--text-secondary);
+  --galaxy-stars-edge-2: var(--text-tertiary);
+  --galaxy-stars-edge-3: var(--accent-color);
 
   /* --- Palette --- */
   --blue-950: #0f172a;
@@ -84,6 +86,10 @@
    Light Theme
    ================================================================= */
 .theme-light {
+  /* --- Galaxy Overrides --- */
+  --galaxy-stars-edge-2: var(--slate-400);
+  --galaxy-stars-edge-3: var(--sky-500);
+
   /* --- Palette --- */
   --slate-100: #f1f5f9;
   --pure-white: #ffffff;
@@ -157,6 +163,8 @@
 .theme-meteorite {
   /* --- Galaxy Overrides --- */
   --galaxy-bg: #03020a;
+  --galaxy-stars-edge-2: var(--highlight-purple);
+  --galaxy-stars-edge-3: var(--highlight-red-alt);
 
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
@@ -259,6 +267,8 @@
 .theme-steel {
   /* --- Galaxy Overrides --- */
   --galaxy-bg: #02040a;
+  --galaxy-stars-edge-2: var(--highlight-blue-pro);
+  --galaxy-stars-edge-3: var(--core-green-free);
 
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
