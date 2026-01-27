@@ -1,6 +1,5 @@
 export class ExternalLinkService {
   private static instance: ExternalLinkService;
-  private windows: Map<string, Window> = new Map();
 
   private constructor() {}
 
@@ -13,21 +12,18 @@ export class ExternalLinkService {
 
   /**
    * Opens a URL in a new window or focuses the existing window if it's already open.
+   * Relying on the browser's native named window lookup mechanism (window.open(url, name)).
+   *
    * @param url The URL to open.
    * @param key A unique key to identify the window context (e.g., "tv_BTCUSDT").
    */
   public openOrFocus(url: string, key: string): void {
-    const existingWindow = this.windows.get(key);
-
-    if (existingWindow && !existingWindow.closed) {
-      existingWindow.focus();
-    } else {
-      // Open new window. We use 'key' as the window name as well,
-      // though we primarily rely on the JS reference.
-      const newWindow = window.open(url, key);
-      if (newWindow) {
-        this.windows.set(key, newWindow);
-      }
+    // We rely on the browser to find the existing window with this 'key' (name).
+    // If it exists, the browser reuses it. If not, it opens a new one.
+    // We attempt to focus it, though modern browsers may block focus() if not triggered by direct user action.
+    const win = window.open(url, key);
+    if (win) {
+      win.focus();
     }
   }
 }
