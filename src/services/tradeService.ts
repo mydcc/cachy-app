@@ -127,7 +127,7 @@ class TradeService {
                     amount: new Decimal(p.qty || p.size || p.amount || 0),
                     entryPrice: new Decimal(p.avgOpenPrice || p.entryPrice || 0),
                     unrealizedPnl: new Decimal(p.unrealizedPNL || p.unrealizedPnl || 0),
-                    leverage: Number(p.leverage || 0),
+                    leverage: new Decimal(p.leverage || 0),
                     marginMode: (p.marginMode || "cross").toLowerCase(),
                     liquidationPrice: p.liquidationPrice ? new Decimal(p.liquidationPrice) : undefined
                 };

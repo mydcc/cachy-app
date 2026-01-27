@@ -28,7 +28,7 @@ export interface OMSPosition {
     amount: Decimal;
     entryPrice: Decimal;
     unrealizedPnl: Decimal;
-    leverage: number;
+    leverage: Decimal;
     marginMode: "cross" | "isolated";
     liquidationPrice?: Decimal;
 }

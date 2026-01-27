@@ -57,12 +57,12 @@ export interface TradeStateSnapshot {
   journalSearchQuery: string;
   journalFilterStatus: string;
   currentTradeData: Record<string, any> | null;
-  remoteLeverage: number | undefined;
+  remoteLeverage: Decimal | undefined;
   remoteMarginMode: string | undefined;
-  remoteMakerFee: number | undefined;
-  remoteTakerFee: number | undefined;
+  remoteMakerFee: Decimal | undefined;
+  remoteTakerFee: Decimal | undefined;
   feeMode: "maker_taker" | "flat";
-  exitFees: number | undefined;
+  exitFees: Decimal | undefined;
 }
 
 const LOCAL_STORAGE_KEY = CONSTANTS.LOCAL_STORAGE_TRADE_KEY;
@@ -145,12 +145,12 @@ export const INITIAL_TRADE_STATE = {
   journalFilterStatus: "all",
   // Transient / Remote data placeholders
   currentTradeData: null as any,
-  remoteLeverage: undefined as number | undefined,
+  remoteLeverage: undefined as Decimal | undefined,
   remoteMarginMode: undefined as string | undefined,
-  remoteMakerFee: undefined as number | undefined,
-  remoteTakerFee: undefined as number | undefined,
+  remoteMakerFee: undefined as Decimal | undefined,
+  remoteTakerFee: undefined as Decimal | undefined,
   feeMode: "maker_taker" as "maker_taker" | "flat",
-  exitFees: undefined as number | undefined,
+  exitFees: undefined as Decimal | undefined,
 };
 
 class TradeManager {
@@ -184,12 +184,12 @@ class TradeManager {
    * Can be used to sync UI with real position state.
    */
   currentTradeData = $state<Record<string, any> | null>(INITIAL_TRADE_STATE.currentTradeData);
-  remoteLeverage = $state(INITIAL_TRADE_STATE.remoteLeverage);
+  remoteLeverage = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteLeverage);
   remoteMarginMode = $state(INITIAL_TRADE_STATE.remoteMarginMode);
-  remoteMakerFee = $state(INITIAL_TRADE_STATE.remoteMakerFee);
-  remoteTakerFee = $state(INITIAL_TRADE_STATE.remoteTakerFee);
+  remoteMakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteMakerFee);
+  remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
-  exitFees = $state(INITIAL_TRADE_STATE.exitFees);
+  exitFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.exitFees);
 
   constructor() {
     if (browser) {
