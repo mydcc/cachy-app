@@ -322,7 +322,7 @@
       <button
         class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
         class:text-[var(--accent-color)]={isTechnicalsVisible}
-        title="Toggle Technicals"
+        title={$_("marketOverview.tooltips.toggleTechnicals")}
         onclick={(e) => {
           e.stopPropagation();
           onToggleTechnicals?.();
@@ -335,7 +335,7 @@
 
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
-      title="Refresh Stats"
+      title={$_("marketOverview.tooltips.refreshStats")}
       onclick={(e) => {
         e.stopPropagation();
         app.handleFetchPrice();
@@ -488,24 +488,24 @@
             <a href={tvLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(tvLink, tvTarget); }}>TV</a>
           {/if}
           {#if settingsState.showCgHeatLink}
-            <a href={cgHeatmapLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title="Liquidation Heatmap" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(cgHeatmapLink, cgTarget); }}>CG Heat</a>
+            <a href={cgHeatmapLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title={$_("marketOverview.tooltips.liquidationHeatmap")} onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(cgHeatmapLink, cgTarget); }}>CG Heat</a>
           {/if}
           {#if settingsState.showBrokerLink}
-            <a href={brokerLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title="Open on {provider}" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(brokerLink, brokerTarget); }}>{provider.toUpperCase()}</a>
+            <a href={brokerLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title={$_("marketOverview.tooltips.openOnProvider", { values: { provider: provider.toUpperCase() } })} onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(brokerLink, brokerTarget); }}>{provider.toUpperCase()}</a>
           {/if}
           {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
             {@const plotId = typeof config === "string" ? config : baseAsset}
             {@const windowId = `channel_${plotId}`}
             {@const isOpen = uiState.windows.some((w) => w.id === windowId)}
-            <button class="transition-colors p-0.5 rounded" class:text-[var(--accent-color)]={isOpen} class:text-[var(--text-secondary)]={!isOpen} class:hover:text-[var(--accent-color)]={!isOpen} title={isOpen ? "Close Channel" : "Open Channel"} onclick={(e) => { e.stopPropagation(); openChannel(); }}>{@html icons.monitor}</button>
+            <button class="transition-colors p-0.5 rounded" class:text-[var(--accent-color)]={isOpen} class:text-[var(--text-secondary)]={!isOpen} class:hover:text-[var(--accent-color)]={!isOpen} title={isOpen ? $_("marketOverview.tooltips.closeChannel") : $_("marketOverview.tooltips.openChannel")} onclick={(e) => { e.stopPropagation(); openChannel(); }}>{@html icons.monitor}</button>
           {/if}
         </div>
       {/if}
     </div>
   {/if}
 
-  <button class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1" class:text-[var(--accent-color)]={isFavorite} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? "Remove from Favorites" : "Add to Favorites"}>
+  <button class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1" class:text-[var(--accent-color)]={isFavorite} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? $_("marketOverview.tooltips.removeFavorite") : $_("marketOverview.tooltips.addFavorite")}>
     {#if isFavorite} {@html icons.starFilled} {:else} {@html icons.starEmpty} {/if}
   </button>
 </div>
