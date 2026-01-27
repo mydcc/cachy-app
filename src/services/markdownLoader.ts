@@ -80,7 +80,7 @@ export async function loadInstruction(
     const modulePath = `/src${filePath}`;
 
     if (!modules[modulePath]) {
-      throw new Error(`Markdown file not found: ${modulePath}`);
+      throw new Error("markdownErrors.fileNotFound");
     }
 
     const markdownContent = (await modules[modulePath]()) as string;

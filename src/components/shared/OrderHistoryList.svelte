@@ -19,7 +19,7 @@
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
   import { uiState } from "../../stores/ui.svelte";
-  // import OrderDetailsTooltip from "./OrderDetailsTooltip.svelte"; // No longer needed here
+  import { OrderType } from "../../types/orderTypes";
 
   interface Props {
     orders?: any[];
@@ -81,12 +81,12 @@
 
   function getTypeLabel(type: any) {
     const t = String(type || "").toUpperCase();
-    if (["LIMIT", "1"].includes(t)) return $_("dashboard.orderHistory.type.limit");
-    if (["MARKET", "2"].includes(t)) return $_("dashboard.orderHistory.type.market");
-    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return $_("dashboard.orderHistory.type.stopLimit");
-    if (["STOP_MARKET", "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket");
-    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
-    if (t === "LIQUIDATION") return $_("dashboard.orderHistory.liq");
+    if ([OrderType.LIMIT, "1"].includes(t)) return $_("dashboard.orderHistory.type.limit");
+    if ([OrderType.MARKET, "2"].includes(t)) return $_("dashboard.orderHistory.type.market");
+    if ([OrderType.STOP_LIMIT, "STOP", "3"].includes(t)) return $_("dashboard.orderHistory.type.stopLimit");
+    if ([OrderType.STOP_MARKET, "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket");
+    if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing");
+    if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq");
     if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
     return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
   }

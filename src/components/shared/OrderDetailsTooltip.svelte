@@ -19,6 +19,7 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
+  import { OrderType } from "../../types/orderTypes";
 
   interface Props {
     order: any;
@@ -43,12 +44,12 @@
     const rawType = order.orderType || order.type;
     const t = String(rawType || "").toUpperCase();
 
-    if (["LIMIT", "1"].includes(t)) return $_("dashboard.orderHistory.type.limit").toUpperCase();
-    if (["MARKET", "2"].includes(t)) return $_("dashboard.orderHistory.type.market").toUpperCase();
-    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return $_("dashboard.orderHistory.type.stopLimit").toUpperCase();
-    if (["STOP_MARKET", "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket").toUpperCase();
-    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing").toUpperCase();
-    if (t === "LIQUIDATION") return $_("dashboard.orderHistory.liq").toUpperCase();
+    if ([OrderType.LIMIT, "1"].includes(t)) return $_("dashboard.orderHistory.type.limit").toUpperCase();
+    if ([OrderType.MARKET, "2"].includes(t)) return $_("dashboard.orderHistory.type.market").toUpperCase();
+    if ([OrderType.STOP_LIMIT, "STOP", "3"].includes(t)) return $_("dashboard.orderHistory.type.stopLimit").toUpperCase();
+    if ([OrderType.STOP_MARKET, "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket").toUpperCase();
+    if ([OrderType.TRAILING_STOP_MARKET, "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing").toUpperCase();
+    if (t === OrderType.LIQUIDATION) return $_("dashboard.orderHistory.liq").toUpperCase();
     if (!t || t === "UNDEFINED" || t === "NULL") return "";
 
     return t;

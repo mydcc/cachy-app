@@ -17,6 +17,19 @@ export class BitunixApiError extends Error {
     }
 }
 
+export const TRADE_ERRORS = {
+    POSITION_NOT_FOUND: "trade.positionNotFound",
+    FETCH_FAILED: "trade.fetchFailed",
+    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+};
+
+export class TradeError extends Error {
+    constructor(message: string, public code: string, public details?: any) {
+        super(message);
+        this.name = "TradeError";
+    }
+}
+
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
@@ -27,15 +40,28 @@ class TradeService {
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
+        const provider = settingsState.apiProvider;
+        const keys = settingsState.apiKeys[provider];
+
+        if (!keys || !keys.key) {
+            throw new Error("apiErrors.missingCredentials");
+        }
+
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
-            "X-Provider": settingsState.apiProvider
+            "X-Provider": provider
         };
 
         const response = await fetch(endpoint, {
             method,
             headers,
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                ...payload,
+                // Ensure keys are sent to backend for signing/execution
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                passphrase: (keys as any).passphrase
+            })
         });
 
         const data = await response.json();
@@ -72,7 +98,7 @@ class TradeService {
 
         if (!position) {
             logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new Error("tradeErrors.positionNotFound");
         }
 
         // 2. Execute Close
@@ -81,17 +107,44 @@ class TradeService {
         const side = positionSide === "long" ? "SELL" : "BUY";
 
         // CRITICAL: Use exact amount from OMS
+        if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
+            logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
+            throw new Error("apiErrors.invalidAmount");
+        }
+
         const qty = position.amount.toString();
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
 
-        return this.signedRequest("POST", "/api/orders", {
+        // OPTIMISTIC UPDATE
+        const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+        omsService.addOptimisticOrder({
+            id: clientOrderId,
+            clientOrderId,
             symbol,
-            side,
-            orderType: "MARKET",
-            qty, // String for precision
-            reduceOnly: true
+            side: side.toLowerCase() as any,
+            type: "market",
+            status: "pending",
+            price: new Decimal(0),
+            amount: position.amount,
+            filledAmount: new Decimal(0),
+            timestamp: Date.now(),
+            _isOptimistic: true
         });
+
+        try {
+            return await this.signedRequest("POST", "/api/orders", {
+                symbol,
+                side,
+                orderType: "MARKET",
+                qty, // String for precision
+                reduceOnly: true,
+                clientOrderId
+            });
+        } catch (e) {
+            omsService.removeOrder(clientOrderId);
+            throw e;
+        }
     }
 
     // Emergency Fallback to fetch ALL open positions directly from Bitunix/API
@@ -109,10 +162,10 @@ class TradeService {
                 }),
             });
 
-            if (!pendingResponse.ok) throw new Error("Fetch failed");
+            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
             const pendingResult = await pendingResponse.json();
-            if (pendingResult.error) throw new Error(pendingResult.error);
+            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
 
@@ -153,7 +206,7 @@ class TradeService {
         );
 
         if (!position) {
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new Error("tradeErrors.positionNotFound");
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -161,6 +214,7 @@ class TradeService {
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
         const qty = amount ? amount.toString() : position.amount.toString();
+        const numQty = amount || position.amount;
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
@@ -181,7 +235,7 @@ class TradeService {
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error(`Failed to close ${failures.length} positions`);
+            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
         }
 
         return results;

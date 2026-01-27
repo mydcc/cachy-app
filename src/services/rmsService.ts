@@ -42,18 +42,18 @@ class RiskManagementService {
         const isLikelyClose = existingPos && existingPos.side !== side;
 
         if (!isLikelyClose) {
-             const leverage = new Decimal(tradeState.leverage || 10);
-             // Required Margin = Notional / Leverage
-             const requiredMargin = amountUsdt.div(leverage);
+            const leverage = new Decimal(tradeState.leverage || 10);
+            // Required Margin = Notional / Leverage
+            const requiredMargin = amountUsdt.div(leverage);
 
-             const usdtAsset = accountState.assets.find(a => a.currency === "USDT");
-             const available = usdtAsset ? usdtAsset.available : new Decimal(0);
+            const usdtAsset = accountState.assets.find(a => a.currency === "USDT");
+            const available = usdtAsset ? usdtAsset.available : new Decimal(0);
 
-             // If we don't have asset data loaded yet (available is 0), we might skip or block.
-             // Blocking is safer for "Institutional Grade".
-             if (requiredMargin.gt(available)) {
-                 return { allowed: false, reason: `INSUFFICIENT_MARGIN (Req: ${requiredMargin.toFixed(2)}, Avail: ${available.toFixed(2)})` };
-             }
+            // If we don't have asset data loaded yet (available is 0), we might skip or block.
+            // Blocking is safer for "Institutional Grade".
+            if (requiredMargin.gt(available)) {
+                return { allowed: false, reason: `INSUFFICIENT_MARGIN (Req: ${requiredMargin.toFixed(2)}, Avail: ${available.toFixed(2)})` };
+            }
         }
 
         return { allowed: true };
@@ -64,13 +64,34 @@ class RiskManagementService {
      * Can trigger emergency exits if drawdown exceeds limits.
      */
     public monitorRisk(): void {
-        const positions = omsService.getPositions();
-        positions.forEach(pos => {
-            // Logic to check if position is in danger zone
-            if (pos.unrealizedPnl.isNegative()) {
-                // ...
+        try {
+            const positions = omsService.getPositions();
+
+            if (!positions || !Array.isArray(positions)) {
+                logger.debug("data", "[RMS] Invalid positions array, skipping cycle");
+                return;
             }
-        });
+
+            positions.forEach(pos => {
+                if (!pos) return;
+
+                // Validate critical fields
+                if (!pos.unrealizedPnl || !(pos.unrealizedPnl instanceof Decimal)) {
+                    logger.warn("data", `[RMS] Invalid unrealizedPnl for ${pos.symbol}, skipping position check`);
+                    return;
+                }
+
+                // Logic to check if position is in danger zone
+                if (pos.unrealizedPnl.isNegative()) {
+                    const pnlAbs = pos.unrealizedPnl.abs();
+                    // We assume pnl is in USDT if comparing to size,
+                    // or percent if compared to drawdown limit.
+                    // Let's keep it placeholder as in the original but with safe checks.
+                }
+            });
+        } catch (e) {
+            logger.error("data", "[RMS] Risk monitor cycle failed", e);
+        }
     }
 }
 
