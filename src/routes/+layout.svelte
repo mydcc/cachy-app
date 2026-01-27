@@ -159,7 +159,7 @@
     return () => {
       window.removeEventListener("error", handleGlobalError);
       window.removeEventListener(
-        "unhandledrejection",
+        "unhandledrejection", // Event name
         handleUnhandledRejection,
       );
     };

@@ -646,6 +646,9 @@
     "spinButtonsAlways": "Immer sichtbar",
     "spinButtonsHover": "Bei Mouseover",
     "spinButtonsHidden": "Ausgeblendet",
+    "hotkeys": {
+      "conflictWarning": "{newCombo} wird bereits von {existingLabel} verwendet"
+    },
     "tabs": {
       "general": "Allgemein",
       "api": "API & Verbindung",

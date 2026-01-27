@@ -78,7 +78,7 @@
         trackCustomEvent(
             "ProStatus",
             "Toggle",
-            settingsState.isPro ? "Activated" : "Deactivated",
+            settingsState.isPro ? "Activated" : "Deactivated", // Analytics
         );
 
         if (settingsState.isPro) {

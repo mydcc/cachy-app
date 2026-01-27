@@ -24,6 +24,7 @@
     normalizeKeyCombo,
   } from "../../services/hotkeyService";
   import { _ } from "../../locales/i18n";
+  import { onMount } from "svelte";
 
   let customHotkeys = { ...settingsState.customHotkeys };
   let editingId: string | null = $state(null);
@@ -80,7 +81,9 @@
     });
 
     if (existingAction) {
-      conflictWarning = `"${newCombo}" is already used by "${existingAction.label}"`;
+      conflictWarning = $_("settings.hotkeys.conflictWarning", {
+        values: { newCombo, existingLabel: existingAction.label },
+      });
       // We don't save yet, just warn.
       // Actually, usually it's better to just highlight the conflict or auto-unbind.
       // Let's simple allow overwrite for now but maybe show a visual indicator?
@@ -119,9 +122,15 @@
       handleKeyDown(e);
     }
   }
-</script>
 
-<svelte:window onkeydown={globalKeyHandler} />
+  onMount(() => {
+    // Use capture phase to intercept keys before they trigger other actions
+    window.addEventListener("keydown", globalKeyHandler, true);
+    return () => {
+      window.removeEventListener("keydown", globalKeyHandler, true);
+    };
+  });
+</script>
 
 <div class="flex flex-col gap-4 h-full">
   <CalculationSettings />
@@ -180,7 +189,7 @@
 
   {#if conflictWarning}
     <div
-      class="fixed bottom-4 right-4 bg-[var(--warning-color)] text-black px-4 py-2 rounded shadow-lg text-sm font-bold animate-bounce"
+      class="fixed bottom-4 right-4 bg-[var(--warning-color)] text-black px-4 py-2 rounded shadow-lg text-sm font-bold animate-bounce z-[10000]"
     >
       {conflictWarning}
     </div>

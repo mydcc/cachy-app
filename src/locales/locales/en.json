@@ -620,6 +620,9 @@
     "spinButtonsAlways": "Always Visible",
     "spinButtonsHover": "On Hover",
     "spinButtonsHidden": "Hidden",
+    "hotkeys": {
+      "conflictWarning": "{newCombo} is already used by {existingLabel}"
+    },
     "tabs": {
       "general": "General",
       "api": "API & Connection",
