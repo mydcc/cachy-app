@@ -19,6 +19,8 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
+import { Decimal } from "decimal.js";
+import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
@@ -28,7 +30,7 @@ export const POST: RequestHandler = async ({ request }) => {
   }
 
   try {
-    let balance = 0;
+    let balance = "0";
 
     if (exchange === "bitunix") {
       balance = await fetchBitunixBalance(apiKey, apiSecret);
@@ -52,7 +54,7 @@ export const POST: RequestHandler = async ({ request }) => {
 async function fetchBitunixBalance(
   apiKey: string,
   apiSecret: string,
-): Promise<number> {
+): Promise<string> {
   const baseUrl = "https://fapi.bitunix.com";
   const path = "/api/v1/futures/account";
 
@@ -127,39 +129,39 @@ async function fetchBitunixBalance(
     if (usdt) {
       // Calculate total wallet balance = available + margin + frozen
       // If explicit marginBalance/equity is present, prioritize that.
-      if (usdt.marginBalance) return parseFloat(usdt.marginBalance);
-      if (usdt.equity) return parseFloat(usdt.equity);
+      if (usdt.marginBalance) return formatApiNum(usdt.marginBalance) || "0";
+      if (usdt.equity) return formatApiNum(usdt.equity) || "0";
 
-      const available = parseFloat(usdt.available || "0");
-      const margin = parseFloat(usdt.margin || "0");
-      const frozen = parseFloat(usdt.frozen || "0");
-      return available + margin + frozen;
+      const available = new Decimal(usdt.available || "0");
+      const margin = new Decimal(usdt.margin || "0");
+      const frozen = new Decimal(usdt.frozen || "0");
+      return formatApiNum(available.plus(margin).plus(frozen)) || "0";
     }
   }
 
   // Case: Direct property on the object (fallback)
   if (accountInfo.marginBalance) {
-    return parseFloat(accountInfo.marginBalance);
+    return formatApiNum(accountInfo.marginBalance) || "0";
   }
 
   // Fallback: available
   if (accountInfo.available) {
-    return parseFloat(accountInfo.available);
+    return formatApiNum(accountInfo.available) || "0";
   }
 
   // Fallback: equity
   if (accountInfo.equity) {
-    return parseFloat(accountInfo.equity);
+    return formatApiNum(accountInfo.equity) || "0";
   }
 
-  return 0;
+  return "0";
 }
 
 async function fetchBitgetBalance(
   apiKey: string,
   apiSecret: string,
   passphrase: string
-): Promise<number> {
+): Promise<string> {
     const baseUrl = "https://api.bitget.com";
     const path = "/api/mix/v1/account/account";
     const params = { productType: "umcbl", marginCoin: "USDT" };
@@ -181,9 +183,9 @@ async function fetchBitgetBalance(
     if (res.code !== "00000") throw new Error(res.msg);
 
     const data = res.data ? (Array.isArray(res.data) ? res.data[0] : res.data) : null;
-    if (!data) return 0;
+    if (!data) return "0";
 
     // Return equity (total balance including unrealized PnL) or marginBalance (wallet balance + unrealized PnL)?
     // Usually equity is what users want to see as "Total Balance".
-    return parseFloat(data.equity || data.marginBalance || "0");
+    return formatApiNum(data.equity || data.marginBalance) || "0";
 }

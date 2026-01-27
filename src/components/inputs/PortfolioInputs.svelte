@@ -115,7 +115,7 @@
         throw new Error(data.error || "Failed to fetch balance");
       }
 
-      if (typeof data.balance === "number") {
+      if (typeof data.balance === "number" || typeof data.balance === "string") {
         tradeState.update((s) => ({ ...s, accountSize: data.balance }));
         if (!silent) {
           uiState.showFeedback("save"); // Show success feedback

@@ -18,6 +18,7 @@
 <script lang="ts">
   import { formatDynamicDecimal } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
+  import { Decimal } from "decimal.js";
 
   interface Props {
     account: any;
@@ -25,14 +26,19 @@
 
   let { account }: Props = $props();
 
-  let equity =
-    $derived((account.available || 0) +
-    (account.margin || 0) +
-    (account.frozen || 0) +
-    (account.totalUnrealizedPnL || 0));
+  let equity = $derived(
+    new Decimal(account.available || 0)
+      .plus(new Decimal(account.margin || 0))
+      .plus(new Decimal(account.frozen || 0))
+      .plus(new Decimal(account.totalUnrealizedPnL || 0))
+  );
 
   // Prevent division by zero
-  let marginLevel = $derived(equity > 0 ? ((account.margin || 0) / equity) * 100 : 0);
+  let marginLevel = $derived(
+    equity.gt(0)
+      ? new Decimal(account.margin || 0).div(equity).times(100).toNumber()
+      : 0
+  );
 
   function getHealthColor(level: number) {
     if (level < 50) return "var(--success-color)";
@@ -83,9 +89,9 @@
       >
       <span
         >{formatDynamicDecimal(
-          (account.available || 0) +
-            (account.margin || 0) +
-            (account.frozen || 0),
+          new Decimal(account.available || 0)
+            .plus(new Decimal(account.margin || 0))
+            .plus(new Decimal(account.frozen || 0)),
           2
         )}</span
       >
@@ -129,20 +135,20 @@
         >{$_("dashboard.account.crossPnl")}:</span
       >
       <span
-        class:text-[var(--success-color)]={account.crossUnrealizedPNL > 0}
-        class:text-[var(--danger-color)]={account.crossUnrealizedPNL < 0}
+        class:text-[var(--success-color)]={new Decimal(account.crossUnrealizedPNL || 0).gt(0)}
+        class:text-[var(--danger-color)]={new Decimal(account.crossUnrealizedPNL || 0).lt(0)}
       >
         {formatDynamicDecimal(account.crossUnrealizedPNL)}
       </span>
     </div>
-    {#if account.isolationUnrealizedPNL !== 0}
+    {#if !new Decimal(account.isolationUnrealizedPNL || 0).isZero()}
       <div class="flex justify-between">
         <span class="text-[var(--text-secondary)]"
           >{$_("dashboard.account.isoPnl")}:</span
         >
         <span
-          class:text-[var(--success-color)]={account.isolationUnrealizedPNL > 0}
-          class:text-[var(--danger-color)]={account.isolationUnrealizedPNL < 0}
+          class:text-[var(--success-color)]={new Decimal(account.isolationUnrealizedPNL || 0).gt(0)}
+          class:text-[var(--danger-color)]={new Decimal(account.isolationUnrealizedPNL || 0).lt(0)}
         >
           {formatDynamicDecimal(account.isolationUnrealizedPNL)}
         </span>
