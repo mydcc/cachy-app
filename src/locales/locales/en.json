@@ -517,7 +517,17 @@
     "rsiSettings": "RSI Settings",
     "length": "Length",
     "source": "Source",
-    "signal": "Signal"
+    "signal": "Signal",
+    "tooltips": {
+      "toggleTechnicals": "Toggle Technicals",
+      "refreshStats": "Refresh Stats",
+      "liquidationHeatmap": "Liquidation Heatmap",
+      "openOnProvider": "Open on {provider}",
+      "addFavorite": "Add to Favorites",
+      "removeFavorite": "Remove from Favorites",
+      "openChannel": "Open Channel",
+      "closeChannel": "Close Channel"
+    }
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Calculator",
