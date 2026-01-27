@@ -9,6 +9,7 @@ import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
+import type { BitunixOrder } from "../types/bitunix";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -20,11 +21,11 @@ export class BitunixApiError extends Error {
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
-    public async signedRequest(
+    public async signedRequest<T>(
         method: string,
         endpoint: string,
         payload: any
-    ): Promise<any> {
+    ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
         const headers: Record<string, string> = {
@@ -44,10 +45,10 @@ class TradeService {
              throw new BitunixApiError(data.code || -1, data.msg || data.error);
         }
 
-        return data;
+        return data as T;
     }
 
-    public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
+    public async flashClosePosition(symbol: string, positionSide: "long" | "short"): Promise<BitunixOrder> {
         // 1. Get position from OMS (Source of Truth)
         const positions = omsService.getPositions();
         const position = positions.find(
@@ -69,7 +70,7 @@ class TradeService {
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
 
-        return this.signedRequest("POST", "/api/orders", {
+        return this.signedRequest<BitunixOrder>("POST", "/api/orders", {
             symbol,
             side,
             orderType: "MARKET",
@@ -78,7 +79,7 @@ class TradeService {
         });
     }
 
-    public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
+    public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }): Promise<BitunixOrder> {
         const { symbol, positionSide, amount } = params;
 
         // 1. Get position from OMS
@@ -99,7 +100,7 @@ class TradeService {
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
-        return this.signedRequest("POST", "/api/orders", {
+        return this.signedRequest<BitunixOrder>("POST", "/api/orders", {
             symbol,
             side,
             orderType: "MARKET",

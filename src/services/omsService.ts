@@ -43,7 +43,11 @@ class OrderManagementSystem {
 
         // 2. Hard Pruning: If still above HARD_LIMIT, evict oldest orders REGARDLESS of status
         if (this.orders.size > this.HARD_LIMIT) {
-            logger.error("market", `[OMS] CRITICAL: Hard Limit exceeded (${this.orders.size}). Forcing eviction of active orders.`);
+            // TRADE-OFF: We are evicting active orders from memory to prevent OOM crash.
+            // This creates "zombie orders" (Exchange has them, App doesn't).
+            // A crash would be worse as the user would lose control entirely.
+            // Future improvement: Attempt to cancel oldest orders before eviction.
+            logger.error("market", `[OMS] CRITICAL: Hard Limit exceeded (${this.orders.size}). Forcing eviction of active orders to prevent crash.`);
 
             for (const [id] of this.orders) {
                 if (this.orders.size <= this.HARD_LIMIT) break;
