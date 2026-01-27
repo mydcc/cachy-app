@@ -42,7 +42,7 @@ import { rmsService } from "./rmsService";
 import { apiService } from "./apiService";
 import type { OMSOrder } from "./omsTypes";
 import Decimal from "decimal.js";
-import crypto from "crypto";
+import CryptoJS from "crypto-js";
 
 // ==================== TYPES ====================
 
@@ -174,7 +174,11 @@ class TradeExecutionGuard {
  * Generates a random nonce string (32 characters)
  */
 function generateNonce(): string {
-  return crypto.randomBytes(16).toString("hex");
+  // Use crypto-js for random bytes or simple time-random fallback
+  // crypto-js doesn't have a direct randomBytes helper like Node
+  // We can use random words
+  const wordArray = CryptoJS.lib.WordArray.random(16);
+  return wordArray.toString();
 }
 
 // ==================== SERVICE ====================
@@ -221,16 +225,10 @@ export class TradeExecutionService {
 
     // 5. Generate signature (Bitunix double SHA256)
     // Step 1: digest = SHA256(nonce + timestamp + api-key + body)
-    const digest = crypto
-      .createHash("sha256")
-      .update(nonce + timestamp + apiKey + bodyString)
-      .digest("hex");
+    const digest = CryptoJS.SHA256(nonce + timestamp + apiKey + bodyString).toString(CryptoJS.enc.Hex);
 
     // Step 2: sign = SHA256(digest + secretKey)
-    const signature = crypto
-      .createHash("sha256")
-      .update(digest + apiSecret)
-      .digest("hex");
+    const signature = CryptoJS.SHA256(digest + apiSecret).toString(CryptoJS.enc.Hex);
 
     // 6. Prepare headers
     const headers: Record<string, string> = {
@@ -328,7 +326,7 @@ export class TradeExecutionService {
         // Fallback: Fetch fresh price; if unavailable, fail safe.
         approxPrice = await apiService.fetchBitunixPrice(params.symbol, "high", 3000).catch((e) => {
           logger.error("market", "Price lookup failed for risk check", e);
-          return null;
+          return undefined;
         });
         if (!approxPrice || approxPrice.lte(0)) {
           throw new Error("TRADE_ERRORS.PRICE_UNAVAILABLE");
@@ -354,6 +352,7 @@ export class TradeExecutionService {
     }
 
     // 2. Map to Bitunix API format
+    // 2. Map to Bitunix API format
     const bitunixSide = params.side.toUpperCase() as "BUY" | "SELL";
     const bitunixType = params.type.toUpperCase() as "LIMIT" | "MARKET";
 
@@ -362,11 +361,11 @@ export class TradeExecutionService {
       symbol: params.symbol,
       side: bitunixSide,
       orderType: bitunixType,
-      qty: new Decimal(params.amount).toString(),
+      qty: params.amount.toString(),
     };
 
     if (params.type === "limit" && params.price) {
-      body.price = new Decimal(params.price).toString();
+      body.price = params.price.toString();
     }
     if (params.leverage) body.leverage = params.leverage;
     if (params.timeInForce) body.effect = params.timeInForce.toUpperCase().replace("POSTONLY", "POST_ONLY");
@@ -374,12 +373,12 @@ export class TradeExecutionService {
 
     // TP/SL
     if (params.takeProfit) {
-      body.tpPrice = new Decimal(params.takeProfit).toString();
+      body.tpPrice = params.takeProfit.toString();
       body.tpStopType = "PRICE";
       body.tpOrderType = "MARKET";
     }
     if (params.stopLoss) {
-      body.slPrice = new Decimal(params.stopLoss).toString();
+      body.slPrice = params.stopLoss.toString();
       body.slStopType = "PRICE";
       body.slOrderType = "MARKET";
     }
@@ -453,8 +452,8 @@ export class TradeExecutionService {
     logger.log("market", "Modify Order:", params);
 
     const body: any = { orderId: params.orderId };
-    if (params.price) body.price = new Decimal(params.price).toString();
-    if (params.amount) body.qty = new Decimal(params.amount).toString();
+    if (params.price) body.price = params.price.toString();
+    if (params.amount) body.qty = params.amount.toString();
     const response = await this.signedRequest<{
       orderId: string;
       symbol: string;

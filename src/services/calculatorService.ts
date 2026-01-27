@@ -176,12 +176,13 @@ export class CalculatorService {
       const riskAmount = parseDecimal(currentTradeState.riskAmount);
       if (riskAmount.gt(0) && values.accountSize.gt(0)) {
         const newRiskPercentage = riskAmount.div(values.accountSize).times(100);
-        const delta = Math.abs(
-          (currentTradeState.riskPercentage || 0) -
-          new Decimal(newRiskPercentage).toNumber(),
-        );
-        if (delta > 0.000001) {
-          tradeState.riskPercentage = new Decimal(newRiskPercentage).toNumber();
+        // Strict Decimal Comparison for Delta
+        const storedPercent = parseDecimal(currentTradeState.riskPercentage);
+        const delta = storedPercent.minus(newRiskPercentage).abs();
+
+        if (delta.gt(0.000001)) {
+          // Update store strictly as string
+          tradeState.riskPercentage = newRiskPercentage.toString();
         }
         values.riskPercentage = newRiskPercentage;
       }
@@ -210,19 +211,17 @@ export class CalculatorService {
         ? new Decimal(0)
         : riskAmount.div(values.accountSize).times(100);
 
-      const riskPercentageDelta = Math.abs(
-        (currentTradeState.riskPercentage || 0) - new Decimal(newRiskPercentage).toNumber(),
-      );
-      // riskAmount in store is number
-      const riskAmountDelta = Math.abs(
-        (currentTradeState.riskAmount || 0) - new Decimal(riskAmount).toNumber(),
-      );
+      const storedPercent = parseDecimal(currentTradeState.riskPercentage);
+      const riskPercentageDelta = storedPercent.minus(newRiskPercentage).abs();
 
-      if (riskPercentageDelta > 0.000001 || riskAmountDelta > 0.000001) {
+      const storedRiskAmount = parseDecimal(currentTradeState.riskAmount);
+      const riskAmountDelta = storedRiskAmount.minus(riskAmount).abs();
+
+      if (riskPercentageDelta.gt(0.000001) || riskAmountDelta.gt(0.000001)) {
         tradeState.update((s) => ({
           ...s,
-          riskPercentage: new Decimal(newRiskPercentage).toNumber(),
-          riskAmount: new Decimal(riskAmount).toString(),
+          riskPercentage: newRiskPercentage.toString(),
+          riskAmount: riskAmount.toString(),
         }));
       }
       values.riskPercentage = newRiskPercentage;
@@ -240,12 +239,13 @@ export class CalculatorService {
       );
       if (baseMetrics) {
         const finalMetrics = baseMetrics;
-        const riskAmountDelta = Math.abs(
-          Number(currentTradeState.riskAmount || 0) -
-          new Decimal(finalMetrics.riskAmount).toNumber(),
-        );
-        if (riskAmountDelta > 0.000001) {
-          tradeState.riskAmount = new Decimal(finalMetrics.riskAmount).toString();
+        const storedRisk = parseDecimal(currentTradeState.riskAmount);
+        const calculatedRisk = finalMetrics.riskAmount;
+
+        const riskAmountDelta = storedRisk.minus(calculatedRisk).abs();
+
+        if (riskAmountDelta.gt(0.000001)) {
+          tradeState.riskAmount = calculatedRisk.toString();
         }
       }
     }
@@ -301,9 +301,6 @@ export class CalculatorService {
           (currentTradeState.tradeType === "short" &&
             tp.price.lt(values.entryPrice))
         ) {
-          // Mapping to match the CalculatedTpDetail interface (Decimal to Decimal)
-          // IndividualTpResult uses Decimals? Yes.
-          // CalculatedTpDetail uses Decimals.
           calculatedTpDetails.push(details);
         }
       }
@@ -350,12 +347,12 @@ export class CalculatorService {
     onboardingService.trackFirstCalculation();
 
     const newStopLoss = new Decimal(values.stopLossPrice).toString();
-    const stopLossChange = Math.abs(
-      Number(currentTradeState.stopLossPrice || 0) - Number(newStopLoss),
-    );
+    const storedSL = parseDecimal(currentTradeState.stopLossPrice);
+    const stopLossChange = storedSL.minus(values.stopLossPrice).abs();
+
     const hasNoData = !currentTradeState.currentTradeData;
 
-    if (stopLossChange > 0.000001 || hasNoData) {
+    if (stopLossChange.gt(0.000001) || hasNoData) {
       tradeState.update((s) => ({
         ...s,
         currentTradeData: {
@@ -391,17 +388,17 @@ export class CalculatorService {
       riskPercentage: parseDecimal(currentTradeState.riskPercentage),
       entryPrice: parseDecimal(currentTradeState.entryPrice),
       leverage: parseDecimal(
-        currentTradeState.leverage || parseFloat(CONSTANTS.DEFAULT_LEVERAGE),
+        currentTradeState.leverage || CONSTANTS.DEFAULT_LEVERAGE,
       ),
       fees: parseDecimal(
-        currentTradeState.fees || parseFloat(CONSTANTS.DEFAULT_FEES),
+        currentTradeState.fees || CONSTANTS.DEFAULT_FEES,
       ),
       symbol: currentTradeState.symbol || "",
       useAtrSl: currentTradeState.useAtrSl,
       atrValue: parseDecimal(currentTradeState.atrValue),
       atrMultiplier: parseDecimal(
         currentTradeState.atrMultiplier ||
-        parseFloat(CONSTANTS.DEFAULT_ATR_MULTIPLIER),
+        CONSTANTS.DEFAULT_ATR_MULTIPLIER,
       ),
       stopLossPrice: parseDecimal(currentTradeState.stopLossPrice),
       targets: currentTradeState.targets.map((t: any) => ({
@@ -493,26 +490,26 @@ export class CalculatorService {
           if (tp.price.lte(values.stopLossPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: $t("calculator.errors.tpBelowSl", { price: tp.price.toFixed(4) }),
+              message: $t("calculator.errors.tpBelowSl", { values: { price: tp.price.toFixed(4) } }),
               fields: ["targets"],
             };
           if (tp.price.lte(values.entryPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: $t("calculator.errors.tpAboveEntry", { price: tp.price.toFixed(4) }),
+              message: $t("calculator.errors.tpAboveEntry", { values: { price: tp.price.toFixed(4) } }),
               fields: ["targets"],
             };
         } else {
           if (tp.price.gte(values.stopLossPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: $t("calculator.errors.tpAboveSl", { price: tp.price.toFixed(4) }),
+              message: $t("calculator.errors.tpAboveSl", { values: { price: tp.price.toFixed(4) } }),
               fields: ["targets"],
             };
           if (tp.price.gte(values.entryPrice))
             return {
               status: CONSTANTS.STATUS_INVALID,
-              message: $t("calculator.errors.tpBelowEntry", { price: tp.price.toFixed(4) }),
+              message: $t("calculator.errors.tpBelowEntry", { values: { price: tp.price.toFixed(4) } }),
               fields: ["targets"],
             };
         }
@@ -526,7 +523,7 @@ export class CalculatorService {
     if (values.totalPercentSold.gt(100)) {
       return {
         status: CONSTANTS.STATUS_INVALID,
-        message: $t("calculator.errors.totalPercentExceeded", { percent: values.totalPercentSold.toFixed(0) }),
+        message: $t("calculator.errors.totalPercentExceeded", { values: { percent: values.totalPercentSold.toFixed(0) } }),
         fields: [],
       };
     }

@@ -16,7 +16,7 @@
  */
 
 import {
-  _,
+  _ as i18nStore,
   register,
   init,
   getLocaleFromNavigator,
@@ -24,6 +24,7 @@ import {
   dictionary,
   getLocaleFromHostname,
 } from "svelte-i18n";
+import type { TranslationKey } from "./schema";
 import { writable, get } from "svelte/store";
 import { settingsState } from "../stores/settings.svelte";
 
@@ -221,4 +222,6 @@ export function setLocale(newLocale: string) {
   locale.set(newLocale);
 }
 
-export { _ };
+export const _ = i18nStore as unknown as import("svelte/store").Readable<
+  (key: TranslationKey, vars?: Record<string, any>) => string
+>;

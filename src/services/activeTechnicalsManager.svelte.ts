@@ -144,95 +144,35 @@ class ActiveTechnicalsManager {
     }
 
     private async performCalculation(symbol: string, timeframe: string) {
-        // 1. Gather Data
-        // We construct the "History" + "Current Realtime Candle" similar to how TechnicalsPanel did
+        // 1. Gather Data (Single Source of Truth: marketState)
         const marketData = marketState.data[symbol];
         if (!marketData) return;
 
-        // We assume apiService/marketWatcher populates klines history.
-        // However, marketState.klines might just be the latest one if not correctly managed.
-        // WAIT: marketState.klines[tf] seems to scale to hold ONE kline object in `updateSymbolKlines` in `marketWatcher`?
-        // Let's re-read marketWatcher.ts lines 373-382:
-        // It calls `apiService.fetch...` which returns an ARRAY.
-        // `updateSymbolKlines` in market.svelte.ts line 260 iterates and SETS `current.klines[timeframe] = ...`.
-        // It overwrites! `marketState` currently DOES NOT store history for klines, only the latest update? 
-        //
-        // CHECK: `market.svelte.ts`:
-        // klines: Record<string, { open... }> 
-        // It maps timeframe -> Single Kline Object?
-        //
-        // NO, wait. `marketState.data[symbol].klines` is `Record<string, KlineObject>`.
-        // It seems `marketState` is designed to hold only the *latest* kline update from WS stream?
-        //
-        // BUT `TechnicalsPanel` maintained its OWN `klinesHistory`.
-        //
-        // ISSUE FOUND: If I move logic to Service, the Service needs the HISTORY.
-        // `marketState` does NOT seem to hold history.
-        //
-        // OPTION: `ActiveTechnicalsManager` must manage history for the active symbols.
-        // OR: We expand `marketState` to hold history.
-        //
-        // Expanding `marketState` to hold history for all subscribed symbols might be heavy if not careful, 
-        // but `ActiveTechnicalsManager` is exactly the place to manage this "active working set".
-        // 
-        // I will store the history INSIDE `ActiveTechnicalsManager` (or a dedicated store for it)
-        // to keep `marketState` lightweight for just "latest values".
-        //
-        // Let's recall `TechnicalsPanel.svelte` lines 32: `let klinesHistory: Kline[] = $state([]);`
-        //
-        // Plan adjustment: `ActiveTechnicalsManager` will maintain `historyCache` for its subscribers.
+        // Get history immediately from MarketState
+        let history = (marketData.klines && marketData.klines[timeframe]) ? [...marketData.klines[timeframe]] : [];
+
+        if (history.length === 0) return;
 
         const key = `${symbol}:${timeframe}`;
-        let history = this.historyCache.get(key) || [];
 
-        // If history is empty, we must Fetch it.
-        if (history.length === 0) {
-            await this.fetchInitialData(symbol, timeframe);
-            // The fetch will trigger recursion via new data availability if we are careful, 
-            // or we just continue after await.
-            history = this.historyCache.get(key) || [];
-            if (history.length === 0) return;
-        }
-
-        // Logic to merge "Realtime Tick" into History
-        // This duplicates logic from TechnicalsPanel.handleRealTimeUpdate
-        // We need the "Realtime Tick" from marketState
-        const lastKlineUpdate = marketData.klines[timeframe];
-        // AND the current price ticker for the very latest live movement
-        // Actually, `marketData.klines` from WS stream IS the realtime kline update usually.
-        // But `marketData.lastPrice` is faster.
-
-        // Let's replicate `TechnicalsPanel` logic:
-        // It took `klinesHistory` (fetched via REST)
-        // And updated the last candle with `handleRealTimeUpdate` using `currentKline` (WS)
-
-        // We need to keep this history updated.
-
-        if (lastKlineUpdate) {
-            this.updateHistoryWithKline(key, lastKlineUpdate, timeframe, marketData.lastPrice);
-        }
-
-        // FORCE SYNC: Ensure the latest candle reflects the purely realtime price tick
-        // regardless of Kline lagging.
+        // REAL-TIME SYNC:
+        // Inject latest price
         if (marketData.lastPrice) {
-            this.injectRealtimePrice(key, timeframe, marketData.lastPrice);
+            this.injectRealtimePrice(history, timeframe, marketData.lastPrice);
         }
 
         // Now calculate
-        const settings = indicatorState; // Global indicator settings
+        const settings = indicatorState;
 
         try {
-            console.log(`[RT-TECH] Calcing ${key} | History: ${history.length} | Price: ${marketData.lastPrice?.toString()} | Close: ${history[history.length - 1].close?.toString()}`);
-            const result = await technicalsService.calculateTechnicals(this.historyCache.get(key) || [], settings);
-
-            console.log(`[RT-TECH] Done ${key}.`);
+            const result = await technicalsService.calculateTechnicals(history, settings);
 
             // Inject timestamp
             if (result) {
                 result.lastUpdated = Date.now();
             }
 
-            // Push result back to MarketState so UI can see it
+            // Push result back to MarketState
             marketState.updateSymbol(symbol, { technicals: result });
 
         } catch (e) {
@@ -240,40 +180,19 @@ class ActiveTechnicalsManager {
         }
     }
 
-    // --- History Management ---
-    private historyCache = new Map<string, Kline[]>();
-
-    private async fetchInitialData(symbol: string, timeframe: string) {
-        try {
-            const limit = (indicatorState.historyLimit || 750) + 50;
-            // Accessing `apiService` from imports
-            const { apiService } = await import("./apiService");
-
-            const klines = await apiService.fetchBitunixKlines(symbol, timeframe, limit);
-            if (klines && klines.length > 0) {
-                this.historyCache.set(`${symbol}:${timeframe}`, klines);
-            }
-        } catch (e) {
-            logger.error("technicals", `Initial fetch failed for ${symbol}:${timeframe}`, e);
-        }
-    }
-
-    private injectRealtimePrice(key: string, timeframe: string, price: Decimal) {
-        let history = this.historyCache.get(key);
-        if (!history || history.length === 0) return;
+    // Stateless Helper: mutates a copy of the history array found in memory
+    private injectRealtimePrice(history: Kline[], timeframe: string, price: Decimal) {
+        if (history.length === 0) return;
 
         const lastIdx = history.length - 1;
-        const lastCandle = history[lastIdx];
+        const lastCandle = { ...history[lastIdx] }; // Clone to avoid mutating state directly outside action
 
-        // Check if current time matches the last candle's bucket
-        // If so, we update the Last Candle's Close/High/Low to match the tick
-        // This assumes the history is at least up to date with the current wall-clock interval
         const now = Date.now();
         const intervalMs = getIntervalMs(timeframe);
         const currentPeriodStart = Math.floor(now / intervalMs) * intervalMs;
 
         if (lastCandle.time === currentPeriodStart) {
-            // Update in place
+            // Update the clone
             let close = price;
             let high = lastCandle.high;
             let low = lastCandle.low;
@@ -281,14 +200,13 @@ class ActiveTechnicalsManager {
             if (close.greaterThan(high)) high = close;
             if (close.lessThan(low)) low = close;
 
-            history[lastIdx] = {
-                ...lastCandle,
-                close, high, low
-            };
-            this.historyCache.set(key, history);
+            lastCandle.close = close;
+            lastCandle.high = high;
+            lastCandle.low = low;
+
+            history[lastIdx] = lastCandle;
         } else if (currentPeriodStart > lastCandle.time) {
-            // We need a NEW candle! The history is behind wall-clock.
-            // We create a new candle seeded with current price.
+            // New phantom candle for pending period
             const newCandle: Kline = {
                 time: currentPeriodStart,
                 open: price,
@@ -298,59 +216,7 @@ class ActiveTechnicalsManager {
                 volume: new Decimal(0)
             };
             history.push(newCandle);
-            // Prune
-            const limit = (indicatorState.historyLimit || 1000) + 100;
-            if (history.length > limit) {
-                history = history.slice(-limit);
-            }
-            this.historyCache.set(key, history);
         }
-    }
-
-    private updateHistoryWithKline(key: string, newKline: any, timeframe: string, currentPrice?: Decimal | null) {
-        let history = this.historyCache.get(key);
-        if (!history) return;
-
-        const rawTime = parseTimestamp(newKline.time);
-        const intervalMs = getIntervalMs(timeframe);
-        const alignedTime = Math.floor(rawTime / intervalMs) * intervalMs;
-
-        // Convert to Decimal
-        // If we have a live price, we use it as "Close" because it's newer than the Kline stream
-        let close = newKline.close instanceof Decimal ? newKline.close : new Decimal(newKline.close);
-        let high = newKline.high instanceof Decimal ? newKline.high : new Decimal(newKline.high);
-        let low = newKline.low instanceof Decimal ? newKline.low : new Decimal(newKline.low);
-        const open = newKline.open instanceof Decimal ? newKline.open : new Decimal(newKline.open);
-        const volume = newKline.volume instanceof Decimal ? newKline.volume : new Decimal(newKline.volume || 0);
-
-        if (currentPrice) {
-            close = currentPrice;
-            if (close.greaterThan(high)) high = close;
-            if (close.lessThan(low)) low = close;
-        }
-
-        const candleObj: Kline = {
-            time: alignedTime,
-            open, high, low, close, volume
-        };
-
-        const lastIdx = history.length - 1;
-        const lastItem = history[lastIdx];
-
-        if (alignedTime > lastItem.time) {
-            // New Candle
-            history.push(candleObj);
-            // Prune
-            const limit = (indicatorState.historyLimit || 1000) + 100;
-            if (history.length > limit) {
-                history = history.slice(-limit);
-            }
-        } else if (alignedTime === lastItem.time) {
-            // Update existing
-            history[lastIdx] = candleObj;
-        }
-
-        this.historyCache.set(key, history);
     }
 }
 

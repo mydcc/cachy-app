@@ -33,7 +33,7 @@
   import { uiState } from "../stores/ui.svelte"; // Import uiState
   import { favoritesState } from "../stores/favorites.svelte";
   import { modalState } from "../stores/modal.svelte";
-  import { onMount, untrack } from "svelte";
+  import { onMount } from "svelte";
   import { _, locale } from "../locales/i18n"; // Import locale
   import { get } from "svelte/store"; // Import get
   import { loadInstruction } from "../services/markdownLoader";
@@ -136,61 +136,6 @@
     changelogContent = "";
     privacyContent = "";
     whitepaperContent = "";
-  });
-
-  let lastCalcTime = 0;
-  const CALC_THROTTLE_MS = 250;
-
-  // Reactive effect to trigger app.calculateAndDisplay() when relevant inputs change
-  // DECOUPLED to prevent "flush" loops
-  $effect(() => {
-    // 1. Establish dependencies (Accessing values tracks them)
-    const _s = tradeState;
-
-    // Core inputs
-    _s.accountSize;
-    _s.riskPercentage;
-    _s.entryPrice;
-    _s.symbol;
-    _s.tradeType;
-    _s.targets;
-    _s.leverage;
-    _s.fees;
-    _s.useAtrSl;
-    _s.isRiskAmountLocked;
-    _s.isPositionSizeLocked;
-    _s.lockedPositionSize;
-
-    // Conditional triggers:
-    // If ATR is active, stopLossPrice is a RESULT, not a TRIGGER.
-    if (_s.useAtrSl) {
-      _s.atrValue;
-      _s.atrMultiplier;
-      _s.atrMode;
-      _s.atrTimeframe;
-    } else {
-      // If ATR is off, Stop Loss is a manual input TRIGGER.
-      _s.stopLossPrice;
-    }
-
-    // 2. Throttle check
-    const now = Date.now();
-    if (now - lastCalcTime < CALC_THROTTLE_MS) return;
-
-    // 3. Validation and Execution
-    if (
-      _s.accountSize !== undefined &&
-      _s.riskPercentage !== undefined &&
-      _s.entryPrice !== undefined &&
-      _s.symbol !== undefined &&
-      _s.tradeType !== undefined &&
-      _s.targets !== undefined
-    ) {
-      untrack(() => {
-        app.calculateAndDisplay();
-        lastCalcTime = Date.now();
-      });
-    }
   });
 
   function handleTradeSetupError(e: CustomEvent<string>) {

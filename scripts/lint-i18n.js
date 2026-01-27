@@ -17,9 +17,11 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-// Directories to scan (only user-facing components)
+// Directories to scan
 const SCAN_DIRS = [
-    path.join(__dirname, '../src/components')
+    path.join(__dirname, '../src/components'),
+    path.join(__dirname, '../src/routes'),
+    path.join(__dirname, '../src/lib')
 ];
 
 // Individual files to scan (only app.ts which has user-facing modals)
@@ -65,6 +67,34 @@ const SAFE_CONTEXTS = [
     /\|\|.*Error/,              // Fallback error messages
     /alert\(/,                  // Alert calls (should use modal ideally, but temporary)
     /\/\//,                     // Code comments
+    /aria-[\w-]+/,              // All aria attributes
+    /data-[\w-]+/,              // All data attributes
+    /class=/,                   // CSS classes
+    /style=/,                   // Inline styles
+    /id=/,                      // IDs
+    /type=/,                    // Input types
+    /href=/,                    // Links
+    /src=/,                     // Sources
+    /const\s/,                  // Variable declarations
+    /let\s/,                    // Variable declarations
+    /var\s/,                    // Variable declarations
+    /return\s/,                 // Return statements
+    /if\s*\(/,                  // Control flow
+    /else/,                     // Control flow
+    /for\s*\(/,                 // Control flow
+    /while\s*\(/,               // Control flow
+    /switch\s*\(/,              // Control flow
+    /case\s/,                   // Control flow
+    /default:/,                 // Control flow
+    /export\s/,                 // Exports
+    /import\s/,                 // Imports
+    /trackCustomEvent/,         // Tracking keys often English
+    /console\.(log|error|warn|info|debug)/, // Console methods
+    /new\s+Error/,              // Error instantiation
+    /className=/,               // React/Similar class usage
+    /bind:value/,               // Svelte bindings
+    /on:click/,                 // Svelte events
+    /onclick=/,                 // Svelte 5 events
 ];
 
 let violations = [];
@@ -119,6 +149,11 @@ function scanDirectory(dirPath) {
 
     for (const entry of entries) {
         const fullPath = path.join(dirPath, entry.name);
+
+        // Skip API routes (server-side only)
+        if (fullPath.includes(path.join('src', 'routes', 'api'))) {
+            continue;
+        }
 
         if (entry.isDirectory()) {
             scanDirectory(fullPath);

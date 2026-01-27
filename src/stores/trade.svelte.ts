@@ -34,8 +34,8 @@ export interface TradeTarget {
 
 export interface TradeStateSnapshot {
   tradeType: string;
-  accountSize: number;
-  riskPercentage: number;
+  accountSize: string;
+  riskPercentage: string;
   entryPrice: string | null;
   stopLossPrice: string | null;
   leverage: string | null;
@@ -76,18 +76,24 @@ const TradeTargetSchema = z.object({
 
 // Helper to transform number/string to string safely, ensuring strict numeric format
 const stringSchema = z.union([
-    z.string().regex(/^\d*\.?\d*$/, "Must be a valid number"),
-    z.number()
+  z.string().regex(/^\d*\.?\d*$/, "Must be a valid number"),
+  z.number()
 ]).transform(val => {
-    if (val === null || val === undefined) return null;
-    return String(val);
+  if (val === null || val === undefined) return null;
+  return String(val);
 }).nullable();
+
+// Required string schema (not nullable) for accountSize/riskPercentage which have defaults
+const requiredStringSchema = z.union([
+  z.string(),
+  z.number()
+]).transform(val => String(val));
 
 // Define Zod Schema for TradeState
 const TradeStateSchema = z.object({
   tradeType: z.string(),
-  accountSize: z.number(), // Kept as number for now (usually integer-ish)
-  riskPercentage: z.number(), // Kept as number (usually 1-2 decimals)
+  accountSize: requiredStringSchema,
+  riskPercentage: requiredStringSchema,
   entryPrice: stringSchema,
   stopLossPrice: stringSchema,
   leverage: stringSchema,
@@ -104,8 +110,8 @@ const TradeStateSchema = z.object({
   targets: z.array(TradeTargetSchema).optional(),
   isPositionSizeLocked: z.boolean(),
   lockedPositionSize: z.union([z.string(), z.number(), z.null()]).transform(val => {
-     if (val === null) return null;
-     return new Decimal(val);
+    if (val === null) return null;
+    return new Decimal(val);
   }).nullable(),
   isRiskAmountLocked: z.boolean(),
   riskAmount: stringSchema,
@@ -115,8 +121,8 @@ const TradeStateSchema = z.object({
 
 export const INITIAL_TRADE_STATE = {
   tradeType: CONSTANTS.TRADE_TYPE_LONG,
-  accountSize: 1000,
-  riskPercentage: 1,
+  accountSize: "1000",
+  riskPercentage: "1",
   entryPrice: null as string | null,
   stopLossPrice: null as string | null,
   leverage: CONSTANTS.DEFAULT_LEVERAGE, // String in constants?
@@ -213,47 +219,47 @@ class TradeManager {
         const result = TradeStateSchema.safeParse(parsed);
 
         if (result.success) {
-            const data = result.data;
-            this.tradeType = data.tradeType;
-            this.accountSize = data.accountSize;
-            this.riskPercentage = data.riskPercentage;
-            this.entryPrice = data.entryPrice;
-            this.stopLossPrice = data.stopLossPrice;
-            this.leverage = data.leverage;
-            this.fees = data.fees;
-            this.symbol = data.symbol;
-            this.atrValue = data.atrValue;
-            this.atrMultiplier = data.atrMultiplier;
-            this.useAtrSl = data.useAtrSl;
-            this.atrMode = data.atrMode;
-            this.atrTimeframe = data.atrTimeframe;
-            this.analysisTimeframe = data.analysisTimeframe;
-            this.tradeNotes = data.tradeNotes;
-            this.tags = data.tags;
-            this.journalSearchQuery = data.journalSearchQuery;
-            this.journalFilterStatus = data.journalFilterStatus;
+          const data = result.data;
+          this.tradeType = data.tradeType;
+          this.accountSize = data.accountSize;
+          this.riskPercentage = data.riskPercentage;
+          this.entryPrice = data.entryPrice;
+          this.stopLossPrice = data.stopLossPrice;
+          this.leverage = data.leverage;
+          this.fees = data.fees;
+          this.symbol = data.symbol;
+          this.atrValue = data.atrValue;
+          this.atrMultiplier = data.atrMultiplier;
+          this.useAtrSl = data.useAtrSl;
+          this.atrMode = data.atrMode;
+          this.atrTimeframe = data.atrTimeframe;
+          this.analysisTimeframe = data.analysisTimeframe;
+          this.tradeNotes = data.tradeNotes;
+          this.tags = data.tags;
+          this.journalSearchQuery = data.journalSearchQuery;
+          this.journalFilterStatus = data.journalFilterStatus;
 
-            // Handle Decimal/Special fields
-            this.isPositionSizeLocked = data.isPositionSizeLocked;
-            this.lockedPositionSize = data.lockedPositionSize;
-            this.isRiskAmountLocked = data.isRiskAmountLocked;
-            this.riskAmount = data.riskAmount;
+          // Handle Decimal/Special fields
+          this.isPositionSizeLocked = data.isPositionSizeLocked;
+          this.lockedPositionSize = data.lockedPositionSize;
+          this.isRiskAmountLocked = data.isRiskAmountLocked;
+          this.riskAmount = data.riskAmount;
 
-            // Logic for targets
-            const hasAnyPrice = data.targets?.some(
-              (t: any) => t.price !== null && t.price !== "0",
-            );
-            if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
-               this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-            } else {
-               this.targets = data.targets;
-            }
+          // Logic for targets
+          const hasAnyPrice = data.targets?.some(
+            (t: any) => t.price !== null && t.price !== "0",
+          );
+          if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
+            this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+          } else {
+            this.targets = data.targets;
+          }
 
         } else {
-            if (import.meta.env.DEV) {
-                console.warn("Trade state validation failed, using defaults", result.error);
-            }
-             this.resetToDefaults();
+          if (import.meta.env.DEV) {
+            console.warn("Trade state validation failed, using defaults", result.error);
+          }
+          this.resetToDefaults();
         }
 
       } else {
@@ -268,27 +274,27 @@ class TradeManager {
   }
 
   private resetToDefaults() {
-      // Bulk reset to initial state
-      this.tradeType = INITIAL_TRADE_STATE.tradeType;
-      this.accountSize = INITIAL_TRADE_STATE.accountSize;
-      this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
-      this.entryPrice = INITIAL_TRADE_STATE.entryPrice;
-      this.stopLossPrice = INITIAL_TRADE_STATE.stopLossPrice;
-      this.leverage = INITIAL_TRADE_STATE.leverage;
-      this.fees = INITIAL_TRADE_STATE.fees;
-      this.symbol = INITIAL_TRADE_STATE.symbol;
-      this.atrValue = INITIAL_TRADE_STATE.atrValue;
-      this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
-      this.useAtrSl = INITIAL_TRADE_STATE.useAtrSl;
-      this.atrMode = INITIAL_TRADE_STATE.atrMode;
-      this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
-      this.tradeNotes = INITIAL_TRADE_STATE.tradeNotes;
-      this.tags = [...INITIAL_TRADE_STATE.tags];
-      this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
-      this.isPositionSizeLocked = INITIAL_TRADE_STATE.isPositionSizeLocked;
-      this.lockedPositionSize = INITIAL_TRADE_STATE.lockedPositionSize;
-      this.isRiskAmountLocked = INITIAL_TRADE_STATE.isRiskAmountLocked;
-      this.riskAmount = INITIAL_TRADE_STATE.riskAmount;
+    // Bulk reset to initial state
+    this.tradeType = INITIAL_TRADE_STATE.tradeType;
+    this.accountSize = INITIAL_TRADE_STATE.accountSize;
+    this.riskPercentage = INITIAL_TRADE_STATE.riskPercentage;
+    this.entryPrice = INITIAL_TRADE_STATE.entryPrice;
+    this.stopLossPrice = INITIAL_TRADE_STATE.stopLossPrice;
+    this.leverage = INITIAL_TRADE_STATE.leverage;
+    this.fees = INITIAL_TRADE_STATE.fees;
+    this.symbol = INITIAL_TRADE_STATE.symbol;
+    this.atrValue = INITIAL_TRADE_STATE.atrValue;
+    this.atrMultiplier = INITIAL_TRADE_STATE.atrMultiplier;
+    this.useAtrSl = INITIAL_TRADE_STATE.useAtrSl;
+    this.atrMode = INITIAL_TRADE_STATE.atrMode;
+    this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
+    this.tradeNotes = INITIAL_TRADE_STATE.tradeNotes;
+    this.tags = [...INITIAL_TRADE_STATE.tags];
+    this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+    this.isPositionSizeLocked = INITIAL_TRADE_STATE.isPositionSizeLocked;
+    this.lockedPositionSize = INITIAL_TRADE_STATE.lockedPositionSize;
+    this.isRiskAmountLocked = INITIAL_TRADE_STATE.isRiskAmountLocked;
+    this.riskAmount = INITIAL_TRADE_STATE.riskAmount;
   }
 
   private saveDebounced = debounce((snapshot: any) => {
@@ -306,7 +312,7 @@ class TradeManager {
 
       // Convert Decimal to string for storage
       if (toSave.lockedPositionSize instanceof Decimal) {
-          toSave.lockedPositionSize = toSave.lockedPositionSize.toString();
+        toSave.lockedPositionSize = toSave.lockedPositionSize.toString();
       }
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(toSave));
     } catch (e) {
@@ -394,13 +400,13 @@ class TradeManager {
     ) {
       try {
         this.lockedPositionSize = new Decimal(next.lockedPositionSize);
-      } catch(e) { /* ignore */ }
+      } catch (e) { /* ignore */ }
     }
 
     // Ensure reactivity for targets array if replaced completely
     // Object.assign handles this, but explicit assignment ensures Runes signal works if Object.assign behavior varies
     if (next.targets && next.targets !== this.targets) {
-        this.targets = next.targets;
+      this.targets = next.targets;
     }
     this.notifyListeners();
   }
@@ -422,7 +428,7 @@ class TradeManager {
 
     // Ensure targets reactivity
     if (newState.targets) {
-        this.targets = newState.targets;
+      this.targets = newState.targets;
     }
   }
 

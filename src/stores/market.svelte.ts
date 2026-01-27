@@ -19,6 +19,7 @@ import { Decimal } from "decimal.js";
 import { browser } from "$app/environment";
 import { untrack } from "svelte";
 import { settingsState } from "./settings.svelte";
+import type { Kline } from "../services/technicalsTypes";
 
 export interface MarketData {
   symbol: string;
@@ -35,17 +36,7 @@ export interface MarketData {
   volume?: Decimal | null;
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
-  klines: Record<
-    string,
-    {
-      open: Decimal;
-      high: Decimal;
-      low: Decimal;
-      close: Decimal;
-      volume: Decimal;
-      time: number;
-    }
-  >;
+  klines: Record<string, Kline[]>;
   technicals?: import("../services/technicalsTypes").TechnicalsData;
   metricsHistory?: MetricSnapshot[];
   lastUpdated?: number; // Optimization: only snapshot fresh data
@@ -260,16 +251,39 @@ class MarketManager {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
-    klines.forEach((k) => {
-      current.klines[timeframe] = {
-        open: k.open,
-        high: k.high,
-        low: k.low,
-        close: k.close,
-        volume: k.volume,
-        time: k.time,
-      };
-    });
+    // Normalize new klines to correct Kline type
+    const newKlines: Kline[] = klines.map(k => ({
+      open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
+      high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
+      low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
+      close: k.close instanceof Decimal ? k.close : new Decimal(k.close),
+      volume: k.volume instanceof Decimal ? k.volume : new Decimal(k.volume),
+      time: k.time // number
+    }));
+
+    // Get existing history or init empty
+    let history = current.klines[timeframe] || [];
+
+    // Merge strategy:
+    // 1. If history is empty, just set it.
+    // 2. If overlapping, merge and dedup by time.
+    if (history.length === 0) {
+      history = newKlines;
+    } else {
+      const existingMap = new Map(history.map(k => [k.time, k]));
+      newKlines.forEach(k => existingMap.set(k.time, k));
+      // Sort needed after map merge? Usually map iteration is insertion order, but keys are numbers.
+      // Better to convert back and sort to be safe.
+      history = Array.from(existingMap.values()).sort((a, b) => a.time - b.time);
+    }
+
+    // Limit history size to prevent memory leaks (e.g. 1500 candles)
+    const MAX_HISTORY = 1000;
+    if (history.length > MAX_HISTORY) {
+      history = history.slice(-MAX_HISTORY);
+    }
+
+    current.klines[timeframe] = history;
 
     this.enforceCacheLimit();
   }

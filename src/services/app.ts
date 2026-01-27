@@ -9,6 +9,7 @@
 
 // Stores
 import { untrack } from "svelte";
+import { get } from "svelte/store";
 
 import { tradeState } from "../stores/trade.svelte";
 import { resultsState } from "../stores/results.svelte";
@@ -43,6 +44,7 @@ import { storageUtils } from "../utils/storageUtils";
 import { marketWatcher } from "./marketWatcher";
 import { connectionManager } from "./connectionManager";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { tradeCalculator } from "./tradeCalculator.svelte";
 
 const calculatorService = new CalculatorService(calculator, uiState);
 
@@ -63,6 +65,7 @@ export const app = {
       // 1. Initialise core logic
       app.populatePresetLoader();
       app.setupMarketSync();
+      tradeCalculator.init(() => app.calculateAndDisplay());
 
       // 2. Register dependencies in ConnectionManager
       connectionManager.registerProvider("bitunix", bitunixWs);
@@ -432,7 +435,7 @@ export const app = {
       const text = e.target?.result as string;
       const entries = csvService.parseCSVContent(text);
       if (entries.length > 0) {
-        const t = locale.get();
+        const t = get(_);
         const confirmed = await modalState.show(
           t("modals.import.title"),
           t("modals.import.message", { values: { count: entries.length } }),
@@ -551,7 +554,7 @@ export const app = {
 
     const newTargets = [
       ...currentTargets,
-      { price: null, percent: 0, isLocked: false },
+      { price: null, percent: "0", isLocked: false },
     ];
     tradeState.update((s) => ({ ...s, targets: newTargets }));
     app.adjustTpPercentages(null);
@@ -570,14 +573,14 @@ export const app = {
     const targets = [...tradeState.targets];
     if (targets.length === 0) return;
 
-    const total = targets.reduce((sum, t) => sum + (t.percent || 0), 0);
-    const diff = 100 - total;
+    const total = targets.reduce((sum, t) => sum.plus(parseDecimal(t.percent)), new Decimal(0));
+    const diff = new Decimal(100).minus(total);
 
-    if (Math.abs(diff) < 0.0001) return;
+    if (diff.abs().lt(0.0001)) return;
 
     // If only one target, it must be 100%
     if (targets.length === 1) {
-      targets[0].percent = 100;
+      targets[0].percent = "100";
       tradeState.update((s) => ({ ...s, targets }));
       return;
     }
@@ -590,31 +593,32 @@ export const app = {
       // Revert change if no other unlocked targets
       if (changedIndex !== null) {
         const oldTotalExceptChanged = targets.reduce(
-          (sum, t, i) => (i !== changedIndex ? sum + (t.percent || 0) : sum),
-          0,
+          (sum, t, i) => (i !== changedIndex ? sum.plus(parseDecimal(t.percent)) : sum),
+          new Decimal(0),
         );
-        targets[changedIndex].percent = 100 - oldTotalExceptChanged;
+        targets[changedIndex].percent = new Decimal(100).minus(oldTotalExceptChanged).toString();
         tradeState.update((s) => ({ ...s, targets }));
       }
       return;
     }
 
-    if (diff > 0) {
+    if (diff.gt(0)) {
       // Surplus: distribute to all unlocked
-      const share = diff / unlockedIndices.length;
+      const share = diff.div(unlockedIndices.length);
       unlockedIndices.forEach((i) => {
-        targets[i].percent = (targets[i].percent || 0) + share;
+        const current = parseDecimal(targets[i].percent);
+        targets[i].percent = current.plus(share).toString();
       });
     } else {
       // Deficit: take from unlocked targets starting from last
-      let remainingDeficit = Math.abs(diff);
+      let remainingDeficit = diff.abs();
       for (let i = targets.length - 1; i >= 0; i--) {
         if (unlockedIndices.includes(i)) {
-          const current = targets[i].percent || 0;
-          const take = Math.min(current, remainingDeficit);
-          targets[i].percent = current - take;
-          remainingDeficit -= take;
-          if (remainingDeficit <= 0) break;
+          const current = parseDecimal(targets[i].percent);
+          const take = Decimal.min(current, remainingDeficit);
+          targets[i].percent = current.minus(take).toString();
+          remainingDeficit = remainingDeficit.minus(take);
+          if (remainingDeficit.lte(0)) break;
         }
       }
     }

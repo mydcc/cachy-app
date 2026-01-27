@@ -17,7 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
-import { encrypt, decrypt, decryptLegacy } from "./cryptoService";
+import { cryptoService } from "./cryptoService";
 
 const BACKUP_VERSION = 4; // Version 4: PBKDF2 600k Iterations + Strict Data Validation
 const APP_NAME = "R-Calculator";
@@ -93,7 +93,7 @@ export async function createBackup(password?: string) {
 
   if (password) {
     const dataString = JSON.stringify(rawData);
-    const { ciphertext, salt, iv } = await encrypt(dataString, password);
+    const { ciphertext, salt, iv } = await cryptoService.encrypt(dataString, password);
     backupFile.encryptedData = ciphertext;
     backupFile.salt = salt;
     backupFile.iv = iv;
@@ -172,29 +172,27 @@ export async function restoreFromBackup(
 
         // Legacy Support for Version 2 (and 1 if encrypted)
         // V3 also supports weak encryption if it was created before this patch, but marked as V3.
-        // However, our new decrypt function auto-detects iterations, so we can just call decrypt().
-        // For strictness, only V1/V2 force decryptLegacy.
-        if (backup.backupVersion < 3) {
-          decryptedJson = await decryptLegacy(
-            backup.encryptedData || "",
-            password,
-          );
-        } else {
-          // Version 3+ (Stronger or Strongest Encryption)
-          if (!backup.encryptedData || !backup.salt || !backup.iv) {
-            return {
-              success: false,
-              message:
-                "Invalid encrypted backup file format (Missing Salt/IV).",
-            };
-          }
-          decryptedJson = await decrypt(
-            backup.encryptedData,
-            password,
-            backup.salt,
-            backup.iv,
-          );
+        // New CryptoService handles legacy via CBC fallback if method is AES-CBC.
+        // We defaults to AES-CBC for backups < V4 if needed, but usually explicit.
+
+        let method: "AES-GCM" | "AES-CBC" = "AES-GCM"; // Default for V4
+        if (backup.backupVersion < 4) {
+          method = "AES-CBC";
         }
+
+        if (!backup.encryptedData || !backup.salt || !backup.iv) {
+          return {
+            success: false,
+            message: "Invalid encrypted backup file format (Missing Salt/IV).",
+          };
+        }
+
+        decryptedJson = await cryptoService.decrypt({
+          ciphertext: backup.encryptedData,
+          salt: backup.salt,
+          iv: backup.iv,
+          method: method
+        }, password);
 
         data = JSON.parse(decryptedJson);
       } catch (e) {

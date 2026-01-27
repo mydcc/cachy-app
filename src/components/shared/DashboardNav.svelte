@@ -24,14 +24,36 @@
     onselect?: (id: string) => void;
   }
 
+  import { _ } from "../../locales/i18n";
+
   let {
     activePreset,
     presets = [
-      { id: "performance", label: "Performance", icon: icons.chart },
-      { id: "quality", label: "Qualität", icon: icons.check },
-      { id: "direction", label: "Richtung", icon: icons.exchange },
-      { id: "discipline", label: "Disziplin", icon: icons.lockClosed },
-      { id: "costs", label: "Kosten", icon: icons.settings },
+      {
+        id: "performance",
+        label: $_("journal.deepDive.performance") || "Performance",
+        icon: icons.chart,
+      },
+      {
+        id: "quality",
+        label: $_("journal.deepDive.systemQuality") || "Quality",
+        icon: icons.check,
+      },
+      {
+        id: "direction",
+        label: $_("journal.deepDive.charts.labels.trends") || "Direction",
+        icon: icons.exchange,
+      },
+      {
+        id: "discipline",
+        label: $_("journal.deepDive.behavior") || "Discipline",
+        icon: icons.lockClosed,
+      },
+      {
+        id: "costs",
+        label: $_("journal.deepDive.charts.labels.fees") || "Costs",
+        icon: icons.settings,
+      },
     ],
     onselect,
   }: Props = $props();

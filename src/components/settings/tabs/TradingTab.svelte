@@ -7,10 +7,26 @@
     import { uiState } from "../../../stores/ui.svelte";
 
     const intervals = [
-        { value: 1000, label: "1s (Ultra-Fast)", tooltip: "Best for scalping (<1min trades). High CPU usage." },
-        { value: 2000, label: "2s (Fast)", tooltip: "Great for intraday trading (1-15min). Moderate CPU." },
-        { value: 5000, label: "5s (Normal)", tooltip: "Good for day trading (15min+). Balanced." },
-        { value: 10000, label: "10s (Eco)", tooltip: "Ideal for swing trading (1h+). Low CPU." },
+        {
+            value: 1000,
+            label: "1s (Ultra-Fast)",
+            tooltip: "Best for scalping (<1min trades). High CPU usage.",
+        },
+        {
+            value: 2000,
+            label: "2s (Fast)",
+            tooltip: "Great for intraday trading (1-15min). Moderate CPU.",
+        },
+        {
+            value: 5000,
+            label: "5s (Normal)",
+            tooltip: "Good for day trading (15min+). Balanced.",
+        },
+        {
+            value: 10000,
+            label: "10s (Eco)",
+            tooltip: "Ideal for swing trading (1h+). Low CPU.",
+        },
     ];
 
     const activeSubTab = $derived(uiState.settingsTradingSubTab);
@@ -90,7 +106,11 @@
                     <div class="field-group">
                         <label for="market-interval">
                             {$_("settings.marketDataInterval")}
-                            <span class="help-icon" title="How often market prices are updated">ℹ️</span>
+                            <span
+                                class="help-icon"
+                                title="How often market prices are updated"
+                                >ℹ️</span
+                            >
                         </label>
                         <select
                             id="market-interval"
@@ -98,13 +118,22 @@
                             class="input-field"
                         >
                             {#each intervals as interval}
-                                <option value={interval.value} title={interval.tooltip}
+                                <option
+                                    value={interval.value}
+                                    title={interval.tooltip}
                                     >{interval.label}</option
                                 >
                             {/each}
                         </select>
-                        <p class="text-[10px] text-[var(--text-secondary)] mt-1">
-                            {intervals.find(i => i.value === settingsState.marketDataInterval)?.tooltip || "Controls data freshness vs CPU usage"}
+                        <p
+                            class="text-[10px] text-[var(--text-secondary)] mt-1"
+                        >
+                            {intervals.find(
+                                (i) =>
+                                    i.value ===
+                                    settingsState.marketDataInterval,
+                            )?.tooltip ||
+                                "Controls data freshness vs CPU usage"}
                         </p>
                     </div>
 
@@ -201,7 +230,7 @@
                         <div
                             class="grid grid-cols-2 lg:grid-cols-4 gap-2 mb-4 p-4 bg-[var(--bg-secondary)] rounded-lg"
                         >
-                            {#each [{ id: "showTechnicalsSummary", label: "Summary" }, { id: "showTechnicalsOscillators", label: "Oscillators" }, { id: "showTechnicalsMAs", label: "Moving Avgs" }, { id: "showTechnicalsPivots", label: "Pivots" }] as mod}
+                            {#each [{ id: "showTechnicalsSummary", label: $_("settings.technicals.summaryAction") || "Summary" }, { id: "showTechnicalsOscillators", label: $_("settings.technicals.oscillators") || "Oscillators" }, { id: "showTechnicalsMAs", label: $_("settings.technicals.movingAverages") || "Moving Avgs" }, { id: "showTechnicalsPivots", label: $_("settings.technicals.pivots") || "Pivots" }] as mod}
                                 <label
                                     class="flex items-center gap-2 cursor-pointer"
                                 >
@@ -238,8 +267,12 @@
                         bind:value={settingsState.hotkeyMode}
                         class="input-field w-auto py-1 text-xs"
                     >
-                        <option value="mode2">Safety Mode (Alt+ Required)</option>
-                        <option value="mode1">Direct Mode (Fast, No Modifier)</option>
+                        <option value="mode2"
+                            >Safety Mode (Alt+ Required)</option
+                        >
+                        <option value="mode1"
+                            >Direct Mode (Fast, No Modifier)</option
+                        >
                         <option value="custom">Custom Configuration</option>
                     </select>
                 </div>
@@ -255,8 +288,8 @@
                         class="p-4 bg-[var(--bg-secondary)] rounded-lg border border-[var(--border-color)]"
                     >
                         <p class="text-xs text-[var(--text-secondary)] mb-2">
-                            <strong>Active Preset:</strong> {settingsState.hotkeyMode ===
-                            "mode1"
+                            <strong>Active Preset:</strong>
+                            {settingsState.hotkeyMode === "mode1"
                                 ? '⚡ Direct Mode - Press "L" for Long, "S" for Short (fastest)'
                                 : '🛡️ Safety Mode - Press "Alt+L" for Long, "Alt+S" for Short (prevents accidents)'}
                         </p>

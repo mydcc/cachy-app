@@ -30,4 +30,6 @@ declare global {
   }
 }
 
-export {};
+declare module 'crypto-js';
+
+export { };

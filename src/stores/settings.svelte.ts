@@ -11,6 +11,7 @@ import { untrack } from "svelte";
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
 import { StorageHelper } from "../utils/storageHelper";
+import { cryptoService, type EncryptedBlob } from "../services/cryptoService";
 
 export type MarketDataInterval = number; // Seconds
 export type HotkeyMode = "mode1" | "mode2" | "mode3" | "custom";
@@ -94,6 +95,11 @@ export interface Settings {
     bitunix: ApiKeys;
     bitget: ApiKeys;
   };
+  encryptedApiKeys?: {
+    bitunix?: EncryptedBlob;
+    bitget?: EncryptedBlob;
+  };
+  isEncrypted?: boolean;
   customHotkeys: Record<string, string>;
   favoriteTimeframes: string[];
   favoriteSymbols: string[];
@@ -387,7 +393,9 @@ const defaultSettings: Settings = {
   },
 };
 
-class SettingsManager {
+
+
+export class SettingsManager {
   // Using $state for all properties
   private _apiProvider = $state<"bitunix" | "bitget">(
     defaultSettings.apiProvider,
@@ -655,6 +663,11 @@ class SettingsManager {
   private saveTimer: any = null;
   private saveLock = false; // Prevents concurrent saves
 
+  // Security State
+  encryptedApiKeys = $state<Settings["encryptedApiKeys"]>(undefined);
+  isEncrypted = $state(false);
+  isLocked = $state(false);
+
   constructor() {
     if (browser) {
       // 1. Load settings synchronously (effectActive is false, so no saves)
@@ -677,7 +690,7 @@ class SettingsManager {
             this.saveTimer = setTimeout(() => {
               this.save();
               this.notifyListeners();
-            }, 500); // Increased from 200ms to 500ms
+            }, 500);
           });
         });
       });
@@ -705,6 +718,59 @@ class SettingsManager {
         }
       });
     }
+  }
+
+  // --- Security Methods ---
+
+  async unlock(password: string): Promise<boolean> {
+    if (!this.encryptedApiKeys) return true;
+    const success = await cryptoService.unlockSession(password);
+    if (!success) return false;
+
+    try {
+      if (this.encryptedApiKeys.bitunix) {
+        const json = await cryptoService.decrypt(this.encryptedApiKeys.bitunix);
+        this.apiKeys.bitunix = JSON.parse(json);
+      }
+      if (this.encryptedApiKeys.bitget) {
+        const json = await cryptoService.decrypt(this.encryptedApiKeys.bitget);
+        this.apiKeys.bitget = JSON.parse(json);
+      }
+      this.isLocked = false;
+      return true;
+    } catch (e) {
+      console.error("Unlock failed", e);
+      this.lock();
+      return false;
+    }
+  }
+
+  lock() {
+    if (this.isEncrypted) {
+      this.apiKeys = {
+        bitunix: { key: "", secret: "" },
+        bitget: { key: "", secret: "", passphrase: "" }
+      };
+      cryptoService.lockSession();
+      this.isLocked = true;
+    }
+  }
+
+  async setMasterPassword(password: string) {
+    if (!browser) return;
+    await cryptoService.unlockSession(password);
+
+    const bitunixBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitunix));
+    const bitgetBlob = await cryptoService.encrypt(JSON.stringify(this.apiKeys.bitget));
+
+    this.encryptedApiKeys = {
+      bitunix: bitunixBlob,
+      bitget: bitgetBlob
+    };
+
+    this.isEncrypted = true;
+    this.isLocked = false;
+    this.save();
   }
 
   private load() {
@@ -783,9 +849,24 @@ class SettingsManager {
       this.feePreference = merged.feePreference;
       this.hotkeyMode = merged.hotkeyMode;
       // Granular updates for apiKeys to preserve object references if components bind to them
-      if (merged.apiKeys) {
-        if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
-        if (merged.apiKeys.bitget) this.apiKeys.bitget = merged.apiKeys.bitget;
+      // Security: Load Keys
+      if (merged.encryptedApiKeys && Object.keys(merged.encryptedApiKeys).length > 0) {
+        this.isEncrypted = true;
+        this.isLocked = true;
+        this.encryptedApiKeys = merged.encryptedApiKeys;
+        // Ensure plain keys are empty in memory if locked
+        this.apiKeys = {
+          bitunix: { key: "", secret: "" },
+          bitget: { key: "", secret: "", passphrase: "" }
+        };
+      } else {
+        // Legacy: Load plain keys
+        this.isEncrypted = false;
+        this.isLocked = false;
+        if (merged.apiKeys) {
+          if (merged.apiKeys.bitunix) this.apiKeys.bitunix = merged.apiKeys.bitunix;
+          if (merged.apiKeys.bitget) this.apiKeys.bitget = merged.apiKeys.bitget;
+        }
       }
 
       this.customHotkeys = merged.customHotkeys || {};
@@ -981,7 +1062,11 @@ class SettingsManager {
       isPro: this.isPro,
       feePreference: this.feePreference,
       hotkeyMode: this.hotkeyMode,
-      apiKeys: $state.snapshot(this.apiKeys),
+      apiKeys: this.isEncrypted ?
+        { bitunix: { key: "", secret: "" }, bitget: { key: "", secret: "", passphrase: "" } } :
+        $state.snapshot(this.apiKeys),
+      encryptedApiKeys: this.encryptedApiKeys,
+      isEncrypted: this.isEncrypted,
       customHotkeys: $state.snapshot(this.customHotkeys),
       favoriteTimeframes: $state.snapshot(this.favoriteTimeframes),
       favoriteSymbols: $state.snapshot(this.favoriteSymbols),

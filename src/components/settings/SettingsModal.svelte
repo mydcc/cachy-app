@@ -124,7 +124,7 @@
         } else {
           uiState.showError(
             result.message.startsWith("app.")
-              ? $_(result.message)
+              ? $_(result.message as any)
               : result.message,
           );
         }
@@ -185,29 +185,27 @@
     {
       id: "trading",
       icon: `<path d="M12 2v20M2 12h20M4.93 4.93l14.14 14.14M19.07 4.93 4.93 19.07"/>`,
-      label:
-        $_("settings.trading.chartTitle")?.replace("Chart & Data", "Trading") ||
-        "Trading",
+      label: $_("settings.tabs.trading") || "Trading",
     },
     {
       id: "visuals",
       icon: `<path d="M2.05 13.9a9.96 9.96 0 0 1 0-7.8"/> <path d="M8.2 21.8c-1.3-.2-2.5-.6-3.7-1.3"/> <path d="M15.8 2.2c1.3.2 2.5.6 3.7 1.3"/> <path d="M21.95 10.1a9.96 9.96 0 0 1 0 7.8"/> <path d="M12 9a3 3 0 1 0 0 6 3 3 0 0 0 0-6z"/> <path d="M12 2a10 10 0 0 1 10 10"/>`, // Aperture/Eye like
-      label: $_("settings.visuals.appearanceTitle")?.split(" ")[0] || "Visuals",
+      label: $_("settings.tabs.visuals") || "Visuals",
     },
     {
       id: "ai",
       icon: `<path d="M12 2a2 2 0 0 1 2 2c0 2.21-1.79 4-4 4s-4-1.79-4-4a2 2 0 0 1 2-2z"/><path d="M12 10c-3.31 0-6 2.69-6 6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2c0-3.31-2.69-6-6-6z"/>`, // Bot
-      label: "Intelligence",
+      label: $_("settings.tabs.ai") || "Intelligence",
     },
     {
       id: "connections",
       icon: `<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>`,
-      label: "Connections",
+      label: $_("settings.tabs.connections") || "Connections",
     },
     {
       id: "system",
       icon: `<path d="M12 20a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z"/><path d="M12 14a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z"/><path d="M12 2v2"/><path d="M12 22v-2"/><path d="m17 7-1.4 1.4"/><path d="m19.1 4.9-1.4 1.4"/><path d="M22 12h-2"/><path d="M2 12h2"/><path d="m4.9 19.1 1.4-1.4"/><path d="m7 17 1.4 1.4"/>`,
-      label: "System",
+      label: $_("settings.tabs.system") || "System",
     },
     {
       id: "cloud",

@@ -287,8 +287,8 @@ class MarketWatcher {
       } else if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
         const klines = await (provider === "bitget"
-          ? apiService.fetchBitgetKlines(symbol, tf, 50)
-          : apiService.fetchBitunixKlines(symbol, tf, 50));
+          ? apiService.fetchBitgetKlines(symbol, tf, 750)
+          : apiService.fetchBitunixKlines(symbol, tf, 750));
 
         if (klines && klines.length > 0) {
           marketState.updateSymbolKlines(symbol, tf, klines);
