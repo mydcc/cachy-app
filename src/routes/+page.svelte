@@ -55,7 +55,7 @@
   import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
-  import CandlestickPatternsModal from "../components/shared/CandlestickPatternsModal.svelte";
+  import AcademyModal from "../components/shared/AcademyModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
@@ -198,7 +198,7 @@
       if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
       if (uiState.showWhitepaperModal) uiState.toggleWhitepaperModal(false);
       if (uiState.showChangelogModal) uiState.toggleChangelogModal(false);
-      if (uiState.showCandlestickPatternsModal) uiState.toggleCandlestickPatternsModal(false);
+      if (uiState.showAcademyModal) uiState.toggleAcademyModal(false);
       if (modalState.state.isOpen) modalState.handleModalConfirm(false);
       return;
     }
@@ -863,4 +863,4 @@
   </div>
 </ModalFrame>
 
-<CandlestickPatternsModal />
+<AcademyModal />

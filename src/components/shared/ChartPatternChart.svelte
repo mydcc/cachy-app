@@ -66,20 +66,45 @@
     };
   }
 
-  function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string) {
+  function drawGrid(ctx: CanvasRenderingContext2D, w: number, h: number, color: string, textColor: string) {
+    // Grid
     ctx.beginPath();
-    ctx.strokeStyle = color;
+    ctx.strokeStyle = color; // Use faint color
     ctx.lineWidth = 0.5;
-    const step = 50;
-    for (let x = 0; x <= w; x += step) {
+
+    // Create a 10x10 grid roughly
+    const stepX = w / 10;
+    const stepY = h / 8;
+
+    for (let x = stepX; x < w; x += stepX) {
       ctx.moveTo(x, 0);
       ctx.lineTo(x, h);
     }
-    for (let y = 0; y <= h; y += step) {
+    for (let y = stepY; y < h; y += stepY) {
       ctx.moveTo(0, y);
       ctx.lineTo(w, y);
     }
     ctx.stroke();
+
+    // Axes
+    ctx.beginPath();
+    ctx.strokeStyle = textColor; // Stronger color for axes
+    ctx.lineWidth = 1;
+    ctx.moveTo(0, h);
+    ctx.lineTo(w, h); // X Axis
+    ctx.moveTo(0, 0);
+    ctx.lineTo(0, h); // Y Axis
+    ctx.stroke();
+
+    // Axis Labels (Fake)
+    ctx.fillStyle = textColor;
+    ctx.globalAlpha = 0.5;
+    ctx.font = "10px Inter, sans-serif";
+    ctx.textAlign = "left";
+    ctx.fillText("Price", 5, 15);
+    ctx.textAlign = "right";
+    ctx.fillText("Time", w - 10, h - 10);
+    ctx.globalAlpha = 1.0;
   }
 
   function draw() {
@@ -103,7 +128,7 @@
     ctx.clearRect(0, 0, width, height);
 
     // Draw Grid
-    drawGrid(ctx, width, height, colors.grid);
+    drawGrid(ctx, width, height, colors.grid, colors.text);
 
     // Reset local interactives
     interactiveElements = [];

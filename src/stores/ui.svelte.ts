@@ -79,8 +79,7 @@ class UiManager {
   settingsProfileTab = $state<"general" | "appearance" | "controls">("general");
   settingsWorkspaceTab = $state("sidebar");
   showMarketDashboardModal = $state(false);
-  showCandlestickPatternsModal = $state(false);
-  showChartPatternsModal = $state(false);
+  showAcademyModal = $state(false);
 
   // Floating Windows Management
   windows = $state<FloatingWindow[]>([]);
@@ -141,6 +140,7 @@ class UiManager {
         symbolSuggestions: this.symbolSuggestions,
         showSymbolSuggestions: this.showSymbolSuggestions,
         showSettingsModal: this.showSettingsModal,
+        showAcademyModal: this.showAcademyModal,
         settingsTab: this.settingsTab,
         settingsTradingSubTab: this.settingsTradingSubTab,
         settingsVisualsSubTab: this.settingsVisualsSubTab,
@@ -183,6 +183,7 @@ class UiManager {
       symbolSuggestions: this.symbolSuggestions,
       showSymbolSuggestions: this.showSymbolSuggestions,
       showSettingsModal: this.showSettingsModal,
+      showAcademyModal: this.showAcademyModal,
       settingsTab: this.settingsTab,
       settingsTradingSubTab: this.settingsTradingSubTab,
       settingsVisualsSubTab: this.settingsVisualsSubTab,
@@ -318,12 +319,8 @@ class UiManager {
     this.showMarketDashboardModal = show;
   }
 
-  toggleCandlestickPatternsModal(show: boolean) {
-    this.showCandlestickPatternsModal = show;
-  }
-
-  toggleChartPatternsModal(show: boolean) {
-    this.showChartPatternsModal = show;
+  toggleAcademyModal(show: boolean) {
+    this.showAcademyModal = show;
   }
 
   openSettings(tab = "trading") {
