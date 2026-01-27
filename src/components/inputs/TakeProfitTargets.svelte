@@ -47,12 +47,8 @@
 </script>
 
 <div class="mt-4">
-  <div class="section-header-row !mt-4 flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-secondary)] mb-2">
-    <div class="flex items-center gap-2">
-      <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-        {$_("dashboard.takeProfitTargets.header")}
-      </span>
-    </div>
+  <div class="section-header !mt-4">
+    <span>{$_("dashboard.takeProfitTargets.header")}</span>
 
     <div class="flex items-center gap-2">
       <Tooltip text={$_("dashboard.takeProfitTargets.tooltip")} />

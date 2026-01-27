@@ -16,11 +16,14 @@
 -->
 
 <script lang="ts">
-  import TakeProfitRow from "./TakeProfitRow.svelte";
-  import Tooltip from "./Tooltip.svelte";
+  import TakeProfitRow from "../shared/TakeProfitRow.svelte";
+  import Tooltip from "../shared/Tooltip.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
+  import { createEventDispatcher } from "svelte";
   import type { IndividualTpResult } from "../../stores/types";
+
+  const dispatch = createEventDispatcher();
 
   interface Props {
     targets: Array<{
@@ -39,16 +42,13 @@
 
   function removeRow(index: number) {
     app.removeTakeProfitRow(index);
+    dispatch("remove", index);
   }
 </script>
 
-<div>
-  <div class="section-header-row !mt-0 flex items-center justify-between px-3 py-2 rounded-lg bg-[var(--bg-secondary)] mb-2">
-    <div class="flex items-center gap-2">
-      <span class="text-xs font-bold uppercase tracking-wider text-[var(--text-secondary)]">
-        {$_("dashboard.takeProfitTargets.header")}
-      </span>
-    </div>
+<div class="mt-4">
+  <div class="section-header !mt-4">
+    <span>{$_("dashboard.takeProfitTargets.header")}</span>
 
     <div class="flex items-center gap-2">
       <Tooltip text={$_("dashboard.takeProfitTargets.tooltip")} />
@@ -75,6 +75,14 @@
       {/if}
     </div>
   </div>
+
+  {#if targets.length === 0}
+    <div
+      class="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] text-sm"
+    >
+      {$_("dashboard.takeProfitTargets.emptyState" as any)}
+    </div>
+  {/if}
 
   <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
     {#each targets as target, i}
