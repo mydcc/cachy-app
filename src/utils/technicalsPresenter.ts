@@ -28,27 +28,25 @@ export class TechnicalsPresenter {
      * Determines the context (Overbought/Oversold) for oscillators
      */
     static getOscillatorContext(name: string, val: Decimal, defaultAction: string = "Neutral"): string {
-        const v = val.toNumber();
-
         if (name === "RSI") {
-            if (v >= 70) return "Overbought";
-            if (v <= 30) return "Oversold";
+            if (val.gte(70)) return "Overbought";
+            if (val.lte(30)) return "Oversold";
         }
         if (name === "Stoch" || name === "StochRSI") {
-            if (v >= 80) return "Overbought";
-            if (v <= 20) return "Oversold";
+            if (val.gte(80)) return "Overbought";
+            if (val.lte(20)) return "Oversold";
         }
         if (name === "Will %R") {
-            if (v > -20) return "Overbought"; // Typically -20 is "higher" in negative scale (closer to 0)
-            if (v < -80) return "Oversold";
+            if (val.gt(-20)) return "Overbought";
+            if (val.lt(-80)) return "Oversold";
         }
         if (name === "CCI") {
-            if (v > 100) return "Overbought";
-            if (v < -100) return "Oversold";
+            if (val.gt(100)) return "Overbought";
+            if (val.lt(-100)) return "Oversold";
         }
         if (name === "MFI") {
-            if (v >= 80) return "Overbought";
-            if (v <= 20) return "Oversold";
+            if (val.gte(80)) return "Overbought";
+            if (val.lte(20)) return "Oversold";
         }
 
         return defaultAction;
