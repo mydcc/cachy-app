@@ -108,6 +108,19 @@
       "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
       "failedClose": "Failed to send close order."
     },
+    "orderHistory": {
+      "limit": "Limit",
+      "market": "Market",
+      "stopLimit": "Stop Limit",
+      "stopMarket": "Stop Market",
+      "trailing": "Trailing",
+      "liquidation": "Liq.",
+      "buy": "Buy",
+      "sell": "Sell",
+      "fee": "Fee:",
+      "maker": "(M)",
+      "taker": "(T)"
+    },
     "generalInputs": {
       "header": "General",
       "longButton": "Long",

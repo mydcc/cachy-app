@@ -12,7 +12,8 @@ import { logger } from "./logger";
 class OrderManagementSystem {
     private orders = new Map<string, OMSOrder>();
     private positions = new Map<string, OMSPosition>();
-    private readonly MAX_ORDERS = 500;
+    private readonly MAX_ORDERS = 500; // Soft limit for finalized orders
+    private readonly HARD_LIMIT = 1000; // Hard limit for ALL orders (including active)
     private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {
@@ -31,17 +32,27 @@ class OrderManagementSystem {
     }
 
     private pruneOrders() {
-        // Iterate insertion order (oldest first in Map)
+        // 1. Soft Pruning: Remove only finalized orders
         for (const [id, order] of this.orders) {
             if (this.orders.size <= this.MAX_ORDERS) break;
 
-            // Only remove finalized orders
             if (["filled", "cancelled", "rejected", "expired"].includes(order.status)) {
                 this.orders.delete(id);
             }
         }
 
+        // 2. Hard Pruning: If still above HARD_LIMIT, evict oldest orders REGARDLESS of status
+        if (this.orders.size > this.HARD_LIMIT) {
+            logger.error("market", `[OMS] CRITICAL: Hard Limit exceeded (${this.orders.size}). Forcing eviction of active orders.`);
+
+            for (const [id] of this.orders) {
+                if (this.orders.size <= this.HARD_LIMIT) break;
+                this.orders.delete(id);
+            }
+        }
+
         if (this.orders.size > this.MAX_ORDERS) {
+            // Still over soft limit (but under hard limit), means we have many active orders
             logger.warn("market", `[OMS] Order limit exceeded (${this.orders.size}) with active orders.`);
         }
     }

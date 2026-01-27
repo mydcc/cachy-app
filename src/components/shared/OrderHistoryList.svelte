@@ -72,18 +72,18 @@
   function getFeeDisplay(order: any) {
     if (order.fee === undefined || order.fee === null) return "-";
     const role =
-      order.role === "MAKER" ? " (M)" : order.role === "TAKER" ? " (T)" : "";
+      order.role === "MAKER" ? ` ${$_("dashboard.orderHistory.maker")}` : order.role === "TAKER" ? ` ${$_("dashboard.orderHistory.taker")}` : "";
     return `${formatDynamicDecimal(order.fee)}${role}`;
   }
 
   function getTypeLabel(type: any) {
     const t = String(type || "").toUpperCase();
-    if (["LIMIT", "1"].includes(t)) return "Limit";
-    if (["MARKET", "2"].includes(t)) return "Market";
-    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return "Stop Limit";
-    if (["STOP_MARKET", "4"].includes(t)) return "Stop Market";
-    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return "Trailing";
-    if (t === "LIQUIDATION") return "Liq.";
+    if (["LIMIT", "1"].includes(t)) return $_("dashboard.orderHistory.limit");
+    if (["MARKET", "2"].includes(t)) return $_("dashboard.orderHistory.market");
+    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return $_("dashboard.orderHistory.stopLimit");
+    if (["STOP_MARKET", "4"].includes(t)) return $_("dashboard.orderHistory.stopMarket");
+    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return $_("dashboard.orderHistory.trailing");
+    if (t === "LIQUIDATION") return $_("dashboard.orderHistory.liquidation");
     if (!t || t === "UNDEFINED" || t === "NULL") return ""; // Empty for unknown
     return t.length > 6 ? t.substring(0, 6) + "." : t; // Truncate long types
   }
@@ -144,7 +144,7 @@
                   title={`Type: ${order.type || "Unknown"}`}
                 >
                   {getTypeLabel(order.type)}
-                  {order.side === "BUY" ? "Buy" : "Sell"}
+                  {order.side === "BUY" ? $_("dashboard.orderHistory.buy") : $_("dashboard.orderHistory.sell")}
                 </span>
               </div>
 
@@ -185,7 +185,7 @@
               <span
                 class="text-[9px] text-[var(--text-tertiary)] opacity-70 whitespace-nowrap mt-0.5"
               >
-                Fee: {getFeeDisplay(order)}
+                {$_("dashboard.orderHistory.fee")} {getFeeDisplay(order)}
               </span>
             </div>
           </div>
