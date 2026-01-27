@@ -235,7 +235,8 @@ class TradeManager {
           this.atrTimeframe = data.atrTimeframe;
           this.analysisTimeframe = data.analysisTimeframe;
           this.tradeNotes = data.tradeNotes;
-          this.tags = data.tags;
+          // Security Hardening: Cap tags to 50
+          this.tags = (data.tags || []).slice(0, 50);
           this.journalSearchQuery = data.journalSearchQuery;
           this.journalFilterStatus = data.journalFilterStatus;
 
@@ -252,7 +253,8 @@ class TradeManager {
           if (!data.targets || data.targets.length === 0 || !hasAnyPrice) {
             this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
           } else {
-            this.targets = data.targets;
+            // Security Hardening: Cap targets to 20
+            this.targets = data.targets.slice(0, 20);
           }
 
         } else {
@@ -406,8 +408,15 @@ class TradeManager {
     // Ensure reactivity for targets array if replaced completely
     // Object.assign handles this, but explicit assignment ensures Runes signal works if Object.assign behavior varies
     if (next.targets && next.targets !== this.targets) {
-      this.targets = next.targets;
+      // Security Hardening: Cap targets to 20 on update
+      this.targets = next.targets.slice(0, 20);
     }
+
+    // Security Hardening: Cap tags on update
+    if (next.tags && next.tags !== this.tags) {
+        this.tags = next.tags.slice(0, 50);
+    }
+
     this.notifyListeners();
   }
 

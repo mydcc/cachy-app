@@ -20,11 +20,11 @@ export class BitunixApiError extends Error {
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
-    public async signedRequest(
+    public async signedRequest<T>(
         method: string,
         endpoint: string,
         payload: any
-    ): Promise<any> {
+    ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
         const headers: Record<string, string> = {
@@ -171,6 +171,20 @@ class TradeService {
             qty,
             reduceOnly: true
         });
+    }
+
+    public async closeAllPositions() {
+        const positions = omsService.getPositions();
+        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side }));
+        const results = await Promise.allSettled(promises);
+
+        const failures = results.filter(r => r.status === "rejected");
+        if (failures.length > 0) {
+            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
+            throw new Error(`Failed to close ${failures.length} positions`);
+        }
+
+        return results;
     }
 }
 
