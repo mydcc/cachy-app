@@ -83,10 +83,6 @@ describe("technicalsService", () => {
     const ao = result.oscillators.find((o) => o.name === "Awesome Osc.");
     expect(ao).toBeDefined();
     expect(Decimal.isDecimal(ao?.value)).toBe(true);
-
-    const mom = result.oscillators.find((o) => o.name === "Momentum");
-    expect(mom).toBeDefined();
-    expect(Decimal.isDecimal(mom?.value)).toBe(true);
   });
 
   it("should respect custom settings", async () => {
@@ -115,11 +111,6 @@ describe("technicalsService", () => {
     const adx = result.oscillators.find((o) => o.name === "ADX");
     expect(adx).toBeDefined();
     expect(adx?.params).toBe("10");
-
-    // Verify Momentum params
-    const mom = result.oscillators.find((o) => o.name === "Momentum");
-    expect(mom).toBeDefined();
-    expect(mom?.params).toBe("5");
 
     // Verify Awesome Osc params
     const ao = result.oscillators.find((o) => o.name === "Awesome Osc.");

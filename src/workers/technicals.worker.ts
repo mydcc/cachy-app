@@ -165,10 +165,11 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
       }));
 
       const result = calculateAllIndicators(klinesDec, settings, enabledIndicators);
+      const serialized = serializeResult(result);
 
       const response: WorkerMessage = {
         type: "RESULT",
-        payload: result,
+        payload: serialized,
         id,
       };
       ctx.postMessage(response);

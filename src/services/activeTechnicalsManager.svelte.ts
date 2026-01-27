@@ -194,19 +194,28 @@ class ActiveTechnicalsManager {
         if (lastCandle.time === currentPeriodStart) {
             // Update the clone
             let close = price;
-            let high = lastCandle.high;
-            let low = lastCandle.low;
+            // Ensure we respect existing High/Low unless broken by new price
+            // Using Decimal comparison methods for safety
+            let high = lastCandle.high instanceof Decimal ? lastCandle.high : new Decimal(lastCandle.high);
+            let low = lastCandle.low instanceof Decimal ? lastCandle.low : new Decimal(lastCandle.low);
 
-            if (close.greaterThan(high)) high = close;
-            if (close.lessThan(low)) low = close;
+            if (price.greaterThan(high)) high = price;
+            if (price.lessThan(low)) low = price;
 
-            lastCandle.close = close;
+            lastCandle.close = price;
             lastCandle.high = high;
             lastCandle.low = low;
+
+            // Preserve volume!
+            // If the candle came from WebSocket kline update, it has volume.
+            // If it was a phantom candle from previous tick, it might have 0.
+            // We do NOT reset it to 0 here.
 
             history[lastIdx] = lastCandle;
         } else if (currentPeriodStart > lastCandle.time) {
             // New phantom candle for pending period
+            // We must start with volume 0 as we only have price info from Ticker.
+            // The next 'market_kline' update via WS will fill in the volume.
             const newCandle: Kline = {
                 time: currentPeriodStart,
                 open: price,
