@@ -45,7 +45,7 @@
   }
 </script>
 
-<div class="space-y-2 mt-4">
+<div class="mt-4">
   <div class="flex items-center justify-between mb-2">
     <h3 class="section-header !mt-0">
       {$_("dashboard.takeProfitTargets.header")} ({targets.length})
@@ -60,20 +60,22 @@
     </div>
   {/if}
 
-  {#each targets as target, i}
-    <TakeProfitRow
-      index={i}
-      price={target.price}
-      percent={target.percent}
-      isLocked={target.isLocked}
-      tpDetail={calculatedTpDetails.find((d) => d.index === i)}
-      on:remove={() => removeRow(i)}
-    />
-  {/each}
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-2">
+    {#each targets as target, i}
+      <TakeProfitRow
+        index={i}
+        price={target.price}
+        percent={target.percent}
+        isLocked={target.isLocked}
+        tpDetail={calculatedTpDetails.find((d) => d.index === i)}
+        on:remove={() => removeRow(i)}
+      />
+    {/each}
+  </div>
 
   {#if targets.length < 10}
     <button
-      class="w-full py-2 border-2 border-dashed border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors text-sm font-medium flex items-center justify-center gap-2"
+      class="w-full mt-2 py-2 border-2 border-dashed border-[var(--border-color)] text-[var(--text-secondary)] rounded-lg hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-colors text-sm font-medium flex items-center justify-center gap-2"
       onclick={addRow}
     >
       <svg

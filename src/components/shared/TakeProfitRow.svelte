@@ -161,7 +161,7 @@
   </div>
 
   <!-- Inputs -->
-  <div class="flex items-center justify-between gap-4 mb-1">
+  <div class="flex items-center justify-between gap-2 mb-1">
     <!-- TP Price Input -->
     <div class="relative flex-grow">
       <input
@@ -177,37 +177,70 @@
       />
     </div>
 
-    <div class="flex items-center gap-2 flex-shrink-0">
-      <!-- TP Percent Input -->
-      <div class="relative w-20">
-        <input
-          id="tp-percent-{index}"
-          name="tpPercent-{index}"
-          type="text"
-          use:numberInput={{
-            noDecimals: true,
-            isPercentage: true,
-            minValue: 0,
-            maxValue: 100,
-          }}
-          use:enhancedInput={{
-            step: 1,
-            min: 0,
-            max: 100,
-            noDecimals: true,
-            rightOffset: "2px",
-          }}
-          value={format(percent)}
-          oninput={handlePercentInput}
-          class="tp-percent input-field w-full px-2 py-1.5 rounded-md text-sm"
-          class:locked-input={isLocked}
-          disabled={isLocked}
-          placeholder="%"
-        />
-      </div>
+    <!-- TP Percent Input -->
+    <div class="relative w-20 flex-shrink-0">
+      <input
+        id="tp-percent-{index}"
+        name="tpPercent-{index}"
+        type="text"
+        use:numberInput={{
+          noDecimals: true,
+          isPercentage: true,
+          minValue: 0,
+          maxValue: 100,
+        }}
+        use:enhancedInput={{
+          step: 1,
+          min: 0,
+          max: 100,
+          noDecimals: true,
+          rightOffset: "2px",
+        }}
+        value={format(percent)}
+        oninput={handlePercentInput}
+        class="tp-percent input-field w-full px-2 py-1.5 rounded-md text-sm"
+        class:locked-input={isLocked}
+        disabled={isLocked}
+        placeholder="%"
+      />
+    </div>
+  </div>
+
+  <!-- Footer: Stats + Delete -->
+  <div
+    class="flex justify-between items-center text-[10px] text-[var(--text-secondary)] px-1 mt-1"
+  >
+    <!-- Win Stats -->
+    <div class="truncate">
+      {#if tpDetail}
+        <span title={$_("dashboard.takeProfitRow.winLabel")}>
+          Win: <span class="text-[var(--success-color)] font-medium"
+            >+${formatProfit(tpDetail.netProfit)}</span
+          >
+        </span>
+      {/if}
+    </div>
+
+    <!-- Right: R/R + Trash -->
+    <div class="flex items-center gap-2">
+      {#if tpDetail}
+        <span
+          class="whitespace-nowrap"
+          title={$_("dashboard.takeProfitRow.rrLabel")}
+        >
+          R/R: <span
+            class="font-medium {tpDetail.riskRewardRatio.gte(2)
+              ? 'text-[var(--success-color)]'
+              : tpDetail.riskRewardRatio.gte(1.5)
+                ? 'text-[var(--warning-color)]'
+                : 'text-[var(--danger-color)]'}"
+            >{tpDetail.riskRewardRatio.toFixed(2)}</span
+          >
+        </span>
+      {/if}
 
       <button
-        class="remove-tp-btn text-[var(--danger-color)] hover:opacity-80 p-1 flex-shrink-0"
+        class="remove-tp-btn text-[var(--danger-color)] hover:opacity-80 p-1"
         title={$_("dashboard.takeProfitRow.removeButtonTitle")}
         tabindex="-1"
         onclick={removeRow}
@@ -234,32 +267,6 @@
       </button>
     </div>
   </div>
-
-  <!-- Stats: Win / RR (Footer) -->
-  {#if tpDetail}
-    <div
-      class="flex justify-between items-center text-[10px] text-[var(--text-secondary)] px-1 mt-1"
-    >
-      <span class="truncate" title={$_("dashboard.takeProfitRow.winLabel")}>
-        Win: <span class="text-[var(--success-color)] font-medium"
-          >+${formatProfit(tpDetail.netProfit)}</span
-        >
-      </span>
-      <span
-        class="ml-2 whitespace-nowrap"
-        title={$_("dashboard.takeProfitRow.rrLabel")}
-      >
-        R/R: <span
-          class="font-medium {tpDetail.riskRewardRatio.gte(2)
-            ? 'text-[var(--success-color)]'
-            : tpDetail.riskRewardRatio.gte(1.5)
-              ? 'text-[var(--warning-color)]'
-              : 'text-[var(--danger-color)]'}"
-          >{tpDetail.riskRewardRatio.toFixed(2)}</span
-        >
-      </span>
-    </div>
-  {/if}
 </div>
 
 <style>
