@@ -117,6 +117,20 @@ export function parseDecimal(
 }
 
 /**
+ * Robust wrapper for new Decimal() that handles null/undefined/NaN by returning 0.
+ * Prefer this over direct 'new Decimal()' for unsafe inputs.
+ */
+export function safeDecimal(value: string | number | Decimal | null | undefined): Decimal {
+    if (value === null || value === undefined) return new Decimal(0);
+    try {
+        const d = new Decimal(value);
+        return d.isNaN() ? new Decimal(0) : d;
+    } catch {
+        return new Decimal(0);
+    }
+}
+
+/**
  * Formats a number for API payloads, ensuring no scientific notation (e.g. 1e-7) is used.
  * Uses high precision (20 decimals) and trims trailing zeros.
  */
