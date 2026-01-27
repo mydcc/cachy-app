@@ -2,6 +2,7 @@
 <script lang="ts">
   import { onMount, untrack } from "svelte";
   import { Chart, type ChartConfiguration, type Plugin } from "chart.js";
+  import { browser } from "$app/environment";
   import "../../lib/chartSetup"; // Ensure Chart.js defaults are loaded
   import type { PatternDefinition, CandleData } from "../../services/candlestickPatterns";
 
@@ -14,24 +15,58 @@
   let canvas: HTMLCanvasElement;
   let chart: Chart | null = null;
 
+  // Helper to resolve CSS variables (handles "var(--name)" references)
+  const resolveColor = (varName: string, fallback: string = "#000000") => {
+    if (!browser) return fallback;
+
+    // 1. Get the raw value (might be "var(--other)")
+    let val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    if (!val) return fallback;
+
+    // 2. If it's a direct color (hex, rgb, etc) and not a variable reference, return it
+    if (!val.startsWith("var(") && !val.includes("var(")) {
+        return val;
+    }
+
+    // 3. If it is a variable reference, we need the browser to resolve it.
+    try {
+        const temp = document.createElement("div");
+        temp.style.display = "none";
+        temp.style.backgroundColor = `var(${varName})`;
+        document.body.appendChild(temp);
+        const resolved = getComputedStyle(temp).backgroundColor;
+        document.body.removeChild(temp);
+        return resolved || fallback;
+    } catch (e) {
+        console.warn("Failed to resolve color:", varName, e);
+        return fallback;
+    }
+  };
+
   function prepareChartData(candles: CandleData[]) {
+    // Dynamic Spacing Logic
+    // If few candles, we pad with empty labels to center them visually
+    // If many candles, we use them as is.
+    // Target: We want them centered.
+    // Hack: Add empty data points to left and right?
+    // Better: Chart.js 'barThickness' and axis padding.
+
+    // We stick to simple data mapping but control visual density via scales config
     const labels = candles.map((_, i) => i.toString());
 
-    // Dataset 1: Wicks (Low to High) - Thin bars
     const wickData = candles.map(c => [c.low, c.high]);
 
-    // Dataset 2: Bodies (Open to Close) - Thick bars
-    // Note: If Open == Close (Doji), we need a tiny height to make it visible
     const bodyData = candles.map(c => {
         if (Math.abs(c.open - c.close) < 0.00001) {
-            // Tiny offset for Doji visibility
             return [c.open - 0.05, c.open + 0.05];
         }
         return [Math.min(c.open, c.close), Math.max(c.open, c.close)];
     });
 
-    const colors = candles.map(c => c.close >= c.open ? '#0ECB81' : '#F6465D'); // Binance-like Green/Red
-    const borderColors = candles.map(c => c.close >= c.open ? '#0ECB81' : '#F6465D');
+    const successColor = resolveColor('--success-color', '#0ECB81');
+    const dangerColor = resolveColor('--danger-color', '#F6465D');
+
+    const colors = candles.map(c => c.close >= c.open ? successColor : dangerColor);
 
     return {
       labels,
@@ -39,27 +74,26 @@
         {
           label: 'Wicks',
           data: wickData,
-          backgroundColor: colors, // Wick matches body color
-          borderColor: colors,     // Wick matches body color
-          barThickness: 2,         // Thin wick (2px)
-          grouped: false,          // IMPORTANT: Overlap with body
-          order: 1                 // Draw behind (technically Chart.js draws higher order first? No, lower index first usually. But Order property: lower number is top. Let's rely on array order + grouped: false)
+          backgroundColor: colors,
+          borderColor: colors,
+          barThickness: 2,
+          grouped: false,
+          order: 1
         },
         {
           label: 'Bodies',
           data: bodyData,
           backgroundColor: colors,
-          borderColor: borderColors,
+          borderColor: colors,
           borderWidth: 1,
-          barThickness: 20, // Wider body
-          grouped: false,   // IMPORTANT: Overlap with wick
-          order: 0          // Draw on top of wick (if needed, though same color merges them)
+          barThickness: 20,
+          grouped: false,
+          order: 0
         }
       ]
     };
   }
 
-  // Custom Plugin for Annotations (kept mostly same, adjusted for visual clarity)
   const annotationPlugin: Plugin = {
     id: 'patternHighlights',
     afterDraw(chart) {
@@ -68,6 +102,16 @@
       const ctx = chart.ctx;
       const xAxis = chart.scales.x;
       const yAxis = chart.scales.y;
+
+      const accentColor = resolveColor('--color-accent', '#FACC15');
+      const accentBg = resolveColor('--color-accent-transparent', 'rgba(250, 204, 21, 0.2)');
+      // Manually making transparency if variable not available
+      const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
+      const accentRgb = accentRgbMatch ? accentRgbMatch[0] : '250, 204, 21';
+      const accentBgManual = `rgba(${accentRgb}, 0.2)`;
+
+      const successBg = `rgba(${resolveColor('--success-color-rgb', '34, 197, 94')}, 0.2)`;
+      const dangerBg = `rgba(${resolveColor('--danger-color-rgb', '239, 68, 68')}, 0.2)`;
 
       pattern.keyFeatures.forEach(feature => {
         ctx.save();
@@ -82,15 +126,14 @@
             const x = getX(feature.candleIndex);
             const yTop = getY(Math.max(candle.open, candle.close));
             const yBottom = getY(Math.min(candle.open, candle.close));
-            const width = 32; // Slightly larger than bar (20px body)
+            const width = 32;
 
-            ctx.fillStyle = feature.color || 'rgba(250, 204, 21, 0.2)'; // Softer yellow
-            ctx.strokeStyle = feature.borderColor || '#FACC15';
+            ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : accentBgManual;
+            ctx.strokeStyle = feature.borderColor ? resolveColor(feature.borderColor, feature.borderColor) : accentColor;
             ctx.lineWidth = 1.5;
 
-            // Round Rect
             ctx.beginPath();
-            ctx.roundRect(x - width/2, yTop - 2, width, (yBottom - yTop) + 4, 6); // Add padding
+            ctx.roundRect(x - width/2, yTop - 2, width, (yBottom - yTop) + 4, 6);
             ctx.fill();
             if (feature.borderColor) ctx.stroke();
 
@@ -114,8 +157,8 @@
             const x = (x1 + x2) / 2;
 
             if (height > 2) {
-                ctx.fillStyle = feature.color || 'rgba(163,230,53,0.2)';
-                ctx.strokeStyle = 'rgba(163,230,53, 0.8)';
+                ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : successBg;
+                ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color).replace('0.2', '0.8') : successBg.replace('0.2', '0.8');
                 ctx.lineWidth = 1;
                 ctx.beginPath();
                 ctx.roundRect(x - 12, top, 24, height, 4);
@@ -134,7 +177,7 @@
              const y1 = getY(val1);
              const y2 = getY(val2);
 
-             ctx.strokeStyle = feature.color || '#FACC15';
+             ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color) : accentColor;
              ctx.lineWidth = feature.lineWidth || 2;
              if (feature.dashed) ctx.setLineDash([4, 4]);
 
@@ -156,13 +199,27 @@
                  yEnd = getY(candle.low);
              }
 
-             // Highlight shadow with a colored line alongside it or over it
-             ctx.strokeStyle = feature.color || '#FACC15';
+             ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color) : accentColor;
              ctx.lineWidth = 3;
              ctx.beginPath();
-             ctx.moveTo(x + 5, yStart); // Offset slightly to right
+             ctx.moveTo(x + 5, yStart);
              ctx.lineTo(x + 5, yEnd);
              ctx.stroke();
+        } else if (feature.type === 'engulf' && feature.candleIndex1 !== undefined && feature.candleIndex2 !== undefined) {
+             // Engulfing box
+             const x2 = getX(feature.candleIndex2);
+             const c2 = getCandle(feature.candleIndex2);
+             const yTop = getY(Math.max(c2.open, c2.close));
+             const yBottom = getY(Math.min(c2.open, c2.close));
+             const width = 36;
+
+             ctx.strokeStyle = feature.borderColor ? resolveColor(feature.borderColor, feature.borderColor) : accentColor;
+             ctx.lineWidth = 2;
+             ctx.setLineDash([2, 2]);
+             ctx.beginPath();
+             ctx.roundRect(x2 - width/2, yTop - 4, width, (yBottom - yTop) + 8, 6);
+             ctx.stroke();
+             ctx.setLineDash([]);
         }
 
         ctx.restore();
@@ -182,7 +239,25 @@
           min = Math.min(min, c.low);
           max = Math.max(max, c.high);
       });
-      const padding = (max - min) * 0.25; // More padding
+      const range = max - min;
+      const padding = range * 0.25;
+
+      // Center Logic: Chart.js scales
+      // We can force X axis min/max to create padding
+      // Candles are indexed 0, 1, 2...
+      // If we have 1 candle (index 0), we want it centered.
+      // Setting min: -2, max: 2 puts 0 in middle.
+
+      const count = pattern.candles.length;
+      let xMin = -0.5;
+      let xMax = count - 0.5;
+
+      if (count < 5) {
+          // Add padding to force centering visually
+          const padCount = (5 - count) / 2;
+          xMin = -padCount - 0.5;
+          xMax = count + padCount - 0.5;
+      }
 
       chart = new Chart(canvas, {
         type: 'bar',
@@ -198,7 +273,9 @@
                 x: {
                     display: false,
                     grid: { display: false },
-                    stacked: true // Crucial for overlapping if grouped: false isn't enough, but grouped: false is better for individual control.
+                    min: xMin,
+                    max: xMax,
+                    stacked: true
                 },
                 y: {
                     display: false,
@@ -212,6 +289,29 @@
         plugins: [annotationPlugin]
       });
     }
+  });
+
+  // Re-render on theme change?
+  // We need to listen to theme changes to update colors.
+  // Using MutationObserver on document.documentElement (like in ThreeBackground) or simple interval check?
+  // Or just rely on re-mount if user changes theme? Modal usually stays open.
+  // Ideally we subscribe to a theme store or signal.
+
+  let observer: MutationObserver;
+  onMount(() => {
+      observer = new MutationObserver(() => {
+          if (chart && pattern) {
+              const newData = prepareChartData(pattern.candles);
+              chart.data.datasets[0].backgroundColor = newData.datasets[0].backgroundColor;
+              chart.data.datasets[0].borderColor = newData.datasets[0].borderColor;
+              chart.data.datasets[1].backgroundColor = newData.datasets[1].backgroundColor;
+              chart.data.datasets[1].borderColor = newData.datasets[1].borderColor;
+              chart.update();
+          }
+      });
+      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+
+      return () => observer.disconnect();
   });
 
   $effect(() => {
