@@ -25,17 +25,30 @@ class TradeService {
         endpoint: string,
         payload: any
     ): Promise<any> {
-        // Implementation for real app (simplified)
-        // In test this is mocked
+        // Guard: Ensure credentials are still present immediately before fetch
+        const provider = settingsState.apiProvider;
+        const keys = settingsState.apiKeys[provider as keyof typeof settingsState.apiKeys];
+
+        if (!keys || !keys.key || !keys.secret) {
+            logger.error("network", "[TradeService] API credentials missing at execution time");
+            throw new Error("apiErrors.missingCredentials");
+        }
+
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
-            "X-Provider": settingsState.apiProvider
+            "X-Provider": provider
         };
 
         const response = await fetch(endpoint, {
             method,
             headers,
-            body: JSON.stringify(payload)
+            body: JSON.stringify({
+                ...payload,
+                // Ensure keys are sent to backend for signing/execution
+                apiKey: keys.key,
+                apiSecret: keys.secret,
+                passphrase: (keys as any).passphrase
+            })
         });
 
         const data = await response.json();
@@ -81,17 +94,44 @@ class TradeService {
         const side = positionSide === "long" ? "SELL" : "BUY";
 
         // CRITICAL: Use exact amount from OMS
+        if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
+            logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
+            throw new Error("apiErrors.invalidAmount");
+        }
+
         const qty = position.amount.toString();
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
 
-        return this.signedRequest("POST", "/api/orders", {
+        // OPTIMISTIC UPDATE
+        const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
+        omsService.addOptimisticOrder({
+            id: clientOrderId,
+            clientOrderId,
             symbol,
-            side,
-            orderType: "MARKET",
-            qty, // String for precision
-            reduceOnly: true
+            side: side.toLowerCase() as any,
+            type: "market",
+            status: "pending",
+            price: new Decimal(0),
+            amount: position.amount,
+            filledAmount: new Decimal(0),
+            timestamp: Date.now(),
+            _isOptimistic: true
         });
+
+        try {
+            return await this.signedRequest("POST", "/api/orders", {
+                symbol,
+                side,
+                orderType: "MARKET",
+                qty, // String for precision
+                reduceOnly: true,
+                clientOrderId
+            });
+        } catch (e) {
+            omsService.removeOrder(clientOrderId);
+            throw e;
+        }
     }
 
     // Emergency Fallback to fetch ALL open positions directly from Bitunix/API
@@ -161,16 +201,39 @@ class TradeService {
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
         const qty = amount ? amount.toString() : position.amount.toString();
+        const numQty = amount || position.amount;
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
-        return this.signedRequest("POST", "/api/orders", {
+        // OPTIMISTIC UPDATE
+        const clientOrderId = "opt-" + Date.now() + "-" + Math.round(Math.random() * 1000);
+        omsService.addOptimisticOrder({
+            id: clientOrderId,
+            clientOrderId,
             symbol,
-            side,
-            orderType: "MARKET",
-            qty,
-            reduceOnly: true
+            side: side.toLowerCase() as any,
+            type: "market",
+            status: "pending",
+            price: new Decimal(0),
+            amount: numQty,
+            filledAmount: new Decimal(0),
+            timestamp: Date.now(),
+            _isOptimistic: true
         });
+
+        try {
+            return await this.signedRequest("POST", "/api/orders", {
+                symbol,
+                side,
+                orderType: "MARKET",
+                qty,
+                reduceOnly: true,
+                clientOrderId
+            });
+        } catch (e) {
+            omsService.removeOrder(clientOrderId);
+            throw e;
+        }
     }
 }
 
