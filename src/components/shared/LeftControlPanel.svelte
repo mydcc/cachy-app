@@ -48,32 +48,18 @@
     {@html icons.settings}
   </button>
 
-  <!-- Academy/Patterns Button -->
+  <!-- Academy Button -->
   <button
     class="control-btn"
-    onclick={() => uiState.toggleCandlestickPatternsModal(true)}
-    title={$_("candlestickPatterns.title") || "Candlestick Patterns"}
+    onclick={() => uiState.toggleAcademyModal(true)}
+    title={$_("academy.title") || "Trading Academy"}
     use:trackClick={{
         category: "Navigation",
         action: "Click",
-        name: "OpenPatterns",
+        name: "OpenAcademy",
     }}
   >
     {@html ICONS.academy}
-  </button>
-
-  <!-- Chart Patterns Button -->
-  <button
-    class="control-btn"
-    onclick={() => uiState.toggleChartPatternsModal(true)}
-    title={$_("chartPatterns.title") || "Chart Patterns"}
-    use:trackClick={{
-        category: "Navigation",
-        action: "Click",
-        name: "OpenChartPatterns",
-    }}
-  >
-    {@html ICONS.chartPatterns}
   </button>
 
   <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
