@@ -471,7 +471,7 @@ export const apiService = {
 
           // Backend returns the mapped array directly
           if (!Array.isArray(res)) {
-            if (res.error) throw new Error(res.error);
+            if (res.error) throw new Error("apiErrors.klineError");
             throw new Error("apiErrors.invalidResponse");
           }
 

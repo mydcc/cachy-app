@@ -27,6 +27,13 @@ class TradeService {
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
+        const provider = settingsState.apiProvider;
+        const keys = settingsState.apiKeys[provider];
+
+        if (!keys || !keys.key) {
+            throw new Error("apiErrors.missingCredentials");
+        }
+
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
             "X-Provider": provider
@@ -78,7 +85,7 @@ class TradeService {
 
         if (!position) {
             logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new Error("tradeErrors.positionNotFound");
         }
 
         // 2. Execute Close
@@ -142,7 +149,7 @@ class TradeService {
                 }),
             });
 
-            if (!pendingResponse.ok) throw new Error("Fetch failed");
+            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
 
             const pendingResult = await pendingResponse.json();
             if (pendingResult.error) throw new Error(pendingResult.error);
@@ -186,7 +193,7 @@ class TradeService {
         );
 
         if (!position) {
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new Error("tradeErrors.positionNotFound");
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -215,7 +222,7 @@ class TradeService {
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error(`Failed to close ${failures.length} positions`);
+            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
         }
 
         return results;
