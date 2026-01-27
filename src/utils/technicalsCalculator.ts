@@ -162,7 +162,7 @@ export function calculateAllIndicators(
       // If strong trend, we assume continuation of current short term trend
       if (adxVal.gt(adxThreshold)) {
         const prevClose = closesNum[closesNum.length - 2];
-        adxAction = new Decimal(currentPrice).toNumber() > prevClose ? "Buy" : "Sell";
+        adxAction = currentPrice.gt(prevClose) ? "Buy" : "Sell";
       }
 
       oscillators.push({

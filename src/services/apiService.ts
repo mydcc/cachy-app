@@ -25,6 +25,7 @@ import { logger } from "./logger";
 import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
+  BitunixKlineSchema,
   validateResponseSize,
   sanitizeErrorMessage,
 } from "../types/apiSchemas";
@@ -347,15 +348,7 @@ export const apiService = {
             throw error;
           }
           const data = validatedRes.data[0];
-          try {
-            const lastPrice = new Decimal(data.lastPrice);
-            if (lastPrice.isNaN() || !lastPrice.isFinite()) {
-              throw new Error("apiErrors.invalidResponse");
-            }
-            return lastPrice;
-          } catch {
-            throw new Error("apiErrors.invalidResponse");
-          }
+          return data.lastPrice;
         } catch (e: any) {
           if (e instanceof Error && e.name === "AbortError") throw e;
           if (e.status || (e.message && e.message.includes("."))) throw e;
@@ -478,53 +471,30 @@ export const apiService = {
 
           // Backend returns the mapped array directly
           if (!Array.isArray(res)) {
-            if (res.error) throw new Error(res.error);
+            if (res.error) throw new Error("apiErrors.klineError");
             throw new Error("apiErrors.invalidResponse");
           }
 
           // Map the response data to the required Kline interface
           return res
-            .map(
-              (kline: {
-                open: string | number;
-                high: string | number;
-                low: string | number;
-                close: string | number;
-                volume?: string | number;
-                vol?: string | number;
-                timestamp?: number;
-                time?: number;
-                ts?: number;
-              }) => {
-                try {
-                  const open = new Decimal(kline.open || 0);
-                  const high = new Decimal(kline.high || 0);
-                  const low = new Decimal(kline.low || 0);
-                  const close = new Decimal(kline.close || 0);
-                  // The server endpoint normalizes this to 'volume', but we keep fallback to 'vol' just in case
-                  const volume = new Decimal(kline.volume || kline.vol || 0);
-                  const time = parseTimestamp(
-                    kline.timestamp || kline.time || kline.ts,
-                  );
-
-                  // Validate basic financial consistency
-                  if (
-                    open.isNaN() ||
-                    high.isNaN() ||
-                    low.isNaN() ||
-                    close.isNaN() ||
-                    time === 0
-                  ) {
-                    return null;
-                  }
-
-                  return { open, high, low, close, volume, time };
-                } catch (e) {
-                  logger.warn("network", "Skipping invalid kline", { kline, error: e });
-                  return null;
-                }
-              },
-            )
+            .map((kline: any) => {
+              const validation = BitunixKlineSchema.safeParse(kline);
+              if (!validation.success) {
+                logger.warn("network", "Skipping invalid kline", { kline, error: validation.error.issues });
+                return null;
+              }
+              const d = validation.data;
+              const time = parseTimestamp(d.timestamp || d.time || d.ts);
+              if (time === 0) return null;
+              return {
+                open: d.open,
+                high: d.high,
+                low: d.low,
+                close: d.close,
+                volume: d.vol || new Decimal(0),
+                time
+              };
+            })
             .filter((k): k is Kline => k !== null);
         } catch (e: any) {
           if (e.message !== "apiErrors.symbolNotFound") {
@@ -640,42 +610,26 @@ export const apiService = {
           const data = await response.json();
 
           if (provider === "bitunix") {
-            if (data.code !== undefined && data.code !== 0) {
-              throw new Error(getBitunixErrorKey(data.code));
-            }
-            if (!data.data || data.data.length === 0) {
+            const validation = BitunixTickerResponseSchema.safeParse(data);
+            if (!validation.success) {
+              logger.error("network", "[API] Invalid ticker24h response", validation.error.issues);
               throw new Error("apiErrors.invalidResponse");
             }
-            const ticker = data.data[0];
-
-            // Helper to safe parse decimal
-            const toDec = (val: any, defaultVal = "0") => {
-              if (val === undefined || val === null || val === "") return new Decimal(defaultVal);
-              try {
-                const d = new Decimal(val);
-                return d.isNaN() ? new Decimal(defaultVal) : d;
-              } catch {
-                return new Decimal(defaultVal);
-              }
-            };
-
-            // Critical check for Last Price
-            if (ticker.lastPrice === undefined || ticker.lastPrice === null) {
+            const validatedRes = validation.data;
+            if (validatedRes.code !== undefined && validatedRes.code !== 0) {
+              throw new Error(getBitunixErrorKey(validatedRes.code));
+            }
+            if (!validatedRes.data || validatedRes.data.length === 0) {
               throw new Error("apiErrors.invalidResponse");
             }
-            let last: Decimal;
-            try {
-              last = new Decimal(ticker.lastPrice);
-              if (last.isNaN() || !last.isFinite()) throw new Error();
-            } catch {
-              throw new Error("apiErrors.invalidResponse");
-            }
+            const ticker = validatedRes.data[0];
 
-            const open = toDec(ticker.open);
-            const high = ticker.high ? toDec(ticker.high) : last;
-            const low = ticker.low ? toDec(ticker.low) : last;
-            const baseVol = toDec(ticker.baseVol);
-            const quoteVol = toDec(ticker.quoteVol);
+            const last = ticker.lastPrice;
+            const open = ticker.open || new Decimal(0);
+            const high = ticker.high || last;
+            const low = ticker.low || last;
+            const baseVol = ticker.baseVol || new Decimal(0);
+            const quoteVol = ticker.quoteVol || new Decimal(0);
 
             let change = new Decimal(0);
             if (!open.isZero()) {

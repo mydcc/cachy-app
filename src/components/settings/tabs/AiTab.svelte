@@ -22,20 +22,6 @@
         settingsState.discordChannels = newChannels;
     }
 
-    function addXMonitor() {
-        if (!settingsState.xMonitors) settingsState.xMonitors = [];
-        settingsState.xMonitors = [
-            ...settingsState.xMonitors,
-            { type: "user", value: "" },
-        ];
-    }
-
-    function removeXMonitor(index: number) {
-        const newMonitors = [...settingsState.xMonitors];
-        newMonitors.splice(index, 1);
-        settingsState.xMonitors = newMonitors;
-    }
-
     const activeSubTab = $derived(uiState.settingsAiSubTab);
 
     const subTabs = [
@@ -321,62 +307,6 @@
                     </button>
                 </div>
 
-                <!-- X Monitors -->
-                <h4
-                    class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
-                >
-                    X / Twitter Monitors
-                </h4>
-                <div class="flex flex-col gap-2">
-                    {#if settingsState.xMonitors}
-                        {#each settingsState.xMonitors as monitor, i}
-                            <div class="flex items-center gap-2">
-                                <select
-                                    bind:value={monitor.type}
-                                    class="input-field w-24"
-                                >
-                                    <option value="user">User</option>
-                                    <option value="hashtag">Hash</option>
-                                </select>
-                                <input
-                                    type="text"
-                                    bind:value={monitor.value}
-                                    class="input-field flex-1"
-                                    placeholder={monitor.type === "user"
-                                        ? "@username"
-                                        : "#crypto"}
-                                />
-                                <button
-                                    class="text-red-500 hover:text-red-400 p-2"
-                                    onclick={() => removeXMonitor(i)}
-                                    aria-label="Remove monitor"
-                                >
-                                    <svg
-                                        xmlns="http://www.w3.org/2000/svg"
-                                        width="16"
-                                        height="16"
-                                        viewBox="0 0 24 24"
-                                        fill="none"
-                                        stroke="currentColor"
-                                        stroke-width="2"
-                                        stroke-linecap="round"
-                                        stroke-linejoin="round"
-                                        ><path d="M18 6 6 18" /><path
-                                            d="m6 6 12 12"
-                                        /></svg
-                                    >
-                                </button>
-                            </div>
-                        {/each}
-                    {/if}
-                    <button
-                        class="text-xs bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] px-2 py-1 rounded border border-[var(--border-color)] w-max"
-                        onclick={addXMonitor}
-                        aria-label="Add X Monitor"
-                    >
-                        + Add Monitor
-                    </button>
-                </div>
             </section>
         {/if}
     </div>

@@ -17,6 +17,7 @@ export type LogCategory =
     | "general"
     | "governance"
     | "journal"
+    | "data"
     | "ui";
 
 class LoggerService {

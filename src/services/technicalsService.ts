@@ -140,14 +140,14 @@ class TechnicalsWorkerManager {
       this.worker = null;
     }
     // Reject all pending requests to trigger immediate fallback
-    this.pendingRejects.forEach((reject) => reject(new Error("Worker Error Event")));
+    this.pendingRejects.forEach((reject) => reject(new Error("workerErrors.eventError")));
     this.pendingResolves.clear();
     this.pendingRejects.clear();
   }
 
   public async postMessage(message: any): Promise<SerializedTechnicalsData> {
     const w = this.getWorker();
-    if (!w) throw new Error("Worker not available");
+    if (!w) throw new Error("workerErrors.notAvailable");
 
     const id = crypto.randomUUID();
     return new Promise((resolve, reject) => {
@@ -159,7 +159,7 @@ class TechnicalsWorkerManager {
       // Safety timeout
       setTimeout(() => {
         if (this.pendingResolves.has(id)) {
-          this.pendingRejects.get(id)?.(new Error("Worker Timeout"));
+          this.pendingRejects.get(id)?.(new Error("workerErrors.timeout"));
           this.pendingResolves.delete(id);
           this.pendingRejects.delete(id);
         }

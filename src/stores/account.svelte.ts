@@ -67,7 +67,7 @@ class AccountManager {
     // Robust check for close event or zero quantity
     const isClose =
       data.event === "CLOSE" ||
-      (data.qty !== undefined && Number(data.qty) === 0);
+      new Decimal(data.qty || 0).isZero();
 
     if (isClose) {
       if (index !== -1) {

@@ -16,17 +16,37 @@ class OrderManagementSystem {
     private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {
+        // Hardening: Prevent memory attacks by capping active orders
+        if (this.orders.size >= this.MAX_ORDERS && !this.orders.has(order.id)) {
+            // If we are at limit, try to prune first
+            this.pruneOrders();
+            if (this.orders.size >= this.MAX_ORDERS) {
+                logger.error("market", `[OMS] Order limit (${this.MAX_ORDERS}) hit. Rejecting new order: ${order.id}`);
+                return; // Reject update to protect memory
+            }
+        }
+
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
 
         if (this.orders.size > this.MAX_ORDERS) {
             this.pruneOrders();
         }
+    }
 
-        // Potential integration with a dedicated omsStore later
-        // For now, we sync important bits back to tradeState if it's the active symbol
-        if (order.symbol === tradeState.symbol) {
-            // tradeState.updateCurrentOrder(...) 
+    public addOptimisticOrder(order: OMSOrder) {
+        order._isOptimistic = true;
+        this.orders.set(order.id, order);
+        logger.log("market", `[OMS] Optimistic Order Added: ${order.id}`);
+    }
+
+    public removeOrphanedOptimistic(thresholdMs: number) {
+        const now = Date.now();
+        for (const [id, order] of this.orders) {
+            if (order._isOptimistic && (now - order.timestamp) > thresholdMs) {
+                this.orders.delete(id);
+                logger.warn("market", `[OMS] Removed orphaned optimistic order: ${id}`);
+            }
         }
     }
 
@@ -59,6 +79,11 @@ class OrderManagementSystem {
                 }
             }
         }
+    }
+
+    public removeOrder(id: string) {
+        this.orders.delete(id);
+        logger.log("market", `[OMS] Order Removed: ${id}`);
     }
 
     public getOrder(id: string): OMSOrder | undefined {

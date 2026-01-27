@@ -386,29 +386,27 @@ export const newsService = {
           logger.error("market", "Failed to fetch Discord", e);
         }
 
-        // RSS Feeds (Only if enabled in settings)
-        if (settingsState.enableNewsScraper) {
-          const rssUrls = [
-            ...getPresetUrls(settingsState.rssPresets || []),
-            ...(settingsState.customRssFeeds || []).filter(
-              (u) => u && u.trim().length > 0,
-            ),
-          ];
+        // RSS Feeds
+        const rssUrls = [
+          ...getPresetUrls(settingsState.rssPresets || []),
+          ...(settingsState.customRssFeeds || []).filter(
+            (u) => u && u.trim().length > 0,
+          ),
+        ];
 
-          if (rssUrls.length > 0) {
-            try {
-              let rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
-              if (settingsState.rssFilterBySymbol && symbol) {
-                rssItems = rssItems.filter(
-                  (item) =>
-                    matchesSymbol(item.title, symbol) ||
-                    matchesSymbol(item.url, symbol),
-                );
-              }
-              newsItems = [...newsItems, ...rssItems];
-            } catch (e) {
-              logger.error("market", "Failed to fetch RSS feeds", e);
+        if (rssUrls.length > 0) {
+          try {
+            let rssItems = await rssParserService.parseMultipleFeeds(rssUrls);
+            if (settingsState.rssFilterBySymbol && symbol) {
+              rssItems = rssItems.filter(
+                (item) =>
+                  matchesSymbol(item.title, symbol) ||
+                  matchesSymbol(item.url, symbol),
+              );
             }
+            newsItems = [...newsItems, ...rssItems];
+          } catch (e) {
+            logger.error("market", "Failed to fetch RSS feeds", e);
           }
         }
 

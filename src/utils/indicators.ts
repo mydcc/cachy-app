@@ -900,9 +900,9 @@ export function getRsiAction(
   oversold: number,
 ) {
   if (!val) return "Neutral";
-  const v = new Decimal(val || 0).toNumber();
-  if (v >= overbought) return "Sell";
-  if (v <= oversold) return "Buy";
+  const v = new Decimal(val);
+  if (v.gte(overbought)) return "Sell";
+  if (v.lte(oversold)) return "Buy";
   return "Neutral";
 }
 

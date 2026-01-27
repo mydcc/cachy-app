@@ -23,6 +23,8 @@ import { settingsState } from "../stores/settings.svelte";
 import { apiService } from "./apiService";
 import type { JournalEntry } from "../stores/types";
 import { Decimal } from "decimal.js";
+import { get } from "svelte/store";
+import { _ } from "../locales/i18n";
 import { trackCustomEvent } from "./trackingService";
 import { browser } from "$app/environment";
 import { calculator } from "../lib/calculator";
@@ -61,8 +63,9 @@ export const syncService = {
           limit: 500,
         }),
       });
+      if (!historyResponse.ok) throw new Error("apiErrors.fetchFailed");
       const historyResult = await historyResponse.json();
-      if (historyResult.error) throw new Error(historyResult.error);
+      if (historyResult.error) throw new Error("apiErrors.fetchFailed");
       const historyPositions = historyResult.data;
 
       // 2. Fetch Pending Positions
@@ -74,6 +77,7 @@ export const syncService = {
           apiSecret: settings.apiKeys.bitunix.secret,
         }),
       });
+      if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
       const pendingResult = await pendingResponse.json();
       const pendingPositions = Array.isArray(pendingResult.data)
         ? pendingResult.data
@@ -93,6 +97,7 @@ export const syncService = {
       let orders: any[] = [];
       let isPartialSync = false;
       try {
+        if (!orderResponse.ok) throw new Error("apiErrors.fetchFailed");
         const orderResult = await orderResponse.json();
         if (orderResult.isPartial) isPartialSync = true;
         if (!orderResult.error && Array.isArray(orderResult.data)) {
@@ -128,7 +133,7 @@ export const syncService = {
       for (const p of pendingPositions) {
         const side =
           (p.side || "").toLowerCase().includes("sell") ||
-          (p.side || "").toLowerCase().includes("short")
+            (p.side || "").toLowerCase().includes("short")
             ? "short"
             : "long";
         const uniqueId = `OPEN-${p.positionId || p.symbol + "-" + side}`;
@@ -387,20 +392,21 @@ export const syncService = {
       // Final feedback - trades already added incrementally
       if (addedCount > 0) {
         trackCustomEvent("Sync", "BitunixHistory", "Success", addedCount);
-        if (isPartialSync) uiState.showError("Sync unvollständig (Timeout).");
+        if (isPartialSync) uiState.showError(get(_)("apiErrors.syncIncomplete"));
         else uiState.showFeedback("save", 2000);
       } else {
         trackCustomEvent("Sync", "BitunixHistory", "NoNewData");
         uiState.showError(
           isPartialSync
-            ? "Sync unvollständig. Keine neuen Positionen."
-            : "Keine neuen Positionen gefunden.",
+            ? get(_)("apiErrors.syncIncomplete")
+            : get(_)("apiErrors.syncNoNewData"),
         );
       }
     } catch (e: any) {
       console.error("Sync error:", e);
       trackCustomEvent("Sync", "BitunixHistory", "Error");
-      uiState.showError("Sync failed: " + e.message);
+      const errMsg = e.message.startsWith("apiErrors.") ? get(_)(e.message) : e.message;
+      uiState.showError(get(_)("apiErrors.syncFailed", { values: { error: errMsg } }));
     } finally {
       syncService._syncLock = false; // Release lock
       uiState.update((s) => ({

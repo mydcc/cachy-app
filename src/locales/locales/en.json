@@ -58,10 +58,20 @@
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
     "orderHistory": {
+      "maker": "M",
+      "taker": "T",
       "fee": "Fee",
+      "liq": "Liq.",
       "side": {
         "buy": "Buy",
         "sell": "Sell"
+      },
+      "type": {
+        "limit": "Limit",
+        "market": "Market",
+        "stopLimit": "Stop Limit",
+        "stopMarket": "Stop Market",
+        "trailing": "Trailing"
       }
     },
     "type": "Type",
@@ -922,8 +932,14 @@
     "klineError": "Could not load candle data.",
     "generic": "An unknown API error occurred.",
     "noMarketData": "No market data available.",
+    "failedToLoadOrders": "Failed to load orders.",
     "failedToLoadPositions": "Failed to load positions.",
-    "failedToLoadOrders": "Failed to load orders."
+    "fetchFailed": "Fetch failed",
+    "missingCredentials": "API keys missing or incomplete",
+    "invalidAmount": "Invalid order amount",
+    "syncIncomplete": "Sync incomplete (Timeout).",
+    "syncNoNewData": "No new positions found.",
+    "syncFailed": "Sync failed: {error}"
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -1466,5 +1482,16 @@
       "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
     },
     "title": "Candlestick Academy"
+  },
+  "tradeErrors": {
+    "positionNotFound": "Position not found: {symbol} {side}"
+  },
+  "workerErrors": {
+    "eventError": "Worker Error Event",
+    "notAvailable": "Worker not available",
+    "timeout": "Worker Timeout"
+  },
+  "markdownErrors": {
+    "fileNotFound": "Markdown file not found: {path}"
   }
 }
