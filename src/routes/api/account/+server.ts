@@ -25,6 +25,8 @@ import {
   generateBitgetSignature,
   validateBitgetKeys,
 } from "../../../utils/server/bitget";
+import { Decimal } from "decimal.js";
+import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
@@ -112,23 +114,23 @@ async function fetchBitunixAccount(
 
   if (!data) throw new Error("No account data found");
 
-  const available = parseFloat(data.available || "0");
-  const margin = parseFloat(data.margin || "0");
-  const crossPnL = parseFloat(data.crossUnrealizedPNL || "0");
-  const isoPnL = parseFloat(data.isolationUnrealizedPNL || "0");
-  const totalPnL = crossPnL + isoPnL;
+  const available = new Decimal(data.available || "0");
+  const margin = new Decimal(data.margin || "0");
+  const crossPnL = new Decimal(data.crossUnrealizedPNL || "0");
+  const isoPnL = new Decimal(data.isolationUnrealizedPNL || "0");
+  const totalPnL = crossPnL.plus(isoPnL);
 
   return {
-    available,
-    margin,
-    totalUnrealizedPnL: totalPnL,
+    available: formatApiNum(available),
+    margin: formatApiNum(margin),
+    totalUnrealizedPnL: formatApiNum(totalPnL),
     marginCoin: data.marginCoin,
-    frozen: parseFloat(data.frozen || "0"),
-    transfer: parseFloat(data.transfer || "0"),
-    bonus: parseFloat(data.bonus || "0"),
+    frozen: formatApiNum(data.frozen),
+    transfer: formatApiNum(data.transfer),
+    bonus: formatApiNum(data.bonus),
     positionMode: data.positionMode,
-    crossUnrealizedPNL: crossPnL,
-    isolationUnrealizedPNL: isoPnL,
+    crossUnrealizedPNL: formatApiNum(crossPnL),
+    isolationUnrealizedPNL: formatApiNum(isoPnL),
   };
 }
 
@@ -162,12 +164,12 @@ async function fetchBitgetAccount(
 
     // Bitget fields: available, locked, equity, usdtEquity, unrealizedPL
     return {
-        available: parseFloat(data.available || "0"),
-        margin: parseFloat(data.locked || "0"), // locked margin?
-        totalUnrealizedPnL: parseFloat(data.unrealizedPL || "0"),
+        available: formatApiNum(data.available),
+        margin: formatApiNum(data.locked), // locked margin?
+        totalUnrealizedPnL: formatApiNum(data.unrealizedPL),
         marginCoin: data.marginCoin,
-        frozen: parseFloat(data.locked || "0"), // Bitget usually groups margin/frozen in locked
+        frozen: formatApiNum(data.locked), // Bitget usually groups margin/frozen in locked
         // Map other fields as needed
-        equity: parseFloat(data.equity || "0")
+        equity: formatApiNum(data.equity)
     };
 }

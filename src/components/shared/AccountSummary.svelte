@@ -19,21 +19,22 @@
   import { formatDynamicDecimal } from "../../utils/utils";
   import { _ } from "../../locales/i18n";
   import AccountTooltip from "./AccountTooltip.svelte";
+  import { Decimal } from "decimal.js";
 
+  type FinancialValue = number | string | Decimal;
 
-  
   interface Props {
-    available?: number;
-    margin?: number;
-    pnl?: number;
+    available?: FinancialValue;
+    margin?: FinancialValue;
+    pnl?: FinancialValue;
     currency?: string;
     // Extended props
-    frozen?: number;
-    transfer?: number;
-    bonus?: number;
+    frozen?: FinancialValue;
+    transfer?: FinancialValue;
+    bonus?: FinancialValue;
     positionMode?: string;
-    crossUnrealizedPNL?: number;
-    isolationUnrealizedPNL?: number;
+    crossUnrealizedPNL?: FinancialValue;
+    isolationUnrealizedPNL?: FinancialValue;
   }
 
   let {
@@ -102,10 +103,10 @@
     >
     <span
       class="text-sm font-bold"
-      class:text-[var(--success-color)]={pnl > 0}
-      class:text-[var(--danger-color)]={pnl < 0}
+      class:text-[var(--success-color)]={new Decimal(pnl || 0).gt(0)}
+      class:text-[var(--danger-color)]={new Decimal(pnl || 0).lt(0)}
     >
-      {pnl > 0 ? "+" : ""}{formatDynamicDecimal(pnl, 2)}
+      {new Decimal(pnl || 0).gt(0) ? "+" : ""}{formatDynamicDecimal(pnl, 2)}
       {currency}
     </span>
   </div>

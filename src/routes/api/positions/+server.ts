@@ -19,6 +19,8 @@ import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { createHash, randomBytes } from "crypto";
 import { generateBitgetSignature } from "../../../utils/server/bitget";
+import { Decimal } from "decimal.js";
+import { formatApiNum } from "../../../utils/utils";
 
 export const POST: RequestHandler = async ({ request }) => {
   const { exchange, apiKey, apiSecret, passphrase } = await request.json();
@@ -132,24 +134,24 @@ async function fetchBitunixPositions(
         symbol: p.symbol,
         side: side,
         // size: "qty" as per docs. Fallback to older fields.
-        size: parseFloat(p.qty || p.positionAmount || p.holdVolume || "0"),
+        size: formatApiNum(p.qty || p.positionAmount || p.holdVolume),
         // entryPrice: "avgOpenPrice" as per docs.
-        entryPrice: parseFloat(
-          p.avgOpenPrice || p.openAvgPrice || p.avgPrice || "0",
+        entryPrice: formatApiNum(
+          p.avgOpenPrice || p.openAvgPrice || p.avgPrice,
         ),
 
         // Fixed Duplicate Keys Issue:
-        liquidationPrice: parseFloat(p.liquidationPrice || p.liqPrice || "0"),
-        markPrice: parseFloat(p.markPrice || p.mark_price || "0"),
-        margin: parseFloat(
-          p.margin || p.positionMargin || p.maintMargin || "0",
+        liquidationPrice: formatApiNum(p.liquidationPrice || p.liqPrice),
+        markPrice: formatApiNum(p.markPrice || p.mark_price),
+        margin: formatApiNum(
+          p.margin || p.positionMargin || p.maintMargin,
         ),
 
         // unrealizedPnL: "unrealizedPNL" as per docs.
-        unrealizedPnL: parseFloat(
-          p.unrealizedPNL || p.unrealizedPnL || p.openLoss || "0",
+        unrealizedPnL: formatApiNum(
+          p.unrealizedPNL || p.unrealizedPnL || p.openLoss,
         ),
-        leverage: parseFloat(p.leverage || "0"),
+        leverage: formatApiNum(p.leverage),
         // marginType: "ISOLATION" | "CROSS" as per docs.
         marginMode:
           p.marginMode === "CROSS" ||
@@ -160,7 +162,7 @@ async function fetchBitunixPositions(
             : "isolated",
       };
     })
-    .filter((p: any) => p.size !== 0);
+    .filter((p: any) => !new Decimal(p.size || 0).isZero());
 }
 
 async function fetchBitgetPositions(
@@ -191,7 +193,7 @@ async function fetchBitgetPositions(
     const data = res.data || [];
 
     return data
-        .filter((p: any) => parseFloat(p.total) !== 0) // Filter empty positions
+        .filter((p: any) => !new Decimal(p.total || 0).isZero()) // Filter empty positions
         .map((p: any) => {
             // Bitget fields:
             // symbol: symbol
@@ -208,13 +210,13 @@ async function fetchBitgetPositions(
             return {
                 symbol: p.symbol,
                 side: (p.holdSide || "").toUpperCase(),
-                size: parseFloat(p.total || "0"),
-                entryPrice: parseFloat(p.averageOpenPrice || "0"),
-                markPrice: parseFloat(p.markPrice || "0"),
-                liquidationPrice: parseFloat(p.liquidationPrice || "0"),
-                margin: parseFloat(p.margin || "0"),
-                unrealizedPnL: parseFloat(p.unrealizedPL || "0"),
-                leverage: parseFloat(p.leverage || "0"),
+                size: formatApiNum(p.total),
+                entryPrice: formatApiNum(p.averageOpenPrice),
+                markPrice: formatApiNum(p.markPrice),
+                liquidationPrice: formatApiNum(p.liquidationPrice),
+                margin: formatApiNum(p.margin),
+                unrealizedPnL: formatApiNum(p.unrealizedPL),
+                leverage: formatApiNum(p.leverage),
                 marginMode: p.marginMode // crossed, isolated
             };
         });
