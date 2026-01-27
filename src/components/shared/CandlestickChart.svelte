@@ -22,26 +22,28 @@
     if (!browser) return fallback;
 
     // 1. Get the raw value (might be "var(--other)")
-    let val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
+    let val = getComputedStyle(document.documentElement)
+      .getPropertyValue(varName)
+      .trim();
     if (!val) return fallback;
 
     // 2. If it's a direct color (hex, rgb, etc) and not a variable reference, return it
     if (!val.startsWith("var(") && !val.includes("var(")) {
-        return val;
+      return val;
     }
 
     // 3. If it is a variable reference, we need the browser to resolve it.
     try {
-        const temp = document.createElement("div");
-        temp.style.display = "none";
-        temp.style.backgroundColor = `var(${varName})`;
-        document.body.appendChild(temp);
-        const resolved = getComputedStyle(temp).backgroundColor;
-        document.body.removeChild(temp);
-        return resolved || fallback;
+      const temp = document.createElement("div");
+      temp.style.display = "none";
+      temp.style.backgroundColor = `var(${varName})`;
+      document.body.appendChild(temp);
+      const resolved = getComputedStyle(temp).backgroundColor;
+      document.body.removeChild(temp);
+      return resolved || fallback;
     } catch (e) {
-        console.warn("Failed to resolve color:", varName, e);
-        return fallback;
+      console.warn("Failed to resolve color:", varName, e);
+      return fallback;
     }
   };
 
@@ -56,19 +58,24 @@
     // We stick to simple data mapping but control visual density via scales config
     const labels = candles.map((_, i) => i.toString());
 
-    const wickData = candles.map(c => [c.low, c.high]);
+    const wickData = candles.map((c) => [c.low, c.high] as [number, number]);
 
-    const bodyData = candles.map(c => {
-        if (Math.abs(c.open - c.close) < 0.00001) {
-            return [c.open - 0.05, c.open + 0.05];
-        }
-        return [Math.min(c.open, c.close), Math.max(c.open, c.close)];
+    const bodyData = candles.map((c) => {
+      if (Math.abs(c.open - c.close) < 0.00001) {
+        return [c.open - 0.05, c.open + 0.05] as [number, number];
+      }
+      return [Math.min(c.open, c.close), Math.max(c.open, c.close)] as [
+        number,
+        number,
+      ];
     });
 
-    const successColor = resolveColor('--success-color', '#0ECB81');
-    const dangerColor = resolveColor('--danger-color', '#F6465D');
+    const successColor = resolveColor("--success-color", "#0ECB81");
+    const dangerColor = resolveColor("--danger-color", "#F6465D");
 
-    const colors = candles.map(c => c.close >= c.open ? successColor : dangerColor);
+    const colors = candles.map((c) =>
+      c.close >= c.open ? successColor : dangerColor,
+    );
 
     return {
       labels,
@@ -80,7 +87,7 @@
           borderColor: colors,
           barThickness: 2,
           grouped: false,
-          order: 1
+          order: 1,
         },
         {
           label: "Bodies",
@@ -90,9 +97,9 @@
           borderWidth: 1,
           barThickness: 20,
           grouped: false,
-          order: 0
-        }
-      ]
+          order: 0,
+        },
+      ],
     };
   }
 
@@ -105,17 +112,20 @@
       const xAxis = chart.scales.x;
       const yAxis = chart.scales.y;
 
-      const accentColor = resolveColor('--color-accent', '#FACC15');
-      const accentBg = resolveColor('--color-accent-transparent', 'rgba(250, 204, 21, 0.2)');
+      const accentColor = resolveColor("--color-accent", "#FACC15");
+      const accentBg = resolveColor(
+        "--color-accent-transparent",
+        "rgba(250, 204, 21, 0.2)",
+      );
       // Manually making transparency if variable not available
       const accentRgbMatch = accentColor.match(/\d+, \d+, \d+/);
-      const accentRgb = accentRgbMatch ? accentRgbMatch[0] : '250, 204, 21';
+      const accentRgb = accentRgbMatch ? accentRgbMatch[0] : "250, 204, 21";
       const accentBgManual = `rgba(${accentRgb}, 0.2)`;
 
-      const successBg = `rgba(${resolveColor('--success-color-rgb', '34, 197, 94')}, 0.2)`;
-      const dangerBg = `rgba(${resolveColor('--danger-color-rgb', '239, 68, 68')}, 0.2)`;
+      const successBg = `rgba(${resolveColor("--success-color-rgb", "34, 197, 94")}, 0.2)`;
+      const dangerBg = `rgba(${resolveColor("--danger-color-rgb", "239, 68, 68")}, 0.2)`;
 
-      pattern.keyFeatures.forEach(feature => {
+      pattern.keyFeatures.forEach((feature) => {
         ctx.save();
 
         // Helper to get coordinates
@@ -123,27 +133,34 @@
         const getY = (val: number) => yAxis.getPixelForValue(val);
         const getCandle = (idx: number) => pattern.candles[idx];
 
-        if (feature.type === 'body' && feature.candleIndex !== undefined) {
-            const candle = getCandle(feature.candleIndex);
-            const x = getX(feature.candleIndex);
-            const yTop = getY(Math.max(candle.open, candle.close));
-            const yBottom = getY(Math.min(candle.open, candle.close));
-            const width = 32;
+        if (feature.type === "body" && feature.candleIndex !== undefined) {
+          const candle = getCandle(feature.candleIndex);
+          const x = getX(feature.candleIndex);
+          const yTop = getY(Math.max(candle.open, candle.close));
+          const yBottom = getY(Math.min(candle.open, candle.close));
+          const width = 32;
 
-            ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : accentBgManual;
-            ctx.strokeStyle = feature.borderColor ? resolveColor(feature.borderColor, feature.borderColor) : accentColor;
-            ctx.lineWidth = 1.5;
+          ctx.fillStyle = feature.color
+            ? resolveColor(feature.color, feature.color)
+            : accentBgManual;
+          ctx.strokeStyle = feature.borderColor
+            ? resolveColor(feature.borderColor, feature.borderColor)
+            : accentColor;
+          ctx.lineWidth = 1.5;
 
-            ctx.beginPath();
-            ctx.roundRect(x - width/2, yTop - 2, width, (yBottom - yTop) + 4, 6);
-            ctx.fill();
-            if (feature.borderColor) ctx.stroke();
-
-        } else if (feature.type === 'gap' && feature.candleIndex1 !== undefined && feature.candleIndex2 !== undefined) {
-            const x1 = getX(feature.candleIndex1);
-            const x2 = getX(feature.candleIndex2);
-            const c1 = getCandle(feature.candleIndex1);
-            const c2 = getCandle(feature.candleIndex2);
+          ctx.beginPath();
+          ctx.roundRect(x - width / 2, yTop - 2, width, yBottom - yTop + 4, 6);
+          ctx.fill();
+          if (feature.borderColor) ctx.stroke();
+        } else if (
+          feature.type === "gap" &&
+          feature.candleIndex1 !== undefined &&
+          feature.candleIndex2 !== undefined
+        ) {
+          const x1 = getX(feature.candleIndex1);
+          const x2 = getX(feature.candleIndex2);
+          const c1 = getCandle(feature.candleIndex1);
+          const c2 = getCandle(feature.candleIndex2);
 
           let yHigh, yLow;
           if (feature.direction === "up") {
@@ -158,30 +175,43 @@
           const height = Math.abs(yHigh - yLow);
           const x = (x1 + x2) / 2;
 
-            if (height > 2) {
-                ctx.fillStyle = feature.color ? resolveColor(feature.color, feature.color) : successBg;
-                ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color).replace('0.2', '0.8') : successBg.replace('0.2', '0.8');
-                ctx.lineWidth = 1;
-                ctx.beginPath();
-                ctx.roundRect(x - 12, top, 24, height, 4);
-                ctx.fill();
-                ctx.stroke();
-            }
-
-        } else if (feature.type === 'line' && feature.candleIndex1 !== undefined && feature.candleIndex2 !== undefined) {
-             const x1 = getX(feature.candleIndex1);
-             const x2 = getX(feature.candleIndex2);
-             // @ts-ignore
-             const val1 = getCandle(feature.candleIndex1)[feature.yValue1Property || 'close'];
-             // @ts-ignore
-             const val2 = getCandle(feature.candleIndex2)[feature.yValue2Property || 'close'];
+          if (height > 2) {
+            ctx.fillStyle = feature.color
+              ? resolveColor(feature.color, feature.color)
+              : successBg;
+            ctx.strokeStyle = feature.color
+              ? resolveColor(feature.color, feature.color).replace("0.2", "0.8")
+              : successBg.replace("0.2", "0.8");
+            ctx.lineWidth = 1;
+            ctx.beginPath();
+            ctx.roundRect(x - 12, top, 24, height, 4);
+            ctx.fill();
+            ctx.stroke();
+          }
+        } else if (
+          feature.type === "line" &&
+          feature.candleIndex1 !== undefined &&
+          feature.candleIndex2 !== undefined
+        ) {
+          const x1 = getX(feature.candleIndex1);
+          const x2 = getX(feature.candleIndex2);
+          // @ts-ignore
+          const val1 = getCandle(feature.candleIndex1)[
+            feature.yValue1Property || "close"
+          ];
+          // @ts-ignore
+          const val2 = getCandle(feature.candleIndex2)[
+            feature.yValue2Property || "close"
+          ];
 
           const y1 = getY(val1);
           const y2 = getY(val2);
 
-             ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color) : accentColor;
-             ctx.lineWidth = feature.lineWidth || 2;
-             if (feature.dashed) ctx.setLineDash([4, 4]);
+          ctx.strokeStyle = feature.color
+            ? resolveColor(feature.color, feature.color)
+            : accentColor;
+          ctx.lineWidth = feature.lineWidth || 2;
+          if (feature.dashed) ctx.setLineDash([4, 4]);
 
           ctx.beginPath();
           ctx.moveTo(x1, y1);
@@ -204,27 +234,35 @@
             yEnd = getY(candle.low);
           }
 
-             ctx.strokeStyle = feature.color ? resolveColor(feature.color, feature.color) : accentColor;
-             ctx.lineWidth = 3;
-             ctx.beginPath();
-             ctx.moveTo(x + 5, yStart);
-             ctx.lineTo(x + 5, yEnd);
-             ctx.stroke();
-        } else if (feature.type === 'engulf' && feature.candleIndex1 !== undefined && feature.candleIndex2 !== undefined) {
-             // Engulfing box
-             const x2 = getX(feature.candleIndex2);
-             const c2 = getCandle(feature.candleIndex2);
-             const yTop = getY(Math.max(c2.open, c2.close));
-             const yBottom = getY(Math.min(c2.open, c2.close));
-             const width = 36;
+          ctx.strokeStyle = feature.color
+            ? resolveColor(feature.color, feature.color)
+            : accentColor;
+          ctx.lineWidth = 3;
+          ctx.beginPath();
+          ctx.moveTo(x + 5, yStart);
+          ctx.lineTo(x + 5, yEnd);
+          ctx.stroke();
+        } else if (
+          feature.type === "engulf" &&
+          feature.candleIndex1 !== undefined &&
+          feature.candleIndex2 !== undefined
+        ) {
+          // Engulfing box
+          const x2 = getX(feature.candleIndex2);
+          const c2 = getCandle(feature.candleIndex2);
+          const yTop = getY(Math.max(c2.open, c2.close));
+          const yBottom = getY(Math.min(c2.open, c2.close));
+          const width = 36;
 
-             ctx.strokeStyle = feature.borderColor ? resolveColor(feature.borderColor, feature.borderColor) : accentColor;
-             ctx.lineWidth = 2;
-             ctx.setLineDash([2, 2]);
-             ctx.beginPath();
-             ctx.roundRect(x2 - width/2, yTop - 4, width, (yBottom - yTop) + 8, 6);
-             ctx.stroke();
-             ctx.setLineDash([]);
+          ctx.strokeStyle = feature.borderColor
+            ? resolveColor(feature.borderColor, feature.borderColor)
+            : accentColor;
+          ctx.lineWidth = 2;
+          ctx.setLineDash([2, 2]);
+          ctx.beginPath();
+          ctx.roundRect(x2 - width / 2, yTop - 4, width, yBottom - yTop + 8, 6);
+          ctx.stroke();
+          ctx.setLineDash([]);
         }
 
         ctx.restore();
@@ -258,36 +296,35 @@
       let xMax = count - 0.5;
 
       if (count < 5) {
-          // Add padding to force centering visually
-          const padCount = (5 - count) / 2;
-          xMin = -padCount - 0.5;
-          xMax = count + padCount - 0.5;
+        // Add padding to force centering visually
+        const padCount = (5 - count) / 2;
+        xMin = -padCount - 0.5;
+        xMax = count + padCount - 0.5;
       }
 
       chart = new Chart(canvas, {
         type: "bar",
         data: prepareChartData(pattern.candles),
         options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: { display: false },
-                tooltip: { enabled: false }
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: { enabled: false },
+          },
+          scales: {
+            x: {
+              display: false,
+              grid: { display: false },
+              min: xMin,
+              max: xMax,
+              stacked: true,
             },
-            scales: {
-                x: {
-                    display: false,
-                    grid: { display: false },
-                    min: xMin,
-                    max: xMax,
-                    stacked: true
-                },
-                y: {
-                    display: false,
-                    grid: { display: false },
-                    min: min - padding,
-                    max: max + padding
-                }
+            y: {
+              display: false,
+              grid: { display: false },
+              min: min - padding,
+              max: max + padding,
             },
           },
           animation: false,
@@ -305,19 +342,24 @@
 
   let observer: MutationObserver;
   onMount(() => {
-      observer = new MutationObserver(() => {
-          if (chart && pattern) {
-              const newData = prepareChartData(pattern.candles);
-              chart.data.datasets[0].backgroundColor = newData.datasets[0].backgroundColor;
-              chart.data.datasets[0].borderColor = newData.datasets[0].borderColor;
-              chart.data.datasets[1].backgroundColor = newData.datasets[1].backgroundColor;
-              chart.data.datasets[1].borderColor = newData.datasets[1].borderColor;
-              chart.update();
-          }
-      });
-      observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class', 'style'] });
+    observer = new MutationObserver(() => {
+      if (chart && pattern) {
+        const newData = prepareChartData(pattern.candles);
+        chart.data.datasets[0].backgroundColor =
+          newData.datasets[0].backgroundColor;
+        chart.data.datasets[0].borderColor = newData.datasets[0].borderColor;
+        chart.data.datasets[1].backgroundColor =
+          newData.datasets[1].backgroundColor;
+        chart.data.datasets[1].borderColor = newData.datasets[1].borderColor;
+        chart.update();
+      }
+    });
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ["class", "style"],
+    });
 
-      return () => observer.disconnect();
+    return () => observer.disconnect();
   });
 
   $effect(() => {
