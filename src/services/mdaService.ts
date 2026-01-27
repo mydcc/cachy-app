@@ -27,8 +27,9 @@ export const mdaService = {
                 lastPrice: d.lastPrice || d.la || d.lp || d.mp || d.ip || "0",
                 high: d.highPrice || d.h || "0",
                 low: d.lowPrice || d.l || "0",
-                volume: d.volume || d.v || d.b || "0", // b = base volume
-                quoteVolume: d.quoteVolume || d.qv || d.q || "0", // q = quote volume
+                // Extended volume checks: b=base, v=vol, q=quote, vol=volume, amount
+                volume: d.volume || d.v || d.b || d.vol || d.amount || "0",
+                quoteVolume: d.quoteVolume || d.qv || d.q || d.quoteVol || "0",
                 priceChangePercent: d.priceChangePercent || d.pc || d.r || "0", // r = rate change
                 timestamp: Date.now()
             };
@@ -70,7 +71,8 @@ export const mdaService = {
                     high: k.high || k.h || "0",
                     low: k.low || k.l || "0",
                     close: k.close || k.c || "0",
-                    volume: k.volume || k.v || "0"
+                    // Extended volume checks for Klines: v=vol, q=quote (if base missing), vol
+                    volume: k.volume || k.v || k.vol || k.amount || "0"
                 };
             }
             // Generic / Bitget
