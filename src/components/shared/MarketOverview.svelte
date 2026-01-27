@@ -17,6 +17,7 @@
   import { marketState } from "../../stores/market.svelte";
   import { marketWatcher } from "../../services/marketWatcher";
   import { activeTechnicalsManager } from "../../services/activeTechnicalsManager.svelte";
+  import { externalLinkService } from "../../services/externalLinkService";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import { formatDynamicDecimal } from "../../utils/utils";
@@ -479,13 +480,13 @@
       {#if settingsState.showMarketOverviewLinks && symbol}
         <div class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]">
           {#if settingsState.showTvLink}
-            <a href={tvLink} target={tvTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart">TV</a>
+            <a href={tvLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(tvLink, tvTarget); }}>TV</a>
           {/if}
           {#if settingsState.showCgHeatLink}
-            <a href={cgHeatmapLink} target={cgTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title="Liquidation Heatmap">CG Heat</a>
+            <a href={cgHeatmapLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title="Liquidation Heatmap" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(cgHeatmapLink, cgTarget); }}>CG Heat</a>
           {/if}
           {#if settingsState.showBrokerLink}
-            <a href={brokerLink} target={brokerTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title="Open on {provider}">{provider.toUpperCase()}</a>
+            <a href={brokerLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title="Open on {provider}" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(brokerLink, brokerTarget); }}>{provider.toUpperCase()}</a>
           {/if}
           {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
