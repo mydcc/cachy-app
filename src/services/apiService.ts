@@ -491,7 +491,7 @@ export const apiService = {
                 high: d.high,
                 low: d.low,
                 close: d.close,
-                volume: d.vol || new Decimal(0),
+                volume: d.volume || d.vol || new Decimal(0),
                 time
               };
             })

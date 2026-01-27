@@ -38,9 +38,10 @@ export const BitunixKlineSchema = z.object({
   low: StrictDecimal,
   close: StrictDecimal,
   vol: StrictDecimal.optional(),
-  timestamp: z.number().optional(),
-  time: z.number().optional(),
-  ts: z.number().optional(),
+  volume: StrictDecimal.optional(),
+  timestamp: z.union([z.number(), z.string()]).optional(),
+  time: z.union([z.number(), z.string()]).optional(),
+  ts: z.union([z.number(), z.string()]).optional(),
 });
 
 export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);
