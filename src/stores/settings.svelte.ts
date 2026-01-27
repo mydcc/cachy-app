@@ -86,6 +86,8 @@ export interface GalaxySettings {
   randomness: number;
   randomnessPower: number;
   concentrationPower: number;
+  camPos: { x: number; y: number; z: number };
+  galaxyRot: { x: number; y: number; z: number };
 }
 
 export interface Settings {
@@ -360,6 +362,8 @@ const defaultSettings: Settings = {
     randomness: 1.0,
     randomnessPower: 8.0,
     concentrationPower: 1.5,
+    camPos: { x: 4, y: 2, z: 5 },
+    galaxyRot: { x: 0, y: 0, z: 0 },
   },
   enableNetworkLogs: false,
   logSettings: {

@@ -471,6 +471,41 @@
                                 />
                             </div>
                         </div>
+
+                         <!-- Camera & Rotation -->
+                         <div class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2">
+                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Camera Position</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                 <div class="field-group">
+                                    <label for="cam-x">X: {settingsState.galaxySettings.camPos.x}</label>
+                                    <input id="cam-x" type="range" min="-15" max="15" step="0.5" bind:value={settingsState.galaxySettings.camPos.x} class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="cam-y">Y: {settingsState.galaxySettings.camPos.y}</label>
+                                    <input id="cam-y" type="range" min="-15" max="15" step="0.5" bind:value={settingsState.galaxySettings.camPos.y} class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="cam-z">Z: {settingsState.galaxySettings.camPos.z}</label>
+                                    <input id="cam-z" type="range" min="-15" max="15" step="0.5" bind:value={settingsState.galaxySettings.camPos.z} class="range-input" />
+                                </div>
+                            </div>
+
+                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Rotation</span>
+                            <div class="grid grid-cols-3 gap-2">
+                                 <div class="field-group">
+                                    <label for="rot-x">X: {settingsState.galaxySettings.galaxyRot.x}°</label>
+                                    <input id="rot-x" type="range" min="0" max="360" step="5" bind:value={settingsState.galaxySettings.galaxyRot.x} class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="rot-y">Y: {settingsState.galaxySettings.galaxyRot.y}°</label>
+                                    <input id="rot-y" type="range" min="0" max="360" step="5" bind:value={settingsState.galaxySettings.galaxyRot.y} class="range-input" />
+                                </div>
+                                <div class="field-group">
+                                    <label for="rot-z">Z: {settingsState.galaxySettings.galaxyRot.z}°</label>
+                                    <input id="rot-z" type="range" min="0" max="360" step="5" bind:value={settingsState.galaxySettings.galaxyRot.z} class="range-input" />
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 {/if}
 
