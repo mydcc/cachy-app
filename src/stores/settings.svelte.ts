@@ -212,12 +212,10 @@ export interface Settings {
   };
   discordBotToken?: string;
   discordChannels: string[];
-  xMonitors: { type: string, value: string }[];
 
   // Market & Performance Settings
   marketMode: MarketMode;
   analyzeAllFavorites: boolean; // if false, only top 4
-  enableNewsScraper: boolean; // if false, only on-demand
   marketCacheSize: number; // LRU cache size for market data (default: 20)
 
   // Technicals Performance Settings
@@ -380,11 +378,9 @@ const defaultSettings: Settings = {
   },
   discordBotToken: "",
   discordChannels: [],
-  xMonitors: [],
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
-  enableNewsScraper: false, // Default to disabled (no Nitter)
   marketCacheSize: 20, // Default LRU cache size
 
   // Technicals Performance Defaults
@@ -638,12 +634,10 @@ export class SettingsManager {
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
-  xMonitors = $state<{ type: string, value: string }[]>(defaultSettings.xMonitors);
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
   analyzeAllFavorites = $state<boolean>(defaultSettings.analyzeAllFavorites);
-  enableNewsScraper = $state<boolean>(defaultSettings.enableNewsScraper);
   marketCacheSize = $state<number>(defaultSettings.marketCacheSize);
 
   // Technicals Performance State
@@ -673,19 +667,16 @@ export class SettingsManager {
       this.enableNewsAnalysis = false;
       this.showMarketActivity = false;
       this.analyzeAllFavorites = false;
-      this.enableNewsScraper = false;
     } else if (mode === "balanced") {
       this.marketAnalysisInterval = 300; // 5 minutes
       this.enableNewsAnalysis = true;
       this.showMarketActivity = true;
       this.analyzeAllFavorites = false; // Only Top 4
-      this.enableNewsScraper = false;
     } else if (mode === "pro") {
       this.marketAnalysisInterval = 60; // 1 minute
       this.enableNewsAnalysis = true;
       this.showMarketActivity = true;
       this.analyzeAllFavorites = true; // All 12
-      this.enableNewsScraper = true; // Full power
     }
     // "custom" touches nothing, user decides
   }
@@ -1021,11 +1012,8 @@ export class SettingsManager {
       this.discordChannels =
         merged.discordChannels || defaultSettings.discordChannels;
 
-      this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
-
       this._marketMode = merged.marketMode || defaultSettings.marketMode;
       this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
-      this.enableNewsScraper = merged.enableNewsScraper ?? defaultSettings.enableNewsScraper;
       this.marketCacheSize = merged.marketCacheSize ?? defaultSettings.marketCacheSize;
 
 
@@ -1190,10 +1178,8 @@ export class SettingsManager {
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,
       discordChannels: $state.snapshot(this.discordChannels),
-      xMonitors: $state.snapshot(this.xMonitors),
       marketMode: this.marketMode,
       analyzeAllFavorites: this.analyzeAllFavorites,
-      enableNewsScraper: this.enableNewsScraper,
       marketCacheSize: this.marketCacheSize,
       technicalsUpdateMode: this.technicalsUpdateMode,
       technicalsUpdateInterval: this.technicalsUpdateInterval,
