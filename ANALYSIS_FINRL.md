@@ -46,30 +46,32 @@ Was fehlt, ist die **quantitative Exekutive**. LLMs sind schlecht in Mathe und h
 
 ---
 
-## 3. Integrations-Strategie: "Cachy Brain"
+## 3. Integrations-Strategie: "Cachy Brain" (Client-Side)
 
-Da Cachy auf Node.js basiert und FinRL zwingend Python benötigt, schlagen wir eine **Microservice-Architektur** vor.
+Um Serverlast zu vermeiden und Datenschutz zu gewährleisten, setzen wir auf eine **Client-Side-Architecture**.
 
 ### Architektur-Überblick
 
-1.  **Das Frontend (Cachy App):** Bleibt wie es ist. Sammelt Daten, zeigt Ergebnisse.
-2.  **Die Brücke (Node.js API):** Sammelt State-Daten (Preise, Indikatoren, Portfolio) und sendet sie an das Brain.
-3.  **Das Brain (Python Service):**
-    *   Läuft als Docker-Container.
-    *   Beherbergt die FinRL-Modelle (trainiert mit PyTorch/Stable-Baselines3).
-    *   Bietet eine REST-API (FastAPI) oder WebSocket für Inferenz in Echtzeit.
+1.  **Das Frontend (Cachy App / Browser):**
+    *   Lädt beim Start ein vortrainiertes Modell (`.onnx`) herunter.
+    *   Führt die Berechnungen lokal im Browser via **WebAssembly / WebGPU** aus.
+2.  **Training (Offline):**
+    *   Modelle werden lokal (auf der Entwickler-Maschine) mit Python/FinRL trainiert.
+    *   Exportiert als statische ONNX-Datei.
+3.  **Server:**
+    *   Dient nur als Datei-Host für das Modell. **0% Rechenlast.**
 
 ### Workflow
 
-1.  **Training (Offline/Nachts):**
-    *   Wir laden historische Daten von Bitunix/Bitget.
-    *   FinRL trainiert einen Agenten (z.B. PPO) auf den letzten 2 Jahren Daten.
-    *   Das fertige Modell wird als `.zip` oder `.onnx` gespeichert.
-
-2.  **Inferenz (Live):**
-    *   Cachy sendet alle 15 Minuten (oder bei jedem Tick): `State = { Preis: 50k, RSI: 70, Balance: 1000$ }`.
-    *   Python-Service lädt das Modell, füttert den State und antwortet: `Action = { Type: "SELL", Amount: 0.5 }`.
-    *   Cachy (Jules) zeigt dem User: "FinRL empfiehlt Teilverkauf (Confidence: 85%)".
+1.  **Training (Offline):**
+    *   Laden historischer Daten.
+    *   Training eines PPO-Agenten.
+    *   Export zu ONNX.
+2.  **Inferenz (Live im Browser):**
+    *   Cachy sammelt Live-Daten (State).
+    *   Übergibt State an die ONNX-Runtime.
+    *   Erhält Action (z.B. "Wahrscheinlichkeit für Trendwende: 85%").
+    *   Visualisiert dies im Dashboard.
 
 ### Empfohlener Erster Schritt
 Wir bauen keinen vollautomatischen Trader (zu riskant), sondern einen **Signal-Geber**.

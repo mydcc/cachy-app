@@ -1,110 +1,97 @@
-# FinRL Integrations-Plan: "Cachy Brain"
+# FinRL Integrations-Plan: "Cachy Brain" (Client-Side Edition)
 
-Dieser Plan beschreibt die schrittweise Integration einer Python-basierten FinRL-Umgebung in die bestehende Cachy SvelteKit-Applikation via Microservice-Architektur.
+Dieser Plan beschreibt die Integration von FinRL-Modellen direkt in den Browser des Nutzers.
+Ziel: **0% Server-Last**, maximale Skalierbarkeit und Datenschutz.
 
 ## Architektur-Zielbild
 
 ```mermaid
 graph TD
     User[Trader] --> UI[Cachy Frontend (SvelteKit)]
-    UI --> Node[Cachy Backend (Node.js)]
 
-    subgraph "Cachy Brain (Python/Docker)"
-        API[FastAPI Server]
-        Agent[FinRL Agent (PPO/DQN)]
-        Env[Gym Trading Environment]
+    subgraph "Training (Offline / Dev-Machine)"
+        Py[Python Scripts] --> FinRL[FinRL Training (PPO)]
+        FinRL -- "Export" --> ONNX[model.onnx]
     end
 
-    Node -- "1. Marktdaten & Portfolio (State)" --> API
-    API -- "2. Handlungsempfehlung (Action)" --> Node
-    API -- "3. Training Trigger" --> Env
+    subgraph "Inference (User Browser)"
+        UI -- "1. Load Model" --> Static[Static Asset (/models/brain.onnx)]
+        UI -- "2. WebGPU/WASM" --> ORT[ONNX Runtime Web]
+        ORT -- "3. Prediction" --> UI
+    end
 ```
 
 ---
 
-## Phase 1: Die Infrastruktur (Python Microservice)
+## Phase 1: Offline Training Pipeline (Python)
 
-Da FinRL zwingend Python benötigt, kapseln wir die Logik in einem dedizierten Service.
+Das Training findet **nicht** auf dem Produktions-Server statt, sondern lokal (oder in einer Cloud-Training-Pipeline).
 
-### 1.1 Docker Setup
-Erstellung eines `Dockerfile.brain` im Root:
-*   **Base Image:** `python:3.10-slim`
-*   **Dependencies:** `finrl`, `gymnasium`, `fastapi`, `uvicorn`, `pandas`, `numpy`, `torch`.
-*   **GPU Support:** Optional (für späteres Training auf Servern mit CUDA).
+### 1.1 Trainings-Skripte (`/scripts/brain/`)
+Wir erstellen Python-Skripte für den Entwicklungsprozess:
+*   `train.py`: Lädt historische Daten, trainiert einen PPO-Agenten mit Stable-Baselines3.
+*   `export.py`: Konvertiert das trainierte PyTorch-Modell in das **ONNX-Format**.
+*   `verify.py`: Prüft, ob das ONNX-Modell die gleichen Ergebnisse liefert wie das PyTorch-Modell.
 
-### 1.2 API-Gerüst (FastAPI)
-Ein schlanker Server (`server/brain/main.py`), der folgende Endpunkte bereitstellt:
-*   `GET /health`: Status-Check.
-*   `POST /predict`: Nimmt einen Markt-State (JSON) entgegen und liefert eine Action.
-*   `POST /train`: Startet einen asynchronen Trainings-Job auf historischen Daten.
+### 1.2 Modell-Ablage
+Das exportierte Modell (`brain_v1.onnx`) wird in den Ordner `static/models/` kopiert. Damit ist es für den Browser unter `https://cachy.app/models/brain_v1.onnx` erreichbar.
 
 ---
 
-## Phase 2: Datenschnittstelle (Node.js Bridge)
+## Phase 2: Client-Side Inference (TypeScript)
 
-Cachy muss lernen, die Sprache des Modells zu sprechen.
+Der Browser übernimmt die Rechenarbeit.
 
-### 2.1 State-Definition
-Wir definieren, was der Agent "sieht". Ein standardisierter JSON-Payload:
-```json
-{
-  "symbol": "BTCUSDT",
-  "timeframe": "1h",
-  "market_data": {
-    "close": 65000.50,
-    "rsi_14": 55.4,
-    "macd": 120.5,
-    "volume_norm": 0.8
-  },
-  "portfolio_data": {
-    "balance_usdt": 1000.0,
-    "current_position_size": 0.1,
-    "unrealized_pnl_pct": 2.5
-  }
-}
-```
+### 2.1 Dependencies
+Installation von Microsofts ONNX Runtime für Web:
+`npm install onnxruntime-web`
 
-### 2.2 BrainService (TypeScript)
+### 2.2 BrainService (Client)
 Ein neuer Service in `src/services/brainService.ts`:
-*   `getPrediction(symbol, timeframe)`: Sammelt Daten aus `marketState` und `accountState`, ruft den Python-Service auf.
-*   `trainModel(symbol, days)`: Lädt historische Klines via `apiService`, formatiert sie als CSV/JSON und sendet sie an den Python-Service zum Training.
+*   **Initialization:** Lädt die `.onnx` Datei und initialisiert die WebAssembly/WebGPU Session.
+*   **Featurization:** Wandelt den aktuellen `marketState` (Preise, RSI, MACD) in einen `Float32Array` Tensor um.
+*   **Prediction:** Führt `session.run()` aus und erhält die Wahrscheinlichkeiten (z.B. `[0.1, 0.8, 0.1]` für Short/Hold/Long).
 
 ---
 
-## Phase 3: Das Erste Modell (Trend-Scout)
+## Phase 3: Daten-Schnittstelle (State Definition)
 
-Wir beginnen NICHT mit einem vollautomatischen Trader, sondern mit einem **Signal-Geber**.
+Damit das Modell funktioniert, muss der Input exakt stimmen.
 
-### 3.1 Ziel
-Ein Agent, der die Wahrscheinlichkeit für einen **Trend-Wechsel** vorhersagt.
+### 3.1 Input Tensor (Der "Blick" des Agenten)
+Wir definieren einen festen Vektor (Array) mit z.B. 12 Werten:
+1.  RSI (14) / 100
+2.  MACD / Preis
+3.  Abstand zu EMA 200 (%)
+4.  Log-Return (1h)
+5.  Log-Return (4h)
+6.  Volatilität (ATR / Preis)
+7.  ... (weitere Indikatoren)
 
-### 3.2 Training
-*   **Algorithmus:** PPO (Proximal Policy Optimization) - stabil und effizient.
-*   **Environment:** Eine vereinfachte Trading-Umgebung, die nur Long/Short/Flat kennt.
-*   **Reward Function:** Maximierung des Sharpe-Ratio (Risiko-adjustierter Gewinn). Bestrafung für hohe Volatilität im PnL.
+**Wichtig:** Diese Werte müssen in TypeScript (Browser) exakt so berechnet werden wie in Python (Training).
 
 ---
 
 ## Phase 4: UI Integration
 
-Die "Intelligenz" muss für den User sichtbar werden.
+### 4.1 "AI Compass" Widget
+*   Eine futuristische Anzeige im Dashboard.
+*   Zeigt die "Meinung" der KI in Echtzeit an.
+*   Status: "Loading Model...", "Computing...", "Bullish (85%)".
 
-### 4.1 Dashboard Widget "AI Sentiment"
-Erweiterung des Dashboards um eine Kachel:
-*   Zeigt aktuellen "Brain State": 🟢 Bullish (80%), 🔴 Bearish (60%), ⚪ Neutral.
-*   Zeigt Vertrauens-Score (Confidence).
-
-### 4.2 Journal Integration
-*   Bei jedem Trade im Journal wird gespeichert: "Was hat die KI zu diesem Zeitpunkt gesagt?"
-*   Dies ermöglicht später eine Auswertung: "Hätte ich auf die KI gehört, hätte ich X% mehr Gewinn gemacht".
+### 4.2 WebWorker (Optional)
+Falls das Modell komplexer wird, lagern wir die Berechnung in einen WebWorker aus, damit das UI nicht einfriert (obwohl ONNX Web sehr schnell ist).
 
 ---
 
-## Zeitplan (Schätzung)
+## Zeitplan & Vorteile
 
-1.  **Infrastruktur & Hello World:** 1 Tag (Docker, FastAPI läuft).
-2.  **Data Bridge:** 1 Tag (Cachy sendet korrekte Daten).
-3.  **Erstes Training:** 2-3 Tage (Experimentieren mit Hyperparametern, bis das Modell "lernt").
-4.  **UI & Integration:** 1 Tag.
+*   **Server-Last:** Null. Der Server liefert nur eine statische Datei aus.
+*   **Latenz:** Extrem niedrig (kein Netzwerk-Roundtrip für die Vorhersage).
+*   **Kosten:** Keine GPU-Server nötig.
+*   **Datenschutz:** Marktdaten und Portfolio verlassen nie den Browser des Users.
 
-**Gesamt:** Ca. 1 Woche für einen funktionierenden Prototypen.
+### Nächste Schritte
+1.  `onnxruntime-web` installieren.
+2.  `src/services/brainService.ts` erstellen (Gerüst).
+3.  Ein Dummy-Modell (ONNX) erstellen und testen.
