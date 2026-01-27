@@ -19,9 +19,10 @@
 
   interface Props {
     isVisible?: boolean;
+    fluidWidth?: boolean;
   }
 
-  let { isVisible = false }: Props = $props();
+  let { isVisible = false, fluidWidth = false }: Props = $props();
 
   // Local UI state
   let showTimeframePopup = $state(false);
@@ -155,8 +156,8 @@
 {#if showPanel}
   <div
     class="technicals-panel p-3 flex flex-col gap-2 w-full transition-all relative"
-    class:md:w-72={!settingsState.showIndicatorParams}
-    class:md:w-[22rem]={settingsState.showIndicatorParams}
+    class:md:w-72={!fluidWidth && !settingsState.showIndicatorParams}
+    class:md:w-[22rem]={!fluidWidth && settingsState.showIndicatorParams}
   >
     <!-- Top Header -->
     <div

@@ -229,6 +229,17 @@
   function toggleTechnicals() {
     isTechnicalsVisible = !isTechnicalsVisible;
   }
+
+  let isTechnicalsDocked = $derived(
+    !settingsState.showMarketOverview && settingsState.showTechnicals,
+  );
+  let sidebarWidthClass = $derived(
+    isTechnicalsDocked
+      ? settingsState.showIndicatorParams
+        ? "w-[22rem]"
+        : "w-72"
+      : "w-56",
+  );
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -677,7 +688,7 @@
         {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel isVisible={isTechnicalsVisible} />
+          <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
         {/if}
 
         {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
@@ -699,7 +710,7 @@
   {#if settingsState.showSidebars}
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div
-      class="hidden xl:flex flex-col gap-3 w-56 shrink-0 sticky top-8 transition-all duration-300 z-40"
+      class="hidden xl:flex flex-col gap-3 shrink-0 sticky top-8 transition-all duration-300 z-40 {sidebarWidthClass}"
     >
       <!-- Main current symbol -->
       {#if settingsState.showMarketOverview}
@@ -707,10 +718,12 @@
           onToggleTechnicals={toggleTechnicals}
           {isTechnicalsVisible}
         />
+      {:else if isTechnicalsDocked}
+        <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
       {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
-      {#if settingsState.showTechnicals}
+      {#if settingsState.showTechnicals && !isTechnicalsDocked}
         <div
           class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
           class:scale-0={!isTechnicalsVisible}
