@@ -167,6 +167,7 @@ export interface Settings {
   cmcApiKey?: string;
   enableCmcContext: boolean;
   showMarketOverviewLinks: boolean;
+  showMarketOverview: boolean; // Toggle for tile visibility
   showMarketActivity: boolean;
   marketAnalysisInterval: number;
   pauseAnalysisOnBlur: boolean;
@@ -325,6 +326,7 @@ const defaultSettings: Settings = {
   cmcApiKey: "",
   enableCmcContext: false,
   showMarketOverviewLinks: true,
+  showMarketOverview: true,
   showMarketActivity: true,
   showMarketSentiment: true,
   showSidebarActivity: false,
@@ -530,6 +532,7 @@ export class SettingsManager {
   showMarketOverviewLinks = $state<boolean>(
     defaultSettings.showMarketOverviewLinks,
   );
+  showMarketOverview = $state<boolean>(defaultSettings.showMarketOverview);
   showMarketActivity = $state<boolean>(defaultSettings.showMarketActivity);
   marketAnalysisInterval = $state<number>(defaultSettings.marketAnalysisInterval);
   pauseAnalysisOnBlur = $state<boolean>(defaultSettings.pauseAnalysisOnBlur);
@@ -955,6 +958,7 @@ export class SettingsManager {
       this.cmcApiKey = merged.cmcApiKey;
       this.enableCmcContext = merged.enableCmcContext;
       this.showMarketOverviewLinks = merged.showMarketOverviewLinks;
+      this.showMarketOverview = merged.showMarketOverview ?? defaultSettings.showMarketOverview;
       this.showMarketActivity = merged.showMarketActivity;
       this.showSidebarActivity =
         merged.showSidebarActivity ?? defaultSettings.showSidebarActivity;
@@ -1152,6 +1156,7 @@ export class SettingsManager {
       cmcApiKey: this.cmcApiKey,
       enableCmcContext: this.enableCmcContext,
       showMarketOverviewLinks: this.showMarketOverviewLinks,
+      showMarketOverview: this.showMarketOverview,
       showMarketActivity: this.showMarketActivity,
       showSidebarActivity: this.showSidebarActivity,
       showMarketSentiment: this.showMarketSentiment,
