@@ -124,7 +124,7 @@
 
   // Technicals Data Subscription (via ActiveTechnicalsManager)
   $effect(() => {
-    if (symbol && symbol.length >= 3 && effectiveRsiTimeframe && settingsState.showMarketSentiment) {
+    if (symbol && symbol.length >= 3 && effectiveRsiTimeframe) {
       untrack(() => {
         activeTechnicalsManager.register(symbol, effectiveRsiTimeframe);
       });
@@ -424,7 +424,6 @@
             <span class="font-medium text-[var(--text-primary)]">{formatValue(volume, 0)}</span>
           </div>
 
-          {#if settingsState.showMarketSentiment}
             <div class="flex flex-col mt-1 text-right relative group">
               <span class="text-[var(--text-secondary)]">RSI ({effectiveRsiTimeframe})</span>
               <span
@@ -457,7 +456,6 @@
                 </Tooltip>
               </div>
             </div>
-          {/if}
         </div>
 
         {#if fundingRate}
