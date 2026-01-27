@@ -48,7 +48,7 @@
   // Price Flashing & Trend Logic
   let flashingDigitIndexes: Set<number> = $state(new Set());
   let lastPriceStr: string = $state("");
-  let flashTimeout: any = null;
+  let flashTimeout: ReturnType<typeof setTimeout> | undefined;
 
   // Derived Real-time values
   let symbol = $derived(customSymbol || tradeState.symbol || "");
@@ -113,6 +113,10 @@
     }
 
     lastPriceStr = s;
+
+    return () => {
+      if (flashTimeout) clearTimeout(flashTimeout);
+    };
   });
 
   // RSI Timeframe
@@ -163,7 +167,7 @@
 
   // Countdown Logic
   let countdownText = $state("--:--:--");
-  let countdownInterval: any;
+  let countdownInterval: ReturnType<typeof setInterval> | undefined;
 
   function startCountdown() {
     if (countdownInterval) clearInterval(countdownInterval);
@@ -186,6 +190,9 @@
 
   $effect(() => {
     if (nextFundingTime) untrack(startCountdown);
+    return () => {
+      if (countdownInterval) clearInterval(countdownInterval);
+    };
   });
 
   // Watch for symbol or provider changes (Ticker & Price)
