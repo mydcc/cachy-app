@@ -155,6 +155,9 @@
    Meteorite Theme - Vollständige Farbpalette
    ================================================================= */
 .theme-meteorite {
+  /* --- Galaxy Overrides --- */
+  --galaxy-bg: #03020a;
+
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
   --core-meteorite: #433f65;
@@ -254,6 +257,9 @@
    Steel Theme - Vollständige Farbpalette
    ================================================================= */
 .theme-steel {
+  /* --- Galaxy Overrides --- */
+  --galaxy-bg: #02040a;
+
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
   --core-meteorite: #433f65;
