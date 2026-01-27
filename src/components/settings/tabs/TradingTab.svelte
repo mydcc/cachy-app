@@ -216,6 +216,32 @@
                     <label class="toggle-card mb-4">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
+                                >Market Overview Tiles</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Show market data tiles in sidebar</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.showMarketOverview} />
+                    </label>
+
+                    <label class="toggle-card mb-4">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Market Sentiment</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Show sentiment analysis panel</span
+                            >
+                        </div>
+                        <Toggle bind:checked={settingsState.showMarketSentiment} />
+                    </label>
+
+                    <label class="toggle-card mb-4">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
                                 >{$_("settings.showTechnicals")}</span
                             >
                             <span

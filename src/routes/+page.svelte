@@ -47,15 +47,14 @@
   import Tooltip from "../components/shared/Tooltip.svelte";
   import CachyIcon from "../components/shared/CachyIcon.svelte";
   import ModalFrame from "../components/shared/ModalFrame.svelte";
-  import SettingsButton from "../components/settings/SettingsButton.svelte";
   import MarketOverview from "../components/shared/MarketOverview.svelte";
   import PositionsSidebar from "../components/shared/PositionsSidebar.svelte";
   import TechnicalsPanel from "../components/shared/TechnicalsPanel.svelte"; // Import TechnicalsPanel
   import ConnectionStatus from "../components/shared/ConnectionStatus.svelte"; // Import ConnectionStatus
   import SidePanel from "../components/shared/SidePanel.svelte";
+  import LeftControlPanel from "../components/shared/LeftControlPanel.svelte";
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
-  import AnalyticsButton from "../components/shared/AnalyticsButton.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
@@ -235,6 +234,7 @@
 <svelte:window onkeydown={handleKeydown} />
 
 <SidePanel />
+<LeftControlPanel />
 
 <!-- Global Layout Wrapper -->
 <div
@@ -649,8 +649,6 @@
           <LanguageSwitcher />
           <div class="flex items-center gap-2">
             <FloatingIframeButton />
-            <AnalyticsButton />
-            <SettingsButton />
           </div>
           <div class="flex items-center gap-2">
             <PowerToggle />
@@ -671,16 +669,18 @@
           <NewsSentimentPanel symbol={tradeState.symbol} variant="sidebar" />
         {/if}
 
-        <MarketOverview
-          onToggleTechnicals={toggleTechnicals}
-          {isTechnicalsVisible}
-        />
+        {#if settingsState.showMarketOverview}
+          <MarketOverview
+            onToggleTechnicals={toggleTechnicals}
+            {isTechnicalsVisible}
+          />
+        {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
           <TechnicalsPanel isVisible={isTechnicalsVisible} />
         {/if}
 
-        {#if favoritesState.items.length > 0}
+        {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
           <div
             class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest px-1"
           >
@@ -702,10 +702,12 @@
       class="hidden xl:flex flex-col gap-3 w-56 shrink-0 sticky top-8 transition-all duration-300 z-40"
     >
       <!-- Main current symbol -->
-      <MarketOverview
-        onToggleTechnicals={toggleTechnicals}
-        {isTechnicalsVisible}
-      />
+      {#if settingsState.showMarketOverview}
+        <MarketOverview
+          onToggleTechnicals={toggleTechnicals}
+          {isTechnicalsVisible}
+        />
+      {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
       {#if settingsState.showTechnicals}
@@ -721,18 +723,20 @@
       {/if}
 
       <!-- Favorites list -->
-      {#if favoritesState.items.length > 0}
-        <div
-          class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
-        >
-          {$_("dashboard.favorites") || "Favorites"}
-        </div>
-      {/if}
-      {#each favoritesState.items as fav (fav)}
-        {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
-          <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+      {#if settingsState.showMarketOverview}
+        {#if favoritesState.items.length > 0}
+          <div
+            class="text-[var(--text-secondary)] text-xs font-bold uppercase tracking-widest mt-2 px-1"
+          >
+            {$_("dashboard.favorites") || "Favorites"}
+          </div>
         {/if}
-      {/each}
+        {#each favoritesState.items as fav (fav)}
+          {#if fav.toUpperCase() !== (tradeState.symbol || "").toUpperCase()}
+            <MarketOverview customSymbol={fav} isFavoriteTile={true} />
+          {/if}
+        {/each}
+      {/if}
     </div>
   {/if}
 </div>
