@@ -17,10 +17,12 @@
 
     let sortedResults = $derived(analysisState.sortedByScore);
 
-    function formatPrice(price: number) {
-        return price < 1
-            ? price.toFixed(6)
-            : price.toLocaleString(undefined, {
+    function formatPrice(price: string | number) {
+        const p = typeof price === "string" ? parseFloat(price) : price;
+        if (isNaN(p)) return "0.00";
+        return p < 1
+            ? p.toFixed(6)
+            : p.toLocaleString(undefined, {
                   minimumFractionDigits: 2,
                   maximumFractionDigits: 2,
               });
@@ -103,6 +105,8 @@
                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2"
             >
                 {#each sortedResults as item (item.symbol)}
+                    {@const changeNum = parseFloat(item.change24h)}
+                    {@const rsiNum = parseFloat(item.rsi1h)}
                     <div
                         class="bg-[var(--bg-tertiary)] rounded-xl p-4 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-all group"
                     >
@@ -114,13 +118,13 @@
                                 >
                                     ${formatPrice(item.price)}
                                     <span
-                                        class={item.change24h >= 0
+                                        class={changeNum >= 0
                                             ? "text-[var(--success-color)]"
                                             : "text-[var(--danger-color)]"}
                                     >
-                                        ({item.change24h > 0
+                                        ({changeNum > 0
                                             ? "+"
-                                            : ""}{item.change24h.toFixed(2)}%)
+                                            : ""}{changeNum.toFixed(2)}%)
                                     </span>
                                 </div>
                             </div>
@@ -147,12 +151,12 @@
                                 >
                                 <span
                                     class="font-mono text-sm"
-                                    class:text-[var(--danger-color)]={item.rsi1h >
+                                    class:text-[var(--danger-color)]={rsiNum >
                                         70}
-                                    class:text-[var(--success-color)]={item.rsi1h <
+                                    class:text-[var(--success-color)]={rsiNum <
                                         30}
                                 >
-                                    {item.rsi1h.toFixed(1)}
+                                    {rsiNum.toFixed(1)}
                                 </span>
                             </div>
                             <div class="bg-[var(--bg-primary)] p-2 rounded">

@@ -16,13 +16,10 @@
 -->
 
 <script lang="ts">
-  import TakeProfitRow from "../shared/TakeProfitRow.svelte";
+  import TakeProfitRow from "./TakeProfitRow.svelte";
   import { app } from "../../services/app";
   import { _ } from "../../locales/i18n";
-  import { createEventDispatcher } from "svelte";
   import type { IndividualTpResult } from "../../stores/types";
-
-  const dispatch = createEventDispatcher();
 
   interface Props {
     targets: Array<{
@@ -41,25 +38,10 @@
 
   function removeRow(index: number) {
     app.removeTakeProfitRow(index);
-    dispatch("remove", index);
   }
 </script>
 
-<div class="space-y-2 mt-4">
-  <div class="flex items-center justify-between mb-2">
-    <h3 class="section-header !mt-0">
-      {$_("dashboard.takeProfitTargets.header")} ({targets.length})
-    </h3>
-  </div>
-
-  {#if targets.length === 0}
-    <div
-      class="text-center p-4 border border-dashed border-[var(--border-color)] rounded-lg text-[var(--text-secondary)] text-sm"
-    >
-      {$_("dashboard.takeProfitTargets.emptyState" as any)}
-    </div>
-  {/if}
-
+<div class="space-y-2">
   {#each targets as target, i}
     <TakeProfitRow
       index={i}

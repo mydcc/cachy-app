@@ -192,7 +192,7 @@ export const csvService = {
     if (lines.length > MAX_IMPORT_LINES) {
       const translate = get(_);
       const msg =
-        (translate("csvTooManyLines", {
+        (translate("csvTooManyLines" as any, {
           values: {
             count: lines.length - 1,
             max: 1000,
@@ -205,7 +205,7 @@ export const csvService = {
     if (lines.length < 2) {
       const translate = get(_);
       throw new Error(
-        (translate("csvEmpty") as string) ||
+        (translate("csvEmpty" as any) as string) ||
           "CSV is empty or has only a header.",
       );
     }
@@ -287,7 +287,7 @@ export const csvService = {
     if (missingKeys.length > 0) {
       const translate = get(_);
       const msg =
-        (translate("csvMissingColumns", {
+        (translate("csvMissingColumns" as any, {
           values: {
             columns: missingKeys.join(", "),
           },

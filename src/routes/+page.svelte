@@ -145,8 +145,8 @@
   function handleTargetsChange(
     event: CustomEvent<
       Array<{
-        price: number | null;
-        percent: number | null;
+        price: string | null;
+        percent: string | null;
         isLocked: boolean;
       }>
     >,
@@ -416,7 +416,7 @@
         class="text-center text-sm font-medium mt-4 md:col-span-2"
         style:color="var(--danger-color)"
       >
-        {$_(uiState.errorMessage)}
+        {$_(uiState.errorMessage as any)}
       </div>
     {/if}
 

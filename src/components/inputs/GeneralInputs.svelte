@@ -28,8 +28,8 @@
 
   interface Props {
     tradeType: string;
-    leverage: number | null;
-    fees: number | null;
+    leverage: string | null;
+    fees: string | null;
   }
 
   let {
@@ -44,33 +44,33 @@
     trackCustomEvent("Trade", "ChangeType", type);
   }
 
-  const format = (val: number | null) =>
+  const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
   function handleLeverageInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
     // Direct assignment
-    tradeState.leverage = value === "" ? null : parseFloat(value);
+    tradeState.leverage = value === "" ? null : value;
   }
 
   function handleFeesInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
     // Direct assignment
-    tradeState.fees = value === "" ? null : parseFloat(value);
+    tradeState.fees = value === "" ? null : value;
   }
 
   // Leverage Sync Status
   let remoteLev = $derived(tradeState.remoteLeverage);
   let isLeverageSynced = $derived(
-    remoteLev !== undefined && leverage === remoteLev,
+    remoteLev !== undefined && leverage === String(remoteLev),
   );
 
   function syncLeverage() {
     if (remoteLev !== undefined) {
       // Direct assignment
-      tradeState.leverage = remoteLev;
+      tradeState.leverage = String(remoteLev);
     }
   }
 
@@ -84,13 +84,13 @@
   );
 
   let isFeeSynced = $derived(
-    targetRemoteFee !== undefined && fees === targetRemoteFee,
+    targetRemoteFee !== undefined && fees === String(targetRemoteFee),
   );
 
   function syncFee() {
     if (targetRemoteFee !== undefined) {
       // Direct assignment
-      tradeState.fees = targetRemoteFee;
+      tradeState.fees = String(targetRemoteFee);
     }
   }
 </script>

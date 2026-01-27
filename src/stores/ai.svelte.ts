@@ -880,12 +880,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
       switch (action.action) {
         case "setEntryPrice":
           if (action.value !== undefined) {
-            tradeState.entryPrice = parseAiValue(action.value as string);
+            tradeState.entryPrice = String(parseAiValue(action.value as string));
           }
           break;
         case "setStopLoss":
           if (action.value !== undefined) {
-            tradeState.stopLossPrice = parseAiValue(action.value as string);
+            tradeState.stopLossPrice = String(parseAiValue(action.value as string));
           }
           break;
         case "setTakeProfit":
@@ -903,10 +903,10 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
               // However, since it's an array of objects, we ensure reactivity triggers
               // by reassigning or mutating properly. Runes proxies handle deep mutation.
               if (action.value !== undefined) {
-                currentTargets[idx].price = parseAiValue(action.value as string);
+                currentTargets[idx].price = String(parseAiValue(action.value as string));
               }
               if (action.percent !== undefined) {
-                currentTargets[idx].percent = parseAiValue(action.percent as string);
+                currentTargets[idx].percent = String(parseAiValue(action.percent as string));
               }
             } else {
               logger.warn("ai", "Invalid TP index", { index: idx, total: currentTargets.length });
@@ -915,12 +915,12 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
           break;
         case "setLeverage":
           if (action.value !== undefined) {
-            tradeState.leverage = parseAiValue(action.value as string);
+            tradeState.leverage = String(parseAiValue(action.value as string));
           }
           break;
         case "setRisk":
           if (action.value !== undefined) {
-            tradeState.riskPercentage = parseAiValue(action.value as string);
+            tradeState.riskPercentage = String(parseAiValue(action.value as string));
           }
           break;
         case "setSymbol":

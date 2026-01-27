@@ -25,13 +25,14 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { app } from "../../services/app";
   import type { IndividualTpResult } from "../../stores/types";
+  import { parseDecimal } from "../../utils/utils";
 
   const dispatch = createEventDispatcher();
 
   interface Props {
     index: number;
-    price: number | null;
-    percent: number | null;
+    price: string | null;
+    percent: string | null;
     isLocked: boolean;
     tpDetail?: IndividualTpResult | undefined;
   }
@@ -50,7 +51,8 @@
     if (currentTargets[index]) {
       currentTargets[index].isLocked = newLockState;
       tradeState.update((s) => ({ ...s, targets: currentTargets }));
-      app.adjustTpPercentages(index);
+      // If unlocking, allow global rebalance (pass null). If locking, treat as specific change (index)
+      app.adjustTpPercentages(newLockState ? index : null);
     }
   }
 
@@ -58,13 +60,13 @@
     dispatch("remove", index);
   }
 
-  const format = (val: number | null) =>
+  const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
   function handlePriceInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    const newPrice = value === "" ? null : parseFloat(value);
+    const newPrice = value === "" ? null : value;
 
     const currentTargets = tradeState.targets;
     if (currentTargets[index]) {
@@ -76,7 +78,7 @@
   function handlePercentInput(e: Event) {
     const target = e.target as HTMLInputElement;
     const value = target.value;
-    const newPercent = value === "" ? null : parseFloat(value);
+    const newPercent = value === "" ? null : value;
 
     const currentTargets = tradeState.targets;
     if (currentTargets[index]) {
@@ -87,9 +89,14 @@
   }
 
   // Determine dynamic step
-  let priceStep = $derived(
-    price && price > 1000 ? 0.5 : price && price > 100 ? 0.1 : 0.01,
-  );
+  let priceStep = $derived.by(() => {
+    if (!price) return 0.01;
+    const p = parseDecimal(price).toNumber();
+    if (p > 1000) return 0.5;
+    if (p > 100) return 0.1;
+    return 0.01;
+  });
+
   function formatProfit(val: any) {
     const num = val?.toNumber ? val.toNumber() : Number(val);
     if (!num) return "0";

@@ -117,7 +117,7 @@ async function fetchBitunixBalance(
   const accountInfo = data.data;
 
   if (!accountInfo) {
-    return 0;
+    return "0";
   }
 
   // Case: It returns an array of assets (as per documentation)

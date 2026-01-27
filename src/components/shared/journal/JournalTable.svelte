@@ -765,7 +765,7 @@
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
                                                     title={$_(
-                                                        "journal.labels.view",
+                                                        "journal.labels.view" as any,
                                                     )}
                                                 >
                                                     🖼️
@@ -790,7 +790,7 @@
                                                             },
                                                         )}
                                                     title={$_(
-                                                        "journal.labels.removeScreenshot",
+                                                        "journal.labels.removeScreenshot" as any,
                                                     )}
                                                 >
                                                     🗑️
@@ -904,7 +904,7 @@
                                                 onclick={() =>
                                                     handleDeleteTrade(item.id)}
                                                 title={$_(
-                                                    "journal.labels.delete",
+                                                    "journal.labels.delete" as any,
                                                 )}
                                             >
                                                 🗑️

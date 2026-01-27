@@ -29,9 +29,9 @@
   import { uiState } from "../../stores/ui.svelte";
 
   interface Props {
-    accountSize: number | null;
-    riskPercentage: number | null;
-    riskAmount: number | null;
+    accountSize: string | null;
+    riskPercentage: string | null;
+    riskAmount: string | null;
     isRiskAmountLocked: boolean;
     isPositionSizeLocked: boolean;
   }
@@ -52,7 +52,7 @@
     dispatch("toggleRiskAmountLock");
   }
 
-  const format = (val: number | null) =>
+  const format = (val: string | number | null) =>
     val === null || val === undefined ? "" : String(val);
 
   function handleAccountSizeInput(e: Event) {
@@ -60,7 +60,7 @@
     const value = target.value;
     tradeState.update((s) => ({
       ...s,
-      accountSize: value === "" ? null : parseFloat(value),
+      accountSize: value === "" ? null : value,
     }));
   }
 
@@ -69,7 +69,7 @@
     const value = target.value;
     tradeState.update((s) => ({
       ...s,
-      riskPercentage: value === "" ? null : parseFloat(value),
+      riskPercentage: value === "" ? null : value,
     }));
   }
 
@@ -78,7 +78,7 @@
     const value = target.value;
     tradeState.update((s) => ({
       ...s,
-      riskAmount: value === "" ? null : parseFloat(value),
+      riskAmount: value === "" ? null : value,
     }));
   }
 
@@ -116,7 +116,7 @@
       }
 
       if (typeof data.balance === "number" || typeof data.balance === "string") {
-        tradeState.update((s) => ({ ...s, accountSize: data.balance }));
+        tradeState.update((s) => ({ ...s, accountSize: String(data.balance) }));
         if (!silent) {
           uiState.showFeedback("save"); // Show success feedback
         }

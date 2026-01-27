@@ -577,6 +577,9 @@ export const app = {
     const targets = [...tradeState.targets];
     if (targets.length === 0) return;
 
+    // Prevent adjustment if the changed target is locked
+    if (changedIndex !== null && targets[changedIndex]?.isLocked) return;
+
     const total = targets.reduce((sum, t) => sum.plus(parseDecimal(t.percent)), new Decimal(0));
     const diff = new Decimal(100).minus(total);
 

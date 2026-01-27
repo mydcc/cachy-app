@@ -83,8 +83,6 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
                 side: 'long',
                 amount: new Decimal('12.345'),
                 entryPrice: new Decimal('50000'),
-                pnl: new Decimal('0'),
-                margin: new Decimal('1000'),
                 leverage: 10,
                 liquidationPrice: new Decimal('45000'),
                 unrealizedPnl: new Decimal('0'),

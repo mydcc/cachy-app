@@ -549,7 +549,7 @@
                 bind:checked={columnVisibility[col]}
                 class="w-4 h-4 rounded border-[var(--border-color)] text-[var(--accent-color)] focus:ring-[var(--accent-color)]"
               />
-              <span class="text-xs truncate">{$_(`journal.table.${col}`)}</span>
+              <span class="text-xs truncate">{$_(`journal.table.${col}` as any)}</span>
             </label>
           {/each}
         </div>

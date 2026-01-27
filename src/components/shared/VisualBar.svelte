@@ -20,13 +20,14 @@
   import type { IndividualTpResult } from "../../stores/types";
 
   import { tradeState } from "../../stores/trade.svelte";
+  import { parseDecimal } from "../../utils/utils";
 
   interface Props {
-    entryPrice: number | null;
-    stopLossPrice: number | null;
+    entryPrice: string | null;
+    stopLossPrice: string | null;
     targets: Array<{
-      price: number | null;
-      percent: number | null;
+      price: string | null;
+      percent: string | null;
       isLocked: boolean;
     }>;
     calculatedTpDetails: IndividualTpResult[];
@@ -38,36 +39,45 @@
   const safeTargets = $derived(targets ?? []);
   const safeCalculatedTpDetails = $derived(calculatedTpDetails ?? []);
   const tradeType = $derived(tradeState.tradeType);
+
+  // Derived numerical values for visualization
+  const entryNum = $derived(entryPrice ? parseDecimal(entryPrice).toNumber() : null);
+  const slNum = $derived(stopLossPrice ? parseDecimal(stopLossPrice).toNumber() : null);
 </script>
 
 <div class="visual-bar-card">
-  {#if entryPrice !== null && stopLossPrice !== null}
+  {#if entryNum !== null && slNum !== null}
     {@const isValid = (p: number) =>
-      tradeType === "long" ? p > entryPrice : p < entryPrice}
+      tradeType === "long" ? p > entryNum : p < entryNum}
 
     {@const validPrices = safeTargets
-      .map((t) => t.price)
+      .map((t) => (t.price ? parseDecimal(t.price).toNumber() : null))
       .filter((p): p is number => p !== null && isValid(p))}
 
     {@const furthestPrice =
-      tradeType === "long"
-        ? Math.max(entryPrice, ...validPrices)
-        : Math.min(entryPrice, ...validPrices)}
+      validPrices.length > 0
+        ? tradeType === "long"
+          ? Math.max(entryNum, ...validPrices)
+          : Math.min(entryNum, ...validPrices)
+        : entryNum}
 
-    {@const totalDiff = Math.abs(furthestPrice - stopLossPrice)}
+    {@const totalDiff = Math.abs(furthestPrice - slNum)}
     {@const isReady = totalDiff > 0}
 
     {#if isReady}
       {@const getX = (p: number) =>
-        (Math.abs(p - stopLossPrice) / totalDiff) * 100}
-      {@const entryX = getX(entryPrice)}
+        (Math.abs(p - slNum) / totalDiff) * 100}
+      {@const entryX = getX(entryNum)}
       {@const tpData = safeTargets
         .map((t, i) => {
-          if (!t.price || !isValid(t.price)) return null;
+          if (!t.price) return null;
+          const priceNum = parseDecimal(t.price).toNumber();
+          if (!isValid(priceNum)) return null;
+
           const detail = safeCalculatedTpDetails.find((d) => d.index === i);
           return {
             idx: i + 1,
-            x: getX(t.price),
+            x: getX(priceNum),
             rr: detail?.riskRewardRatio
               ? detail.riskRewardRatio.toFixed(1)
               : "0.0",

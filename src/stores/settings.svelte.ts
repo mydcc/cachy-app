@@ -211,6 +211,7 @@ export interface Settings {
   };
   discordBotToken?: string;
   discordChannels: string[];
+  xMonitors: { type: string, value: string }[];
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -377,6 +378,7 @@ const defaultSettings: Settings = {
   },
   discordBotToken: "",
   discordChannels: [],
+  xMonitors: [],
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -633,6 +635,7 @@ export class SettingsManager {
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
+  xMonitors = $state<{ type: string, value: string }[]>(defaultSettings.xMonitors);
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
@@ -1014,6 +1017,8 @@ export class SettingsManager {
       this.discordChannels =
         merged.discordChannels || defaultSettings.discordChannels;
 
+      this.xMonitors = merged.xMonitors || defaultSettings.xMonitors;
+
       this._marketMode = merged.marketMode || defaultSettings.marketMode;
       this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
       this.enableNewsScraper = merged.enableNewsScraper ?? defaultSettings.enableNewsScraper;
@@ -1180,6 +1185,7 @@ export class SettingsManager {
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,
       discordChannels: $state.snapshot(this.discordChannels),
+      xMonitors: $state.snapshot(this.xMonitors),
       marketMode: this.marketMode,
       analyzeAllFavorites: this.analyzeAllFavorites,
       enableNewsScraper: this.enableNewsScraper,

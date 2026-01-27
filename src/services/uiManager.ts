@@ -54,7 +54,7 @@ export const uiManager = {
       // type === 'changelog'
       titleKey = "app.changelogTitle";
     }
-    const translatedTitle = get(_)(titleKey);
+    const translatedTitle = get(_)(titleKey as any);
     // Pass the 'modal-size-instructions' class here to ensure it uses the updated 80vw width
     modalState.show(
       translatedTitle,
