@@ -80,14 +80,18 @@
     });
 
     if (existingAction) {
-      conflictWarning = `"${newCombo}" is already used by "${existingAction.label}"`;
+      conflictWarning = $_("settings.hotkeys.conflictWarning", {
+        values: { newCombo, existingLabel: existingAction.label },
+      });
       // We don't save yet, just warn.
       // Actually, usually it's better to just highlight the conflict or auto-unbind.
       // Let's simple allow overwrite for now but maybe show a visual indicator?
       // For this version: simple overwrite is fine, but let's confirm.
       if (
         !confirm(
-          `"${newCombo}" is used by "${existingAction.label}". Overwrite?`,
+          $_("settings.hotkeys.conflictConfirm", {
+            values: { newCombo, existingLabel: existingAction.label },
+          }),
         )
       ) {
         return;
@@ -107,7 +111,7 @@
   }
 
   function resetToDefaults() {
-    if (confirm("Reset all custom hotkeys to defaults?")) {
+    if (confirm($_("settings.hotkeys.resetConfirm"))) {
       customHotkeys = {};
       settingsState.customHotkeys = {};
     }
@@ -168,7 +172,7 @@
                 }}
               >
                 {editingId === action.id
-                  ? "Press Key..."
+                  ? $_("settings.hotkeys.pressKey")
                   : getDisplayKey(action)}
               </button>
             </div>

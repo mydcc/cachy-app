@@ -520,6 +520,12 @@
     "fontFamily": "Font Family",
     "forceEnglishTechnicalTerms": "Technical terms in English (Entry, TP, etc.)",
     "language": "Language",
+    "hotkeys": {
+      "conflictWarning": "\"{newCombo}\" is already used by \"{existingLabel}\"",
+      "conflictConfirm": "\"{newCombo}\" is used by \"{existingLabel}\". Overwrite?",
+      "resetConfirm": "Reset all custom hotkeys to defaults?",
+      "pressKey": "Press Key..."
+    },
     "backup": "Backup",
     "restore": "Restore",
     "reset": "Reset Data",

@@ -152,14 +152,14 @@
     };
 
     window.addEventListener("error", handleGlobalError);
-    window.addEventListener("unhandledrejection", handleUnhandledRejection);
+    window.addEventListener("unhandledrejection", handleUnhandledRejection); // event
 
     // Theme is already initialized in uiStore, no need to set it here
 
     return () => {
       window.removeEventListener("error", handleGlobalError);
       window.removeEventListener(
-        "unhandledrejection",
+        "unhandledrejection", // event
         handleUnhandledRejection,
       );
     };
