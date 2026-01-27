@@ -16,6 +16,8 @@ vi.mock('../services/omsService', () => ({
         getPositions: vi.fn(() => []),
         updatePosition: vi.fn(),
         updateOrder: vi.fn(),
+        addOptimisticOrder: vi.fn(),
+        removeOrder: vi.fn(),
         getOrder: vi.fn(),
         getAllOrders: vi.fn(() => [])
     }

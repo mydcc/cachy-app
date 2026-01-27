@@ -286,12 +286,13 @@
     const pos = event.detail;
 
     try {
-      const res = await tradeService.closePosition({
+      const res = (await tradeService.closePosition({
         symbol: pos.symbol,
         positionSide: String(pos.side).toLowerCase() as any,
         amount: pos.size,
-      });
-      if (res.error) {
+      })) as any;
+
+      if (res && res.error) {
         uiState.showError(
           $_("dashboard.alerts.closePositionError", {
             values: { error: res.error },
