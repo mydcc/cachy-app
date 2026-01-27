@@ -22,8 +22,11 @@ import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
+import { omsService } from "./omsService";
 import { logger } from "./logger";
 import CryptoJS from "crypto-js";
+import { Decimal } from "decimal.js";
+import type { OMSPosition, OMSOrder, OMSOrderStatus } from "./omsTypes";
 import type {
   BitunixWSMessage,
   BitunixPriceData,
@@ -50,6 +53,50 @@ const CONNECTION_TIMEOUT_MS = 3000;
 interface Subscription {
   symbol: string;
   channel: string;
+}
+
+function mapToOMSPosition(data: any): OMSPosition {
+  const isClose = data.event === "CLOSE";
+  const amount = isClose ? new Decimal(0) : new Decimal(data.qty || 0);
+
+  return {
+    symbol: data.symbol,
+    side: (data.side || "").toLowerCase() as "long" | "short",
+    amount: amount,
+    entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
+    unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
+    leverage: Number(data.leverage || 0),
+    marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
+    liquidationPrice: data.liquidationPrice
+      ? new Decimal(data.liquidationPrice)
+      : undefined,
+  };
+}
+
+function mapToOMSOrder(data: any): OMSOrder {
+  const statusMap: Record<string, OMSOrderStatus> = {
+    NEW: "pending",
+    PARTIALLY_FILLED: "pending",
+    FILLED: "filled",
+    CANCELED: "cancelled",
+    CANCELLED: "cancelled",
+    REJECTED: "rejected",
+    EXPIRED: "expired",
+  };
+
+  const status = statusMap[data.orderStatus] || "pending";
+
+  return {
+    id: String(data.orderId),
+    symbol: data.symbol,
+    side: (data.side || "").toLowerCase() as "buy" | "sell",
+    type: (data.type || "").toLowerCase() as "limit" | "market",
+    status: status,
+    price: new Decimal(data.price || 0),
+    amount: new Decimal(data.qty || data.amount || 0),
+    filledAmount: new Decimal(data.dealAmount || 0),
+    timestamp: Number(data.ctime || Date.now()),
+  };
 }
 
 class BitunixWebSocketService {
@@ -970,17 +1017,27 @@ class BitunixWebSocketService {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))
-            data.forEach((item: any) =>
-              accountState.updatePositionFromWs(item),
-            );
-          else accountState.updatePositionFromWs(data);
+            data.forEach((item: any) => {
+              accountState.updatePositionFromWs(item);
+              omsService.updatePosition(mapToOMSPosition(item));
+            });
+          else {
+            accountState.updatePositionFromWs(data);
+            omsService.updatePosition(mapToOMSPosition(data));
+          }
         }
       } else if (validatedMessage.ch === "order") {
         const data = validatedMessage.data;
         if (data) {
           if (Array.isArray(data))
-            data.forEach((item: any) => accountState.updateOrderFromWs(item));
-          else accountState.updateOrderFromWs(data);
+            data.forEach((item: any) => {
+              accountState.updateOrderFromWs(item);
+              omsService.updateOrder(mapToOMSOrder(item));
+            });
+          else {
+            accountState.updateOrderFromWs(data);
+            omsService.updateOrder(mapToOMSOrder(data));
+          }
         }
       } else if (validatedMessage.ch === "wallet") {
         const data = validatedMessage.data;
