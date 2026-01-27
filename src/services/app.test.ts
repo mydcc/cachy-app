@@ -28,6 +28,7 @@ import { Decimal } from "decimal.js";
 import { apiService } from "./apiService";
 import type { Kline } from "./apiService";
 import type { AppState } from "../stores/types";
+import { parseDecimal } from "../utils/utils";
 
 function toggleAtrInputs(enable: boolean) {
   tradeState.toggleAtrInputs(enable);
@@ -63,9 +64,9 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     tradeState.update((state) => ({
       ...state,
       targets: [
-        { price: 110, percent: 50, isLocked: false },
-        { price: 120, percent: 30, isLocked: false },
-        { price: 130, percent: 20, isLocked: false },
+        { price: "110", percent: "50", isLocked: false },
+        { price: "120", percent: "30", isLocked: false },
+        { price: "130", percent: "20", isLocked: false },
       ],
     }));
   });
@@ -75,14 +76,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // User decreases TP2 from 30 to 20. Surplus of 10 is distributed
     // between the other unlocked targets (TP1 and TP3).
     const currentTargets = tradeState.targets;
-    if (currentTargets[1]) currentTargets[1].percent = 20;
+    if (currentTargets[1]) currentTargets[1].percent = "20";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(1);
 
     const targets = tradeState.targets;
-    expect(targets[0].percent).toBe(55); // 50 + 5
-    expect(targets[1].percent).toBe(20); // The edited one
-    expect(targets[2].percent).toBe(25); // 20 + 5
+    expect(targets[0].percent).toBe("55"); // 50 + 5
+    expect(targets[1].percent).toBe("20"); // The edited one
+    expect(targets[2].percent).toBe("25"); // 20 + 5
   });
 
   it("should distribute surplus to other unlocked TPs if one is locked", () => {
@@ -91,14 +92,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
 
     // User decreases TP3 from 20 to 10. Surplus of 10 should go to TP2.
-    currentTargets[2].percent = 10;
+    currentTargets[2].percent = "10";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
     const targets = tradeState.targets;
-    expect(targets[0].percent).toBe(50); // Locked
-    expect(targets[1].percent).toBe(40); // 30 + 10
-    expect(targets[2].percent).toBe(10);
+    expect(targets[0].percent).toBe("50"); // Locked
+    expect(targets[1].percent).toBe("40"); // 30 + 10
+    expect(targets[2].percent).toBe("10");
   });
 
   // --- INCREASE SCENARIOS ---
@@ -106,14 +107,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // User increases TP1 from 50 to 70. Deficit of 20.
     // Should be taken from T3 first. T3 has 20, so it becomes 0.
     const currentTargets = tradeState.targets;
-    currentTargets[0].percent = 70;
+    currentTargets[0].percent = "70";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
     const targets = tradeState.targets;
-    expect(targets[0].percent).toBe(70);
-    expect(targets[1].percent).toBe(30);
-    expect(targets[2].percent).toBe(0);
+    expect(targets[0].percent).toBe("70");
+    expect(targets[1].percent).toBe("30");
+    expect(targets[2].percent).toBe("0");
   });
 
   it("should take deficit from T3, then T2 if T3 is depleted", () => {
@@ -121,14 +122,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // T3 has 20, so it becomes 0. Remaining deficit is 10.
     // The remaining 10 is taken from T2 (30 -> 20).
     const currentTargets = tradeState.targets;
-    currentTargets[0].percent = 80;
+    currentTargets[0].percent = "80";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
     const targets = tradeState.targets;
-    expect(targets[0].percent).toBe(80);
-    expect(targets[1].percent).toBe(20);
-    expect(targets[2].percent).toBe(0);
+    expect(targets[0].percent).toBe("80");
+    expect(targets[1].percent).toBe("20");
+    expect(targets[2].percent).toBe("0");
   });
 
   it("should not take deficit from locked TPs", () => {
@@ -139,14 +140,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // User increases TP1 from 50 to 75. Deficit of 25.
     // T3 is locked, so deficit must come from T2.
     // T2 has 30, so it becomes 5.
-    currentTargets[0].percent = 75;
+    currentTargets[0].percent = "75";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(0);
 
     const targets = tradeState.targets;
-    expect(targets[0].percent).toBe(75);
-    expect(targets[1].percent).toBe(5);
-    expect(targets[2].percent).toBe(20); // Locked
+    expect(targets[0].percent).toBe("75");
+    expect(targets[1].percent).toBe("5");
+    expect(targets[2].percent).toBe("20"); // Locked
   });
 
   // --- EDGE CASE TESTS ---
@@ -154,57 +155,51 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     tradeState.update((state) => ({
       ...state,
       targets: [
-        { price: 110, percent: 50, isLocked: true },
-        { price: 120, percent: 30, isLocked: true },
-        { price: 130, percent: 20, isLocked: false },
+        { price: "110", percent: "50", isLocked: true },
+        { price: "120", percent: "30", isLocked: true },
+        { price: "130", percent: "20", isLocked: false },
       ],
     }));
     // User tries to increase the only unlocked TP. Should be reverted.
     const currentTargets = tradeState.targets;
-    currentTargets[2].percent = 30;
+    currentTargets[2].percent = "30";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
     const targets = tradeState.targets;
-    expect(targets[2].percent).toBe(20);
+    expect(targets[2].percent).toBe("20");
   });
 
   it("should revert change if only one unlocked TP is edited (decrease)", () => {
     tradeState.update((state) => ({
       ...state,
       targets: [
-        { price: 110, percent: 50, isLocked: true },
-        { price: 120, percent: 30, isLocked: true },
-        { price: 130, percent: 20, isLocked: false },
+        { price: "110", percent: "50", isLocked: true },
+        { price: "120", percent: "30", isLocked: true },
+        { price: "130", percent: "20", isLocked: false },
       ],
     }));
     // User tries to decrease the only unlocked TP. Should be reverted.
     const currentTargets = tradeState.targets;
-    currentTargets[2].percent = 10;
+    currentTargets[2].percent = "10";
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
     app.adjustTpPercentages(2);
 
     const targets = tradeState.targets;
-    expect(targets[2].percent).toBe(20);
+    expect(targets[2].percent).toBe("20");
   });
 
   it("should ignore changes to a locked field", () => {
     // This test ensures that if the UI somehow allows a change to a disabled
     // field, the logic doesn't process it.
     tradeState.update((state) => {
-      // Need to copy targets? state.targets is proxied in Runes
-      // But update gets a snapshot.
-      // Actually tradeState.update takes `curr: any` and we return modified.
-      // But the implementation uses Object.assign(this, next).
-      // If we mutate `state` inside and return it, it might work but best to return new object.
-      // For this test, let's keep it simple.
       state.targets[0].isLocked = true;
       return state;
     });
 
     // This simulates the user somehow changing the value, which updates the store
     tradeState.update((state) => {
-      if (state.targets[0]) state.targets[0].percent = 99;
+      if (state.targets[0]) state.targets[0].percent = "99";
       return state;
     });
 
@@ -214,9 +209,9 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     // The logic should simply RETURN and not process the change.
     // The "dirty" value of 99 will remain in the store, but this is expected
     // as the UI's `disabled` attribute is the primary guard. The logic is just a safeguard.
-    expect(targets[0].percent).toBe(99);
-    expect(targets[1].percent).toBe(30); // Unchanged
-    expect(targets[2].percent).toBe(20); // Unchanged
+    expect(targets[0].percent).toBe("99");
+    expect(targets[1].percent).toBe("30"); // Unchanged
+    expect(targets[2].percent).toBe("20"); // Unchanged
   });
 
   it("should re-balance correctly when a lock is released", () => {
@@ -224,9 +219,9 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     tradeState.update((state) => ({
       ...state,
       targets: [
-        { price: 110, percent: 60, isLocked: true },
-        { price: 120, percent: 60, isLocked: true },
-        { price: 130, percent: 0, isLocked: false },
+        { price: "110", percent: "60", isLocked: true },
+        { price: "120", percent: "60", isLocked: true },
+        { price: "130", percent: "0", isLocked: false },
       ],
     }));
     // User unlocks TP2. The app should see the total is 120 and fix it.
@@ -234,14 +229,14 @@ describe("app service - adjustTpPercentages (Prioritized Logic)", () => {
     const currentTargets = tradeState.targets;
     currentTargets[1].isLocked = false;
     tradeState.update((s) => ({ ...s, targets: currentTargets }));
-    app.adjustTpPercentages(1); // The changedIndex is the one unlocked
+    app.adjustTpPercentages(null); // The changedIndex is null because we unlocked
 
     const targets = tradeState.targets;
-    const total = targets.reduce((sum, t) => sum + (t.percent || 0), 0);
-    expect(total).toBe(100);
-    expect(targets[0].percent).toBe(60); // Locked, unchanged
+    const total = targets.reduce((sum, t) => sum.plus(parseDecimal(t.percent)), new Decimal(0));
+    expect(total.toNumber()).toBe(100);
+    expect(targets[0].percent).toBe("60"); // Locked, unchanged
     // The unlocked TPs (TP2 and TP3) should share the remaining 40%
-    expect(targets[1].percent).toBe(40);
+    expect(targets[1].percent).toBe("40");
   });
 });
 
@@ -307,9 +302,6 @@ describe("app service - ATR and Locking Logic", () => {
       "BTCUSDT",
       "1h",
       15,
-      undefined,
-      undefined,
-      "high",
     );
     expect(store.atrValue).not.toBe(null);
     expect(new Decimal(store.atrValue!).isFinite()).toBe(true);
@@ -317,7 +309,7 @@ describe("app service - ATR and Locking Logic", () => {
 
   it("should toggle risk amount lock", () => {
     // Arrange
-    tradeState.update((state) => ({ ...state, riskAmount: 100 }));
+    tradeState.update((state) => ({ ...state, riskAmount: "100" }));
     expect(tradeState.isRiskAmountLocked).toBe(false);
 
     // Act
@@ -337,7 +329,7 @@ describe("app service - ATR and Locking Logic", () => {
       ...state,
       isPositionSizeLocked: true,
       lockedPositionSize: new Decimal(10),
-      riskAmount: 100,
+      riskAmount: "100",
     }));
 
     // Act
@@ -373,11 +365,11 @@ describe("app service - ATR and Locking Logic", () => {
     // Arrange
     tradeState.set({
       ...INITIAL_TRADE_STATE,
-      accountSize: 10000,
-      riskAmount: 200, // User wants to risk 200
+      accountSize: "10000",
+      riskAmount: "200", // User wants to risk 200
       isRiskAmountLocked: true,
-      entryPrice: 100,
-      stopLossPrice: 90,
+      entryPrice: "100",
+      stopLossPrice: "90",
       useAtrSl: false,
     });
 

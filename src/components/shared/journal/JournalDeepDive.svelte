@@ -762,7 +762,7 @@
                         <div
                             class="font-bold text-[var(--text-primary)] pr-2 flex items-center h-8"
                         >
-                            {$_("journal.days." + (dayMap[row.day] || "mon"))}
+                            {$_("journal.days." + (dayMap[row.day] || "mon") as any)}
                         </div>
                         {#each row.hours as cell}
                             <div
@@ -799,7 +799,7 @@
                                         <div class="font-bold">
                                             {$_(
                                                 "journal.days." +
-                                                    (dayMap[row.day] || "mon"),
+                                                    (dayMap[row.day] || "mon") as any,
                                             )}
                                             {cell.hour}:00
                                         </div>

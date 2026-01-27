@@ -679,7 +679,7 @@
                         $_(
                           mode === "notes"
                             ? "notes.clearConfirm"
-                            : "chat.clearConfirm",
+                            : "chat.clearConfirm" as any,
                         ) || "Clear history?",
                       )
                     ) {
@@ -1135,7 +1135,7 @@
                     >
                   </div>
                 {:else}
-                  {$_(errorMessage) || errorMessage || aiState.error}
+                  {$_(errorMessage as any) || errorMessage || aiState.error}
                 {/if}
               </div>
             {/if}

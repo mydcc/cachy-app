@@ -154,29 +154,29 @@ export const INITIAL_TRADE_STATE = {
 };
 
 class TradeManager {
-  tradeType = $state(INITIAL_TRADE_STATE.tradeType);
-  accountSize = $state(INITIAL_TRADE_STATE.accountSize);
-  riskPercentage = $state(INITIAL_TRADE_STATE.riskPercentage);
-  entryPrice = $state(INITIAL_TRADE_STATE.entryPrice);
-  stopLossPrice = $state(INITIAL_TRADE_STATE.stopLossPrice);
-  leverage = $state(INITIAL_TRADE_STATE.leverage);
-  fees = $state(INITIAL_TRADE_STATE.fees);
-  symbol = $state(INITIAL_TRADE_STATE.symbol);
-  atrValue = $state(INITIAL_TRADE_STATE.atrValue);
-  atrMultiplier = $state(INITIAL_TRADE_STATE.atrMultiplier);
-  useAtrSl = $state(INITIAL_TRADE_STATE.useAtrSl);
-  atrMode = $state(INITIAL_TRADE_STATE.atrMode);
-  atrTimeframe = $state(INITIAL_TRADE_STATE.atrTimeframe);
-  analysisTimeframe = $state(INITIAL_TRADE_STATE.analysisTimeframe);
-  tradeNotes = $state(INITIAL_TRADE_STATE.tradeNotes);
-  tags = $state(INITIAL_TRADE_STATE.tags);
-  targets = $state(INITIAL_TRADE_STATE.targets);
-  isPositionSizeLocked = $state(INITIAL_TRADE_STATE.isPositionSizeLocked);
-  lockedPositionSize = $state(INITIAL_TRADE_STATE.lockedPositionSize);
-  isRiskAmountLocked = $state(INITIAL_TRADE_STATE.isRiskAmountLocked);
-  riskAmount = $state(INITIAL_TRADE_STATE.riskAmount);
-  journalSearchQuery = $state(INITIAL_TRADE_STATE.journalSearchQuery);
-  journalFilterStatus = $state(INITIAL_TRADE_STATE.journalFilterStatus);
+  tradeType = $state<string>(INITIAL_TRADE_STATE.tradeType);
+  accountSize = $state<string>(INITIAL_TRADE_STATE.accountSize);
+  riskPercentage = $state<string>(INITIAL_TRADE_STATE.riskPercentage);
+  entryPrice = $state<string | null>(INITIAL_TRADE_STATE.entryPrice);
+  stopLossPrice = $state<string | null>(INITIAL_TRADE_STATE.stopLossPrice);
+  leverage = $state<string | null>(INITIAL_TRADE_STATE.leverage);
+  fees = $state<string | null>(INITIAL_TRADE_STATE.fees);
+  symbol = $state<string>(INITIAL_TRADE_STATE.symbol);
+  atrValue = $state<string | null>(INITIAL_TRADE_STATE.atrValue);
+  atrMultiplier = $state<number>(INITIAL_TRADE_STATE.atrMultiplier);
+  useAtrSl = $state<boolean>(INITIAL_TRADE_STATE.useAtrSl);
+  atrMode = $state<"auto" | "manual">(INITIAL_TRADE_STATE.atrMode);
+  atrTimeframe = $state<string>(INITIAL_TRADE_STATE.atrTimeframe);
+  analysisTimeframe = $state<string>(INITIAL_TRADE_STATE.analysisTimeframe);
+  tradeNotes = $state<string>(INITIAL_TRADE_STATE.tradeNotes);
+  tags = $state<string[]>(INITIAL_TRADE_STATE.tags);
+  targets = $state<TradeTarget[]>(INITIAL_TRADE_STATE.targets);
+  isPositionSizeLocked = $state<boolean>(INITIAL_TRADE_STATE.isPositionSizeLocked);
+  lockedPositionSize = $state<Decimal | null>(INITIAL_TRADE_STATE.lockedPositionSize);
+  isRiskAmountLocked = $state<boolean>(INITIAL_TRADE_STATE.isRiskAmountLocked);
+  riskAmount = $state<string | null>(INITIAL_TRADE_STATE.riskAmount);
+  journalSearchQuery = $state<string>(INITIAL_TRADE_STATE.journalSearchQuery);
+  journalFilterStatus = $state<string>(INITIAL_TRADE_STATE.journalFilterStatus);
 
   // Transient
   /**

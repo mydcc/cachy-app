@@ -64,23 +64,23 @@
     if (!action) return "-";
     // First try exact key
     const key = action.toLowerCase().replace(/\s+/g, "");
-    const translation = $_(`settings.technicals.${key}`);
+    const translation = $_(`settings.technicals.${key}` as any);
 
     // If not found, try generic Buy/Sell
     if (!translation || translation.includes("settings.technicals")) {
-       if (action.includes("Buy")) return $_("common.buy") || action;
-       if (action.includes("Sell")) return $_("common.sell") || action;
-       if (action.includes("Neutral")) return $_("common.neutral") || action;
+       if (action.includes("Buy")) return $_("common.buy" as any) || action;
+       if (action.includes("Sell")) return $_("common.sell" as any) || action;
+       if (action.includes("Neutral")) return $_("common.neutral" as any) || action;
        return action;
     }
     return translation;
   }
 
   function translateContext(context: string): string {
-      if (context === "Overbought") return $_("technicals.overbought") || "Overbought";
-      if (context === "Oversold") return $_("technicals.oversold") || "Oversold";
-      if (context === "Trend") return $_("technicals.trend") || "Trend";
-      if (context === "Range") return $_("technicals.range") || "Range";
+      if (context === "Overbought") return $_("technicals.overbought" as any) || "Overbought";
+      if (context === "Oversold") return $_("technicals.oversold" as any) || "Oversold";
+      if (context === "Trend") return $_("technicals.trend" as any) || "Trend";
+      if (context === "Range") return $_("technicals.range" as any) || "Range";
       return translateAction(context);
   }
 
@@ -538,7 +538,7 @@
                 {/each}
               {:else}
                   <div class="text-xs text-[var(--text-secondary)] px-1 py-1 italic">
-                     {$_("technicals.noSignals") || "No divergences detected"}
+                     {$_("technicals.noSignals" as any) || "No divergences detected"}
                   </div>
               {/if}
             </div>

@@ -80,7 +80,7 @@
   function translateError(data: any): string {
     if (data.code && typeof $_ === "function") {
       const key = `bitunixErrors.${data.code}`;
-      const translation = $_(key);
+      const translation = $_(key as any);
       // Basic check if translation exists (usually if it returns same key, it's missing)
       if (translation && translation !== key) return translation;
     }

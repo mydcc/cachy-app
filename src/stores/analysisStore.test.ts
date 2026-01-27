@@ -34,10 +34,10 @@ describe("analysisStore", () => {
     const testData: SymbolAnalysis = {
       symbol: "BTCUSDT",
       updatedAt: Date.now(),
-      price: 50000,
-      change24h: 2.5,
+      price: "50000",
+      change24h: "2.5",
       trend4h: "bullish",
-      rsi1h: 65,
+      rsi1h: "65",
       confluenceScore: 75,
       condition: "trending",
     };
@@ -47,7 +47,7 @@ describe("analysisStore", () => {
     const result = analysisState.results["BTCUSDT"];
     expect(result).toBeDefined();
     expect(result.symbol).toBe("BTCUSDT");
-    expect(result.price).toBe(50000);
+    expect(result.price).toBe("50000");
     expect(result.trend4h).toBe("bullish");
   });
 
@@ -60,10 +60,10 @@ describe("analysisStore", () => {
       const testData: SymbolAnalysis = {
         symbol: `SYMBOL${i}`,
         updatedAt: now + i * 1000, // Each symbol is 1 second apart
-        price: 1000 + i,
-        change24h: 1.0,
+        price: String(1000 + i),
+        change24h: "1.0",
         trend4h: "neutral",
-        rsi1h: 50,
+        rsi1h: "50",
         confluenceScore: 50,
         condition: "neutral",
       };
@@ -93,10 +93,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM1", {
       symbol: "SYM1",
       updatedAt: now,
-      price: 100,
-      change24h: 0,
+      price: "100",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -104,10 +104,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM2", {
       symbol: "SYM2",
       updatedAt: now + 2000, // Newest
-      price: 200,
-      change24h: 0,
+      price: "200",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -115,10 +115,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM3", {
       symbol: "SYM3",
       updatedAt: now + 1000, // Middle
-      price: 300,
-      change24h: 0,
+      price: "300",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -129,10 +129,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM4", {
       symbol: "SYM4",
       updatedAt: now + 3000,
-      price: 400,
-      change24h: 0,
+      price: "400",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -152,10 +152,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM1", {
       symbol: "SYM1",
       updatedAt: Date.now(),
-      price: 100,
-      change24h: 0,
+      price: "100",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -163,10 +163,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SYM2", {
       symbol: "SYM2",
       updatedAt: Date.now() + 1000,
-      price: 200,
-      change24h: 0,
+      price: "200",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 50,
       condition: "neutral",
     });
@@ -182,10 +182,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("BTCUSDT", {
       symbol: "BTCUSDT",
       updatedAt: Date.now(),
-      price: 50000,
-      change24h: 2.5,
+      price: "50000",
+      change24h: "2.5",
       trend4h: "bullish",
-      rsi1h: 65,
+      rsi1h: "65",
       confluenceScore: 75,
       condition: "trending",
     });
@@ -213,10 +213,10 @@ describe("analysisStore", () => {
       analysisState.updateAnalysis(`SYM${i}`, {
         symbol: `SYM${i}`,
         updatedAt: now + i * 1000,
-        price: 1000 + i,
-        change24h: 0,
+        price: String(1000 + i),
+        change24h: "0",
         trend4h: "neutral",
-        rsi1h: 50,
+        rsi1h: "50",
         confluenceScore: 50,
         condition: "neutral",
       });
@@ -230,10 +230,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("BTC", {
       symbol: "BTC",
       updatedAt: Date.now(),
-      price: 50000,
-      change24h: 2.5,
+      price: "50000",
+      change24h: "2.5",
       trend4h: "bullish",
-      rsi1h: 65,
+      rsi1h: "65",
       confluenceScore: 75,
       condition: "trending",
     });
@@ -241,10 +241,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("ETH", {
       symbol: "ETH",
       updatedAt: Date.now(),
-      price: 3000,
-      change24h: -1.5,
+      price: "3000",
+      change24h: "-1.5",
       trend4h: "bearish",
-      rsi1h: 35,
+      rsi1h: "35",
       confluenceScore: 45,
       condition: "oversold",
     });
@@ -252,10 +252,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("SOL", {
       symbol: "SOL",
       updatedAt: Date.now(),
-      price: 100,
-      change24h: 0.5,
+      price: "100",
+      change24h: "0.5",
       trend4h: "bullish",
-      rsi1h: 55,
+      rsi1h: "55",
       confluenceScore: 60,
       condition: "neutral",
     });
@@ -268,10 +268,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("LOW", {
       symbol: "LOW",
       updatedAt: Date.now(),
-      price: 100,
-      change24h: 0,
+      price: "100",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 30,
       condition: "neutral",
     });
@@ -279,10 +279,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("HIGH", {
       symbol: "HIGH",
       updatedAt: Date.now(),
-      price: 200,
-      change24h: 0,
+      price: "200",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 90,
       condition: "neutral",
     });
@@ -290,10 +290,10 @@ describe("analysisStore", () => {
     analysisState.updateAnalysis("MID", {
       symbol: "MID",
       updatedAt: Date.now(),
-      price: 150,
-      change24h: 0,
+      price: "150",
+      change24h: "0",
       trend4h: "neutral",
-      rsi1h: 50,
+      rsi1h: "50",
       confluenceScore: 60,
       condition: "neutral",
     });
