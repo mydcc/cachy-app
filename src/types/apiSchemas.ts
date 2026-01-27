@@ -8,7 +8,6 @@
  */
 
 import { z } from "zod";
-import { StrictDecimal } from "./schemas";
 
 /**
  * Zod-Schemas für API-Response-Validierung
@@ -17,12 +16,12 @@ import { StrictDecimal } from "./schemas";
 // Bitunix Ticker Schema
 export const BitunixTickerSchema = z.object({
   symbol: z.string(),
-  lastPrice: StrictDecimal,
-  open: StrictDecimal.optional(),
-  high: StrictDecimal.optional(),
-  low: StrictDecimal.optional(),
-  baseVol: StrictDecimal.optional(),
-  quoteVol: StrictDecimal.optional(),
+  lastPrice: z.union([z.string(), z.number()]),
+  open: z.union([z.string(), z.number()]).optional(),
+  high: z.union([z.string(), z.number()]).optional(),
+  low: z.union([z.string(), z.number()]).optional(),
+  baseVol: z.union([z.string(), z.number()]).optional(),
+  quoteVol: z.union([z.string(), z.number()]).optional(),
 });
 
 export const BitunixTickerResponseSchema = z.object({
@@ -33,15 +32,14 @@ export const BitunixTickerResponseSchema = z.object({
 
 // Bitunix Kline Schema
 export const BitunixKlineSchema = z.object({
-  open: StrictDecimal,
-  high: StrictDecimal,
-  low: StrictDecimal,
-  close: StrictDecimal,
-  vol: StrictDecimal.optional(),
-  volume: StrictDecimal.optional(),
-  timestamp: z.union([z.number(), z.string()]).optional(),
-  time: z.union([z.number(), z.string()]).optional(),
-  ts: z.union([z.number(), z.string()]).optional(),
+  open: z.union([z.string(), z.number()]),
+  high: z.union([z.string(), z.number()]),
+  low: z.union([z.string(), z.number()]),
+  close: z.union([z.string(), z.number()]),
+  vol: z.union([z.string(), z.number()]).optional(),
+  timestamp: z.number().optional(),
+  time: z.number().optional(),
+  ts: z.number().optional(),
 });
 
 export const BitunixKlineResponseSchema = z.array(BitunixKlineSchema);

@@ -39,7 +39,6 @@ export function calculateAllIndicators(
   const closesNum = klines.map((k) => new Decimal(k.close).toNumber());
   const opensNum = klines.map((k) => new Decimal(k.open).toNumber());
   const volumesNum = klines.map((k) => new Decimal(k.volume).toNumber());
-  const timesNum = klines.map((k) => k.time);
   const currentPrice = new Decimal(klines[klines.length - 1].close);
 
   // Helper to get source array based on config
@@ -162,7 +161,7 @@ export function calculateAllIndicators(
       // If strong trend, we assume continuation of current short term trend
       if (adxVal.gt(adxThreshold)) {
         const prevClose = closesNum[closesNum.length - 2];
-        adxAction = currentPrice.gt(prevClose) ? "Buy" : "Sell";
+        adxAction = new Decimal(currentPrice).toNumber() > prevClose ? "Buy" : "Sell";
       }
 
       oscillators.push({
@@ -342,19 +341,8 @@ export function calculateAllIndicators(
       lowsNum,
       closesNum,
       volumesNum,
-      timesNum,
-      {
-        mode: (settings?.vwap as any)?.anchor || "session",
-        anchorPoint: (settings?.vwap as any)?.anchorPoint
-      }
     );
     advancedInfo.vwap = new Decimal(vwapSeries[vwapSeries.length - 1]);
-
-    // Parabolic SAR
-    const psarStart = (settings?.parabolicSar as any)?.start || 0.02;
-    const psarMax = (settings?.parabolicSar as any)?.max || 0.2;
-    const psarSeries = JSIndicators.psar(highsNum, lowsNum, psarStart, psarMax);
-    advancedInfo.parabolicSar = new Decimal(psarSeries[psarSeries.length - 1]);
 
     // MFI
     const mfiLen = settings?.mfi?.length || 14;

@@ -206,20 +206,9 @@
         <!-- Chart & Data -->
         {#if activeSubTab === "chart"}
             <section class="settings-section animate-fade-in">
-                <div class="flex justify-between items-center mb-4">
-                    <h3 class="section-title mb-0">
-                        {$_("settings.trading.chartTitle") || "Chart & Data"}
-                    </h3>
-                    <button
-                        class="text-xs text-[var(--accent-color)] hover:underline flex items-center gap-1"
-                        onclick={() => {
-                            uiState.settingsTab = "system";
-                            uiState.settingsSystemSubTab = "performance";
-                        }}
-                    >
-                        ⚡ Manage Performance
-                    </button>
-                </div>
+                <h3 class="section-title mb-4">
+                    {$_("settings.trading.chartTitle") || "Chart & Data"}
+                </h3>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
 
@@ -282,15 +271,12 @@
                                 </label>
                             {/each}
                         </div>
-                    {/if}
 
-                    <!-- Granular Settings (Always Visible) -->
-                    <div class="border-t border-[var(--border-color)] pt-4 mt-4">
-                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
-                            Indicator Configuration
-                        </h4>
-                        <IndicatorSettings />
-                    </div>
+                        <!-- Granular Settings -->
+                        <div class="border-t border-[var(--border-color)] pt-4">
+                            <IndicatorSettings />
+                        </div>
+                    {/if}
                 </div>
             </section>
         {/if}

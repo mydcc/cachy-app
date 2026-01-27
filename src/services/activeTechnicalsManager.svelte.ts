@@ -9,9 +9,6 @@
 import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
 import { indicatorState } from "../stores/indicator.svelte";
-import { settingsState } from "../stores/settings.svelte";
-import { favoritesState } from "../stores/favorites.svelte";
-import { tradeState } from "../stores/trade.svelte";
 import { technicalsService } from "./technicalsService";
 import { marketWatcher } from "./marketWatcher";
 import { browser } from "$app/environment";
@@ -28,9 +25,9 @@ class ActiveTechnicalsManager {
     private activeEffects = new Map<string, () => void>();
 
     // Throttle timers: `symbol:timeframe` -> timer ID
-    private throttles = new Map<string, ReturnType<typeof setTimeout>>();
+    private throttles = new Map<string, any>();
 
-
+    private readonly CALCULATION_THROTTLE_MS = 250;
     // Lower than 1s to feel "realtime", but throttled to save CPU on crazy volatility
 
     constructor() {
@@ -137,66 +134,13 @@ class ActiveTechnicalsManager {
 
     private scheduleCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
+
         if (this.throttles.has(key)) return; // Already scheduled
-
-        // Base interval from settings (default 1s if invalid)
-        let delay = Math.max(1000, (settingsState.marketAnalysisInterval || 1) * 1000);
-
-        // Priority Logic
-        const isSelectedSymbol = tradeState.symbol === symbol;
-        const isTopFavorite = favoritesState.items.slice(0, 4).includes(symbol);
-        const isHighPriority = isSelectedSymbol || isTopFavorite;
-
-        if (!settingsState.analyzeAllFavorites && !isHighPriority) {
-            // Throttle non-priority symbols significantly (5x interval)
-            // This prevents background tiles from eating CPU
-            delay = delay * 5;
-        }
-
-        // Smart Throttle (Pause on Blur)
-        if (settingsState.pauseAnalysisOnBlur && typeof document !== "undefined" && !document.hasFocus()) {
-            delay = delay * 2;
-        }
 
         this.throttles.set(key, setTimeout(() => {
             this.throttles.delete(key);
             this.performCalculation(symbol, timeframe);
-        }, delay));
-    }
-
-    // Helper for deep equality
-    private isTechnicalsEqual(a: any, b: any): boolean {
-        // Fast path for references
-        if (a === b) return true;
-        if (!a || !b) return false;
-
-        // Check timestamp first (optimization)
-        if (a.lastUpdated !== b.lastUpdated) {
-            // If only lastUpdated changed but rest is same...
-            // But usually calculation changes result. 
-            // We ignore lastUpdated for content equality check if we generated it.
-        }
-
-        // Specific field checks for efficiency instead of full recursive JSON stringify
-        // Summary Action
-        if (a.summary?.action !== b.summary?.action) return false;
-        if (a.confluence?.score !== b.confluence?.score) return false;
-
-        // Oscillators (check length and values of first few)
-        if (a.oscillators?.length !== b.oscillators?.length) return false;
-        if (a.oscillators?.[0]?.value?.toString() !== b.oscillators?.[0]?.value?.toString()) return false;
-
-        // Volatility
-        if (a.volatility?.atr?.toString() !== b.volatility?.atr?.toString()) return false;
-
-        // Deep verification for critical changes
-        try {
-            const cleanA = { ...a, lastUpdated: 0 };
-            const cleanB = { ...b, lastUpdated: 0 };
-            return JSON.stringify(cleanA) === JSON.stringify(cleanB);
-        } catch {
-            return false;
-        }
+        }, this.CALCULATION_THROTTLE_MS));
     }
 
     private async performCalculation(symbol: string, timeframe: string) {
@@ -223,21 +167,13 @@ class ActiveTechnicalsManager {
         try {
             const result = await technicalsService.calculateTechnicals(history, settings);
 
+            // Inject timestamp
             if (result) {
-                // Anti-Flicker: Check if content actually changed
-                const currentTechnicals = marketData.technicals;
-
-                if (currentTechnicals && this.isTechnicalsEqual(currentTechnicals, result)) {
-                    // Skip update if data is effectively identical
-                    // This prevents Svelte reactivity from firing unnecessarily
-                    return;
-                }
-
                 result.lastUpdated = Date.now();
-
-                // Push result back to MarketState
-                marketState.updateSymbol(symbol, { technicals: result });
             }
+
+            // Push result back to MarketState
+            marketState.updateSymbol(symbol, { technicals: result });
 
         } catch (e) {
             logger.error("technicals", `Calculation failed for ${key}`, e);
@@ -258,6 +194,8 @@ class ActiveTechnicalsManager {
         if (lastCandle.time === currentPeriodStart) {
             // Update the clone
             let close = price;
+            // Ensure we respect existing High/Low unless broken by new price
+            // Using Decimal comparison methods for safety
             let high = lastCandle.high instanceof Decimal ? lastCandle.high : new Decimal(lastCandle.high);
             let low = lastCandle.low instanceof Decimal ? lastCandle.low : new Decimal(lastCandle.low);
 
@@ -268,13 +206,31 @@ class ActiveTechnicalsManager {
             lastCandle.high = high;
             lastCandle.low = low;
 
+            // Preserve volume!
+            // If the candle came from WebSocket kline update, it has volume.
+            // If it was a phantom candle from previous tick, it might have 0.
+            // We do NOT reset it to 0 here.
+
             history[lastIdx] = lastCandle;
         } else if (currentPeriodStart > lastCandle.time) {
             // New phantom candle for pending period
-            // Volume Fix: Phantom candles should start with 0 volume to avoid spikes in Volume-based indicators (OBV, MFI)
-            // UNLESS we get real info from ticker, but Ticker Volume is 24h, not 1m/5m.
-            // Using "Proxy Volume" caused huge spikes. Better to use 0 or very small epsilon.
-            // Most indicators handle 0 volume gracefully (no change).
+            // Calculate Proxy Volume to prevent indicators jumping to 0
+            // We use Average Interval Volume based on 24h volume
+            let proxyVolume = new Decimal(0);
+            const marketData = marketState.data[symbol];
+
+            if (marketData && marketData.volume) {
+                const msPerDay = 86400000;
+                const intervalsPerDay = msPerDay / intervalMs;
+                if (intervalsPerDay > 0) {
+                     // Conservative estimate: 50% of average volume to avoid over-weighting
+                     proxyVolume = marketData.volume.div(intervalsPerDay).times(0.5);
+                }
+            } else if (history.length > 0) {
+                // Fallback: Use 10% of previous candle volume
+                const prevVol = history[history.length - 1].volume;
+                proxyVolume = prevVol instanceof Decimal ? prevVol.times(0.1) : new Decimal(prevVol).times(0.1);
+            }
 
             const newCandle: Kline = {
                 time: currentPeriodStart,
@@ -282,7 +238,7 @@ class ActiveTechnicalsManager {
                 high: price,
                 low: price,
                 close: price,
-                volume: new Decimal(0) // Fixed: 0 volume for phantom candle to prevent jumping indicators
+                volume: proxyVolume
             };
             history.push(newCandle);
         }

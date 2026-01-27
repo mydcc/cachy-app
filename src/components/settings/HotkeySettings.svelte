@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { settingsState } from "../../stores/settings.svelte";
+  import CalculationSettings from "./CalculationSettings.svelte";
   import {
     HOTKEY_ACTIONS,
     type HotkeyAction,
@@ -132,6 +133,8 @@
 </script>
 
 <div class="flex flex-col gap-4 h-full">
+  <CalculationSettings />
+
   <div class="flex justify-between items-center mb-2">
     <p class="text-xs text-[var(--text-secondary)]">
       Click on a key combination to record a new hotkey. Use <span

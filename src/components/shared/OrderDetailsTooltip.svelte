@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { formatDynamicDecimal } from "../../utils/utils";
-  import { _ } from "../../locales/i18n";
+
   import { icons } from "../../lib/constants";
 
   interface Props {
@@ -43,12 +43,12 @@
     const rawType = order.orderType || order.type;
     const t = String(rawType || "").toUpperCase();
 
-    if (["LIMIT", "1"].includes(t)) return $_("dashboard.orderHistory.type.limit").toUpperCase();
-    if (["MARKET", "2"].includes(t)) return $_("dashboard.orderHistory.type.market").toUpperCase();
-    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return $_("dashboard.orderHistory.type.stopLimit").toUpperCase();
-    if (["STOP_MARKET", "4"].includes(t)) return $_("dashboard.orderHistory.type.stopMarket").toUpperCase();
-    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return $_("dashboard.orderHistory.type.trailing").toUpperCase();
-    if (t === "LIQUIDATION") return $_("dashboard.orderHistory.liq").toUpperCase();
+    if (["LIMIT", "1"].includes(t)) return "LIMIT";
+    if (["MARKET", "2"].includes(t)) return "MARKET";
+    if (["STOP", "STOP_LIMIT", "3"].includes(t)) return "STOP LIMIT";
+    if (["STOP_MARKET", "4"].includes(t)) return "STOP MARKET";
+    if (["TRAILING_STOP_MARKET", "5"].includes(t)) return "TRAILING";
+    if (t === "LIQUIDATION") return "LIQ.";
     if (!t || t === "UNDEFINED" || t === "NULL") return "";
 
     return t;

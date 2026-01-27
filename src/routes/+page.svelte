@@ -56,6 +56,7 @@
   import FloatingIframeButton from "../components/shared/FloatingIframeButton.svelte";
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import CandlestickPatternsModal from "../components/shared/CandlestickPatternsModal.svelte";
+  import ChartPatternsModal from "../components/shared/ChartPatternsModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
@@ -199,6 +200,7 @@
       if (uiState.showWhitepaperModal) uiState.toggleWhitepaperModal(false);
       if (uiState.showChangelogModal) uiState.toggleChangelogModal(false);
       if (uiState.showCandlestickPatternsModal) uiState.toggleCandlestickPatternsModal(false);
+      if (uiState.showChartPatternsModal) uiState.toggleChartPatternsModal(false);
       if (modalState.state.isOpen) modalState.handleModalConfirm(false);
       return;
     }
@@ -231,17 +233,6 @@
   function toggleTechnicals() {
     isTechnicalsVisible = !isTechnicalsVisible;
   }
-
-  let isTechnicalsDocked = $derived(
-    !settingsState.showMarketOverview && settingsState.showTechnicals,
-  );
-  let sidebarWidthClass = $derived(
-    isTechnicalsDocked
-      ? settingsState.showIndicatorParams
-        ? "w-[22rem]"
-        : "w-72"
-      : "w-56",
-  );
 </script>
 
 <svelte:window onkeydown={handleKeydown} />
@@ -690,7 +681,7 @@
         {/if}
 
         {#if settingsState.showTechnicals && isTechnicalsVisible}
-          <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
+          <TechnicalsPanel isVisible={isTechnicalsVisible} />
         {/if}
 
         {#if favoritesState.items.length > 0 && settingsState.showMarketOverview}
@@ -712,7 +703,7 @@
   {#if settingsState.showSidebars}
     <!-- Right Sidebar: Market Data & Favorites (Sticky) -->
     <div
-      class="hidden xl:flex flex-col gap-3 shrink-0 sticky top-8 transition-all duration-300 z-40 {sidebarWidthClass}"
+      class="hidden xl:flex flex-col gap-3 w-56 shrink-0 sticky top-8 transition-all duration-300 z-40"
     >
       <!-- Main current symbol -->
       {#if settingsState.showMarketOverview}
@@ -720,12 +711,10 @@
           onToggleTechnicals={toggleTechnicals}
           {isTechnicalsVisible}
         />
-      {:else if isTechnicalsDocked}
-        <TechnicalsPanel isVisible={isTechnicalsVisible} fluidWidth={true} />
       {/if}
 
       <!-- Technicals Panel (Absolute positioned next to MarketOverview) -->
-      {#if settingsState.showTechnicals && !isTechnicalsDocked}
+      {#if settingsState.showTechnicals}
         <div
           class="absolute top-0 left-full ml-8 transition-all duration-300 transform origin-left z-40"
           class:scale-0={!isTechnicalsVisible}
@@ -864,3 +853,4 @@
 </ModalFrame>
 
 <CandlestickPatternsModal />
+<ChartPatternsModal />

@@ -71,7 +71,7 @@ interface CacheMetadata {
   createdAt: number;
 }
 
-export class MarketManager {
+class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
 
@@ -89,7 +89,6 @@ export class MarketManager {
   private pendingUpdates = new Map<string, Partial<MarketData>>();
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
-  private telemetryIntervalId: any = null;
 
   constructor() {
     if (browser) {
@@ -110,7 +109,7 @@ export class MarketManager {
       */
 
       // Reset API calls counter every minute
-      this.telemetryIntervalId = setInterval(() => {
+      setInterval(() => {
         this.telemetry.apiCallsLastMinute = 0;
       }, 60000);
     }
@@ -128,10 +127,6 @@ export class MarketManager {
     if (this.flushIntervalId) {
       clearInterval(this.flushIntervalId);
       this.flushIntervalId = null;
-    }
-    if (this.telemetryIntervalId) {
-      clearInterval(this.telemetryIntervalId);
-      this.telemetryIntervalId = null;
     }
     this.cacheMetadata.clear();
     this.pendingUpdates.clear();

@@ -191,18 +191,23 @@ export const csvService = {
     const MAX_IMPORT_LINES = 1001; // 1 header + 1000 trades
     if (lines.length > MAX_IMPORT_LINES) {
       const translate = get(_);
-      const msg = translate("journal.csvTooManyLines" as any, {
-        values: {
-          count: lines.length - 1,
-          max: 1000,
-        },
-      }) as string;
+      const msg =
+        (translate("csvTooManyLines" as any, {
+          values: {
+            count: lines.length - 1,
+            max: 1000,
+          },
+        }) as string) ||
+        `Too many lines (${lines.length - 1}). Max 1000 trades per import.`;
       throw new Error(msg);
     }
 
     if (lines.length < 2) {
       const translate = get(_);
-      throw new Error(translate("journal.csvEmpty" as any) as string);
+      throw new Error(
+        (translate("csvEmpty" as any) as string) ||
+          "CSV is empty or has only a header.",
+      );
     }
 
     const headers = this.splitCSV(lines[0]).map((h) =>
@@ -282,7 +287,7 @@ export const csvService = {
     if (missingKeys.length > 0) {
       const translate = get(_);
       const msg =
-        (translate("journal.csvMissingColumns" as any, {
+        (translate("csvMissingColumns" as any, {
           values: {
             columns: missingKeys.join(", "),
           },
@@ -390,8 +395,8 @@ export const csvService = {
             notes: entry.Notizen || "",
             tags: entry.Tags
               ? entry.Tags.split(";")
-                .map((t) => t.trim())
-                .filter(Boolean)
+                  .map((t) => t.trim())
+                  .filter(Boolean)
               : [],
             screenshot: entry.Screenshot || undefined,
             targets: targets,

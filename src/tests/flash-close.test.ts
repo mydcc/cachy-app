@@ -16,8 +16,6 @@ vi.mock('../services/omsService', () => ({
         getPositions: vi.fn(() => []),
         updatePosition: vi.fn(),
         updateOrder: vi.fn(),
-        addOptimisticOrder: vi.fn(),
-        removeOrder: vi.fn(),
         getOrder: vi.fn(),
         getAllOrders: vi.fn(() => [])
     }
@@ -85,7 +83,7 @@ describe('Flash Close Position Binding (CRITICAL)', () => {
                 side: 'long',
                 amount: new Decimal('12.345'),
                 entryPrice: new Decimal('50000'),
-                leverage: new Decimal('10'),
+                leverage: 10,
                 liquidationPrice: new Decimal('45000'),
                 unrealizedPnl: new Decimal('0'),
                 marginMode: 'cross'

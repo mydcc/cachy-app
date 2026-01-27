@@ -24,6 +24,7 @@ const MAX_CACHE_SIZE = 100;
 
 // Security: Allowlist for RSS sources (SSRF Protection)
 const ALLOWED_DOMAINS = [
+  "nitter.net", "nitter.cz", "nitter.it", "nitter.poast.org", "nitter.privacydev.net",
   "cointelegraph.com", "coindesk.com", "decrypt.co", "theblock.co",
   "rss.app", "polymarket.com", "medium.com"
 ];

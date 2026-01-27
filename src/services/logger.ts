@@ -7,7 +7,6 @@
 
 import { settingsState } from "../stores/settings.svelte";
 import { browser } from "$app/environment";
-import { toastService } from "./toastService.svelte";
 
 export type LogCategory =
     | "technicals"
@@ -17,7 +16,6 @@ export type LogCategory =
     | "general"
     | "governance"
     | "journal"
-    | "data"
     | "ui";
 
 class LoggerService {
@@ -59,22 +57,7 @@ class LoggerService {
         if (!this.isEnabled(category, force)) return;
 
         const prefix = `[${category.toUpperCase()}]`;
-
         console.error(`${prefix} ${message}`, error || "");
-
-        // Auto-toast for critical UI errors, or if specifically requested
-        // For now, we only automatically toast if 'force' is true and category is 'ui'
-        // or if we decide to add a specific parameter.
-        // Let's rely on explicit calls for now to avoid noise, 
-        // BUT the user asked for "silent" errors to be shown.
-        // We can add a 'toast' parameter to the error signature or overload it.
-        // For this refactor, let's keep it simple: existing 'error' calls typically don't expect toasts.
-        // We will add specific instrumentation in the next step.
-    }
-
-    errorWithToast(category: LogCategory, message: string, error?: any) {
-        this.error(category, message, error, true);
-        toastService.error(message);
     }
 
     debug(category: LogCategory, message: string, data?: any) {

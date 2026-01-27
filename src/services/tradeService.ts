@@ -9,8 +9,6 @@ import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
-import { PositionListSchema, type PositionRaw } from "./apiSchemas";
-import type { OMSPosition } from "./omsTypes";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -19,59 +17,31 @@ export class BitunixApiError extends Error {
     }
 }
 
-export const TRADE_ERRORS = {
-    POSITION_NOT_FOUND: "trade.positionNotFound",
-    FETCH_FAILED: "trade.fetchFailed",
-    CLOSE_ALL_FAILED: "trade.closeAllFailed"
-};
-
-export class TradeError extends Error {
-    constructor(message: string, public code: string, public details?: any) {
-        super(message);
-        this.name = "TradeError";
-    }
-}
-
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
-    public async signedRequest<T>(
+    public async signedRequest(
         method: string,
         endpoint: string,
-        payload: Record<string, any>
-    ): Promise<T> {
+        payload: any
+    ): Promise<any> {
         // Implementation for real app (simplified)
         // In test this is mocked
-        const provider = settingsState.apiProvider;
-        const keys = settingsState.apiKeys[provider];
-
-        if (!keys || !keys.key) {
-            throw new Error("apiErrors.missingCredentials");
-        }
-
         const headers: Record<string, string> = {
             "Content-Type": "application/json",
-            "X-Provider": provider
+            "X-Provider": settingsState.apiProvider
         };
 
         const response = await fetch(endpoint, {
             method,
             headers,
-            body: JSON.stringify({
-                ...payload,
-                // Ensure keys are sent to backend for signing/execution
-                apiKey: keys.key,
-                apiSecret: keys.secret,
-                passphrase: (keys as any).passphrase
-            })
+            body: JSON.stringify(payload)
         });
 
         const data = await response.json();
 
-        // Loose check for "code" != 0 (Bitunix style)
-        // We cast to string to handle both number 0 and string "0"
-        if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
-            throw new BitunixApiError(data.code || -1, data.msg || data.error || "Unknown API Error");
+        if (!response.ok || (data.code && data.code !== 0)) {
+             throw new BitunixApiError(data.code || -1, data.msg || data.error);
         }
 
         return data;
@@ -79,30 +49,14 @@ class TradeService {
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
         // 1. Get position from OMS (Source of Truth)
-        let positions = omsService.getPositions();
-        let position = positions.find(
+        const positions = omsService.getPositions();
+        const position = positions.find(
             (p) => p.symbol === symbol && p.side === positionSide
         );
 
         if (!position) {
-            logger.warn("market", `[FlashClose] Position not found in cache. Accessing API fallback for: ${symbol} ${positionSide}`);
-
-            try {
-                // Force sync open positions
-                await this.fetchOpenPositionsFromApi();
-                // Re-check
-                positions = omsService.getPositions();
-                position = positions.find(
-                    (p) => p.symbol === symbol && p.side === positionSide
-                );
-            } catch (e) {
-                logger.error("market", `[FlashClose] API Fallback failed`, e);
-            }
-        }
-
-        if (!position) {
-            logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
-            throw new Error("tradeErrors.positionNotFound");
+            logger.error("market", `[FlashClose] Position not found: ${symbol} ${positionSide}`);
+            throw new Error(`Position not found: ${symbol} ${positionSide}`);
         }
 
         // 2. Execute Close
@@ -111,118 +65,17 @@ class TradeService {
         const side = positionSide === "long" ? "SELL" : "BUY";
 
         // CRITICAL: Use exact amount from OMS
-        if (!position.amount || position.amount.isZero() || position.amount.isNegative()) {
-            logger.error("market", `[FlashClose] Invalid position amount: ${position.amount}`, position);
-            throw new Error("apiErrors.invalidAmount");
-        }
-
         const qty = position.amount.toString();
 
         logger.log("market", `[FlashClose] Closing ${symbol} ${positionSide} (${qty})`);
 
-        // OPTIMISTIC UPDATE
-        const clientOrderId = "opt-" + Date.now() + "-" + Math.floor(Math.random() * 1000);
-        omsService.addOptimisticOrder({
-            id: clientOrderId,
-            clientOrderId,
+        return this.signedRequest("POST", "/api/orders", {
             symbol,
-            side: side.toLowerCase() as any,
-            type: "market",
-            status: "pending",
-            price: new Decimal(0),
-            amount: position.amount,
-            filledAmount: new Decimal(0),
-            timestamp: Date.now(),
-            _isOptimistic: true
-        });
-
-        try {
-            return await this.signedRequest("POST", "/api/orders", {
-                symbol,
-                side,
-                orderType: "MARKET",
-                qty, // String for precision
-                reduceOnly: true,
-                clientOrderId
-            });
-        } catch (e) {
-            omsService.removeOrder(clientOrderId);
-            throw e;
-        }
-    }
-
-    // Emergency Fallback to fetch ALL open positions directly from Bitunix/API
-    private async fetchOpenPositionsFromApi() {
-        if (settingsState.apiProvider !== "bitunix") return; // Only Bitunix supported for now
-
-        try {
-            // Re-use the sync endpoint which wraps the signed API call
-            const pendingResponse = await fetch("/api/sync/positions-pending", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    apiKey: settingsState.apiKeys.bitunix.key,
-                    apiSecret: settingsState.apiKeys.bitunix.secret,
-                }),
-            });
-
-            if (!pendingResponse.ok) throw new Error("apiErrors.fetchFailed");
-
-            const pendingResult = await pendingResponse.json();
-            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
-
-            // VALIDATION with Zod
-            const rawPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
-            const validation = PositionListSchema.safeParse(rawPositions);
-
-            if (!validation.success) {
-                logger.error("market", "[TradeService] API Schema mismatch", validation.error);
-                // Fallback: Try to use raw data but log error, OR throw?
-                // For critical financial data, we should probably be safe, but we don't want to break if one optional field is wrong.
-                // PositionListSchema uses optionals heavily, so failure means structure is REALLY wrong.
-                throw new Error("apiErrors.schemaMismatch");
-            }
-
-            const pendingPositions = validation.data;
-
-            // Map and Update OMS using robust mapper
-            pendingPositions.forEach((p: PositionRaw) => {
-                omsService.updatePosition(this.mapPosition(p));
-            });
-
-        } catch (e) {
-            logger.error("market", "[TradeService] Failed to fetch open positions", e);
-            throw e;
-        }
-    }
-
-    private mapPosition(raw: PositionRaw): OMSPosition {
-        // Side logic
-        let side: "long" | "short" = "long";
-        const rawSide = (raw.side || raw.positionSide || raw.holdSide || "").toLowerCase();
-        if (rawSide.includes("sell") || rawSide.includes("short")) side = "short";
-
-        // Amount logic
-        const amount = new Decimal(raw.qty || raw.size || raw.amount || 0);
-
-        // Price
-        const entryPrice = new Decimal(raw.avgOpenPrice || raw.entryPrice || 0);
-        const upnl = new Decimal(raw.unrealizedPNL || raw.unrealizedPnl || 0);
-        const lev = new Decimal(raw.leverage || 0);
-        const liq = raw.liquidationPrice || raw.liqPrice ? new Decimal(raw.liquidationPrice || raw.liqPrice!) : undefined;
-
-        return {
-            symbol: raw.symbol,
             side,
-            amount,
-            entryPrice,
-            unrealizedPnl: upnl,
-            leverage: lev,
-            marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
-            liquidationPrice: liq
-        };
-
-
+            orderType: "MARKET",
+            qty, // String for precision
+            reduceOnly: true
+        });
     }
 
     public async closePosition(params: { symbol: string, positionSide: "long" | "short", amount?: Decimal }) {
@@ -235,7 +88,7 @@ class TradeService {
         );
 
         if (!position) {
-            throw new Error("tradeErrors.positionNotFound");
+            throw new Error(`Position not found: ${symbol} ${positionSide}`);
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -243,7 +96,6 @@ class TradeService {
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
         const qty = amount ? amount.toString() : position.amount.toString();
-        const numQty = amount || position.amount;
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);
 
@@ -254,20 +106,6 @@ class TradeService {
             qty,
             reduceOnly: true
         });
-    }
-
-    public async closeAllPositions() {
-        const positions = omsService.getPositions();
-        const promises = positions.map(p => this.closePosition({ symbol: p.symbol, positionSide: p.side }));
-        const results = await Promise.allSettled(promises);
-
-        const failures = results.filter(r => r.status === "rejected");
-        if (failures.length > 0) {
-            logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error("apiErrors.generic"); // Or specific bulk error if we had one
-        }
-
-        return results;
     }
 }
 

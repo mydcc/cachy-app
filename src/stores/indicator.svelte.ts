@@ -123,13 +123,6 @@ export interface IndicatorSettings {
   };
   vwap: {
     length: number; // 0 for session/full
-    anchor: "session" | "fixed";
-    anchorPoint?: number;
-  };
-  parabolicSar: {
-    start: number;
-    increment: number;
-    max: number;
   };
   volumeMa: {
     length: number;
@@ -244,12 +237,6 @@ const defaultSettings: IndicatorSettings = {
   },
   vwap: {
     length: 0,
-    anchor: "session",
-  },
-  parabolicSar: {
-    start: 0.02,
-    increment: 0.02,
-    max: 0.2,
   },
   volumeMa: {
     length: 20,
@@ -297,7 +284,6 @@ class IndicatorManager {
   // Volume & Misc
   obv = $state(defaultSettings.obv);
   vwap = $state(defaultSettings.vwap);
-  parabolicSar = $state(defaultSettings.parabolicSar); // Add state
   volumeProfile = $state(defaultSettings.volumeProfile);
   volumeMa = $state(defaultSettings.volumeMa);
   bollingerBands = $state(defaultSettings.bollingerBands);
@@ -355,7 +341,6 @@ class IndicatorManager {
       this.obv = { ...defaultSettings.obv, ...parsed.obv };
       this.mfi = { ...defaultSettings.mfi, ...parsed.mfi };
       this.vwap = { ...defaultSettings.vwap, ...parsed.vwap };
-      this.parabolicSar = { ...defaultSettings.parabolicSar, ...parsed.parabolicSar };
       this.ichimoku = { ...defaultSettings.ichimoku, ...parsed.ichimoku };
       this.choppiness = { ...defaultSettings.choppiness, ...parsed.choppiness };
       this.volumeProfile = {
@@ -368,20 +353,20 @@ class IndicatorManager {
 
       this.ema = parsed.ema
         ? {
-          ema1: {
-            ...defaultSettings.ema.ema1,
-            ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
-          },
-          ema2: {
-            ...defaultSettings.ema.ema2,
-            ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
-          },
-          ema3: {
-            ...defaultSettings.ema.ema3,
-            ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
-          },
-          source: parsed.ema.source || defaultSettings.ema.source,
-        }
+            ema1: {
+              ...defaultSettings.ema.ema1,
+              ...(parsed.ema.ema1 || { length: parsed.ema.ema1Length }),
+            },
+            ema2: {
+              ...defaultSettings.ema.ema2,
+              ...(parsed.ema.ema2 || { length: parsed.ema.ema2Length }),
+            },
+            ema3: {
+              ...defaultSettings.ema.ema3,
+              ...(parsed.ema.ema3 || { length: parsed.ema.ema3Length }),
+            },
+            source: parsed.ema.source || defaultSettings.ema.source,
+          }
         : defaultSettings.ema;
     } catch (e) {
       console.error("IndicatorManager: Failed to load from localStorage", e);
@@ -429,7 +414,6 @@ class IndicatorManager {
       obv: $state.snapshot(this.obv),
       mfi: $state.snapshot(this.mfi),
       vwap: $state.snapshot(this.vwap),
-      parabolicSar: $state.snapshot(this.parabolicSar),
       ichimoku: $state.snapshot(this.ichimoku),
       choppiness: $state.snapshot(this.choppiness),
       volumeProfile: $state.snapshot(this.volumeProfile),
@@ -470,7 +454,6 @@ class IndicatorManager {
     this.obv = next.obv;
     this.mfi = next.mfi;
     this.vwap = next.vwap;
-    this.parabolicSar = next.parabolicSar;
     this.ichimoku = next.ichimoku;
     this.choppiness = next.choppiness;
     this.volumeProfile = next.volumeProfile;
@@ -498,7 +481,6 @@ class IndicatorManager {
     this.obv = d.obv;
     this.mfi = d.mfi;
     this.vwap = d.vwap;
-    this.parabolicSar = d.parabolicSar;
     this.ichimoku = d.ichimoku;
     this.choppiness = d.choppiness;
     this.volumeProfile = d.volumeProfile;

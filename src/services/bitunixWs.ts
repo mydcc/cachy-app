@@ -65,7 +65,7 @@ function mapToOMSPosition(data: any): OMSPosition {
     amount: amount,
     entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
     unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-    leverage: new Decimal(data.leverage || 0),
+    leverage: Number(data.leverage || 0),
     marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
     liquidationPrice: data.liquidationPrice
       ? new Decimal(data.liquidationPrice)

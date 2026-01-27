@@ -72,10 +72,7 @@ export const mdaService = {
                     low: k.low || k.l || "0",
                     close: k.close || k.c || "0",
                     // Extended volume checks for Klines: v=vol, q=quote (if base missing), vol
-                    // IMPORTANT: Bitunix Kline API (REST & WS) swaps Base/Quote volume compared to standard.
-                    // 'quoteVol' (q) is often the Quantity (BTC), while 'baseVol' is Turnover (USDT).
-                    // We prioritize quoteVol/q here to ensure indicators get the correct quantity.
-                    volume: k.quoteVol || k.q || k.volume || k.v || k.vol || k.amount || "0"
+                    volume: k.volume || k.v || k.vol || k.amount || "0"
                 };
             }
             // Generic / Bitget

@@ -34,32 +34,15 @@ export function validateBitgetKeys(
   passphrase: unknown,
 ): string | null {
   if (typeof apiKey !== "string" || apiKey.length < 5) {
-    return "Invalid API Key (must be string > 5 chars)";
+    return "Invalid API Key";
   }
   if (typeof apiSecret !== "string" || apiSecret.length < 5) {
-    return "Invalid API Secret (must be string > 5 chars)";
+    return "Invalid API Secret";
   }
-  if (typeof passphrase !== "string" || passphrase.length < 1) {
-    return "Invalid Passphrase (required)";
+  if (typeof passphrase !== "string" || passphrase.length < 5) {
+    return "Invalid Passphrase";
   }
-
-  // Structural validation of signature generation
-  try {
-    const testResult = generateBitgetSignature(
-      apiSecret,
-      "GET",
-      "/api/v5/account/balance",
-      {},
-      null
-    );
-
-    if (!testResult.signature || testResult.signature.length < 10) {
-      return "Signature generation failed (check credentials)";
-    }
-    return null;
-  } catch (e) {
-    return `Credential validation error: ${e instanceof Error ? e.message : "unknown"}`;
-  }
+  return null;
 }
 
 /**

@@ -57,23 +57,6 @@
     "pnl": "Total PnL",
     "noOpenOrders": "No open orders.",
     "noHistory": "No history found.",
-    "orderHistory": {
-      "maker": "M",
-      "taker": "T",
-      "fee": "Fee",
-      "liq": "Liq.",
-      "side": {
-        "buy": "Buy",
-        "sell": "Sell"
-      },
-      "type": {
-        "limit": "Limit",
-        "market": "Market",
-        "stopLimit": "Stop Limit",
-        "stopMarket": "Stop Market",
-        "trailing": "Trailing"
-      }
-    },
     "type": "Type",
     "price": "Price",
     "amount": "Amount",
@@ -517,17 +500,7 @@
     "rsiSettings": "RSI Settings",
     "length": "Length",
     "source": "Source",
-    "signal": "Signal",
-    "tooltips": {
-      "toggleTechnicals": "Toggle Technicals",
-      "refreshStats": "Refresh Stats",
-      "liquidationHeatmap": "Liquidation Heatmap",
-      "openOnProvider": "Open on {provider}",
-      "addFavorite": "Add to Favorites",
-      "removeFavorite": "Remove from Favorites",
-      "openChannel": "Open Channel",
-      "closeChannel": "Close Channel"
-    }
+    "signal": "Signal"
   },
   "seo": {
     "title": "Cachy - Position Size & Risk Calculator",
@@ -634,15 +607,7 @@
       "pivots": "Pivots",
       "buy": "Buy",
       "sell": "Sell",
-      "neutral": "Neutral",
-      "overbought": "Overbought",
-      "oversold": "Oversold",
-      "trend": "Trend",
-      "range": "Range",
-      "noSignals": "No divergences detected"
-    },
-    "candlestickPatterns": {
-      "title": "Candlestick Patterns Academy"
+      "neutral": "Neutral"
     },
     "imgbbPermanent": "Permanent (No Auto-Delete)",
     "imgbb10m": "10 Minutes",
@@ -942,14 +907,8 @@
     "klineError": "Could not load candle data.",
     "generic": "An unknown API error occurred.",
     "noMarketData": "No market data available.",
-    "failedToLoadOrders": "Failed to load orders.",
     "failedToLoadPositions": "Failed to load positions.",
-    "fetchFailed": "Fetch failed",
-    "missingCredentials": "API keys missing or incomplete",
-    "invalidAmount": "Invalid order amount",
-    "syncIncomplete": "Sync incomplete (Timeout).",
-    "syncNoNewData": "No new positions found.",
-    "syncFailed": "Sync failed: {error}"
+    "failedToLoadOrders": "Failed to load orders."
   },
   "bitunixErrors": {
     "10001": "Network Error",
@@ -1493,15 +1452,105 @@
     },
     "title": "Candlestick Academy"
   },
-  "tradeErrors": {
-    "positionNotFound": "Position not found: {symbol} {side}"
-  },
-  "workerErrors": {
-    "eventError": "Worker Error Event",
-    "notAvailable": "Worker not available",
-    "timeout": "Worker Timeout"
-  },
-  "markdownErrors": {
-    "fileNotFound": "Markdown file not found: {path}"
+  "chartPatterns": {
+    "title": "Chart Patterns Academy",
+    "headAndShoulders": {
+      "name": "Head and Shoulders",
+      "description": "A Head and Shoulders pattern is a bearish reversal formation that typically appears at the end of an uptrend. It consists of three peaks, with the middle peak (head) being higher than the two side peaks (shoulders). A neckline connects the lows between the peaks.",
+      "characteristics": "<ul><li>Occurs after an uptrend.</li><li>Three peaks: left shoulder, head (highest), right shoulder.</li><li>Neckline connects the troughs.</li></ul>",
+      "trading": "A sell signal is generated when the price breaks below the neckline. The target is often the distance from the head to the neckline projected downwards.",
+      "interpretation": "Historically one of the reliable reversal patterns."
+    },
+    "inverseHeadAndShoulders": {
+      "name": "Inverse Head and Shoulders",
+      "description": "An Inverse Head and Shoulders is a bullish reversal pattern appearing after a downtrend.",
+      "characteristics": "<ul><li>Occurs after a downtrend.</li><li>Three troughs: left shoulder, head (lowest), right shoulder.</li></ul>",
+      "trading": "Buy signal when price breaks above the neckline.",
+      "interpretation": "Reliable bullish reversal pattern."
+    },
+    "doubleTop": {
+      "name": "Double Top",
+      "description": "A Double Top is a bearish reversal pattern after an uptrend, consisting of two peaks at similar levels.",
+      "characteristics": "<ul><li>Two consecutive peaks at similar level.</li><li>A trough (support) in between.</li></ul>",
+      "trading": "Sell on break of support line.",
+      "interpretation": "Reliable reversal pattern."
+    },
+    "doubleBottom": {
+      "name": "Double Bottom",
+      "description": "A Double Bottom is a bullish reversal pattern after a downtrend.",
+      "characteristics": "<ul><li>Two consecutive troughs at similar level.</li></ul>",
+      "trading": "Buy on break of resistance line.",
+      "interpretation": "Reliable reversal pattern."
+    },
+    "tripleTop": {
+      "name": "Triple Top",
+      "description": "A Triple Top is a bearish reversal pattern with three peaks.",
+      "characteristics": "<ul><li>Three peaks at similar level.</li></ul>",
+      "trading": "Sell on break of support.",
+      "interpretation": "Stronger than Double Top."
+    },
+    "tripleBottom": {
+      "name": "Triple Bottom",
+      "description": "A Triple Bottom is a bullish reversal pattern with three troughs.",
+      "characteristics": "<ul><li>Three troughs at similar level.</li></ul>",
+      "trading": "Buy on break of resistance.",
+      "interpretation": "Stronger than Double Bottom."
+    },
+    "fallingWedge": {
+      "name": "Falling Wedge",
+      "description": "A Falling Wedge is typically a bullish pattern.",
+      "characteristics": "<ul><li>Converging downward sloping lines.</li></ul>",
+      "trading": "Buy on upward breakout.",
+      "interpretation": "High success rate as bullish pattern."
+    },
+    "risingWedge": {
+      "name": "Rising Wedge",
+      "description": "A Rising Wedge is typically a bearish pattern.",
+      "characteristics": "<ul><li>Converging upward sloping lines.</li></ul>",
+      "trading": "Sell on downward breakout.",
+      "interpretation": "Often bearish signal."
+    },
+    "ascendingTriangle": {
+      "name": "Ascending Triangle",
+      "description": "Bullish continuation pattern.",
+      "characteristics": "<ul><li>Flat top, rising bottom.</li></ul>",
+      "trading": "Buy on breakout above resistance.",
+      "interpretation": "Reliable bullish continuation."
+    },
+    "descendingTriangle": {
+      "name": "Descending Triangle",
+      "description": "Bearish continuation pattern.",
+      "characteristics": "<ul><li>Flat bottom, falling top.</li></ul>",
+      "trading": "Sell on breakout below support.",
+      "interpretation": "Reliable bearish continuation."
+    },
+    "symmetricalTriangle": {
+      "name": "Symmetrical Triangle",
+      "description": "Consolidation pattern.",
+      "characteristics": "<ul><li>Converging lines.</li></ul>",
+      "trading": "Trade the breakout direction.",
+      "interpretation": "Consolidation before big move."
+    },
+    "rectangle": {
+      "name": "Rectangle",
+      "description": "Consolidation range.",
+      "characteristics": "<ul><li>Parallel support and resistance.</li></ul>",
+      "trading": "Trade the breakout.",
+      "interpretation": "Pause before trend continuation."
+    },
+    "cupAndHandle": {
+      "name": "Cup and Handle",
+      "description": "Bullish continuation pattern.",
+      "characteristics": "<ul><li>Rounded cup and small handle.</li></ul>",
+      "trading": "Buy on handle breakout.",
+      "interpretation": "Very well known bullish pattern."
+    },
+    "flagBull": {
+      "name": "Bullish Flag",
+      "description": "Short-term continuation after steep rise.",
+      "characteristics": "<ul><li>Flagpole and flag.</li></ul>",
+      "trading": "Buy on breakout.",
+      "interpretation": "Strong continuation signal."
+    }
   }
 }

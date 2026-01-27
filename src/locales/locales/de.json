@@ -55,23 +55,6 @@
     "pnl": "Gesamt PnL",
     "noOpenOrders": "Keine offenen Orders.",
     "noHistory": "Keine Historie gefunden.",
-    "orderHistory": {
-      "maker": "M",
-      "taker": "T",
-      "fee": "Gebühr",
-      "liq": "Liq.",
-      "side": {
-        "buy": "Kauf",
-        "sell": "Verkauf"
-      },
-      "type": {
-        "limit": "Limit",
-        "market": "Markt",
-        "stopLimit": "Stop Limit",
-        "stopMarket": "Stop Markt",
-        "trailing": "Trailing"
-      }
-    },
     "type": "Typ",
     "price": "Preis",
     "amount": "Menge",
@@ -515,17 +498,7 @@
     "rsiSettings": "RSI Einstellungen",
     "length": "Länge",
     "source": "Quelle",
-    "signal": "Signal",
-    "tooltips": {
-      "toggleTechnicals": "Technicals umschalten",
-      "refreshStats": "Statistiken aktualisieren",
-      "liquidationHeatmap": "Liquidations-Heatmap",
-      "openOnProvider": "Auf {provider} öffnen",
-      "addFavorite": "Zu Favoriten hinzufügen",
-      "removeFavorite": "Aus Favoriten entfernen",
-      "openChannel": "Kanal öffnen",
-      "closeChannel": "Kanal schließen"
-    }
+    "signal": "Signal"
   },
   "seo": {
     "title": "Cachy - Positionsgröße & Risikorechner",
@@ -660,15 +633,7 @@
       "pivots": "Pivots",
       "buy": "Kaufen",
       "sell": "Verkaufen",
-      "neutral": "Neutral",
-      "overbought": "Überkauft",
-      "oversold": "Überverkauft",
-      "trend": "Trend",
-      "range": "Seitwärts",
-      "noSignals": "Keine Divergenzen erkannt"
-    },
-    "candlestickPatterns": {
-      "title": "Candlestick Muster Akademie"
+      "neutral": "Neutral"
     },
     "imgbbPermanent": "Dauerhaft (Kein Auto-Delete)",
     "imgbb10m": "10 Minuten",
@@ -940,14 +905,8 @@
     "klineError": "Kerzendaten konnten nicht geladen werden.",
     "generic": "Ein unbekannter API-Fehler ist aufgetreten.",
     "noMarketData": "Keine Marktdaten verfügbar.",
-    "failedToLoadOrders": "Orders konnten nicht geladen werden.",
-    "failedToLoadPositions": "Positionen konnten nicht geladen werden.",
-    "fetchFailed": "Abruf fehlgeschlagen",
-    "missingCredentials": "API-Keys fehlen oder sind unvollständig",
-    "invalidAmount": "Ungültiger Order-Betrag",
-    "syncIncomplete": "Sync unvollständig (Zeitüberschreitung).",
-    "syncNoNewData": "Keine neuen Positionen gefunden.",
-    "syncFailed": "Sync fehlgeschlagen: {error}"
+    "failedToLoadOrders": "Failed to load orders.",
+    "failedToLoadPositions": "Failed to load positions."
   },
   "bitunixErrors": {
     "10001": "Netzwerkfehler",
@@ -1491,15 +1450,105 @@
     },
     "title": "Candlestick Akademie"
   },
-  "tradeErrors": {
-    "positionNotFound": "Position nicht gefunden: {symbol} {side}"
-  },
-  "workerErrors": {
-    "eventError": "Worker Fehler-Event",
-    "notAvailable": "Worker nicht verfügbar",
-    "timeout": "Worker Zeitüberschreitung"
-  },
-  "markdownErrors": {
-    "fileNotFound": "Markdown-Datei nicht gefunden: {path}"
+  "chartPatterns": {
+    "title": "Chartmuster Akademie",
+    "headAndShoulders": {
+      "name": "SKS (Schulter-Kopf-Schulter)",
+      "description": "Ein SKS-Muster ist eine bärische Umkehrformation, die typischerweise am Ende eines Aufwärtstrends auftritt. Es besteht aus drei Hochs, wobei das mittlere Hoch (Kopf) höher ist als die beiden seitlichen Hochs (Schultern). Eine Nackenlinie verbindet die Tiefs zwischen den Hochs.",
+      "characteristics": "<ul><li>Tritt nach einem Aufwärtstrend auf.</li><li>Drei Peaks: linke Schulter, Kopf (höchster Peak), rechte Schulter.</li><li>Nackenlinie (Neckline) verbindet die Tiefs zwischen den Peaks.</li></ul>",
+      "trading": "Ein Verkaufssignal entsteht, wenn der Kurs die Nackenlinie nach unten durchbricht. Das Kursziel wird oft als die Distanz vom Kopf zur Nackenlinie, projiziert nach unten vom Ausbruchspunkt, berechnet.",
+      "interpretation": "Historisch gesehen eine der zuverlässigeren Umkehrformationen. Die Erfolgsquote kann je nach Markt und Zeitrahmen variieren."
+    },
+    "inverseHeadAndShoulders": {
+      "name": "Inverse SKS (iSKS)",
+      "description": "Eine inverse SKS-Formation ist ein bullisches Umkehrmuster, das typischerweise am Ende eines Abwärtstrends auftritt. Es ist das Spiegelbild des SKS-Musters.",
+      "characteristics": "<ul><li>Tritt nach einem Abwärtstrend auf.</li><li>Drei Tiefs: linke Schulter, Kopf (tiefster Punkt), rechte Schulter.</li><li>Nackenlinie verbindet die Hochs zwischen den Tiefs.</li></ul>",
+      "trading": "Ein Kaufsignal entsteht, wenn der Kurs die Nackenlinie nach oben durchbricht.",
+      "interpretation": "Ähnlich zuverlässig wie das SKS-Top. Die Erfolgsquote ist vergleichbar, und das Risk-Reward-Verhältnis kann attraktiv sein."
+    },
+    "doubleTop": {
+      "name": "Doppeltop",
+      "description": "Ein Doppeltop ist ein bärisches Umkehrmuster, das nach einem signifikanten Aufwärtstrend auftritt. Es besteht aus zwei etwa gleich hohen Hochs mit einem moderaten Tief dazwischen.",
+      "characteristics": "<ul><li>Zwei aufeinanderfolgende Hochs auf ähnlichem Niveau.</li><li>Ein Zwischentief (Unterstützungslinie) zwischen den Hochs.</li></ul>",
+      "trading": "Verkaufssignal bei Bruch der Unterstützungslinie (Zwischentief).",
+      "interpretation": "Gilt als zuverlässiges Umkehrmuster."
+    },
+    "doubleBottom": {
+      "name": "Doppelboden",
+      "description": "Ein Doppelboden ist ein bullisches Umkehrmuster, das nach einem signifikanten Abwärtstrend auftritt. Es besteht aus zwei etwa gleich tiefen Tiefs mit einem moderaten Hoch dazwischen.",
+      "characteristics": "<ul><li>Zwei aufeinanderfolgende Tiefs auf ähnlichem Niveau.</li><li>Ein Zwischenhoch (Widerstandslinie) zwischen den Tiefs.</li></ul>",
+      "trading": "Kaufsignal bei Bruch der Widerstandslinie (Zwischenhoch).",
+      "interpretation": "Gilt als zuverlässiges Umkehrmuster."
+    },
+    "tripleTop": {
+      "name": "Dreifachtop",
+      "description": "Ein Dreifachtop ist ein bärisches Umkehrmuster mit drei Hochs auf etwa gleichem Niveau.",
+      "characteristics": "<ul><li>Drei Hochs auf ähnlichem Niveau.</li><li>Widerstandszone wird dreimal getestet.</li></ul>",
+      "trading": "Verkaufssignal bei Bruch der Unterstützungslinie.",
+      "interpretation": "Stärker als ein Doppeltop."
+    },
+    "tripleBottom": {
+      "name": "Dreifachboden",
+      "description": "Ein Dreifachboden ist ein bullisches Umkehrmuster mit drei Tiefs auf etwa gleichem Niveau.",
+      "characteristics": "<ul><li>Drei Tiefs auf ähnlichem Niveau.</li><li>Unterstützungszone wird dreimal getestet.</li></ul>",
+      "trading": "Kaufsignal bei Bruch der Widerstandslinie.",
+      "interpretation": "Stärker als ein Doppelboden."
+    },
+    "fallingWedge": {
+      "name": "Fallender Keil",
+      "description": "Ein fallender Keil ist typischerweise eine bullische Umkehrformation, kann aber auch als Fortsetzungsmuster auftreten. Zwei konvergierende, abwärts geneigte Linien.",
+      "characteristics": "<ul><li>Zwei abwärts geneigte Linien, die konvergieren.</li><li>Obere Linie fällt steiler als untere.</li></ul>",
+      "trading": "Kaufsignal bei Ausbruch über die obere Linie.",
+      "interpretation": "Hohe Erfolgsquote als bullisches Muster."
+    },
+    "risingWedge": {
+      "name": "Steigender Keil",
+      "description": "Ein steigender Keil ist typischerweise eine bärische Umkehrformation. Zwei konvergierende, aufwärts geneigte Linien.",
+      "characteristics": "<ul><li>Zwei aufwärts geneigte Linien, die konvergieren.</li><li>Untere Linie steigt steiler als obere.</li></ul>",
+      "trading": "Verkaufssignal bei Ausbruch unter die untere Linie.",
+      "interpretation": "Oft bärisches Signal, besonders nach Aufwärtstrend."
+    },
+    "ascendingTriangle": {
+      "name": "Aufsteigendes Dreieck",
+      "description": "Bullische Fortsetzungsformation. Horizontale obere Widerstandslinie und ansteigende untere Unterstützungslinie.",
+      "characteristics": "<ul><li>Horizontale obere Linie (Widerstand).</li><li>Ansteigende untere Linie (Unterstützung).</li></ul>",
+      "trading": "Kaufsignal bei Ausbruch über den Widerstand.",
+      "interpretation": "Zuverlässiges bullisches Fortsetzungsmuster."
+    },
+    "descendingTriangle": {
+      "name": "Absteigendes Dreieck",
+      "description": "Bärische Fortsetzungsformation. Horizontale untere Unterstützungslinie und fallende obere Widerstandslinie.",
+      "characteristics": "<ul><li>Horizontale untere Linie (Unterstützung).</li><li>Fallende obere Linie (Widerstand).</li></ul>",
+      "trading": "Verkaufssignal bei Ausbruch unter die Unterstützung.",
+      "interpretation": "Zuverlässiges bärisches Fortsetzungsmuster."
+    },
+    "symmetricalTriangle": {
+      "name": "Symmetrisches Dreieck",
+      "description": "Konsolidierungsformation mit zwei konvergierenden Trendlinien (obere fällt, untere steigt).",
+      "characteristics": "<ul><li>Fallende obere Linie.</li><li>Steigende untere Linie.</li></ul>",
+      "trading": "Ausbruchsrichtung bestimmt den Trade (Long bei Ausbruch oben, Short bei unten).",
+      "interpretation": "Bedeutet Konsolidierung vor großer Bewegung."
+    },
+    "rectangle": {
+      "name": "Rechteck",
+      "description": "Konsolidierungsformation zwischen zwei parallelen horizontalen Linien.",
+      "characteristics": "<ul><li>Parallele Unterstützung und Widerstand.</li></ul>",
+      "trading": "Ausbruch aus der Range handeln.",
+      "interpretation": "Marktpause vor Trendfortsetzung oder Umkehr."
+    },
+    "cupAndHandle": {
+      "name": "Tasse mit Henkel",
+      "description": "Bullische Fortsetzungsformation. Eine abgerundete 'Tasse' gefolgt von einer kleineren Konsolidierung ('Henkel').",
+      "characteristics": "<ul><li>Abgerundeter Boden (Tasse).</li><li>Kleiner Pullback (Henkel) im oberen Drittel.</li></ul>",
+      "trading": "Kaufsignal bei Ausbruch über den Henkel-Widerstand.",
+      "interpretation": "Sehr bekanntes und oft zuverlässiges bullisches Muster."
+    },
+    "flagBull": {
+      "name": "Bullische Flagge",
+      "description": "Kurzfristige Fortsetzungsformation nach steilem Anstieg (Mast).",
+      "characteristics": "<ul><li>Steiler Anstieg (Mast).</li><li>Kleine Konsolidierung (Flagge).</li></ul>",
+      "trading": "Kaufsignal bei Ausbruch aus der Flagge nach oben.",
+      "interpretation": "Starkes Fortsetzungssignal."
+    }
   }
 }
