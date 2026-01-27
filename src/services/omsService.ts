@@ -16,6 +16,16 @@ class OrderManagementSystem {
     private readonly MAX_POSITIONS = 50;
 
     public updateOrder(order: OMSOrder) {
+        // Hardening: Prevent memory attacks by capping active orders
+        if (this.orders.size >= this.MAX_ORDERS && !this.orders.has(order.id)) {
+             // If we are at limit, try to prune first
+             this.pruneOrders();
+             if (this.orders.size >= this.MAX_ORDERS) {
+                 logger.error("market", `[OMS] Order limit (${this.MAX_ORDERS}) hit. Rejecting new order: ${order.id}`);
+                 return; // Reject update to protect memory
+             }
+        }
+
         this.orders.set(order.id, order);
         logger.log("market", `[OMS] Order Updated: ${order.id} (${order.status})`);
 
