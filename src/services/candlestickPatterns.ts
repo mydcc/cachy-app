@@ -1869,8 +1869,7 @@ export const CANDLESTICK_PATTERNS: PatternDefinition[] = [
     "keyFeatures": [
       {
         "type": "body",
-        "candleIndex": 0,
-        "color": "rgba(250,204,21,0.4)"
+        "candleIndex": 0
       },
       {
         "type": "shadow",
@@ -1896,8 +1895,7 @@ export const CANDLESTICK_PATTERNS: PatternDefinition[] = [
     "keyFeatures": [
       {
         "type": "body",
-        "candleIndex": 0,
-        "color": "rgba(250,204,21,0.4)"
+        "candleIndex": 0
       },
       {
         "type": "shadow",
@@ -2527,19 +2525,19 @@ export const CANDLESTICK_PATTERNS: PatternDefinition[] = [
         "open": 58,
         "high": 82,
         "low": 57,
-        "close": 70"
+        "close": 70
       },
       {
         "open": 70,
         "high": 81.5,
         "low": 62,
-        "close": 64"
+        "close": 64
       },
       {
         "open": 64,
         "high": 65,
         "low": 40,
-        "close": 45"
+        "close": 45
       }
     ],
     "keyFeatures": [
@@ -2599,7 +2597,7 @@ export const CANDLESTICK_PATTERNS: PatternDefinition[] = [
         "open": 67,
         "high": 90,
         "low": 66,
-        "close": 88"
+        "close": 88
       }
     ],
     "keyFeatures": [
