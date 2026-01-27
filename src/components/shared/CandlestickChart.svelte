@@ -330,7 +330,7 @@
           animation: false,
         },
         plugins: [annotationPlugin],
-      });
+      } as ChartConfiguration);
     }
   });
 
