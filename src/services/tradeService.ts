@@ -9,6 +9,8 @@ import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
+import { PositionListSchema, type PositionRaw } from "./apiSchemas";
+import type { OMSPosition } from "./omsTypes";
 
 export class BitunixApiError extends Error {
     constructor(public code: number | string, message?: string) {
@@ -36,7 +38,7 @@ class TradeService {
     public async signedRequest<T>(
         method: string,
         endpoint: string,
-        payload: any
+        payload: Record<string, any>
     ): Promise<T> {
         // Implementation for real app (simplified)
         // In test this is mocked
@@ -66,8 +68,10 @@ class TradeService {
 
         const data = await response.json();
 
-        if (!response.ok || (data.code && data.code !== 0)) {
-            throw new BitunixApiError(data.code || -1, data.msg || data.error);
+        // Loose check for "code" != 0 (Bitunix style)
+        // We cast to string to handle both number 0 and string "0"
+        if (!response.ok || (data.code !== undefined && String(data.code) !== "0")) {
+            throw new BitunixApiError(data.code || -1, data.msg || data.error || "Unknown API Error");
         }
 
         return data;
@@ -167,31 +171,56 @@ class TradeService {
             const pendingResult = await pendingResponse.json();
             if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
-            const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+            // VALIDATION with Zod
+            const rawPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
+            const validation = PositionListSchema.safeParse(rawPositions);
 
-            // Map and Update OMS
-            pendingPositions.forEach((p: any) => {
-                const side = (p.side || "").toLowerCase().includes("sell") || (p.side || "").toLowerCase().includes("short") ? "short" : "long";
+            if (!validation.success) {
+                logger.error("market", "[TradeService] API Schema mismatch", validation.error);
+                // Fallback: Try to use raw data but log error, OR throw?
+                // For critical financial data, we should probably be safe, but we don't want to break if one optional field is wrong.
+                // PositionListSchema uses optionals heavily, so failure means structure is REALLY wrong.
+                throw new Error("apiErrors.schemaMismatch");
+            }
 
-                // Simple mapping (subset of full mapper)
-                const mappedPosition: any = {
-                    symbol: p.symbol,
-                    side: side,
-                    amount: new Decimal(p.qty || p.size || p.amount || 0),
-                    entryPrice: new Decimal(p.avgOpenPrice || p.entryPrice || 0),
-                    unrealizedPnl: new Decimal(p.unrealizedPNL || p.unrealizedPnl || 0),
-                    leverage: new Decimal(p.leverage || 0),
-                    marginMode: (p.marginMode || "cross").toLowerCase(),
-                    liquidationPrice: p.liquidationPrice ? new Decimal(p.liquidationPrice) : undefined
-                };
+            const pendingPositions = validation.data;
 
-                omsService.updatePosition(mappedPosition);
+            // Map and Update OMS using robust mapper
+            pendingPositions.forEach((p: PositionRaw) => {
+                omsService.updatePosition(this.mapPosition(p));
             });
 
         } catch (e) {
             logger.error("market", "[TradeService] Failed to fetch open positions", e);
             throw e;
         }
+    }
+
+    private mapPosition(raw: PositionRaw): OMSPosition {
+        // Side logic
+        let side: "long" | "short" = "long";
+        const rawSide = (raw.side || raw.positionSide || raw.holdSide || "").toLowerCase();
+        if (rawSide.includes("sell") || rawSide.includes("short")) side = "short";
+
+        // Amount logic
+        const amount = new Decimal(raw.qty || raw.size || raw.amount || 0);
+
+        // Price
+        const entryPrice = new Decimal(raw.avgOpenPrice || raw.entryPrice || 0);
+        const upnl = new Decimal(raw.unrealizedPNL || raw.unrealizedPnl || 0);
+        const lev = new Decimal(raw.leverage || 0);
+        const liq = raw.liquidationPrice || raw.liqPrice ? new Decimal(raw.liquidationPrice || raw.liqPrice!) : undefined;
+
+        return {
+            symbol: raw.symbol,
+            side,
+            amount,
+            entryPrice,
+            unrealizedPnl: upnl,
+            leverage: lev,
+            marginMode: (raw.marginMode || "cross").toLowerCase() as "cross" | "isolated",
+            liquidationPrice: liq
+        };
 
 
     }
