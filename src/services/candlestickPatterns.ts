@@ -2585,13 +2585,13 @@ export const CANDLESTICK_PATTERNS: PatternDefinition[] = [
         "open": 78,
         "high": 79,
         "low": 48,
-        "close": 62"
+        "close": 62
       },
       {
         "open": 62,
         "high": 68,
         "low": 49,
-        "close": 67"
+        "close": 67
       },
       {
         "open": 67,
