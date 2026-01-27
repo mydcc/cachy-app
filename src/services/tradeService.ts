@@ -17,6 +17,19 @@ export class BitunixApiError extends Error {
     }
 }
 
+export const TRADE_ERRORS = {
+    POSITION_NOT_FOUND: "trade.positionNotFound",
+    FETCH_FAILED: "trade.fetchFailed",
+    CLOSE_ALL_FAILED: "trade.closeAllFailed"
+};
+
+export class TradeError extends Error {
+    constructor(message: string, public code: string, public details?: any) {
+        super(message);
+        this.name = "TradeError";
+    }
+}
+
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
@@ -72,7 +85,7 @@ class TradeService {
 
         if (!position) {
             logger.error("market", `[FlashClose] Position definitely not found: ${symbol} ${positionSide}`);
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new TradeError(`Position not found: ${symbol} ${positionSide}`, TRADE_ERRORS.POSITION_NOT_FOUND, { symbol, side: positionSide });
         }
 
         // 2. Execute Close
@@ -109,10 +122,10 @@ class TradeService {
                 }),
             });
 
-            if (!pendingResponse.ok) throw new Error("Fetch failed");
+            if (!pendingResponse.ok) throw new TradeError("Fetch failed", TRADE_ERRORS.FETCH_FAILED, { status: pendingResponse.status });
 
             const pendingResult = await pendingResponse.json();
-            if (pendingResult.error) throw new Error(pendingResult.error);
+            if (pendingResult.error) throw new TradeError(pendingResult.error, "trade.apiError");
 
             const pendingPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
 
@@ -153,7 +166,7 @@ class TradeService {
         );
 
         if (!position) {
-            throw new Error(`Position not found: ${symbol} ${positionSide}`);
+            throw new TradeError(`Position not found: ${symbol} ${positionSide}`, TRADE_ERRORS.POSITION_NOT_FOUND, { symbol, side: positionSide });
         }
 
         const side = positionSide === "long" ? "SELL" : "BUY";
@@ -181,7 +194,7 @@ class TradeService {
         const failures = results.filter(r => r.status === "rejected");
         if (failures.length > 0) {
             logger.error("market", `[CloseAll] Failed to close ${failures.length} positions.`);
-            throw new Error(`Failed to close ${failures.length} positions`);
+            throw new TradeError(`Failed to close ${failures.length} positions`, TRADE_ERRORS.CLOSE_ALL_FAILED, { count: failures.length });
         }
 
         return results;
