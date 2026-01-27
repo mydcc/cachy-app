@@ -999,7 +999,13 @@ export class SettingsManager {
         defaultSettings.backgroundAnimationIntensity;
       this.videoPlaybackSpeed =
         merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
-      this.galaxySettings = merged.galaxySettings || defaultSettings.galaxySettings;
+
+      // Deep merge galaxy settings to ensure new fields (camPos, galaxyRot) are populated if missing in old storage
+      this.galaxySettings = {
+        ...defaultSettings.galaxySettings,
+        ...(merged.galaxySettings || {})
+      };
+
       this.enableNetworkLogs =
         merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
 
