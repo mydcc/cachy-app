@@ -48,30 +48,30 @@ Was fehlt, ist die **quantitative Exekutive**. LLMs sind schlecht in Mathe und h
 
 ## 3. Integrations-Strategie: "Cachy Brain" (Client-Side)
 
-Um Serverlast zu vermeiden und Datenschutz zu gewährleisten, setzen wir auf eine **Client-Side-Architecture**.
+Um Serverlast zu vermeiden und Datenschutz zu gewährleisten, setzen wir auf eine **Client-Side-Architecture** (Edge AI).
+
+### Der Unterschied: Training vs. Inferenz (WICHTIG)
+Es ist entscheidend, zwischen den zwei Phasen von KI zu unterscheiden:
+
+| Phase | Wo findet es statt? | Aufwand | Häufigkeit |
+| :--- | :--- | :--- | :--- |
+| **1. Training** | **Offline (Entwickler-PC)** | Extrem Hoch (Stunden/Tage) | 1x pro Monat |
+| **2. Inferenz** | **Browser (User)** | **Extrem Niedrig (Millisekunden)** | Alle 5 Sekunden |
+
+**Der User-Browser muss NICHT lernen.** Er muss nur das fertig gelernte Wissen **anwenden**. Das verbraucht kaum mehr Leistung als das Berechnen eines gleitenden Durchschnitts (EMA).
 
 ### Architektur-Überblick
 
-1.  **Das Frontend (Cachy App / Browser):**
-    *   Lädt beim Start ein vortrainiertes Modell (`.onnx`) herunter.
-    *   Führt die Berechnungen lokal im Browser via **WebAssembly / WebGPU** aus.
-2.  **Training (Offline):**
-    *   Modelle werden lokal (auf der Entwickler-Maschine) mit Python/FinRL trainiert.
-    *   Exportiert als statische ONNX-Datei.
-3.  **Server:**
-    *   Dient nur als Datei-Host für das Modell. **0% Rechenlast.**
-
-### Workflow
-
 1.  **Training (Offline):**
-    *   Laden historischer Daten.
-    *   Training eines PPO-Agenten.
-    *   Export zu ONNX.
+    *   Wir laden historische Daten von Bitunix/Bitget.
+    *   FinRL trainiert einen Agenten (z.B. PPO) auf einem starken Entwickler-PC.
+    *   Das fertige "Gehirn" wird als **ONNX-Datei** exportiert.
+
 2.  **Inferenz (Live im Browser):**
-    *   Cachy sammelt Live-Daten (State).
-    *   Übergibt State an die ONNX-Runtime.
-    *   Erhält Action (z.B. "Wahrscheinlichkeit für Trendwende: 85%").
-    *   Visualisiert dies im Dashboard.
+    *   Die Cachy App lädt beim Start die winzige `.onnx` Datei (< 1MB).
+    *   Cachy sammelt Live-Daten (State: RSI, MACD, Preis).
+    *   Die **ONNX Runtime Web** (WebAssembly/WebGPU) berechnet in < 50ms die Vorhersage.
+    *   Ergebnis: "Wahrscheinlichkeit für Trendwende: 85%".
 
 ### Empfohlener Erster Schritt
 Wir bauen keinen vollautomatischen Trader (zu riskant), sondern einen **Signal-Geber**.
