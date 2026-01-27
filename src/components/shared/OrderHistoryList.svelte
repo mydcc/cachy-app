@@ -167,17 +167,17 @@
               </span>
 
               <!-- PnL -->
-              {#if order.realizedPnL && Number(order.realizedPnL) !== 0}
+              {#if (order.realizedPNL || order.realizedPnL) && Number(order.realizedPNL || order.realizedPnL) !== 0}
                 <span
                   class="text-[10px] font-bold"
-                  class:text-[var(--success-color)]={Number(order.realizedPnL) >
+                  class:text-[var(--success-color)]={Number(order.realizedPNL || order.realizedPnL) >
                     0}
-                  class:text-[var(--danger-color)]={Number(order.realizedPnL) <
+                  class:text-[var(--danger-color)]={Number(order.realizedPNL || order.realizedPnL) <
                     0}
                 >
-                  {Number(order.realizedPnL) > 0
+                  {Number(order.realizedPNL || order.realizedPnL) > 0
                     ? "+"
-                    : ""}{formatDynamicDecimal(order.realizedPnL)}
+                    : ""}{formatDynamicDecimal(order.realizedPNL || order.realizedPnL)}
                 </span>
               {/if}
 

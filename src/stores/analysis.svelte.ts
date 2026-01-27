@@ -11,11 +11,11 @@ import { settingsState } from "./settings.svelte";
 export interface SymbolAnalysis {
     symbol: string;
     updatedAt: number;
-    price: number;
-    change24h: number;
+    price: string;
+    change24h: string;
     trend4h: "bullish" | "bearish" | "neutral";
-    rsi1h: number;
-    confluenceScore: number;
+    rsi1h: string;
+    confluenceScore: number; // Score is abstract (0-100), safe as number
     condition: "overbought" | "oversold" | "neutral" | "trending";
 }
 
