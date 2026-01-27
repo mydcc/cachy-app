@@ -274,6 +274,11 @@
     }
   });
 
+  // Dynamic Window Targets (One tab per symbol/provider)
+  let tvTarget = $derived(`cachy_tv_${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`);
+  let cgTarget = $derived(`cachy_cg_${baseAsset.replace(/[^a-zA-Z0-9]/g, "_")}`);
+  let brokerTarget = $derived(`cachy_broker_${provider.replace(/[^a-zA-Z0-9]/g, "_")}_${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`);
+
   // Channel Config
   const CHANNEL_CONFIG: Record<string, string | boolean> = {
     BTC: true, ETH: true, SOL: true, LINK: true, XRP: true
@@ -474,13 +479,13 @@
       {#if settingsState.showMarketOverviewLinks && symbol}
         <div class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]">
           {#if settingsState.showTvLink}
-            <a href={tvLink} target="cachy_external_tv" class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart" onclick={() => window.open(tvLink, "cachy_external_tv")?.focus()}>TV</a>
+            <a href={tvLink} target={tvTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart" onclick={(e) => { e.preventDefault(); window.open(tvLink, tvTarget)?.focus(); }}>TV</a>
           {/if}
           {#if settingsState.showCgHeatLink}
-            <a href={cgHeatmapLink} target="cachy_external_coinglass" class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title="Liquidation Heatmap" onclick={() => window.open(cgHeatmapLink, "cachy_external_coinglass")?.focus()}>CG Heat</a>
+            <a href={cgHeatmapLink} target={cgTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title="Liquidation Heatmap" onclick={(e) => { e.preventDefault(); window.open(cgHeatmapLink, cgTarget)?.focus(); }}>CG Heat</a>
           {/if}
           {#if settingsState.showBrokerLink}
-            <a href={brokerLink} target="cachy_external_broker" class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title="Open on {provider}" onclick={() => window.open(brokerLink, "cachy_external_broker")?.focus()}>{provider.toUpperCase()}</a>
+            <a href={brokerLink} target={brokerTarget} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title="Open on {provider}" onclick={(e) => { e.preventDefault(); window.open(brokerLink, brokerTarget)?.focus(); }}>{provider.toUpperCase()}</a>
           {/if}
           {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
