@@ -856,6 +856,11 @@
       "restore": "Load Backup",
       "restoreDesc": "Import a backup from a file."
     },
+    "performance": {
+      "monitor": "Performance Monitor",
+      "tips": "Optimization Tips",
+      "lastUpdate": "Last Updated: {time}"
+    },
     "trading": {
       "chartTitle": "Chart & Data",
       "executionTitle": "Execution & Fees"

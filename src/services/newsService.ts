@@ -28,7 +28,8 @@ function safeReadCache<T>(key: string, schema?: z.ZodType<T>): T | null {
     if (schema) {
       const validation = schema.safeParse(parsed);
       if (!validation.success) {
-        logger.warn("ai", `[newsService] Cache validation failed for ${key}`, validation.error);
+        // Log brief error to avoid console spam
+        logger.log("ai", `[newsService] Cache validation failed for ${key}, resetting cache.`);
         localStorage.removeItem(key);
         return null;
       }
@@ -156,6 +157,8 @@ const pendingSentimentFetches = new Map<
   Promise<SentimentAnalysis | null>
 >();
 
+const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 Minuten Cooldown zwischen API Calls
+
 /**
  * Prüft, ob News für ein Symbol abgerufen werden müssen
  */
@@ -165,23 +168,43 @@ function shouldFetchNews(symbol: string | undefined): boolean {
   const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
 
   if (!cached) {
+    // Wenn Cache leer ist, müssen wir versuchen zu laden,
+    // ES SEI DENN, Quota ist leer. Dann sparen wir uns den Call.
+    if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
+      return false;
+    }
     return true;
   }
 
   const now = Date.now();
+
+  // 0. Hard Limit: Respektiere Cooldown (Rate Limit Schutz)
+  // Egal wie "schlecht" der Cache ist, wir fragen nicht öfter als alle 30min an.
+  const timeSinceLastCall = now - (cached.lastApiCall || 0);
+  if (timeSinceLastCall < MIN_FETCH_INTERVAL) {
+    return false;
+  }
+
+  // Wenn wir hier sind, ist der Timer abgelaufen.
+  // ABER: Wenn Quota leer ist, brauchen wir gar nicht erst anfangen (verhindert Warning Log)
+  if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
+    return false;
+  }
+
   const ageMs = now - cached.timestamp;
 
-  // Bedingung 1: Cache älter als 24h
+  // Bedingung 1: Cache selbst ist veraltet (älter als 24h)
   if (ageMs > MAX_NEWS_AGE_MS) {
     return true;
   }
 
   // Bedingung 2: Weniger als MIN_NEWS_PER_COIN News
+  // Nur wenn wir noch Quota haben und der letzte Call länger her ist
   if (cached.items.length < MIN_NEWS_PER_COIN) {
     return true;
   }
 
-  // Bedingung 3: Älteste News ist > 24h alt
+  // Bedingung 3: Älteste News ist > 24h alt (bei vollem Cache)
   if (cached.items.length > 0) {
     const oldestNews = cached.items[cached.items.length - 1];
     const oldestNewsAge = now - new Date(oldestNews.published_at).getTime();

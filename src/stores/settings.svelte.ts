@@ -19,7 +19,7 @@ export type PositionViewMode = "detailed" | "focus";
 export type PnlViewMode = "value" | "percent" | "bar";
 export type SidePanelLayout = "standard" | "floating";
 export type AiProvider = "openai" | "gemini" | "anthropic";
-export type BackgroundType = "none" | "image" | "video" | "animation";
+export type BackgroundType = "none" | "image" | "video" | "animation" | "threejs";
 export type BackgroundAnimationPreset =
   | "none"
   | "gradient"
@@ -75,6 +75,19 @@ export interface PanelState {
   height: number;
   x: number;
   y: number;
+}
+
+export interface GalaxySettings {
+  particleCount: number;
+  particleSize: number;
+  radius: number;
+  branches: number;
+  spin: number;
+  randomness: number;
+  randomnessPower: number;
+  concentrationPower: number;
+  insideColor: string; // Hex
+  outsideColor: string; // Hex
 }
 
 export interface Settings {
@@ -185,6 +198,7 @@ export interface Settings {
   backgroundAnimationPreset: BackgroundAnimationPreset;
   backgroundAnimationIntensity: AnimationIntensity;
   videoPlaybackSpeed: number;
+  galaxySettings: GalaxySettings;
   enableNetworkLogs: boolean;
   logSettings?: {
     technicals: boolean;
@@ -339,6 +353,18 @@ const defaultSettings: Settings = {
   backgroundAnimationPreset: "none",
   backgroundAnimationIntensity: "medium",
   videoPlaybackSpeed: 1.0,
+  galaxySettings: {
+    particleCount: 20000,
+    particleSize: 0.6,
+    radius: 5,
+    branches: 3,
+    spin: 0.5,
+    randomness: 1.0,
+    randomnessPower: 8.0,
+    concentrationPower: 1.5,
+    insideColor: "#6366f1",
+    outsideColor: "#8b5cf6",
+  },
   enableNetworkLogs: false,
   logSettings: {
     technicals: false,
@@ -600,6 +626,7 @@ export class SettingsManager {
     defaultSettings.backgroundAnimationIntensity,
   );
   videoPlaybackSpeed = $state<number>(defaultSettings.videoPlaybackSpeed);
+  galaxySettings = $state(defaultSettings.galaxySettings);
   enableNetworkLogs = $state<boolean>(defaultSettings.enableNetworkLogs);
   logSettings = $state(defaultSettings.logSettings);
 
@@ -972,6 +999,7 @@ export class SettingsManager {
         defaultSettings.backgroundAnimationIntensity;
       this.videoPlaybackSpeed =
         merged.videoPlaybackSpeed ?? defaultSettings.videoPlaybackSpeed;
+      this.galaxySettings = merged.galaxySettings || defaultSettings.galaxySettings;
       this.enableNetworkLogs =
         merged.enableNetworkLogs ?? defaultSettings.enableNetworkLogs;
 
@@ -1141,6 +1169,7 @@ export class SettingsManager {
       backgroundAnimationPreset: this.backgroundAnimationPreset,
       backgroundAnimationIntensity: this.backgroundAnimationIntensity,
       videoPlaybackSpeed: this.videoPlaybackSpeed,
+      galaxySettings: $state.snapshot(this.galaxySettings),
       enableNetworkLogs: this.enableNetworkLogs,
       logSettings: $state.snapshot(this.logSettings),
       discordBotToken: this.discordBotToken,

@@ -415,10 +415,12 @@
             return k.close;
           });
 
-          const liveKline = wsData?.klines
+          const liveKlines = wsData?.klines
             ? wsData.klines[effectiveRsiTimeframe]
             : null;
-          if (liveKline) {
+
+          if (Array.isArray(liveKlines) && liveKlines.length > 0) {
+            const liveKline = liveKlines[liveKlines.length - 1];
             let currentVal = liveKline.close;
             if (sourceMode === "open") currentVal = liveKline.open;
             else if (sourceMode === "high") currentVal = liveKline.high;
@@ -440,7 +442,7 @@
 
           const rsiSeries: Decimal[] = [];
           if (values.length > length) {
-            const valuesNum = values.map((v) => new Decimal(v).toNumber());
+            const valuesNum = values.map((v) => new Decimal(v || 0).toNumber());
             const rsiSeriesNum = JSIndicators.rsi(valuesNum, length);
             for (let i = 0; i < rsiSeriesNum.length; i++) {
               if (rsiSeriesNum[i] > 0) {

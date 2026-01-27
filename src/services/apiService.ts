@@ -20,6 +20,7 @@ import { getBitunixErrorKey } from "../utils/errorUtils";
 import { parseTimestamp } from "../utils/utils";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { settingsState } from "../stores/settings.svelte";
+import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
 import type { Kline } from "./technicalsTypes";
 import {
@@ -140,6 +141,7 @@ class RequestManager {
 
         try {
           logger.debug("network", `[Request] Start: ${key}`);
+          const startFetch = performance.now();
           // Wrapped task with Timeout and Retry
           const executeWithRetry = async (attempt: number): Promise<T> => {
             const controller = new AbortController();
@@ -183,6 +185,11 @@ class RequestManager {
           };
 
           const result = await executeWithRetry(0);
+          const latency = performance.now() - startFetch;
+
+          // Update telemetry
+          marketState.recordApiCall();
+          marketState.updateTelemetry({ apiLatency: latency });
 
           // Store in cache upon success (only if it matches the current request)
           // Prune before adding if full
@@ -459,11 +466,8 @@ export const apiService = {
                 errData.error &&
                 !errData.error.includes("Symbol not found")
               ) {
-                if (import.meta.env.DEV) {
-                  console.error(
-                    `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
-                  );
-                }
+                // Log to proper logger
+                logger.warn("network", `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`);
               }
             } catch {
               /* ignore parsing error */
@@ -655,14 +659,14 @@ export const apiService = {
 
             // Critical check for Last Price
             if (ticker.lastPrice === undefined || ticker.lastPrice === null) {
-               throw new Error("apiErrors.invalidResponse");
+              throw new Error("apiErrors.invalidResponse");
             }
             let last: Decimal;
             try {
-               last = new Decimal(ticker.lastPrice);
-               if (last.isNaN() || !last.isFinite()) throw new Error();
+              last = new Decimal(ticker.lastPrice);
+              if (last.isNaN() || !last.isFinite()) throw new Error();
             } catch {
-               throw new Error("apiErrors.invalidResponse");
+              throw new Error("apiErrors.invalidResponse");
             }
 
             const open = toDec(ticker.open);

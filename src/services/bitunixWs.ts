@@ -97,6 +97,9 @@ class BitunixWebSocketService {
   private lastMessageTimePublic = Date.now();
   private lastMessageTimePrivate = Date.now();
 
+  private lastPingTimePublic = 0;
+  private lastPingTimePrivate = 0;
+
   private connectionTimeoutPublic: ReturnType<typeof setTimeout> | null = null;
   private connectionTimeoutPrivate: ReturnType<typeof setTimeout> | null = null;
 
@@ -136,6 +139,7 @@ class BitunixWebSocketService {
 
   private handleOffline = () => {
     marketState.connectionStatus = "disconnected";
+    marketState.updateTelemetry({ activeConnections: 0 });
 
     // Notify Manager
     connectionManager.onProviderDisconnected("bitunix");
@@ -330,6 +334,7 @@ class BitunixWebSocketService {
           logger.log("network", "Public connection opened");
         }
         marketState.connectionStatus = "connected";
+        marketState.updateTelemetry({ activeConnections: (marketState.telemetry.activeConnections || 0) + 1 });
 
         // Notify Manager
         connectionManager.onProviderConnected("bitunix");
@@ -362,6 +367,7 @@ class BitunixWebSocketService {
       ws.onclose = () => {
         if (this.isDestroyed) return;
         if (this.wsPublic === ws) {
+          marketState.updateTelemetry({ activeConnections: Math.max(0, (marketState.telemetry.activeConnections || 0) - 1) });
           if (typeof navigator !== "undefined" && !navigator.onLine) {
             marketState.connectionStatus = "disconnected";
           } else {
@@ -540,7 +546,11 @@ class BitunixWebSocketService {
           this.awaitingPongPrivate = true;
         }
 
-        const pingPayload = { op: "ping", ping: Math.floor(Date.now() / 1000) };
+        const now = Date.now();
+        if (type === "public") this.lastPingTimePublic = now;
+        else this.lastPingTimePrivate = now;
+
+        const pingPayload = { op: "ping", ping: Math.floor(now / 1000) };
         try {
           ws.send(JSON.stringify(pingPayload));
         } catch (e) {
@@ -718,14 +728,14 @@ class BitunixWebSocketService {
               const d = data as any;
               // Safe access with existence checks
               if (d && (d.lastPrice || d.lp || d.la || d.fr)) {
-                  const normalized = mdaService.normalizeTicker(message, "bitunix");
-                  if (!this.shouldThrottle(`${symbol}:price`)) {
-                    marketState.updateSymbol(symbol, {
-                      lastPrice: normalized.lastPrice,
-                      fundingRate: d.fr,
-                      nextFundingTime: d.nft ? String(d.nft) : undefined
-                    });
-                  }
+                const normalized = mdaService.normalizeTicker(message, "bitunix");
+                if (!this.shouldThrottle(`${symbol}:price`)) {
+                  marketState.updateSymbol(symbol, {
+                    lastPrice: normalized.lastPrice,
+                    fundingRate: d.fr,
+                    nextFundingTime: d.nft ? String(d.nft) : undefined
+                  });
+                }
               } else if (import.meta.env.DEV && d) {
                 console.warn("[BitunixWS] FastPath failed for price. Keys:", Object.keys(d));
               }
@@ -865,12 +875,20 @@ class BitunixWebSocketService {
       }
 
       if (!validatedMessage) return;
-      if (
-        validatedMessage.op === "pong" ||
-        validatedMessage.pong ||
-        validatedMessage.op === "ping"
-      )
+      if (validatedMessage.op === "ping") return;
+
+      if (validatedMessage.op === "pong" || validatedMessage.pong) {
+        const now = Date.now();
+        const start = type === "public" ? this.lastPingTimePublic : this.lastPingTimePrivate;
+        if (start > 0) {
+          const latency = now - start;
+          // Sanity check: latency should be realistic (< 10s)
+          if (latency >= 0 && latency < 10000) {
+            marketState.updateTelemetry({ wsLatency: latency });
+          }
+        }
         return;
+      }
 
       // 3. Validate channel if present
       if (validatedMessage.ch && !isAllowedChannel(validatedMessage.ch)) {

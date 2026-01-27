@@ -67,6 +67,16 @@ class MarketManager {
   data = $state<Record<string, MarketData>>({});
   connectionStatus = $state<WSStatus>("disconnected");
 
+  // Telemetry Metrics
+  telemetry = $state({
+    apiLatency: 0,
+    wsLatency: 0,
+    activeConnections: 0,
+    apiCallsLastMinute: 0,
+    lastCalcDuration: 0,
+    cacheHitRate: 100
+  });
+
   private cacheMetadata = new Map<string, CacheMetadata>();
   private pendingUpdates = new Map<string, Partial<MarketData>>();
   private cleanupIntervalId: any = null;
@@ -82,6 +92,11 @@ class MarketManager {
       this.flushIntervalId = setInterval(() => {
         this.flushUpdates();
       }, 250);
+
+      // Reset API calls counter every minute
+      setInterval(() => {
+        this.telemetry.apiCallsLastMinute = 0;
+      }, 60000);
     }
   }
 
@@ -163,7 +178,7 @@ class MarketManager {
     }
   }
 
-  updateSymbol(symbol: string, partial: Partial<MarketData>) {
+  updateSymbol(symbol: string, partial: any) {
     // Instead of updating immediately, we buffer updates
     const existing = this.pendingUpdates.get(symbol) || {};
 
@@ -226,6 +241,16 @@ class MarketManager {
       current.technicals = partial.technicals;
       console.log(`[Market] Updated technicals for ${symbol}`);
     }
+  }
+
+  updateTelemetry(partial: Partial<typeof this.telemetry>) {
+    this.telemetry = { ...this.telemetry, ...partial };
+  }
+
+  recordApiCall() {
+    this.telemetry.apiCallsLastMinute++;
+    // Simple reset would be better via interval, but for now we increment.
+    // The PerformanceMonitor can handle the reset or we add a loop.
   }
 
   updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {
