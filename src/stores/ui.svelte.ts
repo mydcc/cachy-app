@@ -80,6 +80,7 @@ class UiManager {
   settingsWorkspaceTab = $state("sidebar");
   showMarketDashboardModal = $state(false);
   showCandlestickPatternsModal = $state(false);
+  showChartPatternsModal = $state(false);
 
   // Floating Windows Management
   windows = $state<FloatingWindow[]>([]);
@@ -319,6 +320,10 @@ class UiManager {
 
   toggleCandlestickPatternsModal(show: boolean) {
     this.showCandlestickPatternsModal = show;
+  }
+
+  toggleChartPatternsModal(show: boolean) {
+    this.showChartPatternsModal = show;
   }
 
   openSettings(tab = "trading") {

@@ -1206,6 +1206,7 @@ export type TranslationKey =
   | "candlestickPatterns.advancing_wicks.interpretation"
   | "candlestickPatterns.advancing_wicks.indicatorCombination"
   | "candlestickPatterns.title"
+  | "chartPatterns.title"
   | "tradeErrors.positionNotFound"
   | "workerErrors.eventError"
   | "workerErrors.notAvailable"

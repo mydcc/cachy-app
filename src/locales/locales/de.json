@@ -1491,6 +1491,9 @@
     },
     "title": "Candlestick Akademie"
   },
+  "chartPatterns": {
+    "title": "Chartmuster Akademie"
+  },
   "tradeErrors": {
     "positionNotFound": "Position nicht gefunden: {symbol} {side}"
   },
