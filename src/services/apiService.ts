@@ -466,11 +466,8 @@ export const apiService = {
                 errData.error &&
                 !errData.error.includes("Symbol not found")
               ) {
-                if (import.meta.env.DEV) {
-                  console.error(
-                    `fetchBitunixKlines failed with ${response.status}: ${errData.error}`,
-                  );
-                }
+                // Log to proper logger
+                logger.warn("network", `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`);
               }
             } catch {
               /* ignore parsing error */

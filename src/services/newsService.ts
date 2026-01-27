@@ -168,6 +168,11 @@ function shouldFetchNews(symbol: string | undefined): boolean {
   const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
 
   if (!cached) {
+    // Wenn Cache leer ist, müssen wir versuchen zu laden,
+    // ES SEI DENN, Quota ist leer. Dann sparen wir uns den Call.
+    if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
+      return false;
+    }
     return true;
   }
 
@@ -177,6 +182,12 @@ function shouldFetchNews(symbol: string | undefined): boolean {
   // Egal wie "schlecht" der Cache ist, wir fragen nicht öfter als alle 30min an.
   const timeSinceLastCall = now - (cached.lastApiCall || 0);
   if (timeSinceLastCall < MIN_FETCH_INTERVAL) {
+    return false;
+  }
+
+  // Wenn wir hier sind, ist der Timer abgelaufen.
+  // ABER: Wenn Quota leer ist, brauchen wir gar nicht erst anfangen (verhindert Warning Log)
+  if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
     return false;
   }
 
