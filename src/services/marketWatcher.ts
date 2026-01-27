@@ -219,6 +219,16 @@ class MarketWatcher {
     const settings = settingsState;
     const provider = settings.apiProvider;
 
+    // Safety: If fetchLocks grows too large (stale locks), prune it
+    // This handles edge cases where `finally` block might not have cleared a lock
+    // or if component logic caused orphan keys.
+    if (this.fetchLocks.size > 200) {
+        // Emergency cleanup
+        logger.warn("market", `[MarketWatcher] Pruning stale locks (${this.fetchLocks.size})`);
+        this.fetchLocks.clear();
+        this.inFlight = 0;
+    }
+
     const allowed = Math.max(this.maxConcurrentPolls - this.inFlight, 0);
     if (allowed <= 0) return;
 

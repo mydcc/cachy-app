@@ -25,7 +25,7 @@ class ActiveTechnicalsManager {
     private activeEffects = new Map<string, () => void>();
 
     // Throttle timers: `symbol:timeframe` -> timer ID
-    private throttles = new Map<string, any>();
+    private throttles = new Map<string, ReturnType<typeof setTimeout>>();
 
 
     // Lower than 1s to feel "realtime", but throttled to save CPU on crazy volatility
@@ -133,8 +133,14 @@ class ActiveTechnicalsManager {
     }
 
     private scheduleCalculation(symbol: string, timeframe: string) {
-        // No throttling as per user request (Direct data flow)
-        this.performCalculation(symbol, timeframe);
+        // Implement simple throttling (1 update per second)
+        const key = `${symbol}:${timeframe}`;
+        if (this.throttles.has(key)) return; // Already scheduled
+
+        this.throttles.set(key, setTimeout(() => {
+            this.throttles.delete(key);
+            this.performCalculation(symbol, timeframe);
+        }, 1000));
     }
 
     // Helper for deep equality
