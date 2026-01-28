@@ -155,7 +155,7 @@
             </div>
             <p class="help-text">
                 How often technical indicators are recalculated. Lower = more CPU but fresher data.
-                <strong>Recommendation:</strong> 10s for scalping, 60s for day trading, 300s+ for swing trading.
+                <strong>{$_("settings.calculation.recommendation")}</strong> 10s for scalping, 60s for day trading, 300s+ for swing trading.
             </p>
         </div>
 
@@ -167,7 +167,7 @@
                     bind:checked={settingsState.analyzeAllFavorites}
                     class="checkbox"
                 />
-                <span class="label-text">Analyze All Favorites</span>
+                <span class="label-text">{$_("settings.calculation.analyzeFavorites")}</span>
                 <span
                     class="badge {settingsState.analyzeAllFavorites
                         ? 'active'
@@ -230,7 +230,7 @@
             </div>
             <p class="help-text">
                 Maximum number of symbols kept in memory cache. Higher values improve responsiveness but use more RAM.
-                <strong>Recommendation:</strong> 10-20 for small portfolios, 50-100 for diversified portfolios (30+ positions).
+                <strong>{$_("settings.calculation.recommendation")}</strong> 10-20 for small portfolios, 50-100 for diversified portfolios (30+ positions).
             </p>
         </div>
 
@@ -273,7 +273,7 @@
             </div>
             <p class="help-text">
                 Each selected timeframe multiplies API calls and CPU usage. 
-                <strong>Recommendation:</strong> Select 2-3 timeframes that match your trading style.
+                <strong>{$_("settings.calculation.recommendation")}</strong> Select 2-3 timeframes that match your trading style.
                 Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.
                 {#if settingsState.analysisTimeframes.length >= 4}
                     <span class="warning"

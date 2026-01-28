@@ -135,9 +135,9 @@
   <div class="flex justify-between items-center mb-2">
     <p class="text-xs text-[var(--text-secondary)]">
       Click on a key combination to record a new hotkey. Use <span
-        class="text-[var(--accent-color)]">Alt</span
+        class="text-[var(--accent-color)]">{$_("hotkeys.alt")}</span
       >
-      or <span class="text-[var(--accent-color)]">Ctrl</span> modifiers to avoid conflicts
+      or <span class="text-[var(--accent-color)]">{$_("hotkeys.ctrl")}</span> modifiers to avoid conflicts
       with typing.
     </p>
     <button

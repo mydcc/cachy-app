@@ -228,7 +228,7 @@ class MarketWatcher {
     // Safety: If fetchLocks grows too large (stale locks), prune it
     // This handles edge cases where `finally` block might not have cleared a lock
     // or if component logic caused orphan keys.
-    if (this.fetchLocks.size > 200) {
+    if (this.fetchLocks.size > 500) {
         // Emergency cleanup
         logger.warn("market", `[MarketWatcher] Pruning stale locks (${this.fetchLocks.size})`);
         this.fetchLocks.clear();

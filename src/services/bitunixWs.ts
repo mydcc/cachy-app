@@ -20,6 +20,7 @@ import { accountState } from "../stores/account.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
+import { safeDecimal } from "../utils/utils";
 import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { omsService } from "./omsService";
@@ -57,18 +58,18 @@ interface Subscription {
 
 function mapToOMSPosition(data: any): OMSPosition {
   const isClose = data.event === "CLOSE";
-  const amount = isClose ? new Decimal(0) : new Decimal(data.qty || 0);
+  const amount = isClose ? new Decimal(0) : safeDecimal(data.qty);
 
   return {
     symbol: data.symbol,
     side: (data.side || "").toLowerCase() as "long" | "short",
     amount: amount,
-    entryPrice: new Decimal(data.averagePrice || data.avgOpenPrice || 0),
-    unrealizedPnl: new Decimal(data.unrealizedPNL || 0),
-    leverage: new Decimal(data.leverage || 0),
+    entryPrice: safeDecimal(data.averagePrice || data.avgOpenPrice),
+    unrealizedPnl: safeDecimal(data.unrealizedPNL),
+    leverage: safeDecimal(data.leverage),
     marginMode: (data.marginMode || "cross").toLowerCase() as "cross" | "isolated",
     liquidationPrice: data.liquidationPrice
-      ? new Decimal(data.liquidationPrice)
+      ? safeDecimal(data.liquidationPrice)
       : undefined,
   };
 }
@@ -92,9 +93,9 @@ function mapToOMSOrder(data: any): OMSOrder {
     side: (data.side || "").toLowerCase() as "buy" | "sell",
     type: (data.type || "").toLowerCase() as "limit" | "market",
     status: status,
-    price: new Decimal(data.price || 0),
-    amount: new Decimal(data.qty || data.amount || 0),
-    filledAmount: new Decimal(data.dealAmount || 0),
+    price: safeDecimal(data.price),
+    amount: safeDecimal(data.qty || data.amount),
+    filledAmount: safeDecimal(data.dealAmount),
     timestamp: Number(data.ctime || Date.now()),
   };
 }

@@ -146,6 +146,9 @@
       "loadedIntoInputs": "Loaded {symbol} into trade inputs. Configure TP/SL there and submit.",
       "failedClose": "Failed to send close order."
     },
+  "inputs": {
+    "tags": "Tags"
+  },
     "generalInputs": {
       "header": "General",
       "longButton": "Long",
@@ -598,7 +601,9 @@
       "analysisInterval": "Technical Analysis Interval",
       "intervalAggressive": "10s (Aggressive)",
       "intervalBalanced": "60s (Balanced)",
-      "intervalConservative": "600s (Conservative)"
+      "intervalConservative": "600s (Conservative)",
+      "recommendation": "Recommendation:",
+      "analyzeFavorites": "Analyze All Favorites"
     },
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
@@ -705,7 +710,9 @@
     "spinButtonsHover": "On Hover",
     "spinButtonsHidden": "Hidden",
     "hotkeys": {
-      "conflictWarning": "{newCombo} is already used by {existingLabel}"
+    "conflictWarning": "{newCombo} is already used by {existingLabel}",
+    "alt": "Alt",
+    "ctrl": "Ctrl"
     },
     "tabs": {
       "general": "General",

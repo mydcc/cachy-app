@@ -85,7 +85,7 @@ export const POST: RequestHandler = async ({ request }) => {
         result = { orders };
       }
       else if (payload.type === "history") {
-        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, Number(payload.limit));
+        const orders = await fetchBitunixHistoryOrders(apiKey, apiSecret, parseInt(String(payload.limit)) || 20);
         result = { orders };
       }
       else if (payload.type === "place-order") {
@@ -346,15 +346,6 @@ function cleanPayload<T extends object>(payload: T): T {
     }
   });
   return cleaned;
-}
-
-function safeDecimal(value: any): Decimal {
-  try {
-    if (value === null || value === undefined) return new Decimal(0);
-    return new Decimal(value);
-  } catch (e) {
-    return new Decimal(0);
-  }
 }
 
 async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limit = 20): Promise<NormalizedOrder[]> {
