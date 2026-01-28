@@ -146,7 +146,18 @@ class TradeService {
                 clientOrderId
             });
         } catch (e) {
-            omsService.removeOrder(clientOrderId);
+            // HARDENING: Two Generals Problem.
+            // If request fails (timeout/network), order might be live.
+            // Do NOT remove optimistic order. Instead, keep it visible and force a sync.
+            // omsService.removeOrder(clientOrderId); <--- UNSAFE
+
+            logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
+
+            // Trigger background sync to verify state
+            this.fetchOpenPositionsFromApi().catch(err => {
+                 logger.error("market", "[FlashClose] Sync failed after error", err);
+            });
+
             throw e;
         }
     }

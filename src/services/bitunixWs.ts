@@ -768,57 +768,47 @@ class BitunixWebSocketService {
           const isObjectData = data && typeof data === "object" && !Array.isArray(data);
 
           if (message.ch === "price") {
-            if (symbol && isObjectData) {
-              const d = data as any;
-              // Safe access with existence checks
-              if (d && (d.lastPrice || d.lp || d.la || d.fr)) {
-                const normalized = mdaService.normalizeTicker(message, "bitunix");
-                if (!this.shouldThrottle(`${symbol}:price`)) {
-                  marketState.updateSymbol(symbol, {
-                    lastPrice: normalized.lastPrice,
-                    fundingRate: d.fr,
-                    nextFundingTime: d.nft ? String(d.nft) : undefined
-                  });
-                }
-              } else if (import.meta.env.DEV && d) {
-                console.warn("[BitunixWS] FastPath failed for price. Keys:", Object.keys(d));
+            if (symbol && isObjectData && isPriceData(data)) {
+              const normalized = mdaService.normalizeTicker(message, "bitunix");
+              if (!this.shouldThrottle(`${symbol}:price`)) {
+                marketState.updateSymbol(symbol, {
+                  lastPrice: normalized.lastPrice,
+                  fundingRate: data.fr,
+                  nextFundingTime: data.nft ? String(data.nft) : undefined
+                });
               }
+            } else if (import.meta.env.DEV && data) {
+              // console.warn("[BitunixWS] FastPath failed for price.", data);
             }
             return;
           }
 
           if (message.ch === "ticker") {
-            if (symbol && isObjectData) {
-              const d = data as any;
-              if (d && (d.volume || d.v || d.lastPrice || d.close)) {
-                const normalized = mdaService.normalizeTicker(message, "bitunix");
-                if (!this.shouldThrottle(`${symbol}:ticker`)) {
-                  marketState.updateSymbol(symbol, {
-                    lastPrice: normalized.lastPrice,
-                    highPrice: normalized.high,
-                    lowPrice: normalized.low,
-                    volume: normalized.volume,
-                    quoteVolume: normalized.quoteVolume,
-                    priceChangePercent: normalized.priceChangePercent
-                  });
-                }
-              } else if (import.meta.env.DEV && d) {
-                console.warn("[BitunixWS] FastPath failed for ticker. Keys:", Object.keys(d));
+            if (symbol && isObjectData && isTickerData(data)) {
+              const normalized = mdaService.normalizeTicker(message, "bitunix");
+              if (!this.shouldThrottle(`${symbol}:ticker`)) {
+                marketState.updateSymbol(symbol, {
+                  lastPrice: normalized.lastPrice,
+                  highPrice: normalized.high,
+                  lowPrice: normalized.low,
+                  volume: normalized.volume,
+                  quoteVolume: normalized.quoteVolume,
+                  priceChangePercent: normalized.priceChangePercent
+                });
               }
+            } else if (import.meta.env.DEV && data) {
+              // console.warn("[BitunixWS] FastPath failed for ticker.", data);
             }
             return;
           }
 
           if (message.ch === "depth_book5") {
-            if (symbol && isObjectData) {
-              const d = data as any;
-              if (d && Array.isArray(d.b) && Array.isArray(d.a)) {
-                if (!this.shouldThrottle(`${symbol}:depth`)) {
-                  marketState.updateDepth(symbol, { bids: d.b, asks: d.a });
-                }
-              } else if (import.meta.env.DEV && d) {
-                console.warn("[BitunixWS] FastPath failed for depth. Keys:", Object.keys(d));
+            if (symbol && isObjectData && isDepthData(data)) {
+              if (!this.shouldThrottle(`${symbol}:depth`)) {
+                marketState.updateDepth(symbol, { bids: data.b, asks: data.a });
               }
+            } else if (import.meta.env.DEV && data) {
+              // console.warn("[BitunixWS] FastPath failed for depth.", data);
             }
             return;
           }
@@ -1178,3 +1168,16 @@ class BitunixWebSocketService {
 }
 
 export const bitunixWs = new BitunixWebSocketService();
+
+// --- Type Guards for Fast Path ---
+function isPriceData(d: any): d is { fr?: any; nft?: any; lastPrice?: any; lp?: any; la?: any; } {
+  return d && (d.lastPrice !== undefined || d.lp !== undefined || d.la !== undefined || d.fr !== undefined);
+}
+
+function isTickerData(d: any): d is { volume?: any; v?: any; lastPrice?: any; close?: any; } {
+  return d && (d.volume !== undefined || d.v !== undefined || d.lastPrice !== undefined || d.close !== undefined);
+}
+
+function isDepthData(d: any): d is { b: any[]; a: any[] } {
+  return d && Array.isArray(d.b) && Array.isArray(d.a);
+}

@@ -260,8 +260,24 @@ async function placeBitunixOrder(
 
   if (!response.ok) {
     const text = await response.text();
-    const err = new Error(ORDER_ERRORS.BITUNIX_API_ERROR);
-    (err as any).details = `${response.status} ${text.slice(0, 200)}`;
+    let errorMsg = ORDER_ERRORS.BITUNIX_API_ERROR;
+    let details = `${response.status} ${text.slice(0, 200)}`;
+
+    // Attempt to parse JSON error from exchange
+    try {
+        const jsonError = JSON.parse(text);
+        if (jsonError.msg || jsonError.message || jsonError.error) {
+            errorMsg = jsonError.msg || jsonError.message || jsonError.error;
+        }
+        if (jsonError.code) {
+             details = `Code: ${jsonError.code}`;
+        }
+    } catch (e) {
+        // Ignore JSON parse error, stick to text
+    }
+
+    const err = new Error(errorMsg);
+    (err as any).details = details;
     throw err;
   }
 

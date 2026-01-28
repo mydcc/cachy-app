@@ -42,6 +42,13 @@ export const PositionRawSchema = z.object({
     marginMode: z.string().optional(),
     liquidationPrice: z.union([z.string(), z.number()]).optional(),
     liqPrice: z.union([z.string(), z.number()]).optional()
+}).refine(data => {
+    // Hardening: A position must have at least one quantity field to be valid.
+    // Otherwise it's likely a malformed response or an empty object from a weird API state.
+    return (data.qty !== undefined || data.size !== undefined || data.amount !== undefined);
+}, {
+    message: "Position object missing quantity field (qty, size, or amount)",
+    path: ["qty"]
 });
 
 export const PositionListSchema = z.array(PositionRawSchema);
