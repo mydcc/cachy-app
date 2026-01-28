@@ -1,73 +1,70 @@
-# Status & Risiko-Bericht: Cachy Trading Plattform Hardening
+# Status- & Risiko-Bericht: Cachy Trading Platform
 
-**Datum:** 2026-05-21
-**Rolle:** Senior Lead Developer & Systems Architect
-**Status:** Initial Analysis Complete
+**Datum:** 05.03.2025
+**Analyst:** Jules (Senior Lead Developer)
+**Status:** Initial Audit Completed
 
-## 1. Executive Summary
-
-Die Codebasis befindet sich auf einem modernen technologischen Stand (Svelte 5, TypeScript Strict Mode). Kritische finanzielle Berechnungen werden überwiegend korrekt mit `Decimal.js` durchgeführt. Die Architektur für Error Handling und i18n ist solide.
-
-Es wurden jedoch **2 KRITISCHE Risiken** identifiziert, die unter Hochlast oder bei API-Problemen zu Dateninkonsistenzen (UI vs. Exchange) führen können. Zudem gibt es Engpässe im Ressourcenmanagement, die die Skalierbarkeit des Dashboards begrenzen.
+Dieser Bericht fasst die Ergebnisse der Tiefenanalyse (Phase 1) zusammen. Ziel war es, die Codebasis auf Stabilität, Datensicherheit und "Institutional Grade" Standards zu prüfen.
 
 ---
 
-## 2. Priorisierte Findings
+## 🔴 CRITICAL (Kritische Risiken)
+*Sofortiger Handlungsbedarf. Gefahr von finanziellen Verlusten, Dateninkonsistenz oder Sicherheitslücken.*
 
-### 🔴 CRITICAL (Sofortiger Handlungsbedarf)
+1.  **Finanz-Mathematik ohne Typ-Sicherheit (`calculatorService.ts`)**
+    *   **Problem:** Die Methode `calculateTotalMetrics` und das Array `targets` verwenden `any`-Typen (`targets: any[]`, `return any`).
+    *   **Risiko:** Es gibt keine Garantie, dass Berechnungen mit `Decimal` durchgeführt werden. Ein versehentliches Einschleusen von nativen `number`-Werten kann zu Rundungsfehlern führen (z.B. `0.1 + 0.2 = 0.30000000000000004`), was bei Finanz-Applikationen inakzeptabel ist.
+    *   **Fundort:** `src/services/calculatorService.ts`
 
-1.  **OMS Order Limit & UI Desync Risk (`src/services/omsService.ts`)**
-    *   **Problem:** Das System erzwingt ein Limit von 500 Orders. Wenn dieses Limit erreicht ist (z.B. durch viele Pending Orders oder nicht bereinigte alte Orders), blockiert die Logik (`if (size >= MAX) return;`) *jegliche* Updates für *neue* Orders, selbst wenn diese nur den Status existierender Orders aktualisieren wollen.
-    *   **Risiko:** Ein "Fill"-Event der Börse wird verworfen. Die Order bleibt in der UI auf "Pending", obwohl sie gefüllt ist. Der User handelt auf Basis falscher Daten (Phantom-Positionen).
-    *   **Fix:** `updateOrder` muss Updates für *existierende* IDs immer zulassen. Das Limit darf nur für *neue* IDs gelten. Zudem muss eine intelligentere Eviction-Strategie her (Drop Finalized first).
+2.  **XSS-Sicherheitslücke in Markdown-Rendering**
+    *   **Problem:** Die Komponenten `ChartPatternsView.svelte` und `CandlestickPatternsView.svelte` nutzen `{@html marked.parse(...)}` ohne Sanitization (z.B. via `DOMPurify`).
+    *   **Risiko:** Cross-Site Scripting (XSS). Sollte jemals Schadcode in die Pattern-Datenbank oder Übersetzungsdateien gelangen, würde dieser ungefiltert im Browser des Users ausgeführt werden (Session Hijacking, Keylogging).
+    *   **Fundort:** `src/components/shared/ChartPatternsView.svelte`
 
-2.  **Fragile API Fallback Logic (`src/services/tradeService.ts`)**
-    *   **Problem:** Die Methode `fetchOpenPositionsFromApi` nutzt ein manuelles, unsicheres Mapping: `p.qty || p.size || p.amount`. Es gibt keine Schema-Validierung für die API-Antwort des Fallbacks.
-    *   **Risiko:** Wenn die Börse das API-Format ändert, schlägt der Fallback fehl oder, schlimmer, liest `0` als Menge. Dies führt dazu, dass `flashClosePosition` fehlschlägt.
-    *   **Fix:** Zentraler Response-Mapper mit Zod-Validierung für alle API-Antworten.
+3.  **Schema-Drift Risiko in WebSocket-Handlern**
+    *   **Problem:** Sowohl `bitunixWs.ts` als auch `bitgetWs.ts` nutzen massiv `any`-Casting (z.B. `(msg as any).event`) und "Fast Path"-Optimierungen, die die Validierung umgehen.
+    *   **Risiko:** Wenn die Börsen ihre API unangekündigt ändern (Schema Drift), stürzt der Handler ab oder verarbeitet falsche Daten, ohne dass `Zod` dies abfängt. Dies kann zu "Frozen UI" oder falschen Preisdaten führen.
+    *   **Fundort:** `src/services/bitunixWs.ts`, `src/services/bitgetWs.ts`
 
-### 🟡 WARNING (Stabilität & Performance)
-
-3.  **MarketWatcher Polling Bottleneck (`src/services/marketWatcher.ts`)**
-    *   **Problem:** `maxConcurrentPolls` ist auf 12 limitiert. Bei einem Dashboard mit >12 Widgets (z.B. Watchlist + Charts + Orderbuch) werden Updates massiv verzögert.
-    *   **Problem:** Locks werden im `finally`-Block mit einem `setTimeout` von 10 Sekunden (!) verzögert freigegeben. Das macht schnelle Symbolwechsel extrem träge.
-    *   **Fix:** Erhöhung des Limits (adaptiv) und Entfernung des künstlichen Delays im Lock-Release.
-
-4.  **Memory Leak Risiko in `marketState.subscribe` (`src/stores/market.svelte.ts`)**
-    *   **Problem:** Die Methode erstellt einen `$effect.root`, gibt den Cleanup-Handle zurück, erzwingt dessen Nutzung aber nicht. Entwickler könnten vergessen, `unsubscribe` zu rufen.
-    *   **Fix:** Markierung als `@deprecated` oder Wrapper-Funktion, die Lifecycle-Management erzwingt (z.B. Svelte Action oder Context).
-
-5.  **Unreliable Maintenance Tools (`scripts/detect_leaks.cjs`)**
-    *   **Problem:** Das Skript findet nur einen Bruchteil der Timer. Es vermittelt ein falsches Sicherheitsgefühl.
-    *   **Fix:** Skript verbessern (AST-Parsing statt Regex) oder entfernen.
-
-6.  **Hardcoded Strings in UI Components**
-    *   **Problem:** Vereinzelte Tooltips (z.B. "Refresh Stats" in `MarketOverview`) sind nicht übersetzt.
-    *   **Fix:** Audit und Ersetzung durch `$_` Keys.
-
-### 🔵 REFACTOR (Technische Schuld)
-
-7.  **Inkonsistente Math Libraries**
-    *   **Problem:** `JSIndicators` nutzt native `number` (Performance), `TradeService` nutzt `Decimal.js` (Präzision).
-    *   **Empfehlung:** Akzeptabel, solange Indikatoren rein visuell sind. Kritische Signale (z.B. für Auto-Trading) sollten auf `Decimal` umgestellt werden.
-
-8.  **`any` Types in API Payloads**
-    *   **Problem:** `tradeService.signedRequest` akzeptiert `payload: any`.
-    *   **Empfehlung:** Strikte Interfaces für alle Requests einführen.
+4.  **Fehlende Programmatische AI-Validierung**
+    *   **Problem:** Das "Anti-Hallucination Protocol" in `ai.svelte.ts` basiert rein auf Prompt-Engineering (Text-Anweisungen an die KI). Es gibt keine code-seitige Überprüfung, ob die von der KI genannten Preise/Werte tatsächlich mit dem geladenen Kontext übereinstimmen.
+    *   **Risiko:** Die KI kann trotz Prompt halluzinieren (z.B. falsche Preise nennen), und das System würde dies dem User ungeprüft anzeigen.
 
 ---
 
-## 3. Empfohlener Aktionsplan (Phase 2)
+## 🟡 WARNING (Warnungen)
+*Einfluss auf UX, Wartbarkeit oder Stabilität in Randfällen.*
 
-Ich schlage vor, die Phase 2 in folgende Schritte zu unterteilen:
+1.  **Lückenhafte Internationalisierung (i18n)**
+    *   **Problem:** Zahlreiche Hardcoded Strings in den Einstellungen und UI-Komponenten gefunden.
+    *   **Beispiele:** "Analyze All Favorites" (`CalculationSettings.svelte`), "Tags" (`TagInputs.svelte`), "Alt/Ctrl" (`HotkeySettings.svelte`).
+    *   **Risiko:** Unprofessioneller Eindruck bei nicht-englischen Nutzern; erschwerte Wartung.
 
-1.  **Critical Hardening (Priorität 1):**
-    *   Fix `omsService` Order Limit Logic (Test-Driven).
-    *   Fix `tradeService` Fallback Mapping & Validation.
-2.  **Resource Optimization (Priorität 2):**
-    *   Refactor `marketWatcher` (Poll Limits & Lock Release).
-3.  **UI/UX Polish (Priorität 3):**
-    *   i18n Lücken schließen.
-    *   Tooling fixen (`detect_leaks`).
+2.  **Unsichere HTML-Injection in Übersetzungen**
+    *   **Problem:** `{@html $_("legal.disclaimerBody")}` rendert HTML direkt aus den JSON-Sprachdateien.
+    *   **Risiko:** Wenn Übersetzungstools oder -dateien kompromittiert werden, ist dies ein Einfallstor für XSS. HTML sollte in Sprachdateien vermieden oder strikt sanitisiert werden.
 
-Warten auf Freigabe zur Umsetzung.
+3.  **Grobes Error-Handling bei Bulk-Operationen**
+    *   **Problem:** `tradeService.closeAllPositions` nutzt `Promise.allSettled`, wirft aber bei *einem* Fehler einen generischen Fehler ("apiErrors.generic").
+    *   **Risiko:** Der User erfährt nicht, *welche* Position nicht geschlossen werden konnte. Dies ist in Panik-Situationen (Not-Aus) fatal.
+
+---
+
+## 🔵 REFACTOR (Technische Schuld)
+*Verbesserungspotenzial für langfristige Qualität.*
+
+1.  **Magic Numbers in `parseTimestamp`**
+    *   Die Heuristik `< 10000000000` (Jahr 2286) zur Unterscheidung von Sekunden/Millisekunden ist fragil und sollte durch explizite Logik ersetzt werden.
+2.  **Komplexität in `marketWatcher.ts`**
+    *   Die Logik zur Verwaltung von Locks und Timeouts ist robust, aber sehr komplex. Eine Vereinfachung mittels `RxJS` oder einer State-Machine wäre langfristig sicherer.
+
+---
+
+## Nächste Schritte (Phase 2 Preview)
+
+Basierend auf diesem Bericht wird der Aktionsplan für Phase 2 folgende Prioritäten haben:
+
+1.  **Hardening Financial Core:** Typ-Sicherheit für `calculatorService` herstellen (Strict `Decimal`).
+2.  **Security Fixes:** `DOMPurify` integrieren für alle Markdown-Renderings.
+3.  **WebSocket Safety:** Zod-Validierung auch im "Fast Path" erzwingen oder `any`-Casts entfernen.
+4.  **I18n Audit:** Hardcoded Strings extrahieren und in `en.json` / `de.json` überführen.
