@@ -737,27 +737,31 @@ BEFORE SENDING YOUR RESPONSE (Chain-of-Thought Verification):
         spread = spreadVal.toFixed(5);
 
         // Calculate spread relative to price
-        const spreadPercent = spreadVal.div(bestBid).times(100).toNumber();
-        if (spreadPercent < 0.02) spreadStatus = "Ultra Tight (Highly Liquid)";
-        else if (spreadPercent < 0.05) spreadStatus = "Normal/Liquid";
-        else if (spreadPercent < 0.15)
+        const spreadPercent = spreadVal.div(bestBid).times(100);
+        if (spreadPercent.lt(0.02)) spreadStatus = "Ultra Tight (Highly Liquid)";
+        else if (spreadPercent.lt(0.05)) spreadStatus = "Normal/Liquid";
+        else if (spreadPercent.lt(0.15))
           spreadStatus = "Wide (Wait for better fills)";
         else spreadStatus = "Extreme Gap (Illiquid/Volatility Spikes)";
 
         const totalBidVol = marketData.depth.bids
           .slice(0, 5)
-          .reduce((sum: number, b: any) => sum + Number(b[1]), 0);
+          .reduce((sum: Decimal, b: any) => sum.plus(new Decimal(b[1] || 0)), new Decimal(0));
+
         const totalAskVol = marketData.depth.asks
           .slice(0, 5)
-          .reduce((sum: number, a: any) => sum + Number(a[1]), 0);
-        const bidRatio = totalBidVol / (totalBidVol + totalAskVol);
-        imbalance = (bidRatio * 100).toFixed(1) + "% Bids";
+          .reduce((sum: Decimal, a: any) => sum.plus(new Decimal(a[1] || 0)), new Decimal(0));
 
-        if (bidRatio > 0.8) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
-        else if (bidRatio > 0.6) imbalanceStatus = "Bullish Skew (Snapshot)";
-        else if (bidRatio < 0.2)
+        const totalVol = totalBidVol.plus(totalAskVol);
+        const bidRatio = totalVol.isZero() ? new Decimal(0.5) : totalBidVol.div(totalVol);
+
+        imbalance = (bidRatio.times(100).toNumber()).toFixed(1) + "% Bids";
+
+        if (bidRatio.gt(0.8)) imbalanceStatus = "Extreme Buy Pressure (Snapshot)";
+        else if (bidRatio.gt(0.6)) imbalanceStatus = "Bullish Skew (Snapshot)";
+        else if (bidRatio.lt(0.2))
           imbalanceStatus = "Extreme Sell Pressure (Snapshot)";
-        else if (bidRatio < 0.4) imbalanceStatus = "Bearish Skew (Snapshot)";
+        else if (bidRatio.lt(0.4)) imbalanceStatus = "Bearish Skew (Snapshot)";
         else imbalanceStatus = "Balanced (No immediate directional edge)";
       }
 

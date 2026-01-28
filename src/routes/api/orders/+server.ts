@@ -378,11 +378,12 @@ async function fetchBitunixHistoryOrders(apiKey: string, apiSecret: string, limi
     price: formatApiNum(o.price) || "0",
     amount: formatApiNum(o.qty) || "0",
     filled: formatApiNum(o.tradeQty) || "0",
-    avgPrice: formatApiNum(o.avgPrice || o.averagePrice) || "0",
+    avgPrice: formatApiNum(o.avgPrice ?? o.averagePrice) || "0",
     realizedPNL: formatApiNum(o.realizedPNL) || "0",
     fee: formatApiNum(o.fee) || "0",
     status: o.status || "UNKNOWN",
-    time: o.ctime || 0,
+    // Hardening: Explicitly validate time, default to 0 only if missing/invalid
+    time: (o.ctime && !isNaN(Number(o.ctime))) ? Number(o.ctime) : 0,
   }));
 }
 

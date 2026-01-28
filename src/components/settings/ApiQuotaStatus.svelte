@@ -8,22 +8,12 @@
 -->
 
 <script lang="ts">
-    import { apiQuotaTracker } from "../../services/apiQuotaTracker";
+    import { apiQuotaTracker } from "../../services/apiQuotaTracker.svelte";
     import { _ } from "../../locales/i18n";
 
-    let cryptoPanicStats = $state(apiQuotaTracker.getStats("cryptopanic"));
-    let newsApiStats = $state(apiQuotaTracker.getStats("newsapi"));
-
-    // Refresh stats periodically
-    let interval: any;
-    $effect(() => {
-        interval = setInterval(() => {
-            cryptoPanicStats = apiQuotaTracker.getStats("cryptopanic");
-            newsApiStats = apiQuotaTracker.getStats("newsapi");
-        }, 5000);
-
-        return () => clearInterval(interval);
-    });
+    // Reactive derived state (no polling needed)
+    let cryptoPanicStats = $derived(apiQuotaTracker.getStats("cryptopanic"));
+    let newsApiStats = $derived(apiQuotaTracker.getStats("newsapi"));
 
     function formatDate(timestamp: number | null): string {
         if (!timestamp) return "-";
@@ -46,7 +36,7 @@
     }
 
     function handleReset(provider: "cryptopanic" | "newsapi") {
-        if (confirm(`API Quota für ${provider} zurücksetzen?`)) {
+        if (confirm($_("settings.apiQuota.resetConfirm", { values: { provider } }))) {
             apiQuotaTracker.manualReset(provider);
             cryptoPanicStats = apiQuotaTracker.getStats("cryptopanic");
             newsApiStats = apiQuotaTracker.getStats("newsapi");
@@ -65,7 +55,7 @@
         >
             <div class="flex justify-between items-center mb-2">
                 <span class="font-medium text-[var(--text-primary)]"
-                    >CryptoPanic</span
+                    >{$_("settings.apiQuota.cryptopanic")}</span
                 >
                 <span
                     class="status-dot w-2 h-2 rounded-full"
@@ -76,13 +66,13 @@
                 class="stats-grid text-xs text-[var(--text-secondary)] space-y-1"
             >
                 <div class="flex justify-between">
-                    <span>Calls insgesamt:</span>
+                    <span>{$_("settings.apiQuota.totalCalls")}:</span>
                     <span class="text-[var(--text-primary)]"
                         >{cryptoPanicStats.totalCalls}</span
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Fehler:</span>
+                    <span>{$_("settings.apiQuota.errors")}:</span>
                     <span
                         class="font-semibold"
                         style="color: {cryptoPanicStats.failedCalls > 0
@@ -93,14 +83,14 @@
                 </div>
                 {#if cryptoPanicStats.last429At}
                     <div class="flex justify-between">
-                        <span>Letzter 429:</span>
+                        <span>{$_("settings.apiQuota.last429")}:</span>
                         <span class="text-[var(--danger-color)] font-semibold"
                             >{formatDate(cryptoPanicStats.last429At)}</span
                         >
                     </div>
                 {/if}
                 <div class="flex justify-between">
-                    <span>Reset am:</span>
+                    <span>{$_("settings.apiQuota.resetAt")}:</span>
                     <span class="text-[var(--text-primary)]"
                         >{formatDate(cryptoPanicStats.resetDate)}</span
                     >
@@ -110,7 +100,7 @@
                 class="mt-2 text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                 onclick={() => handleReset("cryptopanic")}
             >
-                Reset
+                {$_("settings.apiQuota.resetButton")}
             </button>
         </div>
     {/if}
@@ -121,7 +111,7 @@
         >
             <div class="flex justify-between items-center mb-2">
                 <span class="font-medium text-[var(--text-primary)]"
-                    >NewsAPI</span
+                    >{$_("settings.apiQuota.newsapi")}</span
                 >
                 <span
                     class="status-dot w-2 h-2 rounded-full"
@@ -132,13 +122,13 @@
                 class="stats-grid text-xs text-[var(--text-secondary)] space-y-1"
             >
                 <div class="flex justify-between">
-                    <span>Calls insgesamt:</span>
+                    <span>{$_("settings.apiQuota.totalCalls")}:</span>
                     <span class="text-[var(--text-primary)]"
                         >{newsApiStats.totalCalls}</span
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Fehler:</span>
+                    <span>{$_("settings.apiQuota.errors")}:</span>
                     <span
                         class="font-semibold"
                         style="color: {newsApiStats.failedCalls > 0
@@ -148,7 +138,7 @@
                     >
                 </div>
                 <div class="flex justify-between">
-                    <span>Reset am:</span>
+                    <span>{$_("settings.apiQuota.resetAt")}:</span>
                     <span class="text-[var(--text-primary)]"
                         >{formatDate(newsApiStats.resetDate)}</span
                     >
@@ -158,14 +148,14 @@
                 class="mt-2 text-xs px-2 py-1 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-primary)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors"
                 onclick={() => handleReset("newsapi")}
             >
-                Reset
+                {$_("settings.apiQuota.resetButton")}
             </button>
         </div>
     {/if}
 
     {#if !cryptoPanicStats && !newsApiStats}
         <p class="text-xs text-[var(--text-secondary)] italic">
-            Keine API-Aufrufe bisher durchgeführt.
+            {$_("settings.apiQuota.noCalls")}
         </p>
     {/if}
 </div>

@@ -62,7 +62,7 @@ class TradeService {
                 // Ensure keys are sent to backend for signing/execution
                 apiKey: keys.key,
                 apiSecret: keys.secret,
-                passphrase: (keys as any).passphrase
+                passphrase: keys.passphrase
             })
         });
 
