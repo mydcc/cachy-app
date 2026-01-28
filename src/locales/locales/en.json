@@ -1116,13 +1116,6 @@
       "sumSold": "Sum of sell percentages ({percent}%)"
     }
   },
-  "quiz": {
-    "question": "Question",
-    "answer": "Answer",
-    "clickToReveal": "Click to reveal",
-    "repeat": "Repeat",
-    "known": "Known"
-  },
   "candlestickPatterns": {
     "doji": {
       "name": "Doji",

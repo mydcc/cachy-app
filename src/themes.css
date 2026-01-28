@@ -49,8 +49,6 @@
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
-  --candle-bear-color: var(--danger-color);
-  --candle-bull-color: var(--success-color);
   --nav-hover-bg: var(--blue-800);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
 
@@ -372,13 +370,10 @@
    ================================================================= */
 .theme-VIP {
   /* --- Palette --- */
-  --gray-900: #0a0a0a;
-  /* Deep OLED Black */
-  --gray-800: #161616;
-  /* Secondary Dark */
+  --gray-900: #121212;
+  --gray-800: #1e1e1e;
   --gray-700: #2c2c2c;
-  --gray-200: #ededed;
-  /* Crisp White */
+  --gray-200: #e0e0e0;
   --gray-400: #b0b0b0;
   --gray-500: #9c9c9c;
   --gray-600: #444;
@@ -409,13 +404,9 @@
   --border-color: var(--gray-600);
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);
-  --success-color: var(--green-500);
-  /* Changed to Green */
-  --danger-color: var(--red-500);
+  --success-color: var(--lime-300);
+  --danger-color: var(--gray-500);
   --warning-color: var(--orange-500);
-  --candle-bear-color: var(--gray-blue-400);
-  --candle-bull-color: var(--lime-300);
-  /* Keep Neon for Charts */
   --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
@@ -2501,9 +2492,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .glass-enabled .glass-panel {
   background: color-mix(in srgb,
       var(--bg-secondary) calc(var(--glass-opacity) * 100%),
-      transparent) !important;
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+      transparent);
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 
 /* Hover & Focus Enhancements */
