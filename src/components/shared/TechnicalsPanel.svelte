@@ -502,7 +502,7 @@
                 {/each}
               {:else}
                   <div class="text-xs text-[var(--text-secondary)] px-1 py-1 italic">
-                     {$_("technicals.noSignals" as any) || "No divergences detected"}
+                     {$_("settings.technicals.noSignals" as any) || "No divergences detected"}
                   </div>
               {/if}
             </div>

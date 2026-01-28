@@ -688,6 +688,13 @@
       "range": "Seitwärts",
       "noSignals": "Keine Divergenzen erkannt"
     },
+    "quiz": {
+      "question": "Frage",
+      "answer": "Antwort",
+      "clickToReveal": "Klicken zum Aufdecken",
+      "repeat": "Noch üben",
+      "known": "Gewusst"
+    },
     "candlestickPatterns": {
       "title": "Candlestick Muster Akademie"
     },
