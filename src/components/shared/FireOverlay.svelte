@@ -1,26 +1,32 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onMount, onDestroy } from "svelte";
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
+    import { browser } from "$app/environment";
 
     let container: HTMLDivElement;
-    let canvas: HTMLCanvasElement;
-    let renderer: THREE.WebGLRenderer;
+    let renderer: THREE.WebGLRenderer | null = null;
     let scene: THREE.Scene;
     let camera: THREE.OrthographicCamera;
 
-    // Max instances
     const MAX_INSTANCES = 100;
     let mesh: THREE.InstancedMesh;
     const dummy = new THREE.Object3D();
 
+    // Reactive state to hide the whole thing when not needed
+    let isActive = $derived(
+        settingsState.enableBurningBorders && fireStore.elements.size > 0,
+    );
+
     onMount(() => {
+        if (!browser) return;
+
         // Initialize Three.js
         scene = new THREE.Scene();
+        scene.background = null;
 
-        // Orthographic camera for 1:1 pixel mapping
         const width = window.innerWidth;
         const height = window.innerHeight;
         camera = new THREE.OrthographicCamera(
@@ -33,57 +39,63 @@
         );
         camera.position.z = 10;
 
-        renderer = new THREE.WebGLRenderer({
-            alpha: true,
-            antialias: false, // Performance optimization
-            depth: false, // No depth testing needed for overlay
-        });
-        renderer.setSize(width, height);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        renderer.setClearColor(0x000000, 0); // Transparent clear
-        container.appendChild(renderer.domElement);
+        try {
+            renderer = new THREE.WebGLRenderer({
+                alpha: true,
+                antialias: false,
+                premultipliedAlpha: false, // Prevents some "black halo" issues
+                stencil: false,
+                depth: false,
+            });
+            renderer.setSize(width, height);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            renderer.setClearColor(0x000000, 0);
 
-        // Explicitly set scene background to null for transparency
-        scene.background = null;
+            // Style the canvas directly
+            const canvas = renderer.domElement;
+            canvas.style.position = "absolute";
+            canvas.style.top = "0";
+            canvas.style.left = "0";
+            canvas.style.width = "100%";
+            canvas.style.height = "100%";
+            canvas.style.pointerEvents = "none";
+            canvas.style.background = "transparent";
 
-        // Geometry (Plane)
-        // We use a 1x1 plane, which we scale to the element size
+            container.appendChild(canvas);
+        } catch (e) {
+            console.error("Failed to initialize WebGL for FireOverlay", e);
+            return;
+        }
+
         const geometry = new THREE.PlaneGeometry(1, 1);
-
-        // Material (Shader)
         const material = new THREE.ShaderMaterial({
             vertexShader: fireVertexShader,
             fragmentShader: fireFragmentShader,
             uniforms: {
                 uTime: { value: 0 },
-                uColor: {
-                    value: new THREE.Color(
-                        settingsState.galaxySettings.camPos
-                            ? 0xffaa00
-                            : 0xffaa00,
-                    ),
-                }, // Default fallback
+                uColor: { value: new THREE.Color(0xffaa00) },
                 uIntensity: { value: 1.0 },
                 uAspectRatio: { value: 1.0 },
             },
             transparent: true,
             blending: THREE.AdditiveBlending,
             depthWrite: false,
+            depthTest: false,
         });
 
-        // Instanced Mesh
         mesh = new THREE.InstancedMesh(geometry, material, MAX_INSTANCES);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         scene.add(mesh);
 
-        // Animation Loop
         const clock = new THREE.Clock();
         let frameId: number;
 
         const animate = () => {
             frameId = requestAnimationFrame(animate);
+            if (!renderer) return;
 
-            if (!settingsState.enableBurningBorders) {
+            // If not active, just clear and skip (or we could stop the loop)
+            if (!isActive) {
                 renderer.clear();
                 return;
             }
@@ -91,7 +103,6 @@
             const time = clock.getElapsedTime();
             material.uniforms.uTime.value = time;
 
-            // Settings intensity
             let baseIntensity = 1.0;
             if (settingsState.burningBordersIntensity === "low")
                 baseIntensity = 0.5;
@@ -99,33 +110,22 @@
                 baseIntensity = 2.0;
             material.uniforms.uIntensity.value = baseIntensity;
 
-            // Update Instances
             let i = 0;
             const width = window.innerWidth;
             const height = window.innerHeight;
 
-            // Iterate over store
             for (const [id, data] of fireStore.elements) {
                 if (i >= MAX_INSTANCES) break;
 
-                const { x, y, width: w, height: h, color } = data;
-
-                // Convert DOM coordinates (Top-Left 0,0) to Three.js coordinates (Center 0,0)
+                const { x, y, width: w, height: h } = data;
                 const cx = x + w / 2 - width / 2;
-                const cy = -(y + h / 2 - height / 2); // Invert Y
+                const cy = -(y + h / 2 - height / 2);
 
                 dummy.position.set(cx, cy, 0);
-
-                // Add some padding for the fire to extend outwards
                 const padding = 20;
                 dummy.scale.set(w + padding, h + padding, 1);
-
                 dummy.updateMatrix();
                 mesh.setMatrixAt(i, dummy.matrix);
-
-                // Should also set individual color usage if we want different colors per element
-                // For now using global uniform or we need InstancedBufferAttribute for color
-
                 i++;
             }
 
@@ -137,8 +137,8 @@
 
         animate();
 
-        // Resize Handler
         const handleResize = () => {
+            if (!renderer) return;
             const w = window.innerWidth;
             const h = window.innerHeight;
             renderer.setSize(w, h);
@@ -153,14 +153,17 @@
         return () => {
             cancelAnimationFrame(frameId);
             window.removeEventListener("resize", handleResize);
-            renderer.dispose();
+            if (renderer) {
+                renderer.dispose();
+                renderer.forceContextLoss();
+            }
             geometry.dispose();
             material.dispose();
         };
     });
 </script>
 
-<div bind:this={container} class="fire-overlay"></div>
+<div bind:this={container} class="fire-overlay" class:hidden={!isActive}></div>
 
 <style>
     .fire-overlay {
@@ -169,7 +172,12 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 9999; /* Very high z-index to be on top */
-        pointer-events: none; /* Crucial: Let clicks pass through */
+        z-index: 9999;
+        pointer-events: none;
+        overflow: hidden;
+        background: transparent !important;
+    }
+    .hidden {
+        display: none !important;
     }
 </style>
