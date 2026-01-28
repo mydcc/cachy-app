@@ -216,11 +216,18 @@ export interface Settings {
 
   // Burning Borders
   enableBurningBorders: boolean;
+  borderEffect: "fire" | "glow"; // New setting
   burningBordersIntensity: AnimationIntensity;
   burnNewsWindows: boolean;
   burnChannelWindows: boolean;
   burnMarketOverviewTiles: boolean;
   burnFlashCards: boolean;
+  fireConfig: {
+    speed: number;
+    turbulence: number;
+    thickness: number;
+    coreHeat: number;
+  };
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -390,11 +397,18 @@ const defaultSettings: Settings = {
   discordChannels: [],
 
   enableBurningBorders: false,
+  borderEffect: "fire",
   burningBordersIntensity: "medium",
   burnNewsWindows: true,
   burnChannelWindows: true,
   burnMarketOverviewTiles: true,
   burnFlashCards: true,
+  fireConfig: {
+    speed: 1.0,
+    turbulence: 1.0,
+    thickness: 20.0,
+    coreHeat: 0.8
+  },
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -653,6 +667,7 @@ export class SettingsManager {
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
 
   enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
+  borderEffect = $state<"fire" | "glow">(defaultSettings.borderEffect || "fire");
   burningBordersIntensity = $state<AnimationIntensity>(
     defaultSettings.burningBordersIntensity,
   );
@@ -662,6 +677,12 @@ export class SettingsManager {
     defaultSettings.burnMarketOverviewTiles,
   );
   burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
+
+  fireConfig = $state(defaultSettings.fireConfig);
+
+  updateFireConfig(newConfig: Partial<Settings['fireConfig']>) {
+    this.fireConfig = { ...this.fireConfig, ...newConfig };
+  }
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
@@ -1163,11 +1184,13 @@ export class SettingsManager {
       chatFontSize: this.chatFontSize,
       panelIsExpanded: this.panelIsExpanded,
       enableBurningBorders: this.enableBurningBorders,
+      borderEffect: this.borderEffect,
       burningBordersIntensity: this.burningBordersIntensity,
       burnNewsWindows: this.burnNewsWindows,
       burnChannelWindows: this.burnChannelWindows,
       burnMarketOverviewTiles: this.burnMarketOverviewTiles,
       burnFlashCards: this.burnFlashCards,
+      fireConfig: $state.snapshot(this.fireConfig),
       minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,

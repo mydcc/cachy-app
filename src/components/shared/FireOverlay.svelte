@@ -10,6 +10,7 @@
     let renderer: THREE.WebGLRenderer | null = null;
     let scene: THREE.Scene;
     let camera: THREE.OrthographicCamera;
+    let material: THREE.ShaderMaterial;
 
     const MAX_INSTANCES = 100;
     let mesh: THREE.InstancedMesh;
@@ -72,17 +73,27 @@
         // Remove aSize as we now calculate it from modelViewMatrix in the shader
         // This is more robust against attribute sync issues
 
-        const material = new THREE.ShaderMaterial({
+        material = new THREE.ShaderMaterial({
             vertexShader: fireVertexShader,
             fragmentShader: fireFragmentShader,
             uniforms: {
                 uTime: { value: 0 },
                 uIntensity: { value: 1.0 },
                 uThickness: { value: 20.0 },
+                uSpeed: { value: 1.0 },
+                uTurbulence: { value: 1.0 },
+                uScale: { value: 1.1 },
+                uMode: { value: 0 }, // 0=Fire, 1=Glow
+                uResolution: {
+                    value: new THREE.Vector2(
+                        window.innerWidth,
+                        window.innerHeight,
+                    ),
+                },
             },
             transparent: true,
             blending: THREE.AdditiveBlending,
-            depthWrite: false,
+            depthWrite: false, // Don't write depth, allows overlap
             depthTest: false,
         });
 
@@ -90,6 +101,11 @@
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         mesh.frustumCulled = false; // Important for moving instances
         scene.add(mesh);
+
+        // Z-Index -1 to be behind content, or 40 to be above content but below modals
+        // User requested "Lower Z-Index" (which might mean behind) or "Below popups".
+        // 40 is below popups (50). -1 would be behind card background IF card has partial transparency.
+        // Let's stick to 40 for now, but handle overlap via blending.
 
         const clock = new THREE.Clock();
         let frameId: number;
@@ -107,20 +123,46 @@
             const time = clock.getElapsedTime();
             material.uniforms.uTime.value = time;
 
-            let baseIntensity = 1.0;
-            let baseThickness = 20.0;
+            // Settings Mapping
+            let baseIntensity = 0.5;
+            let baseThickness = 10.0;
+            let baseSpeed = 0.5;
+            let baseTurbulence = 0.5;
+            // The user requested exactly +10% canvas size
+            const scaleFactor = 1.1;
 
+            // Mode Switch
+            const isGlow = settingsState.borderEffect === "glow";
+            const currentMode = isGlow ? 1 : 0;
+
+            // Map settings to shader params
             if (settingsState.burningBordersIntensity === "low") {
-                baseIntensity = 0.6;
-                baseThickness = 12.0; // Very subtle
+                baseIntensity = 0.8;
+                baseThickness = 6.0;
             }
             if (settingsState.burningBordersIntensity === "high") {
-                baseIntensity = 1.5;
-                baseThickness = 28.0; // Thick and bright
+                baseIntensity = 2.5;
+                baseThickness = 14.0;
+            }
+
+            // Speed adjustments
+            if (settingsState.burningBordersIntensity === "high") {
+                baseSpeed = 1.0;
+                baseTurbulence = 0.8;
+            }
+
+            // Override for Glow Mode
+            if (isGlow) {
+                baseSpeed *= 0.5; // Slower, smoother pulse
+                baseIntensity *= 2.0; // Needs higher base for bloom look
             }
 
             material.uniforms.uIntensity.value = baseIntensity;
             material.uniforms.uThickness.value = baseThickness;
+            material.uniforms.uSpeed.value = baseSpeed;
+            material.uniforms.uTurbulence.value = baseTurbulence;
+            material.uniforms.uScale.value = scaleFactor;
+            material.uniforms.uMode.value = currentMode;
 
             let i = 0;
             const width = window.innerWidth;
@@ -134,7 +176,8 @@
                 const { x, y, width: w, height: h, color } = data;
 
                 // Adjust for border padding in Three.js coordinates
-                const padding = 40;
+                // Set to 40 (20px per side) to barely contain the 14px High thickness
+                const padding = 32;
                 const planeW = w + padding;
                 const planeH = h + padding;
 
