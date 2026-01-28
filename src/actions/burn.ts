@@ -1,5 +1,6 @@
 import { fireStore } from "../stores/fireStore.svelte";
 import { settingsState } from "../stores/settings.svelte";
+import { untrack } from "svelte";
 
 let idCounter = 0;
 
@@ -63,50 +64,54 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     };
 
     const update = (force = false) => {
-        if (!settingsState.enableBurningBorders || !options) {
-            fireStore.removeElement(id);
-            lastRect = null;
-            return;
-        }
+        // Use untrack to prevent reading settingsState from registering a dependency 
+        // if this is called from within an effect (e.g. during initialization or update)
+        untrack(() => {
+            if (!settingsState.enableBurningBorders || !options) {
+                fireStore.removeElement(id);
+                lastRect = null;
+                return;
+            }
 
-        const rect = node.getBoundingClientRect();
+            const rect = node.getBoundingClientRect();
 
-        // 1. Position Update Guard with some tolerance
-        const posChanged = !lastRect ||
-            Math.abs(rect.top - lastRect.top) > 0.1 ||
-            Math.abs(rect.left - lastRect.left) > 0.1 ||
-            Math.abs(rect.width - lastRect.width) > 0.1 ||
-            Math.abs(rect.height - lastRect.height) > 0.1;
+            // 1. Position Update Guard with some tolerance
+            const posChanged = !lastRect ||
+                Math.abs(rect.top - lastRect.top) > 0.1 ||
+                Math.abs(rect.left - lastRect.left) > 0.1 ||
+                Math.abs(rect.width - lastRect.width) > 0.1 ||
+                Math.abs(rect.height - lastRect.height) > 0.1;
 
-        // 2. Style Update (Normalized comparison)
-        const finalColor = resolveColor(options.color).toLowerCase();
-        const intensity = options.intensity ?? 1.0;
-        const currentMode = settingsState.borderEffectColorMode;
-        const styleChanged = finalColor !== lastFinalColor.toLowerCase() || intensity !== lastIntensity || currentMode !== lastMode;
+            // 2. Style Update (Normalized comparison)
+            const finalColor = resolveColor(options.color).toLowerCase();
+            const intensity = options.intensity ?? 1.0;
+            const currentMode = settingsState.borderEffectColorMode;
+            const styleChanged = finalColor !== lastFinalColor.toLowerCase() || intensity !== lastIntensity || currentMode !== lastMode;
 
-        // 3. Size Guard
-        if (rect.width === 0 || rect.height === 0) {
-            if (lastRect) fireStore.removeElement(id);
-            lastRect = null;
-            return;
-        }
+            // 3. Size Guard
+            if (rect.width === 0 || rect.height === 0) {
+                if (lastRect) fireStore.removeElement(id);
+                lastRect = null;
+                return;
+            }
 
-        // 4. Update
-        if (posChanged || styleChanged || force) {
-            fireStore.updateElement(id, {
-                x: rect.left,
-                y: rect.top,
-                width: rect.width,
-                height: rect.height,
-                intensity: intensity,
-                color: finalColor
-            });
+            // 4. Update
+            if (posChanged || styleChanged || force) {
+                fireStore.updateElement(id, {
+                    x: rect.left,
+                    y: rect.top,
+                    width: rect.width,
+                    height: rect.height,
+                    intensity: intensity,
+                    color: finalColor
+                });
 
-            lastRect = rect;
-            lastFinalColor = finalColor;
-            lastIntensity = intensity;
-            lastMode = currentMode;
-        }
+                lastRect = rect;
+                lastFinalColor = finalColor;
+                lastIntensity = intensity;
+                lastMode = currentMode;
+            }
+        });
     };
 
     // Use ResizeObserver for efficient updates when size changes
@@ -126,14 +131,18 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         frameId = requestAnimationFrame(loop);
     };
 
-    update(true);
-    loop();
+    // Initial start in next frame to avoid being part of the initial mount effect flush
+    requestAnimationFrame(() => {
+        update(true);
+        loop();
+    });
 
     return {
         update(newOptions: BurnOptions | undefined) {
             options = newOptions;
             cachedThemeColor = ""; // Reset cache on explicit option change
-            update(true);
+            // Decouple from Svelte's attribute update flush
+            requestAnimationFrame(() => update(true));
         },
         destroy() {
             resizeObserver.disconnect();

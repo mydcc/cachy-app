@@ -17,6 +17,15 @@ class FireStore {
     updateElement(id: string, data: Partial<BurningElement>) {
         const existing = this.elements.get(id);
         if (existing) {
+            // Check for actual changes to avoid redundant reactivity triggers
+            let hasChanged = false;
+            for (const key in data) {
+                if ((data as any)[key] !== (existing as any)[key]) {
+                    hasChanged = true;
+                    break;
+                }
+            }
+            if (!hasChanged) return;
             this.elements.set(id, { ...existing, ...data });
         } else {
             // New element defaults
