@@ -1,0 +1,52 @@
+Was ist der primäre Zweck der Web-Anwendung Cachy?,"Die präzise Berechnung von Positionsgrößen, Risikomanagement und das Führen eines Handelstagebuchs für Krypto-Trader."
+Auf welchen drei Faktoren basiert die automatische Berechnung der optimalen Positionsgröße in Cachy?,"Kontogröße, Risiko in $\%$ und Stop-Loss."
+Erkläre das 'Dual Locking System' im Trading-Rechner von Cachy.,Es erlaubt das Sperren der Positionsgröße (um das Risiko anzupassen) oder des Risikobetrags (um die Positionsgröße anzupassen).
+Wofür wird die ATR-Integration (Average True Range) in Cachy primär genutzt?,Zur dynamischen Berechnung von Stop-Loss-Werten basierend auf Marktdaten von Binance oder Bitunix.
+"Wo speichert Cachy sensible Daten wie API-Schlüssel, Einstellungen und Journal-Einträge?",Ausschließlich lokal im Browser des Nutzers (`localStorage`).
+Wie viele Take-Profit-Ziele können in Cachy maximal für einen Trade definiert werden?,Es können bis zu 5 Take-Profit-Ziele festgelegt werden.
+"Was geschieht mit der prozentualen Verteilung der Take-Profit-Ziele, wenn Anpassungen vorgenommen werden?","Sie gleicht sich automatisch aus, um in der Summe immer genau $100\%$ zu ergeben."
+Welche spezifischen Metriken berechnet das System für jedes Take-Profit-Target?,"Profit, Chance-Risiko-Verhältnis ($R/R$) und den Netto-Ertrag."
+Welcher Service übernimmt in der Architektur von Cachy die zentrale Verwaltung der WebSockets?,Der `MarketWatcher`-Service.
+Was bezweckt das 'Reference Counting' im System von Cachy?,"Eine intelligente Nachverfolgung von Datenanfragen, um ungewollte Verbindungsabbrüche zu verhindern."
+Welche Funktion erfüllt die 'Jules API' innerhalb der Anwendung?,Ein KI-gestütztes System zur Analyse und Berichterstattung von Fehlern.
+"Nenne drei technische Indikatoren, die im 'Technicals Panel' über `talib-web` verfügbar sind.","RSI, MACD und Stochastik."
+Welche Zeitrahmen (Timeframes) stehen für den automatischen ATR-Abruf zur Verfügung?,"5m, 15m, 1h, 4h und 1d."
+Wie viele Favoriten-Symbole können für den Schnellzugriff in der Sidebar gespeichert werden?,Maximal 4 Symbole.
+Welche Status-Optionen können einem Trade im integrierten Journal zugewiesen werden?,"Offen (Open), Gewonnen (Won) und Verloren (Lost)."
+In welchem Format können Journal-Daten für die Nutzung in Excel exportiert werden?,Im CSV-Format.
+Welche zwei großen Krypto-Börsen werden als Datenquellen für Echtzeitpreise unterstützt?,Bitunix (Standard) und Binance.
+Was ist der Vorteil von 'Presets' in den Cachy-Einstellungen?,Häufig genutzte Setups (z. B. für Scalping-Strategien) können für den schnellen Zugriff gespeichert werden.
+Welche Tastenkombination öffnet in Cachy das Journal?,Alt+J
+Mit welcher Taste können Modals (Dialogfenster) in der Anwendung schnell geschlossen werden?,Mit der Escape-Taste.
+Welche Mindestversion von Node.js wird für die Entwicklung von Cachy vorausgesetzt?,Node.js Version v18 oder höher.
+Welches Framework bildet die Basis für die Cachy-Applikation?,SvelteKit.
+Auf wie viele Dezimalstellen genau kann das 'Risiko pro Trade' eingestellt werden?,Auf bis zu 2 Dezimalstellen.
+Welche Daten umfasst die 24h-Marktübersicht für ein ausgewähltes Symbol?,"Preis, Volumen, prozentuale Änderung, sowie Tageshoch und Tagestief."
+Welches Tool wird für Unit-Tests in der Cachy-Entwicklungsumgebung verwendet?,Vitest.
+Was ist die Funktion des 'Debug Mode' in den Systemeinstellungen?,Das Aktivieren von Systemprotokollen für eine bessere Fehlerdiagnose.
+Welche Konvention sollte laut Dokumentation für Commit-Nachrichten bei Beiträgen (Contributions) genutzt werden?,Conventional Commits.
+Wie kann die Sichtbarkeit der Sidebar und der Marktübersicht gesteuert werden?,"Über die Einstellung 'Show Sidebars', um Platz auf dem Bildschirm zu sparen."
+In welchem Verzeichnis befinden sich die Quelldateien für das Benutzerhandbuch?,`src/instructions/guide.en.md` (oder über den 'Guide'-Button in der App).
+Was bewirkt die 'Symbol Normalization' in Version 0.94.2?,Eine stabilere API-Zuordnung durch verbessertes Handling von Symbol-Suffixen.
+Welches Kommando startet den Entwicklungsserver lokal?,`npm run dev`
+Welcher Port wird standardmäßig für den lokalen Entwicklungsserver verwendet?,Port 5173 (`http://localhost:5173`).
+Wie viele verschiedene Farbthemen stehen in Cachy zur Auswahl?,"Über 20 Themen (z. B. Dark, Light, Dracula, Nord)."
+Welche Sprachen werden von der Benutzeroberfläche unterstützt?,Deutsch und Englisch.
+Was ist die Voraussetzung für den automatischen Abruf des Kontostands beim Start?,Die Aktivierung in den Einstellungen und das Hinterlegen gültiger API-Schlüssel.
+Welche Update-Intervalle können für Marktdaten konfiguriert werden?,"1 Sekunde, 1 Minute oder 10 Minuten."
+Was bietet der 'Global Chat' im Vergleich zu den 'Private Notes'?,"Der Global Chat nutzt einen flüchtigen Server-Cache, während Private Notes rein lokal gespeichert werden."
+Unter welcher Lizenz wird das Cachy-Projekt veröffentlicht?,GNU Affero General Public License v3.0 (AGPLv3).
+"Welches Kommando wird verwendet, um einen Produktions-Build zu erstellen?",`npm run build`
+Was ist der Zweck der `AGENT.md`-Datei im Repository?,Sie enthält Richtlinien für Coding-Konventionen und Prozesse für Entwickler.
+Welche Funktion hat die Backup-Funktion in Cachy?,"Das Erstellen einer JSON-Datei mit allen Einstellungen, Journal-Einträgen und Presets zur späteren Wiederherstellung."
+Wie wird ein Symbol als Favorit markiert?,Durch Klicken auf das Stern-Symbol in der Marktübersicht.
+Welche technische Komponente ermöglicht ultra-schnelle Preis-Updates bei Bitunix?,Die Integration von Bitunix Websockets.
+Welcher Befehl führt die statische Code-Analyse (Linting) aus?,`npm run lint`
+Was wurde in Version 0.92b hinsichtlich der Symboleingabe verbessert?,Das Eingabefeld akzeptiert nun sowohl Buchstaben als auch Zahlen.
+Was berechnet Cachy im Zusammenhang mit Take Profits außer dem Gewinn?,Das Chance-Risiko-Verhältnis ($R/R$) pro Ziel und für die Gesamtposition.
+"Wie wird die Applikation gestartet, wenn sie als Node.js-Server bereitgestellt wird?",`npm start` (oder via PM2 mit `pm2 start build/index.js`).
+In welcher Datei werden Änderungen an der Anwendung automatisch dokumentiert?,`src/instructions/changelog.en.md`.
+Können manuell abgerufene ATR-Werte in Cachy noch verändert werden?,"Ja, die automatisch abgerufenen Werte können manuell angepasst werden."
+Welche Tastenkombination wird für die Risiko-Berechnung (Risk) verwendet?,Alt+R
+Wie verhalten sich Modals beim Klicken auf den Hintergrund?,Sie werden automatisch geschlossen.
+Welche Datenstruktur wird für die Speicherung von Backups verwendet?,Das JSON-Format.
