@@ -79,6 +79,10 @@ class FloatingWindowsStore {
         }
     }
 
+    requestZIndex(): number {
+        return this.nextZIndex++;
+    }
+
     updatePosition(id: string, x: number, y: number): void {
         const window = this.windows.find((w) => w.id === id);
         if (window) {

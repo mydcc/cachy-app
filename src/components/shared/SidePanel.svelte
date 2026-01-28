@@ -23,6 +23,7 @@
   import { aiState } from "../../stores/ai.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { tradeState } from "../../stores/trade.svelte";
+  import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import { marked } from "marked";
@@ -36,6 +37,17 @@
   let isSending = $state(false);
   let errorMessage = $state("");
   let isInteracting = $state(false);
+  let currentZIndex = $state(floatingWindowsStore.requestZIndex());
+
+  function bringToFront() {
+    currentZIndex = floatingWindowsStore.requestZIndex();
+  }
+
+  $effect(() => {
+    if (isOpen) {
+      bringToFront();
+    }
+  });
 
   // Scroll to bottom on new messages
   $effect(() => {
@@ -376,7 +388,7 @@
 {#if settingsState.enableSidePanel}
   <div
     class="fixed pointer-events-none transition-all duration-300 flex"
-    style="z-index: var(--z-overlay);"
+    style="z-index: {currentZIndex};"
     class:bottom-4={isFloating}
     class:left-4={isFloating}
     class:flex-col-reverse={isFloating}
@@ -390,6 +402,7 @@
     <!-- Console and Floating use same FAB style trigger, Sidebar uses Strip -->
     <div
       class="pointer-events-auto"
+      onmousedown={bringToFront}
       onclick={toggle}
       role="button"
       tabindex="0"
@@ -475,6 +488,9 @@
     {#if isOpen}
       <div
         bind:this={panelEl}
+        onmousedown={bringToFront}
+        role="region"
+        aria-label="Side Panel"
         class="flex flex-col pointer-events-auto shadow-2xl overflow-hidden fixed glass-panel panel-border"
         class:is-interacting={isInteracting}
         transition:fly={{
@@ -488,7 +504,7 @@
             ? `width: ${settingsState.panelState?.width || 320}px;`
             : settingsState.panelState
               ? `width: ${settingsState.panelState.width}px; height: ${settingsState.panelState.height}px; left: ${settingsState.panelState.x}px; top: ${settingsState.panelState.y}px;`
-              : ''} min-width: 300px; min-height: 200px; touch-action: none; z-index: var(--z-overlay);"
+              : ''} min-width: 300px; min-height: 200px; touch-action: none; z-index: {currentZIndex};"
         class:rounded-lg={isFloating && !settingsState.panelIsExpanded}
         class:w-80={isSidebar}
         class:h-full={isSidebar}
