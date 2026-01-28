@@ -154,7 +154,7 @@
         >
           <button
             type="button"
-            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)] border-none outline-none font-mono flex items-center justify-center"
+            class="text-[10px] bg-[var(--bg-tertiary)] px-1.5 py-0.5 rounded text-[var(--text-primary)] cursor-pointer hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] border-none outline-none font-mono flex items-center justify-center"
           >
             {timeframe}
           </button>
@@ -167,7 +167,7 @@
               <div class="grid grid-cols-3 gap-1">
                 {#each ["5m", "15m", "30m", "1h", "4h", "1d"] as tf}
                   <button
-                    class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] rounded text-[var(--text-primary)]"
+                    class="py-1 text-xs border border-[var(--border-color)] hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] rounded text-[var(--text-primary)]"
                     onclick={() => setTimeframe(tf)}>{tf}</button
                   >
                 {/each}
@@ -183,7 +183,7 @@
                     e.key === "Enter" && handleCustomTimeframeSubmit()}
                 />
                 <button
-                  class="px-2 bg-[var(--bg-tertiary)] text-xs rounded hover:bg-[var(--accent-color)] text-[var(--text-primary)]"
+                  class="px-2 bg-[var(--bg-tertiary)] text-xs rounded hover:bg-[var(--accent-color)] hover:text-[var(--btn-accent-text)] text-[var(--text-primary)]"
                   onclick={handleCustomTimeframeSubmit}>OK</button
                 >
               </div>

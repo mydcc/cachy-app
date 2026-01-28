@@ -355,14 +355,33 @@
 
                 <!-- Alt Filter -->
                 <label
-                    class="flex items-center gap-2 cursor-pointer hover:text-white transition-colors"
+                    class="flex items-center gap-2 cursor-pointer hover:text-[var(--accent-color)] transition-colors group"
                 >
-                    <input
-                        type="checkbox"
-                        bind:checked={hideAlts}
-                        class="checkbox checkbox-xs border-[var(--border-color)]"
-                    />
-                    <span class="text-xs font-medium uppercase tracking-wider"
+                    <div class="relative flex items-center">
+                        <input
+                            type="checkbox"
+                            bind:checked={hideAlts}
+                            class="peer sr-only"
+                        />
+                        <div
+                            class="w-4 h-4 rounded border border-[var(--border-color)] bg-[var(--bg-tertiary)] peer-checked:bg-[var(--accent-color)] peer-checked:border-[var(--accent-color)] transition-all flex items-center justify-center"
+                        >
+                            <svg
+                                xmlns="http://www.w3.org/2000/svg"
+                                viewBox="0 0 24 24"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="3"
+                                stroke-linecap="round"
+                                stroke-linejoin="round"
+                                class="w-2.5 h-2.5 text-[var(--btn-accent-text)] opacity-0 peer-checked:opacity-100"
+                            >
+                                <polyline points="20 6 9 17 4 12"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    <span
+                        class="text-xs font-medium uppercase tracking-wider text-[var(--text-secondary)] group-hover:text-[var(--text-primary)]"
                         >{$_("symbolPicker.hideAlts")}</span
                     >
                 </label>
@@ -423,7 +442,7 @@
                         <div
                             role="button"
                             tabindex="0"
-                            class="symbol-item cursor-pointer group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
+                            class="symbol-item cursor-pointer group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:border-[var(--accent-color)] hover:text-[var(--accent-color)] transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
                             onclick={() => selectSymbol(s)}
                             onkeydown={(e) =>
                                 e.key === "Enter" && selectSymbol(s)}
@@ -437,7 +456,7 @@
                                     : icons.starEmpty}
                             </button>
                             <span
-                                class="symbol-name text-base font-bold tracking-tight mb-1"
+                                class="symbol-name text-base font-bold tracking-tight mb-1 group-hover:scale-110 transition-transform"
                                 >{s}</span
                             >
 
@@ -445,23 +464,23 @@
                                 <span
                                     class="change-badge text-sm font-mono px-2 py-1 rounded-md w-full text-center
                                     {change > 0
-                                        ? 'bg-green-500/20 text-green-400 group-hover:bg-white/20 group-hover:text-white'
+                                        ? 'bg-green-500/20 text-green-400'
                                         : change < 0
-                                          ? 'bg-red-500/20 text-red-400 group-hover:bg-white/20 group-hover:text-white'
-                                          : 'bg-gray-500/20 text-gray-400 group-hover:text-white'}"
+                                          ? 'bg-red-500/20 text-red-400'
+                                          : 'bg-gray-500/20 text-gray-400'}"
                                 >
                                     {change > 0 ? "+" : ""}{change.toFixed(2)}%
                                 </span>
                             {:else}
                                 <span
-                                    class="text-[10px] text-[var(--text-secondary)] group-hover:text-white/70"
+                                    class="text-[10px] text-[var(--text-secondary)]"
                                     >--%</span
                                 >
                             {/if}
 
                             <!-- Hover Effekt Glow -->
                             <div
-                                class="absolute inset-0 opacity-0 group-hover:opacity-10 transition-opacity bg-white pointer-events-none"
+                                class="absolute inset-0 opacity-0 group-hover:opacity-5 transition-opacity bg-[var(--accent-color)] pointer-events-none"
                             ></div>
                         </div>
                     {/each}
@@ -495,15 +514,13 @@
     .symbol-item:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        border-color: rgba(255, 255, 255, 0.2);
-        /* VIP Theme Support: Use the button accent text color on hover */
-        color: var(--btn-accent-text, white) !important;
+        color: var(--accent-color) !important;
+        /* Border is handled by utility class now */
     }
 
     /* Target badges specifically on hover for high contrast */
     .symbol-item:hover .change-badge {
-        background-color: rgba(0, 0, 0, 0.1) !important;
-        color: inherit !important;
+        /* Keep original badge colors on hover since background is dark */
     }
 
     :global(.modal-size-lg) {
@@ -535,14 +552,15 @@
     }
 
     .header-btn:hover {
-        background-color: var(--accent-color);
-        color: var(--btn-accent-text);
+        background-color: var(--bg-tertiary);
+        color: var(--accent-color);
         border-color: var(--accent-color);
     }
 
     .header-btn.active {
         background-color: var(--accent-color);
         color: var(--btn-accent-text);
+        border-color: var(--accent-color);
     }
 
     .header-btn .icon {
