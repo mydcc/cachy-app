@@ -145,7 +145,7 @@ class TechnicalsWorkerManager {
     this.pendingRejects.clear();
   }
 
-  public async postMessage(message: any): Promise<SerializedTechnicalsData> {
+  public async postMessage(message: any, transfer: Transferable[] = []): Promise<SerializedTechnicalsData> {
     const w = this.getWorker();
     if (!w) throw new Error("workerErrors.notAvailable");
 
@@ -154,7 +154,7 @@ class TechnicalsWorkerManager {
       this.pendingResolves.set(id, resolve);
       this.pendingRejects.set(id, reject);
 
-      w.postMessage({ ...message, id });
+      w.postMessage({ ...message, id }, transfer);
 
       // Safety timeout
       setTimeout(() => {
@@ -219,21 +219,35 @@ export const technicalsService = {
 
     // 1. Try Worker (Singleton)
     try {
-      const serializedKlines = klinesInput.map(k => ({
-        time: k.time,
-        open: k.open instanceof Decimal ? k.open.toString() : String(k.open),
-        high: k.high instanceof Decimal ? k.high.toString() : String(k.high),
-        low: k.low instanceof Decimal ? k.low.toString() : String(k.low),
-        close: k.close instanceof Decimal ? k.close.toString() : String(k.close),
-        volume: k.volume ? (k.volume instanceof Decimal ? k.volume.toString() : String(k.volume)) : "0",
-      }));
+      // 2. Prepare SoA (Struct of Arrays) for Zero-Copy Transfer
+      // This is vastly reduced GC pressure compared to mapping thousands of objects
+      const len = klinesInput.length;
+      const times = new Float64Array(len);
+      const opens = new Float64Array(len);
+      const highs = new Float64Array(len);
+      const lows = new Float64Array(len);
+      const closes = new Float64Array(len);
+      const volumes = new Float64Array(len);
 
+      for (let i = 0; i < len; i++) {
+        const k = klinesInput[i];
+        times[i] = k.time;
+        // Fast conversion: Use number if possible, else Decimal.toNumber()
+        opens[i] = typeof k.open === 'number' ? k.open : new Decimal(k.open).toNumber();
+        highs[i] = typeof k.high === 'number' ? k.high : new Decimal(k.high).toNumber();
+        lows[i] = typeof k.low === 'number' ? k.low : new Decimal(k.low).toNumber();
+        closes[i] = typeof k.close === 'number' ? k.close : new Decimal(k.close).toNumber();
+        volumes[i] = k.volume ? (typeof k.volume === 'number' ? k.volume : new Decimal(k.volume).toNumber()) : 0;
+      }
+
+      // 3. Post Message with Transferables
+      // The worker takes ownership of the buffers. We cannot use them after this.
       const result = await workerManager.postMessage({
         type: "CALCULATE",
-        klines: serializedKlines,
-        settings,
-        enabledIndicators
-      });
+        payload: {
+          times, opens, highs, lows, closes, volumes, settings, enabledIndicators
+        }
+      }, [times.buffer, opens.buffer, highs.buffer, lows.buffer, closes.buffer, volumes.buffer]);
 
       // 2. Rehydrate Decimals (Worker returns Serialized Data)
       const rehydrated = this.deserializeTechnicalsData(result);

@@ -13,7 +13,9 @@ import type {
   WorkerMessage,
   SerializedTechnicalsData,
   WorkerCalculatePayload,
+  WorkerCalculatePayloadSoA,
 } from "../services/technicalsTypes";
+import { calculateIndicatorsFromArrays } from "../utils/technicalsCalculator";
 
 const ctx: Worker = self as any;
 
@@ -151,20 +153,40 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
 
   if (type === "CALCULATE" && payload) {
     try {
-      const calculatePayload = payload as WorkerCalculatePayload;
-      const { klines, settings, enabledIndicators } = calculatePayload;
+      let result;
 
-      // Rehydrate Klines to Decimal for calculation
-      const klinesDec: Kline[] = klines.map((k) => ({
-        time: k.time,
-        open: new Decimal(k.open),
-        high: new Decimal(k.high),
-        low: new Decimal(k.low),
-        close: new Decimal(k.close),
-        volume: new Decimal(k.volume),
-      }));
+      // Check for SoA Payload (Zero-Copy Path)
+      if ('times' in payload && payload.times instanceof Float64Array) {
+        const soa = payload as WorkerCalculatePayloadSoA;
+        // Optimization: Pass TypedArrays directly (cast to any to satisfy TS signature if needed)
+        result = calculateIndicatorsFromArrays(
+          soa.times as any,
+          soa.opens as any,
+          soa.highs as any,
+          soa.lows as any,
+          soa.closes as any,
+          soa.volumes as any,
+          soa.settings,
+          soa.enabledIndicators
+        );
+      } else {
+        // Legacy Path (Object Array)
+        const calculatePayload = payload as WorkerCalculatePayload;
+        const { klines, settings, enabledIndicators } = calculatePayload;
 
-      const result = calculateAllIndicators(klinesDec, settings, enabledIndicators);
+        // Rehydrate Klines to Decimal for calculation
+        // This is the slow path we are optimizing away!
+        const klinesDec: Kline[] = klines.map((k) => ({
+          time: k.time,
+          open: new Decimal(k.open),
+          high: new Decimal(k.high),
+          low: new Decimal(k.low),
+          close: new Decimal(k.close),
+          volume: new Decimal(k.volume),
+        }));
+        result = calculateAllIndicators(klinesDec, settings, enabledIndicators);
+      }
+
       const serialized = serializeResult(result);
 
       const response: WorkerMessage = {
@@ -172,6 +194,10 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
         payload: serialized,
         id,
       };
+
+      // If we received transferables, we technically own them. 
+      // We don't need to send them back unless requested.
+      // Result is text/JSON mostly.
       ctx.postMessage(response);
     } catch (error: any) {
       console.error("Worker Calculation Error: ", error);

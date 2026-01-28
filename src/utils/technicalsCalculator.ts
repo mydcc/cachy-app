@@ -11,6 +11,7 @@ import {
   calculateAwesomeOscillator,
   calculatePivots,
   getRsiAction,
+  calculatePivotsFromValues,
   type Kline,
 } from "./indicators";
 import { DivergenceScanner, type DivergenceResult } from "./divergenceScanner";
@@ -29,10 +30,6 @@ export function calculateAllIndicators(
 ): TechnicalsData {
   if (klines.length < 2) return getEmptyData();
 
-  // Helper to check if indicator should be calculated
-  const shouldCalculate = (name: string) =>
-    !enabledIndicators || enabledIndicators[name] !== false;
-
   // Prepare data arrays (number[] for speed)
   const highsNum = klines.map((k) => new Decimal(k.high).toNumber());
   const lowsNum = klines.map((k) => new Decimal(k.low).toNumber());
@@ -40,10 +37,37 @@ export function calculateAllIndicators(
   const opensNum = klines.map((k) => new Decimal(k.open).toNumber());
   const volumesNum = klines.map((k) => new Decimal(k.volume).toNumber());
   const timesNum = klines.map((k) => k.time);
-  const currentPrice = new Decimal(klines[klines.length - 1].close);
+
+  return calculateIndicatorsFromArrays(
+    timesNum,
+    opensNum,
+    highsNum,
+    lowsNum,
+    closesNum,
+    volumesNum,
+    settings,
+    enabledIndicators
+  );
+}
+
+export function calculateIndicatorsFromArrays(
+  timesNum: number[] | Float64Array,
+  opensNum: number[] | Float64Array,
+  highsNum: number[] | Float64Array,
+  lowsNum: number[] | Float64Array,
+  closesNum: number[] | Float64Array,
+  volumesNum: number[] | Float64Array,
+  settings?: IndicatorSettings,
+  enabledIndicators?: Partial<Record<string, boolean>>,
+): TechnicalsData {
+  const currentPrice = new Decimal(closesNum[closesNum.length - 1]);
+
+  // Helper to check if indicator should be calculated
+  const shouldCalculate = (name: string) =>
+    !enabledIndicators || enabledIndicators[name] !== false;
 
   // Helper to get source array based on config
-  const getSource = (sourceType: string): number[] => {
+  const getSource = (sourceType: string): number[] | Float64Array => {
     switch (sourceType) {
       case "open":
         return opensNum;
@@ -52,11 +76,9 @@ export function calculateAllIndicators(
       case "low":
         return lowsNum;
       case "hl2":
-        return klines.map((k) => new Decimal(k.high).plus(new Decimal(k.low)).div(2).toNumber());
+        return highsNum.map((h, i) => (h + lowsNum[i]) / 2);
       case "hlc3":
-        return klines.map((k) =>
-          new Decimal(k.high).plus(new Decimal(k.low)).plus(new Decimal(k.close)).div(3).toNumber(),
-        );
+        return highsNum.map((h, i) => (h + lowsNum[i] + closesNum[i]) / 3);
       default:
         return closesNum;
     }
@@ -486,7 +508,23 @@ export function calculateAllIndicators(
 
   // --- Pivots ---
   const pivotType = settings?.pivots?.type || "classic";
-  const pivotData = calculatePivots(klines, pivotType);
+  // Pro-Level: Use array optimized pivot calc
+  // Need previous completed candle (index length - 2)
+  const prevIdx = closesNum.length - 2;
+  let pivotData;
+  if (prevIdx >= 0) {
+    pivotData = calculatePivotsFromValues(
+      highsNum[prevIdx],
+      lowsNum[prevIdx],
+      closesNum[prevIdx],
+      opensNum[prevIdx],
+      pivotType
+    );
+  } else {
+    // Check if we can get empty data easily or just use calculator logic helper
+    // Reuse logic from getEmptyData basically
+    pivotData = { pivots: getEmptyData().pivots, basis: getEmptyData().pivotBasis! };
+  }
 
   // --- Volatility ---
   let volatility = undefined;

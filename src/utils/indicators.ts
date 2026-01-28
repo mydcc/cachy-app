@@ -23,9 +23,11 @@ export interface Kline {
   volume: Decimal;
 }
 
+export type NumberArray = number[] | Float64Array;
+
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
-  sma(data: number[], period: number): number[] {
+  sma(data: NumberArray, period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length < period) return result;
     let sum = 0;
@@ -38,7 +40,7 @@ export const JSIndicators = {
     return result;
   },
 
-  ema(data: number[], period: number): number[] {
+  ema(data: NumberArray, period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length < period) return result;
     const k = 2 / (period + 1);
@@ -53,7 +55,7 @@ export const JSIndicators = {
     return result;
   },
 
-  smma(data: number[], period: number): number[] {
+  smma(data: NumberArray, period: number): number[] {
     // Wilder's Smoothing (RMA)
     // alpha = 1 / period
     const result = new Array(data.length).fill(0);
@@ -72,7 +74,7 @@ export const JSIndicators = {
     return result;
   },
 
-  rsi(data: number[], period: number): number[] {
+  rsi(data: NumberArray, period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length <= period) return result;
     let sumGain = 0;
@@ -98,9 +100,9 @@ export const JSIndicators = {
   },
 
   stoch(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     kPeriod: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -114,7 +116,7 @@ export const JSIndicators = {
     return result;
   },
 
-  macd(data: number[], fast: number, slow: number, signal: number) {
+  macd(data: NumberArray, fast: number, slow: number, signal: number) {
     const emaFast = this.ema(data, fast);
     const emaSlow = this.ema(data, slow);
     const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
@@ -123,7 +125,7 @@ export const JSIndicators = {
     return { macd: macdLine, signal: paddedSignal };
   },
 
-  mom(data: number[], period: number): number[] {
+  mom(data: NumberArray, period: number): number[] {
     const result = new Array(data.length).fill(0);
     for (let i = period; i < data.length; i++) {
       result[i] = data[i] - data[i - period];
@@ -131,7 +133,7 @@ export const JSIndicators = {
     return result;
   },
 
-  cci(data: number[], period: number): number[] {
+  cci(data: NumberArray, period: number): number[] {
     const result = new Array(data.length).fill(0);
     if (data.length < period) return result;
 
@@ -166,9 +168,9 @@ export const JSIndicators = {
   },
 
   adx(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -207,9 +209,9 @@ export const JSIndicators = {
   },
 
   atr(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -226,7 +228,7 @@ export const JSIndicators = {
     return this.smma(tr, period);
   },
 
-  bb(data: number[], period: number, stdDev: number = 2) {
+  bb(data: NumberArray, period: number, stdDev: number = 2) {
     const sma = this.sma(data, period);
     const upper = new Array(data.length).fill(0);
     const lower = new Array(data.length).fill(0);
@@ -246,11 +248,11 @@ export const JSIndicators = {
   // --- Advanced Indicators ---
 
   vwap(
-    high: number[],
-    low: number[],
-    close: number[],
-    volume: number[],
-    time?: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
+    volume: NumberArray,
+    time?: NumberArray,
     anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -282,10 +284,10 @@ export const JSIndicators = {
   },
 
   mfi(
-    high: number[],
-    low: number[],
-    close: number[],
-    volume: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
+    volume: NumberArray,
     period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -329,7 +331,7 @@ export const JSIndicators = {
   },
 
   stochRsi(
-    data: number[],
+    data: NumberArray,
     period: number,
     kPeriod: number,
     dPeriod: number,
@@ -342,7 +344,7 @@ export const JSIndicators = {
     // For StochRSI, High=RSI, Low=RSI, Close=RSI
 
     // We need a helper for simple stochastic on a single array
-    const stochSingle = (src: number[], len: number) => {
+    const stochSingle = (src: NumberArray, len: number) => {
       const res = new Array(src.length).fill(0);
       for (let i = len - 1; i < src.length; i++) {
         const slice = src.slice(i - len + 1, i + 1);
@@ -366,9 +368,9 @@ export const JSIndicators = {
   },
 
   williamsR(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -384,9 +386,9 @@ export const JSIndicators = {
   },
 
   choppiness(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number,
   ): number[] {
     const result = new Array(close.length).fill(0);
@@ -422,8 +424,8 @@ export const JSIndicators = {
   },
 
   ichimoku(
-    high: number[],
-    low: number[],
+    high: NumberArray,
+    low: NumberArray,
     conversionPeriod: number,
     basePeriod: number,
     spanBPeriod: number,
@@ -486,9 +488,9 @@ export const JSIndicators = {
   // --- Pro Indicators ---
 
   superTrend(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number = 10,
     multiplier: number = 3,
   ) {
@@ -552,9 +554,9 @@ export const JSIndicators = {
   },
 
   atrTrailingStop(
-    high: number[],
-    low: number[],
-    close: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
     period: number = 22,
     multiplier: number = 3,
   ) {
@@ -576,7 +578,7 @@ export const JSIndicators = {
     return { buyStop, sellStop };
   },
 
-  obv(close: number[], volume: number[]) {
+  obv(close: NumberArray, volume: NumberArray) {
     const result = new Array(close.length).fill(0);
     let cumVol = 0;
     result[0] = cumVol;
@@ -593,10 +595,10 @@ export const JSIndicators = {
   },
 
   volumeProfile(
-    high: number[],
-    low: number[],
-    close: number[],
-    volume: number[],
+    high: NumberArray,
+    low: NumberArray,
+    close: NumberArray,
+    volume: NumberArray,
     rowCount: number = 24,
   ) {
     if (close.length === 0) return null;
@@ -704,7 +706,7 @@ export const JSIndicators = {
     };
   },
 
-  psar(high: number[], low: number[], accel: number = 0.02, max: number = 0.2) {
+  psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2) {
     // Wilder's Parabolic SAR
     const result = new Array(high.length).fill(0);
     if (high.length < 2) return result;
@@ -776,14 +778,14 @@ export const JSIndicators = {
 // --- Helpers (Decimals, used by Service/Worker logic requiring precision) ---
 
 export function calculateAwesomeOscillator(
-  high: number[],
-  low: number[],
+  high: NumberArray,
+  low: NumberArray,
   fastPeriod: number,
   slowPeriod: number,
 ): number {
   const hl2 = high.map((val, i) => (val + low[i]) / 2);
 
-  const getSMA = (data: number[], period: number): number => {
+  const getSMA = (data: NumberArray, period: number): number => {
     if (data.length < period) return 0;
     let sum = 0;
     for (let i = data.length - period; i < data.length; i++) {
@@ -799,35 +801,29 @@ export function calculateAwesomeOscillator(
 }
 
 export function calculatePivots(klines: Kline[], type: string) {
-  const emptyResult = {
-    pivots: {
-      classic: {
-        p: new Decimal(0),
-        r1: new Decimal(0),
-        r2: new Decimal(0),
-        r3: new Decimal(0),
-        s1: new Decimal(0),
-        s2: new Decimal(0),
-        s3: new Decimal(0),
-      },
-    },
-    basis: {
-      high: new Decimal(0),
-      low: new Decimal(0),
-      close: new Decimal(0),
-      open: new Decimal(0),
-    },
-  };
-
-  if (klines.length < 2) return emptyResult;
-  // previous Completed candle
+  if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
+  return calculatePivotsFromValues(
+    new Decimal(prev.high).toNumber(),
+    new Decimal(prev.low).toNumber(),
+    new Decimal(prev.close).toNumber(),
+    new Decimal(prev.open).toNumber(),
+    type
+  );
+}
 
+export function calculatePivotsFromValues(
+  h: number,
+  l: number,
+  c: number,
+  o: number,
+  type: string
+) {
   // We work with Decimals here because pivot math is sensitive
-  const high = new Decimal(prev.high);
-  const low = new Decimal(prev.low);
-  const close = new Decimal(prev.close);
-  const open = new Decimal(prev.open);
+  const high = new Decimal(h);
+  const low = new Decimal(l);
+  const close = new Decimal(c);
+  const open = new Decimal(o);
 
   let p = new Decimal(0);
   let r1 = new Decimal(0),
@@ -890,6 +886,28 @@ export function calculatePivots(klines: Kline[], type: string) {
       low,
       close,
       open,
+    },
+  };
+}
+
+function getEmptyPivots() {
+  return {
+    pivots: {
+      classic: {
+        p: new Decimal(0),
+        r1: new Decimal(0),
+        r2: new Decimal(0),
+        r3: new Decimal(0),
+        s1: new Decimal(0),
+        s2: new Decimal(0),
+        s3: new Decimal(0),
+      },
+    },
+    basis: {
+      high: new Decimal(0),
+      low: new Decimal(0),
+      close: new Decimal(0),
+      open: new Decimal(0),
     },
   };
 }

@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { tradeState } from "../../stores/trade.svelte";
-  import { _ } from "../../locales/i18n";
+  import { _ as t } from "../../locales/i18n";
 
   interface Props {
     tags?: string[];
@@ -67,7 +67,7 @@
         <button
           class="hover:text-[var(--danger-color)]"
           onclick={() => removeTag(tag)}
-          aria-label="Remove tag {tag}">×</button
+          aria-label="Remove tag {tag}">{$t("common.remove")}</button
         >
       </span>
     {/each}
@@ -77,7 +77,7 @@
       type="text"
       class="bg-transparent outline-none flex-grow min-w-[60px] text-sm"
       placeholder={tags.length === 0
-        ? $_("dashboard.tradeSetupInputs.tagsPlaceholder")
+        ? $t("dashboard.tradeSetupInputs.tagsPlaceholder")
         : ""}
       bind:value={tagInput}
       onkeydown={handleTagKeydown}

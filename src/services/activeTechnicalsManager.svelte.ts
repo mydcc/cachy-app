@@ -8,6 +8,7 @@
 
 import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
+import { scheduler } from "../utils/scheduler";
 import { indicatorState } from "../stores/indicator.svelte";
 import { settingsState } from "../stores/settings.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
@@ -19,6 +20,7 @@ import { normalizeTimeframeInput, getIntervalMs, parseTimestamp } from "../utils
 import { logger } from "./logger";
 import { Decimal } from "decimal.js";
 import type { Kline } from "./technicalsTypes";
+import { networkMonitor } from "../utils/networkMonitor";
 
 class ActiveTechnicalsManager {
     // Ref counting: `symbol:timeframe` -> count
@@ -30,11 +32,31 @@ class ActiveTechnicalsManager {
     // Throttle timers: `symbol:timeframe` -> timer ID
     private throttles = new Map<string, ReturnType<typeof setTimeout>>();
 
-
-    // Lower than 1s to feel "realtime", but throttled to save CPU on crazy volatility
+    // 🌟 Pro-Level: Visibility & Debounce State
+    private visibleSymbols = new Set<string>();
+    private lastActiveSymbolChange = 0;
+    private lastActiveSymbol = "";
 
     constructor() {
         // Singleton
+    }
+
+    /**
+     * Takt 2 Control: Set visibility status for viewport sensing.
+     * Called by UI components via IntersectionObserver.
+     */
+    setSymbolVisibility(symbol: string, isVisible: boolean) {
+        if (!symbol) return;
+
+        if (isVisible) {
+            this.visibleSymbols.add(symbol);
+            // If became visible, ensure we have data soon
+            // Trigger calculation for default timeframe if not already running
+            const tf = tradeState.analysisTimeframe || "1h";
+            this.scheduleCalculation(symbol, tf);
+        } else {
+            this.visibleSymbols.delete(symbol);
+        }
     }
 
     /**
@@ -137,25 +159,75 @@ class ActiveTechnicalsManager {
 
     private scheduleCalculation(symbol: string, timeframe: string) {
         const key = `${symbol}:${timeframe}`;
-        if (this.throttles.has(key)) return; // Already scheduled
+        // If already scheduled, don't overwrite (unless we want to support urgency upgrades? Keep simple for now)
+        if (this.throttles.has(key)) return;
 
-        // Base interval from settings (default 1s if invalid)
-        let delay = Math.max(1000, (settingsState.marketAnalysisInterval || 1) * 1000);
+        // --- 3-Tact Strategy Logic ---
 
-        // Priority Logic
-        const isSelectedSymbol = tradeState.symbol === symbol;
-        const isTopFavorite = favoritesState.items.slice(0, 4).includes(symbol);
-        const isHighPriority = isSelectedSymbol || isTopFavorite;
+        const isActiveSymbol = tradeState.symbol === symbol;
 
-        if (!settingsState.analyzeAllFavorites && !isHighPriority) {
-            // Throttle non-priority symbols significantly (5x interval)
-            // This prevents background tiles from eating CPU
-            delay = delay * 5;
+        // Debounce Detection
+        if (isActiveSymbol && symbol !== this.lastActiveSymbol) {
+            this.lastActiveSymbol = symbol;
+            this.lastActiveSymbolChange = Date.now();
         }
 
-        // Smart Throttle (Pause on Blur)
-        if (settingsState.pauseAnalysisOnBlur && typeof document !== "undefined" && !document.hasFocus()) {
-            delay = delay * 2;
+        const isVisible = this.visibleSymbols.has(symbol) || isActiveSymbol;
+        const isFavorite = favoritesState.items.slice(0, 10).includes(symbol);
+
+        let delay = 60000; // Default Takt 3: Idle/Cached (very slow updates)
+
+        if (isActiveSymbol) {
+            // === TAKT 1: HIGH FREQUENCY (Realtime) ===
+            const timeSinceSwitch = Date.now() - this.lastActiveSymbolChange;
+
+            // Debounce: If switched < 200ms ago, impose small wait to prevent CPU spikes
+            if (timeSinceSwitch < 200) {
+                delay = 200;
+            } else {
+                // Use User Settings (e.g. 100ms for Realtime, 500ms for Balanced)
+                // Fallback to 250ms if undefined
+                let userInterval = settingsState.technicalsUpdateInterval;
+                if (!userInterval) {
+                    // Derive from mode if interval not explicit
+                    const mode = settingsState.technicalsUpdateMode || 'balanced';
+                    // Mapping presets manually here or import? Simple mapping:
+                    if (mode === 'realtime') userInterval = 100;
+                    else if (mode === 'fast') userInterval = 250;
+                    else if (mode === 'conservative') userInterval = 2000;
+                    else userInterval = 500; // balanced
+                }
+                delay = userInterval;
+            }
+        } else if (isVisible) {
+            // === TAKT 2: BACKGROUND / VISIBLE (Dashboard) ===
+            // 10s - 60s based on settings
+            const baseInterval = Math.max(5000, (settingsState.marketAnalysisInterval || 10) * 1000);
+
+            // Staggering: Add random 0-500ms jitter to prevent "Thundering Herd"
+            const jitter = Math.floor(Math.random() * 500);
+            delay = baseInterval + jitter;
+
+        } else if (isFavorite) {
+            // === TAKT 3: HIDDEN FAVORITE ===
+            // Keep warm but slow
+            delay = 30000;
+        }
+
+        // Global Throttle on Blur (Sleep Mode)
+        if (settingsState.pauseAnalysisOnBlur && typeof document !== "undefined" && !document.hasFocus() && !isActiveSymbol) {
+            delay = delay * 3; // Aggressive throttling when window hidden
+        }
+
+        // Connection-Aware Scaling (Pro Feature)
+        // Dynamically adjust update rate based on network quality (e.g. Mobile Hotspot)
+        const networkInhibitor = networkMonitor.getThrottleMultiplier();
+        if (networkInhibitor > 1.0) {
+            delay = delay * networkInhibitor;
+            if (isActiveSymbol && import.meta.env.DEV) {
+                // Warn dev about throttling
+                console.debug(`[ActiveManager] Network Throttling Active: ${networkInhibitor}x slowdown`);
+            }
         }
 
         this.throttles.set(key, setTimeout(() => {
@@ -220,8 +292,12 @@ class ActiveTechnicalsManager {
         // Now calculate
         const settings = indicatorState;
 
+        // 🌟 Optimization: Pass enabled indicators to Worker
+        // This activates the partial calculation logic
+        const enabledIndicators = settingsState.enabledIndicators;
+
         try {
-            const result = await technicalsService.calculateTechnicals(history, settings);
+            const result = await technicalsService.calculateTechnicals(history, settings, enabledIndicators);
 
             if (result) {
                 // Anti-Flicker: Check if content actually changed
@@ -235,8 +311,10 @@ class ActiveTechnicalsManager {
 
                 result.lastUpdated = Date.now();
 
-                // Push result back to MarketState
-                marketState.updateSymbol(symbol, { technicals: result });
+                // 5. Update State (Orchestrated via RAF)
+                scheduler.schedule(() => {
+                    marketState.updateSymbol(symbol, { technicals: result });
+                });
             }
 
         } catch (e) {

@@ -211,6 +211,17 @@ export interface WorkerCalculatePayload {
   enabledIndicators?: Partial<Record<string, boolean>>; // Indicator filter
 }
 
+export interface WorkerCalculatePayloadSoA {
+  times: Float64Array;
+  opens: Float64Array;
+  highs: Float64Array;
+  lows: Float64Array;
+  closes: Float64Array;
+  volumes: Float64Array;
+  settings: any;
+  enabledIndicators?: Partial<Record<string, boolean>>;
+}
+
 export type WorkerMessageType = "CALCULATE" | "RESULT" | "ERROR";
 
 export interface WorkerMessage {

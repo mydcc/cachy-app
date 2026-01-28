@@ -49,6 +49,7 @@
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
+  --nav-hover-bg: var(--blue-800);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
 
   /* --- Button Colors --- */
@@ -374,6 +375,7 @@
   --gray-700: #2c2c2c;
   --gray-200: #e0e0e0;
   --gray-400: #b0b0b0;
+  --gray-500: #9c9c9c;
   --gray-600: #444;
   --lime-300: #e2ff00;
   --lime-400: #cde200;
@@ -402,9 +404,10 @@
   --border-color: var(--gray-600);
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);
-  --success-color: var(--green-500);
-  --danger-color: var(--red-500);
+  --success-color: var(--lime-300);
+  --danger-color: var(--gray-500);
   --warning-color: var(--orange-500);
+  --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
   /* --- Button Colors --- */
@@ -2489,9 +2492,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .glass-enabled .glass-panel {
   background: color-mix(in srgb,
       var(--bg-secondary) calc(var(--glass-opacity) * 100%),
-      transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      transparent) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
 }
 
 /* Hover & Focus Enhancements */

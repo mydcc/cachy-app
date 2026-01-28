@@ -99,15 +99,15 @@
     if (!localSymbol || !entryPrice || !currentPrice) return 0;
 
     try {
-        const entry = new Decimal(entryPrice);
-        const market = currentPrice; // Already Decimal
+      const entry = new Decimal(entryPrice);
+      const market = currentPrice; // Already Decimal
 
-        if (market.isZero() || entry.isNaN()) return 0;
+      if (market.isZero() || entry.isNaN()) return 0;
 
-        const dev = entry.minus(market).div(market).abs().times(100).toNumber();
-        return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
+      const dev = entry.minus(market).div(market).abs().times(100).toNumber();
+      return dev > 1000 ? 0 : dev; // Ignore extreme values during sync
     } catch {
-        return 0;
+      return 0;
     }
   });
 
@@ -247,7 +247,7 @@
     // Matches: "123", "123.", ".123", "123.456" OR with comma
     // Does NOT match: ".", "1.2.3", "abc"
     if (/^(?:\d+(?:[.,]\d*)?|[.,]\d+)$/.test(val)) {
-        return val.replace(',', '.');
+      return val.replace(",", ".");
     }
     return undefined; // Invalid input
   }
@@ -283,11 +283,11 @@
 
     // Multiplier is still number in Store
     if (/^\d*[.,]?\d*$/.test(value)) {
-        const normalized = value.replace(',', '.');
-        const num = normalized === "" ? 0 : parseFloat(normalized);
-        if (!isNaN(num) && atrMultiplier !== num) {
-            tradeState.update((s) => ({ ...s, atrMultiplier: num }));
-        }
+      const normalized = value.replace(",", ".");
+      const num = normalized === "" ? 0 : parseFloat(normalized);
+      if (!isNaN(num) && atrMultiplier !== num) {
+        tradeState.update((s) => ({ ...s, atrMultiplier: num }));
+      }
     }
   }
 
@@ -438,7 +438,7 @@
             <div
               class="suggestion-item p-2 cursor-pointer transition-colors {i ===
               selectedSuggestionIndex
-                ? 'bg-[var(--accent-color)] text-white'
+                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                 : 'hover:bg-[var(--bg-tertiary)]'}"
               onclick={() => selectSuggestion(s)}
               onkeydown={(e) => handleKeyDownSuggestion(e, s)}
@@ -492,11 +492,15 @@
             stroke-linecap="round"
             stroke-linejoin="round"
           >
-            <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+            <path
+              d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"
+            />
             <path d="M12 9v4" />
             <path d="M12 17h.01" />
           </svg>
-          {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(1)}%
+          {$_("dashboard.tradeSetupInputs.priceDeviation")}: {priceDeviation.toFixed(
+            1,
+          )}%
         </div>
       {/if}
 
@@ -755,7 +759,8 @@
                 copyStopLossToClipboard(result.trim(), e);
               }
             }}
-            title={$_("dashboard.tradeSetupInputs.copyToClipboard")}>{result}</span
+            title={$_("dashboard.tradeSetupInputs.copyToClipboard")}
+            >{result}</span
           >
         </div>
       {/if}

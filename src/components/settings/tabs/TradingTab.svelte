@@ -52,10 +52,10 @@
     >
         {#each subTabs as tab}
             <button
-                class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
+                class="px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all {activeSubTab ===
                 tab.id
-                    ? 'bg-[var(--accent-color)] text-white'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg scale-105 z-10'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
                 onclick={() => (uiState.settingsTradingSubTab = tab.id)}
             >
                 {tab.label}
@@ -77,20 +77,20 @@
                         >
                         <div class="flex gap-2">
                             <button
-                                class="flex-1 px-3 py-2 text-xs rounded border transition-colors {settingsState.feePreference ===
+                                class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.feePreference ===
                                 'maker'
-                                    ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
-                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)]'}"
                                 onclick={() =>
                                     (settingsState.feePreference = "maker")}
                             >
                                 MAKER
                             </button>
                             <button
-                                class="flex-1 px-3 py-2 text-xs rounded border transition-colors {settingsState.feePreference ===
+                                class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.feePreference ===
                                 'taker'
-                                    ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
-                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)]'}"
                                 onclick={() =>
                                     (settingsState.feePreference = "taker")}
                             >
@@ -115,18 +115,19 @@
                         <select
                             id="market-interval"
                             bind:value={settingsState.marketDataInterval}
-                            class="input-field"
+                            class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
                         >
                             {#each intervals as interval}
                                 <option
                                     value={interval.value}
                                     title={interval.tooltip}
+                                    class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
                                     >{interval.label}</option
                                 >
                             {/each}
                         </select>
                         <p
-                            class="text-[10px] text-[var(--text-secondary)] mt-1"
+                            class="text-[10px] text-[var(--text-secondary)] mt-1.5 opacity-80"
                         >
                             {intervals.find(
                                 (i) =>
@@ -145,11 +146,23 @@
                         <select
                             id="spin-btn"
                             bind:value={settingsState.showSpinButtons}
-                            class="input-field"
+                            class="input-field w-full cursor-pointer transition-all hover:border-[var(--accent-color)]"
                         >
-                            <option value={true}>Always Visible</option>
-                            <option value="hover">On Hover</option>
-                            <option value={false}>Hidden</option>
+                            <option
+                                value={true}
+                                class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                                >Always Visible</option
+                            >
+                            <option
+                                value="hover"
+                                class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                                >On Hover</option
+                            >
+                            <option
+                                value={false}
+                                class="bg-[var(--bg-secondary)] text-[var(--text-primary)]"
+                                >Hidden</option
+                            >
                         </select>
                     </div>
 
@@ -234,7 +247,9 @@
                                 >Show market data tiles in sidebar</span
                             >
                         </div>
-                        <Toggle bind:checked={settingsState.showMarketOverview} />
+                        <Toggle
+                            bind:checked={settingsState.showMarketOverview}
+                        />
                     </label>
 
                     <label class="toggle-card mb-4">
@@ -247,7 +262,9 @@
                                 >Show sentiment analysis panel</span
                             >
                         </div>
-                        <Toggle bind:checked={settingsState.showMarketSentiment} />
+                        <Toggle
+                            bind:checked={settingsState.showMarketSentiment}
+                        />
                     </label>
 
                     <label class="toggle-card mb-4">
@@ -285,8 +302,12 @@
                     {/if}
 
                     <!-- Granular Settings (Always Visible) -->
-                    <div class="border-t border-[var(--border-color)] pt-4 mt-4">
-                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                    <div
+                        class="border-t border-[var(--border-color)] pt-4 mt-4"
+                    >
+                        <h4
+                            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
+                        >
                             Indicator Configuration
                         </h4>
                         <IndicatorSettings />

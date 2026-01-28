@@ -177,7 +177,8 @@
     "takeProfitTargets": {
       "header": "Take-Profit Ziele (Partiell)",
       "tooltip": "Hier siehst du die berechneten Kennzahlen für jeden deiner partiellen Take-Profit-Ziele.",
-      "addTargetTitle": "Weiteres Ziel hinzufügen"
+      "addTargetTitle": "Weiteres Ziel hinzufügen",
+      "emptyState": "Keine Ziele definiert. Füge oben ein Ziel hinzu."
     },
     "summaryResults": {
       "header": "Zusammenfassung",
@@ -277,11 +278,11 @@
     },
     "stats": {
       "totalPnL": "Gesamt P/L",
-      "winRate": "Gewinnrate",
-      "profitFactor": "Profitfaktor",
+      "winRate": "Win Rate",
+      "profitFactor": "Profit Factor",
       "totalTrades": "Anzahl Trades",
-      "avgRR": "Durchschnitt R/R",
-      "maxDrawdown": "Max. Kursrückgang"
+      "avgRR": "Avg R/R",
+      "maxDrawdown": "Max Drawdown"
     },
     "labels": {
       "search": "Suche",
@@ -940,6 +941,7 @@
     "cancel": "Abbrechen",
     "ok": "OK",
     "close": "Schließen",
+    "remove": "×",
     "warning": "Warnung",
     "resize": "Größe ändern"
   },
@@ -1069,8 +1071,8 @@
       "prompt": "Name eingeben:"
     },
     "clearJournal": {
-      "title": "Zurücksetzen bestätigen",
-      "message": "Journal löschen?"
+      "title": "Journal leeren",
+      "message": "Möchtest du wirklich alle Einträge aus deinem Journal löschen? Dieser Vorgang kann nicht rückgängig gemacht werden."
     },
     "deletePreset": {
       "title": "Preset löschen",
