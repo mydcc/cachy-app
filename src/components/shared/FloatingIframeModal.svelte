@@ -11,7 +11,7 @@
     import { onMount } from "svelte";
     import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
     import type { FloatingWindow } from "../../stores/floatingWindows.svelte";
-    import { _ } from "../../locales/i18n";
+    import { _ as t } from "../../locales/i18n";
 
     interface Props {
         window: FloatingWindow;
@@ -143,10 +143,10 @@
         <button
             class="window-close-btn"
             onclick={handleClose}
-            aria-label={$_("common.close") || "Close"}
+            aria-label={$t("common.close") || "Close"}
             type="button"
         >
-            {$_("common.remove")}
+            {$t("common.remove")}
         </button>
     </div>
 
