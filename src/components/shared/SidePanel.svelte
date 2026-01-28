@@ -1293,6 +1293,13 @@
     margin-top: 0.5rem;
   }
 
+  .markdown-content :global(small) {
+    font-size: 0.8em;
+    opacity: 0.6;
+    display: block;
+    margin-top: 0.5rem;
+  }
+
   /* Terminal Overrides */
   .terminal-md :global(*) {
     color: #22c55e !important; /* Tailwind green-500 */
