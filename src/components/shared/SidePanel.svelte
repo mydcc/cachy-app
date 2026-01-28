@@ -16,7 +16,7 @@
 -->
 
 <script lang="ts">
-  import { onMount } from "svelte";
+  import { onMount, untrack } from "svelte";
   import { fly, scale } from "svelte/transition";
   import { chatState } from "../../stores/chat.svelte";
   import { notesState } from "../../stores/notes.svelte";
@@ -45,7 +45,7 @@
 
   $effect(() => {
     if (isOpen) {
-      bringToFront();
+      untrack(() => bringToFront());
     }
   });
 
