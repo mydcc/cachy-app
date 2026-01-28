@@ -23,7 +23,9 @@ export const CONSTANTS = {
   LOCAL_STORAGE_PRESETS_KEY: "cryptoCalculatorPresets",
   LOCAL_STORAGE_THEME_KEY: "cachy_theme",
   LOCAL_STORAGE_QUIZ_KEY: "cachy_quiz_state",
-  FLASHCARDS_CSV_PATH: "/quiz/flashcards.csv",
+  FLASHCARDS_CSV_PATH: "/quiz/flashcards.csv", // Deprecated, but kept for compatibility if needed.
+  FLASHCARDS_CSV_PATH_DE: "/quiz/flashcards_tech_de.csv",
+  FLASHCARDS_CSV_PATH_EN: "/quiz/flashcards_tech_en.csv",
   STATUS_INVALID: "INVALID",
   STATUS_INCOMPLETE: "INCOMPLETE",
   STATUS_VALID: "VALID",

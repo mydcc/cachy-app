@@ -17,6 +17,7 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { locale } from "../locales/i18n";
 
 export interface FlashCard {
   id: string;
@@ -30,11 +31,18 @@ class QuizStore {
   activeQuestion = $state<FlashCard | null>(null);
   isQuizActive = $state(false);
   isLoading = $state(false);
+  currentLocale = $state("en");
 
   constructor() {
     if (browser) {
       this.loadProgress();
-      this.loadQuestions();
+      // Subscribe to locale changes
+      locale.subscribe((value) => {
+        if (value) {
+          this.currentLocale = value;
+          this.loadQuestions();
+        }
+      });
     }
   }
 
@@ -67,7 +75,12 @@ class QuizStore {
   async loadQuestions() {
     try {
       this.isLoading = true;
-      const response = await fetch(CONSTANTS.FLASHCARDS_CSV_PATH);
+      let path = CONSTANTS.FLASHCARDS_CSV_PATH_EN;
+      if (this.currentLocale && this.currentLocale.startsWith("de")) {
+        path = CONSTANTS.FLASHCARDS_CSV_PATH_DE;
+      }
+
+      const response = await fetch(path);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
