@@ -127,6 +127,8 @@
       "header": "Allgemein",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverage": "Hebel",
+      "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "feesPlaceholder": "Gebühren pro Trade (%)"
     },

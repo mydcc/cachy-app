@@ -129,6 +129,8 @@
       "header": "General",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverage": "Leverage",
+      "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
       "feesPlaceholder": "Fees per Trade (%)"
     },
