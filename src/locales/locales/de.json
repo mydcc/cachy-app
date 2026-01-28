@@ -941,6 +941,7 @@
     "cancel": "Abbrechen",
     "ok": "OK",
     "close": "Schließen",
+    "remove": "×",
     "warning": "Warnung",
     "resize": "Größe ändern"
   },
@@ -1070,8 +1071,8 @@
       "prompt": "Name eingeben:"
     },
     "clearJournal": {
-      "title": "Zurücksetzen bestätigen",
-      "message": "Journal löschen?"
+      "title": "Journal leeren",
+      "message": "Möchtest du wirklich alle Einträge aus deinem Journal löschen? Dieser Vorgang kann nicht rückgängig gemacht werden."
     },
     "deletePreset": {
       "title": "Preset löschen",

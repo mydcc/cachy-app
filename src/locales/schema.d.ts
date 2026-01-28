@@ -822,6 +822,7 @@ export type TranslationKey =
   | "common.cancel"
   | "common.ok"
   | "common.close"
+  | "common.remove"
   | "common.warning"
   | "common.resize"
   | "analyst.trend.bullish"

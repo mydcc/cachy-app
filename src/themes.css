@@ -375,6 +375,7 @@
   --gray-700: #2c2c2c;
   --gray-200: #e0e0e0;
   --gray-400: #b0b0b0;
+  --gray-500: #9c9c9c;
   --gray-600: #444;
   --lime-300: #e2ff00;
   --lime-400: #cde200;
@@ -404,7 +405,7 @@
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);
   --success-color: var(--lime-300);
-  --danger-color: var(--gray-600);
+  --danger-color: var(--gray-500);
   --warning-color: var(--orange-500);
   --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);

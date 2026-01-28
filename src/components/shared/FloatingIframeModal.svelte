@@ -146,7 +146,7 @@
             aria-label={$_("common.close") || "Close"}
             type="button"
         >
-            ×
+            {$_("common.remove")}
         </button>
     </div>
 

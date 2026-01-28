@@ -851,7 +851,10 @@
                                                                     item.tags ||
                                                                         [],
                                                                 );
-                                                            }}>×</button
+                                                            }}
+                                                            >{$_(
+                                                                "common.remove",
+                                                            )}</button
                                                         >
                                                     </span>
                                                 {/each}

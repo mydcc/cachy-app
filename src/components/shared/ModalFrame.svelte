@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { fly } from "svelte/transition";
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     isOpen?: boolean;
@@ -77,7 +78,7 @@
         <button
           class="modal-close-btn"
           aria-label="Schließen"
-          onclick={handleClose}>&times;</button
+          onclick={handleClose}>{$_("common.remove")}</button
         >
       </div>
       <div class="modal-body {bodyClass}">
