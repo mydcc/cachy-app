@@ -409,11 +409,13 @@
   --border-color: var(--gray-600);
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);
-  --success-color: var(--lime-300);
+  --success-color: var(--green-500);
+  /* Changed to Green */
   --danger-color: var(--red-500);
   --warning-color: var(--orange-500);
   --candle-bear-color: var(--gray-blue-400);
   --candle-bull-color: var(--lime-300);
+  /* Keep Neon for Charts */
   --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
