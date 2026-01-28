@@ -274,6 +274,39 @@
 
                     {#if settingsState.enableBurningBorders}
                         <div class="flex flex-col gap-4 animate-fade-in">
+                            <div class="field-group mb-4">
+                                <span
+                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                                >
+                                    {$_("settings.appearance.effectStyle") ||
+                                        "Effect Style"}
+                                </span>
+                                <div class="flex gap-2">
+                                    <button
+                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffect ===
+                                        'fire'
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                        onclick={() =>
+                                            (settingsState.borderEffect =
+                                                "fire")}
+                                    >
+                                        {$_("settings.appearance.fire")}
+                                    </button>
+                                    <button
+                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffect ===
+                                        'glow'
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                        onclick={() =>
+                                            (settingsState.borderEffect =
+                                                "glow")}
+                                    >
+                                        {$_("settings.appearance.glow")}
+                                    </button>
+                                </div>
+                            </div>
+
                             <div class="field-group">
                                 <span
                                     class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"

@@ -542,6 +542,11 @@
   },
   "settings": {
     "title": "Einstellungen",
+    "appearance": {
+      "effectStyle": "Effekt-Stil",
+      "fire": "Feuer",
+      "glow": "Neon Glow"
+    },
     "theme": "Design",
     "themeDark": "Dunkel",
     "themeLight": "Hell",
@@ -825,10 +830,6 @@
         "presetAurora": "Aurora",
         "opacity": "Deckkraft",
         "blur": "Unschärfe",
-        "burnNews": "News-Fenster animieren",
-        "effectStyle": "Effekt-Stil",
-        "fire": "Feuer",
-        "glow": "Neon Glow",
         "intensity": "Intensität",
         "intensityLow": "Dezent",
         "intensityMedium": "Mittel",
