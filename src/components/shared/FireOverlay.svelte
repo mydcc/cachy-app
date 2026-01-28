@@ -78,6 +78,7 @@
             uniforms: {
                 uTime: { value: 0 },
                 uIntensity: { value: 1.0 },
+                uThickness: { value: 20.0 },
             },
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -107,11 +108,19 @@
             material.uniforms.uTime.value = time;
 
             let baseIntensity = 1.0;
-            if (settingsState.burningBordersIntensity === "low")
-                baseIntensity = 0.5;
-            if (settingsState.burningBordersIntensity === "high")
-                baseIntensity = 2.0;
+            let baseThickness = 20.0;
+
+            if (settingsState.burningBordersIntensity === "low") {
+                baseIntensity = 0.6;
+                baseThickness = 12.0; // Very subtle
+            }
+            if (settingsState.burningBordersIntensity === "high") {
+                baseIntensity = 1.5;
+                baseThickness = 28.0; // Thick and bright
+            }
+
             material.uniforms.uIntensity.value = baseIntensity;
+            material.uniforms.uThickness.value = baseThickness;
 
             let i = 0;
             const width = window.innerWidth;
@@ -191,7 +200,7 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 9999;
+        z-index: 40; /* Below Modals (50) but presumably above content */
         pointer-events: none;
         overflow: hidden;
         background: transparent !important;

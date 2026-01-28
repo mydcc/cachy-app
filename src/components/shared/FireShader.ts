@@ -21,6 +21,7 @@ void main() {
 export const fireFragmentShader = `
 uniform float uTime;
 uniform float uIntensity;
+uniform float uThickness; // New uniform for controlling border width
 
 varying vec2 vUv;
 varying vec2 vSize;
@@ -60,14 +61,15 @@ void main() {
     vec2 distToEdge = vSize * 0.5 - pixelDist;
     float minDist = min(distToEdge.x, distToEdge.y);
     
-    // We want a border of about 20-30 pixels
-    float borderWidth = 30.0;
+    // Use uniform thickness, default around 15.0 to 25.0
+    float borderWidth = uThickness;
     
     // Discard inner area 
     if (minDist > borderWidth) discard;
 
     // Noise for lick of flames
-    float n = snoise(vUv * 6.0 - vec2(0.0, uTime * 2.5));
+    // Reduced frequency slightly for more "wispy" look
+    float n = snoise(vUv * 5.0 - vec2(0.0, uTime * 2.0));
     
     // Calculate strength based on distance to edge 
     float strength = clamp(1.0 - (minDist / borderWidth), 0.0, 1.0);
@@ -78,15 +80,17 @@ void main() {
     
     strength *= uIntensity;
 
-    float alpha = smoothstep(0.0, 0.4, strength);
+    // Softer alpha edge
+    float alpha = smoothstep(0.0, 0.6, strength);
     
     // Fire palette influenced by instance color
     vec3 colorCore = vec3(1.0, 0.95, 0.8); // White hot center
     vec3 colorMid = vColor;                // Instance color tint
     vec3 colorOuter = vColor * 0.5;        // Darker tint
     
+    // More bias towards colorMid for subtler look
     vec3 finalColor = mix(colorOuter, colorMid, strength);
-    finalColor = mix(finalColor, colorCore, pow(strength, 4.0));
+    finalColor = mix(finalColor, colorCore, pow(strength, 6.0)); // Sharper core, less white
 
     gl_FragColor = vec4(finalColor, alpha);
 }
