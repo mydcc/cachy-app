@@ -66,6 +66,27 @@
         "buy": "Buy",
         "sell": "Sell"
       },
+      "details": {
+          "leverage": "Leverage",
+          "margin": "Margin",
+          "mode": "Mode",
+          "price": "Price",
+          "avgPrice": "Avg Price",
+          "qty": "Qty",
+          "filled": "Filled",
+          "fee": "Fee",
+          "pnl": "Realized PnL",
+          "more": "Details...",
+          "created": "Created",
+          "updated": "Updated",
+          "orderId": "Order ID",
+          "clientId": "Client ID",
+          "reduceOnly": "Reduce Only",
+          "size": "Size",
+          "value": "Value",
+          "entry": "Entry",
+          "mark": "Mark"
+      },
       "type": {
         "limit": "Limit",
         "market": "Market",
@@ -517,6 +538,8 @@
     "24hLow": "24h Low",
     "vol": "Vol",
     "rsiSettings": "RSI Settings",
+    "fundingRate": "Funding Rate",
+    "countdown": "Countdown",
     "length": "Length",
     "source": "Source",
     "signal": "Signal",
@@ -935,7 +958,20 @@
     "minVol": "Min Vol",
     "hideAlts": "Hide Alts",
     "noSymbolsFound": "No symbols found.",
-    "syncing": "Syncing Market..."
+    "syncing": "Syncing Market...",
+    "sort": {
+      "az": "A-Z",
+      "gainers": "% Gainers",
+      "losers": "% Losers",
+      "vol": "Volume"
+    },
+    "volFilter": {
+      "all": "All",
+      "1m": "1M",
+      "5m": "5M",
+      "10m": "10M",
+      "50m": "50M"
+    }
   },
   "common": {
     "save": "Save",

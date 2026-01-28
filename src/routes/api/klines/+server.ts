@@ -202,6 +202,18 @@ async function fetchBitgetKlines(
   // [[timestamp, open, high, low, close, volume, quoteVol], ...]
   // timestamp is string or number? usually string in response.
 
+  // Hardening: Check if data is actually an array (success) or error object
+  if (!Array.isArray(data)) {
+      if (data && data.code && data.code !== "00000") {
+          throw new Error(`Bitget Error: ${data.msg || data.code}`);
+      }
+      // If valid empty result or unknown structure
+      if (!data) return [];
+      // Fallback if structure is unexpected but not explicit error
+      console.warn("[Klines] Unexpected Bitget response format", data);
+      return [];
+  }
+
   // Optimize: Return plain strings
   return data
     .map((k: any[]) => ({

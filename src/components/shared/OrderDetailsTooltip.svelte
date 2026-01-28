@@ -71,45 +71,45 @@
   <div class="grid grid-cols-2 gap-x-4 gap-y-1">
     <!-- Settings -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Leverage:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.leverage")}:</span>
       <span>{order.leverage}x</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Margin:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.margin")}:</span>
       <span class="capitalize">{order.marginMode}</span>
     </div>
     {#if order.positionMode}
       <div class="flex justify-between col-span-2">
-        <span class="text-[var(--text-secondary)]">Mode:</span>
+        <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.mode")}:</span>
         <span class="capitalize">{order.positionMode}</span>
       </div>
     {/if}
 
     <!-- Trade Stats -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Price:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.price")}:</span>
       <span>{formatDynamicDecimal(order.price)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Avg Price:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.avgPrice")}:</span>
       <span>{formatDynamicDecimal(order.avgPrice || order.averagePrice)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Qty:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.qty")}:</span>
       <span>{formatDynamicDecimal(order.qty)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Filled:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.filled")}:</span>
       <span>{formatDynamicDecimal(order.tradeQty || order.filled)}</span>
     </div>
 
     <!-- Financials -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Fee:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.fee")}:</span>
       <span>{formatDynamicDecimal(order.fee)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Realized PnL:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.pnl")}:</span>
       <span
         class:text-[var(--success-color)]={Number(order.realizedPNL) > 0}
         class:text-[var(--danger-color)]={Number(order.realizedPNL) < 0}
@@ -123,7 +123,7 @@
       <div
         class="col-span-2 mt-1 border-t border-[var(--border-color)] pt-1 font-bold text-[var(--text-secondary)]"
       >
-        TP / SL
+        {$_("dashboard.tpsl")}
       </div>
       {#if order.tpPrice && Number(order.tpPrice) > 0}
         <div class="col-span-2 flex justify-between">
@@ -151,7 +151,7 @@
       role="button"
       tabindex="0"
     >
-      <span class="text-[10px] font-bold">Details...</span>
+      <span class="text-[10px] font-bold">{$_("dashboard.orderHistory.details.more")}</span>
       <span
         class="transform transition-transform duration-200"
         class:rotate-180={isDetailsOpen}
@@ -166,22 +166,22 @@
         class="col-span-2 flex flex-col gap-1 text-[10px] text-[var(--text-tertiary)] bg-[var(--bg-primary)] p-2 rounded mt-1"
       >
         <div class="flex justify-between">
-          <span>Created:</span>
+          <span>{$_("dashboard.orderHistory.details.created")}:</span>
           <span>{formatDate(order.ctime)}</span>
         </div>
         {#if order.mtime && order.mtime !== order.ctime}
           <div class="flex justify-between">
-            <span>Updated:</span>
+            <span>{$_("dashboard.orderHistory.details.updated")}:</span>
             <span>{formatDate(order.mtime)}</span>
           </div>
         {/if}
         <div class="flex justify-between gap-2">
-          <span>Order ID:</span>
+          <span>{$_("dashboard.orderHistory.details.orderId")}:</span>
           <span class="font-mono truncate">{order.orderId}</span>
         </div>
         {#if order.clientId}
           <div class="flex justify-between gap-2">
-            <span>Client ID:</span>
+            <span>{$_("dashboard.orderHistory.details.clientId")}:</span>
             <span class="font-mono truncate">{order.clientId}</span>
           </div>
         {/if}
@@ -198,7 +198,7 @@
       >
       {#if order.reduceOnly}
         <span class="text-[10px] text-[var(--warning-color)] font-bold"
-          >Reduce Only</span
+          >{$_("dashboard.orderHistory.details.reduceOnly")}</span
         >
       {/if}
     </div>
