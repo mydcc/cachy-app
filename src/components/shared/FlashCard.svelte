@@ -2,6 +2,17 @@
   import { quizState } from "../../stores/quiz.svelte";
   import { fade, scale } from "svelte/transition";
   import { quintOut } from "svelte/easing";
+  import { _ } from "../../locales/i18n";
+  import { marked } from "marked";
+  import markedKatex from "marked-katex-extension";
+  import "katex/dist/katex.min.css";
+
+  // Setup Markdown with KaTeX
+  try {
+    marked.use(markedKatex({ throwOnError: false }));
+  } catch (e) {
+    console.warn("Marked KaTeX extension might already be registered", e);
+  }
 
   let isFlipped = $state(false);
 
@@ -22,6 +33,10 @@
 
   function handleUnknown() {
     quizState.markUnknown();
+  }
+
+  function renderMarkdown(text: string) {
+    return marked.parse(text);
   }
 </script>
 
@@ -60,17 +75,17 @@
           <div
             class="text-[var(--text-secondary)] text-sm uppercase tracking-widest font-bold mb-4"
           >
-            Frage
+            {$_("quiz.question")}
           </div>
-          <h3
-            class="text-xl md:text-2xl font-bold text-[var(--text-primary)] leading-relaxed select-none"
+          <div
+            class="text-xl md:text-2xl font-bold text-[var(--text-primary)] leading-relaxed select-none prose dark:prose-invert max-w-none"
           >
-            {quizState.activeQuestion.question}
-          </h3>
+            {@html renderMarkdown(quizState.activeQuestion.question)}
+          </div>
           <div
             class="absolute bottom-6 text-xs text-[var(--text-tertiary)] animate-pulse select-none"
           >
-            Klicken zum Aufdecken
+            {$_("quiz.clickToReveal")}
           </div>
         </div>
 
@@ -82,13 +97,13 @@
             <div
               class="text-[var(--text-secondary)] text-sm uppercase tracking-widest font-bold mb-2"
             >
-              Antwort
+              {$_("quiz.answer")}
             </div>
-            <p
-              class="text-lg text-[var(--text-primary)] leading-relaxed overflow-y-auto max-h-[60%] w-full scrollbar-hide"
+            <div
+              class="text-lg text-[var(--text-primary)] leading-relaxed overflow-y-auto max-h-[60%] w-full scrollbar-hide prose dark:prose-invert max-w-none"
             >
-              {quizState.activeQuestion.answer}
-            </p>
+              {@html renderMarkdown(quizState.activeQuestion.answer)}
+            </div>
           </div>
 
           <div class="flex gap-4 w-full mt-4 shrink-0">
@@ -99,7 +114,7 @@
                 handleUnknown();
               }}
             >
-              Noch üben
+              {$_("quiz.repeat")}
             </button>
             <button
               class="flex-1 py-3 px-4 rounded-xl font-bold text-white bg-green-500 hover:bg-green-600 transition-colors shadow-lg hover:shadow-green-500/20 active:scale-95 transform duration-100"
@@ -108,7 +123,7 @@
                 handleKnown();
               }}
             >
-              Gewusst
+              {$_("quiz.known")}
             </button>
           </div>
         </div>

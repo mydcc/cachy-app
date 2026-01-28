@@ -1115,6 +1115,13 @@
       "sumSold": "Summe der Verkaufsprozente ({percent}%)"
     }
   },
+  "quiz": {
+    "question": "Frage",
+    "answer": "Antwort",
+    "clickToReveal": "Klicken zum Aufdecken",
+    "repeat": "Noch üben",
+    "known": "Gewusst"
+  },
   "candlestickPatterns": {
     "doji": {
       "name": "Doji",

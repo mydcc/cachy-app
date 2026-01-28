@@ -38,12 +38,12 @@
 
 {#if visible}
   <div
-    class="fixed bottom-4 right-4 z-[9999] flex flex-col bg-[var(--bg-secondary)] text-[var(--text-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] max-w-md w-[calc(100vw-2rem)] max-h-[80vh] sm:max-h-[60vh]"
+    class="fixed bottom-4 right-4 z-[9999] flex flex-col glass-panel text-[var(--text-primary)] rounded-xl shadow-2xl border border-[var(--border-primary)] max-w-md w-[calc(100vw-2rem)] max-h-[80vh] sm:max-h-[60vh]"
     transition:fly={{ y: 20, duration: 400 }}
   >
     <!-- Header -->
     <div
-      class="p-4 border-b border-[var(--border-primary)] flex items-center gap-3 bg-[var(--bg-tertiary)] rounded-t-xl"
+      class="p-4 border-b border-[var(--border-primary)] flex items-center gap-3 rounded-t-xl"
     >
       <svg
         xmlns="http://www.w3.org/2000/svg"
@@ -71,7 +71,7 @@
 
     <!-- Footer -->
     <div
-      class="p-4 border-t border-[var(--border-primary)] bg-[var(--bg-tertiary)] rounded-b-xl flex justify-end"
+      class="p-4 border-t border-[var(--border-primary)] rounded-b-xl flex justify-end"
     >
       <button
         class="px-6 py-2 bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] text-sm font-bold rounded-lg transition-colors shadow-lg"

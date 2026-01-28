@@ -147,9 +147,10 @@
                     class="text-left px-3 py-2 rounded-lg text-xs font-medium transition-all hover:bg-[var(--nav-hover-bg)] flex justify-between items-center group"
                     class:bg-[var(--accent-color)]={selectedPatternId ===
                         pattern.id}
-                    class:text-[var(--btn-accent-text)]={selectedPatternId ===
-                        pattern.id}
                     class:shadow-lg={selectedPatternId === pattern.id}
+                    style:color={selectedPatternId === pattern.id
+                        ? "var(--btn-accent-text)"
+                        : ""}
                     onclick={() => selectPattern(pattern.id)}
                 >
                     <div class="flex items-center gap-2 truncate">

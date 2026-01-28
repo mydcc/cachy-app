@@ -11,7 +11,7 @@
     import { onMount } from "svelte";
     import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
     import type { FloatingWindow } from "../../stores/floatingWindows.svelte";
-    import { _ } from "../../locales/i18n";
+    import { _ as t } from "../../locales/i18n";
 
     interface Props {
         window: FloatingWindow;
@@ -118,7 +118,7 @@
 
 <div
     bind:this={containerEl}
-    class="floating-iframe-modal"
+    class="floating-iframe-modal glass-panel"
     style:left="{win.x}px"
     style:top="{win.y}px"
     style:width="{win.width}px"
@@ -143,10 +143,10 @@
         <button
             class="window-close-btn"
             onclick={handleClose}
-            aria-label={$_("common.close") || "Close"}
+            aria-label={$t("common.close") || "Close"}
             type="button"
         >
-            {$_("common.remove")}
+            {$t("common.remove")}
         </button>
     </div>
 
@@ -172,7 +172,6 @@
 <style>
     .floating-iframe-modal {
         position: fixed;
-        background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: 12px;
         box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
