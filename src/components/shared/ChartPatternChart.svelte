@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
+  import { onMount } from "svelte";
   import {
     type ChartPatternDefinition,
     type InteractiveElement,
