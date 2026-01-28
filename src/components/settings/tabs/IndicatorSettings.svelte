@@ -60,7 +60,7 @@
             <button
                 class="category-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeCategory ===
                 category.id
-                    ? 'bg-[var(--accent-color)] text-white'
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
                 onclick={() =>
                     (uiState.settingsIndicatorCategory = category.id)}
@@ -127,7 +127,7 @@
                             <button
                                 class="px-3 py-2 text-xs rounded border transition-colors {settingsState.pnlViewMode ===
                                 mode.value
-                                    ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                     : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                 onclick={() =>
                                     (settingsState.pnlViewMode =

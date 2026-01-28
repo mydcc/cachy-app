@@ -43,7 +43,7 @@
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
-                    ? 'bg-[var(--accent-color)] text-white'
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
                 onclick={() => (uiState.settingsAiSubTab = tab.id)}
             >
@@ -306,7 +306,6 @@
                         + Add Channel
                     </button>
                 </div>
-
             </section>
         {/if}
     </div>

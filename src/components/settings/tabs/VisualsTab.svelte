@@ -48,9 +48,11 @@
             // Check for iOS permission requirement
             if (
                 typeof DeviceOrientationEvent !== "undefined" &&
-                typeof (DeviceOrientationEvent as any).requestPermission === "function"
+                typeof (DeviceOrientationEvent as any).requestPermission ===
+                    "function"
             ) {
-                (DeviceOrientationEvent as any).requestPermission()
+                (DeviceOrientationEvent as any)
+                    .requestPermission()
                     .then((response: string) => {
                         if (response === "granted") {
                             settingsState.galaxySettings.enableGyroscope = true;
@@ -94,7 +96,7 @@
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
-                    ? 'bg-[var(--accent-color)] text-white'
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
                 onclick={() => (uiState.settingsVisualsSubTab = tab.id)}
             >
@@ -297,7 +299,7 @@
                                 <button
                                     class="px-3 py-2 text-xs rounded border transition-colors {settingsState.sidePanelLayout ===
                                     mode.value
-                                        ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
+                                        ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                         : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                     onclick={() =>
                                         (settingsState.sidePanelLayout =
@@ -317,15 +319,13 @@
             <section class="settings-section animate-fade-in">
                 <!-- Type Selector -->
                 <div class="flex gap-2 mb-4 flex-wrap">
-                    {#each [
-                        { v: "none", l: "None" },
-                        { v: "image", l: "Image / Video" },
-                        { v: "animation", l: "Live Animation" },
-                        { v: "threejs", l: "Galaxy (3D)" }
-                    ] as type}
+                    {#each [{ v: "none", l: "None" }, { v: "image", l: "Image / Video" }, { v: "animation", l: "Live Animation" }, { v: "threejs", l: "Galaxy (3D)" }] as type}
                         <button
-                            class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType === type.v || (type.v === 'image' && settingsState.backgroundType === 'video')
-                                ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
+                            class="px-3 py-2 text-xs rounded border transition-colors {settingsState.backgroundType ===
+                                type.v ||
+                            (type.v === 'image' &&
+                                settingsState.backgroundType === 'video')
+                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                 : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                             onclick={() => {
                                 if (type.v === "image")
@@ -394,14 +394,22 @@
                 {/if}
 
                 {#if settingsState.backgroundType === "threejs"}
-                    <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4">
+                    <div
+                        class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 space-y-4"
+                    >
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="galaxy-count">Particles: {settingsState.galaxySettings.particleCount}</label>
+                                <label for="galaxy-count"
+                                    >Particles: {settingsState.galaxySettings
+                                        .particleCount}</label
+                                >
                                 <input
                                     id="galaxy-count"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.particleCount}
+                                    bind:value={
+                                        settingsState.galaxySettings
+                                            .particleCount
+                                    }
                                     min="10"
                                     max="50000"
                                     step="10"
@@ -409,11 +417,18 @@
                                 />
                             </div>
                             <div class="field-group">
-                                <label for="galaxy-size">Size: {settingsState.galaxySettings.particleSize.toFixed(2)}</label>
+                                <label for="galaxy-size"
+                                    >Size: {settingsState.galaxySettings.particleSize.toFixed(
+                                        2,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-size"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.particleSize}
+                                    bind:value={
+                                        settingsState.galaxySettings
+                                            .particleSize
+                                    }
                                     min="0.01"
                                     max="2.0"
                                     step="0.01"
@@ -424,11 +439,17 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="galaxy-radius">Radius: {settingsState.galaxySettings.radius.toFixed(1)}</label>
+                                <label for="galaxy-radius"
+                                    >Radius: {settingsState.galaxySettings.radius.toFixed(
+                                        1,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-radius"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.radius}
+                                    bind:value={
+                                        settingsState.galaxySettings.radius
+                                    }
                                     min="0.1"
                                     max="20"
                                     step="0.1"
@@ -436,11 +457,16 @@
                                 />
                             </div>
                             <div class="field-group">
-                                <label for="galaxy-branches">Branches: {settingsState.galaxySettings.branches}</label>
+                                <label for="galaxy-branches"
+                                    >Branches: {settingsState.galaxySettings
+                                        .branches}</label
+                                >
                                 <input
                                     id="galaxy-branches"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.branches}
+                                    bind:value={
+                                        settingsState.galaxySettings.branches
+                                    }
                                     min="2"
                                     max="10"
                                     step="1"
@@ -451,11 +477,17 @@
 
                         <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="galaxy-spin">Spin Speed: {settingsState.galaxySettings.spin.toFixed(2)}</label>
+                                <label for="galaxy-spin"
+                                    >Spin Speed: {settingsState.galaxySettings.spin.toFixed(
+                                        2,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-spin"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.spin}
+                                    bind:value={
+                                        settingsState.galaxySettings.spin
+                                    }
                                     min="0"
                                     max="5"
                                     step="0.01"
@@ -463,11 +495,17 @@
                                 />
                             </div>
                             <div class="field-group">
-                                <label for="galaxy-randomness">Randomness: {settingsState.galaxySettings.randomness.toFixed(2)}</label>
+                                <label for="galaxy-randomness"
+                                    >Randomness: {settingsState.galaxySettings.randomness.toFixed(
+                                        2,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-randomness"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.randomness}
+                                    bind:value={
+                                        settingsState.galaxySettings.randomness
+                                    }
                                     min="0"
                                     max="2"
                                     step="0.01"
@@ -476,25 +514,39 @@
                             </div>
                         </div>
 
-                         <div class="grid grid-cols-2 gap-4">
+                        <div class="grid grid-cols-2 gap-4">
                             <div class="field-group">
-                                <label for="galaxy-randomness-power">Spread: {settingsState.galaxySettings.randomnessPower.toFixed(2)}</label>
+                                <label for="galaxy-randomness-power"
+                                    >Spread: {settingsState.galaxySettings.randomnessPower.toFixed(
+                                        2,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-randomness-power"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.randomnessPower}
+                                    bind:value={
+                                        settingsState.galaxySettings
+                                            .randomnessPower
+                                    }
                                     min="1"
                                     max="10"
                                     step="0.01"
                                     class="range-input"
                                 />
                             </div>
-                             <div class="field-group">
-                                <label for="galaxy-concentration">Concentration: {settingsState.galaxySettings.concentrationPower.toFixed(1)}</label>
+                            <div class="field-group">
+                                <label for="galaxy-concentration"
+                                    >Concentration: {settingsState.galaxySettings.concentrationPower.toFixed(
+                                        1,
+                                    )}</label
+                                >
                                 <input
                                     id="galaxy-concentration"
                                     type="range"
-                                    bind:value={settingsState.galaxySettings.concentrationPower}
+                                    bind:value={
+                                        settingsState.galaxySettings
+                                            .concentrationPower
+                                    }
                                     min="0.1"
                                     max="10"
                                     step="0.1"
@@ -503,53 +555,166 @@
                             </div>
                         </div>
 
-                         <!-- Camera & Rotation -->
-                         <div class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2">
-                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Camera Position</span>
+                        <!-- Camera & Rotation -->
+                        <div
+                            class="grid grid-cols-1 gap-4 border-t border-[var(--border-color)] pt-4 mt-2"
+                        >
+                            <span
+                                class="text-xs font-semibold text-[var(--text-secondary)]"
+                                >Camera Position</span
+                            >
                             <div class="grid grid-cols-3 gap-2">
-                                 <div class="field-group">
-                                    <label for="cam-x">X: {settingsState.galaxySettings.camPos.x.toFixed(1)}</label>
-                                    <input id="cam-x" type="range" min="-15" max="15" step="0.1" bind:value={settingsState.galaxySettings.camPos.x} class="range-input" />
+                                <div class="field-group">
+                                    <label for="cam-x"
+                                        >X: {settingsState.galaxySettings.camPos.x.toFixed(
+                                            1,
+                                        )}</label
+                                    >
+                                    <input
+                                        id="cam-x"
+                                        type="range"
+                                        min="-15"
+                                        max="15"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings.camPos
+                                                .x
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                                 <div class="field-group">
-                                    <label for="cam-y">Y: {settingsState.galaxySettings.camPos.y.toFixed(1)}</label>
-                                    <input id="cam-y" type="range" min="-15" max="15" step="0.1" bind:value={settingsState.galaxySettings.camPos.y} class="range-input" />
+                                    <label for="cam-y"
+                                        >Y: {settingsState.galaxySettings.camPos.y.toFixed(
+                                            1,
+                                        )}</label
+                                    >
+                                    <input
+                                        id="cam-y"
+                                        type="range"
+                                        min="-15"
+                                        max="15"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings.camPos
+                                                .y
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                                 <div class="field-group">
-                                    <label for="cam-z">Z: {settingsState.galaxySettings.camPos.z.toFixed(1)}</label>
-                                    <input id="cam-z" type="range" min="-15" max="15" step="0.1" bind:value={settingsState.galaxySettings.camPos.z} class="range-input" />
+                                    <label for="cam-z"
+                                        >Z: {settingsState.galaxySettings.camPos.z.toFixed(
+                                            1,
+                                        )}</label
+                                    >
+                                    <input
+                                        id="cam-z"
+                                        type="range"
+                                        min="-15"
+                                        max="15"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings.camPos
+                                                .z
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                             </div>
 
-                            <span class="text-xs font-semibold text-[var(--text-secondary)]">Rotation</span>
+                            <span
+                                class="text-xs font-semibold text-[var(--text-secondary)]"
+                                >Rotation</span
+                            >
                             <div class="grid grid-cols-3 gap-2">
-                                 <div class="field-group">
-                                    <label for="rot-x">X: {settingsState.galaxySettings.galaxyRot.x.toFixed(1)}°</label>
-                                    <input id="rot-x" type="range" min="0" max="360" step="0.1" bind:value={settingsState.galaxySettings.galaxyRot.x} class="range-input" />
+                                <div class="field-group">
+                                    <label for="rot-x"
+                                        >X: {settingsState.galaxySettings.galaxyRot.x.toFixed(
+                                            1,
+                                        )}°</label
+                                    >
+                                    <input
+                                        id="rot-x"
+                                        type="range"
+                                        min="0"
+                                        max="360"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings
+                                                .galaxyRot.x
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                                 <div class="field-group">
-                                    <label for="rot-y">Y: {settingsState.galaxySettings.galaxyRot.y.toFixed(1)}°</label>
-                                    <input id="rot-y" type="range" min="0" max="360" step="0.1" bind:value={settingsState.galaxySettings.galaxyRot.y} class="range-input" />
+                                    <label for="rot-y"
+                                        >Y: {settingsState.galaxySettings.galaxyRot.y.toFixed(
+                                            1,
+                                        )}°</label
+                                    >
+                                    <input
+                                        id="rot-y"
+                                        type="range"
+                                        min="0"
+                                        max="360"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings
+                                                .galaxyRot.y
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                                 <div class="field-group">
-                                    <label for="rot-z">Z: {settingsState.galaxySettings.galaxyRot.z.toFixed(1)}°</label>
-                                    <input id="rot-z" type="range" min="0" max="360" step="0.1" bind:value={settingsState.galaxySettings.galaxyRot.z} class="range-input" />
+                                    <label for="rot-z"
+                                        >Z: {settingsState.galaxySettings.galaxyRot.z.toFixed(
+                                            1,
+                                        )}°</label
+                                    >
+                                    <input
+                                        id="rot-z"
+                                        type="range"
+                                        min="0"
+                                        max="360"
+                                        step="0.1"
+                                        bind:value={
+                                            settingsState.galaxySettings
+                                                .galaxyRot.z
+                                        }
+                                        class="range-input"
+                                    />
                                 </div>
                             </div>
                         </div>
 
                         <!-- Gyroscope Control -->
-                        <div class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4">
+                        <div
+                            class="flex justify-between items-center p-3 bg-[var(--bg-tertiary)] rounded-lg border border-[var(--border-color)] mt-4"
+                        >
                             <div class="flex flex-col">
-                                <span class="text-sm font-medium">Gyroscope Control</span>
-                                <span class="text-[10px] text-[var(--text-secondary)]">Control camera with device motion (Mobile)</span>
+                                <span class="text-sm font-medium"
+                                    >Gyroscope Control</span
+                                >
+                                <span
+                                    class="text-[10px] text-[var(--text-secondary)]"
+                                    >Control camera with device motion (Mobile)</span
+                                >
                             </div>
                             <button
-                                class="w-12 h-6 rounded-full relative transition-colors {settingsState.galaxySettings.enableGyroscope ? 'bg-[var(--accent-color)]' : 'bg-[var(--border-color)]'}"
+                                class="w-12 h-6 rounded-full relative transition-colors {settingsState
+                                    .galaxySettings.enableGyroscope
+                                    ? 'bg-[var(--accent-color)]'
+                                    : 'bg-[var(--border-color)]'}"
                                 onclick={toggleGyro}
                                 aria-label="Toggle Gyroscope Control"
                             >
-                                <span class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState.galaxySettings.enableGyroscope ? 'translate-x-6' : 'translate-x-0'}"></span>
+                                <span
+                                    class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState
+                                        .galaxySettings.enableGyroscope
+                                        ? 'translate-x-6'
+                                        : 'translate-x-0'}"
+                                ></span>
                             </button>
                         </div>
                     </div>

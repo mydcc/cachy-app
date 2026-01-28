@@ -54,7 +54,7 @@
             <button
                 class="px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeSubTab ===
                 tab.id
-                    ? 'bg-[var(--accent-color)] text-white'
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
                     : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
                 onclick={() => (uiState.settingsTradingSubTab = tab.id)}
             >
@@ -79,7 +79,7 @@
                             <button
                                 class="flex-1 px-3 py-2 text-xs rounded border transition-colors {settingsState.feePreference ===
                                 'maker'
-                                    ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                     : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                 onclick={() =>
                                     (settingsState.feePreference = "maker")}
@@ -89,7 +89,7 @@
                             <button
                                 class="flex-1 px-3 py-2 text-xs rounded border transition-colors {settingsState.feePreference ===
                                 'taker'
-                                    ? 'bg-[var(--accent-color)] text-white border-[var(--accent-color)]'
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
                                     : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
                                 onclick={() =>
                                     (settingsState.feePreference = "taker")}
@@ -234,7 +234,9 @@
                                 >Show market data tiles in sidebar</span
                             >
                         </div>
-                        <Toggle bind:checked={settingsState.showMarketOverview} />
+                        <Toggle
+                            bind:checked={settingsState.showMarketOverview}
+                        />
                     </label>
 
                     <label class="toggle-card mb-4">
@@ -247,7 +249,9 @@
                                 >Show sentiment analysis panel</span
                             >
                         </div>
-                        <Toggle bind:checked={settingsState.showMarketSentiment} />
+                        <Toggle
+                            bind:checked={settingsState.showMarketSentiment}
+                        />
                     </label>
 
                     <label class="toggle-card mb-4">
@@ -285,8 +289,12 @@
                     {/if}
 
                     <!-- Granular Settings (Always Visible) -->
-                    <div class="border-t border-[var(--border-color)] pt-4 mt-4">
-                        <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2">
+                    <div
+                        class="border-t border-[var(--border-color)] pt-4 mt-4"
+                    >
+                        <h4
+                            class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-2"
+                        >
                             Indicator Configuration
                         </h4>
                         <IndicatorSettings />

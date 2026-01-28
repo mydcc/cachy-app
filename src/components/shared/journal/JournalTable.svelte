@@ -838,7 +838,7 @@
                                             {#if item.tags && item.tags.length > 0}
                                                 {#each item.tags as tag}
                                                     <span
-                                                        class="tag-chip text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-color)] text-white flex items-center gap-1 group/tag"
+                                                        class="tag-chip text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-color)] text-[var(--btn-accent-text)] flex items-center gap-1 group/tag"
                                                     >
                                                         {tag}
                                                         <button
