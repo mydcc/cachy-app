@@ -237,10 +237,20 @@
     }
   });
 
-  // Reset isInitialLoad once we have data
+  // Reset isInitialLoad once we have data or timeout
   $effect(() => {
     if (isInitialLoad && (wsData || tickerData)) {
       isInitialLoad = false;
+    }
+  });
+
+  // HARDENING: Safety timeout for initial load (prevent infinite shimmer)
+  $effect(() => {
+    if (isInitialLoad) {
+      const timer = setTimeout(() => {
+        if (isInitialLoad) isInitialLoad = false;
+      }, 5000);
+      return () => clearTimeout(timer);
     }
   });
 

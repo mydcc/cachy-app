@@ -35,7 +35,7 @@ export class TradeError extends Error {
 class TradeService {
     // Helper to sign and send requests to backend
     // Test mocks this
-    public async signedRequest<T>(
+    public async signedRequest<T = any>(
         method: string,
         endpoint: string,
         payload: Record<string, any>
@@ -74,7 +74,7 @@ class TradeService {
             throw new BitunixApiError(data.code || -1, data.msg || data.error || "Unknown API Error");
         }
 
-        return data;
+        return data as T;
     }
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {

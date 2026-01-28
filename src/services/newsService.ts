@@ -84,12 +84,32 @@ async function safeReadCacheAsync<T>(key: string, schema?: z.ZodType<T>): Promis
 
 function safeWriteCache<T>(key: string, value: T) {
   if (!isBrowser) return;
-  try {
-    const str = JSON.stringify(value);
-    localStorage.setItem(key, str);
-  } catch (e) {
-    logger.warn("ai", `[newsService] Failed to persist cache ${key}`);
-  }
+
+  // HARDENING: Defer serialization to avoid blocking the main thread (UI freeze)
+  // especially for large news datasets (1MB+).
+  setTimeout(() => {
+    try {
+      const str = JSON.stringify(value);
+      try {
+        localStorage.setItem(key, str);
+      } catch (storageErr: any) {
+        if (storageErr.name === 'QuotaExceededError' || storageErr.name === 'NS_ERROR_DOM_QUOTA_REACHED') {
+          logger.warn("ai", `[newsService] Storage quota exceeded. Clearing old caches.`);
+          pruneOldCaches(); // Try to free space
+          try {
+             // Retry once
+             localStorage.setItem(key, str);
+          } catch(retryErr) {
+             logger.error("ai", `[newsService] Failed to persist ${key} after prune.`);
+          }
+        } else {
+          throw storageErr;
+        }
+      }
+    } catch (e) {
+      logger.warn("ai", `[newsService] Failed to persist cache ${key}`, e);
+    }
+  }, 0);
 }
 
 // --- Interfaces & Constants ---
