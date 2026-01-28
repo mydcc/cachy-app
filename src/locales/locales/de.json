@@ -127,6 +127,8 @@
       "header": "Allgemein",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverage": "Hebel",
+      "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
       "feesPlaceholder": "Gebühren pro Trade (%)"
     },
@@ -549,6 +551,25 @@
     "restore": "Wiederherstellen",
     "reset": "Daten zurücksetzen",
     "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
+    "apiQuota": {
+      "cryptopanic": "CryptoPanic",
+      "newsapi": "NewsAPI",
+      "totalCalls": "Calls insgesamt",
+      "errors": "Fehler",
+      "last429": "Letzter 429",
+      "resetAt": "Reset am",
+      "resetButton": "Reset",
+      "resetConfirm": "API Quota für {provider} zurücksetzen?",
+      "noCalls": "Keine API-Aufrufe bisher durchgeführt."
+    },
+    "calculation": {
+      "profiles": "Leistungsprofile",
+      "advanced": "Erweiterte Einstellungen",
+      "analysisInterval": "Intervall Technische Analyse",
+      "intervalAggressive": "10s (Aggressiv)",
+      "intervalBalanced": "60s (Ausgewogen)",
+      "intervalConservative": "600s (Konservativ)"
+    },
     "apiProvider": "API Anbieter",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Guthaben beim Laden abrufen",

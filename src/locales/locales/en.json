@@ -129,6 +129,8 @@
       "header": "General",
       "longButton": "Long",
       "shortButton": "Short",
+      "leverage": "Leverage",
+      "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
       "feesPlaceholder": "Fees per Trade (%)"
     },
@@ -551,6 +553,25 @@
     "restore": "Restore",
     "reset": "Reset Data",
     "resetConfirm": "Are you sure you want to reset all data? This cannot be undone.",
+    "apiQuota": {
+      "cryptopanic": "CryptoPanic",
+      "newsapi": "NewsAPI",
+      "totalCalls": "Total Calls",
+      "errors": "Errors",
+      "last429": "Last 429",
+      "resetAt": "Reset At",
+      "resetButton": "Reset",
+      "resetConfirm": "Reset API Quota for {provider}?",
+      "noCalls": "No API calls made yet."
+    },
+    "calculation": {
+      "profiles": "Performance Profiles",
+      "advanced": "Advanced Settings",
+      "analysisInterval": "Technical Analysis Interval",
+      "intervalAggressive": "10s (Aggressive)",
+      "intervalBalanced": "60s (Balanced)",
+      "intervalConservative": "600s (Conservative)"
+    },
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
     "autoFetchBalance": "Auto-fetch Balance",

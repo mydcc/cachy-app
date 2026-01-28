@@ -144,7 +144,7 @@
         <label
           for="leverage-input"
           class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-          >Leverage</label
+          >{$_("dashboard.generalInputs.leverage")}</label
         >
         <input
           id="leverage-input"
@@ -189,7 +189,7 @@
         <label
           for="fees-input"
           class="text-[10px] text-[var(--text-secondary)] absolute -top-4 left-0"
-          >Fees (%)</label
+          >{$_("dashboard.generalInputs.fees")}</label
         >
         <input
           id="fees-input"

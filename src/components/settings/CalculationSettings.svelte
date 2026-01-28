@@ -5,6 +5,7 @@
 
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
+    import { _ } from "../../locales/i18n";
 
     type PresetType = "light" | "balanced" | "pro";
 
@@ -94,7 +95,7 @@
 <div class="calculation-settings">
     <!-- Presets Section -->
     <section class="presets-section">
-        <h3>Performance Profiles</h3>
+        <h3>{$_("settings.calculation.profiles")}</h3>
         <p class="description">
             Choose a preset matching your trading style. Scalpers need faster updates, position traders can use slower intervals to save CPU.
         </p>
@@ -124,12 +125,12 @@
 
     <!-- Advanced Settings -->
     <section class="advanced-settings">
-        <h3>Advanced Settings</h3>
+        <h3>{$_("settings.calculation.advanced")}</h3>
 
         <!-- Market Analysis Interval -->
         <div class="setting-group">
             <label for="marketAnalysisInterval">
-                <span class="label-text">Technical Analysis Interval</span>
+                <span class="label-text">{$_("settings.calculation.analysisInterval")}</span>
                 <span class="current-value"
                     >{formatIntervalLabel(
                         settingsState.marketAnalysisInterval,
@@ -147,9 +148,9 @@
                     class="slider"
                 />
                 <div class="slider-labels">
-                    <span>10s (Aggressive)</span>
-                    <span>60s (Balanced)</span>
-                    <span>600s (Conservative)</span>
+                    <span>{$_("settings.calculation.intervalAggressive")}</span>
+                    <span>{$_("settings.calculation.intervalBalanced")}</span>
+                    <span>{$_("settings.calculation.intervalConservative")}</span>
                 </div>
             </div>
             <p class="help-text">

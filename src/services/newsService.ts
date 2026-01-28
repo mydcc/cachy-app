@@ -13,7 +13,7 @@ import { rssParserService } from "./rssParserService";
 import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
-import { apiQuotaTracker } from "./apiQuotaTracker";
+import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
 import { z } from "zod";
 
 const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
