@@ -68,14 +68,16 @@
         }
 
         const geometry = new THREE.PlaneGeometry(1, 1);
+
+        // Remove aSize as we now calculate it from modelViewMatrix in the shader
+        // This is more robust against attribute sync issues
+
         const material = new THREE.ShaderMaterial({
             vertexShader: fireVertexShader,
             fragmentShader: fireFragmentShader,
             uniforms: {
                 uTime: { value: 0 },
-                uColor: { value: new THREE.Color(0xffaa00) },
                 uIntensity: { value: 1.0 },
-                uAspectRatio: { value: 1.0 },
             },
             transparent: true,
             blending: THREE.AdditiveBlending,
@@ -85,6 +87,7 @@
 
         mesh = new THREE.InstancedMesh(geometry, material, MAX_INSTANCES);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
+        mesh.frustumCulled = false; // Important for moving instances
         scene.add(mesh);
 
         const clock = new THREE.Clock();
@@ -114,23 +117,39 @@
             const width = window.innerWidth;
             const height = window.innerHeight;
 
+            const tempColor = new THREE.Color();
+
             for (const [id, data] of fireStore.elements) {
                 if (i >= MAX_INSTANCES) break;
 
-                const { x, y, width: w, height: h } = data;
+                const { x, y, width: w, height: h, color } = data;
+
+                // Adjust for border padding in Three.js coordinates
+                const padding = 40;
+                const planeW = w + padding;
+                const planeH = h + padding;
+
                 const cx = x + w / 2 - width / 2;
                 const cy = -(y + h / 2 - height / 2);
 
                 dummy.position.set(cx, cy, 0);
-                const padding = 20;
-                dummy.scale.set(w + padding, h + padding, 1);
+                dummy.scale.set(planeW, planeH, 1);
                 dummy.updateMatrix();
                 mesh.setMatrixAt(i, dummy.matrix);
+
+                // Set color
+                tempColor.set(color || "#ff8800");
+                mesh.setColorAt(i, tempColor);
+
                 i++;
             }
 
             mesh.count = i;
             mesh.instanceMatrix.needsUpdate = true;
+
+            if (mesh.instanceColor) {
+                mesh.instanceColor.needsUpdate = true;
+            }
 
             renderer.render(scene, camera);
         };

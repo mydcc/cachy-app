@@ -1,22 +1,31 @@
 export const fireVertexShader = `
 varying vec2 vUv;
-varying float vReflect;
+varying vec2 vSize;
+varying vec3 vColor;
 
 void main() {
     vUv = uv;
+    vColor = instanceColor;
+    
+    // Extract scale from modelViewMatrix to get size in view space (pixels)
+    float scaleX = length(vec3(modelViewMatrix[0].x, modelViewMatrix[0].y, modelViewMatrix[0].z));
+    float scaleY = length(vec3(modelViewMatrix[1].x, modelViewMatrix[1].y, modelViewMatrix[1].z));
+    
+    vSize = vec2(scaleX, scaleY);
+    
     gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
 }
 `;
 
 export const fireFragmentShader = `
 uniform float uTime;
-uniform vec3 uColor;
 uniform float uIntensity;
-uniform float uAspectRatio; // Width / Height
 
 varying vec2 vUv;
+varying vec2 vSize;
+varying vec3 vColor;
 
-// Simplex Noise (standard implementation)
+// Simplex Noise
 vec3 permute(vec3 x) { return mod(((x*34.0)+1.0)*x, 289.0); }
 float snoise(vec2 v){
   const vec4 C = vec4(0.211324865405187, 0.366025403784439,
@@ -45,48 +54,39 @@ float snoise(vec2 v){
 }
 
 void main() {
-    // Distance from center (0.5, 0.5)
-    // We want the fire to be on the edges.
-    // Normalized distance from center vector
-    vec2 center = vec2(0.5);
-    // Adjust for aspect ratio to have even thickness
-    vec2 distVec = max(abs(vUv - center) * vec2(uAspectRatio, 1.0), abs(vUv - center));
+    // Pixel Distance to edge
+    vec2 pixelDist = abs(vUv - 0.5) * vSize;
+    vec2 distToEdge = vSize * 0.5 - pixelDist;
+    float minDist = min(distToEdge.x, distToEdge.y);
     
-    // Rectangular distance field (Box SDF approximation)
-    float dX = abs(vUv.x - 0.5) * 2.0;
-    float dY = abs(vUv.y - 0.5) * 2.0;
+    // We want a border of about 20-30 pixels
+    float borderWidth = 30.0;
     
-    // We only want edges.
-    // Calculate distance to edge
-    float edgeDist = max(dX, dY);
-    
-    // Threshold for the border
-    // If edgeDist > 0.8 it starts burning
-    if (edgeDist < 0.85) discard;
+    // Discard inner area 
+    if (minDist > borderWidth) discard;
 
-    // Noise generation
-    float noiseScale = 10.0;
-    float noiseTime = uTime * 2.5;
+    // Noise for lick of flames
+    float n = snoise(vUv * 6.0 - vec2(0.0, uTime * 2.5));
     
-    // Displace UVs with noise for the flame shape
-    float n = snoise(vUv * noiseScale - vec2(0.0, noiseTime));
+    // Calculate strength based on distance to edge 
+    float strength = clamp(1.0 - (minDist / borderWidth), 0.0, 1.0);
     
-    // Calculate alpha/intensity based on edge proximity + noise
-    float strength = (edgeDist - 0.85) * (1.0 / 0.15); // Normalize 0..1 at edge
+    // Add noise to the edge boundary
+    strength = pow(strength, 0.5);
+    strength += n * 0.5 * (1.0 - minDist/borderWidth);
     
-    // Add turbulence
-    strength += n * 0.3;
-    
-    // Apply intensity
     strength *= uIntensity;
 
-    // Hard cutoff or soft glow?
-    float alpha = smoothstep(0.1, 0.8, strength);
+    float alpha = smoothstep(0.0, 0.4, strength);
     
-    // Color mixing (Core -> Outer)
-    vec3 color = mix(vec3(1.0, 0.1, 0.0), uColor, strength); // Red to User Color
-    color += vec3(1.0, 0.8, 0.5) * step(0.8, strength); // White hot core
+    // Fire palette influenced by instance color
+    vec3 colorCore = vec3(1.0, 0.95, 0.8); // White hot center
+    vec3 colorMid = vColor;                // Instance color tint
+    vec3 colorOuter = vColor * 0.5;        // Darker tint
+    
+    vec3 finalColor = mix(colorOuter, colorMid, strength);
+    finalColor = mix(finalColor, colorCore, pow(strength, 4.0));
 
-    gl_FragColor = vec4(color, alpha);
+    gl_FragColor = vec4(finalColor, alpha);
 }
 `;

@@ -217,6 +217,10 @@ export interface Settings {
   // Burning Borders
   enableBurningBorders: boolean;
   burningBordersIntensity: AnimationIntensity;
+  burnNewsWindows: boolean;
+  burnChannelWindows: boolean;
+  burnMarketOverviewTiles: boolean;
+  burnFlashCards: boolean;
 
   // Market & Performance Settings
   marketMode: MarketMode;
@@ -387,6 +391,10 @@ const defaultSettings: Settings = {
 
   enableBurningBorders: false,
   burningBordersIntensity: "medium",
+  burnNewsWindows: true,
+  burnChannelWindows: true,
+  burnMarketOverviewTiles: true,
+  burnFlashCards: true,
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -648,6 +656,12 @@ export class SettingsManager {
   burningBordersIntensity = $state<AnimationIntensity>(
     defaultSettings.burningBordersIntensity,
   );
+  burnNewsWindows = $state<boolean>(defaultSettings.burnNewsWindows);
+  burnChannelWindows = $state<boolean>(defaultSettings.burnChannelWindows);
+  burnMarketOverviewTiles = $state<boolean>(
+    defaultSettings.burnMarketOverviewTiles,
+  );
+  burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
@@ -1150,6 +1164,10 @@ export class SettingsManager {
       panelIsExpanded: this.panelIsExpanded,
       enableBurningBorders: this.enableBurningBorders,
       burningBordersIntensity: this.burningBordersIntensity,
+      burnNewsWindows: this.burnNewsWindows,
+      burnChannelWindows: this.burnChannelWindows,
+      burnMarketOverviewTiles: this.burnMarketOverviewTiles,
+      burnFlashCards: this.burnFlashCards,
       minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,

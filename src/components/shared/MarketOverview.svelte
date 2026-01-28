@@ -27,6 +27,7 @@
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { viewport } from "../../actions/viewport";
+  import { burn } from "../../actions/burn";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -349,6 +350,14 @@
   role={isFavoriteTile ? "button" : "region"}
   tabindex={isFavoriteTile ? 0 : -1}
   use:viewport={symbol}
+  use:burn={settingsState.burnMarketOverviewTiles &&
+  settingsState.enableBurningBorders
+    ? {
+        color: priceChangePercent?.gte(0) ? "#00ff88" : "#ff4444",
+        intensity:
+          rsiValue && (rsiValue.gte(70) || rsiValue.lte(30)) ? 2.0 : 1.0,
+      }
+    : null}
 >
   <div class="absolute top-2 right-2 flex gap-1 z-50">
     {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}

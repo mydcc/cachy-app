@@ -4,6 +4,7 @@
     import { _ } from "../../locales/i18n";
     import { icons } from "../../lib/constants";
     import { burn } from "../../actions/burn";
+    import { settingsState } from "../../stores/settings.svelte";
 
     interface Props {
         iframeState: {
@@ -179,6 +180,25 @@
             document.removeEventListener("fullscreenchange", handleFsChange);
         };
     });
+
+    // Determine burning configuration based on window title and settings
+    let burnConfig = $derived.by(() => {
+        if (!settingsState.enableBurningBorders) return null;
+
+        const isNews = iframeState.title.toLowerCase().includes("news");
+        const isChannel = iframeState.title.toLowerCase().includes("channel");
+
+        if (isNews && settingsState.burnNewsWindows) {
+            return { color: "#00d4ff", intensity: 1.5 }; // Cyan for News
+        }
+        if (isChannel && settingsState.burnChannelWindows) {
+            return { color: "#ff8c00", intensity: 1.8 }; // Orange for Channel
+        }
+
+        // Default burn for other windows if enabled?
+        // For now only if specifically requested or a generic setting (could add burnOtherWindows)
+        return null;
+    });
 </script>
 
 {#if iframeState.visible}
@@ -186,7 +206,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={containerEl}
-        use:burn={{ color: "#aa00ff", intensity: 1.5 }}
+        use:burn={burnConfig || undefined}
         role="application"
         aria-label={iframeState.title}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"

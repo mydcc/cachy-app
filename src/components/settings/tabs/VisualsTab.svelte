@@ -273,25 +273,84 @@
                     </label>
 
                     {#if settingsState.enableBurningBorders}
-                        <div class="field-group animate-fade-in">
-                            <span
-                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                >Intensity</span
+                        <div class="flex flex-col gap-4 animate-fade-in">
+                            <div class="field-group">
+                                <span
+                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                                    >Intensity</span
+                                >
+                                <div class="flex gap-2">
+                                    {#each ["low", "medium", "high"] as intensity}
+                                        <button
+                                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.burningBordersIntensity ===
+                                            intensity
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                                : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                            onclick={() =>
+                                                (settingsState.burningBordersIntensity =
+                                                    intensity as any)}
+                                        >
+                                            {intensity}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            <div
+                                class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2 mt-2"
                             >
-                            <div class="flex gap-2">
-                                {#each ["low", "medium", "high"] as intensity}
-                                    <button
-                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.burningBordersIntensity ===
-                                        intensity
-                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
-                                        onclick={() =>
-                                            (settingsState.burningBordersIntensity =
-                                                intensity as any)}
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                        >Market Overview Tiles</span
                                     >
-                                        {intensity}
-                                    </button>
-                                {/each}
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnMarketOverviewTiles
+                                        }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                        >News Windows</span
+                                    >
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnNewsWindows
+                                        }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                        >Channel Windows</span
+                                    >
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnChannelWindows
+                                        }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                        >Flash Cards</span
+                                    >
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnFlashCards
+                                        }
+                                    />
+                                </label>
                             </div>
                         </div>
                     {/if}
