@@ -1,70 +1,74 @@
-# Status- & Risiko-Bericht: Cachy Trading Platform
+# Status- & Risiko-Bericht (Step 1)
 
-**Datum:** 05.03.2025
-**Analyst:** Jules (Senior Lead Developer)
-**Status:** Initial Audit Completed
-
-Dieser Bericht fasst die Ergebnisse der Tiefenanalyse (Phase 1) zusammen. Ziel war es, die Codebasis auf Stabilität, Datensicherheit und "Institutional Grade" Standards zu prüfen.
+## 1. Executive Summary
+Die Codebasis zeigt eine solide Architektur mit robusten Ansätzen (z.B. Zod-Validierung im Backend, Singleton-Pattern für WebSockets). Jedoch wurden **KRITISCHE** Sicherheitslücken (XSS) und logische Schwachstellen im Finanz-Handling (fehlende Validierung bei Teilschließungen) gefunden. Die Ressourcenverwaltung ist größtenteils gut ("Zombie-Killing" in WS), aber Synchrone I/O-Operationen im AI-Store gefährden die Performance.
 
 ---
 
-## 🔴 CRITICAL (Kritische Risiken)
-*Sofortiger Handlungsbedarf. Gefahr von finanziellen Verlusten, Dateninkonsistenz oder Sicherheitslücken.*
+## 2. Findings
 
-1.  **Finanz-Mathematik ohne Typ-Sicherheit (`calculatorService.ts`)**
-    *   **Problem:** Die Methode `calculateTotalMetrics` und das Array `targets` verwenden `any`-Typen (`targets: any[]`, `return any`).
-    *   **Risiko:** Es gibt keine Garantie, dass Berechnungen mit `Decimal` durchgeführt werden. Ein versehentliches Einschleusen von nativen `number`-Werten kann zu Rundungsfehlern führen (z.B. `0.1 + 0.2 = 0.30000000000000004`), was bei Finanz-Applikationen inakzeptabel ist.
-    *   **Fundort:** `src/services/calculatorService.ts`
+### 🔴 CRITICAL (Sofortiger Handlungsbedarf)
 
-2.  **XSS-Sicherheitslücke in Markdown-Rendering**
-    *   **Problem:** Die Komponenten `ChartPatternsView.svelte` und `CandlestickPatternsView.svelte` nutzen `{@html marked.parse(...)}` ohne Sanitization (z.B. via `DOMPurify`).
-    *   **Risiko:** Cross-Site Scripting (XSS). Sollte jemals Schadcode in die Pattern-Datenbank oder Übersetzungsdateien gelangen, würde dieser ungefiltert im Browser des Users ausgeführt werden (Session Hijacking, Keylogging).
-    *   **Fundort:** `src/components/shared/ChartPatternsView.svelte`
+1.  **XSS Schwachstelle in `CustomModal.svelte`**
+    *   **Ort:** `src/components/shared/CustomModal.svelte`
+    *   **Problem:** Verwendung von `{@html mState.message}` ohne Sanitize-Schritt (z.B. DOMPurify).
+    *   **Risiko:** Ein Angreifer könnte über manipulierte Fehlermeldungen oder externe Daten (z.B. News-Titel) Schadcode einschleusen.
+    *   **Empfehlung:** `sanitizeHtml` Utility verwenden oder `{@html}` entfernen.
 
-3.  **Schema-Drift Risiko in WebSocket-Handlern**
-    *   **Problem:** Sowohl `bitunixWs.ts` als auch `bitgetWs.ts` nutzen massiv `any`-Casting (z.B. `(msg as any).event`) und "Fast Path"-Optimierungen, die die Validierung umgehen.
-    *   **Risiko:** Wenn die Börsen ihre API unangekündigt ändern (Schema Drift), stürzt der Handler ab oder verarbeitet falsche Daten, ohne dass `Zod` dies abfängt. Dies kann zu "Frozen UI" oder falschen Preisdaten führen.
-    *   **Fundort:** `src/services/bitunixWs.ts`, `src/services/bitgetWs.ts`
+2.  **Fehlende Input-Validierung in `tradeService.ts`**
+    *   **Ort:** `src/services/tradeService.ts`, Methode `closePosition`
+    *   **Problem:** Der Parameter `amount` ist optional. Falls vorhanden, wird nicht geprüft, ob `amount > position.amount` oder `amount <= 0` ist.
+    *   **Risiko:** Senden ungültiger Orders an die API, potenziell unerwartetes Verhalten bei "ReduceOnly" Konflikten, wenn die API dies nicht sauber abfängt.
+    *   **Empfehlung:** Pre-Check: `if (amount && (amount.lte(0) || amount.gt(position.amount))) throw ...`
 
-4.  **Fehlende Programmatische AI-Validierung**
-    *   **Problem:** Das "Anti-Hallucination Protocol" in `ai.svelte.ts` basiert rein auf Prompt-Engineering (Text-Anweisungen an die KI). Es gibt keine code-seitige Überprüfung, ob die von der KI genannten Preise/Werte tatsächlich mit dem geladenen Kontext übereinstimmen.
-    *   **Risiko:** Die KI kann trotz Prompt halluzinieren (z.B. falsche Preise nennen), und das System würde dies dem User ungeprüft anzeigen.
+3.  **Performance-Blocker in `ai.svelte.ts`**
+    *   **Ort:** `src/stores/ai.svelte.ts`, Methode `save()` und `sendMessage()`
+    *   **Problem:** `localStorage.setItem` wird synchron bei *jeder* Nachricht aufgerufen. Auch wenn `messages` auf 50 begrenzt ist, blockiert dies den Main-Thread, besonders auf mobilen Geräten.
+    *   **Risiko:** UI-Freezes während des Tradings.
+    *   **Empfehlung:** `debounce` für `save()` implementieren oder `IndexedDB` (async) nutzen.
+
+### 🟡 WARNING (Priorität Hoch)
+
+1.  **"Fast Path" Validierungsumgehung in `bitunixWs.ts`**
+    *   **Ort:** `src/services/bitunixWs.ts`, Methode `handleMessage`
+    *   **Problem:** Für High-Frequency Daten (Ticker, Price, Book) wird die Zod-Validierung übersprungen ("Fast Path"), um Performance zu sparen.
+    *   **Risiko:** Wenn Bitunix das API-Schema ändert, könnte die App abstürzen oder korrupte Daten in den `marketState` schreiben, da `isPriceData` Type Guards sehr locker sind.
+    *   **Empfehlung:** Zumindest eine "Lightweight"-Validierung der Datentypen durchführen oder `try-catch` spezifisch um den State-Update-Block legen.
+
+2.  **Hardcoded Strings & i18n Lücken**
+    *   **Ort:** `src/components/shared/OrderHistoryList.svelte`
+    *   **Problem:** Mapping von `BUY`/`SELL`/`MAKER` auf Übersetzungsschlüssel ist statisch. Fallback-Texte ("No history found") sind hardcoded englisch.
+    *   **Risiko:** Inkonsistente UX für nicht-englische Nutzer.
+    *   **Empfehlung:** Alle Strings in `src/locales` auslagern.
+
+3.  **Netzwerk-Timeout Logik in `ai.svelte.ts`**
+    *   **Ort:** `src/stores/ai.svelte.ts`, Methode `gatherContext`
+    *   **Problem:** `Promise.race` wartet bis zu 5000ms auf Kontext.
+    *   **Risiko:** Verzögert die Antwort des AI-Assistenten massiv, wenn externe APIs (CMC, News) langsam sind.
+    *   **Empfehlung:** Timeout auf 1000-2000ms reduzieren oder "Stale-While-Revalidate" Pattern nutzen.
+
+4.  **API Fallback Logik**
+    *   **Ort:** `src/routes/api/orders/+server.ts`, `fetchBitgetHistoryOrders`
+    *   **Problem:** `startTime` ist hardcoded auf `Date.now() - 7 Tage`.
+    *   **Risiko:** User kann keine älteren Orders sehen.
+    *   **Empfehlung:** `startTime` als optionalen Parameter durchreichen.
+
+### 🔵 REFACTOR (Technische Schuld)
+
+1.  **Inkonsistente Typen (`Number` vs `Decimal`)**
+    *   **Ort:** `src/services/bitunixWs.ts` (`mapToOMSOrder`), `src/components/shared/OrderHistoryList.svelte`
+    *   **Problem:** Zeitstempel und einige PnL-Berechnungen nutzen `Number()`.
+    *   **Empfehlung:** Konsequente Nutzung von `Decimal` für alle Geldwerte. Zeitstempel können `number` bleiben (safe integer range), aber API-Daten sollten idealerweise direkt validiert werden.
+
+2.  **Magic Strings in `marketWatcher.ts`**
+    *   **Ort:** `mapTimeframeToBitunix` und Channel-Namen.
+    *   **Empfehlung:** Enums oder Konstanten-Objekte verwenden.
 
 ---
 
-## 🟡 WARNING (Warnungen)
-*Einfluss auf UX, Wartbarkeit oder Stabilität in Randfällen.*
+## 3. Nächste Schritte (Vorschlag)
 
-1.  **Lückenhafte Internationalisierung (i18n)**
-    *   **Problem:** Zahlreiche Hardcoded Strings in den Einstellungen und UI-Komponenten gefunden.
-    *   **Beispiele:** "Analyze All Favorites" (`CalculationSettings.svelte`), "Tags" (`TagInputs.svelte`), "Alt/Ctrl" (`HotkeySettings.svelte`).
-    *   **Risiko:** Unprofessioneller Eindruck bei nicht-englischen Nutzern; erschwerte Wartung.
-
-2.  **Unsichere HTML-Injection in Übersetzungen**
-    *   **Problem:** `{@html $_("legal.disclaimerBody")}` rendert HTML direkt aus den JSON-Sprachdateien.
-    *   **Risiko:** Wenn Übersetzungstools oder -dateien kompromittiert werden, ist dies ein Einfallstor für XSS. HTML sollte in Sprachdateien vermieden oder strikt sanitisiert werden.
-
-3.  **Grobes Error-Handling bei Bulk-Operationen**
-    *   **Problem:** `tradeService.closeAllPositions` nutzt `Promise.allSettled`, wirft aber bei *einem* Fehler einen generischen Fehler ("apiErrors.generic").
-    *   **Risiko:** Der User erfährt nicht, *welche* Position nicht geschlossen werden konnte. Dies ist in Panik-Situationen (Not-Aus) fatal.
-
----
-
-## 🔵 REFACTOR (Technische Schuld)
-*Verbesserungspotenzial für langfristige Qualität.*
-
-1.  **Magic Numbers in `parseTimestamp`**
-    *   Die Heuristik `< 10000000000` (Jahr 2286) zur Unterscheidung von Sekunden/Millisekunden ist fragil und sollte durch explizite Logik ersetzt werden.
-2.  **Komplexität in `marketWatcher.ts`**
-    *   Die Logik zur Verwaltung von Locks und Timeouts ist robust, aber sehr komplex. Eine Vereinfachung mittels `RxJS` oder einer State-Machine wäre langfristig sicherer.
-
----
-
-## Nächste Schritte (Phase 2 Preview)
-
-Basierend auf diesem Bericht wird der Aktionsplan für Phase 2 folgende Prioritäten haben:
-
-1.  **Hardening Financial Core:** Typ-Sicherheit für `calculatorService` herstellen (Strict `Decimal`).
-2.  **Security Fixes:** `DOMPurify` integrieren für alle Markdown-Renderings.
-3.  **WebSocket Safety:** Zod-Validierung auch im "Fast Path" erzwingen oder `any`-Casts entfernen.
-4.  **I18n Audit:** Hardcoded Strings extrahieren und in `en.json` / `de.json` überführen.
+1.  **Sofort-Fix:** `CustomModal` XSS beheben (Sanitization).
+2.  **Hardening:** `tradeService` Validierung hinzufügen.
+3.  **Performance:** `ai.svelte.ts` Storage-Logik optimieren.
+4.  **I18n:** Audit der UI-Komponenten und Auslagerung der Strings.
