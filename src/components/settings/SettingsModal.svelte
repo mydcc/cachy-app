@@ -238,10 +238,12 @@
   alignment="center"
 >
   <!-- Main Content Container (Split View) -->
-  <div class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden">
+  <div
+    class="flex flex-col md:flex-row flex-1 min-h-0 overflow-hidden bg-[var(--bg-primary)]"
+  >
     <!-- Sidebar Navigation -->
     <div
-      class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 py-2"
+      class="flex md:flex-col overflow-x-auto md:overflow-y-auto md:w-64 border-b md:border-b-0 md:border-r border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)] py-2"
       role="tablist"
     >
       {#each visibleTabs as tab}
@@ -303,7 +305,7 @@
 
   <!-- Footer Actions -->
   <div
-    class="flex justify-between items-center p-4 border-t border-[var(--border-color)] shrink-0"
+    class="flex justify-between items-center p-4 border-t border-[var(--border-color)] shrink-0 bg-[var(--bg-secondary)]"
   >
     <div
       class="flex items-center gap-2 text-[10px] text-[var(--text-secondary)] font-bold opacity-50 uppercase tracking-widest pl-2"

@@ -112,8 +112,6 @@
         value={CONSTANTS.TRADE_TYPE_LONG}
         class="long w-1/2"
         class:active={tradeType === CONSTANTS.TRADE_TYPE_LONG}
-        class:text-[var(--btn-accent-text)]={tradeType ===
-          CONSTANTS.TRADE_TYPE_LONG}
         role="radio"
         aria-checked={tradeType === CONSTANTS.TRADE_TYPE_LONG}
         onclick={() => setTradeType(CONSTANTS.TRADE_TYPE_LONG)}

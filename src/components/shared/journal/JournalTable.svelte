@@ -16,12 +16,11 @@
 -->
 
 <script lang="ts">
-    import JournalTable from "./JournalTable.svelte";
-
-    import { _ as t } from "../../../locales/i18n";
+    import { _ } from "../../../locales/i18n";
     import { formatDynamicDecimal } from "../../../utils/utils";
     import type { JournalEntry } from "../../../stores/types";
     import { Decimal } from "decimal.js";
+    import JournalTableSelf from "./JournalTable.svelte";
 
     interface Props {
         trades?: any[];
@@ -226,7 +225,7 @@
 <div class="journal-table-container">
     {#if trades.length === 0 && !isInternal}
         <div class="empty-state">
-            <p>{$t("journal.noTradesYet")}</p>
+            <p>{$_("journal.noTradesYet")}</p>
         </div>
     {:else}
         <div class="table-wrapper">
@@ -240,9 +239,9 @@
                             {#if columnVisibility.date && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("date")}
-                                    class="col-date sortable"
+                                    class="sortable col-date"
                                 >
-                                    {$t("journal.table.date")}
+                                    {$_("journal.table.date")}
                                     <span class="sort-icon"
                                         >{activeSortField === "date"
                                             ? activeSortDirection === "asc"
@@ -255,9 +254,9 @@
                             {#if columnVisibility.symbol}
                                 <th
                                     onclick={() => handleSort("symbol")}
-                                    class="col-symbol sortable"
+                                    class="sortable col-symbol"
                                 >
-                                    {$t("journal.table.symbol")}
+                                    {$_("journal.table.symbol")}
                                     <span class="sort-icon"
                                         >{activeSortField === "symbol"
                                             ? activeSortDirection === "asc"
@@ -272,7 +271,7 @@
                                     onclick={() => handleSort("tradeType")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.type")}
+                                    {$_("journal.table.type")}
                                     <span class="sort-icon"
                                         >{activeSortField === "tradeType"
                                             ? activeSortDirection === "asc"
@@ -287,7 +286,7 @@
                                     onclick={() => handleSort("entryPrice")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.entry")}
+                                    {$_("journal.table.entry")}
                                     <span class="sort-icon"
                                         >{activeSortField === "entryPrice"
                                             ? activeSortDirection === "asc"
@@ -302,7 +301,7 @@
                                     onclick={() => handleSort("exitPrice")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.exit")}
+                                    {$_("journal.table.exit")}
                                     <span class="sort-icon"
                                         >{activeSortField === "exitPrice"
                                             ? activeSortDirection === "asc"
@@ -317,7 +316,7 @@
                                     onclick={() => handleSort("atrValue")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.atr")}
+                                    {$_("journal.table.atr")}
                                     <span class="sort-icon"
                                         >{activeSortField === "atrValue"
                                             ? activeSortDirection === "asc"
@@ -332,7 +331,7 @@
                                     onclick={() => handleSort("stopLossPrice")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.sl")}
+                                    {$_("journal.table.sl")}
                                     <span class="sort-icon"
                                         >{activeSortField === "stopLossPrice"
                                             ? activeSortDirection === "asc"
@@ -347,7 +346,7 @@
                                     onclick={() => handleSort("positionSize")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.size")}
+                                    {$_("journal.table.size")}
                                     <span class="sort-icon"
                                         >{activeSortField === "positionSize"
                                             ? activeSortDirection === "asc"
@@ -362,7 +361,7 @@
                                     onclick={() => handleSort("totalNetProfit")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.pnl")}
+                                    {$_("journal.table.pnl")}
                                     <span class="sort-icon"
                                         >{activeSortField === "totalNetProfit"
                                             ? activeSortDirection === "asc"
@@ -377,7 +376,7 @@
                                     onclick={() => handleSort("fundingFee")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.funding")}
+                                    {$_("journal.table.funding")}
                                     <span class="sort-icon"
                                         >{activeSortField === "fundingFee"
                                             ? activeSortDirection === "asc"
@@ -392,7 +391,7 @@
                                     onclick={() => handleSort("totalRR")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.rr")}
+                                    {$_("journal.table.rr")}
                                     <span class="sort-icon"
                                         >{activeSortField === "totalRR"
                                             ? activeSortDirection === "asc"
@@ -407,7 +406,7 @@
                                     onclick={() => handleSort("mae")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.mae")}
+                                    {$_("journal.table.mae")}
                                     <span class="sort-icon"
                                         >{activeSortField === "mae"
                                             ? activeSortDirection === "asc"
@@ -422,7 +421,7 @@
                                     onclick={() => handleSort("mfe")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.mfe")}
+                                    {$_("journal.table.mfe")}
                                     <span class="sort-icon"
                                         >{activeSortField === "mfe"
                                             ? activeSortDirection === "asc"
@@ -437,7 +436,7 @@
                                     onclick={() => handleSort("efficiency")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.efficiency")}
+                                    {$_("journal.table.efficiency")}
                                     <span class="sort-icon"
                                         >{activeSortField === "efficiency"
                                             ? activeSortDirection === "asc"
@@ -450,9 +449,9 @@
                             {#if columnVisibility.duration && !groupBySymbol}
                                 <th
                                     onclick={() => handleSort("duration")}
-                                    class="col-duration sortable"
+                                    class="sortable col-duration"
                                 >
-                                    {$t("journal.table.duration")}
+                                    {$_("journal.table.duration")}
                                     <span class="sort-icon"
                                         >{activeSortField === "duration"
                                             ? activeSortDirection === "asc"
@@ -467,20 +466,20 @@
                                     onclick={() => handleSort("status")}
                                     class="sortable"
                                 >
-                                    {$t("journal.table.status")}
+                                    {$_("journal.table.status")}
                                 </th>
                             {/if}
                             {#if columnVisibility.screenshot && !groupBySymbol}
-                                <th>{$t("journal.table.screenshot")}</th>
+                                <th>{$_("journal.table.screenshot")}</th>
                             {/if}
                             {#if columnVisibility.tags && !groupBySymbol}
-                                <th>{$t("journal.table.tags")}</th>
+                                <th>{$_("journal.table.tags")}</th>
                             {/if}
                             {#if columnVisibility.notes && !groupBySymbol}<th
-                                    >{$t("journal.table.notes")}</th
+                                    >{$_("journal.table.notes")}</th
                                 >{/if}
                             {#if columnVisibility.action && !groupBySymbol}<th
-                                    >{$t("journal.table.action")}</th
+                                    >{$_("journal.table.action")}</th
                                 >{/if}
                         </tr>
                     </thead>
@@ -536,7 +535,7 @@
                                         style="padding: 0;"
                                     ></td>
                                     <td colspan="100" style="padding: 0;">
-                                        <JournalTable
+                                        <JournalTableSelf
                                             trades={item.trades}
                                             {columnVisibility}
                                             isInternal={true}
@@ -737,17 +736,17 @@
                                                 )}
                                         >
                                             <option value="Open"
-                                                >{$t(
+                                                >{$_(
                                                     "journal.filterOpen",
                                                 )}</option
                                             >
                                             <option value="Won"
-                                                >{$t(
+                                                >{$_(
                                                     "journal.filterWon",
                                                 )}</option
                                             >
                                             <option value="Lost"
-                                                >{$t(
+                                                >{$_(
                                                     "journal.filterLost",
                                                 )}</option
                                             >
@@ -764,7 +763,7 @@
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     class="screenshot-icon-wrapper relative group text-lg"
-                                                    title={$t(
+                                                    title={$_(
                                                         "journal.labels.view" as any,
                                                     )}
                                                 >
@@ -789,7 +788,7 @@
                                                                     undefined,
                                                             },
                                                         )}
-                                                    title={$t(
+                                                    title={$_(
                                                         "journal.labels.removeScreenshot" as any,
                                                     )}
                                                 >
@@ -801,10 +800,10 @@
                                                 onclick={() =>
                                                     triggerFileUpload(item.id)}
                                                 title={item.screenshot
-                                                    ? $t(
+                                                    ? $_(
                                                           "journal.labels.replaceScreenshot",
                                                       )
-                                                    : $t(
+                                                    : $_(
                                                           "journal.labels.uploadScreenshot",
                                                       )}
                                             >
@@ -852,7 +851,7 @@
                                                                         [],
                                                                 );
                                                             }}
-                                                            >{$t(
+                                                            >{$_(
                                                                 "common.remove",
                                                             )}</button
                                                         >
@@ -906,7 +905,7 @@
                                                 class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                 onclick={() =>
                                                     handleDeleteTrade(item.id)}
-                                                title={$t(
+                                                title={$_(
                                                     "journal.labels.delete" as any,
                                                 )}
                                             >
@@ -945,7 +944,7 @@
                 </div>
                 <div class="flex items-center gap-2">
                     <span class="text-sm"
-                        >{$t("journal.table.itemsPerPage")}:</span
+                        >{$_("journal.table.itemsPerPage")}:</span
                     >
                     <select
                         bind:value={itemsPerPage}
