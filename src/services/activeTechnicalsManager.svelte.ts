@@ -239,7 +239,6 @@ class ActiveTechnicalsManager {
     // Helper for deep equality
     private isTechnicalsEqual(a: any, b: any): boolean {
         // Fast path for references
-        if (a === b) return true;
         if (!a || !b) return false;
 
         // Check timestamp first (optimization)
@@ -290,11 +289,9 @@ class ActiveTechnicalsManager {
         }
 
         // Now calculate
-        const settings = indicatorState;
-
-        // 🌟 Optimization: Pass enabled indicators to Worker
-        // This activates the partial calculation logic
-        const enabledIndicators = settingsState.enabledIndicators;
+        // 🌟 Optimization: Pass enabled indicators to Worker and unwrap proxies
+        const settings = indicatorState.toJSON();
+        const enabledIndicators = $state.snapshot(settingsState.enabledIndicators);
 
         try {
             const result = await technicalsService.calculateTechnicals(history, settings, enabledIndicators);

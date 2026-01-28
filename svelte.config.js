@@ -20,6 +20,7 @@ const config = {
           "unsafe-inline",
           "unsafe-eval",
           "https://s.cachy.app",
+          "blob:",
         ],
       },
     },
