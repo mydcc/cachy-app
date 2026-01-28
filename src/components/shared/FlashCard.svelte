@@ -2,6 +2,7 @@
   import { quizState } from "../../stores/quiz.svelte";
   import { fade, scale } from "svelte/transition";
   import { quintOut } from "svelte/easing";
+  import { burn } from "../../actions/burn";
 
   let isFlipped = $state(false);
 
