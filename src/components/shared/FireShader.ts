@@ -7,13 +7,14 @@ void main() {
     vUv = uv;
     vColor = instanceColor;
     
-    // Extract scale from modelViewMatrix to get size in view space (pixels)
-    float scaleX = length(vec3(modelViewMatrix[0].x, modelViewMatrix[0].y, modelViewMatrix[0].z));
-    float scaleY = length(vec3(modelViewMatrix[1].x, modelViewMatrix[1].y, modelViewMatrix[1].z));
+    // Extract scale from instanceMatrix (columns 0 and 1)
+    float scaleX = length(vec3(instanceMatrix[0].x, instanceMatrix[0].y, instanceMatrix[0].z));
+    float scaleY = length(vec3(instanceMatrix[1].x, instanceMatrix[1].y, instanceMatrix[1].z));
     
     vSize = vec2(scaleX, scaleY);
     
-    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    // Apply instance transformation
+    gl_Position = projectionMatrix * modelViewMatrix * instanceMatrix * vec4(position, 1.0);
 }
 `;
 
