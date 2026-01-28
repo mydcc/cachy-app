@@ -137,7 +137,7 @@ class MarketAnalystService {
             const techPromises = timeframes.map(tf => {
                 const klines = klinesMap[tf];
                 if (!klines || klines.length < 20) return Promise.resolve(null);
-                return technicalsService.calculateTechnicals(klines, indicatorState);
+                return technicalsService.calculateTechnicals(klines, indicatorState.toJSON());
             });
 
             const techResults = await Promise.all(techPromises);

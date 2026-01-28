@@ -792,7 +792,10 @@ export class SettingsManager {
             }
             this.effectActive = false; // Disable effect temporarily
             this.load();
-            this.effectActive = true; // Re-enable
+            // Re-enable in next tick to allow reactivity to settle
+            setTimeout(() => {
+              this.effectActive = true;
+            }, 0);
           } else {
             if (import.meta.env.DEV) {
               console.warn("[Settings] Ignoring storage event during save");
