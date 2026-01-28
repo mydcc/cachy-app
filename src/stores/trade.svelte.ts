@@ -16,6 +16,7 @@
  */
 
 import { browser } from "$app/environment";
+import { untrack } from "svelte";
 import { CONSTANTS } from "../lib/constants";
 import { normalizeSymbol } from "../utils/symbolUtils";
 import { debounce } from "../utils/utils";
@@ -190,6 +191,7 @@ class TradeManager {
   remoteTakerFee = $state<Decimal | undefined>(INITIAL_TRADE_STATE.remoteTakerFee);
   feeMode = $state(INITIAL_TRADE_STATE.feeMode);
   exitFees = $state<Decimal | undefined>(INITIAL_TRADE_STATE.exitFees);
+  private notifyTimer: any = null;
 
   constructor() {
     if (browser) {
@@ -202,8 +204,13 @@ class TradeManager {
           const snap = this.getSnapshot();
           this.saveDebounced(snap);
 
-          // Immediate update for in-memory listeners (UI sync, etc.)
-          this.notifyListeners(snap);
+          // Debounced update for in-memory listeners (UI sync, etc.)
+          untrack(() => {
+            if (this.notifyTimer) clearTimeout(this.notifyTimer);
+            this.notifyTimer = setTimeout(() => {
+              this.notifyListeners(snap);
+            }, 50);
+          });
         });
       });
     }
@@ -414,7 +421,7 @@ class TradeManager {
 
     // Security Hardening: Cap tags on update
     if (next.tags && next.tags !== this.tags) {
-        this.tags = next.tags.slice(0, 50);
+      this.tags = next.tags.slice(0, 50);
     }
 
     this.notifyListeners();

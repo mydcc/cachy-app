@@ -16,6 +16,7 @@
  */
 
 import { browser } from "$app/environment";
+import { untrack } from "svelte";
 import { CONSTANTS } from "../lib/constants";
 import { toastService } from "../services/toastService.svelte";
 
@@ -119,44 +120,56 @@ class UiManager {
     }
   }
 
+  private notifyTimer: any = null;
+
   // Legacy Subscribe for backward compatibility (simulates readable store)
   subscribe(fn: (value: any) => void) {
+    const getSnapshot = () => ({
+      currentTheme: this.currentTheme,
+      showJournalModal: this.showJournalModal,
+      showChangelogModal: this.showChangelogModal,
+      showGuideModal: this.showGuideModal,
+      showPrivacyModal: this.showPrivacyModal,
+      showWhitepaperModal: this.showWhitepaperModal,
+      showCopyFeedback: this.showCopyFeedback,
+      showSaveFeedback: this.showSaveFeedback,
+      errorMessage: this.errorMessage,
+      showErrorMessage: this.showErrorMessage,
+      isPriceFetching: this.isPriceFetching,
+      isSyncing: this.isSyncing,
+      isAtrFetching: this.isAtrFetching,
+      symbolSuggestions: this.symbolSuggestions,
+      showSymbolSuggestions: this.showSymbolSuggestions,
+      showSettingsModal: this.showSettingsModal,
+      showAcademyModal: this.showAcademyModal,
+      settingsTab: this.settingsTab,
+      settingsTradingSubTab: this.settingsTradingSubTab,
+      settingsVisualsSubTab: this.settingsVisualsSubTab,
+      settingsAiSubTab: this.settingsAiSubTab,
+      settingsConnectionsSubTab: this.settingsConnectionsSubTab,
+      settingsSystemSubTab: this.settingsSystemSubTab,
+      settingsProfileTab: this.settingsProfileTab,
+      settingsWorkspaceTab: this.settingsWorkspaceTab,
+      isLoading: this.isLoading,
+      loadingMessage: this.loadingMessage,
+      syncProgress: this.syncProgress,
+      tooltip: this.tooltip,
+      windows: this.windows, // Expose windows
+    });
+
+    fn(getSnapshot());
+
     return $effect.root(() => {
-      // Create a snapshot of the current state
-      const stateSnapshot = {
-        currentTheme: this.currentTheme,
-        showJournalModal: this.showJournalModal,
-        showChangelogModal: this.showChangelogModal,
-        showGuideModal: this.showGuideModal,
-        showPrivacyModal: this.showPrivacyModal,
-        showWhitepaperModal: this.showWhitepaperModal,
-        showCopyFeedback: this.showCopyFeedback,
-        showSaveFeedback: this.showSaveFeedback,
-        errorMessage: this.errorMessage,
-        showErrorMessage: this.showErrorMessage,
-        isPriceFetching: this.isPriceFetching,
-        isSyncing: this.isSyncing,
-        isAtrFetching: this.isAtrFetching,
-        symbolSuggestions: this.symbolSuggestions,
-        showSymbolSuggestions: this.showSymbolSuggestions,
-        showSettingsModal: this.showSettingsModal,
-        showAcademyModal: this.showAcademyModal,
-        settingsTab: this.settingsTab,
-        settingsTradingSubTab: this.settingsTradingSubTab,
-        settingsVisualsSubTab: this.settingsVisualsSubTab,
-        settingsAiSubTab: this.settingsAiSubTab,
-        settingsConnectionsSubTab: this.settingsConnectionsSubTab,
-        settingsSystemSubTab: this.settingsSystemSubTab,
-        settingsProfileTab: this.settingsProfileTab,
-        settingsWorkspaceTab: this.settingsWorkspaceTab,
-        isLoading: this.isLoading,
-        loadingMessage: this.loadingMessage,
-        syncProgress: this.syncProgress,
-        tooltip: this.tooltip,
-        windows: this.windows, // Expose windows
-      };
-      fn(stateSnapshot);
-      return () => { };
+      $effect(() => {
+        const snap = getSnapshot(); // Track everything
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(snap);
+            this.notifyTimer = null;
+          }, 20);
+        });
+      });
     });
   }
 

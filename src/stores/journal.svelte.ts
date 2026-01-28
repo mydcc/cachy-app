@@ -14,6 +14,7 @@ import type { JournalEntry } from "./types";
 import { calculator } from "../lib/calculator";
 import { StorageHelper } from "../utils/storageHelper";
 import { uiState } from "./ui.svelte";
+import { untrack } from "svelte";
 
 class JournalManager {
   entries = $state<JournalEntry[]>([]);
@@ -157,12 +158,21 @@ class JournalManager {
     calculator.getSystemQualityData(this.entries),
   );
 
+  private notifyTimer: any = null;
+
   // Legacy subscribe for backward compatibility
   subscribe(fn: (value: JournalEntry[]) => void) {
     fn(this.entries);
     return $effect.root(() => {
       $effect(() => {
-        fn(this.entries);
+        this.entries; // Track
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(this.entries);
+            this.notifyTimer = null;
+          }, 20);
+        });
       });
     });
   }

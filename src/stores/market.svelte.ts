@@ -90,6 +90,8 @@ export class MarketManager {
   private cleanupIntervalId: any = null;
   private flushIntervalId: any = null;
   private telemetryIntervalId: any = null;
+  private notifyTimer: any = null;
+  private statusNotifyTimer: any = null;
 
   constructor() {
     if (browser) {
@@ -456,7 +458,15 @@ export class MarketManager {
     fn(this.data);
     return $effect.root(() => {
       $effect(() => {
-        fn(this.data);
+        // Track.
+        this.data;
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(this.data);
+            this.notifyTimer = null;
+          }, 10);
+        });
       });
     });
   }
@@ -465,7 +475,14 @@ export class MarketManager {
     fn(this.connectionStatus);
     return $effect.root(() => {
       $effect(() => {
-        fn(this.connectionStatus);
+        this.connectionStatus; // Track
+        untrack(() => {
+          if (this.statusNotifyTimer) clearTimeout(this.statusNotifyTimer);
+          this.statusNotifyTimer = setTimeout(() => {
+            fn(this.connectionStatus);
+            this.statusNotifyTimer = null;
+          }, 10);
+        });
       });
     });
   }

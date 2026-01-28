@@ -8,6 +8,7 @@
  */
 
 import { browser } from "$app/environment";
+import { untrack } from "svelte";
 
 const STORE_KEY = "cachy_favorites";
 const MAX_FAVORITES = 4;
@@ -62,12 +63,21 @@ class FavoritesManager {
     this.save();
   }
 
+  private notifyTimer: any = null;
+
   // Compatibility
   subscribe(fn: (value: string[]) => void) {
     fn(this.items);
     return $effect.root(() => {
       $effect(() => {
-        fn(this.items);
+        this.items; // Track
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(this.items);
+            this.notifyTimer = null;
+          }, 20);
+        });
       });
     });
   }
