@@ -58,10 +58,10 @@
     >
         {#each categories as category}
             <button
-                class="category-btn px-3 py-1.5 text-xs font-semibold rounded-lg transition-colors {activeCategory ===
+                class="category-btn px-4 py-2 text-xs font-black uppercase tracking-widest rounded-lg transition-all {activeCategory ===
                 category.id
-                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)]'
-                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)]'}"
+                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] shadow-lg scale-105 z-10'
+                    : 'text-[var(--text-secondary)] hover:bg-[var(--bg-secondary)] hover:text-[var(--text-primary)]'}"
                 onclick={() =>
                     (uiState.settingsIndicatorCategory = category.id)}
             >
@@ -125,10 +125,10 @@
                     <div class="flex gap-2">
                         {#each pnlModes as mode}
                             <button
-                                class="px-3 py-2 text-xs rounded border transition-colors {settingsState.pnlViewMode ===
+                                class="flex-1 px-3 py-2 text-xs font-bold rounded-lg border transition-all {settingsState.pnlViewMode ===
                                 mode.value
-                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
-                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                    ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)] shadow-md'
+                                    : 'bg-[var(--bg-secondary)] border-[var(--border-color)] text-[var(--text-secondary)] hover:text-[var(--text-primary)] hover:border-[var(--accent-color)]'}"
                                 onclick={() =>
                                     (settingsState.pnlViewMode =
                                         mode.value as any)}

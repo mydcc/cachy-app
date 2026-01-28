@@ -49,6 +49,7 @@
   --success-color: var(--green-500);
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
+  --nav-hover-bg: var(--blue-800);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
 
   /* --- Button Colors --- */
@@ -402,9 +403,10 @@
   --border-color: var(--gray-600);
   --accent-color: var(--lime-300);
   --accent-color-hover: var(--lime-400);
-  --success-color: var(--green-500);
-  --danger-color: var(--red-500);
+  --success-color: var(--lime-300);
+  --danger-color: var(--gray-600);
   --warning-color: var(--orange-500);
+  --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
 
   /* --- Button Colors --- */

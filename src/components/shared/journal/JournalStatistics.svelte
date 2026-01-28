@@ -201,31 +201,35 @@
 
     .stats-minimal {
         display: flex;
-        justify-content: space-around;
+        justify-content: flex-end;
         align-items: center;
         width: 100%;
-        gap: 0.5rem;
+        gap: 1.25rem;
     }
 
     .stat-mini {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: flex-end;
         min-width: 60px;
     }
 
     .mini-label {
-        font-size: 0.6rem;
+        font-size: 0.55rem;
         text-transform: uppercase;
         color: var(--text-secondary);
-        font-weight: 700;
+        font-weight: 800;
         white-space: nowrap;
+        letter-spacing: 0.05em;
+        opacity: 0.8;
     }
 
     .mini-value {
-        font-size: 0.85rem;
-        font-weight: 800;
+        font-size: 0.95rem;
+        font-weight: 900;
         font-variant-numeric: tabular-nums;
+        line-height: 1;
+        color: var(--text-primary);
     }
 
     .stats-grid {
