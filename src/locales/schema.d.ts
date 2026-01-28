@@ -116,6 +116,8 @@ export type TranslationKey =
   | "dashboard.generalInputs.header"
   | "dashboard.generalInputs.longButton"
   | "dashboard.generalInputs.shortButton"
+  | "dashboard.generalInputs.leverage"
+  | "dashboard.generalInputs.fees"
   | "dashboard.generalInputs.leveragePlaceholder"
   | "dashboard.generalInputs.feesPlaceholder"
   | "dashboard.portfolioInputs.header"
