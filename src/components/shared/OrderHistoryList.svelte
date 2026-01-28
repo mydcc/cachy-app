@@ -101,7 +101,7 @@
     </div>
   {:else if error}
     <div class="text-xs text-[var(--danger-color)] p-2 text-center">
-      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error) : error}
+      {(error.startsWith("apiErrors.") || error.startsWith("bitunixErrors.")) && typeof $_ === "function" ? $_(error as any) : error}
     </div>
   {:else if orders.length === 0}
     <div class="text-xs text-[var(--text-secondary)] text-center p-4">
