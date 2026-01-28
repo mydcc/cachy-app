@@ -1,6 +1,7 @@
 <script lang="ts">
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { quizState } from "../../stores/quiz.svelte";
   import { _ } from "../../locales/i18n";
   import { icons } from "../../lib/constants";
   import Tooltip from "./Tooltip.svelte";
@@ -49,18 +50,29 @@
   </button>
 
   <!-- Academy Button -->
-  <button
-    class="control-btn"
-    onclick={() => uiState.toggleAcademyModal(true)}
-    title={$_("academy.title") || "Trading Academy"}
-    use:trackClick={{
+  <div class="relative w-full flex justify-center">
+    <button
+      class="control-btn"
+      onclick={() => uiState.toggleAcademyModal(true)}
+      title={$_("academy.title") || "Trading Academy"}
+      use:trackClick={{
         category: "Navigation",
         action: "Click",
         name: "OpenAcademy",
-    }}
-  >
-    {@html ICONS.academy}
-  </button>
+      }}
+    >
+      {@html ICONS.academy}
+    </button>
+    <!-- Quiz Progress Bar -->
+    {#if quizState.questions.length > 0}
+      <div
+        class="absolute left-[2px] bottom-1 w-[2px] bg-[var(--success-color)] rounded-full transition-all duration-500"
+        style:height="{(quizState.knownQuestionIds.size /
+          quizState.questions.length) *
+          28}px"
+      ></div>
+    {/if}
+  </div>
 
   <div class="h-px w-full bg-[var(--border-color)] my-1"></div>
 
