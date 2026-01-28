@@ -17,7 +17,7 @@
 
 <script lang="ts">
   import { fly } from "svelte/transition";
-  import { _ as t } from "../../locales/i18n";
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     isOpen?: boolean;
@@ -78,7 +78,7 @@
         <button
           class="modal-close-btn"
           aria-label="Schließen"
-          onclick={handleClose}>{$t("common.remove")}</button
+          onclick={handleClose}>{$_("common.remove")}</button
         >
       </div>
       <div class="modal-body {bodyClass}">
@@ -104,6 +104,7 @@
     z-index: 50;
   }
   .modal-content {
+    background-color: var(--bg-secondary);
     padding: 1.5rem;
     border-radius: 0.75rem;
     max-height: 90vh;
