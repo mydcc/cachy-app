@@ -214,6 +214,10 @@ export interface Settings {
   discordBotToken?: string;
   discordChannels: string[];
 
+  // Burning Borders
+  enableBurningBorders: boolean;
+  burningBordersIntensity: AnimationIntensity;
+
   // Market & Performance Settings
   marketMode: MarketMode;
   analyzeAllFavorites: boolean; // if false, only top 4
@@ -380,6 +384,9 @@ const defaultSettings: Settings = {
   },
   discordBotToken: "",
   discordChannels: [],
+
+  enableBurningBorders: false,
+  burningBordersIntensity: "medium",
 
   marketMode: "balanced",
   analyzeAllFavorites: false, // Default to top 4 only for balanced
@@ -636,6 +643,11 @@ export class SettingsManager {
   // Social Media
   discordBotToken = $state<string | undefined>(defaultSettings.discordBotToken);
   discordChannels = $state<string[]>(defaultSettings.discordChannels);
+
+  enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
+  burningBordersIntensity = $state<AnimationIntensity>(
+    defaultSettings.burningBordersIntensity,
+  );
 
   // Market & Performance State
   private _marketMode = $state<MarketMode>(defaultSettings.marketMode);
@@ -1136,6 +1148,8 @@ export class SettingsManager {
       confirmBulkDeletion: this.confirmBulkDeletion,
       chatFontSize: this.chatFontSize,
       panelIsExpanded: this.panelIsExpanded,
+      enableBurningBorders: this.enableBurningBorders,
+      burningBordersIntensity: this.burningBordersIntensity,
       minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,
       cryptoPanicApiKey: this.cryptoPanicApiKey,

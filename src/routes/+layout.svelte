@@ -35,6 +35,7 @@
   import BackgroundRenderer from "../components/shared/BackgroundRenderer.svelte";
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
+  import FireOverlay from "../components/shared/FireOverlay.svelte";
 
   import { _ } from "../locales/i18n";
 
@@ -273,6 +274,7 @@
 <div class="app-container">
   <OfflineBanner />
   <BackgroundRenderer />
+  <FireOverlay />
   {@render children?.()}
 
   <!-- Global Modals -->

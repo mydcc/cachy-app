@@ -254,6 +254,48 @@
                         </div>
                     </div>
                 {/if}
+
+                <!-- Burning Borders -->
+                <div class="mt-4 pt-4 border-t border-[var(--border-color)]">
+                    <label class="toggle-card mb-2">
+                        <div class="flex flex-col">
+                            <span class="text-sm font-medium"
+                                >Burning Borders</span
+                            >
+                            <span
+                                class="text-[10px] text-[var(--text-secondary)]"
+                                >Interactive fire effect on element edges</span
+                            >
+                        </div>
+                        <Toggle
+                            bind:checked={settingsState.enableBurningBorders}
+                        />
+                    </label>
+
+                    {#if settingsState.enableBurningBorders}
+                        <div class="field-group animate-fade-in">
+                            <span
+                                class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                                >Intensity</span
+                            >
+                            <div class="flex gap-2">
+                                {#each ["low", "medium", "high"] as intensity}
+                                    <button
+                                        class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.burningBordersIntensity ===
+                                        intensity
+                                            ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                            : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                        onclick={() =>
+                                            (settingsState.burningBordersIntensity =
+                                                intensity as any)}
+                                    >
+                                        {intensity}
+                                    </button>
+                                {/each}
+                            </div>
+                        </div>
+                    {/if}
+                </div>
             </section>
         {/if}
 

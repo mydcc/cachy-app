@@ -3,6 +3,7 @@
     import { uiState } from "../../stores/ui.svelte";
     import { _ } from "../../locales/i18n";
     import { icons } from "../../lib/constants";
+    import { burn } from "../../actions/burn";
 
     interface Props {
         iframeState: {
@@ -185,6 +186,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={containerEl}
+        use:burn={{ color: "#aa00ff", intensity: 1.5 }}
         role="application"
         aria-label={iframeState.title}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"

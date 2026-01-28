@@ -6,6 +6,7 @@
   import { marked } from "marked";
   import markedKatex from "marked-katex-extension";
   import "katex/dist/katex.min.css";
+  import { burn } from "../../actions/burn";
 
   // Setup Markdown with KaTeX
   try {
@@ -70,6 +71,7 @@
       >
         <!-- Front -->
         <div
+          use:burn={{ color: "#ff8800", intensity: 1.2 }}
           class="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
           <div
@@ -91,6 +93,7 @@
 
         <!-- Back -->
         <div
+          use:burn={{ color: "#00ff9d", intensity: 1.2 }}
           class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
           <div class="flex-1 flex flex-col items-center justify-center w-full">
