@@ -536,7 +536,7 @@
                                         style="padding: 0;"
                                     ></td>
                                     <td colspan="100" style="padding: 0;">
-                                        <JournalTable
+                                        <svelte:self
                                             trades={item.trades}
                                             {columnVisibility}
                                             isInternal={true}
