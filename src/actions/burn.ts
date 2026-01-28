@@ -19,8 +19,50 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         console.log(`[Burn Action] Init ${id}`, options);
     }
 
-    const update = () => {
-        // If burning borders globally disabled OR specific options are missing, remove from store
+    // Track style state to avoid redundant store updates
+    let lastFinalColor = "";
+    let lastIntensity = -1;
+    let lastMode = "";
+    let cachedThemeColor = "";
+    let lastThemeCheck = 0;
+
+    /**
+     * Resolves the final color based on settings and options.
+     * Logic is optimized to avoid repetitive getComputedStyle calls.
+     */
+    const resolveColor = (inputColor?: string): string => {
+        const mode = settingsState.borderEffectColorMode;
+
+        if (mode === "theme") {
+            const now = Date.now();
+            // Throttled check for theme color every 500ms or if mode changed
+            if (lastMode !== "theme" || !cachedThemeColor || now - lastThemeCheck > 500) {
+                const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
+                cachedThemeColor = accent || "#ff8800";
+                lastThemeCheck = now;
+            }
+            return cachedThemeColor;
+        }
+
+        // Reset cache when leaving theme mode
+        cachedThemeColor = "";
+
+        if (mode === "custom") {
+            return settingsState.borderEffectCustomColor;
+        }
+
+        // Interactive mode: use the color passed via options
+        if (inputColor?.startsWith('var(')) {
+            const varName = inputColor.match(/var\(([^)]+)\)/)?.[1];
+            if (varName) {
+                return getComputedStyle(document.documentElement).getPropertyValue(varName).trim() || "#ff8800";
+            }
+        }
+
+        return inputColor ?? "#ffaa00";
+    };
+
+    const update = (force = false) => {
         if (!settingsState.enableBurningBorders || !options) {
             fireStore.removeElement(id);
             lastRect = null;
@@ -29,50 +71,53 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
         const rect = node.getBoundingClientRect();
 
-        // Only update store if something changed to save performance
-        // BUT if it was previously removed (lastRect null), force update
-        if (lastRect &&
-            rect.top === lastRect.top &&
-            rect.left === lastRect.left &&
-            rect.width === lastRect.width &&
-            rect.height === lastRect.height &&
-            settingsState.enableBurningBorders // Ensure we double check enablement
-        ) {
-            return;
-        }
+        // 1. Position Update Guard with some tolerance
+        const posChanged = !lastRect ||
+            Math.abs(rect.top - lastRect.top) > 0.1 ||
+            Math.abs(rect.left - lastRect.left) > 0.1 ||
+            Math.abs(rect.width - lastRect.width) > 0.1 ||
+            Math.abs(rect.height - lastRect.height) > 0.1;
 
-        // Fix zero size issues - if hidden, remove from store
+        // 2. Style Update (Normalized comparison)
+        const finalColor = resolveColor(options.color).toLowerCase();
+        const intensity = options.intensity ?? 1.0;
+        const currentMode = settingsState.borderEffectColorMode;
+        const styleChanged = finalColor !== lastFinalColor.toLowerCase() || intensity !== lastIntensity || currentMode !== lastMode;
+
+        // 3. Size Guard
         if (rect.width === 0 || rect.height === 0) {
-            fireStore.removeElement(id);
+            if (lastRect) fireStore.removeElement(id);
             lastRect = null;
             return;
         }
 
-        // Resolve Color based on Mode
-        let finalColor = options.color ?? "#ffaa00";
-        if (settingsState.borderEffectColorMode === "theme") {
-            const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
-            finalColor = accent || "#ff8800";
-        } else if (settingsState.borderEffectColorMode === "custom") {
-            finalColor = settingsState.borderEffectCustomColor;
-        }
+        // 4. Update
+        if (posChanged || styleChanged || force) {
+            fireStore.updateElement(id, {
+                x: rect.left,
+                y: rect.top,
+                width: rect.width,
+                height: rect.height,
+                intensity: intensity,
+                color: finalColor
+            });
 
-        fireStore.updateElement(id, {
-            x: rect.left,
-            y: rect.top,
-            width: rect.width,
-            height: rect.height,
-            intensity: options.intensity ?? 1.0,
-            color: finalColor
-        });
-        lastRect = rect;
+            lastRect = rect;
+            lastFinalColor = finalColor;
+            lastIntensity = intensity;
+            lastMode = currentMode;
+        }
     };
 
     // Use ResizeObserver for efficient updates when size changes
-    const resizeObserver = new ResizeObserver(() => update());
+    // Decouple using requestAnimationFrame to avoid "Loop limit exceeded" in microtasks
+    let resizeFrame: number;
+    const resizeObserver = new ResizeObserver(() => {
+        cancelAnimationFrame(resizeFrame);
+        resizeFrame = requestAnimationFrame(() => update());
+    });
     resizeObserver.observe(node);
 
-    // Tracking loop for movement (scroll/drag)
     let frameId: number;
     const loop = () => {
         if (settingsState.enableBurningBorders && options) {
@@ -81,23 +126,18 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
         frameId = requestAnimationFrame(loop);
     };
 
-    // Initial update and start tracking loop
-    update();
+    update(true);
     loop();
 
     return {
         update(newOptions: BurnOptions | undefined) {
             options = newOptions;
-            if (import.meta.env.DEV) {
-                console.log(`[Burn Action] Update ${id}`, options);
-            }
-            update();
+            cachedThemeColor = ""; // Reset cache on explicit option change
+            update(true);
         },
         destroy() {
-            if (import.meta.env.DEV) {
-                console.log(`[Burn Action] Destroy ${id}`);
-            }
             resizeObserver.disconnect();
+            cancelAnimationFrame(resizeFrame);
             cancelAnimationFrame(frameId);
             fireStore.removeElement(id);
             node.removeAttribute("data-burn-id");

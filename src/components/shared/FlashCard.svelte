@@ -57,10 +57,10 @@
       >
         <!-- Front -->
         <div
-          use:burn={(settingsState.enableBurningBorders &&
+          use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
             ? { color: "#ff8800", intensity: 1.2 }
-            : null) || undefined}
+            : undefined}
           class="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
           <div
@@ -82,10 +82,10 @@
 
         <!-- Back -->
         <div
-          use:burn={(settingsState.enableBurningBorders &&
+          use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
             ? { color: "#00ff9d", intensity: 1.2 }
-            : null) || undefined}
+            : undefined}
           class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
           <div class="flex-1 flex flex-col items-center justify-center w-full">

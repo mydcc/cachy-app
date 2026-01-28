@@ -93,15 +93,17 @@
     if (!cp) return;
     const s = cp.toString();
 
-    if (lastPriceStr && s !== lastPriceStr) {
-      const trend = new Decimal(s).gt(new Decimal(lastPriceStr))
+    const prevPriceState = untrack(() => lastPriceStr);
+
+    if (prevPriceState && s !== prevPriceState) {
+      const trend = new Decimal(s).gt(new Decimal(prevPriceState))
         ? "up"
         : "down";
       const newIndexes = new Set<number>();
 
       let foundChange = false;
       for (let i = 0; i < s.length; i++) {
-        if (foundChange || s[i] !== lastPriceStr[i]) {
+        if (foundChange || s[i] !== prevPriceState[i]) {
           newIndexes.add(i);
           foundChange = true;
         }
@@ -353,11 +355,15 @@
   use:burn={settingsState.burnMarketOverviewTiles &&
   settingsState.enableBurningBorders
     ? {
-        color: priceChangePercent?.gte(0) ? "#00ff88" : "#ff4444",
-        intensity:
-          rsiValue && (rsiValue.gte(70) || rsiValue.lte(30)) ? 2.0 : 1.0,
+        color:
+          priceTrend === "up"
+            ? "var(--success-color)"
+            : priceTrend === "down"
+              ? "var(--danger-color)"
+              : "var(--accent-color)",
+        intensity: rsiValue && (rsiValue.gt(70) || rsiValue.lt(30)) ? 1.8 : 1.0,
       }
-    : null}
+    : undefined}
 >
   <div class="absolute top-2 right-2 flex gap-1 z-50">
     {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}
@@ -546,7 +552,9 @@
             class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
           >
             <div class="flex flex-col">
-              <span class="text-[var(--text-secondary)]">{$_("marketOverview.fundingRate")}</span>
+              <span class="text-[var(--text-secondary)]"
+                >{$_("marketOverview.fundingRate")}</span
+              >
               <span
                 class="font-medium"
                 class:text-[var(--success-color)]={fundingRate.gt(0)}
@@ -556,7 +564,9 @@
               </span>
             </div>
             <div class="flex flex-col text-right">
-              <span class="text-[var(--text-secondary)]">{$_("marketOverview.countdown")}</span>
+              <span class="text-[var(--text-secondary)]"
+                >{$_("marketOverview.countdown")}</span
+              >
               <span class="font-mono text-[var(--text-primary)]"
                 >{countdownText}</span
               >

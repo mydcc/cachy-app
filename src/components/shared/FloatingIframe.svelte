@@ -183,7 +183,7 @@
 
     // Determine burning configuration based on window title and settings
     let burnConfig = $derived.by(() => {
-        if (!settingsState.enableBurningBorders) return null;
+        if (!settingsState.enableBurningBorders) return undefined;
 
         const isNews = iframeState.title.toLowerCase().includes("news");
         const isChannel = iframeState.title.toLowerCase().includes("channel");
@@ -197,7 +197,7 @@
 
         // Default burn for other windows if enabled?
         // For now only if specifically requested or a generic setting (could add burnOtherWindows)
-        return null;
+        return undefined;
     });
 </script>
 
@@ -206,7 +206,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={containerEl}
-        use:burn={burnConfig || undefined}
+        use:burn={burnConfig}
         role="application"
         aria-label={iframeState.title}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"
