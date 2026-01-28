@@ -331,7 +331,7 @@
                                                 (settingsState.borderEffectColorMode =
                                                     mode as any)}
                                         >
-                                            {$_(colorModeLabels[mode]) || mode}
+                                            {$_(colorModeLabels[mode] as any) || mode}
                                         </button>
                                     {/each}
                                 </div>

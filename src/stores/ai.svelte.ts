@@ -58,6 +58,7 @@ class AiManager {
   error = $state<string | null>(null);
   pendingActions = $state<Map<string, PendingAction>>(new Map());
   lastContext = $state<any>(null); // Expose context for UI indicators
+  private saveTimeout: any = null;
 
   constructor() {
     if (browser) {
@@ -83,20 +84,24 @@ class AiManager {
 
   private save() {
     if (!browser) return;
-    try {
-      localStorage.setItem(
-        LOCAL_STORAGE_KEY,
-        JSON.stringify({
-          messages: this.messages,
-          isStreaming: false,
-          error: null,
-        }),
-      );
-    } catch (e) {
-      if (import.meta.env.DEV) {
-        console.error("Failed to save AI history", e);
+    if (this.saveTimeout) clearTimeout(this.saveTimeout);
+
+    this.saveTimeout = setTimeout(() => {
+      try {
+        localStorage.setItem(
+          LOCAL_STORAGE_KEY,
+          JSON.stringify({
+            messages: this.messages,
+            isStreaming: false,
+            error: null,
+          }),
+        );
+      } catch (e) {
+        if (import.meta.env.DEV) {
+          console.error("Failed to save AI history", e);
+        }
       }
-    }
+    }, 1000);
   }
 
   clearHistory() {
@@ -127,7 +132,7 @@ class AiManager {
       // Timeout wrapper for gathering context to prevent hanging
       const contextPromise = this.gatherContext();
       const timeoutPromise = new Promise((resolve) =>
-        setTimeout(() => resolve(null), 5000),
+        setTimeout(() => resolve(null), 2000),
       );
 
       const context = (await Promise.race([

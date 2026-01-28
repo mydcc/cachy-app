@@ -249,6 +249,20 @@ class TradeService {
             throw new Error("tradeErrors.positionNotFound");
         }
 
+        // VALIDATION: Hardening against invalid amounts
+        if (amount) {
+            if (amount.lte(0)) {
+                throw new Error("apiErrors.invalidAmount");
+            }
+            if (amount.gt(position.amount)) {
+                // We use a generic error or specific one.
+                // Using generic "invalidAmount" with detail or new key if possible.
+                // For now, let's include detail in log and throw generic.
+                logger.warn("market", `[ClosePosition] Amount ${amount} exceeds position ${position.amount}`);
+                throw new Error("apiErrors.invalidAmount");
+            }
+        }
+
         const side = positionSide === "long" ? "SELL" : "BUY";
 
         // Use explicit amount or full position amount
