@@ -5,6 +5,7 @@
 
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
+    import { _ } from "../../locales/i18n";
 
     type PresetType = "light" | "balanced" | "pro";
 
