@@ -29,6 +29,7 @@ interface BackupData {
   journal: string | null; // Stored as a raw string from localStorage
   tradeState: string | null; // Stored as a raw string from localStorage
   theme: string | null; // Stored as a raw string from localStorage
+  quizState: string | null; // Stored as a raw string from localStorage
 }
 
 // The overall structure of the backup file
@@ -83,6 +84,7 @@ export async function createBackup(password?: string) {
       CONSTANTS.LOCAL_STORAGE_TRADE_KEY || "cachy_trade_store",
     ),
     theme: getDataFromLocalStorage("theme"), // Theme is often just a string ("dark"|"light"), not JSON
+    quizState: getValidatedData(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY),
   };
 
   const backupFile: BackupFile = {
@@ -230,6 +232,9 @@ export async function restoreFromBackup(
     }
     if (data.theme) {
       localStorage.setItem("theme", data.theme);
+    }
+    if (data.quizState) {
+      localStorage.setItem(CONSTANTS.LOCAL_STORAGE_QUIZ_KEY, data.quizState);
     }
 
     return {

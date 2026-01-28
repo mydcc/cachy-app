@@ -57,6 +57,8 @@
   import NewsSentimentPanel from "../components/shared/NewsSentimentPanel.svelte";
   import AcademyModal from "../components/shared/AcademyModal.svelte";
   import PowerToggle from "../components/shared/PowerToggle.svelte";
+  import QuizButton from "../components/shared/QuizButton.svelte";
+  import FlashCard from "../components/shared/FlashCard.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
 
   let changelogContent = $state("");
@@ -661,6 +663,7 @@
         <div class="mt-4 flex justify-between items-center">
           <LanguageSwitcher />
           <div class="flex items-center gap-2">
+            <QuizButton />
             <FloatingIframeButton />
           </div>
           <div class="flex items-center gap-2">
@@ -864,3 +867,4 @@
 </ModalFrame>
 
 <AcademyModal />
+<FlashCard />
