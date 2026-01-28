@@ -662,13 +662,6 @@
       "range": "Range",
       "noSignals": "No divergences detected"
     },
-    "quiz": {
-      "question": "Question",
-      "answer": "Answer",
-      "clickToReveal": "Click to reveal",
-      "repeat": "Repeat",
-      "known": "Known"
-    },
     "candlestickPatterns": {
       "title": "Candlestick Patterns Academy"
     },
@@ -1121,6 +1114,13 @@
       "tpGoal": "{type}: Take-Profit Target {price}",
       "sumSold": "Sum of sell percentages ({percent}%)"
     }
+  },
+  "quiz": {
+    "question": "Question",
+    "answer": "Answer",
+    "clickToReveal": "Click to reveal",
+    "repeat": "Repeat",
+    "known": "Known"
   },
   "candlestickPatterns": {
     "doji": {
