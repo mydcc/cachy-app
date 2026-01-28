@@ -216,7 +216,9 @@ export interface Settings {
 
   // Burning Borders
   enableBurningBorders: boolean;
-  borderEffect: "fire" | "glow"; // New setting
+  borderEffect: "fire" | "glow";
+  borderEffectColorMode: "theme" | "interactive" | "custom";
+  borderEffectCustomColor: string;
   burningBordersIntensity: AnimationIntensity;
   burnNewsWindows: boolean;
   burnChannelWindows: boolean;
@@ -398,6 +400,8 @@ const defaultSettings: Settings = {
 
   enableBurningBorders: false,
   borderEffect: "fire",
+  borderEffectColorMode: "theme",
+  borderEffectCustomColor: "#ff8800",
   burningBordersIntensity: "medium",
   burnNewsWindows: true,
   burnChannelWindows: true,
@@ -668,6 +672,12 @@ export class SettingsManager {
 
   enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
   borderEffect = $state<"fire" | "glow">(defaultSettings.borderEffect || "fire");
+  borderEffectColorMode = $state<"theme" | "interactive" | "custom">(
+    defaultSettings.borderEffectColorMode,
+  );
+  borderEffectCustomColor = $state<string>(
+    defaultSettings.borderEffectCustomColor,
+  );
   burningBordersIntensity = $state<AnimationIntensity>(
     defaultSettings.burningBordersIntensity,
   );
@@ -1185,6 +1195,8 @@ export class SettingsManager {
       panelIsExpanded: this.panelIsExpanded,
       enableBurningBorders: this.enableBurningBorders,
       borderEffect: this.borderEffect,
+      borderEffectColorMode: this.borderEffectColorMode,
+      borderEffectCustomColor: this.borderEffectCustomColor,
       burningBordersIntensity: this.burningBordersIntensity,
       burnNewsWindows: this.burnNewsWindows,
       burnChannelWindows: this.burnChannelWindows,

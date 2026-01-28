@@ -545,7 +545,11 @@
     "appearance": {
       "effectStyle": "Effekt-Stil",
       "fire": "Feuer",
-      "glow": "Neon Glow"
+      "glow": "Neon Glow",
+      "colorMode": "Farbmodus",
+      "modeTheme": "Theme",
+      "modeInteractive": "Interaktiv",
+      "modeCustom": "Benutzerdefiniert"
     },
     "theme": "Design",
     "themeDark": "Dunkel",

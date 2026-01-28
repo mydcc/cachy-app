@@ -39,6 +39,12 @@
         { value: "floating", label: "Floating" },
     ];
 
+    const colorModeLabels: Record<string, string> = {
+        theme: "settings.appearance.modeTheme",
+        interactive: "settings.appearance.modeInteractive",
+        custom: "settings.appearance.modeCustom",
+    };
+
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
 
     function toggleGyro() {
@@ -306,6 +312,54 @@
                                     </button>
                                 </div>
                             </div>
+
+                            <div class="field-group mb-4">
+                                <span
+                                    class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                                >
+                                    {$_("settings.appearance.colorMode") ||
+                                        "Color Mode"}
+                                </span>
+                                <div class="flex flex-wrap gap-2">
+                                    {#each ["theme", "interactive", "custom"] as mode}
+                                        <button
+                                            class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffectColorMode ===
+                                            mode
+                                                ? 'bg-[var(--accent-color)] text-[var(--btn-accent-text)] border-[var(--accent-color)]'
+                                                : 'bg-[var(--bg-secondary)] border-[var(--border-color)]'}"
+                                            onclick={() =>
+                                                (settingsState.borderEffectColorMode =
+                                                    mode as any)}
+                                        >
+                                            {$_(colorModeLabels[mode]) || mode}
+                                        </button>
+                                    {/each}
+                                </div>
+                            </div>
+
+                            {#if settingsState.borderEffectColorMode === "custom"}
+                                <div class="field-group mb-4 animate-fade-in">
+                                    <span
+                                        class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
+                                    >
+                                        Custom Color
+                                    </span>
+                                    <div class="flex items-center gap-3">
+                                        <input
+                                            type="color"
+                                            class="w-8 h-8 rounded border border-[var(--border-color)] bg-transparent cursor-pointer"
+                                            bind:value={
+                                                settingsState.borderEffectCustomColor
+                                            }
+                                        />
+                                        <span
+                                            class="text-xs font-mono text-[var(--text-secondary)]"
+                                        >
+                                            {settingsState.borderEffectCustomColor}
+                                        </span>
+                                    </div>
+                                </div>
+                            {/if}
 
                             <div class="field-group">
                                 <span

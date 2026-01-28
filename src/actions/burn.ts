@@ -48,13 +48,22 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
             return;
         }
 
+        // Resolve Color based on Mode
+        let finalColor = options.color ?? "#ffaa00";
+        if (settingsState.borderEffectColorMode === "theme") {
+            const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
+            finalColor = accent || "#ff8800";
+        } else if (settingsState.borderEffectColorMode === "custom") {
+            finalColor = settingsState.borderEffectCustomColor;
+        }
+
         fireStore.updateElement(id, {
             x: rect.left,
             y: rect.top,
             width: rect.width,
             height: rect.height,
             intensity: options.intensity ?? 1.0,
-            color: options.color ?? "#ffaa00"
+            color: finalColor
         });
         lastRect = rect;
     };

@@ -136,31 +136,48 @@ void main() {
         alpha *= smoothstep(1.0, 0.8, normalizedPos);
         
     } else {
-        // --- FIRE MODE (Legacy Logic) ---
-        vec2 screenUV = gl_FragCoord.xy / uResolution.y;
-        vec2 noiseCoord = screenUV * (3.0 + uTurbulence * 2.0); 
-        noiseCoord.y -= uTime * uSpeed; 
+        // --- EMISSIVE RADIATING FIRE ---
+        // Replacing rising logic with an emissive flow radiating from the frame
         
-        vec2 r = vec2(0.0);
-        r.x = fbm(noiseCoord + vec2(1.0, 1.0));
-        r.y = fbm(noiseCoord + vec2(5.2, 1.3));
-        float f = fbm(noiseCoord + r * 1.5);
-
-        float fadeOut = smoothstep(1.0, 0.0, normalizedPos);
-        float flameShape = fadeOut * f;
+        // 1. Noise Modulation
+        // Use a mix of large waves and small turbulence
+        vec2 noiseUV = pixelPos * (0.02 + uTurbulence * 0.01);
         
-        float strength = pow(flameShape, 1.5) * uIntensity;
-        float core = smoothstep(0.5, 0.9, strength);
+        // Animate noise "outward" and "jittery"
+        float n1 = fbm(noiseUV + uTime * uSpeed * 0.5);
+        float n2 = fbm(noiseUV * 2.0 - uTime * uSpeed * 0.3);
+        float noise = (n1 * 0.7 + n2 * 0.3);
         
-        vec3 colDark = vColor * 0.2;
-        vec3 colBase = vColor;
-        vec3 colHot  = vec3(1.0, 1.0, 1.0);
+        // 2. Emission Shape
+        // Radiate based on dist (pixel distance from border)
+        // normalizedPos is dist / margin (0 at edge, 1 at canvas boundary)
         
-        finalColor = mix(colDark, colBase, strength);
-        finalColor = mix(finalColor, colHot, core);
-
-        alpha = smoothstep(0.05, 0.6, strength);
-        alpha *= smoothstep(1.0, 0.8, normalizedPos);
+        // Distort the distance with noise to get "licks" of fire
+        float distortedDist = dist - noise * 15.0 * uIntensity;
+        
+        // Calculate glow based on distorted distance
+        // Inner Glow (inside the border a bit)
+        float innerGlow = smoothstep(-5.0, 5.0, -distortedDist);
+        // Outer Emission (radiating out)
+        float outerGlow = smoothstep(margin * 0.8, -5.0, distortedDist);
+        
+        float emission = outerGlow * 1.2;
+        emission += innerGlow * 0.3; // Light tint on the inside
+        
+        // 3. Color mapping
+        vec3 colCore = mix(vColor, vec3(1.0, 0.9, 0.5), 0.5); // Bright white-yellow core
+        vec3 colEdge = vColor;
+        vec3 colSmoke = vColor * 0.3;
+        
+        finalColor = mix(colSmoke, colEdge, emission);
+        finalColor = mix(finalColor, colCore, pow(outerGlow, 4.0));
+        
+        // Intensify based on uIntensity parameter
+        finalColor *= (0.5 + uIntensity);
+        
+        // 4. Alpha logic
+        alpha = emission * smoothstep(1.0, 0.7, normalizedPos);
+        alpha = clamp(alpha, 0.0, 1.0);
     }
 
     gl_FragColor = vec4(finalColor, alpha);

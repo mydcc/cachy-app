@@ -175,11 +175,9 @@
 
                 const { x, y, width: w, height: h, color } = data;
 
-                // Adjust for border padding in Three.js coordinates
-                // Set to 40 (20px per side) to barely contain the 14px High thickness
-                const padding = 32;
-                const planeW = w + padding;
-                const planeH = h + padding;
+                const scaleFactor = 1.1; // EXACTLY 10% larger
+                const planeW = w * scaleFactor;
+                const planeH = h * scaleFactor;
 
                 const cx = x + w / 2 - width / 2;
                 const cy = -(y + h / 2 - height / 2);

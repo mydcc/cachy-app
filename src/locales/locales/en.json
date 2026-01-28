@@ -569,7 +569,11 @@
     "appearance": {
       "effectStyle": "Effect Style",
       "fire": "Fire",
-      "glow": "Neon Glow"
+      "glow": "Neon Glow",
+      "colorMode": "Color Mode",
+      "modeTheme": "Theme",
+      "modeInteractive": "Interactive",
+      "modeCustom": "Custom"
     },
     "theme": "Theme",
     "themeDark": "Dark",
