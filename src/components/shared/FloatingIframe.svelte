@@ -189,14 +189,20 @@
         const isChannel = iframeState.title.toLowerCase().includes("channel");
 
         if (isNews && settingsState.burnNewsWindows) {
-            return { color: "#00d4ff", intensity: 1.5 }; // Cyan for News
+            return {
+                color: "#00d4ff",
+                intensity: 1.5,
+                layer: "windows" as const,
+            }; // Cyan for News
         }
         if (isChannel && settingsState.burnChannelWindows) {
-            return { color: "#ff8c00", intensity: 1.8 }; // Orange for Channel
+            return {
+                color: "#ff8c00",
+                intensity: 1.8,
+                layer: "windows" as const,
+            }; // Orange for Channel
         }
 
-        // Default burn for other windows if enabled?
-        // For now only if specifically requested or a generic setting (could add burnOtherWindows)
         return undefined;
     });
 </script>

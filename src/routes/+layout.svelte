@@ -296,7 +296,10 @@
 <div class="app-container">
   <OfflineBanner />
   <BackgroundRenderer />
-  <FireOverlay />
+  <!-- Rendering Layers for Visual Effects -->
+  <FireOverlay layer="tiles" zIndex={10} />
+  <FireOverlay layer="windows" zIndex={200} />
+  <FireOverlay layer="modals" zIndex={20000} />
   {@render children?.()}
 
   <!-- Global Modals -->

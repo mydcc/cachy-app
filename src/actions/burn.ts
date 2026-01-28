@@ -5,8 +5,9 @@ import { untrack } from "svelte";
 let idCounter = 0;
 
 export interface BurnOptions {
+    color?: string; // CSS variable or hex
     intensity?: number;
-    color?: string;
+    layer?: 'tiles' | 'windows' | 'modals';
     id?: string;
 }
 
@@ -22,8 +23,9 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
     // Track style state to avoid redundant store updates
     let lastFinalColor = "";
-    let lastIntensity = -1;
+    let lastIntensity = 1.0;
     let lastMode = "";
+    let lastLayer = "";
     let cachedThemeColor = "";
     let lastThemeCheck = 0;
 
@@ -86,7 +88,12 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
             const finalColor = resolveColor(options.color).toLowerCase();
             const intensity = options.intensity ?? 1.0;
             const currentMode = settingsState.borderEffectColorMode;
-            const styleChanged = finalColor !== lastFinalColor.toLowerCase() || intensity !== lastIntensity || currentMode !== lastMode;
+            const currentLayer = options.layer ?? "tiles";
+
+            const styleChanged = finalColor !== lastFinalColor.toLowerCase() ||
+                intensity !== lastIntensity ||
+                currentMode !== lastMode ||
+                currentLayer !== lastLayer;
 
             // 3. Size Guard
             if (rect.width === 0 || rect.height === 0) {
@@ -103,13 +110,15 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                     width: rect.width,
                     height: rect.height,
                     intensity: intensity,
-                    color: finalColor
+                    color: finalColor,
+                    layer: currentLayer as any
                 });
 
                 lastRect = rect;
                 lastFinalColor = finalColor;
                 lastIntensity = intensity;
                 lastMode = currentMode;
+                lastLayer = currentLayer;
             }
         });
     };

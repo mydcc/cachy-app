@@ -59,7 +59,7 @@
         <div
           use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
-            ? { color: "#ff8800", intensity: 1.2 }
+            ? { color: "#ff8800", intensity: 1.2, layer: "modals" }
             : undefined}
           class="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
@@ -84,7 +84,7 @@
         <div
           use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
-            ? { color: "#00ff9d", intensity: 1.2 }
+            ? { color: "#00ff9d", intensity: 1.2, layer: "modals" }
             : undefined}
           class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >

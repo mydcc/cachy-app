@@ -362,6 +362,7 @@
               ? "var(--danger-color)"
               : "var(--accent-color)",
         intensity: rsiValue && (rsiValue.gt(70) || rsiValue.lt(30)) ? 1.8 : 1.0,
+        layer: "tiles",
       }
     : undefined}
 >

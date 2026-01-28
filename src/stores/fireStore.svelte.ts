@@ -8,6 +8,7 @@ export interface BurningElement {
     height: number;
     intensity: number;
     color: string;
+    layer: 'tiles' | 'windows' | 'modals';
 }
 
 class FireStore {
@@ -37,6 +38,7 @@ class FireStore {
                 height: 0,
                 intensity: 1.0,
                 color: "#ffaa00",
+                layer: "tiles",
                 ...data
             } as BurningElement);
         }

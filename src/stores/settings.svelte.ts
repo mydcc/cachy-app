@@ -224,6 +224,8 @@ export interface Settings {
   burnChannelWindows: boolean;
   burnMarketOverviewTiles: boolean;
   burnFlashCards: boolean;
+  burnJournal: boolean;
+  burnModals: boolean;
   fireConfig: {
     speed: number;
     turbulence: number;
@@ -407,6 +409,8 @@ const defaultSettings: Settings = {
   burnChannelWindows: true,
   burnMarketOverviewTiles: true,
   burnFlashCards: true,
+  burnJournal: true,
+  burnModals: true,
   fireConfig: {
     speed: 1.0,
     turbulence: 1.0,
@@ -687,6 +691,8 @@ export class SettingsManager {
     defaultSettings.burnMarketOverviewTiles,
   );
   burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
+  burnJournal = $state<boolean>(defaultSettings.burnJournal);
+  burnModals = $state<boolean>(defaultSettings.burnModals);
 
   fireConfig = $state(defaultSettings.fireConfig);
 
@@ -1078,6 +1084,20 @@ export class SettingsManager {
       this.analyzeAllFavorites = merged.analyzeAllFavorites ?? defaultSettings.analyzeAllFavorites;
       this.marketCacheSize = merged.marketCacheSize ?? defaultSettings.marketCacheSize;
 
+      // Burning Borders Persistence
+      this.enableBurningBorders = merged.enableBurningBorders ?? defaultSettings.enableBurningBorders;
+      this.borderEffect = merged.borderEffect ?? defaultSettings.borderEffect;
+      this.borderEffectColorMode = merged.borderEffectColorMode ?? defaultSettings.borderEffectColorMode;
+      this.borderEffectCustomColor = merged.borderEffectCustomColor ?? defaultSettings.borderEffectCustomColor;
+      this.burningBordersIntensity = merged.burningBordersIntensity ?? defaultSettings.burningBordersIntensity;
+      this.burnNewsWindows = merged.burnNewsWindows ?? defaultSettings.burnNewsWindows;
+      this.burnChannelWindows = merged.burnChannelWindows ?? defaultSettings.burnChannelWindows;
+      this.burnMarketOverviewTiles = merged.burnMarketOverviewTiles ?? defaultSettings.burnMarketOverviewTiles;
+      this.burnFlashCards = merged.burnFlashCards ?? defaultSettings.burnFlashCards;
+      this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
+      this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
+      this.fireConfig = { ...defaultSettings.fireConfig, ...(merged.fireConfig || {}) };
+
 
       if (parsed.marketDataInterval === "manual") {
         this.autoUpdatePriceInput = false;
@@ -1205,6 +1225,8 @@ export class SettingsManager {
       burnChannelWindows: this.burnChannelWindows,
       burnMarketOverviewTiles: this.burnMarketOverviewTiles,
       burnFlashCards: this.burnFlashCards,
+      burnJournal: this.burnJournal,
+      burnModals: this.burnModals,
       fireConfig: $state.snapshot(this.fireConfig),
       minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,

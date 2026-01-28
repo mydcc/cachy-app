@@ -18,6 +18,8 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { _ } from "../../locales/i18n";
+  import { burn } from "../../actions/burn";
+  import { settingsState } from "../../stores/settings.svelte";
 
   interface Props {
     isOpen?: boolean;
@@ -44,6 +46,28 @@
   function handleClose() {
     onclose?.();
   }
+
+  let burnConfig = $derived.by(() => {
+    if (!settingsState.enableBurningBorders) return undefined;
+
+    // Special handling for Journal
+    const isJournal = title === $_("journal.title");
+    if (isJournal) {
+      if (!settingsState.burnJournal) return undefined;
+      return {
+        color: "var(--accent-color)",
+        intensity: 1.5,
+        layer: "modals" as const,
+      };
+    }
+
+    // Generic handling for other modals
+    if (settingsState.burnModals) {
+      return { layer: "modals" as const, intensity: 1.0 };
+    }
+
+    return undefined;
+  });
 </script>
 
 {#if isOpen}
@@ -67,6 +91,7 @@
     <div
       class="modal-content glass-panel {extraClasses}"
       transition:fly|local={{ y: -20, duration: 200 }}
+      use:burn={burnConfig}
     >
       <div class="modal-header">
         <h2 id="modal-title" class="modal-title">{title}</h2>

@@ -1,10 +1,15 @@
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
+
+    let { layer = "tiles" as const, zIndex = 40 } = $props<{
+        layer?: "tiles" | "windows" | "modals";
+        zIndex?: number;
+    }>();
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -17,9 +22,14 @@
     const dummy = new THREE.Object3D();
 
     // Reactive state to hide the whole thing when not needed
-    let isActive = $derived(
-        settingsState.enableBurningBorders && fireStore.elements.size > 0,
-    );
+    let isActive = $derived.by(() => {
+        if (!settingsState.enableBurningBorders) return false;
+        // Optimization: Only active if there are elements for *this* layer
+        for (const el of fireStore.elements.values()) {
+            if (el.layer === layer) return true;
+        }
+        return false;
+    });
 
     onMount(() => {
         if (!browser) return;
@@ -172,6 +182,7 @@
 
             for (const [id, data] of fireStore.elements) {
                 if (i >= MAX_INSTANCES) break;
+                if (data.layer !== layer) continue; // Filter by layer
 
                 const { x, y, width: w, height: h, color } = data;
 
@@ -232,7 +243,12 @@
     });
 </script>
 
-<div bind:this={container} class="fire-overlay" class:hidden={!isActive}></div>
+<div
+    bind:this={container}
+    class="fire-overlay"
+    class:hidden={!isActive}
+    style="z-index: {zIndex};"
+></div>
 
 <style>
     .fire-overlay {
@@ -241,7 +257,6 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 40; /* Below Modals (50) but presumably above content */
         pointer-events: none;
         overflow: hidden;
         background: transparent !important;
