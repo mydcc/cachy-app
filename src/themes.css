@@ -2492,9 +2492,9 @@ input[type="checkbox"]:checked+.atr-toggle-track::after {
 .glass-enabled .glass-panel {
   background: color-mix(in srgb,
       var(--bg-secondary) calc(var(--glass-opacity) * 100%),
-      transparent);
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+      transparent) !important;
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate)) !important;
 }
 
 /* Hover & Focus Enhancements */
