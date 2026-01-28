@@ -18,6 +18,7 @@
 <script lang="ts">
   import { formatDynamicDecimal } from "../../utils/utils";
   import { Decimal } from "decimal.js";
+  import { _ } from "../../locales/i18n";
 
   interface Props {
     position: any;
@@ -59,11 +60,11 @@
   <div class="grid grid-cols-2 gap-x-4 gap-y-1">
     <!-- Main Stats -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Size:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.size")}:</span>
       <span>{formatDynamicDecimal(position.size)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Value:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.value")}:</span>
       <span
         >{formatDynamicDecimal(
           new Decimal(position.size).mul(
@@ -74,11 +75,11 @@
     </div>
 
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Entry:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.entry")}:</span>
       <span>{formatDynamicDecimal(position.entryPrice)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Mark:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.mark")}:</span>
       <span>{formatDynamicDecimal(position.markPrice)}</span>
     </div>
 
@@ -86,7 +87,7 @@
 
     <!-- PnL & Margin -->
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">PnL:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.pnl")}:</span>
       <span
         class:text-[var(--success-color)]={position.unrealizedPnl > 0}
         class:text-[var(--danger-color)]={position.unrealizedPnl < 0}
@@ -105,11 +106,11 @@
     </div>
 
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Margin:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.details.margin")}:</span>
       <span>{formatDynamicDecimal(position.margin)}</span>
     </div>
     <div class="flex justify-between">
-      <span class="text-[var(--text-secondary)]">Liq. Price:</span>
+      <span class="text-[var(--text-secondary)]">{$_("dashboard.orderHistory.liq")}:</span>
       {#if position.liquidationPrice && new Decimal(position.liquidationPrice).gt(0)}
         <span class="text-[var(--warning-color)]"
           >{formatDynamicDecimal(position.liquidationPrice)}</span

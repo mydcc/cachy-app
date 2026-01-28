@@ -546,7 +546,7 @@
             class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
           >
             <div class="flex flex-col">
-              <span class="text-[var(--text-secondary)]">Funding Rate</span>
+              <span class="text-[var(--text-secondary)]">{$_("marketOverview.fundingRate")}</span>
               <span
                 class="font-medium"
                 class:text-[var(--success-color)]={fundingRate.gt(0)}
@@ -556,7 +556,7 @@
               </span>
             </div>
             <div class="flex flex-col text-right">
-              <span class="text-[var(--text-secondary)]">Countdown</span>
+              <span class="text-[var(--text-secondary)]">{$_("marketOverview.countdown")}</span>
               <span class="font-mono text-[var(--text-primary)]"
                 >{countdownText}</span
               >

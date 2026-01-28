@@ -345,11 +345,11 @@
                         bind:value={minVolumeStr}
                         class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded px-2 py-1 text-xs focus:ring-1 focus:ring-[var(--accent-color)] outline-none"
                     >
-                        <option value="0">All</option>
-                        <option value="1000000">1M</option>
-                        <option value="5000000">5M</option>
-                        <option value="10000000">10M</option>
-                        <option value="50000000">50M</option>
+                        <option value="0">{$_("symbolPicker.volFilter.all")}</option>
+                        <option value="1000000">{$_("symbolPicker.volFilter.1m")}</option>
+                        <option value="5000000">{$_("symbolPicker.volFilter.5m")}</option>
+                        <option value="10000000">{$_("symbolPicker.volFilter.10m")}</option>
+                        <option value="50000000">{$_("symbolPicker.volFilter.50m")}</option>
                     </select>
                 </div>
 
@@ -375,25 +375,25 @@
                         class="sort-pill"
                         class:active={sortMode === "alpha"}
                         onclick={() => (sortMode = "alpha")}
-                        title="A-Z">AZ</button
+                        title={$_("symbolPicker.sort.az")}>AZ</button
                     >
                     <button
                         class="sort-pill"
                         class:active={sortMode === "gainers"}
                         onclick={() => (sortMode = "gainers")}
-                        title="Gainers">%↑</button
+                        title={$_("symbolPicker.sort.gainers")}>%↑</button
                     >
                     <button
                         class="sort-pill"
                         class:active={sortMode === "losers"}
                         onclick={() => (sortMode = "losers")}
-                        title="Losers">%↓</button
+                        title={$_("symbolPicker.sort.losers")}>%↓</button
                     >
                     <button
                         class="sort-pill"
                         class:active={sortMode === "volume"}
                         onclick={() => (sortMode = "volume")}
-                        title="Volume">VOL</button
+                        title={$_("symbolPicker.sort.vol")}>VOL</button
                     >
                 </div>
 
