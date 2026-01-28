@@ -799,35 +799,29 @@ export function calculateAwesomeOscillator(
 }
 
 export function calculatePivots(klines: Kline[], type: string) {
-  const emptyResult = {
-    pivots: {
-      classic: {
-        p: new Decimal(0),
-        r1: new Decimal(0),
-        r2: new Decimal(0),
-        r3: new Decimal(0),
-        s1: new Decimal(0),
-        s2: new Decimal(0),
-        s3: new Decimal(0),
-      },
-    },
-    basis: {
-      high: new Decimal(0),
-      low: new Decimal(0),
-      close: new Decimal(0),
-      open: new Decimal(0),
-    },
-  };
-
-  if (klines.length < 2) return emptyResult;
-  // previous Completed candle
+  if (klines.length < 2) return getEmptyPivots();
   const prev = klines[klines.length - 2];
+  return calculatePivotsFromValues(
+    new Decimal(prev.high).toNumber(),
+    new Decimal(prev.low).toNumber(),
+    new Decimal(prev.close).toNumber(),
+    new Decimal(prev.open).toNumber(),
+    type
+  );
+}
 
+export function calculatePivotsFromValues(
+  h: number,
+  l: number,
+  c: number,
+  o: number,
+  type: string
+) {
   // We work with Decimals here because pivot math is sensitive
-  const high = new Decimal(prev.high);
-  const low = new Decimal(prev.low);
-  const close = new Decimal(prev.close);
-  const open = new Decimal(prev.open);
+  const high = new Decimal(h);
+  const low = new Decimal(l);
+  const close = new Decimal(c);
+  const open = new Decimal(o);
 
   let p = new Decimal(0);
   let r1 = new Decimal(0),
@@ -890,6 +884,28 @@ export function calculatePivots(klines: Kline[], type: string) {
       low,
       close,
       open,
+    },
+  };
+}
+
+function getEmptyPivots() {
+  return {
+    pivots: {
+      classic: {
+        p: new Decimal(0),
+        r1: new Decimal(0),
+        r2: new Decimal(0),
+        r3: new Decimal(0),
+        s1: new Decimal(0),
+        s2: new Decimal(0),
+        s3: new Decimal(0),
+      },
+    },
+    basis: {
+      high: new Decimal(0),
+      low: new Decimal(0),
+      close: new Decimal(0),
+      open: new Decimal(0),
     },
   };
 }

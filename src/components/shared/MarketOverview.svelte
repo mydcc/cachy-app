@@ -26,6 +26,7 @@
   import { app } from "../../services/app";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
+  import { viewport } from "../../actions/viewport";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -64,11 +65,13 @@
 
   // Ticker Data (Fallback)
   let tickerData = $derived(
-    marketState.data[normalizeSymbol(symbol, "bitunix")]
+    marketState.data[normalizeSymbol(symbol, "bitunix")],
   );
 
   let currentPrice = $derived.by(() => {
-    return (wsData?.lastPrice ?? tickerData?.lastPrice ?? null) as Decimal | null;
+    return (wsData?.lastPrice ??
+      tickerData?.lastPrice ??
+      null) as Decimal | null;
   });
 
   // Helper to get changed parts of price
@@ -141,27 +144,42 @@
 
   // RSI Values from centralized Technicals
   let rsiValue = $derived.by(() => {
-      if (!wsData?.technicals?.oscillators) return null;
-      const rsi = wsData.technicals.oscillators.find(o => o.name === "RSI");
-      return rsi ? rsi.value : null;
+    if (!wsData?.technicals?.oscillators) return null;
+    const rsi = wsData.technicals.oscillators.find((o) => o.name === "RSI");
+    return rsi ? rsi.value : null;
   });
 
   let signalValue = $derived.by(() => {
-      if (!wsData?.technicals?.oscillators) return null;
-      const rsi = wsData.technicals.oscillators.find(o => o.name === "RSI");
-      return rsi ? rsi.signal : null; // Signal might be undefined on IndicatorResult, check type
+    if (!wsData?.technicals?.oscillators) return null;
+    const rsi = wsData.technicals.oscillators.find((o) => o.name === "RSI");
+    return rsi ? rsi.signal : null; // Signal might be undefined on IndicatorResult, check type
   });
 
-
   // Funding Rate & Countdown
-  let fundingRate = $derived.by(() => (wsData?.fundingRate ?? null) as Decimal | null);
-  let nextFundingTime = $derived.by(() => (wsData?.nextFundingTime ?? null) as number | null);
+  let fundingRate = $derived.by(
+    () => (wsData?.fundingRate ?? null) as Decimal | null,
+  );
+  let nextFundingTime = $derived.by(
+    () => (wsData?.nextFundingTime ?? null) as number | null,
+  );
 
   // 24h Stats
-  let highPrice = $derived.by(() => (wsData?.highPrice ?? tickerData?.highPrice ?? null) as Decimal | null);
-  let lowPrice = $derived.by(() => (wsData?.lowPrice ?? tickerData?.lowPrice ?? null) as Decimal | null);
-  let volume = $derived.by(() => (wsData?.volume ?? tickerData?.volume ?? null) as Decimal | null);
-  let priceChangePercent = $derived.by(() => (wsData?.priceChangePercent ?? tickerData?.priceChangePercent ?? null) as Decimal | null);
+  let highPrice = $derived.by(
+    () =>
+      (wsData?.highPrice ?? tickerData?.highPrice ?? null) as Decimal | null,
+  );
+  let lowPrice = $derived.by(
+    () => (wsData?.lowPrice ?? tickerData?.lowPrice ?? null) as Decimal | null,
+  );
+  let volume = $derived.by(
+    () => (wsData?.volume ?? tickerData?.volume ?? null) as Decimal | null,
+  );
+  let priceChangePercent = $derived.by(
+    () =>
+      (wsData?.priceChangePercent ??
+        tickerData?.priceChangePercent ??
+        null) as Decimal | null,
+  );
 
   // Depth Data
   let depthData = $derived(wsData?.depth);
@@ -266,11 +284,16 @@
 
   // --- External Links ---
   let tvLink = $derived.by(() => {
-    const providerPrefix = provider.toUpperCase() === "BITGET" ? "BITGET" : "BITUNIX";
-    const formattedSymbol = symbol.endsWith(".P") ? symbol.replace(".P", "") : symbol;
+    const providerPrefix =
+      provider.toUpperCase() === "BITGET" ? "BITGET" : "BITUNIX";
+    const formattedSymbol = symbol.endsWith(".P")
+      ? symbol.replace(".P", "")
+      : symbol;
     return `https://www.tradingview.com/chart/?symbol=${providerPrefix}:${formattedSymbol.toUpperCase()}`;
   });
-  let cgHeatmapLink = $derived(`https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${baseAsset}`);
+  let cgHeatmapLink = $derived(
+    `https://www.coinglass.com/pro/futures/LiquidationHeatMap?coin=${baseAsset}`,
+  );
   let brokerLink = $derived.by(() => {
     const s = symbol.toUpperCase();
     if (provider.toLowerCase() === "bitget") {
@@ -284,12 +307,20 @@
 
   // Dynamic Window Targets (One tab per symbol/provider)
   let tvTarget = $derived(`cachy_tv_${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`);
-  let cgTarget = $derived(`cachy_cg_${baseAsset.replace(/[^a-zA-Z0-9]/g, "_")}`);
-  let brokerTarget = $derived(`cachy_broker_${provider.replace(/[^a-zA-Z0-9]/g, "_")}_${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`);
+  let cgTarget = $derived(
+    `cachy_cg_${baseAsset.replace(/[^a-zA-Z0-9]/g, "_")}`,
+  );
+  let brokerTarget = $derived(
+    `cachy_broker_${provider.replace(/[^a-zA-Z0-9]/g, "_")}_${symbol.replace(/[^a-zA-Z0-9]/g, "_")}`,
+  );
 
   // Channel Config
   const CHANNEL_CONFIG: Record<string, string | boolean> = {
-    BTC: true, ETH: true, SOL: true, LINK: true, XRP: true
+    BTC: true,
+    ETH: true,
+    SOL: true,
+    LINK: true,
+    XRP: true,
   };
   function openChannel() {
     if (!symbol) return;
@@ -302,8 +333,9 @@
     uiState.toggleWindow(windowId, url, `${s} Channel`);
   }
 
-  let isFavorite = $derived(symbol ? favoritesState.items.includes(symbol) : false);
-
+  let isFavorite = $derived(
+    symbol ? favoritesState.items.includes(symbol) : false,
+  );
 </script>
 
 <!-- svelte-ignore a11y_no_noninteractive_tabindex -->
@@ -316,6 +348,7 @@
   onkeydown={(e) => e.key === "Enter" && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
   tabindex={isFavoriteTile ? 0 : -1}
+  use:viewport={symbol}
 >
   <div class="absolute top-2 right-2 flex gap-1 z-50">
     {#if settingsState.showTechnicals && !isFavoriteTile && onToggleTechnicals}
@@ -420,93 +453,188 @@
       {#if settingsState.showMarketActivity}
         <div class="grid grid-cols-2 gap-x-4 gap-y-1 mt-2 text-xs">
           <div class="flex flex-col">
-            <span class="text-[var(--text-secondary)]">{$_("marketOverview.24hLow")}</span>
-            <span class="font-medium text-[var(--text-primary)]">{formatValue(lowPrice, 4)}</span>
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.24hLow")}</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(lowPrice, 4)}</span
+            >
           </div>
           <div class="flex flex-col text-right">
-            <span class="text-[var(--text-secondary)]">{$_("marketOverview.24hHigh")}</span>
-            <span class="font-medium text-[var(--text-primary)]">{formatValue(highPrice, 4)}</span>
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.24hHigh")}</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(highPrice, 4)}</span
+            >
           </div>
           <div class="flex flex-col mt-1">
-            <span class="text-[var(--text-secondary)]">{$_("marketOverview.vol")} ({displaySymbol.replace(/USDT.?$/, "").replace(/P$/, "")})</span>
-            <span class="font-medium text-[var(--text-primary)]">{formatValue(volume, 0)}</span>
+            <span class="text-[var(--text-secondary)]"
+              >{$_("marketOverview.vol")} ({displaySymbol
+                .replace(/USDT.?$/, "")
+                .replace(/P$/, "")})</span
+            >
+            <span class="font-medium text-[var(--text-primary)]"
+              >{formatValue(volume, 0)}</span
+            >
           </div>
 
-            <div class="flex flex-col mt-1 text-right relative group">
-              <span class="text-[var(--text-secondary)]">RSI ({effectiveRsiTimeframe})</span>
-              <span
-                class="font-medium transition-colors duration-300 cursor-help"
-                class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
-                class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
-                class:text-[var(--text-primary)]={!rsiValue || (rsiValue.gt(30) && rsiValue.lt(70))}
-              >
-                {formatValue(rsiValue, 2)}
-              </span>
-              <div class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50">
-                <Tooltip>
-                  <div class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]">
-                    <div class="font-bold border-b border-[var(--border-color)] pb-1 mb-1">RSI Settings</div>
-                    <div class="flex justify-between gap-4">
-                      <span>{$_("marketOverview.length")}:</span>
-                      <span class="font-mono">{indicatorState.rsi.length}</span>
-                    </div>
-                    <div class="flex justify-between gap-4">
-                      <span>{$_("marketOverview.source")}:</span>
-                      <span class="font-mono capitalize">{indicatorState.rsi.source}</span>
-                    </div>
-                    {#if indicatorState.rsi.showSignal && signalValue}
-                      <div class="flex justify-between gap-4 text-[var(--accent-color)]">
-                        <span>{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span>
-                        <span class="font-mono">{formatValue(signalValue, 2)}</span>
-                      </div>
-                    {/if}
+          <div class="flex flex-col mt-1 text-right relative group">
+            <span class="text-[var(--text-secondary)]"
+              >RSI ({effectiveRsiTimeframe})</span
+            >
+            <span
+              class="font-medium transition-colors duration-300 cursor-help"
+              class:text-[var(--danger-color)]={rsiValue && rsiValue.gte(70)}
+              class:text-[var(--success-color)]={rsiValue && rsiValue.lte(30)}
+              class:text-[var(--text-primary)]={!rsiValue ||
+                (rsiValue.gt(30) && rsiValue.lt(70))}
+            >
+              {formatValue(rsiValue, 2)}
+            </span>
+            <div
+              class="absolute right-0 bottom-full mb-2 hidden group-hover:block z-50"
+            >
+              <Tooltip>
+                <div
+                  class="flex flex-col gap-1 text-xs whitespace-nowrap bg-[var(--bg-tertiary)] text-[var(--text-primary)] p-2 rounded shadow-xl border border-[var(--border-color)]"
+                >
+                  <div
+                    class="font-bold border-b border-[var(--border-color)] pb-1 mb-1"
+                  >
+                    RSI Settings
                   </div>
-                </Tooltip>
-              </div>
+                  <div class="flex justify-between gap-4">
+                    <span>{$_("marketOverview.length")}:</span>
+                    <span class="font-mono">{indicatorState.rsi.length}</span>
+                  </div>
+                  <div class="flex justify-between gap-4">
+                    <span>{$_("marketOverview.source")}:</span>
+                    <span class="font-mono capitalize"
+                      >{indicatorState.rsi.source}</span
+                    >
+                  </div>
+                  {#if indicatorState.rsi.showSignal && signalValue}
+                    <div
+                      class="flex justify-between gap-4 text-[var(--accent-color)]"
+                    >
+                      <span
+                        >{$_("marketOverview.signal")} ({indicatorState.rsi.signalType.toUpperCase()}):</span
+                      >
+                      <span class="font-mono"
+                        >{formatValue(signalValue, 2)}</span
+                      >
+                    </div>
+                  {/if}
+                </div>
+              </Tooltip>
             </div>
+          </div>
         </div>
 
         {#if fundingRate}
-          <div class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs">
+          <div
+            class="mt-3 pt-2 border-t border-[var(--border-color)] grid grid-cols-2 gap-2 text-xs"
+          >
             <div class="flex flex-col">
               <span class="text-[var(--text-secondary)]">Funding Rate</span>
-              <span class="font-medium" class:text-[var(--success-color)]={fundingRate.gt(0)} class:text-[var(--danger-color)]={fundingRate.lt(0)}>
+              <span
+                class="font-medium"
+                class:text-[var(--success-color)]={fundingRate.gt(0)}
+                class:text-[var(--danger-color)]={fundingRate.lt(0)}
+              >
                 {formatValue(fundingRate.times(100), 4)}%
               </span>
             </div>
             <div class="flex flex-col text-right">
               <span class="text-[var(--text-secondary)]">Countdown</span>
-              <span class="font-mono text-[var(--text-primary)]">{countdownText}</span>
+              <span class="font-mono text-[var(--text-primary)]"
+                >{countdownText}</span
+              >
             </div>
           </div>
         {/if}
       {/if}
 
       {#if settingsState.showMarketOverviewLinks && symbol}
-        <div class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]">
+        <div
+          class="flex items-center gap-4 mt-3 pt-2 border-t border-[var(--border-color)]"
+        >
           {#if settingsState.showTvLink}
-            <a href={tvLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors" title="TradingView Chart" onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(tvLink, tvTarget); }}>TV</a>
+            <a
+              href={tvLink}
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors"
+              title="TradingView Chart"
+              onclick={(e) => {
+                e.preventDefault();
+                externalLinkService.openOrFocus(tvLink, tvTarget);
+              }}>TV</a
+            >
           {/if}
           {#if settingsState.showCgHeatLink}
-            <a href={cgHeatmapLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors" title={$_("marketOverview.tooltips.liquidationHeatmap")} onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(cgHeatmapLink, cgTarget); }}>CG Heat</a>
+            <a
+              href={cgHeatmapLink}
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--danger-color)] transition-colors"
+              title={$_("marketOverview.tooltips.liquidationHeatmap")}
+              onclick={(e) => {
+                e.preventDefault();
+                externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
+              }}>CG Heat</a
+            >
           {/if}
           {#if settingsState.showBrokerLink}
-            <a href={brokerLink} class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors" title={$_("marketOverview.tooltips.openOnProvider", { values: { provider: provider.toUpperCase() } })} onclick={(e) => { e.preventDefault(); externalLinkService.openOrFocus(brokerLink, brokerTarget); }}>{provider.toUpperCase()}</a>
+            <a
+              href={brokerLink}
+              class="text-[10px] uppercase font-bold text-[var(--text-secondary)] hover:text-[var(--success-color)] transition-colors"
+              title={$_("marketOverview.tooltips.openOnProvider", {
+                values: { provider: provider.toUpperCase() },
+              })}
+              onclick={(e) => {
+                e.preventDefault();
+                externalLinkService.openOrFocus(brokerLink, brokerTarget);
+              }}>{provider.toUpperCase()}</a
+            >
           {/if}
           {#if CHANNEL_CONFIG[baseAsset] && settingsState.isPro}
             {@const config = CHANNEL_CONFIG[baseAsset]}
             {@const plotId = typeof config === "string" ? config : baseAsset}
             {@const windowId = `channel_${plotId}`}
             {@const isOpen = uiState.windows.some((w) => w.id === windowId)}
-            <button class="transition-colors p-0.5 rounded" class:text-[var(--accent-color)]={isOpen} class:text-[var(--text-secondary)]={!isOpen} class:hover:text-[var(--accent-color)]={!isOpen} title={isOpen ? $_("marketOverview.tooltips.closeChannel") : $_("marketOverview.tooltips.openChannel")} onclick={(e) => { e.stopPropagation(); openChannel(); }}>{@html icons.monitor}</button>
+            <button
+              class="transition-colors p-0.5 rounded"
+              class:text-[var(--accent-color)]={isOpen}
+              class:text-[var(--text-secondary)]={!isOpen}
+              class:hover:text-[var(--accent-color)]={!isOpen}
+              title={isOpen
+                ? $_("marketOverview.tooltips.closeChannel")
+                : $_("marketOverview.tooltips.openChannel")}
+              onclick={(e) => {
+                e.stopPropagation();
+                openChannel();
+              }}>{@html icons.monitor}</button
+            >
           {/if}
         </div>
       {/if}
     </div>
   {/if}
 
-  <button class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1" class:text-[var(--accent-color)]={isFavorite} onclick={(e) => { e.stopPropagation(); toggleFavorite(); }} title={isFavorite ? $_("marketOverview.tooltips.removeFavorite") : $_("marketOverview.tooltips.addFavorite")}>
-    {#if isFavorite} {@html icons.starFilled} {:else} {@html icons.starEmpty} {/if}
+  <button
+    class="absolute bottom-2 right-2 text-[var(--text-secondary)] hover:text-[var(--accent-color)] transition-colors p-1"
+    class:text-[var(--accent-color)]={isFavorite}
+    onclick={(e) => {
+      e.stopPropagation();
+      toggleFavorite();
+    }}
+    title={isFavorite
+      ? $_("marketOverview.tooltips.removeFavorite")
+      : $_("marketOverview.tooltips.addFavorite")}
+  >
+    {#if isFavorite}
+      {@html icons.starFilled}
+    {:else}
+      {@html icons.starEmpty}
+    {/if}
   </button>
 </div>
 
@@ -525,7 +653,11 @@
     background-size: 200% 100%;
   }
   @keyframes shimmer {
-    0% { background-position: -200% 0; }
-    100% { background-position: 200% 0; }
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
   }
 </style>
