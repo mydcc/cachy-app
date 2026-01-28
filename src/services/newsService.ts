@@ -48,15 +48,51 @@ function safeReadCache<T>(key: string, schema?: z.ZodType<T>): T | null {
   }
 }
 
+async function safeReadCacheAsync<T>(key: string, schema?: z.ZodType<T>): Promise<T | null> {
+  if (!isBrowser) return null;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return null;
+
+    // Offload JSON.parse to background thread using Response/Blob hack
+    // This prevents UI freeze for large JSON strings (like 1MB+ news cache)
+    const blob = new Blob([raw], { type: 'application/json' });
+    const response = new Response(blob);
+    const parsed = await response.json();
+
+    if (schema) {
+      const validation = schema.safeParse(parsed);
+      if (!validation.success) {
+        logger.log("ai", `[newsService] Cache validation failed for ${key}, resetting cache.`);
+        localStorage.removeItem(key);
+        return null;
+      }
+      return validation.data;
+    }
+
+    return parsed as T;
+  } catch (e) {
+    try {
+      localStorage.removeItem(key);
+    } catch {
+      /* ignore */
+    }
+    logger.warn("ai", `[newsService] Corrupted cache cleared for ${key}`);
+    return null;
+  }
+}
+
 function safeWriteCache<T>(key: string, value: T) {
   if (!isBrowser) return;
   try {
-    localStorage.setItem(key, JSON.stringify(value));
+    const str = JSON.stringify(value);
+    localStorage.setItem(key, str);
   } catch (e) {
     logger.warn("ai", `[newsService] Failed to persist cache ${key}`);
   }
 }
 
+// --- Interfaces & Constants ---
 export interface NewsItem {
   title: string;
   url: string;
@@ -161,11 +197,14 @@ const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 Minuten Cooldown zwischen API C
 
 /**
  * Prüft, ob News für ein Symbol abgerufen werden müssen
+ * Accepts optional cached entry to avoid double-read.
  */
-function shouldFetchNews(symbol: string | undefined): boolean {
+function shouldFetchNews(symbol: string | undefined, cachedEntry?: NewsCacheEntry | null): boolean {
   const symbolKey = symbol || "global";
   const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
-  const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
+
+  // If not provided, try to read sync (fallback, but ideally we pass it)
+  const cached = cachedEntry !== undefined ? cachedEntry : safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
 
   if (!cached) {
     // Wenn Cache leer ist, müssen wir versuchen zu laden,
@@ -266,9 +305,9 @@ export const newsService = {
 
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
-        // 1. Cache-Validierung mit intelligenter Logik
-        const cached = safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
-        if (cached && !shouldFetchNews(symbol)) {
+        // 1. Cache-Validierung mit intelligenter Logik (ASYNC)
+        const cached = await safeReadCacheAsync<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
+        if (cached && !shouldFetchNews(symbol, cached)) {
           return cached.items;
         }
 

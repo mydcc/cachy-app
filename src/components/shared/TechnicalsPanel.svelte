@@ -70,20 +70,25 @@
 
     // If not found, try generic Buy/Sell
     if (!translation || translation.includes("settings.technicals")) {
-       if (action.includes("Buy")) return $_("common.buy" as any) || action;
-       if (action.includes("Sell")) return $_("common.sell" as any) || action;
-       if (action.includes("Neutral")) return $_("common.neutral" as any) || action;
-       return action;
+      if (action.includes("Buy")) return $_("common.buy" as any) || action;
+      if (action.includes("Sell")) return $_("common.sell" as any) || action;
+      if (action.includes("Neutral"))
+        return $_("common.neutral" as any) || action;
+      return action;
     }
     return translation;
   }
 
   function translateContext(context: string): string {
-      if (context === "Overbought") return $_("technicals.overbought" as any) || "Overbought";
-      if (context === "Oversold") return $_("technicals.oversold" as any) || "Oversold";
-      if (context === "Trend") return $_("technicals.trend" as any) || "Trend";
-      if (context === "Range") return $_("technicals.range" as any) || "Range";
-      return translateAction(context);
+    if (context === "Overbought")
+      return $_("settings.technicals.overbought" as any) || "Overbought";
+    if (context === "Oversold")
+      return $_("settings.technicals.oversold" as any) || "Oversold";
+    if (context === "Trend")
+      return $_("settings.technicals.trend" as any) || "Trend";
+    if (context === "Range")
+      return $_("settings.technicals.range" as any) || "Range";
+    return translateAction(context);
   }
 
   // --- UI Event Handlers ---
@@ -226,43 +231,70 @@
           <div class="flex flex-col gap-1">
             <!-- Summary Action -->
             {#if settingsState.showTechnicalsSummary}
-              <div class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)]">
+              <div
+                class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)]"
+              >
                 <div class="flex justify-between items-center text-xs px-1">
-                    <span class="text-[var(--text-secondary)] uppercase font-medium">
-                        {typeof $_ === "function" ? $_("settings.technicals.summaryAction") : "Summary"}
-                    </span>
-                    <span class="font-bold {TechnicalsPresenter.getActionColor(data.summary.action)}">
-                        {translateAction(data.summary.action)}
-                    </span>
+                  <span
+                    class="text-[var(--text-secondary)] uppercase font-medium"
+                  >
+                    {typeof $_ === "function"
+                      ? $_("settings.technicals.summaryAction")
+                      : "Summary"}
+                  </span>
+                  <span
+                    class="font-bold {TechnicalsPresenter.getActionColor(
+                      data.summary.action,
+                    )}"
+                  >
+                    {translateAction(data.summary.action)}
+                  </span>
                 </div>
               </div>
             {/if}
 
             <!-- Market Confluence (Gauge) -->
             {#if settingsState.showTechnicalsConfluence && data.confluence}
-              <div class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)] px-1">
+              <div
+                class="flex flex-col gap-1 py-1 border-b border-[var(--border-color)] px-1"
+              >
                 <div class="flex justify-between items-center text-xs">
-                    <span class="text-[var(--text-secondary)] uppercase font-medium">
-                        {typeof $_ === "function" ? $_("settings.technicals.marketConfluence") : "Confluence"}
-                    </span>
-                    <span class="font-bold {TechnicalsPresenter.getActionColor(data.confluence.level)}">
-                        {Math.round(data.confluence.score)}%
-                    </span>
+                  <span
+                    class="text-[var(--text-secondary)] uppercase font-medium"
+                  >
+                    {typeof $_ === "function"
+                      ? $_("settings.technicals.marketConfluence")
+                      : "Confluence"}
+                  </span>
+                  <span
+                    class="font-bold {TechnicalsPresenter.getActionColor(
+                      data.confluence.level,
+                    )}"
+                  >
+                    {Math.round(data.confluence.score)}%
+                  </span>
                 </div>
                 <!-- Linear Gauge -->
-                <div class="relative h-1.5 bg-[var(--bg-tertiary)] rounded-full mt-1 overflow-hidden" title={data.confluence.contributing.join("\n")}>
-                    <!-- Gradient Background: Red -> Yellow -> Green -->
-                    <div class="absolute inset-0 bg-gradient-to-r from-[var(--danger-color)] via-[var(--warning-color)] to-[var(--success-color)] opacity-40"></div>
-                    <!-- Marker -->
-                    <div
-                        class="absolute top-0 bottom-0 w-1 bg-[var(--text-primary)] shadow-[0_0_4px_rgba(0,0,0,0.5)] transform -translate-x-1/2 transition-all duration-500"
-                        style="left: {data.confluence.score}%"
-                    ></div>
+                <div
+                  class="relative h-1.5 bg-[var(--bg-tertiary)] rounded-full mt-1 overflow-hidden"
+                  title={data.confluence.contributing.join("\n")}
+                >
+                  <!-- Gradient Background: Red -> Yellow -> Green -->
+                  <div
+                    class="absolute inset-0 bg-gradient-to-r from-[var(--danger-color)] via-[var(--warning-color)] to-[var(--success-color)] opacity-40"
+                  ></div>
+                  <!-- Marker -->
+                  <div
+                    class="absolute top-0 bottom-0 w-1 bg-[var(--text-primary)] shadow-[0_0_4px_rgba(0,0,0,0.5)] transform -translate-x-1/2 transition-all duration-500"
+                    style="left: {data.confluence.score}%"
+                  ></div>
                 </div>
-                <div class="flex justify-between text-[8px] text-[var(--text-tertiary)] mt-0.5 uppercase">
-                    <span>{translateAction("Sell")}</span>
-                    <span>{translateAction("Neutral")}</span>
-                    <span>{translateAction("Buy")}</span>
+                <div
+                  class="flex justify-between text-[8px] text-[var(--text-tertiary)] mt-0.5 uppercase"
+                >
+                  <span>{translateAction("Sell")}</span>
+                  <span>{translateAction("Neutral")}</span>
+                  <span>{translateAction("Buy")}</span>
                 </div>
               </div>
             {/if}
@@ -277,7 +309,10 @@
                   >ATR</span
                 >
                 <span class="font-mono text-[var(--text-primary)]"
-                  >{TechnicalsPresenter.formatVal(data.volatility.atr, indicatorSettings?.precision)}</span
+                  >{TechnicalsPresenter.formatVal(
+                    data.volatility.atr,
+                    indicatorSettings?.precision,
+                  )}</span
                 >
               </div>
               <div
@@ -290,9 +325,9 @@
                 <span class="font-mono text-[var(--text-primary)]"
                   >{TechnicalsPresenter.formatVal(
                     TechnicalsPresenter.calculateBollingerBandWidth(
-                        new Decimal(data.volatility.bb.upper),
-                        new Decimal(data.volatility.bb.lower),
-                        new Decimal(data.volatility.bb.middle)
+                      new Decimal(data.volatility.bb.upper),
+                      new Decimal(data.volatility.bb.lower),
+                      new Decimal(data.volatility.bb.middle),
                     ),
                     2,
                   )}%</span
@@ -315,13 +350,24 @@
                 >
                   <span class="truncate" title={osc.params}>{osc.name}</span>
                   <span class="font-mono text-right"
-                    >{TechnicalsPresenter.formatVal(osc.value, indicatorSettings?.precision)}</span
+                    >{TechnicalsPresenter.formatVal(
+                      osc.value,
+                      indicatorSettings?.precision,
+                    )}</span
                   >
                   <!-- Context Aware Action -->
                   <span
-                    class="font-bold text-right {TechnicalsPresenter.getActionColor(osc.action)}"
+                    class="font-bold text-right {TechnicalsPresenter.getActionColor(
+                      osc.action,
+                    )}"
                     title="Action: {osc.action}"
-                    >{translateContext(TechnicalsPresenter.getOscillatorContext(osc.name, osc.value, osc.action))}</span
+                    >{translateContext(
+                      TechnicalsPresenter.getOscillatorContext(
+                        osc.name,
+                        osc.value,
+                        osc.action,
+                      ),
+                    )}</span
                   >
                 </div>
               {/each}
@@ -343,9 +389,16 @@
                 >
                   <span>{ma.name} ({ma.params})</span>
                   <div class="flex gap-2">
-                    <span class="font-mono">{TechnicalsPresenter.formatVal(ma.value, indicatorSettings?.precision)}</span>
-                    <span class="font-bold {TechnicalsPresenter.getActionColor(ma.action)}"
-                      >{translateAction(ma.action)}</span
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        ma.value,
+                        indicatorSettings?.precision,
+                      )}</span
+                    >
+                    <span
+                      class="font-bold {TechnicalsPresenter.getActionColor(
+                        ma.action,
+                      )}">{translateAction(ma.action)}</span
                     >
                   </div>
                 </div>
@@ -367,7 +420,12 @@
                     class="flex justify-between text-xs py-0.5 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded transition-colors"
                   >
                     <span class="font-bold {pivot.color}">{pivot.label}</span>
-                    <span class="font-mono">{TechnicalsPresenter.formatVal(pivot.val, indicatorSettings?.precision)}</span>
+                    <span class="font-mono"
+                      >{TechnicalsPresenter.formatVal(
+                        pivot.val,
+                        indicatorSettings?.precision,
+                      )}</span
+                    >
                   </div>
                 {/each}
               </div>
@@ -389,7 +447,12 @@
                   class="flex justify-between text-xs py-1 px-1 border-b border-[var(--border-color)]"
                 >
                   <span>VWAP</span>
-                  <span class="font-mono">{TechnicalsPresenter.formatVal(data.advanced.vwap, indicatorSettings?.precision)}</span>
+                  <span class="font-mono"
+                    >{TechnicalsPresenter.formatVal(
+                      data.advanced.vwap,
+                      indicatorSettings?.precision,
+                    )}</span
+                  >
                 </div>
               {/if}
 
@@ -401,12 +464,22 @@
                   <span>MFI</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
-                      >{TechnicalsPresenter.formatVal(data.advanced.mfi.value, indicatorSettings?.precision)}</span
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.mfi.value,
+                        indicatorSettings?.precision,
+                      )}</span
                     >
                     <span
                       class="font-bold {TechnicalsPresenter.getActionColor(
                         data.advanced.mfi.action,
-                      )}">{translateContext(TechnicalsPresenter.getOscillatorContext("MFI", data.advanced.mfi.value, data.advanced.mfi.action))}</span
+                      )}"
+                      >{translateContext(
+                        TechnicalsPresenter.getOscillatorContext(
+                          "MFI",
+                          data.advanced.mfi.value,
+                          data.advanced.mfi.action,
+                        ),
+                      )}</span
                     >
                   </div>
                 </div>
@@ -420,11 +493,20 @@
                   <span>SuperTrend</span>
                   <div class="flex gap-2">
                     <span class="font-mono"
-                      >{TechnicalsPresenter.formatVal(data.advanced.superTrend.value, indicatorSettings?.precision)}</span
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.superTrend.value,
+                        indicatorSettings?.precision,
+                      )}</span
                     >
                     <span
-                      class="font-bold {TechnicalsPresenter.getSuperTrendColor(data.advanced.superTrend.trend)}"
-                      >{translateAction(data.advanced.superTrend.trend.toUpperCase() === "BULL" ? "Buy" : "Sell")}</span
+                      class="font-bold {TechnicalsPresenter.getSuperTrendColor(
+                        data.advanced.superTrend.trend,
+                      )}"
+                      >{translateAction(
+                        data.advanced.superTrend.trend.toUpperCase() === "BULL"
+                          ? "Buy"
+                          : "Sell",
+                      )}</span
                     >
                   </div>
                 </div>
@@ -438,13 +520,19 @@
                   <div class="flex justify-between">
                     <span>ATR Stop (L)</span>
                     <span class="font-mono text-[var(--danger-color)]"
-                      >{TechnicalsPresenter.formatVal(data.advanced.atrTrailingStop.sell, indicatorSettings?.precision)}</span
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.atrTrailingStop.sell,
+                        indicatorSettings?.precision,
+                      )}</span
                     >
                   </div>
                   <div class="flex justify-between">
                     <span>ATR Stop (S)</span>
                     <span class="font-mono text-[var(--success-color)]"
-                      >{TechnicalsPresenter.formatVal(data.advanced.atrTrailingStop.buy, indicatorSettings?.precision)}</span
+                      >{TechnicalsPresenter.formatVal(
+                        data.advanced.atrTrailingStop.buy,
+                        indicatorSettings?.precision,
+                      )}</span
                     >
                   </div>
                 </div>
@@ -480,30 +568,59 @@
 
           <!-- SIGNALS SECTION (Restyled) -->
           {#if settingsState.showTechnicalsSignals}
-            <div class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2">
-              <div class="text-[10px] uppercase text-[var(--text-secondary)] px-1">
+            <div
+              class="flex flex-col gap-1 border-t border-[var(--border-color)] pt-2"
+            >
+              <div
+                class="text-[10px] uppercase text-[var(--text-secondary)] px-1"
+              >
                 Signals
               </div>
 
               {#if data.divergences && data.divergences.length > 0}
                 {#each data.divergences as div}
-                  <div class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded">
+                  <div
+                    class="flex flex-col text-xs py-1 px-1 border-b border-[var(--border-color)] last:border-0 hover:bg-[var(--bg-tertiary)] rounded"
+                  >
                     <div class="flex justify-between">
-                        <span class="font-medium">{div.indicator} {div.type}</span>
-                        <span class="font-bold {TechnicalsPresenter.getDivergenceColor(div.side)}">
-                          {translateAction(div.side)}
-                        </span>
+                      <span class="font-medium">{div.indicator} {div.type}</span
+                      >
+                      <span
+                        class="font-bold {TechnicalsPresenter.getDivergenceColor(
+                          div.side,
+                        )}"
+                      >
+                        {translateAction(div.side)}
+                      </span>
                     </div>
-                    <div class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5">
-                        <span>Val: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(div.indEnd, 1)}</span>
-                        <span>Price: {TechnicalsPresenter.formatVal(div.priceStart, indicatorSettings?.precision)} ➝ {TechnicalsPresenter.formatVal(div.priceEnd, indicatorSettings?.precision)}</span>
+                    <div
+                      class="text-[9px] text-[var(--text-secondary)] flex justify-between mt-0.5"
+                    >
+                      <span
+                        >Val: {TechnicalsPresenter.formatVal(div.indStart, 1)} ➝ {TechnicalsPresenter.formatVal(
+                          div.indEnd,
+                          1,
+                        )}</span
+                      >
+                      <span
+                        >Price: {TechnicalsPresenter.formatVal(
+                          div.priceStart,
+                          indicatorSettings?.precision,
+                        )} ➝ {TechnicalsPresenter.formatVal(
+                          div.priceEnd,
+                          indicatorSettings?.precision,
+                        )}</span
+                      >
                     </div>
                   </div>
                 {/each}
               {:else}
-                  <div class="text-xs text-[var(--text-secondary)] px-1 py-1 italic">
-                     {$_("technicals.noSignals" as any) || "No divergences detected"}
-                  </div>
+                <div
+                  class="text-xs text-[var(--text-secondary)] px-1 py-1 italic"
+                >
+                  {$_("technicals.noSignals" as any) ||
+                    "No divergences detected"}
+                </div>
               {/if}
             </div>
           {/if}

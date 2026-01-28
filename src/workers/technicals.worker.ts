@@ -158,9 +158,7 @@ ctx.onmessage = async (e: MessageEvent<WorkerMessage>) => {
       // Check for SoA Payload (Zero-Copy Path)
       if ('times' in payload && payload.times instanceof Float64Array) {
         const soa = payload as WorkerCalculatePayloadSoA;
-        // We use 'as any' to allow passing Float64Array where number[] is expected.
-        // In JS this works perfectly for indexed access and loops.
-        // This avoids O(N) copy overhead of Array.from().
+        // Optimization: Pass TypedArrays directly (cast to any to satisfy TS signature if needed)
         result = calculateIndicatorsFromArrays(
           soa.times as any,
           soa.opens as any,

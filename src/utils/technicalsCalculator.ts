@@ -51,12 +51,12 @@ export function calculateAllIndicators(
 }
 
 export function calculateIndicatorsFromArrays(
-  timesNum: number[],
-  opensNum: number[],
-  highsNum: number[],
-  lowsNum: number[],
-  closesNum: number[],
-  volumesNum: number[],
+  timesNum: number[] | Float64Array,
+  opensNum: number[] | Float64Array,
+  highsNum: number[] | Float64Array,
+  lowsNum: number[] | Float64Array,
+  closesNum: number[] | Float64Array,
+  volumesNum: number[] | Float64Array,
   settings?: IndicatorSettings,
   enabledIndicators?: Partial<Record<string, boolean>>,
 ): TechnicalsData {
@@ -67,7 +67,7 @@ export function calculateIndicatorsFromArrays(
     !enabledIndicators || enabledIndicators[name] !== false;
 
   // Helper to get source array based on config
-  const getSource = (sourceType: string): number[] => {
+  const getSource = (sourceType: string): number[] | Float64Array => {
     switch (sourceType) {
       case "open":
         return opensNum;

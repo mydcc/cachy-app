@@ -6,7 +6,7 @@
  */
 
 import { Decimal } from "decimal.js";
-import type { Kline } from "./indicators";
+import type { Kline, NumberArray } from "./indicators";
 
 export type DivergenceType = "Regular" | "Hidden";
 export type DivergenceSide = "Bullish" | "Bearish";
@@ -34,7 +34,7 @@ export class DivergenceScanner {
   // But for real-time scanning we often look at "confirmed" pivots which are naturally lagged.
   // Simple pivot: High > N bars left & High > N bars right.
 
-  static findPivots(values: number[], range: number = 2): Pivot[] {
+  static findPivots(values: NumberArray, range: number = 2): Pivot[] {
     const pivots: Pivot[] = [];
     if (values.length < range * 2 + 1) return pivots;
 
@@ -71,9 +71,9 @@ export class DivergenceScanner {
    * @param lookbackMax Max distance between two pivots to consider (e.g. 50 bars).
    */
   static scan(
-    priceHighs: number[],
-    priceLows: number[],
-    indicatorValues: number[],
+    priceHighs: NumberArray,
+    priceLows: NumberArray,
+    indicatorValues: NumberArray,
     indicatorName: string,
   ): DivergenceResult[] {
     const results: DivergenceResult[] = [];
