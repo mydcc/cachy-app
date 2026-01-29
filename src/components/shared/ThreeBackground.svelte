@@ -505,9 +505,11 @@
         if (settingsState.galaxySettings.enableGyroscope) {
             if (controls) controls.enabled = false;
             initialOrientation = null;
+            // i18n-ignore
             window.addEventListener("deviceorientation", onDeviceOrientation);
         } else {
             if (controls) controls.enabled = true;
+            // i18n-ignore
             window.removeEventListener(
                 "deviceorientation",
                 onDeviceOrientation,
@@ -515,6 +517,7 @@
         }
 
         return () => {
+            // i18n-ignore
             window.removeEventListener(
                 "deviceorientation",
                 onDeviceOrientation,
