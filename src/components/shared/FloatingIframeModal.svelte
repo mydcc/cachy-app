@@ -12,6 +12,7 @@
     import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
     import type { FloatingWindow } from "../../stores/floatingWindows.svelte";
     import { _ } from "../../locales/i18n";
+    import CachyIcon from "./CachyIcon.svelte";
 
     interface Props {
         window: FloatingWindow;
@@ -138,7 +139,7 @@
         role="toolbar"
         tabindex="-1"
     >
-        role="toolbar" >
+        <CachyIcon class="window-icon" />
         <h3 id="window-title-{win.id}" class="window-title">{win.title}</h3>
         <button
             class="window-close-btn"
@@ -206,6 +207,24 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+
+    :global(.window-icon) {
+        width: 18px;
+        height: 18px;
+        margin-right: 10px;
+        color: var(--accent-color);
+        transition: all
+            var(
+                --transition-bounce,
+                0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)
+            );
+        flex-shrink: 0;
+    }
+
+    .window-header:hover :global(.window-icon) {
+        transform: scale(1.2) rotate(8deg);
+        filter: drop-shadow(0 0 8px var(--accent-color));
     }
 
     .window-close-btn {
