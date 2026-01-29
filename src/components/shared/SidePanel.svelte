@@ -113,9 +113,9 @@
   }
 
   function getPanelTitle(mode: string) {
-    if (mode === "chat") return "Global Chat";
-    if (mode === "notes") return "My Notes";
-    if (mode === "ai") return "AI Assistant";
+    if (mode === "chat") return $_("sidePanel.globalChat");
+    if (mode === "notes") return $_("sidePanel.myNotes");
+    if (mode === "ai") return $_("sidePanel.aiAssistant");
     return "Side Panel";
   }
 
@@ -693,11 +693,7 @@
                   if (confirmClear) {
                     if (
                       confirm(
-                        $_(
-                          mode === "notes"
-                            ? "notes.clearConfirm"
-                            : ("chat.clearConfirm" as any),
-                        ) || "Clear history?",
+                        $_("sidePanel.clearConfirm") || "Clear history?",
                       )
                     ) {
                       clearFn();

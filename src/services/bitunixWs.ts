@@ -780,7 +780,7 @@ class BitunixWebSocketService {
               if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
                  const now = Date.now();
                  if (now - this.lastNumericWarning > 60000) {
-                     logger.warn("network", `[BitunixWS] CRITICAL: Received numeric price for ${symbol}. Precision loss likely!`);
+                     logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
                      this.lastNumericWarning = now;
                  }
               }
