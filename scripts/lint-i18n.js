@@ -160,6 +160,10 @@ function scanDirectory(dirPath) {
             scanDirectory(fullPath);
         } else if (entry.isFile()) {
             const ext = path.extname(entry.name);
+            // Skip test files
+            if (entry.name.includes('.test.') || entry.name.includes('.spec.')) {
+                continue;
+            }
             if (FILE_EXTENSIONS.includes(ext)) {
                 scanFile(fullPath);
             }
