@@ -6,16 +6,21 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { marketState } from "../../stores/market.svelte";
   import { tradeState } from "../../stores/trade.svelte";
+  import { normalizeSymbol } from "../../utils/symbolUtils";
 
   let isFlipped = $state(false);
 
   // Derived market color based on active symbol
   let marketColor = $derived.by(() => {
     const symbol = tradeState.symbol;
-    const data = marketState.data[symbol];
+    if (!symbol) return "var(--accent-color)";
+
+    const key = normalizeSymbol(symbol, settingsState.apiProvider);
+    const data = marketState.data[key];
+
     if (!data || !data.priceChangePercent) return "var(--accent-color)";
 
-    return data.priceChangePercent.isPositive()
+    return data.priceChangePercent.gte(0)
       ? "var(--up-color)"
       : "var(--down-color)";
   });

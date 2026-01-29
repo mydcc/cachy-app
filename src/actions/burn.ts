@@ -3,6 +3,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { untrack } from "svelte";
 import { marketState } from "../stores/market.svelte";
 import { tradeState } from "../stores/trade.svelte";
+import { normalizeSymbol } from "../utils/symbolUtils";
 
 let idCounter = 0;
 
@@ -89,9 +90,12 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
             const symbol = tradeState.symbol;
             if (symbol) {
-                const data = marketState.data[symbol];
+                const provider = settingsState.apiProvider;
+                const key = normalizeSymbol(symbol, provider);
+                const data = marketState.data[key];
+
                 if (data && data.priceChangePercent) {
-                    return data.priceChangePercent.isPositive() ? cachedUpColor : cachedDownColor;
+                    return data.priceChangePercent.gte(0) ? cachedUpColor : cachedDownColor;
                 }
             }
             // Fallback if no market data: behave like theme or neutral
