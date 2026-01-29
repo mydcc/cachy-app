@@ -37,7 +37,7 @@ export interface MarketData {
   quoteVolume?: Decimal | null;
   priceChangePercent?: Decimal | null;
   klines: Record<string, Kline[]>;
-  technicals?: import("../services/technicalsTypes").TechnicalsData;
+  technicals?: Record<string, import("../services/technicalsTypes").TechnicalsData>;
   metricsHistory?: MetricSnapshot[];
   lastUpdated?: number; // Optimization: only snapshot fresh data
 }
@@ -264,8 +264,9 @@ export class MarketManager {
 
     if (partial.depth !== undefined) current.depth = partial.depth;
     if (partial.technicals !== undefined) {
-      current.technicals = partial.technicals;
-      console.log(`[Market] Updated technicals for ${symbol}`);
+      // Merge technicals map (keyed by timeframe)
+      current.technicals = { ...(current.technicals || {}), ...partial.technicals };
+      // console.log(`[Market] Updated technicals for ${symbol}`);
     }
   }
 
