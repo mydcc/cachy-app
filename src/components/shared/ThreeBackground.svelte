@@ -462,7 +462,12 @@
 
 </script>
 
-<div bind:this={container} class="w-full h-full absolute inset-0"></div>
+<div
+    bind:this={container}
+    class="w-full h-full absolute inset-0"
+    aria-hidden="true"
+    tabindex="-1"
+></div>
 
 <style>
     div {

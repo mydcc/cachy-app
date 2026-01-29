@@ -14,6 +14,19 @@ class OrderManagementSystem {
     private positions = new Map<string, OMSPosition>();
     private readonly MAX_ORDERS = 1000;
     private readonly MAX_POSITIONS = 50;
+    private watchdogInterval: ReturnType<typeof setInterval>;
+
+    constructor() {
+        // Watchdog: Clean up optimistic orders that are stuck (Ghost Orders)
+        // Runs every 5 seconds, removes orders older than 30 seconds
+        if (typeof window !== "undefined") {
+            this.watchdogInterval = setInterval(() => {
+                this.removeOrphanedOptimistic(30000);
+            }, 5000);
+        } else {
+             this.watchdogInterval = setInterval(() => {}, 1000000) as any; // No-op in server context
+        }
+    }
 
     public updateOrder(order: OMSOrder) {
         const isKnown = this.orders.has(order.id);

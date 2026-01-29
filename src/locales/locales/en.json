@@ -666,6 +666,7 @@
     "reset": "Reset Data",
     "resetConfirm": "Are you sure you want to reset all data? This cannot be undone.",
     "apiQuota": {
+      "title": "API Quota Monitoring",
       "cryptopanic": "CryptoPanic",
       "newsapi": "NewsAPI",
       "totalCalls": "Total Calls",
@@ -835,7 +836,22 @@
       "volumeSignals": "Volume & Signals"
     },
     "data": {
-      "title": "Data Maintenance"
+      "title": "Data Maintenance",
+      "scanAll": "Scan All",
+      "scanning": "Scanning...",
+      "repair": "Repair",
+      "correct": "Correct",
+      "atrTitle": "Volatility Matrix (ATR)",
+      "atrDesc": "Checks for trades without ATR value and fetches it automatically.",
+      "mfeMaeTitle": "Execution Metrics (MFE/MAE)",
+      "mfeMaeDesc": "Calculates Maximum Favorable Excursion (MFE) and Maximum Adverse Excursion (MAE).",
+      "symbolsTitle": "Clean Symbols",
+      "symbolsDesc": "Corrects invalid formats (e.g. 'btc/usdt' to 'BTCUSDT').",
+      "statusClean": "All clean. No missing data found.",
+      "statusIssues": "{count} issues found.",
+      "repairingAtr": "Starting ATR repair...",
+      "repairingMfeMae": "Starting MFE/MAE repair...",
+      "repairingSymbols": "Starting symbol cleanup..."
     },
     "enableCmcContext": "Enable CMC Context",
     "enableGlassmorphism": "Enable Glassmorphism",

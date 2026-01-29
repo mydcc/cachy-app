@@ -42,9 +42,9 @@
                 missingAtrCount + missingMfeMaeCount + invalidSymbolCount;
 
             if (totalIssues === 0) {
-                statusMessage = "Alles sauber. Keine fehlenden Daten gefunden.";
+                statusMessage = $_("settings.data.statusClean");
             } else {
-                statusMessage = `${totalIssues} Probleme gefunden.`;
+                statusMessage = $_("settings.data.statusIssues", { values: { count: totalIssues } });
             }
         } finally {
             isScanning = false;
@@ -57,7 +57,7 @@
         isRepairing = true;
         progress = 0;
         totalToRepair = missingAtrCount;
-        statusMessage = "Starte Reparatur...";
+        statusMessage = $_("settings.data.repairingAtr");
 
         await dataRepairService.repairMissingAtr((curr, total, msg) => {
             progress = curr;
@@ -74,7 +74,7 @@
         isRepairing = true;
         progress = 0;
         totalToRepair = missingMfeMaeCount;
-        statusMessage = "Starte MFE/MAE Reparatur...";
+        statusMessage = $_("settings.data.repairingMfeMae");
 
         await dataRepairService.repairMfeMae((curr, total, msg) => {
             progress = curr;
@@ -90,7 +90,7 @@
         isRepairing = true;
         progress = 0;
         totalToRepair = invalidSymbolCount;
-        statusMessage = "Starte Symbol-Bereinigung...";
+        statusMessage = $_("settings.data.repairingSymbols");
 
         await dataRepairService.repairSymbols((curr, total, msg) => {
             progress = curr;
@@ -107,14 +107,14 @@
 >
     <div class="flex items-center justify-between mb-4">
         <h3 class="text-xl font-bold text-[var(--text-primary)]">
-            Daten-Wartung & Reparatur
+            {$_("settings.data.title")}
         </h3>
         <button
             class="px-4 py-2 bg-[var(--color-primary)] text-white rounded hover:opacity-90 transition-opacity disabled:opacity-50"
             onclick={scan}
             disabled={isScanning || isRepairing}
         >
-            {isScanning ? "Scanne..." : "Alles Scannen"}
+            {isScanning ? $_("settings.data.scanning") : $_("settings.data.scanAll")}
         </button>
     </div>
 
@@ -124,12 +124,10 @@
         >
             <div>
                 <h4 class="font-medium text-[var(--text-primary)]">
-                    Volatilitäts-Matrix (ATR)
+                    {$_("settings.data.atrTitle")}
                 </h4>
                 <p class="text-sm text-[var(--text-secondary)]">
-                    Prüft auf Trades ohne ATR-Wert und lädt diesen automatisch
-                    nach. Notwendig für die "Markt"-Ansicht im Journal Deep
-                    Dive.
+                    {$_("settings.data.atrDesc")}
                 </p>
             </div>
             <div class="flex gap-2">
@@ -138,7 +136,7 @@
                         class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
                         onclick={repair}
                     >
-                        Reparieren ({missingAtrCount})
+                        {$_("settings.data.repair")} ({missingAtrCount})
                     </button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
@@ -154,11 +152,10 @@
         >
             <div>
                 <h4 class="font-medium text-[var(--text-primary)]">
-                    Exekutions-Metriken (MFE/MAE)
+                    {$_("settings.data.mfeMaeTitle")}
                 </h4>
                 <p class="text-sm text-[var(--text-secondary)]">
-                    Berechnet maximalen Gewinn (MFE) und Verlust (MAE) während
-                    des Trades.
+                    {$_("settings.data.mfeMaeDesc")}
                 </p>
             </div>
             <div class="flex gap-2">
@@ -167,7 +164,7 @@
                         class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
                         onclick={repairMfeMae}
                     >
-                        Reparieren ({missingMfeMaeCount})
+                        {$_("settings.data.repair")} ({missingMfeMaeCount})
                     </button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
@@ -187,10 +184,10 @@
         >
             <div>
                 <h4 class="font-medium text-[var(--text-primary)]">
-                    Symbole bereinigen
+                    {$_("settings.data.symbolsTitle")}
                 </h4>
                 <p class="text-sm text-[var(--text-secondary)]">
-                    Korrigiert falsche Formate (z.B. "btc/usdt" zu "BTCUSDT").
+                    {$_("settings.data.symbolsDesc")}
                 </p>
             </div>
             <div class="flex gap-2">
@@ -199,7 +196,7 @@
                         class="px-4 py-2 bg-[var(--color-warning)] text-white rounded hover:opacity-90 transition-opacity"
                         onclick={repairSymbols}
                     >
-                        Korrigieren ({invalidSymbolCount})
+                        {$_("settings.data.correct")} ({invalidSymbolCount})
                     </button>
                 {:else}
                     <div class="text-[var(--text-secondary)] italic px-4 py-2">
