@@ -442,486 +442,489 @@
                 </thead>
             {/if}
             <tbody class:is-recursive={isNested}>
-                {#each sortedItems as item}
-                    {#if item.isGroup}
-                        <!-- GROUP ROW -->
-                        <tr
-                            class="group-row cursor-pointer"
-                            onclick={() => toggleGroup(item.symbol)}
+                {#if sortedItems.length === 0}
+                    <tr>
+                        <td
+                            colspan="100"
+                            class="text-center py-8 text-[var(--text-secondary)]"
                         >
-                            {#if groupBySymbol}
-                                <td class="text-center">
-                                    <span class="expand-icon"
-                                        >{expandedGroups.has(item.symbol)
-                                            ? "▼"
-                                            : "▶"}</span
+                            <p>{$_("journal.noTradesYet")}</p>
+                        </td>
+                    </tr>
+                {:else}
+                    {#each sortedItems as item}
+                        {#if item.isGroup}
+                            <!-- GROUP ROW -->
+                            <tr
+                                class="group-row cursor-pointer"
+                                onclick={() => toggleGroup(item.symbol)}
+                            >
+                                {#if groupBySymbol}
+                                    <td class="text-center">
+                                        <span class="expand-icon"
+                                            >{expandedGroups.has(item.symbol)
+                                                ? "▼"
+                                                : "▶"}</span
+                                        >
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.symbol}
+                                    <td class="font-bold col-symbol"
+                                        >{item.symbol} ({item.totalTrades})</td
                                     >
-                                </td>
-                            {/if}
-                            {#if columnVisibility.symbol}
-                                <td class="font-bold col-symbol"
-                                    >{item.symbol} ({item.totalTrades})</td
-                                >
-                            {/if}
-                            {#if columnVisibility.pnl}
-                                <td
-                                    class="font-bold {getProfitClass(
-                                        item.totalProfitLoss,
-                                    )}"
-                                >
-                                    {formatDynamicDecimal(
-                                        item.totalProfitLoss,
-                                        2,
-                                    )}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.rr}
-                                <td>
-                                    {(
-                                        (item.wonTrades /
-                                            item.totalTrades) *
-                                        100
-                                    ).toFixed(1)}% Win
-                                </td>
-                            {/if}
-                        </tr>
-
-                        {#if expandedGroups.has(item.symbol)}
-                            <tr class="sub-row">
-                                <td
-                                    class="border-l-4 border-[var(--accent-color)]"
-                                    style="padding: 0;"
-                                ></td>
-                                <td colspan="100" style="padding: 0;">
-                                    <!-- RECURSIVE SNIPPET CALL -->
-                                    {@render tableTemplate(item.trades, true)}
-                                </td>
-                            </tr>
-                        {/if}
-                    {:else}
-                        <!-- TRADE ROW -->
-                        <tr class="trade-row">
-                            {#if groupBySymbol && !isNested}<td></td>{/if}
-                            {#if columnVisibility.date}
-                                <td
-                                    class="text-xs text-[var(--text-secondary)] col-date"
-                                >
-                                    {new Date(item.date).toLocaleString(
-                                        undefined,
-                                        {
-                                            day: "2-digit",
-                                            month: "2-digit",
-                                            year: "2-digit",
-                                            hour: "2-digit",
-                                            minute: "2-digit",
-                                        },
-                                    )}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.symbol}
-                                <td class="font-medium col-symbol"
-                                    >{item.symbol}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.type}
-                                <td
-                                    class="text-xs uppercase font-bold {item.tradeType ===
-                                    'long'
-                                        ? 'text-success'
-                                        : 'text-danger'}"
-                                >
-                                    {item.tradeType}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.entry}
-                                <td
-                                    >{formatDynamicDecimal(
-                                        item.entryPrice,
-                                        4,
-                                    )}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.exit}
-                                <td
-                                    >{item.exitPrice &&
-                                    !item.exitPrice.isZero()
-                                        ? formatDynamicDecimal(
-                                                item.exitPrice,
-                                                4,
-                                            )
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.atr}
-                                <td
-                                    class="text-xs text-[var(--text-secondary)]"
-                                    >{item.atrValue !== undefined &&
-                                    item.atrValue !== null
-                                        ? formatDynamicDecimal(
-                                                item.atrValue,
-                                                4,
-                                            )
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.sl}
-                                <td class="text-danger"
-                                    >{item.stopLossPrice &&
-                                    !item.stopLossPrice.isZero()
-                                        ? formatDynamicDecimal(
-                                                item.stopLossPrice,
-                                                4,
-                                            )
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.size}
-                                <td class="text-xs"
-                                    >{item.positionSize
-                                        ? formatDynamicDecimal(
-                                                item.positionSize,
-                                                4,
-                                            )
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.pnl}
-                                <td
-                                    class="font-bold {getProfitClass(
-                                        item.totalNetProfit,
-                                    )}"
-                                >
-                                    {item.totalNetProfit.toFixed(2)}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.funding}
-                                <td
-                                    class="text-xs text-[var(--text-secondary)]"
-                                >
-                                    {item.fundingFee !== undefined &&
-                                    item.fundingFee !== null
-                                        ? formatDynamicDecimal(
-                                                item.fundingFee,
-                                                2,
-                                            )
-                                        : "-"}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.rr}
-                                <td
-                                    class="font-bold {item.totalRR?.gt(2)
-                                        ? 'text-success'
-                                        : item.totalRR?.gt(1)
-                                            ? 'text-warning'
-                                            : item.totalRR?.lt(0)
-                                            ? 'text-danger'
-                                            : 'text-[var(--text-secondary)]'}"
-                                >
-                                    {item.totalRR &&
-                                    item.stopLossPrice &&
-                                    !item.stopLossPrice.isZero()
-                                        ? item.totalRR.toFixed(2) + "R"
-                                        : "-"}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.mae}
-                                <td class="text-xs text-danger"
-                                    >{item.mae !== undefined &&
-                                    item.mae !== null
-                                        ? formatDynamicDecimal(item.mae, 2)
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.mfe}
-                                <td class="text-xs text-success"
-                                    >{item.mfe !== undefined &&
-                                    item.mfe !== null
-                                        ? formatDynamicDecimal(item.mfe, 2)
-                                        : "-"}</td
-                                >
-                            {/if}
-                            {#if columnVisibility.efficiency}
-                                <td class="text-xs">
-                                    {item.efficiency !== undefined &&
-                                    item.efficiency !== null
-                                        ? item.efficiency
-                                                .times(100)
-                                                .toFixed(0) + "%"
-                                        : "-"}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.duration}
-                                <td class="text-xs col-duration">
-                                    {(() => {
-                                        const start = new Date(
-                                            item.entryDate || item.date,
-                                        ).getTime();
-                                        const end = new Date(
-                                            item.date,
-                                        ).getTime();
-                                        const diff =
-                                            isNaN(start) || isNaN(end)
-                                                ? 0
-                                                : Math.max(0, end - start);
-                                        return formatDuration(
-                                            Math.floor(diff / 60000),
-                                        );
-                                    })()}
-                                </td>
-                            {/if}
-                            {#if columnVisibility.status}
-                                <td>
-                                    <select
-                                        value={item.status}
-                                        class="status-select bg-transparent border-0 font-bold {getProfitClass(
-                                            item.status === 'Won'
-                                                ? '1'
-                                                : item.status === 'Lost'
-                                                    ? '-1'
-                                                    : '0',
+                                {/if}
+                                {#if columnVisibility.pnl}
+                                    <td
+                                        class="font-bold {getProfitClass(
+                                            item.totalProfitLoss,
                                         )}"
-                                        disabled={item.isManual === false}
-                                        onchange={(e) =>
-                                            onStatusChange?.(
-                                                item.id,
-                                                e.currentTarget.value,
-                                            )}
                                     >
-                                        <option value="Open"
-                                            >{$_(
-                                                "journal.filterOpen",
-                                            )}</option
-                                        >
-                                        <option value="Won"
-                                            >{$_(
-                                                "journal.filterWon",
-                                            )}</option
-                                        >
-                                        <option value="Lost"
-                                            >{$_(
-                                                "journal.filterLost",
-                                            )}</option
-                                        >
-                                    </select>
-                                </td>
-                            {/if}
+                                        {formatDynamicDecimal(
+                                            item.totalProfitLoss,
+                                            2,
+                                        )}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.rr}
+                                    <td>
+                                        {(
+                                            (item.wonTrades /
+                                                item.totalTrades) *
+                                            100
+                                        ).toFixed(1)}% Win
+                                    </td>
+                                {/if}
+                            </tr>
 
-                            {#if columnVisibility.screenshot}
-                                <td class="screenshot-cell">
-                                    <div class="flex items-center gap-2">
-                                        {#if item.screenshot}
-                                            <a
-                                                href={item.screenshot}
-                                                target="_blank"
-                                                rel="noopener noreferrer"
-                                                class="screenshot-icon-wrapper relative group text-lg"
-                                                title={$_(
-                                                    "journal.labels.view" as any,
+                            {#if expandedGroups.has(item.symbol)}
+                                <tr class="sub-row">
+                                    <td
+                                        class="border-l-4 border-[var(--accent-color)]"
+                                        style="padding: 0;"
+                                    ></td>
+                                    <td colspan="100" style="padding: 0;">
+                                        <!-- RECURSIVE SNIPPET CALL -->
+                                        {@render tableTemplate(item.trades, true)}
+                                    </td>
+                                </tr>
+                            {/if}
+                        {:else}
+                            <!-- TRADE ROW -->
+                            <tr class="trade-row">
+                                {#if groupBySymbol && !isNested}<td></td>{/if}
+                                {#if columnVisibility.date}
+                                    <td
+                                        class="text-xs text-[var(--text-secondary)] col-date"
+                                    >
+                                        {new Date(item.date).toLocaleString(
+                                            undefined,
+                                            {
+                                                day: "2-digit",
+                                                month: "2-digit",
+                                                year: "2-digit",
+                                                hour: "2-digit",
+                                                minute: "2-digit",
+                                            },
+                                        )}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.symbol}
+                                    <td class="font-medium col-symbol"
+                                        >{item.symbol}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.type}
+                                    <td
+                                        class="text-xs uppercase font-bold {item.tradeType ===
+                                        'long'
+                                            ? 'text-success'
+                                            : 'text-danger'}"
+                                    >
+                                        {item.tradeType}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.entry}
+                                    <td
+                                        >{formatDynamicDecimal(
+                                            item.entryPrice,
+                                            4,
+                                        )}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.exit}
+                                    <td
+                                        >{item.exitPrice &&
+                                        !item.exitPrice.isZero()
+                                            ? formatDynamicDecimal(
+                                                    item.exitPrice,
+                                                    4,
+                                                )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.atr}
+                                    <td
+                                        class="text-xs text-[var(--text-secondary)]"
+                                        >{item.atrValue !== undefined &&
+                                        item.atrValue !== null
+                                            ? formatDynamicDecimal(
+                                                    item.atrValue,
+                                                    4,
+                                                )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.sl}
+                                    <td class="text-danger"
+                                        >{item.stopLossPrice &&
+                                        !item.stopLossPrice.isZero()
+                                            ? formatDynamicDecimal(
+                                                    item.stopLossPrice,
+                                                    4,
+                                                )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.size}
+                                    <td class="text-xs"
+                                        >{item.positionSize
+                                            ? formatDynamicDecimal(
+                                                    item.positionSize,
+                                                    4,
+                                                )
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.pnl}
+                                    <td
+                                        class="font-bold {getProfitClass(
+                                            item.totalNetProfit,
+                                        )}"
+                                    >
+                                        {item.totalNetProfit.toFixed(2)}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.funding}
+                                    <td
+                                        class="text-xs text-[var(--text-secondary)]"
+                                    >
+                                        {item.fundingFee !== undefined &&
+                                        item.fundingFee !== null
+                                            ? formatDynamicDecimal(
+                                                    item.fundingFee,
+                                                    2,
+                                                )
+                                            : "-"}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.rr}
+                                    <td
+                                        class="font-bold {item.totalRR?.gt(2)
+                                            ? 'text-success'
+                                            : item.totalRR?.gt(1)
+                                                ? 'text-warning'
+                                                : item.totalRR?.lt(0)
+                                                ? 'text-danger'
+                                                : 'text-[var(--text-secondary)]'}"
+                                    >
+                                        {item.totalRR &&
+                                        item.stopLossPrice &&
+                                        !item.stopLossPrice.isZero()
+                                            ? item.totalRR.toFixed(2) + "R"
+                                            : "-"}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.mae}
+                                    <td class="text-xs text-danger"
+                                        >{item.mae !== undefined &&
+                                        item.mae !== null
+                                            ? formatDynamicDecimal(item.mae, 2)
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.mfe}
+                                    <td class="text-xs text-success"
+                                        >{item.mfe !== undefined &&
+                                        item.mfe !== null
+                                            ? formatDynamicDecimal(item.mfe, 2)
+                                            : "-"}</td
+                                    >
+                                {/if}
+                                {#if columnVisibility.efficiency}
+                                    <td class="text-xs">
+                                        {item.efficiency !== undefined &&
+                                        item.efficiency !== null
+                                            ? item.efficiency
+                                                    .times(100)
+                                                    .toFixed(0) + "%"
+                                            : "-"}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.duration}
+                                    <td class="text-xs col-duration">
+                                        {(() => {
+                                            const start = new Date(
+                                                item.entryDate || item.date,
+                                            ).getTime();
+                                            const end = new Date(
+                                                item.date,
+                                            ).getTime();
+                                            const diff =
+                                                isNaN(start) || isNaN(end)
+                                                    ? 0
+                                                    : Math.max(0, end - start);
+                                            return formatDuration(
+                                                Math.floor(diff / 60000),
+                                            );
+                                        })()}
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.status}
+                                    <td>
+                                        <select
+                                            value={item.status}
+                                            class="status-select bg-transparent border-0 font-bold {getProfitClass(
+                                                item.status === 'Won'
+                                                    ? '1'
+                                                    : item.status === 'Lost'
+                                                        ? '-1'
+                                                        : '0',
+                                            )}"
+                                            disabled={item.isManual === false}
+                                            onchange={(e) =>
+                                                onStatusChange?.(
+                                                    item.id,
+                                                    e.currentTarget.value,
                                                 )}
+                                        >
+                                            <option value="Open"
+                                                >{$_(
+                                                    "journal.filterOpen",
+                                                )}</option
                                             >
-                                                🖼️
-                                                <div
-                                                    class="screenshot-hover-preview hidden group-hover:block absolute z-[100] bottom-full left-0 mb-2 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl"
+                                            <option value="Won"
+                                                >{$_(
+                                                    "journal.filterWon",
+                                                )}</option
+                                            >
+                                            <option value="Lost"
+                                                >{$_(
+                                                    "journal.filterLost",
+                                                )}</option
+                                            >
+                                        </select>
+                                    </td>
+                                {/if}
+
+                                {#if columnVisibility.screenshot}
+                                    <td class="screenshot-cell">
+                                        <div class="flex items-center gap-2">
+                                            {#if item.screenshot}
+                                                <a
+                                                    href={item.screenshot}
+                                                    target="_blank"
+                                                    rel="noopener noreferrer"
+                                                    class="screenshot-icon-wrapper relative group text-lg"
+                                                    title={$_(
+                                                        "journal.labels.view" as any,
+                                                    )}
                                                 >
-                                                    <img
-                                                        src={item.screenshot}
-                                                        alt="Preview"
-                                                        class="w-[240px] h-auto rounded"
-                                                    />
-                                                </div>
-                                            </a>
+                                                    🖼️
+                                                    <div
+                                                        class="screenshot-hover-preview hidden group-hover:block absolute z-[100] bottom-full left-0 mb-2 p-1 bg-[var(--bg-card)] border border-[var(--border-color)] rounded-lg shadow-xl"
+                                                    >
+                                                        <img
+                                                            src={item.screenshot}
+                                                            alt="Preview"
+                                                            class="w-[240px] h-auto rounded"
+                                                        />
+                                                    </div>
+                                                </a>
+                                                <button
+                                                    class="text-xs opacity-50 hover:opacity-100 text-danger"
+                                                    onclick={() =>
+                                                        onUpdateTrade?.(
+                                                            item.id,
+                                                            {
+                                                                screenshot:
+                                                                    undefined,
+                                                            },
+                                                        )}
+                                                    title={$_(
+                                                        "journal.labels.removeScreenshot" as any,
+                                                    )}
+                                                >
+                                                    🗑️
+                                                </button>
+                                            {/if}
+                                            <button
+                                                class="text-xs opacity-50 hover:opacity-100"
+                                                onclick={() =>
+                                                    triggerFileUpload(item.id)}
+                                                title={item.screenshot
+                                                    ? $_(
+                                                            "journal.labels.replaceScreenshot",
+                                                        )
+                                                    : $_(
+                                                            "journal.labels.uploadScreenshot",
+                                                        )}
+                                            >
+                                                {item.screenshot ? "↻" : "➕"}
+                                            </button>
+                                        </div>
+                                        <input
+                                            type="file"
+                                            id="file-upload-{item.id}"
+                                            class="hidden"
+                                            accept="image/*"
+                                            onchange={(e) => {
+                                                const file =
+                                                    e.currentTarget.files?.[0];
+                                                if (file) {
+                                                    onUploadScreenshot?.(
+                                                        item.id,
+                                                        file,
+                                                    );
+                                                }
+                                            }}
+                                        />
+                                    </td>
+                                {/if}
+
+                                {#if columnVisibility.tags}
+                                    <td class="tags-cell">
+                                        <div
+                                            class="flex flex-wrap gap-1 items-center"
+                                        >
+                                            {#if item.tags && item.tags.length > 0}
+                                                {#each item.tags as tag}
+                                                    <span
+                                                        class="tag-chip text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-color)] text-[var(--btn-accent-text)] flex items-center gap-1 group/tag"
+                                                    >
+                                                        {tag}
+                                                        <button
+                                                            class="opacity-50 hover:opacity-100 font-bold leading-none"
+                                                            onclick={(e) => {
+                                                                e.stopPropagation();
+                                                                removeTag(
+                                                                    item.id,
+                                                                    tag,
+                                                                    item.tags ||
+                                                                        [],
+                                                                );
+                                                            }}
+                                                            >{$_(
+                                                                "common.remove",
+                                                            )}</button
+                                                        >
+                                                    </span>
+                                                {/each}
+                                            {/if}
+                                            <input
+                                                type="text"
+                                                placeholder="+"
+                                                class="tag-add-input text-[10px] bg-transparent border-0 w-8 focus:w-20 transition-all outline-none opacity-50 focus:opacity-100"
+                                                bind:value={
+                                                    tagInputValues[item.id]
+                                                }
+                                                onkeydown={(e) => {
+                                                    if (e.key === "Enter") {
+                                                        addTag(
+                                                            item.id,
+                                                            tagInputValues[
+                                                                item.id
+                                                            ],
+                                                            item.tags || [],
+                                                        );
+                                                        tagInputValues[
+                                                            item.id
+                                                        ] = "";
+                                                    }
+                                                }}
+                                            />
+                                        </div>
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.notes}
+                                    <td class="notes-cell">
+                                        <input
+                                            type="text"
+                                            value={item.notes || ""}
+                                            class="notes-input bg-transparent border-0 text-xs w-full focus:bg-[var(--bg-secondary)] rounded px-1"
+                                            placeholder="-"
+                                            onchange={(e) =>
+                                                onUpdateTrade?.(item.id, {
+                                                    notes: e.currentTarget
+                                                        .value,
+                                                })}
+                                        />
+                                    </td>
+                                {/if}
+                                {#if columnVisibility.action}
+                                    <td class="action-cell">
+                                        <div class="flex items-center gap-2">
                                             <button
                                                 class="text-xs opacity-50 hover:opacity-100 text-danger"
                                                 onclick={() =>
-                                                    onUpdateTrade?.(
-                                                        item.id,
-                                                        {
-                                                            screenshot:
-                                                                undefined,
-                                                        },
-                                                    )}
+                                                    onDeleteTrade?.(item.id)}
                                                 title={$_(
-                                                    "journal.labels.removeScreenshot" as any,
+                                                    "journal.labels.delete" as any,
                                                 )}
                                             >
                                                 🗑️
                                             </button>
-                                        {/if}
-                                        <button
-                                            class="text-xs opacity-50 hover:opacity-100"
-                                            onclick={() =>
-                                                triggerFileUpload(item.id)}
-                                            title={item.screenshot
-                                                ? $_(
-                                                        "journal.labels.replaceScreenshot",
-                                                    )
-                                                : $_(
-                                                        "journal.labels.uploadScreenshot",
-                                                    )}
-                                        >
-                                            {item.screenshot ? "↻" : "➕"}
-                                        </button>
-                                    </div>
-                                    <input
-                                        type="file"
-                                        id="file-upload-{item.id}"
-                                        class="hidden"
-                                        accept="image/*"
-                                        onchange={(e) => {
-                                            const file =
-                                                e.currentTarget.files?.[0];
-                                            if (file) {
-                                                onUploadScreenshot?.(
-                                                    item.id,
-                                                    file,
-                                                );
-                                            }
-                                        }}
-                                    />
-                                </td>
-                            {/if}
-
-                            {#if columnVisibility.tags}
-                                <td class="tags-cell">
-                                    <div
-                                        class="flex flex-wrap gap-1 items-center"
-                                    >
-                                        {#if item.tags && item.tags.length > 0}
-                                            {#each item.tags as tag}
-                                                <span
-                                                    class="tag-chip text-[10px] px-2 py-0.5 rounded-full bg-[var(--accent-color)] text-[var(--btn-accent-text)] flex items-center gap-1 group/tag"
-                                                >
-                                                    {tag}
-                                                    <button
-                                                        class="opacity-50 hover:opacity-100 font-bold leading-none"
-                                                        onclick={(e) => {
-                                                            e.stopPropagation();
-                                                            removeTag(
-                                                                item.id,
-                                                                tag,
-                                                                item.tags ||
-                                                                    [],
-                                                            );
-                                                        }}
-                                                        >{$_(
-                                                            "common.remove",
-                                                        )}</button
-                                                    >
-                                                </span>
-                                            {/each}
-                                        {/if}
-                                        <input
-                                            type="text"
-                                            placeholder="+"
-                                            class="tag-add-input text-[10px] bg-transparent border-0 w-8 focus:w-20 transition-all outline-none opacity-50 focus:opacity-100"
-                                            bind:value={
-                                                tagInputValues[item.id]
-                                            }
-                                            onkeydown={(e) => {
-                                                if (e.key === "Enter") {
-                                                    addTag(
-                                                        item.id,
-                                                        tagInputValues[
-                                                            item.id
-                                                        ],
-                                                        item.tags || [],
-                                                    );
-                                                    tagInputValues[
-                                                        item.id
-                                                    ] = "";
-                                                }
-                                            }}
-                                        />
-                                    </div>
-                                </td>
-                            {/if}
-                            {#if columnVisibility.notes}
-                                <td class="notes-cell">
-                                    <input
-                                        type="text"
-                                        value={item.notes || ""}
-                                        class="notes-input bg-transparent border-0 text-xs w-full focus:bg-[var(--bg-secondary)] rounded px-1"
-                                        placeholder="-"
-                                        onchange={(e) =>
-                                            onUpdateTrade?.(item.id, {
-                                                notes: e.currentTarget
-                                                    .value,
-                                            })}
-                                    />
-                                </td>
-                            {/if}
-                            {#if columnVisibility.action}
-                                <td class="action-cell">
-                                    <div class="flex items-center gap-2">
-                                        <button
-                                            class="text-xs opacity-50 hover:opacity-100 text-danger"
-                                            onclick={() =>
-                                                onDeleteTrade?.(item.id)}
-                                            title={$_(
-                                                "journal.labels.delete" as any,
-                                            )}
-                                        >
-                                            🗑️
-                                        </button>
-                                    </div>
-                                </td>
-                            {/if}
-                        </tr>
-                    {/if}
-                {/each}
+                                        </div>
+                                    </td>
+                                {/if}
+                            </tr>
+                        {/if}
+                    {/each}
+                {/if}
             </tbody>
         </table>
     </div>
 {/snippet}
 
 <div class="journal-table-container">
-    {#if trades.length === 0}
-        <div class="empty-state">
-            <p>{$_("journal.noTradesYet")}</p>
-        </div>
-    {:else}
-        <!-- MAIN RENDER CALL -->
-        {@render tableTemplate(paginatedMainTrades, false)}
+    <!-- MAIN RENDER CALL (Always render table, handle empty state inside) -->
+    {@render tableTemplate(paginatedMainTrades, false)}
 
-        {#if totalPages > 1}
-            <div class="pagination-footer">
-                <div class="flex items-center gap-3">
-                    <button
-                        class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        disabled={currentPage === 1}
-                        onclick={() => handlePageChange(currentPage - 1)}
-                    >
-                        ◀
-                    </button>
-                    <span class="text-sm font-medium min-w-[60px] text-center">
-                        {currentPage} / {totalPages}
-                    </span>
-                    <button
-                        class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                        disabled={currentPage === totalPages}
-                        onclick={() => handlePageChange(currentPage + 1)}
-                    >
-                        ▶
-                    </button>
-                </div>
-                <div class="flex items-center gap-2">
-                    <span class="text-sm"
-                        >{$_("journal.table.itemsPerPage")}:</span
-                    >
-                    <select
-                        bind:value={itemsPerPage}
-                        onchange={handleItemsPerPageChange}
-                        class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-2 py-1 text-sm hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
-                    >
-                        <option value={5}>5</option>
-                        <option value={10}>10</option>
-                        <option value={20}>20</option>
-                        <option value={50}>50</option>
-                        <option value={100}>100</option>
-                    </select>
-                </div>
+    {#if totalPages > 1}
+        <div class="pagination-footer">
+            <div class="flex items-center gap-3">
+                <button
+                    class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled={currentPage === 1}
+                    onclick={() => handlePageChange(currentPage - 1)}
+                >
+                    ◀
+                </button>
+                <span class="text-sm font-medium min-w-[60px] text-center">
+                    {currentPage} / {totalPages}
+                </span>
+                <button
+                    class="px-3 py-1.5 rounded bg-[var(--bg-secondary)] hover:bg-[var(--bg-tertiary)] disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                    disabled={currentPage === totalPages}
+                    onclick={() => handlePageChange(currentPage + 1)}
+                >
+                    ▶
+                </button>
             </div>
-        {/if}
+            <div class="flex items-center gap-2">
+                <span class="text-sm">{$_("journal.table.itemsPerPage")}:</span>
+                <select
+                    bind:value={itemsPerPage}
+                    onchange={handleItemsPerPageChange}
+                    class="bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded px-2 py-1 text-sm hover:bg-[var(--bg-tertiary)] transition-colors cursor-pointer"
+                >
+                    <option value={5}>5</option>
+                    <option value={10}>10</option>
+                    <option value={20}>20</option>
+                    <option value={50}>50</option>
+                    <option value={100}>100</option>
+                </select>
+            </div>
+        </div>
     {/if}
 </div>
 
