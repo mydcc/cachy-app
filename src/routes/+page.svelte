@@ -60,6 +60,7 @@
   import QuizButton from "../components/shared/QuizButton.svelte";
   import FlashCard from "../components/shared/FlashCard.svelte";
   import { handleGlobalKeydown } from "../services/hotkeyService";
+  import { effectsState } from "../stores/effects.svelte";
 
   let changelogContent = $state("");
   let guideContent = $state("");
@@ -665,6 +666,14 @@
           <div class="flex items-center gap-2">
             <QuizButton />
             <FloatingIframeButton />
+            <button
+              class="text-sm bg-[var(--btn-accent-bg)] hover:bg-[var(--btn-accent-hover-bg)] text-[var(--btn-accent-text)] font-bold py-2 px-3 rounded-lg flex items-center gap-2 transition-all duration-300 transform hover:scale-105"
+              title="Trigger Quantum Pulse"
+              onclick={(e) =>
+                effectsState.triggerProjectile(e.currentTarget as HTMLElement)}
+            >
+              🚀
+            </button>
           </div>
           <div class="flex items-center gap-2">
             <PowerToggle />
