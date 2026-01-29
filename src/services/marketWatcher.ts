@@ -293,12 +293,22 @@ class MarketWatcher {
     const priority = isMainSymbol ? "high" : "normal";
 
     try {
+      // Hardening: Wrap API calls in strict timeout to prevent lock leaks
+      // 10s timeout for REST calls
+      const timeoutMs = 10000;
+      const withTimeout = <T>(promise: Promise<T>): Promise<T> => {
+          return Promise.race([
+              promise,
+              new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
+          ]);
+      };
+
       if (channel === "price" || channel === "ticker") {
-        const data = await apiService.fetchTicker24h(
+        const data = await withTimeout(apiService.fetchTicker24h(
           symbol,
           provider,
           priority,
-        );
+        ));
         marketState.updateSymbol(symbol, {
           lastPrice: data.lastPrice,
           highPrice: data.highPrice,
@@ -309,7 +319,7 @@ class MarketWatcher {
         });
       } else if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
-        const klines = await (provider === "bitget"
+        const klines = await withTimeout(provider === "bitget"
           ? apiService.fetchBitgetKlines(symbol, tf, 750)
           : apiService.fetchBitunixKlines(symbol, tf, 750));
 

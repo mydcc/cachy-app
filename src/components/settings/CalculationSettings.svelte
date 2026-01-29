@@ -114,7 +114,7 @@
     <section class="presets-section">
         <h3>{$_("settings.calculation.profiles")}</h3>
         <p class="description">
-            Choose a preset matching your trading style. Scalpers need faster updates, position traders can use slower intervals to save CPU.
+            {$_("settings.calculation.profilesDesc")}
         </p>
 
         <div class="preset-buttons">
@@ -124,10 +124,10 @@
                     onclick={() => applyPreset(key as PresetType)}
                     title={preset.description}
                 >
-                    <div class="preset-label">{preset.label}</div>
+                    <div class="preset-label">{$_(`settings.calculationDashboard.profile${key.charAt(0).toUpperCase() + key.slice(1)}`)}</div>
                     <div class="preset-desc">{preset.description}</div>
                     <div class="preset-specs">
-                        Interval: {formatIntervalLabel(
+                        {$_("settings.calculation.intervalLabel")} {formatIntervalLabel(
                             preset.marketAnalysisInterval,
                         )} • Cache: {preset.marketCacheSize} •
                         {preset.analysisTimeframes.join(", ")}
@@ -171,8 +171,7 @@
                 </div>
             </div>
             <p class="help-text">
-                How often technical indicators are recalculated. Lower = more CPU but fresher data.
-                <strong>Recommendation:</strong> 10s for scalping, 60s for day trading, 300s+ for swing trading.
+                {$_("settings.calculation.intervalHelp")}
             </p>
         </div>
 
@@ -184,22 +183,21 @@
                     bind:checked={settingsState.analyzeAllFavorites}
                     class="checkbox"
                 />
-                <span class="label-text">Analyze All Favorites</span>
+                <span class="label-text">{$_("settings.calculation.analyzeFavorites")}</span>
                 <span
                     class="badge {settingsState.analyzeAllFavorites
                         ? 'active'
                         : ''}"
                 >
                     {settingsState.analyzeAllFavorites
-                        ? "All Favorites"
-                        : "Top 4 Only"}
+                        ? $_("settings.calculation.analyzeFavoritesBadgeAll")
+                        : $_("settings.calculation.analyzeFavoritesBadgeTop")}
                 </span>
             </label>
             <p class="help-text">
-                When disabled, only your top 4 favorite symbols are analyzed each cycle (saves CPU).
-                Enable this if you actively monitor a large portfolio (10+ positions).
+                {$_("settings.calculation.favoritesHelp")}
                 {#if settingsState.analyzeAllFavorites}
-                    <span class="warning">⚠️ CPU Impact: 3-5x increase for large portfolios</span>
+                    <span class="warning">⚠️ CPU Impact</span>
                 {/if}
             </p>
         </div>
@@ -212,19 +210,18 @@
                     bind:checked={settingsState.pauseAnalysisOnBlur}
                     class="checkbox"
                 />
-                <span class="label-text">Pause Analysis When Tab Inactive</span>
-                <span class="badge active">Smart Throttle</span>
+                <span class="label-text">{$_("settings.calculation.pauseOnBlur")}</span>
+                <span class="badge active">{$_("settings.calculation.smartThrottle")}</span>
             </label>
             <p class="help-text">
-                When your browser tab is not focused, the analysis interval is doubled to save energy and CPU.
-                Recommended for most users. Disable only if you monitor multiple tabs simultaneously.
+                {$_("settings.calculation.pauseHelp")}
             </p>
         </div>
 
         <!-- Market Cache Size -->
         <div class="setting-group">
             <label for="marketCacheSize">
-                <span class="label-text">Market Data Cache Size</span>
+                <span class="label-text">{$_("settings.calculation.cacheSize")}</span>
                 <span class="current-value"
                     >{settingsState.marketCacheSize} symbols</span
                 >
@@ -240,21 +237,20 @@
                     class="slider"
                 />
                 <div class="slider-labels">
-                    <span>5 (minimal)</span>
-                    <span>20 (balanced)</span>
-                    <span>100 (max)</span>
+                    <span>5</span>
+                    <span>20</span>
+                    <span>100</span>
                 </div>
             </div>
             <p class="help-text">
-                Maximum number of symbols kept in memory cache. Higher values improve responsiveness but use more RAM.
-                <strong>Recommendation:</strong> 10-20 for small portfolios, 50-100 for diversified portfolios (30+ positions).
+                {$_("settings.calculation.cacheHelp")}
             </p>
         </div>
 
         <!-- Timeframes Selection -->
         <div class="setting-group">
             <div class="label-row">
-                <span class="label-text">Analysis Timeframes</span>
+                <span class="label-text">{$_("settings.calculation.timeframes")}</span>
                 <span class="current-value"
                     >{settingsState.analysisTimeframes.length} selected</span
                 >
@@ -309,7 +305,7 @@
                     bind:checked={settingsState.enableNewsAnalysis}
                     class="checkbox"
                 />
-                <span class="label-text">Enable News Analysis</span>
+                <span class="label-text">{$_("settings.calculation.enableNews")}</span>
                 <span
                     class="badge {settingsState.enableNewsAnalysis
                         ? 'active'
@@ -319,27 +315,25 @@
                 </span>
             </label>
             <p class="help-text">
-                Fetch latest news and sentiment for analyzed symbols. 
-                <strong>Note:</strong> Consumes API quota from CryptoPanic or NewsAPI.
-                Disable this if you have limited API credits or prefer pure technical analysis.
+                {$_("settings.calculation.newsHelp")}
             </p>
         </div>
     </section>
 
     <!-- Debug Info -->
     <section class="debug-info">
-        <h3>Current Configuration</h3>
+        <h3>{$_("settings.calculation.currentConfig")}</h3>
         <div class="info-grid">
             <div class="info-item">
-                <span class="label">Profile:</span>
+                <span class="label">{$_("settings.calculation.profileLabel")}</span>
                 <span class="value"
                     >{selectedPreset
-                        ? presets[selectedPreset].label
-                        : "🔧 Custom"}</span
+                        ? $_(`settings.calculationDashboard.profile${selectedPreset.charAt(0).toUpperCase() + selectedPreset.slice(1)}`)
+                        : $_("settings.calculationDashboard.profileCustom")}</span
                 >
             </div>
             <div class="info-item">
-                <span class="label">Interval:</span>
+                <span class="label">{$_("settings.calculation.intervalLabel")}</span>
                 <span class="value"
                     >{formatIntervalLabel(
                         settingsState.marketAnalysisInterval,
@@ -347,19 +341,19 @@
                 >
             </div>
             <div class="info-item">
-                <span class="label">Symbols/Cycle:</span>
+                <span class="label">{$_("settings.calculation.symbolsLabel")}</span>
                 <span class="value"
-                    >{settingsState.analyzeAllFavorites ? "All" : "Top 4"}</span
+                    >{settingsState.analyzeAllFavorites ? $_("settings.calculationDashboard.allFavorites") : $_("settings.calculationDashboard.top4")}</span
                 >
             </div>
             <div class="info-item">
-                <span class="label">Cache Limit:</span>
+                <span class="label">{$_("settings.calculation.cacheLabel")}</span>
                 <span class="value"
                     >{settingsState.marketCacheSize} symbols</span
                 >
             </div>
             <div class="info-item">
-                <span class="label">News:</span>
+                <span class="label">{$_("settings.calculation.newsLabel")}</span>
                 <span class="value"
                     >{settingsState.enableNewsAnalysis
                         ? "Enabled"
@@ -367,7 +361,7 @@
                 >
             </div>
             <div class="info-item">
-                <span class="label">Smart Pause:</span>
+                <span class="label">{$_("settings.calculation.smartPauseLabel")}</span>
                 <span class="value"
                     >{settingsState.pauseAnalysisOnBlur ? "On" : "Off"}</span
                 >

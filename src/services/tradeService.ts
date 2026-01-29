@@ -54,11 +54,14 @@ class TradeService {
             "X-Provider": provider
         };
 
+        // Deep serialize Decimals to strings before JSON.stringify
+        const serializedPayload = this.serializePayload(payload);
+
         const response = await fetch(endpoint, {
             method,
             headers,
             body: JSON.stringify({
-                ...payload,
+                ...serializedPayload,
                 // Ensure keys are sent to backend for signing/execution
                 apiKey: keys.key,
                 apiSecret: keys.secret,
@@ -75,6 +78,33 @@ class TradeService {
         }
 
         return data;
+    }
+
+    // Helper to safely serialize Decimals to strings
+    private serializePayload(payload: any): any {
+        if (!payload) return payload;
+        if (payload instanceof Decimal) return payload.toString();
+
+        // Handle generic objects that might be Decimals if constructor name is mangled or instance check fails
+        if (typeof payload === 'object' && payload !== null && typeof payload.isZero === 'function' && typeof payload.toFixed === 'function') {
+            return payload.toString();
+        }
+
+        if (Array.isArray(payload)) {
+            return payload.map(item => this.serializePayload(item));
+        }
+
+        if (typeof payload === 'object') {
+            const newObj: any = {};
+            for (const key in payload) {
+                if (Object.prototype.hasOwnProperty.call(payload, key)) {
+                    newObj[key] = this.serializePayload(payload[key]);
+                }
+            }
+            return newObj;
+        }
+
+        return payload;
     }
 
     public async flashClosePosition(symbol: string, positionSide: "long" | "short") {
@@ -152,6 +182,18 @@ class TradeService {
             // omsService.removeOrder(clientOrderId); <--- UNSAFE
 
             logger.warn("market", `[FlashClose] Request failed. Keeping optimistic order ${clientOrderId} and forcing sync.`, e);
+
+            // HARDENING: Clean up optimistic order if we KNOW it failed (e.g. 4xx error)
+            // BitunixApiError (checked in signedRequest) throws with code if response came back.
+            // Standard Error might be network timeout.
+            if (e instanceof BitunixApiError || (e instanceof Error && e.message && (e.message.includes("400") || e.message.includes("401") || e.message.includes("403")))) {
+                 logger.warn("market", `[FlashClose] Definitive API Failure. Removing optimistic order.`);
+                 omsService.removeOrder(clientOrderId);
+            } else {
+                 // Indeterminate state (Timeout / Network Error)
+                 // Keep it, but rely on background sync/watchdog to eventually clear it.
+                 // omsService.removeOrphanedOptimistic() should be called periodically by the app.
+            }
 
             // Trigger background sync to verify state
             this.fetchOpenPositionsFromApi().catch(err => {

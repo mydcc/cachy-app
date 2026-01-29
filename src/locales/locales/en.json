@@ -565,6 +565,77 @@
     "english": "English"
   },
   "settings": {
+    "calculation": {
+      "analyzeFavorites": "Analyze All Favorites",
+      "analyzeFavoritesBadgeAll": "All Favorites",
+      "analyzeFavoritesBadgeTop": "Top 4 Only",
+      "pauseOnBlur": "Pause Analysis When Tab Inactive",
+      "smartThrottle": "Smart Throttle",
+      "cacheSize": "Market Data Cache Size",
+      "timeframes": "Analysis Timeframes",
+      "enableNews": "Enable News Analysis",
+      "profilesDesc": "Choose a preset matching your trading style.",
+      "advancedDesc": "Granular control over analysis loop.",
+      "intervalHelp": "How often technical indicators are recalculated.",
+      "favoritesHelp": "When disabled, only your top 4 favorite symbols are analyzed.",
+      "pauseHelp": "When your browser tab is not focused, the analysis interval is doubled.",
+      "cacheHelp": "Maximum number of symbols kept in memory cache.",
+      "timeframesHelp": "Each selected timeframe multiplies API calls.",
+      "newsHelp": "Fetch latest news and sentiment for analyzed symbols.",
+      "currentConfig": "Current Configuration",
+      "profileLabel": "Profile:",
+      "intervalLabel": "Interval:",
+      "symbolsLabel": "Symbols/Cycle:",
+      "cacheLabel": "Cache Limit:",
+      "newsLabel": "News:",
+      "smartPauseLabel": "Smart Pause:",
+      "profiles": "Performance Profiles",
+      "advanced": "Advanced Settings",
+      "analysisInterval": "Technical Analysis Interval",
+      "intervalAggressive": "10s (Aggressive)",
+      "intervalBalanced": "60s (Balanced)",
+      "intervalConservative": "600s (Conservative)"
+    },
+    "visuals": {
+      "subtabs": {
+        "appearance": "Look & Feel",
+        "layout": "Layout",
+        "background": "Background"
+      },
+      "chatSize": "Chat Size",
+      "burningBorders": "Burning Borders",
+      "burningBordersDesc": "Interactive fire effect on element edges",
+      "effectStyle": "Effect Style",
+      "fire": "Fire",
+      "glow": "Neon Glow",
+      "colorMode": "Color Mode",
+      "intensity": "Intensity",
+      "customColor": "Custom Color",
+      "backgroundType": "Background Type",
+      "bgNone": "None",
+      "bgImageVideo": "Image / Video",
+      "bgAnimation": "Live Animation",
+      "bgGalaxy": "Galaxy (3D)",
+      "url": "Image / Video URL",
+      "urlHelper": "Supports .jpg, .png, .mp4",
+      "playbackSpeed": "Playback Speed",
+      "effect": "Effect",
+      "particles": "Particles",
+      "size": "Size",
+      "radius": "Radius",
+      "branches": "Branches",
+      "spinSpeed": "Spin Speed",
+      "randomness": "Randomness",
+      "spread": "Spread",
+      "concentration": "Concentration",
+      "cameraPos": "Camera Position",
+      "rotation": "Rotation",
+      "gyroscope": "Gyroscope Control",
+      "gyroscopeDesc": "Control camera with device motion (Mobile)",
+      "appearanceTitle": "Appearance & Design",
+      "backgroundTitle": "Background",
+      "layoutTitle": "Layout & Structure"
+    },
     "title": "Settings",
     "appearance": {
       "effectStyle": "Effect Style",
@@ -604,14 +675,6 @@
       "resetButton": "Reset",
       "resetConfirm": "Reset API Quota for {provider}?",
       "noCalls": "No API calls made yet."
-    },
-    "calculation": {
-      "profiles": "Performance Profiles",
-      "advanced": "Advanced Settings",
-      "analysisInterval": "Technical Analysis Interval",
-      "intervalAggressive": "10s (Aggressive)",
-      "intervalBalanced": "60s (Balanced)",
-      "intervalConservative": "600s (Conservative)"
     },
     "apiProvider": "API Provider",
     "apiIntegration": "API Integration",
@@ -959,11 +1022,6 @@
     "trading": {
       "chartTitle": "Chart & Data",
       "executionTitle": "Execution & Fees"
-    },
-    "visuals": {
-      "appearanceTitle": "Appearance & Design",
-      "backgroundTitle": "Background",
-      "layoutTitle": "Layout & Structure"
     }
   },
   "symbolPicker": {

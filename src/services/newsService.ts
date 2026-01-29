@@ -86,9 +86,13 @@ function safeWriteCache<T>(key: string, value: T) {
   if (!isBrowser) return;
   try {
     const str = JSON.stringify(value);
+    // Hardening: Warn if cache is getting too large for sync write to prevent UI freeze
+    if (str.length > 500000) { // 500KB
+        logger.warn("ai", `[newsService] Large cache write (${Math.round(str.length/1024)}KB) for ${key}. UI jank possible.`);
+    }
     localStorage.setItem(key, str);
   } catch (e) {
-    logger.warn("ai", `[newsService] Failed to persist cache ${key}`);
+    logger.warn("ai", `[newsService] Failed to persist cache ${key}`, e);
   }
 }
 
@@ -257,8 +261,9 @@ function shouldFetchNews(symbol: string | undefined, cachedEntry?: NewsCacheEntr
 
 /**
  * Bereinigt alte Caches wenn zu viele Symbole gespeichert sind
+ * Optimized to run async and avoid blocking main thread with JSON.parse
  */
-function pruneOldCaches() {
+async function pruneOldCaches() {
   if (!isBrowser) return;
 
   try {
@@ -266,13 +271,15 @@ function pruneOldCaches() {
 
     if (keys.length > MAX_SYMBOLS_CACHED) {
       // Sortiere nach Alter (älteste zuerst)
-      const sorted = keys
-        .map(k => ({
+      // Use async read to unblock UI during heavy parsing
+      const entries = await Promise.all(keys.map(async k => ({
           key: k,
-          entry: safeReadCache<NewsCacheEntry>(k, NewsCacheEntrySchema),
-        }))
+          entry: await safeReadCacheAsync<NewsCacheEntry>(k, NewsCacheEntrySchema),
+      })));
+
+      const sorted = entries
         .filter(x => x.entry !== null)
-        .sort((a, b) => a.entry!.timestamp - b.entry!.timestamp);
+        .sort((a, b) => (a.entry!.timestamp || 0) - (b.entry!.timestamp || 0));
 
       // Lösche älteste bis unter Limit
       const toDelete = sorted.slice(0, keys.length - MAX_SYMBOLS_CACHED);
@@ -475,8 +482,9 @@ export const newsService = {
         };
         safeWriteCache(cacheKey, cacheEntry);
 
-        // Bereinige alte Caches
-        pruneOldCaches();
+        // Bereinige alte Caches (Async to unblock)
+        // We do NOT await this to return news faster, but catch errors
+        pruneOldCaches().catch(e => logger.warn("ai", "Prune failed", e));
 
         return newsItems;
       } finally {

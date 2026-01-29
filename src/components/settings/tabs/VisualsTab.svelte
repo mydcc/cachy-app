@@ -102,12 +102,12 @@
     const subTabs = [
         {
             id: "appearance",
-            label: $_("settings.profile.subtabs.appearance") || "Look & Feel",
+            label: $_("settings.visuals.subtabs.appearance"),
         },
-        { id: "layout", label: $_("settings.visuals.layoutTitle") || "Layout" },
+        { id: "layout", label: $_("settings.visuals.subtabs.layout") },
         {
             id: "background",
-            label: $_("settings.visuals.backgroundTitle") || "Background",
+            label: $_("settings.visuals.subtabs.background"),
         },
     ];
 </script>
@@ -189,7 +189,7 @@
                                 </select>
                             </div>
                             <div class="w-1/3">
-                                <label for="chat-font-size">Chat Size</label>
+                                <label for="chat-font-size">{$_("settings.visuals.chatSize")}</label>
                                 <div class="flex items-center gap-2">
                                     <input
                                         id="chat-font-size"
@@ -285,11 +285,11 @@
                     <label class="toggle-card mb-2">
                         <div class="flex flex-col">
                             <span class="text-sm font-medium"
-                                >Burning Borders</span
+                                >{$_("settings.visuals.burningBorders")}</span
                             >
                             <span
                                 class="text-[10px] text-[var(--text-secondary)]"
-                                >Interactive fire effect on element edges</span
+                                >{$_("settings.visuals.burningBordersDesc")}</span
                             >
                         </div>
                         <Toggle
@@ -303,8 +303,7 @@
                                 <span
                                     class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
                                 >
-                                    {$_("settings.appearance.effectStyle") ||
-                                        "Effect Style"}
+                                    {$_("settings.visuals.effectStyle")}
                                 </span>
                                 <div class="flex gap-2">
                                     <button
@@ -316,7 +315,7 @@
                                             (settingsState.borderEffect =
                                                 "fire")}
                                     >
-                                        {$_("settings.appearance.fire")}
+                                        {$_("settings.visuals.fire")}
                                     </button>
                                     <button
                                         class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffect ===
@@ -327,7 +326,7 @@
                                             (settingsState.borderEffect =
                                                 "glow")}
                                     >
-                                        {$_("settings.appearance.glow")}
+                                        {$_("settings.visuals.glow")}
                                     </button>
                                 </div>
                             </div>
@@ -336,8 +335,7 @@
                                 <span
                                     class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
                                 >
-                                    {$_("settings.appearance.colorMode") ||
-                                        "Color Mode"}
+                                    {$_("settings.visuals.colorMode")}
                                 </span>
                                 <div class="flex flex-wrap gap-2">
                                     {#each ["theme", "interactive", "custom", "classic"] as mode}
@@ -365,7 +363,7 @@
                                     <span
                                         class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
                                     >
-                                        Custom Color
+                                        {$_("settings.visuals.customColor")}
                                     </span>
                                     <div class="flex items-center gap-3">
                                         <input
@@ -387,7 +385,7 @@
                             <div class="field-group">
                                 <span
                                     class="text-xs font-semibold text-[var(--text-secondary)] mb-2 block"
-                                    >Intensity</span
+                                    > {$_("settings.visuals.intensity")}</span
                                 >
                                 <div class="flex gap-2">
                                     {#each ["low", "medium", "high"] as intensity}
@@ -975,11 +973,11 @@
                         >
                             <div class="flex flex-col">
                                 <span class="text-sm font-medium"
-                                    >Gyroscope Control</span
+                                    >{$_("settings.visuals.gyroscope")}</span
                                 >
                                 <span
                                     class="text-[10px] text-[var(--text-secondary)]"
-                                    >Control camera with device motion (Mobile)</span
+                                    >{$_("settings.visuals.gyroscopeDesc")}</span
                                 >
                             </div>
                             <button
@@ -988,7 +986,7 @@
                                     ? 'bg-[var(--accent-color)]'
                                     : 'bg-[var(--border-color)]'}"
                                 onclick={toggleGyro}
-                                aria-label="Toggle Gyroscope Control"
+                                aria-label={$_("settings.visuals.gyroscope")}
                             >
                                 <span
                                     class="absolute top-1 left-1 bg-white w-4 h-4 rounded-full transition-transform {settingsState
