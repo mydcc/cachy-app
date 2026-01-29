@@ -30,20 +30,24 @@ export abstract class WindowBase {
     fontSize = $state(14);
     zoomLevel = $state(1.0);
     burnIntensity = $state(1.0);
+    aspectRatio: number | null = $state(null); // Width / Height
 
     static staggerCount = 0;
 
     constructor(options: { title: string; width?: number; height?: number; x?: number; y?: number }) {
         this.title = options.title;
-        if (options.width) this.width = options.width;
-        if (options.height) this.height = options.height;
+        // Use updateSize to ensure aspect ratio logic (and header compensation) runs immediately
+        this.updateSize(
+            options.width ?? 640,
+            options.height ?? 480
+        );
 
         // Intelligent positioning & staggering
         if (typeof window !== 'undefined') {
             const stagger = (WindowBase.staggerCount % 10) * 25;
             // Default to 20, 20 (top-left) as requested, plus staggering offset
-            this.x = options.x ?? 20 + stagger;
-            this.y = options.y ?? 20 + stagger;
+            this.x = options.x ?? 100 + stagger;
+            this.y = options.y ?? 100 + stagger;
             WindowBase.staggerCount++;
         } else {
             this.x = options.x ?? 100;
@@ -64,8 +68,17 @@ export abstract class WindowBase {
     }
 
     updateSize(width: number, height: number) {
-        this.width = Math.max(width, this.minWidth);
-        this.height = Math.max(height, this.minHeight);
+        let newWidth = Math.max(width, this.minWidth);
+        let newHeight = Math.max(height, this.minHeight);
+
+        if (this.aspectRatio) {
+            const HEADER_HEIGHT = 41; // Corrected: 8px pad + 24px btn + 8px pad + 1px border
+            // The ratio applies to the content, so Height = (Width / Ratio) + Header
+            newHeight = (newWidth / this.aspectRatio) + HEADER_HEIGHT;
+        }
+
+        this.width = newWidth;
+        this.height = newHeight;
     }
 
     // --- CORE FEATURE METHODS ---

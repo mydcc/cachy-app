@@ -12,7 +12,7 @@
     <iframe
         src={win.url}
         title={win.title}
-        allow="xr-spatial-tracking; fullscreen; autoplay"
+        allow="xr-spatial-tracking; camera; microphone; fullscreen; display-capture"
     ></iframe>
 </div>
 
@@ -20,11 +20,16 @@
     .iframe-view-container {
         width: 100%;
         height: 100%;
-        background: white;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        background: black; /* Better base for Unity loading */
+        overflow: hidden;
     }
     iframe {
         width: 100%;
         height: 100%;
         border: none;
+        display: block;
     }
 </style>

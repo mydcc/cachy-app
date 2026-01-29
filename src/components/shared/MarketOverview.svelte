@@ -332,9 +332,18 @@
     const s = symbol.toUpperCase().replace(/USDT(\.P|P)?$/, "");
     const config = CHANNEL_CONFIG[s];
     if (!config) return;
-    const plotId = typeof config === "string" ? config : s;
-    const url = `https://space.cachy.app/index.php?plot_id=${plotId}`;
-    windowManager.open(new ChannelWindow(url, `${s} Channel`));
+
+    // Toggle Logic: Close if open, Open if closed
+    const windowId = `channel-${s}`;
+    const existing = windowManager.windows.find((w) => w.id === windowId);
+
+    if (existing) {
+      windowManager.close(windowId);
+    } else {
+      const plotId = typeof config === "string" ? config : s;
+      const url = `https://space.cachy.app/index.php?plot_id=${plotId}`;
+      windowManager.open(new ChannelWindow(url, `${s} Channel`, windowId));
+    }
   }
 
   let isFavorite = $derived(
