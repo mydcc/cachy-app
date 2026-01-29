@@ -17,6 +17,8 @@
 
 import { browser } from "$app/environment";
 import { CONSTANTS } from "../lib/constants";
+import { locale } from "../locales/i18n";
+import { get } from "svelte/store";
 
 export interface FlashCard {
   id: string;
@@ -34,7 +36,10 @@ class QuizStore {
   constructor() {
     if (browser) {
       this.loadProgress();
-      this.loadQuestions();
+      // Subscribe to locale changes to reload questions
+      locale.subscribe((lang) => {
+        this.loadQuestions(lang);
+      });
     }
   }
 
@@ -64,10 +69,22 @@ class QuizStore {
     }
   }
 
-  async loadQuestions() {
+  async loadQuestions(lang: string | null = null) {
     try {
       this.isLoading = true;
-      const response = await fetch(CONSTANTS.FLASHCARDS_CSV_PATH);
+
+      // Determine language if not provided
+      if (!lang) {
+        lang = get(locale);
+      }
+
+      // Select path based on language
+      let path = CONSTANTS.FLASHCARDS_CSV_PATH_EN; // Default to English
+      if (lang && lang.startsWith("de")) {
+        path = CONSTANTS.FLASHCARDS_CSV_PATH_DE;
+      }
+
+      const response = await fetch(path);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }

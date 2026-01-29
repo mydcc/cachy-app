@@ -1,0 +1,52 @@
+What is the primary purpose of the web application Cachy?,"Precise calculation of position sizes, risk management, and maintaining a trading journal for crypto traders."
+Based on which three factors does Cachy automatically calculate the optimal position size?,"Account size, Risk in $\%$, and Stop-Loss."
+Explain the 'Dual Locking System' in Cachy's trading calculator.,It allows locking the position size (to adjust risk) or the risk amount (to adjust position size).
+What is the ATR (Average True Range) integration in Cachy primarily used for?,To dynamically calculate Stop-Loss values based on market data from Binance or Bitunix.
+"Where does Cachy store sensitive data like API keys, settings, and journal entries?",Exclusively locally in the user's browser (`localStorage`).
+How many Take-Profit targets can be defined for a trade in Cachy at most?,Up to 5 Take-Profit targets can be set.
+"What happens to the percentage distribution of Take-Profit targets when adjustments are made?","It automatically balances itself to always sum up to exactly $100\%$."
+Which specific metrics does the system calculate for each Take-Profit target?,"Profit, Risk-Reward Ratio ($R/R$), and Net Yield."
+Which service in Cachy's architecture handles the central management of WebSockets?,The `MarketWatcher` service.
+What is the purpose of 'Reference Counting' in Cachy's system?,"Intelligent tracking of data requests to prevent unwanted connection drops."
+What function does the 'Jules API' fulfill within the application?,An AI-assisted system for analyzing and reporting errors.
+"Name three technical indicators available in the 'Technicals Panel' via `talib-web`.","RSI, MACD, and Stochastic."
+Which timeframes are available for automatic ATR retrieval?,"5m, 15m, 1h, 4h, and 1d."
+How many favorite symbols can be stored in the sidebar for quick access?,Maximum 4 symbols.
+Which status options can be assigned to a trade in the integrated journal?,"Open, Won, and Lost."
+In which format can journal data be exported for use in Excel?,In CSV format.
+Which two major crypto exchanges are supported as data sources for real-time prices?,Bitunix (Standard) and Binance.
+What is the advantage of 'Presets' in Cachy settings?,Frequently used setups (e.g., for scalping strategies) can be saved for quick access.
+Which keyboard shortcut opens the journal in Cachy?,Alt+J
+With which key can modals (dialog windows) be quickly closed in the application?,With the Escape key.
+What is the minimum Node.js version required for developing Cachy?,Node.js version v18 or higher.
+Which framework forms the basis for the Cachy application?,SvelteKit.
+To how many decimal places can 'Risk per Trade' be set?,Up to 2 decimal places.
+What data does the 24h Market Overview include for a selected symbol?,"Price, volume, percentage change, as well as daily high and daily low."
+Which tool is used for unit tests in the Cachy development environment?,Vitest.
+What is the function of 'Debug Mode' in the system settings?,Enabling system logs for better error diagnosis.
+Which convention should be used for commit messages according to the documentation?,Conventional Commits.
+How can the visibility of the sidebar and market overview be controlled?,"Via the 'Show Sidebars' setting to save screen space."
+In which directory are the source files for the user manual located?,`src/instructions/guide.en.md` (or via the 'Guide' button in the app).
+What does 'Symbol Normalization' in version 0.94.2 achieve?,More stable API mapping through improved handling of symbol suffixes.
+Which command starts the development server locally?,`npm run dev`
+Which port is used by default for the local development server?,Port 5173 (`http://localhost:5173`).
+How many different color themes are available in Cachy?,"Over 20 themes (e.g., Dark, Light, Dracula, Nord)."
+Which languages are supported by the user interface?,German and English.
+What is the prerequisite for automatically fetching the account balance at startup?,Enabling it in settings and providing valid API keys.
+Which update intervals can be configured for market data?,"1 second, 1 minute, or 10 minutes."
+What does 'Global Chat' offer compared to 'Private Notes'?,"Global Chat uses a volatile server cache, while Private Notes are stored purely locally."
+Under which license is the Cachy project released?,GNU Affero General Public License v3.0 (AGPLv3).
+"Which command is used to create a production build?",`npm run build`
+What is the purpose of the `AGENT.md` file in the repository?,It contains guidelines for coding conventions and developer processes.
+What is the function of the Backup feature in Cachy?,"Creating a JSON file with all settings, journal entries, and presets for later restoration."
+How is a symbol marked as a favorite?,By clicking the star icon in the Market Overview.
+Which technical component enables ultra-fast price updates on Bitunix?,The integration of Bitunix Websockets.
+Which command runs static code analysis (Linting)?,`npm run lint`
+What was improved in version 0.92b regarding symbol input?,The input field now accepts both letters and numbers.
+What does Cachy calculate regarding Take Profits besides profit?,The Risk-Reward Ratio ($R/R$) per target and for the total position.
+"How is the application started when deployed as a Node.js server?",`npm start` (or via PM2 with `pm2 start build/index.js`).
+In which file are changes to the application automatically documented?,`src/instructions/changelog.en.md`.
+Can manually fetched ATR values in Cachy still be changed?,"Yes, the automatically fetched values can be manually adjusted."
+Which keyboard shortcut is used for Risk Calculation?,Alt+R
+How do modals behave when clicking on the background?,They close automatically.
+Which data structure is used for storing backups?,JSON format.
