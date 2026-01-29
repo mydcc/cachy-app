@@ -24,6 +24,8 @@
   import { normalizeSymbol } from "../../utils/symbolUtils";
   import { Decimal } from "decimal.js";
   import { app } from "../../services/app";
+  import { windowManager } from "../../lib/windows/WindowManager.svelte";
+  import { ChannelWindow } from "../../lib/windows/implementations/ChannelWindow.svelte";
   import DepthBar from "./DepthBar.svelte";
   import Tooltip from "./Tooltip.svelte";
   import { viewport } from "../../actions/viewport";
@@ -332,8 +334,7 @@
     if (!config) return;
     const plotId = typeof config === "string" ? config : s;
     const url = `https://space.cachy.app/index.php?plot_id=${plotId}`;
-    const windowId = `channel_${plotId}`;
-    uiState.toggleWindow(windowId, url, `${s} Channel`);
+    windowManager.open(new ChannelWindow(url, `${s} Channel`));
   }
 
   let isFavorite = $derived(

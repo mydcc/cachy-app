@@ -462,14 +462,10 @@
     );
 </script>
 
-<div
-    class="mt-16 border-t border-[var(--border-color)] pt-12 relative z-10 bg-[var(--bg-primary)]/30 backdrop-blur-sm rounded-t-3xl"
->
-    <div class="flex items-center gap-3 mb-6 px-4">
-        <span class="text-3xl filter drop-shadow-md">🦆</span>
-        <h3
-            class="text-2xl font-bold text-[var(--text-primary)] tracking-tight"
-        >
+<div class="mt-12 border-t border-[var(--border-color)] pt-12 relative z-10">
+    <div class="flex items-center gap-2 mb-2">
+        <span class="text-2xl">🦆</span>
+        <h3 class="text-xl font-bold text-[var(--text-primary)]">
             {$_("journal.deepDive.title")}
         </h3>
     </div>
@@ -492,7 +488,7 @@
     />
 
     <div
-        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6 min-h-[250px] mt-6 px-4"
+        class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-6 min-h-[250px] mt-4"
     >
         <!-- 1. PERFORMANCE -->
         {#if activeDeepDivePreset === "performance"}

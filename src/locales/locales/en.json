@@ -989,7 +989,8 @@
       "5m": "5M",
       "10m": "10M",
       "50m": "50M"
-    }
+    },
+    "maxFavorites": "Maximum number of favorites reached (12)."
   },
   "common": {
     "save": "Save",

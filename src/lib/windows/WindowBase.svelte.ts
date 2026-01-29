@@ -38,11 +38,12 @@ export abstract class WindowBase {
         if (options.width) this.width = options.width;
         if (options.height) this.height = options.height;
 
-        // Intelligent centering & staggering
+        // Intelligent positioning & staggering
         if (typeof window !== 'undefined') {
             const stagger = (WindowBase.staggerCount % 10) * 25;
-            this.x = options.x ?? (window.innerWidth - this.width) / 2 + stagger;
-            this.y = options.y ?? (window.innerHeight - this.height) / 2 + stagger;
+            // Default to 20, 20 (top-left) as requested, plus staggering offset
+            this.x = options.x ?? 20 + stagger;
+            this.y = options.y ?? 20 + stagger;
             WindowBase.staggerCount++;
         } else {
             this.x = options.x ?? 100;

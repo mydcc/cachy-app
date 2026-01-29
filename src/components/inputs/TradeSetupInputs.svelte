@@ -28,8 +28,9 @@
   import { tradeState } from "../../stores/trade.svelte";
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
-  import { modalState } from "../../stores/modal.svelte";
   import { marketState } from "../../stores/market.svelte";
+  import { windowManager } from "../../lib/windows/WindowManager.svelte";
+  import { SymbolPickerWindow } from "../../lib/windows/implementations/SymbolPickerWindow.svelte";
   import { app } from "../../services/app";
   import { Decimal } from "decimal.js";
 
@@ -389,12 +390,7 @@
         <button
           type="button"
           class="symbol-picker-btn p-1 rounded hover:bg-[var(--bg-tertiary)] transition-colors text-[var(--text-secondary)] hover:text-[var(--text-primary)]"
-          onclick={() =>
-            modalState.show(
-              $_("dashboard.tradeSetupInputs.selectSymbol"),
-              "",
-              "symbolPicker",
-            )}
+          onclick={() => windowManager.open(new SymbolPickerWindow())}
           title={$_("dashboard.tradeSetupInputs.selectSymbol")}
         >
           <svg

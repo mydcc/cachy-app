@@ -9,7 +9,11 @@
 </script>
 
 <div class="iframe-view-container">
-    <iframe src={win.url} title={win.title}></iframe>
+    <iframe
+        src={win.url}
+        title={win.title}
+        allow="xr-spatial-tracking; fullscreen; autoplay"
+    ></iframe>
 </div>
 
 <style>
