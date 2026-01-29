@@ -38,7 +38,7 @@
 
   // Data comes strictly from MarketState (pushed by ActiveTechnicalsManager)
   let wsData = $derived(symbol ? marketState.data[symbol] : null);
-  let data: TechnicalsData | null = $derived(wsData?.technicals ?? null);
+  let data: TechnicalsData | null = $derived(wsData?.technicals?.[timeframe] ?? null);
 
   // We can infer "loading" if we have a symbol but no data yet
   let loading = $derived(showPanel && symbol && !data);

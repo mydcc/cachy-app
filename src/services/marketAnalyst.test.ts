@@ -17,6 +17,7 @@
 
 
 import { describe, it, expect } from "vitest";
+import { Decimal } from "decimal.js";
 import { calculateAnalysisMetrics } from "./marketAnalyst";
 import { Decimal } from "decimal.js";
 

@@ -135,19 +135,25 @@ async function fetchBitunixKlines(
 
   const results = data.data || [];
 
-  return results
-    .map((k: any) => ({
-      open: new Decimal(k.open || k.o || 0).toString(),
-      high: new Decimal(k.high || k.h || 0).toString(),
-      low: new Decimal(k.low || k.l || 0).toString(),
-      close: new Decimal(k.close || k.c || 0).toString(),
-      // Bitunix Kline API returns 'quoteVol' as the Quantity (BTC) and 'baseVol' as Turnover (USDT).
-      // This is swapped compared to standard conventions and their own Ticker API.
-      // We map k.quoteVol (Quantity) to our internal volume field.
-      volume: new Decimal(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0).toString(),
-      timestamp: k.id || k.ts || k.time || 0,
-    }))
-    .sort((a: any, b: any) => a.timestamp - b.timestamp);
+  const mapped = results.map((k: any) => ({
+    open: new Decimal(k.open || k.o || 0).toString(),
+    high: new Decimal(k.high || k.h || 0).toString(),
+    low: new Decimal(k.low || k.l || 0).toString(),
+    close: new Decimal(k.close || k.c || 0).toString(),
+    // Bitunix Kline API returns 'quoteVol' as the Quantity (BTC) and 'baseVol' as Turnover (USDT).
+    // This is swapped compared to standard conventions and their own Ticker API.
+    // We map k.quoteVol (Quantity) to our internal volume field.
+    volume: new Decimal(k.quoteVol || k.q || k.volume || k.vol || k.v || k.amount || 0).toString(),
+    timestamp: k.id || k.ts || k.time || 0,
+  }));
+
+  // Optimization: Bitunix usually returns data in descending order.
+  // Replace O(N log N) sort with O(N) reverse if needed.
+  if (mapped.length > 1 && mapped[0].timestamp > mapped[mapped.length - 1].timestamp) {
+    mapped.reverse();
+  }
+
+  return mapped;
 }
 
 async function fetchBitgetKlines(

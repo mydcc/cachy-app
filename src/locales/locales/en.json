@@ -1733,5 +1733,13 @@
   },
   "windows": {
     "smash": "Smash Window"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Connect to SpacetimeDB to chat with other traders.",
+    "connectButton": "Connect",
+    "noMessages": "No messages yet.",
+    "sendButton": "Send",
+    "placeholder": "Say hello..."
   }
 }

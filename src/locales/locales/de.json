@@ -1243,462 +1243,462 @@
     "BITGET_API_ERROR": "Bitget API error"
   },
   "connection": {
-    "connected": "✓ Connected",
-    "connecting": "⟳ Connecting...",
-    "connectingTo": "⟳ Connecting to {provider}...",
-    "reconnecting": "⟳ Reconnecting...",
-    "reconnectingTo": "⟳ Reconnecting to {provider}...",
-    "disconnected": "✗ Waiting for connection...",
-    "error": "✗ Connection error"
+    "connected": "✓ Verbunden",
+    "connecting": "⟳ Verbinde...",
+    "connectingTo": "⟳ Verbinde mit {provider}...",
+    "reconnecting": "⟳ Neu verbinden...",
+    "reconnectingTo": "⟳ Neu verbinden mit {provider}...",
+    "disconnected": "✗ Warte auf Verbindung...",
+    "error": "✗ Verbindungsfehler"
   },
   "errors": {
-    "invalidTrade": "Invalid trade.",
-    "priceFetchFailed": "Price fetch failed.",
-    "atrFetchFailed": "ATR fetch failed.",
-    "saveFailed": "Save failed."
+    "invalidTrade": "Ungültiger Trade.",
+    "priceFetchFailed": "Preisabruf fehlgeschlagen.",
+    "atrFetchFailed": "ATR Abruf fehlgeschlagen.",
+    "saveFailed": "Speichern fehlgeschlagen."
   },
   "modals": {
     "savePreset": {
-      "title": "Save Preset",
-      "prompt": "Enter name:"
+      "title": "Preset speichern",
+      "prompt": "Name eingeben:"
     },
     "clearJournal": {
-      "title": "Confirm Reset",
-      "message": "Delete journal?"
+      "title": "Reset bestätigen",
+      "message": "Journal löschen?"
     },
     "deletePreset": {
-      "title": "Delete Preset",
-      "message": "Really delete?"
+      "title": "Preset löschen",
+      "message": "Wirklich löschen?"
     },
     "import": {
       "title": "Import",
-      "message": "Import {count} trades?"
+      "message": "{count} Trades importieren?"
     }
   },
   "ui": {
-    "loading": "Loading..."
+    "loading": "Lade..."
   },
   "offline": {
-    "title": "Connection Lost",
-    "message": "Unable to reach market data provider. Your calculations and journal remain safe.",
-    "reconnect": "Reconnect",
-    "switchProvider": "Switch Provider",
-    "checkSettings": "Check Settings",
-    "diagnostics": "View Diagnostics"
+    "title": "Verbindung verloren",
+    "message": "Konnte Marktdaten-Provider nicht erreichen. Deine Berechnungen und das Journal bleiben sicher.",
+    "reconnect": "Neu verbinden",
+    "switchProvider": "Provider wechseln",
+    "checkSettings": "Einstellungen prüfen",
+    "diagnostics": "Diagnose anzeigen"
   },
   "calculator": {
     "errors": {
-      "slBelowEntry": "Long: Stop-Loss must be below entry price.",
-      "slAboveEntry": "Short: Stop-Loss must be above entry price.",
-      "tpBelowSl": "Long: Take-Profit target {price} must be above Stop-Loss.",
-      "tpAboveEntry": "Long: Take-Profit target {price} must be above Entry.",
-      "tpAboveSl": "Short: Take-Profit target {price} must be below Stop-Loss.",
-      "tpBelowEntry": "Short: Take-Profit target {price} must be below Entry.",
-      "totalPercentExceeded": "Total sell percentage ({percent}%) must not exceed 100%.",
-      "slDistance": "Stop-Loss must have a valid distance from entry price.",
-      "generic": "An error occurred during calculation."
+      "slBelowEntry": "Long: Stop-Loss muss unter Einstiegspreis liegen.",
+      "slAboveEntry": "Short: Stop-Loss muss über Einstiegspreis liegen.",
+      "tpBelowSl": "Long: Take-Profit Ziel {price} muss über Stop-Loss liegen.",
+      "tpAboveEntry": "Long: Take-Profit Ziel {price} muss über Einstieg liegen.",
+      "tpAboveSl": "Short: Take-Profit Ziel {price} muss unter Stop-Loss liegen.",
+      "tpBelowEntry": "Short: Take-Profit Ziel {price} muss unter Einstieg liegen.",
+      "totalPercentExceeded": "Summe der Verkaufsanteile ({percent}%) darf 100% nicht überschreiten.",
+      "slDistance": "Stop-Loss muss einen gültigen Abstand zum Einstiegspreis haben.",
+      "generic": "Ein Fehler ist bei der Berechnung aufgetreten."
     },
     "logic": {
-      "tpGoal": "{type}: Take-Profit Target {price}",
-      "sumSold": "Sum of sell percentages ({percent}%)"
+      "tpGoal": "{type}: Take-Profit Ziel {price}",
+      "sumSold": "Summe Verkaufsanteile ({percent}%)"
     }
   },
   "candlestickPatterns": {
     "doji": {
       "name": "Doji",
-      "description": "A Doji forms when the opening and closing prices are almost identical (or identical). The body is a thin line. It signals indecision in the market.",
-      "interpretation": "Depending on the context, a Doji can signal a trend reversal or continuation. Often a sign of indecision before a significant market move.",
-      "indicatorCombination": "A Doji at a key support line, along with a bullish divergence in the RSI, can be a strong reversal signal. Volume can confirm its significance: high volume on a Doji after a strong trend can signal exhaustion."
+      "description": "Ein Doji bildet sich, wenn Eröffnungs- und Schlusskurs fast identisch (oder identisch) sind. Der Körper ist eine dünne Linie. Es signalisiert Unentschlossenheit im Markt.",
+      "interpretation": "Je nach Kontext kann ein Doji eine Trendumkehr oder Fortsetzung signalisieren. Oft ein Zeichen für Unentschlossenheit vor einer größeren Marktbewegung.",
+      "indicatorCombination": "Ein Doji an einer wichtigen Unterstützungslinie zusammen mit einer bullischen Divergenz im RSI kann ein starkes Umkehrsignal sein. Volumen kann die Bedeutung bestätigen: Hohes Volumen an einem Doji nach starkem Trend kann Erschöpfung signalisieren."
     },
     "spinning_top": {
       "name": "Spinning Top",
-      "description": "A Spinning Top has a small body centered between long upper and lower shadows. The color of the body is not very important. It resembles a Doji but with a discernible (though small) body.",
-      "interpretation": "Signals indecision in the market. Neither buyers nor sellers could gain the upper hand. May indicate a potential trend change or a continuation of consolidation, depending on the context.",
-      "indicatorCombination": "Spinning Tops in overbought/oversold zones (Stochastics, RSI) can indicate an impending correction or reversal. Look for the volume of the next candle for confirmation."
+      "description": "Ein Spinning Top (Kreisel) hat einen kleinen Körper, der mittig zwischen langen oberen und unteren Schatten liegt. Die Farbe des Körpers ist nicht sehr wichtig. Ähnelt einem Doji, aber mit erkennbarem (wenn auch kleinem) Körper.",
+      "interpretation": "Signalisiert Unentschlossenheit im Markt. Weder Käufer noch Verkäufer konnten die Oberhand gewinnen. Kann je nach Kontext auf eine mögliche Trendwende oder Fortsetzung einer Konsolidierung hindeuten.",
+      "indicatorCombination": "Spinning Tops in überkauften/überverkauften Zonen (Stochastik, RSI) können auf eine bevorstehende Korrektur oder Umkehr hindeuten. Achte auf das Volumen der nächsten Kerze zur Bestätigung."
     },
     "abandoned_baby_bullish": {
       "name": "Abandoned Baby (Bullish)",
-      "description": "A very rare but strong bullish reversal pattern. 1. A long bearish candle. 2. A Doji that gaps down below the low of the first candle, with its shadows not overlapping the shadow of the first candle. 3. A long bullish candle that gaps up above the high of the Doji, with its shadows not overlapping the shadow of the Doji.",
-      "interpretation": "The gaps on both sides of the Doji completely isolate it, signaling a dramatic reversal of market sentiment. Sellers are exhausted, and buyers take over with great force.",
-      "indicatorCombination": "Due to its rarity and strength, combining it with other indicators is less critical, but an oversold condition (RSI, Stochastics) before the pattern can reinforce the bullish implication."
+      "description": "Ein sehr seltenes, aber starkes bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Ein Doji, der unter das Tief der ersten Kerze 'gapt' (Gap Down), wobei sich die Schatten nicht mit dem Schatten der ersten Kerze überschneiden. 3. Eine lange bullische Kerze, die über das Hoch des Dojis 'gapt' (Gap Up), ohne dass sich die Schatten überschneiden.",
+      "interpretation": "Die Lücken auf beiden Seiten des Doji isolieren ihn vollständig ('abandoned'), was eine dramatische Umkehr der Marktstimmung signalisiert. Verkäufer sind erschöpft, Käufer übernehmen mit großer Kraft.",
+      "indicatorCombination": "Aufgrund der Seltenheit und Stärke ist die Kombination mit anderen Indikatoren weniger kritisch, aber ein überverkaufter Zustand (RSI, Stochastik) vor dem Muster kann die bullische Implikation verstärken."
     },
     "belt_hold_bullish": {
       "name": "Belt Hold (Bullish)",
-      "description": "A single bullish candle that appears after a downtrend. It opens at its low (or very close to it) and has a long bullish body with little or no lower shadow. A small upper shadow may be present.",
-      "interpretation": "Signals a sudden takeover of control by the buyers. The strength of the pattern depends on the length of the body. It is stronger when it appears after a prolonged downward move.",
-      "indicatorCombination": "High volume on the Belt Hold candle strengthens the signal. It can occur at key support levels or in conjunction with a bullish divergence of a momentum oscillator."
+      "description": "Eine einzelne bullische Kerze, die nach einem Abwärtstrend auftritt. Sie eröffnet an ihrem Tief (oder sehr nahe daran) und hat einen langen bullischen Körper mit wenig oder keinem unteren Schatten. Ein kleiner oberer Schatten kann vorhanden sein.",
+      "interpretation": "Signalisiert eine plötzliche Übernahme der Kontrolle durch die Käufer. Die Stärke des Musters hängt von der Länge des Körpers ab. Es ist stärker, wenn es nach einer längeren Abwärtsbewegung auftritt.",
+      "indicatorCombination": "Hohes Volumen an der Belt Hold Kerze stärkt das Signal. Es kann an wichtigen Unterstützungsniveaus oder in Verbindung mit einer bullischen Divergenz eines Momentum-Oszillators auftreten."
     },
     "breakaway_bullish": {
       "name": "Breakaway (Bullish)",
-      "description": "A five-candle bullish reversal pattern that occurs after a downtrend. 1. A long bearish candle. 2. A bearish candle that gaps down. 3. One or two more (usually bearish) candles that continue the downtrend. 4. A long bullish candle that closes the gap between the first and second candles or extends into the body of the first candle.",
-      "interpretation": "The initial gap and continuation of the downtrend appear bearish, but the final strong bullish candle signals a sudden and powerful reversal by the buyers, negating the previous bearish momentum.",
-      "indicatorCombination": "An increase in volume on the fifth (breakout) candle is a strong confirmation sign. It can also be supported by the breaking of a short-term downtrend line."
+      "description": "Ein fünf-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine bärische Kerze, die 'gapt' (Gap Down). 3. Ein oder zwei weitere (meist bärische) Kerzen, die den Abwärtstrend fortsetzen. 4. Eine lange bullische Kerze, die die Lücke zwischen der ersten und zweiten Kerze schließt oder in den Körper der ersten Kerze hineinragt.",
+      "interpretation": "Die anfängliche Lücke und Fortsetzung des Abwärtstrends wirken bärisch, aber die finale starke bullische Kerze signalisiert eine plötzliche und kraftvolle Umkehr der Käufer, die das vorherige bärische Momentum negiert.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Abwärtstrendlinie unterstützt werden."
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "A bullish engulfing pattern occurs after a downtrend. It consists of two candles: The first is a bearish candle, followed by a larger bullish candle whose body completely engulfs the body of the previous candle.",
-      "interpretation": "Signals that buyers have taken control from sellers and a strong bullish reversal is likely.",
-      "indicatorCombination": "A Bullish Engulfing is stronger when it occurs on high volume. Additional confirmation from an oversold RSI (<30) or a bullish divergence can increase its reliability."
+      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "interpretation": "Signalisiert, dass die Käufer die Kontrolle von den Verkäufern übernommen haben und eine starke Aufwärtsbewegung wahrscheinlich ist.",
+      "indicatorCombination": "Ein Bullish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überverkauften RSI (<30) oder eine bullische Divergenz kann die Zuverlässigkeit erhöhen."
     },
     "bullish_harami": {
       "name": "Bullish Harami",
-      "description": "A Bullish Harami occurs after a downtrend. It consists of a long bearish candle followed by a small bullish candle whose body is completely contained within the body of the previous candle.",
-      "interpretation": "Signals a potential weakening of the downtrend and an impending bullish reversal. Confirmation from the next candle is important.",
-      "indicatorCombination": "A Bullish Harami in an oversold zone (RSI, Stochastics) or at a key support level gains significance. Look for the volume of the confirmation candle."
+      "description": "Ein Bullish Harami tritt nach einem Abwärtstrend auf. Es besteht aus einer langen bärischen Kerze, gefolgt von einer kleinen bullischen Kerze, deren Körper vollständig im Körper der vorangegangenen Kerze enthalten ist.",
+      "interpretation": "Signalisiert eine potenzielle Abschwächung des Abwärtstrends und eine bevorstehende bullische Umkehr. Bestätigung durch die nächste Kerze ist wichtig.",
+      "indicatorCombination": "Ein Bullish Harami in einer überverkauften Zone (RSI, Stochastik) oder an einer wichtigen Unterstützung gewinnt an Bedeutung. Achte auf das Volumen der Bestätigungskerze."
     },
     "bullish_harami_cross": {
       "name": "Bullish Harami Cross",
-      "description": "Similar to the Bullish Harami, but the second candle is a Doji. Occurs after a downtrend. A long bearish candle followed by a Doji that is completely contained within the body of the previous candle.",
-      "interpretation": "A stronger signal for a bullish reversal than a normal Bullish Harami, as the Doji indicates greater indecision among sellers.",
-      "indicatorCombination": "Similar to the Bullish Harami, but the Doji component often makes the signal stronger, especially when accompanied by volume on the confirmation candle."
+      "description": "Ähnlich wie der Bullish Harami, aber die zweite Kerze ist ein Doji. Tritt nach einem Abwärtstrend auf. Eine lange bärische Kerze gefolgt von einem Doji, der vollständig im Körper der vorherigen Kerze enthalten ist.",
+      "interpretation": "Ein stärkeres Signal für eine bullische Umkehr als ein normaler Bullish Harami, da der Doji größere Unentschlossenheit bei den Verkäufern anzeigt.",
+      "indicatorCombination": "Ähnlich wie beim Bullish Harami, aber die Doji-Komponente macht das Signal oft stärker, besonders wenn es von Volumen bei der Bestätigungskerze begleitet wird."
     },
     "bullish_kicker": {
       "name": "Bullish Kicker",
-      "description": "An extremely strong bullish reversal pattern. 1. A bearish candle (often long). 2. A bullish candle that gaps up above the high of the previous candle and closes strongly bullish. There is no overlap in the trading ranges.",
-      "interpretation": "Signals a sudden and dramatic shift in market sentiment from bearish to bullish. Often triggered by unexpected news. One of the strongest reversal signals.",
-      "indicatorCombination": "Very high volume on the second (kicker) candle confirms the strength of the signal. Due to its sudden nature, combination with prior indicator signals is less typical, but subsequent indicators should confirm the new direction."
+      "description": "Ein extrem starkes bullisches Umkehrmuster. 1. Eine bärische Kerze (oft lang). 2. Eine bullische Kerze, die über das Hoch der vorherigen Kerze 'gapt' (Gap Up) und stark bullisch schließt. Es gibt keine Überlappung der Handelsspannen.",
+      "interpretation": "Signalisiert einen plötzlichen und dramatischen Wechsel der Marktstimmung von bärisch zu bullisch. Oft ausgelöst durch unerwartete Nachrichten. Eines der stärksten Umkehrsignale.",
+      "indicatorCombination": "Sehr hohes Volumen auf der zweiten (Kicker) Kerze bestätigt die Stärke des Signals. Aufgrund der Plötzlichkeit ist die Kombination mit vorherigen Indikatorsignalen weniger typisch, aber nachfolgende Indikatoren sollten die neue Richtung bestätigen."
     },
     "concealing_baby_swallow": {
       "name": "Concealing Baby Swallow",
-      "description": "A very rare and complex four-candle bullish reversal pattern that occurs after a strong downtrend. 1. A long bearish Marubozu. 2. Another bearish Marubozu that opens within the body of the first (Gap Down). 3. A bearish candle that opens within the body of the second but closes higher and has an upper shadow that protrudes into the body of the second candle. 4. A long bearish candle that completely engulfs the entire previous candle (the third) (Gap Up and closes lower).",
-      "interpretation": "Despite the predominantly bearish candles, this pattern signals extreme seller exhaustion. The inability to make new lows and the complex interactions suggest an impending sharp reversal. Caution is advised due to its rarity and complexity.",
-      "indicatorCombination": "Due to its rarity, specific indicator combinations are less documented. Confirmation through volume and subsequent bullish price action is crucial."
+      "description": "Ein sehr seltenes und komplexes vier-kerziges bullisches Umkehrmuster, das nach einem starken Abwärtstrend auftritt. 1. Ein langer bärischer Marubozu. 2. Ein weiterer bärischer Marubozu, der innerhalb des Körpers des ersten eröffnet (Gap Down). 3. Eine bärische Kerze, die im Körper der zweiten eröffnet, aber höher schließt und einen oberen Schatten hat, der in den Körper der zweiten Kerze ragt. 4. Eine lange bärische Kerze, die die gesamte vorherige Kerze (die dritte) umschließt (Gap Up und schließt tiefer).",
+      "interpretation": "Trotz der überwiegend bärischen Kerzen signalisiert dieses Muster extreme Verkäufererschöpfung. Die Unfähigkeit, neue Tiefs zu machen, und die komplexen Interaktionen deuten auf eine bevorstehende scharfe Umkehr hin. Vorsicht geboten wegen Seltenheit und Komplexität.",
+      "indicatorCombination": "Aufgrund der Seltenheit sind spezifische Indikatorkombinationen weniger dokumentiert. Bestätigung durch Volumen und nachfolgende bullische Preisaktion ist entscheidend."
     },
     "dragonfly_doji": {
       "name": "Dragonfly Doji",
-      "description": "A Dragonfly Doji forms when the open, high, and close prices are nearly identical, and there is a long lower shadow. There is no or a very small upper shadow. It typically appears after a downtrend.",
-      "interpretation": "Signals a potential bullish reversal. Sellers pushed the price down, but buyers took control and brought the price back to the day's high. It is stronger when it occurs in a support zone.",
-      "indicatorCombination": "High volume on the Dragonfly Doji can confirm the rejection of lower prices. Its appearance in an oversold zone (RSI) or at a Fibonacci support level increases its significance."
+      "description": "Ein Dragonfly Doji bildet sich, wenn Eröffnungs-, Höchst- und Schlusskurs nahezu identisch sind und ein langer unterer Schatten vorhanden ist. Es gibt keinen oder einen sehr kleinen oberen Schatten. Erscheint typischerweise nach einem Abwärtstrend.",
+      "interpretation": "Signalisiert eine potenzielle bullische Umkehr. Verkäufer drückten den Preis, aber Käufer übernahmen die Kontrolle und brachten den Preis zurück zum Tageshoch. Er ist stärker, wenn er in einer Unterstützungszone auftritt.",
+      "indicatorCombination": "Hohes Volumen am Dragonfly Doji kann die Ablehnung niedriger Preise bestätigen. Sein Auftreten in einer überverkauften Zone (RSI) oder an einem Fibonacci-Support erhöht die Signifikanz."
     },
     "hammer": {
       "name": "Hammer",
-      "description": "A Hammer candle is a bullish reversal pattern in trading that appears at the end of a downtrend. Identification is based on specific geometric ratios between the body and the wick.\n\n### Mathematical Criteria (Formulas)\nTo objectively define a candle as a Hammer, the following formulas are often used:\n\n*   **Shadow-to-Body Ratio:** The lower shadow (wick) must be at least twice as long as the candle body.\n    $$ \\text{Lower Shadow} \\ge 2 \\times |\\text{Open} - \\text{Close}| $$\n*   **Body Position (Fibonacci Method):** The entire candle body must be in the upper third (above the 38.2% Fibonacci retracement) of the candle's total trading range.\n*   **Upper Shadow:** It should be very small or non-existent.\n    $$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Total Range} $$",
-      "interpretation": "### Trading Formulas for Entry and Exit\nWhen a Hammer candle is identified, traders often use standardized formulas for setting order levels:\n\n| Action | Formula / Rule |\n| :--- | :--- |\n| **Entry (Buy)** | High of the Hammer + small buffer (e.g., 1-2 pips/points). |\n| **Stop-Loss (SL)** | Low of the Hammer - small buffer. |\n| **Target** | Entry + (2 * (Entry - SL)) for a 2:1 Risk-Reward Ratio. |\n\n### Important Context\n*   **Trend:** A Hammer is only significant after a clear downtrend (at least 3-5 falling candles).\n*   **Confirmation:** Many traders wait for the next candle; if it closes above the high of the Hammer, the signal is confirmed.\n*   **Context:** The success rate increases significantly if the Hammer occurs at a known support zone or a moving average (e.g., 50 EMA).",
-      "indicatorCombination": "A Hammer at a key support line or a moving average is a stronger signal. An increase in volume on the Hammer candle or the confirmation candle supports the reversal."
+      "description": "Ein Hammer ist ein bullisches Umkehrmuster, das am Ende eines Abwärtstrends erscheint. Er hat einen kleinen Körper am oberen Ende der Handelsspanne und einen langen unteren Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein oberer Schatten.",
+      "interpretation": "Signalisiert, dass Verkäufer den Preis drückten, aber Käufer stark genug waren, um den Preis bis zum Schlusskurs wieder nach oben zu treiben. Mögliche Bodenbildung.",
+      "indicatorCombination": "Ein Hammer an einer wichtigen Unterstützungslinie oder einem gleitenden Durchschnitt ist ein stärkeres Signal. Ein Anstieg des Volumens bei der Hammer-Kerze oder der Bestätigungskerze unterstützt die Umkehr."
     },
     "homing_pigeon": {
       "name": "Homing Pigeon",
-      "description": "A two-candle bullish reversal pattern that occurs after a downtrend. 1. A long bearish candle. 2. A smaller bearish candle whose body is completely contained within the body of the first candle. Resembles a bearish harami, but both candles are bearish.",
-      "interpretation": "Although both candles are bearish, the fact that the second candle does not close lower and remains within the first suggests diminishing selling momentum and a potential bottoming out. Bullish confirmation is important.",
-      "indicatorCombination": "A bullish divergence on an oscillator (e.g., RSI, MACD) can reinforce the Homing Pigeon signal. Look for a confirmation candle with higher volume."
+      "description": "Ein zwei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleinere bärische Kerze, deren Körper vollständig im Körper der ersten Kerze enthalten ist. Ähnelt einem Bearish Harami, aber beide Kerzen sind bärisch.",
+      "interpretation": "Obwohl beide Kerzen bärisch sind, deutet die Tatsache, dass die zweite Kerze nicht tiefer schließt und innerhalb der ersten verbleibt, auf nachlassendes Verkaufsmomentum und einen möglichen Boden hin. Bullische Bestätigung ist wichtig.",
+      "indicatorCombination": "Eine bullische Divergenz bei einem Oszillator (z.B. RSI, MACD) kann das Homing Pigeon Signal verstärken. Suche nach einer Bestätigungskerze mit höherem Volumen."
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "The Inverted Hammer is a bullish reversal pattern that occurs after a downtrend. It has a small body at the lower end of the trading range and a long upper shadow. Little to no lower shadow.",
-      "interpretation": "Signals that buyers attempted to push the price up but met resistance. If the next candle closes higher, it can confirm a bullish reversal.",
-      "indicatorCombination": "An Inverted Hammer is more significant when it occurs after a clear downtrend and at a support line. Confirmation by a bullish follow-up candle with volume is important."
+      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.",
+      "interpretation": "Signalisiert, dass Käufer versuchten, den Preis nach oben zu treiben, aber auf Widerstand trafen. Wenn die nächste Kerze höher schließt, kann dies eine bullische Umkehr bestätigen.",
+      "indicatorCombination": "Ein Inverted Hammer ist aussagekräftiger, wenn er nach einem klaren Abwärtstrend und an einer Unterstützungslinie auftritt. Bestätigung durch eine bullische Folgekerze mit Volumen ist wichtig."
     },
     "ladder_bottom": {
       "name": "Ladder Bottom",
-      "description": "A five-candle bullish reversal pattern that occurs after a downtrend. 1-3. Three long bearish candles with successively lower lows. 4. A bearish candle with a small body and a long upper shadow. 5. A large bullish candle that opens above the body of the fourth candle and closes significantly higher.",
-      "interpretation": "The first three candles show a strong downtrend. The fourth candle signals an initial weakness of the bears. The fifth bullish candle confirms the reversal with strong buying interest.",
-      "indicatorCombination": "An increase in volume on the fifth (breakout) candle is a strong confirmation sign. It can also be supported by the breaking of a short-term downtrend line."
+      "description": "Ein fünf-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1-3. Drei lange bärische Kerzen mit sukzessive tieferen Tiefs. 4. Eine bärische Kerze mit kleinem Körper und langem oberen Schatten. 5. Eine große bullische Kerze, die über dem Körper der vierten Kerze eröffnet und signifikant höher schließt.",
+      "interpretation": "Die ersten drei Kerzen zeigen einen starken Abwärtstrend. Die vierte Kerze signalisiert eine erste Schwäche der Bären. Die fünfte bullische Kerze bestätigt die Umkehr mit starkem Kaufinteresse.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Abwärtstrendlinie unterstützt werden."
     },
     "matching_low": {
       "name": "Matching Low",
-      "description": "A bullish reversal pattern that occurs after a downtrend. 1. A long bearish candle. 2. Another bearish candle that opens below the first but closes at the same level as the first candle (identical closing prices). Both candles often have little to no lower shadows.",
-      "interpretation": "The inability of sellers to push the price below the closing price of the first day on the second day suggests waning selling momentum and potential support. Bullish confirmation is advisable.",
-      "indicatorCombination": "Its appearance at a known support line or in an oversold zone (RSI) can increase the significance of the Matching Low. A confirmation candle with volume is important."
+      "description": "Ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine weitere bärische Kerze, die unter der ersten eröffnet, aber auf demselben Niveau wie die erste Kerze schließt (identische Schlusskurse). Beide Kerzen haben oft wenig bis keine unteren Schatten.",
+      "interpretation": "Die Unfähigkeit der Verkäufer, den Preis am zweiten Tag unter den Schlusskurs des ersten Tages zu drücken, deutet auf nachlassendes Verkaufsmomentum und eine potenzielle Unterstützung hin. Bullische Bestätigung ist ratsam.",
+      "indicatorCombination": "Sein Auftreten an einer bekannten Unterstützungslinie oder in einer überverkauften Zone (RSI) kann die Bedeutung des Matching Low erhöhen. Eine Bestätigungskerze mit Volumen ist wichtig."
     },
     "morning_doji_star": {
       "name": "Morning Doji Star",
-      "description": "A more specific version of the Morning Star. 1. A long bearish candle. 2. A Doji that gaps down below the body of the first candle. 3. A long bullish candle that closes well into the body of the first candle or above it.",
-      "interpretation": "The Doji after a gap down signals strong indecision and potential seller exhaustion. The following strong bullish candle confirms the reversal. It is considered a stronger signal than a regular Morning Star.",
-      "indicatorCombination": "Volume should be low on the Doji. A significant increase in volume on the third (bullish) candle is a strong confirmation feature. An oversold condition (RSI) before the pattern increases its significance."
+      "description": "Eine spezifischere Version des Morning Star. 1. Eine lange bärische Kerze. 2. Ein Doji, der unter den Körper der ersten Kerze 'gapt' (Gap Down). 3. Eine lange bullische Kerze, die weit in den Körper der ersten Kerze oder darüber schließt.",
+      "interpretation": "Der Doji nach einem Gap Down signalisiert starke Unentschlossenheit und potenzielle Verkäufererschöpfung. Die folgende starke bullische Kerze bestätigt die Umkehr. Gilt als stärkeres Signal als ein normaler Morning Star.",
+      "indicatorCombination": "Volumen sollte beim Doji niedrig sein. Ein signifikanter Anstieg des Volumens bei der dritten (bullischen) Kerze ist ein starkes Bestätigungsmerkmal. Ein überverkaufter Zustand (RSI) vor dem Muster erhöht die Signifikanz."
     },
     "morning_star": {
       "name": "Morning Star",
-      "description": "The Morning Star is a three-candle bullish reversal pattern that occurs after a downtrend. 1. Long bearish candle. 2. Small candle (Doji, Spinning Top, or small body) that ideally opens below the first candle (Gap Down). 3. Long bullish candle that closes well into the body of the first candle or above it.",
-      "interpretation": "Signals waning selling momentum (candle 1), indecision (candle 2), and then a strong takeover by buyers (candle 3), indicating a bullish reversal.",
-      "indicatorCombination": "Volume on the second ('star') candle is often low. An increase in volume on the third (bullish) candle is a positive sign and increases reliability. Can be confirmed by oversold oscillators (RSI, Stochastics)."
+      "description": "Der Morning Star ist ein dreiteiliges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Lange bärische Kerze. 2. Kleine Kerze (Doji, Spinning Top oder kleiner Körper), die idealerweise unterhalb der ersten Kerze eröffnet (Gap Down). 3. Lange bullische Kerze, die weit in den Körper der ersten Kerze oder darüber schließt.",
+      "interpretation": "Signalisiert ein nachlassendes Verkaufsmomentum (Kerze 1), Unentschlossenheit (Kerze 2) und dann eine starke Übernahme durch Käufer (Kerze 3), was auf eine bullische Trendwende hindeutet.",
+      "indicatorCombination": "Volumen bei der zweiten ('Star') Kerze ist oft niedrig. Ein Anstieg des Volumens bei der dritten (bullischen) Kerze ist ein positives Zeichen und erhöht die Zuverlässigkeit. Kann durch überverkaufte Oszillatoren (RSI, Stochastik) bestätigt werden."
     },
     "piercing_line": {
       "name": "Piercing Line",
-      "description": "A Piercing Line is a two-candle bullish reversal pattern that occurs after a downtrend. The first candle is long and bearish. The second candle opens below the low of the first candle (Gap Down) but closes above the midpoint of the first candle's body.",
-      "interpretation": "Signals that buyers are coming back strong after an initial bearish momentum, pushing the price up. A bullish reversal is likely.",
-      "indicatorCombination": "An increase in volume on the second (bullish) candle reinforces the signal. The pattern is stronger when it occurs at a support line or in an oversold zone (RSI)."
+      "description": "Eine Piercing Line ist ein zwei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Die erste Kerze ist lang und bärisch. Die zweite Kerze eröffnet unter dem Tief der ersten Kerze (Gap Down), schließt aber über der Mitte des Körpers der ersten Kerze.",
+      "interpretation": "Signalisiert, dass Käufer nach einem anfänglichen bärischen Momentum stark zurückkommen und den Preis nach oben treiben. Eine bullische Umkehr ist wahrscheinlich.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bullischen) Kerze verstärkt das Signal. Das Muster ist stärker, wenn es an einer Unterstützungslinie oder in einer überverkauften Zone (RSI) auftritt."
     },
     "stick_sandwich": {
       "name": "Stick Sandwich",
-      "description": "A rare bullish reversal pattern. 1. A long bearish candle. 2. A bullish candle that opens and closes above the close of the first candle. 3. A bearish candle whose closing price is at the same level as the closing price of the first bearish candle. The lows of the two bearish candles form a support.",
-      "interpretation": "The middle bullish candle shows buying interest. The third candle tests the support formed by the first candle. If this support holds, a bullish reversal may follow.",
-      "indicatorCombination": "Its appearance at a key support line or a moving average increases its significance. Volume confirmation on the middle bullish candle or the subsequent confirmation candle is positive."
+      "description": "Ein seltenes bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Eine bullische Kerze, die über dem Schluss der ersten Kerze eröffnet und schließt. 3. Eine bärische Kerze, deren Schlusskurs auf demselben Niveau wie der Schlusskurs der ersten bärischen Kerze liegt. Die Tiefs der zwei bärischen Kerzen bilden einen Support.",
+      "interpretation": "Die mittlere bullische Kerze zeigt Kaufinteresse. Die dritte Kerze testet die Unterstützung, die von der ersten Kerze gebildet wurde. Hält dieser Support, kann eine bullische Umkehr folgen.",
+      "indicatorCombination": "Sein Auftreten an einer wichtigen Unterstützungslinie oder einem gleitenden Durchschnitt erhöht die Bedeutung. Volumenbestätigung bei der mittleren bullischen Kerze oder der nachfolgenden Bestätigungskerze ist positiv."
     },
     "three_inside_up": {
       "name": "Three Inside Up",
-      "description": "A three-candle bullish reversal pattern that occurs after a downtrend. 1. A long bearish candle. 2. A small bullish candle (Harami) whose body is completely contained within the body of the first candle. 3. A bullish candle that closes above the close of the second candle and ideally above the high of the second candle.",
-      "interpretation": "Confirms the Bullish Harami pattern and signals a stronger probability of a bullish reversal. The third candle shows that the buyers have taken control.",
-      "indicatorCombination": "An increase in volume on the third candle strengthens the signal. The pattern is more reliable when it occurs in an oversold zone (RSI) or at a support level."
+      "description": "Ein drei-kerziges bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze (Harami), deren Körper vollständig im Körper der ersten Kerze enthalten ist. 3. Eine bullische Kerze, die über dem Schluss der zweiten Kerze und idealerweise über dem Hoch der zweiten Kerze schließt.",
+      "interpretation": "Bestätigt das Bullish Harami Muster und signalisiert eine stärkere Wahrscheinlichkeit für eine bullische Umkehr. Die dritte Kerze zeigt, dass die Käufer die Kontrolle übernommen haben.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der dritten Kerze stärkt das Signal. Das Muster ist zuverlässiger, wenn es in einer überverkauften Zone (RSI) oder an einem Support-Level auftritt."
     },
     "three_outside_up": {
       "name": "Three Outside Up",
-      "description": "A three-candle bullish reversal pattern. 1. A bearish candle. 2. A bullish candle that completely engulfs the first candle (Bullish Engulfing). 3. Another bullish candle that closes above the close of the second candle.",
-      "interpretation": "A strong bullish reversal signal that confirms the Bullish Engulfing and suggests a continuation of the upward movement.",
-      "indicatorCombination": "Increasing volume on the second and third candles increases reliability. Its appearance after an oversold phase (RSI) or at a support line reinforces the signal."
+      "description": "Ein drei-kerziges bullisches Umkehrmuster. 1. Eine bärische Kerze. 2. Eine bullische Kerze, die die erste Kerze komplett umschließt (Bullish Engulfing). 3. Eine weitere bullische Kerze, die über dem Schluss der zweiten Kerze schließt.",
+      "interpretation": "Ein starkes bullisches Umkehrsignal, das das Bullish Engulfing bestätigt und eine Fortsetzung der Aufwärtsbewegung suggeriert.",
+      "indicatorCombination": "Steigendes Volumen bei der zweiten und dritten Kerze erhöht die Zuverlässigkeit. Sein Auftreten nach einer überverkauften Phase (RSI) oder an einer Unterstützungslinie verstärkt das Signal."
     },
     "three_white_soldiers": {
       "name": "Three White Soldiers",
-      "description": "Three White Soldiers is a bullish reversal pattern that occurs after a downtrend. It consists of three consecutive long bullish candles. Each candle opens within the body of the previous candle and closes higher than the previous candle, ideally near its high.",
-      "interpretation": "Signals a strong and steady reversal of buying power and the beginning of a new uptrend.",
-      "indicatorCombination": "Ideally, volume should increase with each of the three 'soldier' candles, or at least remain consistently high. The pattern is stronger when it occurs after a significant downtrend or consolidation phase and not in an already heavily overbought zone."
+      "description": "Three White Soldiers ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Es besteht aus drei aufeinanderfolgenden langen bullischen Kerzen. Jede Kerze eröffnet im Körper der vorherigen und schließt höher als die vorherige, idealerweise nahe ihrem Hoch.",
+      "interpretation": "Signalisiert eine starke und stetige Umkehr der Kaufkraft und den Beginn eines neuen Aufwärtstrends.",
+      "indicatorCombination": "Das Volumen sollte idealerweise mit jeder der drei 'Soldaten'-Kerzen zunehmen oder zumindest konstant hoch bleiben. Das Muster ist stärker, wenn es nach einem signifikanten Abwärtstrend oder einer Konsolidierungsphase auftritt und nicht in einer bereits stark überkauften Zone."
     },
     "tower_bottom": {
       "name": "Tower Bottom",
-      "description": "A bullish reversal pattern that occurs after a downtrend. It begins with one or more long bearish candles, followed by a phase of consolidation with small bodies (trading in a tight range). The pattern is completed by one or more long bullish candles that break out to the upside.",
-      "interpretation": "The long bearish candles show selling pressure. The consolidation phase suggests indecision and a potential bottom formation. The final bullish candles signal a takeover by buyers and a likely trend reversal.",
-      "indicatorCombination": "Volume is often low during the consolidation phase. A significant increase in volume on the breakout bullish candles is a strong confirmation feature. A bullish divergence in the RSI during consolidation can reinforce the signal."
+      "description": "Ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Es beginnt mit einer oder mehreren langen bärischen Kerzen, gefolgt von einer Phase der Konsolidierung mit kleinen Körpern (Handel in enger Range). Das Muster wird abgeschlossen durch eine oder mehrere lange bullische Kerzen, die nach oben ausbrechen.",
+      "interpretation": "Die langen bärischen Kerzen zeigen Verkaufsdruck. Die Konsolidierungsphase deutet auf Unentschlossenheit und mögliche Bodenbildung hin. Die finalen bullischen Kerzen signalisieren eine Übernahme durch Käufer und eine wahrscheinliche Trendwende.",
+      "indicatorCombination": "Volumen ist oft niedrig während der Konsolidierungsphase. Ein signifikanter Volumenanstieg bei den ausbrechenden bullischen Kerzen ist ein starkes Bestätigungsmerkmal. Eine bullische Divergenz im RSI während der Konsolidierung kann das Signal verstärken."
     },
     "tri_star_bullish": {
       "name": "Tri-Star (Bullish)",
-      "description": "A rare reversal pattern consisting of three Dojis. After a downtrend, the middle Doji forms with a gap lower than the two outer Dojis. All three Dojis have small trading ranges.",
-      "interpretation": "The three Dojis signal extreme indecision. The gap down of the middle Doji, followed by an inability to fall further, suggests seller exhaustion and a potential strong bullish reversal.",
-      "indicatorCombination": "Volume is typically low on all three Dojis. An increase on a bullish confirmation candle is crucial. An oversold condition before the pattern increases the probability of a reversal."
+      "description": "Ein seltenes Umkehrmuster aus drei Dojis. Nach einem Abwärtstrend bildet sich der mittlere Doji mit einer Lücke (Gap) nach unten zu den zwei äußeren Dojis. Alle drei Dojis haben kleine Handelsspannen.",
+      "interpretation": "Die drei Dojis signalisieren extreme Unentschlossenheit. Das Gap Down des mittleren Dojis, gefolgt von Unfähigkeit weiter zu fallen, deutet auf Erschöpfung der Verkäufer und eine mögliche starke bullische Umkehr hin.",
+      "indicatorCombination": "Volumen ist typischerweise niedrig bei allen drei Dojis. Ein Anstieg bei einer bullischen Bestätigungskerze ist entscheidend. Ein überverkaufter Zustand vor dem Muster erhöht die Wahrscheinlichkeit einer Umkehr."
     },
     "tweezer_bottoms": {
       "name": "Tweezer Bottoms",
-      "description": "Tweezer Bottoms are a bullish reversal pattern that typically occurs at the end of a downtrend. It consists of two or more candles with nearly identical lows. The first candle is often bearish, the second bullish, but the forms can vary.",
-      "interpretation": "The identical lows suggest a strong support zone. Sellers were unable to push the price further down, indicating a potential bullish reversal.",
-      "indicatorCombination": "A Tweezer Bottom at a key support line or a Fibonacci retracement level is more significant. A bullish divergence in the RSI or MACD can reinforce the reversal signal."
+      "description": "Tweezer Bottoms sind ein bullisches Umkehrmuster, das typischerweise am Ende eines Abwärtstrends auftritt. Es besteht aus zwei oder mehr Kerzen mit nahezu identischen Tiefstständen. Die erste Kerze ist oft bärisch, die zweite bullisch, aber die Formen können variieren.",
+      "interpretation": "Die identischen Tiefs deuten auf eine starke Unterstützungszone hin. Verkäufer konnten den Preis nicht weiter nach unten drücken, was auf eine potenzielle bullische Umkehr hindeutet.",
+      "indicatorCombination": "Ein Tweezer Bottom an einer wichtigen Unterstützungslinie oder einem Fibonacci-Retracement-Level ist aussagekräftiger. Eine bullische Divergenz im RSI oder MACD kann das Umkehrsignal verstärken."
     },
     "unique_three_river_bottom": {
       "name": "Unique Three River Bottom",
-      "description": "A rare three-candle bullish reversal pattern. 1. A long bearish candle. 2. A bearish candle with a lower low than the first candle (a kind of Hammer shape, but bearish). 3. A small bullish candle that opens below the close of the second candle and closes above its low, but below its high.",
-      "interpretation": "Despite the bearish nature of the first two candles, the inability of sellers to push the price below the low of the second candle and the appearance of the small bullish candle suggest potential seller exhaustion and an impending reversal.",
-      "indicatorCombination": "Due to its rarity, confirmation through increased volume on the third candle or a subsequent bullish candle is particularly important. Oversold oscillators can support the signal."
+      "description": "Ein seltenes drei-kerziges bullisches Umkehrmuster. 1. Eine lange bärische Kerze. 2. Eine bärische Kerze mit einem tieferen Tief als die erste (eine Art Hammer-Form, aber bärisch). 3. Eine kleine bullische Kerze, die unter dem Schluss der zweiten Kerze eröffnet und über deren Tief, aber unter ihrem Hoch schließt.",
+      "interpretation": "Trotz der bärischen Natur der ersten zwei Kerzen, deuten die Unfähigkeit der Verkäufer, den Preis unter das Tief der zweiten Kerze zu drücken, und das Auftreten der kleinen bullischen Kerze auf potenzielle Verkäufererschöpfung und eine bevorstehende Umkehr hin.",
+      "indicatorCombination": "Aufgrund der Seltenheit ist die Bestätigung durch erhöhtes Volumen bei der dritten Kerze oder einer nachfolgenden bullischen Kerze besonders wichtig. Überverkaufte Oszillatoren können das Signal unterstützen."
     },
     "mat_hold": {
       "name": "Mat Hold",
-      "description": "A bullish continuation pattern, similar to the Rising Three Methods but often considered stronger. 1. A long bullish candle. 2. Followed by a small consolidation phase of three small candles (mostly bearish), which gap up from the first candle and remain above its low. 3. Another long bullish candle that gaps up and reaches new highs.",
-      "interpretation": "The consolidation above the first bullish candle and the subsequent gap up with another strong bullish candle confirm the continuation of the uptrend with great force.",
-      "indicatorCombination": "Volume should be high on the first and fifth (strong bullish) candles. During the consolidation phase (candles 2-4), lower volume is typical. Holding above a key moving average supports the continuation."
+      "description": "Ein bullisches Fortsetzungsmuster, ähnlich den Rising Three Methods, aber oft als stärker angesehen. 1. Eine lange bullische Kerze. 2. Gefolgt von einer kleinen Konsolidierungsphase aus drei kleinen Kerzen (meist bärisch), die von der ersten Kerze nach oben 'gapen' und über deren Tief bleiben. 3. Eine weitere lange bullische Kerze, die nach oben 'gapt' und neue Hochs erreicht.",
+      "interpretation": "Die Konsolidierung oberhalb der ersten bullischen Kerze und das anschließende Gap Up mit einer weiteren starken bullischen Kerze bestätigen die Fortsetzung des Aufwärtstrends mit großer Kraft.",
+      "indicatorCombination": "Volumen sollte hoch sein bei der ersten und fünften (starken bullischen) Kerze. Während der Konsolidierungsphase (Kerzen 2-4) ist niedrigeres Volumen typisch. Ein Halten über einem wichtigen gleitenden Durchschnitt unterstützt die Fortsetzung."
     },
     "rising_three_methods": {
       "name": "Rising Three Methods",
-      "description": "A bullish continuation pattern. It begins with a long bullish candle, followed by three (or more) small bearish candles that remain within the range of the first candle. The pattern ends with another long bullish candle that closes above the close of the first long bullish candle.",
-      "interpretation": "Indicates a pause or consolidation within an uptrend before the trend resumes. The small bearish candles represent temporary profit-taking, but the bulls regain control.",
-      "indicatorCombination": "Volume should be relatively high on the first and last (long bullish) candles. During the consolidation phase (small bearish candles), lower volume is typical and confirms the pause. A MACD that remains bullish or shows a bullish crossover during consolidation can reinforce the signal."
+      "description": "Ein bullisches Fortsetzungsmuster. Es beginnt mit einer langen bullischen Kerze, gefolgt von drei (oder mehr) kleinen bärischen Kerzen, die innerhalb der Range der ersten Kerze bleiben. Das Muster endet mit einer weiteren langen bullischen Kerze, die über dem Schluss der ersten langen bullischen Kerze schließt.",
+      "interpretation": "Deutet auf eine Pause oder Konsolidierung innerhalb eines Aufwärtstrends hin, bevor der Trend wieder aufgenommen wird. Die kleinen bärischen Kerzen stellen vorübergehende Gewinnmitnahmen dar, aber die Bullen gewinnen die Kontrolle zurück.",
+      "indicatorCombination": "Volumen sollte relativ hoch sein bei der ersten und letzten (langen bullischen) Kerze. Während der Konsolidierungsphase (kleine bärische Kerzen) ist niedrigeres Volumen typisch und bestätigt die Pause. Ein MACD, der bullisch bleibt oder einen bullischen Crossover während der Konsolidierung zeigt, kann das Signal verstärken."
     },
     "separating_lines_bullish": {
       "name": "Separating Lines (Bullish)",
-      "description": "A bullish continuation pattern. 1. In an uptrend, a long bearish candle appears. 2. The next day, the market gaps up to the same opening price as the previous bearish candle and closes as a long bullish candle.",
-      "interpretation": "The bearish candle seems to suggest a reversal, but the gap up to the previous opening price and the strong bullish movement on the second day negate the bearish implication and signal a continuation of the uptrend.",
-      "indicatorCombination": "An increase in volume on the second (bullish) candle can underscore the strength of the trend continuation. The pattern is stronger when it occurs above a key moving average."
+      "description": "Ein bullisches Fortsetzungsmuster. 1. In einem Aufwärtstrend erscheint eine lange bärische Kerze. 2. Am nächsten Tag 'gapt' der Markt nach oben zum gleichen Eröffnungskurs wie die vorherige bärische Kerze und schließt als lange bullische Kerze.",
+      "interpretation": "Die bärische Kerze scheint eine Umkehr anzudeuten, aber das Gap Up zum vorherigen Eröffnungskurs und die starke bullische Bewegung am zweiten Tag negieren die bärische Implikation und signalisieren eine Fortsetzung des Aufwärtstrends.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bullischen) Kerze kann die Stärke der Trendfortsetzung unterstreichen. Das Muster ist stärker, wenn es über einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "side_by_side_white_lines_bullish": {
       "name": "Side-by-Side White Lines (Bullish)",
-      "description": "A bullish continuation pattern. 1. In an uptrend, a bullish candle forms. 2. The next day, another bullish candle gaps up and closes at about the same level as the first bullish candle. Both candles have similar sizes and opening prices (after the gap).",
-      "interpretation": "The gap up and the inability of bears to push the price down confirm the strength of the uptrend. A continuation of the bullish movement is expected.",
-      "indicatorCombination": "Volume should at least remain stable or increase on the gaps and bullish candles to confirm strength. A MACD remaining in the bullish zone supports the signal."
+      "description": "Ein bullisches Fortsetzungsmuster. 1. In einem Aufwärtstrend bildet sich eine bullische Kerze. 2. Am nächsten Tag 'gapt' eine weitere bullische Kerze nach oben und schließt auf etwa demselben Niveau wie die erste bullische Kerze. Beide Kerzen haben ähnliche Größen und Eröffnungskurse (nach dem Gap).",
+      "interpretation": "Das Gap Up und die Unfähigkeit der Bären, den Preis zu drücken, bestätigen die Stärke des Aufwärtstrends. Eine Fortsetzung der bullischen Bewegung wird erwartet.",
+      "indicatorCombination": "Volumen sollte bei den Gaps und bullischen Kerzen zumindest stabil bleiben oder steigen, um Stärke zu bestätigen. Ein MACD, der im bullischen Bereich verbleibt, unterstützt das Signal."
     },
     "upside_gap_three_methods": {
       "name": "Upside Gap Three Methods",
-      "description": "A bullish continuation pattern. 1. A long bullish candle. 2. Another long bullish candle that gaps up. 3. A small bearish candle that fills the gap between the first two candles but does not fall below the close of the first candle.",
-      "interpretation": "The initial gap shows strong bullish momentum. The bearish candle represents profit-taking or a test of the gap. As long as the gap is not fully closed and the price remains above the close of the first candle, a continuation of the uptrend is expected.",
-      "indicatorCombination": "Volume should be high on the first two bullish candles (especially the gapping candle). Lower volume is desirable on the third (corrective bearish) candle. A renewed increase on the trend continuation is positive."
+      "description": "Ein bullisches Fortsetzungsmuster. 1. Eine lange bullische Kerze. 2. Eine weitere lange bullische Kerze, die nach oben 'gapt'. 3. Eine kleine bärische Kerze, die das Gap zwischen den ersten beiden Kerzen füllt, aber nicht unter den Schluss der ersten Kerze fällt.",
+      "interpretation": "Das anfängliche Gap zeigt starkes bullisches Momentum. Die bärische Kerze stellt Gewinnmitnahmen oder einen Test des Gaps dar. Solange das Gap nicht vollständig geschlossen wird und der Preis über dem Schluss der ersten Kerze bleibt, wird eine Fortsetzung des Aufwärtstrends erwartet.",
+      "indicatorCombination": "Volumen sollte hoch sein bei den ersten beiden bullischen Kerzen (besonders der Gap-Kerze). Niedrigeres Volumen ist wünschenswert bei der dritten (korrektiven bärischen) Kerze. Ein erneuter Anstieg bei der Trendfortsetzung ist positiv."
     },
     "upside_tasuki_gap": {
       "name": "Upside Tasuki Gap",
-      "description": "A bullish continuation pattern. 1. A long bullish candle. 2. Another bullish candle that gaps up. 3. A bearish candle that opens within and closes inside the gap, but does not fully close the gap.",
-      "interpretation": "The gap represents strong bullish momentum. The third candle is an attempt by the bears to close the gap but fails. This confirms bullish strength and suggests a continuation of the uptrend.",
-      "indicatorCombination": "Volume should increase on the second candle (gap up). Lower volume on the third (bearish) candle is typical. A renewed volume increase on the trend continuation is positive."
+      "description": "Ein bullisches Fortsetzungsmuster. 1. Eine lange bullische Kerze. 2. Eine weitere bullische Kerze, die nach oben 'gapt'. 3. Eine bärische Kerze, die innerhalb des Gaps eröffnet und schließt, das Gap aber nicht vollständig schließt.",
+      "interpretation": "Das Gap repräsentiert starkes bullisches Momentum. Die dritte Kerze ist ein Versuch der Bären, das Gap zu schließen, scheitert aber. Dies bestätigt bullische Stärke und suggeriert eine Fortsetzung des Aufwärtstrends.",
+      "indicatorCombination": "Volumen sollte bei der zweiten Kerze (Gap Up) ansteigen. Niedrigeres Volumen bei der dritten (bärischen) Kerze ist typisch. Ein erneuter Volumenanstieg bei der Trendfortsetzung ist positiv."
     },
     "bullish_marubozu": {
       "name": "Bullish Marubozu",
-      "description": "A Bullish Marubozu is a long green (or white) candle with no upper or lower shadows. The opening price is the same as the low price, and the closing price is the same as the high price.",
-      "interpretation": "Shows extreme bullish strength. The buyers controlled the price from the open to the close. Can signal the beginning of a bullish trend or the continuation of an uptrend.",
-      "indicatorCombination": "High volume on a Bullish Marubozu confirms the strength and conviction of the buyers and significantly increases the reliability of the signal."
+      "description": "Ein Bullish Marubozu ist eine lange grüne (oder weiße) Kerze ohne oberen oder unteren Schatten. Der Eröffnungskurs entspricht dem Tiefstkurs und der Schlusskurs dem Höchstkurs.",
+      "interpretation": "Zeigt extreme bullische Stärke. Die Käufer kontrollierten den Preis von der Eröffnung bis zum Schluss. Kann den Beginn eines bullischen Trends oder die Fortsetzung eines Aufwärtstrends signalisieren.",
+      "indicatorCombination": "Hohes Volumen bei einem Bullish Marubozu bestätigt die Stärke und Überzeugung der Käufer und erhöht die Zuverlässigkeit des Signals deutlich."
     },
     "abandoned_baby_bearish": {
       "name": "Abandoned Baby (Bearish)",
-      "description": "A very rare but strong bearish reversal pattern. 1. A long bullish candle. 2. A Doji that gaps up above the high of the first candle, with its shadows not overlapping the shadow of the first candle. 3. A long bearish candle that gaps down below the low of the Doji, with its shadows not overlapping the shadow of the Doji.",
-      "interpretation": "The gaps on both sides of the Doji completely isolate it, signaling a dramatic reversal of market sentiment. Buyers are exhausted, and sellers take over with great force.",
-      "indicatorCombination": "An overbought condition (RSI, Stochastics) before the pattern can reinforce the bearish implication. Volume should be low on the Doji and increase significantly on the third, strong bearish candle."
+      "description": "Ein sehr seltenes, aber starkes bärisches Umkehrmuster. 1. Eine lange bullische Kerze. 2. Ein Doji, der über das Hoch der ersten Kerze 'gapt' (Gap Up), wobei sich die Schatten nicht mit dem Schatten der ersten Kerze überschneiden. 3. Eine lange bärische Kerze, die unter das Tief des Dojis 'gapt' (Gap Down), ohne dass sich die Schatten überschneiden.",
+      "interpretation": "Die Lücken auf beiden Seiten des Doji isolieren ihn vollständig, was eine dramatische Umkehr der Marktstimmung signalisiert. Käufer sind erschöpft, und Verkäufer übernehmen mit großer Kraft.",
+      "indicatorCombination": "Ein überkaufter Zustand (RSI, Stochastik) vor dem Muster kann die bärische Implikation verstärken. Volumen sollte niedrig sein am Doji und signifikant steigen bei der dritten, starken bärischen Kerze."
     },
     "advance_block": {
       "name": "Advance Block",
-      "description": "A bearish reversal pattern of three bullish candles that occurs after an uptrend. Each candle opens within the body of the previous one and closes higher, but the bodies become successively smaller and the upper shadows longer. Similar to Three White Soldiers but with signs of weakness.",
-      "interpretation": "Although the price is rising, the shrinking bodies and longer upper shadows indicate waning buying power and increasing selling pressure. A bearish reversal becomes more likely.",
-      "indicatorCombination": "Decreasing volume over the three candles can underscore the waning buying power. A bearish divergence on oscillators (RSI, MACD) would reinforce the reversal signal."
+      "description": "Ein bärisches Umkehrmuster aus drei bullischen Kerzen, das nach einem Aufwärtstrend auftritt. Jede Kerze eröffnet innerhalb des Körpers der vorherigen und schließt höher, aber die Körper werden sukzessive kleiner und die oberen Schatten länger. Ähnlich wie Three White Soldiers, aber mit Anzeichen von Schwäche.",
+      "interpretation": "Obwohl der Preis steigt, deuten die schrumpfenden Körper und längeren oberen Schatten auf nachlassende Kaufkraft und zunehmenden Verkaufsdruck hin. Eine bärische Umkehr wird wahrscheinlicher.",
+      "indicatorCombination": "Abnehmendes Volumen über die drei Kerzen kann die nachlassende Kaufkraft unterstreichen. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) würde das Umkehrsignal verstärken."
     },
     "belt_hold_bearish": {
       "name": "Belt Hold (Bearish)",
-      "description": "A single bearish candle that appears after an uptrend. It opens at its high (or very close to it) and has a long bearish body with little or no upper shadow. A small lower shadow may be present.",
-      "interpretation": "Signals a sudden takeover of control by the sellers. The strength of the pattern depends on the length of the body. It is stronger when it appears after a prolonged upward move.",
-      "indicatorCombination": "High volume on the Belt Hold candle strengthens the signal. It can occur at key resistance levels or in conjunction with a bearish divergence of a momentum oscillator."
+      "description": "Eine einzelne bärische Kerze, die nach einem Aufwärtstrend erscheint. Sie eröffnet an ihrem Hoch (oder sehr nahe daran) und hat einen langen bärischen Körper mit wenig oder keinem oberen Schatten. Ein kleiner unterer Schatten kann vorhanden sein.",
+      "interpretation": "Signalisiert eine plötzliche Übernahme der Kontrolle durch die Verkäufer. Die Stärke des Musters hängt von der Länge des Körpers ab. Es ist stärker, wenn es nach einer längeren Aufwärtsbewegung auftritt.",
+      "indicatorCombination": "Hohes Volumen an der Belt Hold Kerze stärkt das Signal. Es kann an wichtigen Widerstandsniveaus oder in Verbindung mit einer bärischen Divergenz eines Momentum-Oszillators auftreten."
     },
     "breakaway_bearish": {
       "name": "Breakaway (Bearish)",
-      "description": "A five-candle bearish reversal pattern that occurs after an uptrend. 1. A long bullish candle. 2. A bullish candle that gaps up. 3. One or two more (usually bullish) candles that continue the uptrend. 4. A long bearish candle that closes the gap between the first and second candles or extends into the body of the first candle.",
-      "interpretation": "The initial gap and continuation of the uptrend appear bullish, but the final strong bearish candle signals a sudden and powerful reversal by the sellers, negating the previous bullish momentum.",
-      "indicatorCombination": "An increase in volume on the fifth (breakout) candle is a strong confirmation sign. It can also be supported by the breaking of a short-term uptrend line."
+      "description": "Ein fünf-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Eine lange bullische Kerze. 2. Eine bullische Kerze, die 'gapt' (Gap Up). 3. Ein oder zwei weitere (meist bullische) Kerzen, die den Aufwärtstrend fortsetzen. 4. Eine lange bärische Kerze, die die Lücke zwischen der ersten und zweiten Kerze schließt oder in den Körper der ersten Kerze hineinragt.",
+      "interpretation": "Die anfängliche Lücke und Fortsetzung des Aufwärtstrends wirken bullisch, aber die finale starke bärische Kerze signalisiert eine plötzliche und kraftvolle Umkehr der Verkäufer, die das vorherige bullische Momentum negiert.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der fünften (Ausbruchs-)Kerze ist ein starkes Bestätigungszeichen. Es kann auch durch den Bruch einer kurzfristigen Aufwärtstrendlinie unterstützt werden."
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "A bearish engulfing pattern occurs after an uptrend. It consists of two candles: The first is a bullish candle, followed by a larger bearish candle whose body completely engulfs the body of the previous candle.",
-      "interpretation": "Signals that sellers have taken control from buyers and a strong bearish reversal is likely.",
-      "indicatorCombination": "A Bearish Engulfing is stronger when it occurs on high volume. Additional confirmation from an overbought RSI (>70) or a bearish divergence can increase its reliability."
+      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "interpretation": "Signalisiert, dass Verkäufer die Kontrolle von den Käufern übernommen haben und eine starke bärische Umkehr wahrscheinlich ist.",
+      "indicatorCombination": "Ein Bearish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überkauften RSI (>70) oder eine bärische Divergenz kann die Zuverlässigkeit erhöhen."
     },
     "bearish_harami": {
       "name": "Bearish Harami",
-      "description": "A Bearish Harami occurs after an uptrend. It consists of a long bullish candle followed by a small bearish candle whose body is completely contained within the body of the previous candle.",
-      "interpretation": "Signals a potential weakening of the uptrend and an impending bearish reversal. Confirmation from the next candle is important.",
-      "indicatorCombination": "A Bearish Harami in an overbought zone (RSI, Stochastics) or at a key resistance line gains significance. Look for the volume of the confirmation candle."
+      "description": "Ein Bearish Harami tritt nach einem Aufwärtstrend auf. Es besteht aus einer langen bullischen Kerze, gefolgt von einer kleinen bärischen Kerze, deren Körper vollständig im Körper der vorangegangenen Kerze enthalten ist.",
+      "interpretation": "Signalisiert eine potenzielle Abschwächung des Aufwärtstrends und eine bevorstehende bärische Umkehr. Bestätigung durch die nächste Kerze ist wichtig.",
+      "indicatorCombination": "Ein Bearish Harami in einer überkauften Zone (RSI, Stochastik) oder an einer wichtigen Widerstandslinie gewinnt an Bedeutung. Achte auf das Volumen der Bestätigungskerze."
     },
     "bearish_harami_cross": {
       "name": "Bearish Harami Cross",
-      "description": "Similar to the Bearish Harami, but the second candle is a Doji. Occurs after an uptrend. A long bullish candle followed by a Doji that is completely contained within the body of the previous candle.",
-      "interpretation": "A stronger signal for a bearish reversal than a normal Bearish Harami, as the Doji indicates greater indecision among buyers.",
-      "indicatorCombination": "Similar to the Bearish Harami, but the Doji component often makes the signal stronger, especially when accompanied by volume on the confirmation candle."
+      "description": "Ähnlich wie der Bearish Harami, aber die zweite Kerze ist ein Doji. Tritt nach einem Aufwärtstrend auf. Eine lange bullische Kerze gefolgt von einem Doji, der vollständig im Körper der vorherigen Kerze enthalten ist.",
+      "interpretation": "Ein stärkeres Signal für eine bärische Umkehr als ein normaler Bearish Harami, da der Doji größere Unentschlossenheit bei den Käufern anzeigt.",
+      "indicatorCombination": "Ähnlich wie beim Bearish Harami, aber die Doji-Komponente macht das Signal oft stärker, besonders wenn es von Volumen bei der Bestätigungskerze begleitet wird."
     },
     "bearish_kicker": {
       "name": "Bearish Kicker",
-      "description": "An extremely strong bearish reversal pattern. 1. A bullish candle (often long). 2. A bearish candle that gaps down below the low of the previous candle and closes strongly bearish. There is no overlap in the trading ranges.",
-      "interpretation": "Signals a sudden and dramatic shift in market sentiment from bullish to bearish. Often triggered by unexpected news. One of the strongest reversal signals.",
-      "indicatorCombination": "Very high volume on the second (kicker) candle confirms the strength of the signal. Due to its sudden nature, combination with prior indicator signals is less typical, but subsequent indicators should confirm the new direction."
+      "description": "Ein extrem starkes bärisches Umkehrmuster. 1. Eine bullische Kerze (oft lang). 2. Eine bärische Kerze, die unter das Tief der vorherigen Kerze 'gapt' (Gap Down) und stark bärisch schließt. Es gibt keine Überlappung der Handelsspannen.",
+      "interpretation": "Signalisiert einen plötzlichen und dramatischen Wechsel der Marktstimmung von bullisch zu bärisch. Oft ausgelöst durch unerwartete Nachrichten. Eines der stärksten Umkehrsignale.",
+      "indicatorCombination": "Sehr hohes Volumen auf der zweiten (Kicker) Kerze bestätigt die Stärke des Signals. Aufgrund der Plötzlichkeit ist die Kombination mit vorherigen Indikatorsignalen weniger typisch, aber nachfolgende Indikatoren sollten die neue Richtung bestätigen."
     },
     "dark_cloud_cover": {
       "name": "Dark Cloud Cover",
-      "description": "A Dark Cloud Cover is a two-candle bearish reversal pattern that occurs after an uptrend. The first candle is long and bullish. The second candle opens above the high of the first candle (Gap Up) but closes below the midpoint of the first candle's body.",
-      "interpretation": "Signals that sellers are coming back strong after an initial bullish momentum, pushing the price down. A bearish reversal is likely.",
-      "indicatorCombination": "An increase in volume on the second (bearish) candle reinforces the signal. The pattern is stronger when it occurs at a resistance line or in an overbought zone (RSI)."
+      "description": "Ein Dark Cloud Cover ist ein zwei-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Die erste Kerze ist lang und bullisch. Die zweite Kerze eröffnet über dem Hoch der ersten Kerze (Gap Up), schließt aber unter der Mitte des Körpers der ersten Kerze.",
+      "interpretation": "Signalisiert, dass Verkäufer nach einem anfänglichen bullischen Momentum stark zurückkommen und den Preis nach unten drücken. Eine bärische Umkehr ist wahrscheinlich.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bärischen) Kerze verstärkt das Signal. Das Muster ist stärker, wenn es an einer Widerstandslinie oder in einer überkauften Zone (RSI) auftritt."
     },
     "deliberation_stalled": {
       "name": "Deliberation / Stalled Pattern",
-      "description": "A bearish reversal pattern that occurs after an uptrend. It consists of three bullish candles. The first two are long bullish candles. The third bullish candle is small and gaps up or opens near the high of the second candle, but shows an inability to rise further.",
-      "interpretation": "Similar to the Advance Block. The waning strength of the third candle despite the gap suggests buyer exhaustion and an impending bearish reversal.",
-      "indicatorCombination": "Decreasing volume over the three candles can signal waning buying power. A bearish divergence on oscillators (RSI, MACD) would reinforce the reversal signal."
+      "description": "Ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es besteht aus drei bullischen Kerzen. Die ersten beiden sind lange bullische Kerzen. Die dritte bullische Kerze ist klein und 'gapt' nach oben oder eröffnet nahe dem Hoch der zweiten Kerze, zeigt aber Unfähigkeit, weiter zu steigen.",
+      "interpretation": "Ähnlich wie beim Advance Block. Die nachlassende Stärke der dritten Kerze trotz des Gaps deutet auf Käufererschöpfung und eine bevorstehende bärische Umkehr hin.",
+      "indicatorCombination": "Abnehmendes Volumen über die drei Kerzen kann nachlassende Kaufkraft signalisieren. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) würde das Umkehrsignal verstärken."
     },
     "evening_doji_star": {
       "name": "Evening Doji Star",
-      "description": "A more specific version of the Evening Star. 1. A long bullish candle. 2. A Doji that gaps up above the body of the first candle. 3. A long bearish candle that closes well into the body of the first candle or below it.",
-      "interpretation": "The Doji after a gap up signals strong indecision and potential buyer exhaustion. The following strong bearish candle confirms the reversal. It is considered a stronger signal than a regular Evening Star.",
-      "indicatorCombination": "Volume should be low on the Doji. A significant increase in volume on the third (bearish) candle is a strong confirmation feature. An overbought condition (RSI) before the pattern increases its significance."
+      "description": "Eine spezifischere Version des Evening Star. 1. Eine lange bullische Kerze. 2. Ein Doji, der über den Körper der ersten Kerze 'gapt' (Gap Up). 3. Eine lange bärische Kerze, die weit in den Körper der ersten Kerze oder darunter schließt.",
+      "interpretation": "Der Doji nach einem Gap Up signalisiert starke Unentschlossenheit und potenzielle Käufererschöpfung. Die folgende starke bärische Kerze bestätigt die Umkehr. Gilt als stärkeres Signal als ein normaler Evening Star.",
+      "indicatorCombination": "Volumen sollte beim Doji niedrig sein. Ein signifikanter Anstieg des Volumens bei der dritten (bärischen) Kerze ist ein starkes Bestätigungsmerkmal. Ein überkaufter Zustand (RSI) vor dem Muster erhöht die Signifikanz."
     },
     "evening_star": {
       "name": "Evening Star",
-      "description": "The Evening Star is a three-candle bearish reversal pattern that occurs after an uptrend. 1. Long bullish candle. 2. Small candle (Doji, Spinning Top, or small body) that ideally opens above the first candle (Gap Up). 3. Long bearish candle that closes well into the body of the first candle or below it.",
-      "interpretation": "Signals waning buying momentum (candle 1), indecision (candle 2), and then a strong takeover by sellers (candle 3), indicating a bearish reversal.",
-      "indicatorCombination": "Volume on the second ('star') candle is often low. An increase in volume on the third (bearish) candle is a positive sign. Can be confirmed by overbought oscillators (RSI, Stochastics)."
+      "description": "Der Evening Star ist ein dreiteiliges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Lange bullische Kerze. 2. Kleine Kerze (Doji, Spinning Top oder kleiner Körper), die idealerweise oberhalb der ersten Kerze eröffnet (Gap Up). 3. Lange bärische Kerze, die weit in den Körper der ersten Kerze oder darunter schließt.",
+      "interpretation": "Signalisiert ein nachlassendes Kaufmomentum (Kerze 1), Unentschlossenheit (Kerze 2) und dann eine starke Übernahme durch Verkäufer (Kerze 3), was auf eine bärische Trendwende hindeutet.",
+      "indicatorCombination": "Volumen bei der zweiten ('Star') Kerze ist oft niedrig. Ein Anstieg des Volumens bei der dritten (bärischen) Kerze ist ein positives Zeichen. Kann durch überkaufte Oszillatoren (RSI, Stochastik) bestätigt werden."
     },
     "gravestone_doji": {
       "name": "Gravestone Doji",
-      "description": "A Gravestone Doji forms when the open, low, and close prices are nearly identical, and there is a long upper shadow. There is no or a very small lower shadow. It typically appears after an uptrend.",
-      "interpretation": "Signals a potential bearish reversal. Buyers pushed the price up, but sellers took control and brought the price back to the day's low. It is stronger when it occurs in a resistance zone.",
-      "indicatorCombination": "High volume on the Gravestone Doji can confirm the rejection of higher prices. Its appearance in an overbought zone (RSI) or at a Fibonacci resistance level increases its significance."
+      "description": "Ein Gravestone Doji bildet sich, wenn Eröffnungs-, Tiefst- und Schlusskurs nahezu identisch sind und ein langer oberer Schatten vorhanden ist. Es gibt keinen oder einen sehr kleinen unteren Schatten. Erscheint typischerweise nach einem Aufwärtstrend.",
+      "interpretation": "Signalisiert eine potenzielle bärische Umkehr. Käufer drückten den Preis, aber Verkäufer übernahmen die Kontrolle und brachten den Preis zurück zum Tagestief. Er ist stärker, wenn er in einer Widerstandszone auftritt.",
+      "indicatorCombination": "Hohes Volumen am Gravestone Doji kann die Ablehnung höherer Preise bestätigen. Sein Auftreten in einer überkauften Zone (RSI) oder an einem Fibonacci-Widerstand erhöht die Signifikanz."
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "The Hanging Man is a bearish reversal pattern that occurs after an uptrend. It has the same shape as a Hammer (small body at the top, long lower shadow) but appears after an uptrend.",
-      "interpretation": "Although it looks bullish, its appearance after an uptrend suggests waning buying power and a potential bearish reversal, especially if the next candle closes lower.",
-      "indicatorCombination": "A Hanging Man at a key resistance level or a moving average is a stronger signal. An increase in volume on the confirmation candle supports the reversal."
+      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.",
+      "interpretation": "Obwohl er bullisch aussieht, deutet sein Erscheinen nach einem Aufwärtstrend auf nachlassende Kaufkraft und eine potenzielle bärische Umkehr hin, besonders wenn die nächste Kerze tiefer schließt.",
+      "indicatorCombination": "Ein Hanging Man an einem wichtigen Widerstand oder gleitenden Durchschnitt ist ein stärkeres Signal. Ein Volumenanstieg bei der Bestätigungskerze unterstützt die Umkehr."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "A Shooting Star is a bearish reversal pattern that occurs after an uptrend. It has a small body at the lower end of the trading range and a long upper shadow (at least twice the length of the body). Little to no lower shadow.",
-      "interpretation": "Signals that buyers pushed the price up, but sellers were strong enough to bring the price back down to near the opening price. Potential bearish reversal.",
-      "indicatorCombination": "A Shooting Star at a resistance level or in an overbought zone (RSI) is more significant. An increase in volume on the Shooting Star candle or the bearish confirmation candle increases reliability."
+      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.",
+      "interpretation": "Signalisiert, dass Käufer den Preis nach oben trieben, aber Verkäufer stark genug waren, den Preis bis nahe an den Eröffnungskurs zurückzubringen. Potenzielle bärische Umkehr.",
+      "indicatorCombination": "Ein Shooting Star an einem Widerstandslevel oder in einer überkauften Zone (RSI) ist aussagekräftiger. Ein Volumenanstieg bei der Shooting Star Kerze oder der bärischen Bestätigungskerze erhöht die Zuverlässigkeit."
     },
     "three_black_crows": {
       "name": "Three Black Crows",
-      "description": "Three Black Crows is a bearish reversal pattern that occurs after an uptrend. It consists of three consecutive long bearish candles. Each candle opens within the body of the previous candle and closes lower than the previous candle, ideally near its low.",
-      "interpretation": "Signals a strong and steady reversal of selling power and the beginning of a new downtrend.",
-      "indicatorCombination": "Ideally, volume should increase with each of the three 'crow' candles, or at least remain consistently high. The pattern is stronger when it occurs after a significant uptrend or a consolidation phase at the top and not in an already heavily overbought zone."
+      "description": "Three Black Crows ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es besteht aus drei aufeinanderfolgenden langen bärischen Kerzen. Jede Kerze eröffnet im Körper der vorherigen und schließt tiefer als die vorherige, idealerweise nahe ihrem Tief.",
+      "interpretation": "Signalisiert eine starke und stetige Umkehr der Verkaufskraft und den Beginn eines neuen Abwärtstrends.",
+      "indicatorCombination": "Das Volumen sollte idealerweise mit jeder der drei 'Krähen'-Kerzen zunehmen oder zumindest konstant hoch bleiben. Das Muster ist stärker, wenn es nach einem signifikanten Aufwärtstrend oder einer Konsolidierungsphase am Top auftritt und nicht in einer bereits stark überverkauften Zone."
     },
     "three_inside_down": {
       "name": "Three Inside Down",
-      "description": "A three-candle bearish reversal pattern that occurs after an uptrend. 1. A long bullish candle. 2. A small bearish candle (Harami) whose body is completely contained within the body of the first candle. 3. A bearish candle that closes below the close of the second candle and ideally below the low of the second candle.",
-      "interpretation": "Confirms the Bearish Harami pattern and signals a stronger probability of a bearish reversal. The third candle shows that the sellers have taken control.",
-      "indicatorCombination": "An increase in volume on the third candle strengthens the signal. The pattern is more reliable when it occurs in an overbought zone (RSI) or at a resistance level."
+      "description": "Ein drei-kerziges bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. 1. Eine lange bullische Kerze. 2. Eine kleine bärische Kerze (Harami), deren Körper vollständig im Körper der ersten Kerze enthalten ist. 3. Eine bärische Kerze, die unter dem Schluss der zweiten Kerze und idealerweise unter dem Tief der zweiten Kerze schließt.",
+      "interpretation": "Bestätigt das Bearish Harami Muster und signalisiert eine stärkere Wahrscheinlichkeit für eine bärische Umkehr. Die dritte Kerze zeigt, dass die Verkäufer die Kontrolle übernommen haben.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der dritten Kerze stärkt das Signal. Das Muster ist zuverlässiger, wenn es in einer überkauften Zone (RSI) oder an einem Widerstandslevel auftritt."
     },
     "three_outside_down": {
       "name": "Three Outside Down",
-      "description": "A three-candle bearish reversal pattern. 1. A bullish candle. 2. A bearish candle that completely engulfs the first candle (Bearish Engulfing). 3. Another bearish candle that closes below the close of the second candle.",
-      "interpretation": "A strong bearish reversal signal that confirms the Bearish Engulfing and suggests a continuation of the downward movement.",
-      "indicatorCombination": "Increasing volume on the second and third candles increases reliability. Its appearance after an overbought phase (RSI) or at a resistance line reinforces the signal."
+      "description": "Ein drei-kerziges bärisches Umkehrmuster. 1. Eine bullische Kerze. 2. Eine bärische Kerze, die die erste Kerze komplett umschließt (Bearish Engulfing). 3. Eine weitere bärische Kerze, die unter dem Schluss der zweiten Kerze schließt.",
+      "interpretation": "Ein starkes bärisches Umkehrsignal, das das Bearish Engulfing bestätigt und eine Fortsetzung der Abwärtsbewegung suggeriert.",
+      "indicatorCombination": "Steigendes Volumen bei der zweiten und dritten Kerze erhöht die Zuverlässigkeit. Sein Auftreten nach einer überkauften Phase (RSI) oder an einer Widerstandslinie verstärkt das Signal."
     },
     "tower_top": {
       "name": "Tower Top",
-      "description": "A bearish reversal pattern that occurs after an uptrend. It begins with one or more long bullish candles, followed by a phase of consolidation with small bodies (trading in a tight range). The pattern is completed by one or more long bearish candles that break out to the downside.",
-      "interpretation": "The long bullish candles show buying pressure. The consolidation phase suggests indecision and a potential top formation. The final bearish candles signal a takeover by sellers and a likely trend reversal.",
-      "indicatorCombination": "Volume is often low during the consolidation phase. A significant increase in volume on the breakout bearish candles is a strong confirmation feature. A bearish divergence in the RSI during consolidation can reinforce the signal."
+      "description": "Ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Es beginnt mit einer oder mehreren langen bullischen Kerzen, gefolgt von einer Phase der Konsolidierung mit kleinen Körpern (Handel in enger Range). Das Muster wird abgeschlossen durch eine oder mehrere lange bärische Kerzen, die nach unten ausbrechen.",
+      "interpretation": "Die langen bullischen Kerzen zeigen Kaufdruck. Die Konsolidierungsphase deutet auf Unentschlossenheit und mögliche Top-Bildung hin. Die finalen bärischen Kerzen signalisieren eine Übernahme durch Verkäufer und eine wahrscheinliche Trendwende.",
+      "indicatorCombination": "Volumen ist oft niedrig während der Konsolidierungsphase. Ein signifikanter Volumenanstieg bei den ausbrechenden bärischen Kerzen ist ein starkes Bestätigungsmerkmal. Eine bärische Divergenz im RSI während der Konsolidierung kann das Signal verstärken."
     },
     "tri_star_bearish": {
       "name": "Tri-Star (Bearish)",
-      "description": "A rare reversal pattern consisting of three Dojis. After an uptrend, the middle Doji forms with a gap higher than the two outer Dojis. All three Dojis have small trading ranges.",
-      "interpretation": "The three Dojis signal extreme indecision. The gap up of the middle Doji, followed by an inability to rise further, suggests buyer exhaustion and a potential strong bearish reversal.",
-      "indicatorCombination": "Volume is typically low on all three Dojis. An increase on a bearish confirmation candle is crucial. An overbought condition before the pattern increases the probability of a reversal."
+      "description": "Ein seltenes Umkehrmuster aus drei Dojis. Nach einem Aufwärtstrend bildet sich der mittlere Doji mit einer Lücke (Gap) nach oben zu den zwei äußeren Dojis. Alle drei Dojis haben kleine Handelsspannen.",
+      "interpretation": "Die drei Dojis signalisieren extreme Unentschlossenheit. Das Gap Up des mittleren Dojis, gefolgt von Unfähigkeit weiter zu steigen, deutet auf Käufererschöpfung und eine mögliche starke bärische Umkehr hin.",
+      "indicatorCombination": "Volumen ist typischerweise niedrig bei allen drei Dojis. Ein Anstieg bei einer bärischen Bestätigungskerze ist entscheidend. Ein überkaufter Zustand vor dem Muster erhöht die Wahrscheinlichkeit einer Umkehr."
     },
     "tweezer_tops": {
       "name": "Tweezer Tops",
-      "description": "Tweezer Tops are a bearish reversal pattern that typically occurs at the end of an uptrend. It consists of two or more candles with nearly identical highs. The first candle is often bullish, the second bearish, but the forms can vary.",
-      "interpretation": "The identical highs suggest a strong resistance zone. Buyers were unable to push the price further up, indicating a potential bearish reversal.",
-      "indicatorCombination": "A Tweezer Top at a key resistance line or a Fibonacci retracement level is more significant. A bearish divergence in the RSI or MACD can reinforce the reversal signal."
+      "description": "Tweezer Tops sind ein bärisches Umkehrmuster, das typischerweise am Ende eines Aufwärtstrends auftritt. Es besteht aus zwei oder mehr Kerzen mit nahezu identischen Höchstständen. Die erste Kerze ist oft bullisch, die zweite bärisch, aber die Formen können variieren.",
+      "interpretation": "Die identischen Hochs deuten auf eine starke Widerstandszone hin. Käufer konnten den Preis nicht weiter nach oben treiben, was auf eine potenzielle bärische Umkehr hindeutet.",
+      "indicatorCombination": "Ein Tweezer Top an einer wichtigen Widerstandslinie oder einem Fibonacci-Retracement-Level ist aussagekräftiger. Eine bärische Divergenz im RSI oder MACD kann das Umkehrsignal verstärken."
     },
     "downside_gap_three_methods": {
       "name": "Downside Gap Three Methods",
-      "description": "A bearish continuation pattern. 1. A long bearish candle. 2. Another long bearish candle that gaps down. 3. A small bullish candle that fills the gap between the first two candles but does not rise above the close of the first candle.",
-      "interpretation": "The initial gap shows strong bearish momentum. The bullish candle represents profit-taking or a test of the gap. As long as the gap is not fully closed and the price remains below the close of the first candle, a continuation of the downtrend is expected.",
-      "indicatorCombination": "Volume should be high on the first two bearish candles (especially the gapping candle). Lower volume is desirable on the third (corrective bullish) candle."
+      "description": "Ein bärisches Fortsetzungsmuster. 1. Eine lange bärische Kerze. 2. Eine weitere lange bärische Kerze, die nach unten 'gapt'. 3. Eine kleine bullische Kerze, die das Gap zwischen den ersten beiden Kerzen füllt, aber nicht über den Schluss der ersten Kerze steigt.",
+      "interpretation": "Das anfängliche Gap zeigt starkes bärisches Momentum. Die bullische Kerze stellt Gewinnmitnahmen oder einen Test des Gaps dar. Solange das Gap nicht vollständig geschlossen wird und der Preis unter dem Schluss der ersten Kerze bleibt, wird eine Fortsetzung des Abwärtstrends erwartet.",
+      "indicatorCombination": "Volumen sollte hoch sein bei den ersten beiden bärischen Kerzen (besonders der Gap-Kerze). Niedrigeres Volumen ist wünschenswert bei der dritten (korrektiven bullischen) Kerze."
     },
     "downside_tasuki_gap": {
       "name": "Downside Tasuki Gap",
-      "description": "A bearish continuation pattern. 1. A long bearish candle. 2. Another bearish candle that gaps down. 3. A bullish candle that opens within and closes inside the gap, but does not fully close the gap.",
-      "interpretation": "The gap represents strong bearish momentum. The third candle is an attempt by the bulls to close the gap but fails. This confirms bearish strength and suggests a continuation of the downtrend.",
-      "indicatorCombination": "Volume should increase on the second candle (gap down). Lower volume on the third (bullish) candle is typical."
+      "description": "Ein bärisches Fortsetzungsmuster. 1. Eine lange bärische Kerze. 2. Eine weitere bärische Kerze, die nach unten 'gapt'. 3. Eine bullische Kerze, die innerhalb des Gaps eröffnet und schließt, das Gap aber nicht vollständig schließt.",
+      "interpretation": "Das Gap repräsentiert starkes bärisches Momentum. Die dritte Kerze ist ein Versuch der Bullen, das Gap zu schließen, scheitert aber. Dies bestätigt bärische Stärke und suggeriert eine Fortsetzung des Abwärtstrends.",
+      "indicatorCombination": "Volumen sollte bei der zweiten Kerze (Gap Down) ansteigen. Niedrigeres Volumen bei der dritten (bullischen) Kerze ist typisch."
     },
     "falling_three_methods": {
       "name": "Falling Three Methods",
-      "description": "A bearish continuation pattern. It begins with a long bearish candle, followed by three (or more) small bullish candles that remain within the range of the first candle. The pattern ends with another long bearish candle that closes below the close of the first long bearish candle.",
-      "interpretation": "Indicates a pause or consolidation within a downtrend before the trend resumes. The small bullish candles represent a temporary recovery, but the bears regain control.",
-      "indicatorCombination": "Volume should be relatively high on the first and last (long bearish) candles. During the consolidation phase (small bullish candles), lower volume is typical."
+      "description": "Ein bärisches Fortsetzungsmuster. Es beginnt mit einer langen bärischen Kerze, gefolgt von drei (oder mehr) kleinen bullischen Kerzen, die innerhalb der Range der ersten Kerze bleiben. Das Muster endet mit einer weiteren langen bärischen Kerze, die unter dem Schluss der ersten langen bärischen Kerze schließt.",
+      "interpretation": "Deutet auf eine Pause oder Konsolidierung innerhalb eines Abwärtstrends hin, bevor der Trend wieder aufgenommen wird. Die kleinen bullischen Kerzen stellen eine vorübergehende Erholung dar, aber die Bären gewinnen die Kontrolle zurück.",
+      "indicatorCombination": "Volumen sollte relativ hoch sein bei der ersten und letzten (langen bärischen) Kerze. Während der Konsolidierungsphase (kleine bullische Kerzen) ist niedrigeres Volumen typisch."
     },
     "in_neck_line": {
       "name": "In Neck Line",
-      "description": "A bearish continuation pattern, similar to the On Neck Line. 1. A long bearish candle. 2. A small bullish candle that opens below the low of the first candle (Gap Down) and closes slightly into the body of the first candle, but below its midpoint.",
-      "interpretation": "Similar to On Neck, but the bulls show slightly more strength by closing into the body of the previous candle. Nevertheless, a continuation of the downtrend is usually expected if the closing price of the second candle is not significant.",
-      "indicatorCombination": "No strong volume indication, but an increase on the continuation of the downtrend would be confirming. The pattern is stronger when it occurs below a key moving average."
+      "description": "Ein bärisches Fortsetzungsmuster, ähnlich der On Neck Line. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und leicht in den Körper der ersten Kerze hineinschließt, aber unterhalb dessen Mitte.",
+      "interpretation": "Ähnlich wie On Neck, aber die Bullen zeigen etwas mehr Stärke, indem sie in den Körper der vorherigen Kerze schließen. Dennoch wird meist eine Fortsetzung des Abwärtstrends erwartet, wenn der Schlusskurs der zweiten Kerze nicht signifikant ist.",
+      "indicatorCombination": "Keine starke spezifische Volumenindikation, aber ein Anstieg bei der Fortsetzung des Abwärtstrends wäre bestätigend. Das Muster ist stärker, wenn es unter einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "on_neck_line": {
       "name": "On Neck Line",
-      "description": "A bearish continuation pattern that occurs in a downtrend. 1. A long bearish candle. 2. A small bullish candle that opens below the low of the first candle (Gap Down) and closes near the low of the first candle (the closing prices are almost the same).",
-      "interpretation": "The bulls attempt a recovery but fail to lift the price significantly above the low of the previous candle. This suggests a continuation of the downtrend.",
-      "indicatorCombination": "Similar to In Neck Line. A MACD remaining in the bearish zone or showing a bearish crossover can support the signal."
+      "description": "Ein bärisches Fortsetzungsmuster, das in einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine kleine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und nahe dem Tief der ersten Kerze schließt (die Schlusskurse sind fast gleich).",
+      "interpretation": "Die Bullen versuchen eine Erholung, scheitern aber daran, den Preis signifikant über das Tief der vorherigen Kerze zu heben. Dies suggeriert eine Fortsetzung des Abwärtstrends.",
+      "indicatorCombination": "Ähnlich wie bei In Neck Line. Ein MACD, der im bärischen Bereich verbleibt oder einen bärischen Crossover zeigt, kann das Signal unterstützen."
     },
     "separating_lines_bearish": {
       "name": "Separating Lines (Bearish)",
-      "description": "A bearish continuation pattern. 1. In a downtrend, a long bullish candle appears. 2. The next day, the market gaps down to the same opening price as the previous bullish candle and closes as a long bearish candle.",
-      "interpretation": "The bullish candle seems to suggest a reversal, but the gap down to the previous opening price and the strong bearish movement on the second day negate the bullish implication and signal a continuation of the downtrend.",
-      "indicatorCombination": "An increase in volume on the second (bearish) candle can underscore the strength of the trend continuation. The pattern is stronger when it occurs below a key moving average."
+      "description": "Ein bärisches Fortsetzungsmuster. 1. In einem Abwärtstrend erscheint eine lange bullische Kerze. 2. Am nächsten Tag 'gapt' der Markt nach unten zum gleichen Eröffnungskurs wie die vorherige bullische Kerze und schließt als lange bärische Kerze.",
+      "interpretation": "Die bullische Kerze scheint eine Umkehr anzudeuten, aber das Gap Down zum vorherigen Eröffnungskurs und die starke bärische Bewegung am zweiten Tag negieren die bullische Implikation und signalisieren eine Fortsetzung des Abwärtstrends.",
+      "indicatorCombination": "Ein Anstieg des Volumens bei der zweiten (bärischen) Kerze kann die Stärke der Trendfortsetzung unterstreichen. Das Muster ist stärker, wenn es unter einem wichtigen gleitenden Durchschnitt auftritt."
     },
     "thrusting_line": {
       "name": "Thrusting Line",
-      "description": "A pattern that occurs in a downtrend. 1. A long bearish candle. 2. A bullish candle that opens below the low of the first candle (Gap Down) and closes into the body of the first candle, but does not go past its midpoint.",
-      "interpretation": "Often considered a bearish continuation pattern because the bulls lack the strength to push the price above the midpoint of the previous bearish candle. However, if the price rises above the high of the Thrusting Line in the following days, it can be a false signal and indicate a bullish reversal.",
-      "indicatorCombination": "No strong specific volume indication. The pattern is weaker than a Piercing Line and should be treated with caution; confirmation by further bearish candles is important."
+      "description": "Ein Muster, das in einem Abwärtstrend auftritt. 1. Eine lange bärische Kerze. 2. Eine bullische Kerze, die unter dem Tief der ersten Kerze eröffnet (Gap Down) und in den Körper der ersten Kerze hineinschließt, aber nicht über dessen Mitte hinausgeht.",
+      "interpretation": "Wird oft als bärisches Fortsetzungsmuster angesehen, weil den Bullen die Kraft fehlt, den Preis über die Mitte der vorherigen bärischen Kerze zu drücken. Wenn der Preis jedoch in den folgenden Tagen über das Hoch der Thrusting Line steigt, kann es ein Fehlsignal sein und eine bullische Umkehr anzeigen.",
+      "indicatorCombination": "Keine starke spezifische Volumenindikation. Das Muster ist schwächer als eine Piercing Line und sollte mit Vorsicht behandelt werden; Bestätigung durch weitere bärische Kerzen ist wichtig."
     },
     "two_black_gapping_candles": {
       "name": "Two Black Gapping Candles",
-      "description": "A bearish continuation pattern that occurs after a significant high in an uptrend. 1. A bearish candle that gaps down from the previous (bullish) candle. 2. Another bearish candle that gaps down from the first bearish candle and closes lower.",
-      "interpretation": "The consecutive gaps down signal strong bearish momentum and a likely continuation of the downtrend. This pattern is particularly strong when it occurs after a top.",
-      "indicatorCombination": "Volume may increase on the gapping candles, confirming the bearish momentum. A break of key support levels after the pattern reinforces the signal."
+      "description": "Ein bärisches Fortsetzungsmuster, das nach einem signifikanten Hoch in einem Aufwärtstrend auftritt. 1. Eine bärische Kerze, die von der vorherigen (bullischen) Kerze nach unten 'gapt'. 2. Eine weitere bärische Kerze, die von der ersten bärischen Kerze nach unten 'gapt' und tiefer schließt.",
+      "interpretation": "Die aufeinanderfolgenden Gaps nach unten signalisieren starkes bärisches Momentum und eine wahrscheinliche Fortsetzung des Abwärtstrends. Dieses Muster ist besonders stark, wenn es nach einem Top auftritt.",
+      "indicatorCombination": "Volumen kann bei den Gap-Kerzen zunehmen, was das bärische Momentum bestätigt. Ein Bruch wichtiger Unterstützungsniveaus nach dem Muster verstärkt das Signal."
     },
     "bearish_marubozu": {
       "name": "Bearish Marubozu",
-      "description": "A Bearish Marubozu is a long red (or black) candle with no upper or lower shadows. The opening price is the same as the high price, and the closing price is the same as the low price.",
-      "interpretation": "Shows extreme bearish strength. The sellers controlled the price from the open to the close. Can signal the beginning of a bearish trend or the continuation of a downtrend.",
-      "indicatorCombination": "High volume on a Bearish Marubozu confirms the strength of the sellers. In an uptrend, it can initiate a strong reversal after an overbought phase (RSI > 70)."
+      "description": "Ein Bearish Marubozu ist eine lange rote (oder schwarze) Kerze ohne oberen oder unteren Schatten. Der Eröffnungskurs entspricht dem Höchstkurs und der Schlusskurs dem Tiefstkurs.",
+      "interpretation": "Zeigt extreme bärische Stärke. Die Verkäufer kontrollierten den Preis von der Eröffnung bis zum Schluss. Kann den Beginn eines bärischen Trends oder die Fortsetzung eines Abwärtstrends signalisieren.",
+      "indicatorCombination": "Hohes Volumen bei einem Bearish Marubozu bestätigt die Stärke der Verkäufer. In einem Aufwärtstrend kann es nach einer überkauften Phase (RSI > 70) eine starke Umkehr einleiten."
     },
     "retracing_wicks": {
       "name": "Retracing Wicks",
-      "description": "After an uptrend, two or more candles form long upper wicks at a similar price level (resistance). The second wick candle already closes bearish, signaling the beginning of the trend change. A strong red follow-up candle confirms the reversal.",
-      "interpretation": "The long wicks show repeated rejection of higher prices. The color change to a red candle on the second test is the crucial signal that sellers are gaining the upper hand. The subsequent red candle confirms the new downward momentum.",
-      "indicatorCombination": "The signal is stronger if the wick candles occur on high volume. A bearish divergence on oscillators (RSI, MACD) increases the significance."
+      "description": "Nach einem Aufwärtstrend bilden zwei oder mehr Kerzen lange obere Dochte auf ähnlichem Preisniveau (Widerstand). Die zweite Docht-Kerze schließt bereits bärisch und signalisiert den Beginn des Trendwechsels. Eine starke rote Folgekerze bestätigt die Umkehr.",
+      "interpretation": "Die langen Dochte zeigen die wiederholte Ablehnung höherer Preise. Der Farbwechsel zu einer roten Kerze beim zweiten Test ist das entscheidende Signal, dass die Verkäufer die Oberhand gewinnen. Die nachfolgende rote Kerze bestätigt das neue Abwärtsmomentum.",
+      "indicatorCombination": "Das Signal ist stärker, wenn die Docht-Kerzen bei hohem Volumen auftreten. Eine bärische Divergenz bei Oszillatoren (RSI, MACD) erhöht die Signifikanz."
     },
     "advancing_wicks": {
       "name": "Advancing Wicks",
-      "description": "After a downtrend, two or more candles form long lower wicks at a similar price level (support). The second wick candle already closes bullish, signaling the beginning of the trend change. A strong green follow-up candle confirms the reversal.",
-      "interpretation": "The long wicks show repeated rejection of lower prices. The color change to a green candle on the second test is the crucial signal that buyers are gaining the upper hand. The subsequent green candle confirms the new upward momentum.",
-      "indicatorCombination": "The signal is reinforced by high volume on the wick candles and the bullish confirmation candle. A bullish divergence in the RSI or MACD makes a successful reversal more likely."
+      "description": "Nach einem Abwärtstrend bilden zwei oder mehr Kerzen lange untere Dochte auf ähnlichem Preisniveau (Unterstützung). Die zweite Docht-Kerze schließt bereits bullisch und signalisiert den Beginn des Trendwechsels. Eine starke grüne Folgekerze bestätigt die Umkehr.",
+      "interpretation": "Die langen Dochte zeigen die wiederholte Ablehnung tieferer Preise. Der Farbwechsel zu einer grünen Kerze beim zweiten Test ist das entscheidende Signal, dass die Käufer die Oberhand gewinnen. Die nachfolgende grüne Kerze bestätigt das neue Aufwärtsmomentum.",
+      "indicatorCombination": "Das Signal wird verstärkt durch hohes Volumen bei den Docht-Kerzen und der bullischen Bestätigungskerze. Eine bullische Divergenz im RSI oder MACD macht eine erfolgreiche Umkehr wahrscheinlicher."
     },
     "title": "Candlestick Akademie"
   },
@@ -1706,15 +1706,15 @@
     "title": "Chartmuster Akademie"
   },
   "tradeErrors": {
-    "positionNotFound": "Position not found: {symbol} {side}"
+    "positionNotFound": "Position nicht gefunden: {symbol} {side}"
   },
   "workerErrors": {
-    "eventError": "Worker Error Event",
-    "notAvailable": "Worker not available",
-    "timeout": "Worker Timeout"
+    "eventError": "Worker Fehler Event",
+    "notAvailable": "Worker nicht verfügbar",
+    "timeout": "Worker Zeitüberschreitung"
   },
   "markdownErrors": {
-    "fileNotFound": "Markdown file not found: {path}"
+    "fileNotFound": "Markdown Datei nicht gefunden: {path}"
   },
   "academy": {
     "title": "Trading Akademie"
@@ -1736,5 +1736,13 @@
   },
   "windows": {
     "smash": "Fenster zerschlagen"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
+    "connectButton": "Verbinden",
+    "noMessages": "Noch keine Nachrichten.",
+    "sendButton": "Senden",
+    "placeholder": "Sag Hallo..."
   }
 }

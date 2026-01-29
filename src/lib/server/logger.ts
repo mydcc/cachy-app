@@ -42,10 +42,21 @@ class ServerLogger extends EventEmitter {
     "auth",
   ];
 
+  private sensitiveRegex: RegExp;
+
   private constructor() {
     super();
     // Erhöhe das Limit für Listener, da viele Clients verbunden sein könnten
     this.setMaxListeners(100);
+
+    // Initialisiere Regex basierend auf sensitiveKeys
+    const joinedKeys = this.sensitiveKeys
+      .map((k) => k.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"))
+      .join("|");
+    this.sensitiveRegex = new RegExp(
+      `(\\b[\\w-]*?(?:${joinedKeys})[\\w-]*?\\b\\s*[:=]\\s*)(["']?)([^"'\\s&,;]+)(\\2)`,
+      "gi",
+    );
   }
 
   public static getInstance(): ServerLogger {
@@ -67,10 +78,8 @@ class ServerLogger extends EventEmitter {
         const parsed = JSON.parse(data);
         return JSON.stringify(this.sanitize(parsed));
       } catch {
-        // Einfacher String: Regex replacement könnte hier komplex sein,
-        // daher lassen wir einfache Strings meist durch, es sei denn sie enthalten offensichtliche Secrets
-        // TODO: Erweiterte String-Erkennung bei Bedarf
-        return data;
+        // Einfacher String: Sensible Daten maskieren
+        return this.sanitizeString(data);
       }
     }
 
@@ -99,6 +108,10 @@ class ServerLogger extends EventEmitter {
     }
 
     return data;
+  }
+
+  private sanitizeString(str: string): string {
+    return str.replace(this.sensitiveRegex, "$1$2***REDACTED***$4");
   }
 
   private emitLog(level: LogLevel, message: string, data?: any) {

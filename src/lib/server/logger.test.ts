@@ -15,7 +15,7 @@ describe('ServerLogger', () => {
   it('should sanitize sensitive keys in objects', async () => {
     const sensitiveData = {
       user: 'alice',
-      password: 'supersecretpassword', // i18n-ignore
+      password: 'supersecretpassword',
       apiKey: '12345-abcde',
       meta: {
         apiSecret: 'secret-key'

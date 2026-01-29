@@ -134,7 +134,8 @@ class MarketAnalystService {
                 if (!klines || klines.length < 20) return Promise.resolve(null);
 
                 // Clone settings to safely inject required dashboard indicators
-                const settings = JSON.parse(JSON.stringify(indicatorState.toJSON()));
+                // Optimization: indicatorState.toJSON() already returns a fresh snapshot, so no deep clone needed
+                const settings = indicatorState.toJSON() as any;
 
                 // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
                 // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting

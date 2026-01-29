@@ -298,7 +298,8 @@ class ActiveTechnicalsManager {
 
             if (result) {
                 // Anti-Flicker: Check if content actually changed
-                const currentTechnicals = marketData.technicals;
+                // Access technicals for this specific timeframe
+                const currentTechnicals = marketData.technicals?.[timeframe];
 
                 if (currentTechnicals && this.isTechnicalsEqual(currentTechnicals, result)) {
                     // Skip update if data is effectively identical
@@ -310,7 +311,8 @@ class ActiveTechnicalsManager {
 
                 // 5. Update State (Orchestrated via RAF)
                 scheduler.schedule(() => {
-                    marketState.updateSymbol(symbol, { technicals: result });
+                    // Update specific timeframe slot
+                    marketState.updateSymbol(symbol, { technicals: { [timeframe]: result } });
                 });
             }
 
