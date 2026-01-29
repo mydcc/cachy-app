@@ -266,22 +266,22 @@ A good general information heirarchy you should should use in Markdown reports a
 - KISS
 - Epistemic humility 👈️
 
-## **18. Theming und Kontrast-Sicherheit (System Hardening)**
+## **18. Theming and Contrast Safety (System Hardening)**
 
-Um die Barrierefreiheit und Lesbarkeit über alle 20+ Themes hinweg zu garantieren, gelten folgende Regeln für UI-Komponenten:
+To guarantee accessibility and readability across all 20+ themes, the following rules apply to UI components:
 
-- **Verbot von hardcodeten Textfarben auf dynamischen Hintergründen:**
-  - Code wie `class="bg-[var(--accent-color)] text-white"` ist **VERBOTEN**, da er in Themes mit hellem Accent (z.B. VIP, Solarized Light) zu unlesbarem Text führt.
+- **Prohibition of hardcoded text colors on dynamic backgrounds:**
+  - Code such as `class="bg-[var(--accent-color)] text-white"` is **FORBIDDEN**, as it leads to unreadable text in themes with light accents (e.g., VIP, Solarized Light).
 
-- **Nutzung von "Paired Utility Classes":**
-  - Statt Hintergrund und Text getrennt zu definieren, **MÜSSEN** die gepaarten Klassen aus `themes.css` verwendet werden, die in jedem Theme korrekt aufeinander abgestimmt sind.
-  - **Standard:** `.bg-accent-paired` (setzt Hintergrund auf Accent und Text auf die passende Kontrastfarbe).
-  - **Erfolg/Fehler:** `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`.
-  - **Hover:** `.hover-bg-accent-paired` (für simple Hover-Effekte).
+- **Use of "Paired Utility Classes":**
+  - Instead of defining background and text separately, you **MUST** use the paired classes from `themes.css`, which are correctly coordinated in every theme.
+  - **Standard:** `.bg-accent-paired` (sets background to accent and text to the appropriate contrast color).
+  - **Success/Error:** `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`.
+  - **Hover:** `.hover-bg-accent-paired` (for simple hover effects).
 
-- **Beispiel (Svelte):**
-  - **FALSCH:** `class="bg-[var(--accent-color)] text-white"`
-  - **KORREKT:** `class="bg-accent-paired"`
+- **Example (Svelte):**
+  - **WRONG:** `class="bg-[var(--accent-color)] text-white"`
+  - **CORRECT:** `class="bg-accent-paired"`
 
-- **Neue Themes:**
-  - Jedes neue Theme in `themes.css` **MUSS** zwingend die Variablen `--text-on-accent`, `--text-on-success` und `--text-on-danger` definieren.
+- **New Themes:**
+  - Every new theme in `themes.css` **MUST** mandatorily define the variables `--text-on-accent`, `--text-on-success`, and `--text-on-danger`.
