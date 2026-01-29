@@ -358,8 +358,9 @@
     ? 'cursor-pointer hover:border-[var(--accent-color)] active:opacity-90'
     : ''}"
   onclick={loadToCalculator}
-  onkeydown={(e) => e.key === "Enter" && loadToCalculator()}
+  onkeydown={(e) => (e.key === "Enter" || e.key === " ") && loadToCalculator()}
   role={isFavoriteTile ? "button" : "region"}
+  aria-label={isFavoriteTile ? `Load ${displaySymbol} to calculator` : `Market Overview for ${displaySymbol}`}
   tabindex={isFavoriteTile ? 0 : -1}
   use:viewport={symbol}
   use:burn={settingsState.burnMarketOverviewTiles &&

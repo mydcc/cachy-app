@@ -74,6 +74,11 @@ function mapToOMSPosition(data: any): OMSPosition {
 }
 
 function mapToOMSOrder(data: any): OMSOrder {
+  // Hardening: Detect numeric IDs which imply precision loss
+  if (typeof data.orderId === 'number') {
+      logger.warn("network", `[BitunixWS] CRITICAL: orderId is number! Precision loss imminent: ${data.orderId}`);
+  }
+
   const statusMap: Record<string, OMSOrderStatus> = {
     NEW: "pending",
     PARTIALLY_FILLED: "pending",
@@ -155,6 +160,7 @@ class BitunixWebSocketService {
   private lastValidationErrorTime = 0;
   private readonly MAX_VALIDATION_ERRORS = 5;
   private readonly VALIDATION_ERROR_WINDOW = 10000;
+  private lastNumericWarning = 0; // Throttle for numeric precision warnings
 
   private readonly MAX_PUBLIC_SUBSCRIPTIONS = 50;
 
@@ -769,12 +775,14 @@ class BitunixWebSocketService {
 
           if (message.ch === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
-              // HARDENING: Check for native numbers in critical fields (Dev Mode only)
+              // HARDENING: Check for native numbers in critical fields
               // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
-              if (import.meta.env.DEV) {
-                if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
-                   console.warn(`[BitunixWS] CRITICAL: Received numeric price for ${symbol}. Precision loss likely!`, data);
-                }
+              if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                 const now = Date.now();
+                 if (now - this.lastNumericWarning > 60000) {
+                     logger.warn("network", `[BitunixWS] CRITICAL: Received numeric price for ${symbol}. Precision loss likely!`);
+                     this.lastNumericWarning = now;
+                 }
               }
 
               const normalized = mdaService.normalizeTicker(message, "bitunix");
