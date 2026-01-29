@@ -1308,7 +1308,7 @@
 
   /* Action UI */
   .action-confirmation-block {
-    background: var(--bg-color-secondary);
+    background: var(--bg-secondary);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 8px;
