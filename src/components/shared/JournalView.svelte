@@ -587,11 +587,12 @@
 
   <!-- Statistics at previous position removed - now in header -->
 
+  <!-- Journal Table Section -->
   <div
-    class="border border-[var(--border-color)] rounded-lg overflow-hidden relative bg-[var(--bg-primary)] mb-8"
+    class="glass-panel border border-[var(--border-color)] rounded-xl bg-[var(--bg-primary)] mb-12 relative min-h-[400px]"
   >
     <JournalTable
-      trades={sortedTrades}
+      trades={sortedTrades || []}
       bind:sortField
       bind:sortDirection
       bind:currentPage

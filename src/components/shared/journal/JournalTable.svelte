@@ -41,13 +41,34 @@
         onUploadScreenshot,
     }: Props = $props();
 
+    // Derived visibility merged with defaults to ensure columns show even if state is incomplete
+    let visibility = $derived({
+        date: columnVisibility?.date ?? true,
+        symbol: columnVisibility?.symbol ?? true,
+        type: columnVisibility?.type ?? true,
+        entry: columnVisibility?.entry ?? true,
+        exit: columnVisibility?.exit ?? true,
+        atr: columnVisibility?.atr ?? true,
+        sl: columnVisibility?.sl ?? true,
+        size: columnVisibility?.size ?? true,
+        pnl: columnVisibility?.pnl ?? true,
+        funding: columnVisibility?.funding ?? true,
+        rr: columnVisibility?.rr ?? true,
+        mae: columnVisibility?.mae ?? true,
+        mfe: columnVisibility?.mfe ?? true,
+        efficiency: columnVisibility?.efficiency ?? true,
+        duration: columnVisibility?.duration ?? true,
+        status: columnVisibility?.status ?? true,
+        screenshot: columnVisibility?.screenshot ?? true,
+        tags: columnVisibility?.tags ?? true,
+        notes: columnVisibility?.notes ?? true,
+        action: columnVisibility?.action ?? true,
+    });
+
     // Debug logging to verify data reception
     $effect(() => {
         // console.log("JournalTable trades received:", trades?.length);
     });
-
-    // Ensure safe default if undefined passed
-    itemsPerPage = itemsPerPage || 10;
 
     // Local sort state for internal tables (shared across all groups)
     let internalSortField = $state("date");
@@ -87,18 +108,22 @@
         });
     }
 
-    // Pagination for Main Table
-    let totalPages = $derived(Math.ceil(trades.length / Number(itemsPerPage)));
+    // Pagination for Main Table with safe fallbacks
+    let safeItemsPerPage = $derived(Math.max(1, Number(itemsPerPage || 10)));
+    let totalPages = $derived(
+        Math.ceil((trades?.length || 0) / safeItemsPerPage),
+    );
     let safeCurrentPage = $derived(
-        Math.min(Math.max(1, currentPage), Math.max(1, totalPages)),
+        Math.min(Math.max(1, currentPage || 1), Math.max(1, totalPages || 1)) ||
+            1,
     );
 
-    let paginatedMainTrades = $derived(
-        trades.slice(
-            (safeCurrentPage - 1) * Number(itemsPerPage),
-            safeCurrentPage * Number(itemsPerPage),
-        ),
-    );
+    let paginatedMainTrades = $derived.by(() => {
+        const list = trades || [];
+        const start = (safeCurrentPage - 1) * safeItemsPerPage;
+        const end = safeCurrentPage * safeItemsPerPage;
+        return list.slice(Math.max(0, start), Math.min(list.length, end));
+    });
 
     function handleMainSort(field: string) {
         onSort?.(field);
@@ -207,7 +232,7 @@
                         {#if groupBySymbol && !isNested}
                             <th class="w-8"></th>
                         {/if}
-                        {#if columnVisibility.date && (!groupBySymbol || isNested)}
+                        {#if visibility.date && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -225,7 +250,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.symbol}
+                        {#if visibility.symbol}
                             <th
                                 onclick={() =>
                                     isNested
@@ -243,7 +268,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.type && (!groupBySymbol || isNested)}
+                        {#if visibility.type && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -261,7 +286,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.entry && (!groupBySymbol || isNested)}
+                        {#if visibility.entry && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -279,7 +304,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.exit && (!groupBySymbol || isNested)}
+                        {#if visibility.exit && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -297,7 +322,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.atr && (!groupBySymbol || isNested)}
+                        {#if visibility.atr && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -315,7 +340,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.sl && (!groupBySymbol || isNested)}
+                        {#if visibility.sl && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -333,7 +358,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.size && (!groupBySymbol || isNested)}
+                        {#if visibility.size && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -351,7 +376,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.pnl}
+                        {#if visibility.pnl}
                             <th
                                 onclick={() =>
                                     isNested
@@ -369,7 +394,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.funding && (!groupBySymbol || isNested)}
+                        {#if visibility.funding && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -387,7 +412,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.rr}
+                        {#if visibility.rr}
                             <th
                                 onclick={() =>
                                     isNested
@@ -405,7 +430,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.mae && (!groupBySymbol || isNested)}
+                        {#if visibility.mae && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -423,7 +448,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.mfe && (!groupBySymbol || isNested)}
+                        {#if visibility.mfe && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -441,7 +466,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.efficiency && (!groupBySymbol || isNested)}
+                        {#if visibility.efficiency && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -459,7 +484,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.duration && (!groupBySymbol || isNested)}
+                        {#if visibility.duration && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -477,7 +502,7 @@
                                 >
                             </th>
                         {/if}
-                        {#if columnVisibility.status && (!groupBySymbol || isNested)}
+                        {#if visibility.status && (!groupBySymbol || isNested)}
                             <th
                                 onclick={() =>
                                     isNested
@@ -488,17 +513,17 @@
                                 {$_("journal.table.status")}
                             </th>
                         {/if}
-                        {#if columnVisibility.screenshot && (!groupBySymbol || isNested)}
+                        {#if visibility.screenshot && (!groupBySymbol || isNested)}
                             <th>{$_("journal.table.screenshot")}</th>
                         {/if}
-                        {#if columnVisibility.tags && (!groupBySymbol || isNested)}
+                        {#if visibility.tags && (!groupBySymbol || isNested)}
                             <th>{$_("journal.table.tags")}</th>
                         {/if}
-                        {#if columnVisibility.notes && (!groupBySymbol || isNested)}<th
+                        {#if visibility.notes && (!groupBySymbol || isNested)}<th
                             >
                                 {$_("journal.table.notes")}</th
                             >{/if}
-                        {#if columnVisibility.action && (!groupBySymbol || isNested)}<th
+                        {#if visibility.action && (!groupBySymbol || isNested)}<th
                             >
                                 {$_("journal.table.action")}</th
                             >{/if}
@@ -532,12 +557,12 @@
                                         >
                                     </td>
                                 {/if}
-                                {#if columnVisibility.symbol}
+                                {#if visibility.symbol}
                                     <td class="font-bold col-symbol"
                                         >{item.symbol} ({item.totalTrades})</td
                                     >
                                 {/if}
-                                {#if columnVisibility.pnl}
+                                {#if visibility.pnl}
                                     <td
                                         class="font-bold {getProfitClass(
                                             item.totalProfitLoss,
@@ -549,7 +574,7 @@
                                         )}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.rr}
+                                {#if visibility.rr}
                                     <td>
                                         {(
                                             (item.wonTrades /
@@ -579,7 +604,7 @@
                             <!-- TRADE ROW -->
                             <tr class="trade-row">
                                 {#if groupBySymbol && !isNested}<td></td>{/if}
-                                {#if columnVisibility.date}
+                                {#if visibility.date}
                                     <td
                                         class="text-xs text-[var(--text-secondary)] col-date"
                                     >
@@ -595,12 +620,12 @@
                                         )}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.symbol}
+                                {#if visibility.symbol}
                                     <td class="font-medium col-symbol"
                                         >{item.symbol}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.type}
+                                {#if visibility.type}
                                     <td
                                         class="text-xs uppercase font-bold {item.tradeType ===
                                         'long'
@@ -610,7 +635,7 @@
                                         {item.tradeType}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.entry}
+                                {#if visibility.entry}
                                     <td
                                         >{formatDynamicDecimal(
                                             item.entryPrice,
@@ -618,7 +643,7 @@
                                         )}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.exit}
+                                {#if visibility.exit}
                                     <td
                                         >{item.exitPrice &&
                                         !item.exitPrice.isZero()
@@ -629,7 +654,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.atr}
+                                {#if visibility.atr}
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
                                         >{item.atrValue !== undefined &&
@@ -641,7 +666,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.sl}
+                                {#if visibility.sl}
                                     <td class="text-danger"
                                         >{item.stopLossPrice &&
                                         !item.stopLossPrice.isZero()
@@ -652,7 +677,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.size}
+                                {#if visibility.size}
                                     <td class="text-xs"
                                         >{item.positionSize
                                             ? formatDynamicDecimal(
@@ -662,7 +687,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.pnl}
+                                {#if visibility.pnl}
                                     <td
                                         class="font-bold {getProfitClass(
                                             item.totalNetProfit,
@@ -671,7 +696,7 @@
                                         {item.totalNetProfit.toFixed(2)}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.funding}
+                                {#if visibility.funding}
                                     <td
                                         class="text-xs text-[var(--text-secondary)]"
                                     >
@@ -684,7 +709,7 @@
                                             : "-"}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.rr}
+                                {#if visibility.rr}
                                     <td
                                         class="font-bold {item.totalRR?.gt(2)
                                             ? 'text-success'
@@ -701,7 +726,7 @@
                                             : "-"}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.mae}
+                                {#if visibility.mae}
                                     <td class="text-xs text-danger"
                                         >{item.mae !== undefined &&
                                         item.mae !== null
@@ -709,7 +734,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.mfe}
+                                {#if visibility.mfe}
                                     <td class="text-xs text-success"
                                         >{item.mfe !== undefined &&
                                         item.mfe !== null
@@ -717,7 +742,7 @@
                                             : "-"}</td
                                     >
                                 {/if}
-                                {#if columnVisibility.efficiency}
+                                {#if visibility.efficiency}
                                     <td class="text-xs">
                                         {item.efficiency !== undefined &&
                                         item.efficiency !== null
@@ -727,7 +752,7 @@
                                             : "-"}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.duration}
+                                {#if visibility.duration}
                                     <td class="text-xs col-duration">
                                         {(() => {
                                             const start = new Date(
@@ -746,7 +771,7 @@
                                         })()}
                                     </td>
                                 {/if}
-                                {#if columnVisibility.status}
+                                {#if visibility.status}
                                     <td>
                                         <select
                                             value={item.status}
@@ -783,7 +808,7 @@
                                     </td>
                                 {/if}
 
-                                {#if columnVisibility.screenshot}
+                                {#if visibility.screenshot}
                                     <td class="screenshot-cell">
                                         <div class="flex items-center gap-2">
                                             {#if item.screenshot}
@@ -858,7 +883,7 @@
                                     </td>
                                 {/if}
 
-                                {#if columnVisibility.tags}
+                                {#if visibility.tags}
                                     <td class="tags-cell">
                                         <div
                                             class="flex flex-wrap gap-1 items-center"
@@ -912,7 +937,7 @@
                                         </div>
                                     </td>
                                 {/if}
-                                {#if columnVisibility.notes}
+                                {#if visibility.notes}
                                     <td class="notes-cell">
                                         <input
                                             type="text"
@@ -927,7 +952,7 @@
                                         />
                                     </td>
                                 {/if}
-                                {#if columnVisibility.action}
+                                {#if visibility.action}
                                     <td class="action-cell">
                                         <div class="flex items-center gap-2">
                                             <button
@@ -998,6 +1023,7 @@
 <style>
     .journal-table-container {
         width: 100%;
+        min-height: 200px;
     }
 
     .table-wrapper {

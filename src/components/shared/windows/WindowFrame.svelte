@@ -78,13 +78,62 @@
     style:height="{win.height}px"
     style:z-index={win.zIndex}
     onpointerdown={handlePointerDown}
-    use:burn={{ layer: "windows", intensity: win.isFocused ? 1.5 : 0.6 }}
+    use:burn={win.enableBurningBorders
+        ? {
+              layer: "windows",
+              intensity: (win.isFocused ? 1.5 : 0.6) * win.burnIntensity,
+          }
+        : undefined}
 >
     <div class="window-header" onpointerdown={startDrag}>
         <div class="header-content">
+            {#if win.showCachyIcon}
+                <div class="cachy-logo">
+                    <svg
+                        viewBox="0 0 24 24"
+                        width="18"
+                        height="18"
+                        fill="var(--accent-color)"
+                    >
+                        <path
+                            d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
+                        />
+                    </svg>
+                </div>
+            {/if}
             <span class="window-title">{win.title}</span>
         </div>
+
         <div class="window-controls">
+            {#if win.allowZoom}
+                <div class="control-group">
+                    <button onclick={() => win.zoomOut()} class="tool-btn"
+                        >－</button
+                    >
+                    <span class="zoom-text"
+                        >{Math.round(win.zoomLevel * 100)}%</span
+                    >
+                    <button onclick={() => win.zoomIn()} class="tool-btn"
+                        >＋</button
+                    >
+                </div>
+            {/if}
+
+            {#if win.allowFontSize}
+                <div class="control-group">
+                    <button
+                        onclick={() => win.setFontSize(win.fontSize - 1)}
+                        class="tool-btn">A-</button
+                    >
+                    <button
+                        onclick={() => win.setFontSize(win.fontSize + 1)}
+                        class="tool-btn">A+</button
+                    >
+                </div>
+            {/if}
+
+            <div class="divider"></div>
+
             <button
                 onclick={() => windowManager.close(win.id)}
                 class="close-btn"
@@ -95,8 +144,16 @@
         </div>
     </div>
 
-    <div class="window-content">
-        <win.component window={win} />
+    <div class="window-content" style:font-size="{win.fontSize}px">
+        <div
+            class="content-wrapper"
+            style:transform="scale({win.zoomLevel})"
+            style:transform-origin="top left"
+            style:width="{100 / win.zoomLevel}%"
+            style:height="{100 / win.zoomLevel}%"
+        >
+            <win.component window={win} />
+        </div>
     </div>
 
     <div class="resize-handle" onpointerdown={startResize}></div>
@@ -168,6 +225,55 @@
     .window-controls {
         display: flex;
         gap: 4px;
+    }
+    .content-wrapper {
+        position: absolute;
+        top: 0;
+        left: 0;
+    }
+    .cachy-logo {
+        display: flex;
+        align-items: center;
+        padding-right: 4px;
+    }
+    .control-group {
+        display: flex;
+        align-items: center;
+        background: rgba(255, 255, 255, 0.05);
+        border-radius: 6px;
+        padding: 2px;
+        margin-right: 4px;
+        gap: 2px;
+    }
+    .tool-btn {
+        background: none;
+        border: none;
+        color: var(--text-secondary);
+        cursor: pointer;
+        font-size: 0.75rem;
+        width: 20px;
+        height: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 4px;
+        transition: all 0.2s;
+    }
+    .tool-btn:hover {
+        background: rgba(255, 255, 255, 0.1);
+        color: var(--text-primary);
+    }
+    .zoom-text {
+        font-size: 0.7rem;
+        min-width: 35px;
+        text-align: center;
+        color: var(--text-secondary);
+    }
+    .divider {
+        width: 1px;
+        height: 16px;
+        background: rgba(255, 255, 255, 0.1);
+        margin: 0 4px;
     }
     .close-btn {
         background: none;
