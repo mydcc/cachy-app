@@ -18,6 +18,7 @@
 
 import { describe, it, expect } from "vitest";
 import { calculateAnalysisMetrics } from "./marketAnalyst";
+import { Decimal } from "decimal.js";
 
 // Helper to mock the complex structure expected by calculateAnalysisMetrics
 function createTechMap(ema200?: number, rsi?: number) {

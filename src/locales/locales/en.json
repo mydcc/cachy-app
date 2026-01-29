@@ -207,7 +207,8 @@
     "takeProfitTargets": {
       "header": "Take-Profit Targets (Partial)",
       "tooltip": "Here you see calculated metrics for each partial take-profit target.",
-      "addTargetTitle": "Add another target"
+      "addTargetTitle": "Add another target",
+      "emptyState": "No targets defined. Add a target above."
     },
     "summaryResults": {
       "header": "Summary",
@@ -999,14 +1000,6 @@
       "planFree": "Free",
       "planPro": "Pro"
     },
-    "cloud": {
-      "title": "Community Cloud (Beta)",
-      "description": "Connect to SpacetimeDB to chat with other traders.",
-      "connectButton": "Connect to Local Cloud",
-      "noMessages": "No messages yet.",
-      "sendButton": "Send",
-      "placeholder": "Say hello..."
-    },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
       "addFeed": "Add Feed",
@@ -1729,6 +1722,14 @@
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
     "known": "I knew it"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Connect to SpacetimeDB to chat with other traders.",
+    "connectButton": "Connect to Local Cloud",
+    "noMessages": "No messages yet.",
+    "sendButton": "Send",
+    "placeholder": "Say hello..."
   },
   "windows": {
     "smash": "Smash Window"

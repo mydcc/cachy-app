@@ -899,14 +899,6 @@
       "planFree": "Kostenlos",
       "planPro": "Pro"
     },
-    "cloud": {
-      "title": "Community Cloud (Beta)",
-      "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
-      "connectButton": "Verbinden",
-      "noMessages": "Noch keine Nachrichten.",
-      "sendButton": "Senden",
-      "placeholder": "Sag Hallo..."
-    },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
       "chartTitle": "Chart & Daten"
@@ -1733,6 +1725,14 @@
     "clickToReveal": "Klicken zum Aufdecken",
     "practice": "Noch üben",
     "known": "Gewusst"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
+    "connectButton": "Verbinden",
+    "noMessages": "Noch keine Nachrichten.",
+    "sendButton": "Senden",
+    "placeholder": "Sag Hallo..."
   },
   "windows": {
     "smash": "Fenster zerschlagen"
