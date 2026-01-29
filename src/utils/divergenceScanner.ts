@@ -91,6 +91,9 @@ export class DivergenceScanner {
     const lowPivots = indPivots.filter((p) => p.type === "Low");
     for (let i = lowPivots.length - 1; i > 0; i--) {
       const p2 = lowPivots[i];
+      let bestRegular: DivergenceResult | null = null;
+      let bestHidden: DivergenceResult | null = null;
+
       // Look for p1 within range
       for (let j = i - 1; j >= 0; j--) {
         const p1 = lowPivots[j];
@@ -120,7 +123,8 @@ export class DivergenceScanner {
 
         // Regular Bullish: Price Lower Low, Indicator Higher Low
         if (priceLow2 < priceLow1 && indLow2 > indLow1) {
-          results.push({
+          // Keep the widest (furthest p1) by overwriting
+          bestRegular = {
             indicator: indicatorName,
             type: "Regular",
             side: "Bullish",
@@ -130,12 +134,12 @@ export class DivergenceScanner {
             priceEnd: new Decimal(priceLow2),
             indStart: new Decimal(indLow1),
             indEnd: new Decimal(indLow2),
-          });
+          };
         }
 
         // Hidden Bullish: Price Higher Low, Indicator Lower Low
         if (priceLow2 > priceLow1 && indLow2 < indLow1) {
-          results.push({
+          bestHidden = {
             indicator: indicatorName,
             type: "Hidden",
             side: "Bullish",
@@ -145,15 +149,21 @@ export class DivergenceScanner {
             priceEnd: new Decimal(priceLow2),
             indStart: new Decimal(indLow1),
             indEnd: new Decimal(indLow2),
-          });
+          };
         }
       }
+
+      if (bestRegular) results.push(bestRegular);
+      if (bestHidden) results.push(bestHidden);
     }
 
     // --- Bearish Divergences (Compare Highs) ---
     const highPivots = indPivots.filter((p) => p.type === "High");
     for (let i = highPivots.length - 1; i > 0; i--) {
       const p2 = highPivots[i];
+      let bestRegular: DivergenceResult | null = null;
+      let bestHidden: DivergenceResult | null = null;
+
       for (let j = i - 1; j >= 0; j--) {
         const p1 = highPivots[j];
         if (p2.index - p1.index > MAX_LOOKBACK) break;
@@ -178,7 +188,7 @@ export class DivergenceScanner {
 
         // Regular Bearish: Price Higher High, Indicator Lower High
         if (priceHigh2 > priceHigh1 && indHigh2 < indHigh1) {
-          results.push({
+          bestRegular = {
             indicator: indicatorName,
             type: "Regular",
             side: "Bearish",
@@ -188,12 +198,12 @@ export class DivergenceScanner {
             priceEnd: new Decimal(priceHigh2),
             indStart: new Decimal(indHigh1),
             indEnd: new Decimal(indHigh2),
-          });
+          };
         }
 
         // Hidden Bearish: Price Lower High, Indicator Higher High
         if (priceHigh2 < priceHigh1 && indHigh2 > indHigh1) {
-          results.push({
+          bestHidden = {
             indicator: indicatorName,
             type: "Hidden",
             side: "Bearish",
@@ -203,9 +213,12 @@ export class DivergenceScanner {
             priceEnd: new Decimal(priceHigh2),
             indStart: new Decimal(indHigh1),
             indEnd: new Decimal(indHigh2),
-          });
+          };
         }
       }
+
+      if (bestRegular) results.push(bestRegular);
+      if (bestHidden) results.push(bestHidden);
     }
 
     // Filter to return only the most recent pertinent ones?
