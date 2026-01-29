@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import { modalState } from "../../stores/modal.svelte";
+    import { untrack } from "svelte";
     import { CONSTANTS, icons } from "../../lib/constants";
     import { _ } from "../../locales/i18n";
     import ModalFrame from "./ModalFrame.svelte";
@@ -48,6 +49,20 @@
     $effect(() => {
         isOpen =
             modalState.state.isOpen && modalState.state.type === "symbolPicker";
+
+        if (isOpen) {
+            // Close other UI modals to prevent "ghost" burning borders
+            untrack(() => {
+                if (uiState.showJournalModal) uiState.toggleJournalModal(false);
+                if (uiState.showSettingsModal)
+                    uiState.toggleSettingsModal(false);
+                if (uiState.showAcademyModal) uiState.toggleAcademyModal(false);
+                if (uiState.showGuideModal) uiState.toggleGuideModal(false);
+                if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
+                if (uiState.showChangelogModal)
+                    uiState.toggleChangelogModal(false);
+            });
+        }
     });
 
     const symbols = CONSTANTS.SUGGESTED_SYMBOLS;
@@ -345,11 +360,21 @@
                         bind:value={minVolumeStr}
                         class="bg-[var(--bg-tertiary)] border border-[var(--border-color)] rounded px-2 py-1 text-xs focus:ring-1 focus:ring-[var(--accent-color)] outline-none"
                     >
-                        <option value="0">{$_("symbolPicker.volFilter.all")}</option>
-                        <option value="1000000">{$_("symbolPicker.volFilter.1m")}</option>
-                        <option value="5000000">{$_("symbolPicker.volFilter.5m")}</option>
-                        <option value="10000000">{$_("symbolPicker.volFilter.10m")}</option>
-                        <option value="50000000">{$_("symbolPicker.volFilter.50m")}</option>
+                        <option value="0"
+                            >{$_("symbolPicker.volFilter.all")}</option
+                        >
+                        <option value="1000000"
+                            >{$_("symbolPicker.volFilter.1m")}</option
+                        >
+                        <option value="5000000"
+                            >{$_("symbolPicker.volFilter.5m")}</option
+                        >
+                        <option value="10000000"
+                            >{$_("symbolPicker.volFilter.10m")}</option
+                        >
+                        <option value="50000000"
+                            >{$_("symbolPicker.volFilter.50m")}</option
+                        >
                     </select>
                 </div>
 

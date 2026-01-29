@@ -200,21 +200,27 @@
 
     // Determine burning configuration based on window title and settings
     let burnConfig = $derived.by(() => {
-        if (!settingsState.enableBurningBorders) return null;
+        if (!settingsState.enableBurningBorders) return undefined;
 
         const isNews = iframeState.title.toLowerCase().includes("news");
         const isChannel = iframeState.title.toLowerCase().includes("channel");
 
         if (isNews && settingsState.burnNewsWindows) {
-            return { color: "#00d4ff", intensity: 1.5 }; // Cyan for News
+            return {
+                color: "#00d4ff",
+                intensity: 1.5,
+                layer: "windows" as const,
+            }; // Cyan for News
         }
         if (isChannel && settingsState.burnChannelWindows) {
-            return { color: "#ff8c00", intensity: 1.8 }; // Orange for Channel
+            return {
+                mode: "classic" as const,
+                intensity: 1.8,
+                layer: "windows" as const,
+            }; // Classic Fire Mode for Channel
         }
 
-        // Default burn for other windows if enabled?
-        // For now only if specifically requested or a generic setting (could add burnOtherWindows)
-        return null;
+        return undefined;
     });
 </script>
 
@@ -223,7 +229,7 @@
     <!-- svelte-ignore a11y_no_noninteractive_element_interactions -->
     <div
         bind:this={containerEl}
-        use:burn={burnConfig || undefined}
+        use:burn={burnConfig}
         role="application"
         aria-label={iframeState.title}
         class="fixed z-[70] flex flex-col bg-black overflow-hidden shadow-2xl border border-[var(--border-color)] group"

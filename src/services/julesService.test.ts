@@ -42,8 +42,9 @@ vi.mock("../stores/account.svelte", () => ({
   accountState: {
     positions: [],
     openOrders: [],
-    balance: "1000",
-    availableBalance: "1000",
+    assets: [
+      { currency: "USDT", available: 1000, total: 1000, frozen: 0 },
+    ],
     isConnected: true,
   },
 }));

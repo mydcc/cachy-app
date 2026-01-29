@@ -6,6 +6,7 @@
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
  */
+import { untrack } from "svelte";
 
 export interface PresetState {
   availablePresets: string[];
@@ -27,6 +28,8 @@ class PresetManager {
     this.selectedPreset = next.selectedPreset;
   }
 
+  private notifyTimer: any = null;
+
   subscribe(fn: (value: PresetState) => void) {
     const getSnapshot = () => ({
       availablePresets: this.availablePresets,
@@ -35,7 +38,14 @@ class PresetManager {
     fn(getSnapshot());
     return $effect.root(() => {
       $effect(() => {
-        fn(getSnapshot());
+        const snap = getSnapshot(); // Track
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(snap);
+            this.notifyTimer = null;
+          }, 20);
+        });
       });
     });
   }

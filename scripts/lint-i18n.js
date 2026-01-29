@@ -95,6 +95,7 @@ const SAFE_CONTEXTS = [
     /bind:value/,               // Svelte bindings
     /on:click/,                 // Svelte events
     /onclick=/,                 // Svelte 5 events
+    /i18n-ignore/,              // Manual Ignore Comment
 ];
 
 let violations = [];

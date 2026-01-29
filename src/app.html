@@ -143,9 +143,15 @@
 
     <!-- Matomo Tag Manager -->
     <script>
-      var _mtm = (window._mtm = window._mtm || []);
-      _mtm.push({ "mtm.startTime": new Date().getTime(), event: "mtm.Start" });
       (function () {
+        if (
+          window.location.hostname === "localhost" ||
+          window.location.hostname === "127.0.0.1" ||
+          window.location.hostname.includes("192.168.")
+        )
+          return;
+        var _mtm = (window._mtm = window._mtm || []);
+        _mtm.push({ "mtm.startTime": new Date().getTime(), event: "mtm.Start" });
         var d = document,
           g = d.createElement("script"),
           s = d.getElementsByTagName("script")[0];

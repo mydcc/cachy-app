@@ -36,6 +36,7 @@ class MarketWatcher {
   private startTimeout: any = null; // Track startup delay
   // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
+  private unlockTimeouts = new Map<string, any>(); // Track lock release timers to prevent race conditions
   private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 24; // Increased for dashboards
   private inFlight = 0;
@@ -198,6 +199,10 @@ class MarketWatcher {
     this.staggerTimeouts.forEach((t) => clearTimeout(t));
     this.staggerTimeouts.clear();
 
+    // Clear pending unlock timeouts to prevent race conditions on restart
+    this.unlockTimeouts.forEach((t) => clearTimeout(t));
+    this.unlockTimeouts.clear();
+
     // Clear pending fetch locks to prevent memory leaks
     this.fetchLocks.clear();
   }
@@ -324,9 +329,12 @@ class MarketWatcher {
       // Dynamic interval from settings
       const interval = Math.max(settingsState.marketDataInterval || 5, 2); // Min 2s safety
 
-      setTimeout(() => {
+      const timeoutId = setTimeout(() => {
         this.fetchLocks.delete(lockKey);
+        this.unlockTimeouts.delete(lockKey);
       }, interval * 1000);
+
+      this.unlockTimeouts.set(lockKey, timeoutId);
       this.inFlight = Math.max(0, this.inFlight - 1);
     }
   }
@@ -339,6 +347,8 @@ class MarketWatcher {
   public forceCleanup() {
     this.requests.clear();
     this.fetchLocks.clear();
+    this.unlockTimeouts.forEach((t) => clearTimeout(t));
+    this.unlockTimeouts.clear();
     this.inFlight = 0;
     this.syncSubscriptions();
     logger.warn("market", "[MarketWatcher] Forced Cleanup Triggered");

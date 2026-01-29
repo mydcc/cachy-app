@@ -25,6 +25,8 @@ export interface BurningElement {
     height: number;
     intensity: number;
     color: string;
+    layer: 'tiles' | 'windows' | 'modals';
+    mode?: 'theme' | 'interactive' | 'custom' | 'classic' | 'glow';
 }
 
 class FireStore {
@@ -34,6 +36,15 @@ class FireStore {
     updateElement(id: string, data: Partial<BurningElement>) {
         const existing = this.elements.get(id);
         if (existing) {
+            // Check for actual changes to avoid redundant reactivity triggers
+            let hasChanged = false;
+            for (const key in data) {
+                if ((data as any)[key] !== (existing as any)[key]) {
+                    hasChanged = true;
+                    break;
+                }
+            }
+            if (!hasChanged) return;
             this.elements.set(id, { ...existing, ...data });
         } else {
             // New element defaults
@@ -45,6 +56,7 @@ class FireStore {
                 height: 0,
                 intensity: 1.0,
                 color: "#ffaa00",
+                layer: "tiles",
                 ...data
             } as BurningElement);
         }

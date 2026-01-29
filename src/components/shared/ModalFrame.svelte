@@ -18,6 +18,8 @@
 <script lang="ts">
   import { fly } from "svelte/transition";
   import { _ } from "../../locales/i18n";
+  import { burn } from "../../actions/burn";
+  import { settingsState } from "../../stores/settings.svelte";
 
   interface Props {
     isOpen?: boolean;
@@ -44,6 +46,53 @@
   function handleClose() {
     onclose?.();
   }
+
+  let burnConfig = $derived.by(() => {
+    if (!settingsState.enableBurningBorders) return undefined;
+
+    // 1. Journal
+    const isJournal = title === $_("journal.title");
+    if (isJournal) {
+      if (!settingsState.burnJournal) return undefined;
+      return {
+        intensity: 1.5,
+        layer: "modals" as const,
+      };
+    }
+
+    // 2. Settings
+    const isSettings = title === ($_("settings.title") || "Settings");
+    if (isSettings) {
+      if (!settingsState.burnSettings) return undefined;
+      return {
+        intensity: 1.5,
+        layer: "modals" as const,
+      };
+    }
+
+    // 3. Guide & Documentation
+    const isGuide =
+      title === $_("app.guideTitle") ||
+      title === $_("app.changelogTitle") ||
+      title === $_("app.privacyLegal") ||
+      title === $_("app.whitepaper") ||
+      title === "Trading Academy";
+
+    if (isGuide) {
+      if (!settingsState.burnGuide) return undefined;
+      return {
+        intensity: 1.2,
+        layer: "modals" as const,
+      };
+    }
+
+    // Generic handling for other modals
+    if (settingsState.burnModals) {
+      return { layer: "modals" as const, intensity: 1.0 };
+    }
+
+    return undefined;
+  });
 </script>
 
 {#if isOpen}
@@ -67,6 +116,7 @@
     <div
       class="modal-content glass-panel {extraClasses}"
       transition:fly|local={{ y: -20, duration: 200 }}
+      use:burn={burnConfig}
     >
       <div class="modal-header">
         <h2 id="modal-title" class="modal-title">{title}</h2>
@@ -101,7 +151,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 10000;
   }
   .modal-content {
     background-color: var(--bg-secondary);

@@ -8,6 +8,7 @@
  */
 
 import { browser } from "$app/environment";
+import { untrack } from "svelte";
 
 export interface IndicatorSettings {
   historyLimit: number; // Global setting for calculation depth
@@ -304,14 +305,28 @@ class IndicatorManager {
   pivots = $state(defaultSettings.pivots);
 
   private listeners: Set<(value: IndicatorSettings) => void> = new Set();
+  private saveTimer: any = null;
+  private notifyTimer: any = null;
 
   constructor() {
     if (browser) {
       this.load();
       $effect.root(() => {
         $effect(() => {
-          this.save();
-          this.notifyListeners();
+          // Track ALL properties by calling toJSON()
+          this.toJSON();
+
+          untrack(() => {
+            if (this.saveTimer) clearTimeout(this.saveTimer);
+            this.saveTimer = setTimeout(() => {
+              this.save();
+            }, 500);
+
+            if (this.notifyTimer) clearTimeout(this.notifyTimer);
+            this.notifyTimer = setTimeout(() => {
+              this.notifyListeners();
+            }, 50);
+          });
         });
       });
     }

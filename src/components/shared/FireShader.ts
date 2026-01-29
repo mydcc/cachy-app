@@ -19,10 +19,14 @@ export const fireVertexShader = `
 varying vec2 vUv;
 varying vec2 vSize;
 varying vec3 vColor;
+varying float vMode;
+
+attribute float aMode;
 
 void main() {
     vUv = uv;
     vColor = instanceColor;
+    vMode = aMode;
     
     // Extract scale from instanceMatrix (columns 0 and 1)
     float scaleX = length(vec3(instanceMatrix[0].x, instanceMatrix[0].y, instanceMatrix[0].z));
@@ -43,11 +47,11 @@ uniform float uSpeed;
 uniform float uTurbulence;
 uniform float uScale; // New: 1.1 = 10% padding
 uniform vec2 uResolution;
-uniform int uMode; // 0: Fire, 1: Glow
 
 varying vec2 vUv;
 varying vec2 vSize;
 varying vec3 vColor;
+varying float vMode;
 
 // --- FAST NOISE FUNCTIONS ---
 vec3 mod289(vec3 x) { return x - floor(x * (1.0 / 289.0)) * 289.0; }
@@ -120,79 +124,62 @@ void main() {
     float normalizedPos = clamp(dist / margin, 0.0, 1.0);
 
     // --- MODE SWITCH ---
-    // uMode 0 = Fire
-    // uMode 1 = Glow (Neon Pulse)
+    // vMode 0 = Fire (Interactive/Theme Color)
+    // vMode 1 = Glow (Neon Pulse)
+    // vMode 3 = Classic Fire (Original Orange/Yellow)
     
     vec3 finalColor = vec3(0.0);
     float alpha = 0.0;
     
-    if (uMode == 1) {
+    int mode = int(vMode + 0.5);
+    
+    if (mode == 1) {
         // --- GLOW MODE ---
-        // Simple pulsating aura without noise distortion
-        
-        // Pulse: 0.8 to 1.2 intensity loop
         float pulse = 0.8 + 0.4 * sin(uTime * 2.0 * uSpeed);
-        
-        // Glow Intensity drops off with distance
-        // Power function controls "tightness" of glow
-        // normalizedPos 0 -> 1 (Edge to Outer Canvas)
-        
         float glowShape = 1.0 - smoothstep(0.0, 1.0, normalizedPos);
-        glowShape = pow(glowShape, 2.0); // Soft exponential falloff (bloom-like)
+        glowShape = pow(glowShape, 2.0); 
         
         vec3 colBase = vColor;
-        vec3 colHot = mix(vColor, vec3(1.0), 0.5); // Whitish tint for core
+        vec3 colHot = mix(vColor, vec3(1.0), 0.5); 
         
         finalColor = mix(colBase, colHot, glowShape * 0.5);
         finalColor *= pulse * uIntensity;
-        
-        // Alpha - cleaner fade
         alpha = glowShape * 0.8; 
-        
-        // Strict outer fade to avoid clipping
         alpha *= smoothstep(1.0, 0.8, normalizedPos);
         
     } else {
-        // --- EMISSIVE RADIATING FIRE ---
-        // Replacing rising logic with an emissive flow radiating from the frame
-        
-        // 1. Noise Modulation
-        // Use a mix of large waves and small turbulence
+        // --- RADIATING FIRE (Modes 0 and 3) ---
         vec2 noiseUV = pixelPos * (0.02 + uTurbulence * 0.01);
-        
-        // Animate noise "outward" and "jittery"
         float n1 = fbm(noiseUV + uTime * uSpeed * 0.5);
         float n2 = fbm(noiseUV * 2.0 - uTime * uSpeed * 0.3);
         float noise = (n1 * 0.7 + n2 * 0.3);
         
-        // 2. Emission Shape
-        // Radiate based on dist (pixel distance from border)
-        // normalizedPos is dist / margin (0 at edge, 1 at canvas boundary)
-        
-        // Distort the distance with noise to get "licks" of fire
         float distortedDist = dist - noise * 15.0 * uIntensity;
-        
-        // Calculate glow based on distorted distance
-        // Inner Glow (inside the border a bit)
         float innerGlow = smoothstep(-5.0, 5.0, -distortedDist);
-        // Outer Emission (radiating out)
         float outerGlow = smoothstep(margin * 0.8, -5.0, distortedDist);
         
         float emission = outerGlow * 1.2;
-        emission += innerGlow * 0.3; // Light tint on the inside
+        emission += innerGlow * 0.3; 
         
-        // 3. Color mapping
-        vec3 colCore = mix(vColor, vec3(1.0, 0.9, 0.5), 0.5); // Bright white-yellow core
-        vec3 colEdge = vColor;
-        vec3 colSmoke = vColor * 0.3;
+        // Color Selection
+        vec3 baseColor = vColor;
+        if (mode == 3) {
+            baseColor = vec4(1.0, 0.53, 0.0, 1.0).rgb; // Classic Orange
+        }
+
+        vec3 targetCore = vec3(1.0, 1.0, 1.0); // Default to white core
+        if (mode == 3) {
+             targetCore = vec3(1.0, 0.9, 0.5); // Classic yellow core
+        }
+        
+        vec3 colCore = mix(baseColor, targetCore, 0.4); 
+        vec3 colEdge = baseColor;
+        vec3 colSmoke = baseColor * 0.3;
         
         finalColor = mix(colSmoke, colEdge, emission);
         finalColor = mix(finalColor, colCore, pow(outerGlow, 4.0));
-        
-        // Intensify based on uIntensity parameter
         finalColor *= (0.5 + uIntensity);
         
-        // 4. Alpha logic
         alpha = emission * smoothstep(1.0, 0.7, normalizedPos);
         alpha = clamp(alpha, 0.0, 1.0);
     }

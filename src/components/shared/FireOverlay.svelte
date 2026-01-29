@@ -16,12 +16,19 @@
 -->
 
 <script lang="ts">
-    import { onMount, onDestroy } from "svelte";
+    import { onMount } from "svelte";
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { modalState } from "../../stores/modal.svelte";
+    import { uiState } from "../../stores/ui.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
+
+    let { layer = "tiles" as const, zIndex = 40 } = $props<{
+        layer?: "tiles" | "windows" | "modals";
+        zIndex?: number;
+    }>();
 
     let container: HTMLDivElement;
     let renderer: THREE.WebGLRenderer | null = null;
@@ -34,9 +41,48 @@
     const dummy = new THREE.Object3D();
 
     // Reactive state to hide the whole thing when not needed
-    let isActive = $derived(
-        settingsState.enableBurningBorders && fireStore.elements.size > 0,
-    );
+    let isActive = $derived.by(() => {
+        if (!settingsState.enableBurningBorders) return false;
+
+        // Check if ANY modal is open (even if it doesn't have a burning border)
+        // This prevents background tiles/windows from burning through transparent modal overlays
+        const isAnyModalOpen =
+            modalState.state.isOpen ||
+            uiState.showJournalModal ||
+            uiState.showSettingsModal ||
+            uiState.showAcademyModal ||
+            uiState.showGuideModal ||
+            uiState.showPrivacyModal ||
+            uiState.showWhitepaperModal ||
+            uiState.showChangelogModal ||
+            uiState.showMarketDashboardModal;
+
+        // Track which layers have active elements in the fireStore
+        let hasModalElements = false;
+        let hasWindowElements = false;
+        let hasTileElements = false;
+
+        for (const el of fireStore.elements.values()) {
+            if (el.layer === "modals") hasModalElements = true;
+            else if (el.layer === "windows") hasWindowElements = true;
+            else if (el.layer === "tiles") hasTileElements = true;
+        }
+
+        // Priority logic:
+        // - 'modals' layer is active if there are modal elements (burning modals).
+        // - 'windows' layer is active if windows exist AND no modal is open (checks isAnyModalOpen).
+        // - 'tiles' layer is active if tiles exist AND no windows exist AND no modal is open (checks isAnyModalOpen).
+
+        if (layer === "modals") return hasModalElements;
+
+        // If ANY modal is open, suppress lower layers
+        if (isAnyModalOpen) return false;
+
+        if (layer === "windows") return hasWindowElements;
+        if (layer === "tiles") return hasTileElements && !hasWindowElements;
+
+        return false;
+    });
 
     onMount(() => {
         if (!browser) return;
@@ -100,7 +146,6 @@
                 uSpeed: { value: 1.0 },
                 uTurbulence: { value: 1.0 },
                 uScale: { value: 1.1 },
-                uMode: { value: 0 }, // 0=Fire, 1=Glow
                 uResolution: {
                     value: new THREE.Vector2(
                         window.innerWidth,
@@ -117,6 +162,12 @@
         mesh = new THREE.InstancedMesh(geometry, material, MAX_INSTANCES);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         mesh.frustumCulled = false; // Important for moving instances
+
+        // Initialization of per-instance modes (aMode)
+        const modes = new Float32Array(MAX_INSTANCES);
+        const modeAttribute = new THREE.InstancedBufferAttribute(modes, 1);
+        geometry.setAttribute("aMode", modeAttribute);
+
         scene.add(mesh);
 
         // Z-Index -1 to be behind content, or 40 to be above content but below modals
@@ -154,17 +205,17 @@
 
             // Map settings to shader params
             if (settingsState.burningBordersIntensity === "low") {
-                baseIntensity = 0.8;
+                baseIntensity = 0.25;
                 baseThickness = 6.0;
             }
             if (settingsState.burningBordersIntensity === "high") {
-                baseIntensity = 2.5;
+                baseIntensity = 1;
                 baseThickness = 14.0;
             }
 
             // Speed adjustments
             if (settingsState.burningBordersIntensity === "high") {
-                baseSpeed = 1.0;
+                baseSpeed = 0.6;
                 baseTurbulence = 0.8;
             }
 
@@ -174,12 +225,20 @@
                 baseIntensity *= 2.0; // Needs higher base for bloom look
             }
 
+            // Refine constraints for large Modal windows
+            if (layer === "modals") {
+                baseThickness *= 0.7; // Make the border thinner on large modals to be less overwhelming
+            }
+
             material.uniforms.uIntensity.value = baseIntensity;
             material.uniforms.uThickness.value = baseThickness;
             material.uniforms.uSpeed.value = baseSpeed;
             material.uniforms.uTurbulence.value = baseTurbulence;
             material.uniforms.uScale.value = scaleFactor;
-            material.uniforms.uMode.value = currentMode;
+
+            const modeAttr = geometry.getAttribute(
+                "aMode",
+            ) as THREE.InstancedBufferAttribute;
 
             let i = 0;
             const width = window.innerWidth;
@@ -189,6 +248,7 @@
 
             for (const [id, data] of fireStore.elements) {
                 if (i >= MAX_INSTANCES) break;
+                if (data.layer !== layer) continue; // Filter by layer
 
                 const { x, y, width: w, height: h, color } = data;
 
@@ -208,8 +268,19 @@
                 tempColor.set(color || "#ff8800");
                 mesh.setColorAt(i, tempColor);
 
+                // Set mode per instance
+                let instanceMode = currentMode;
+                // If the element has an explicit mode override, use it.
+                // 3 is the new 'classic' fire mode.
+                if (data.mode === "classic") instanceMode = 3;
+                else if (data.mode === "glow") instanceMode = 1;
+
+                modeAttr.setX(i, instanceMode);
+
                 i++;
             }
+
+            modeAttr.needsUpdate = true;
 
             mesh.count = i;
             mesh.instanceMatrix.needsUpdate = true;
@@ -249,7 +320,12 @@
     });
 </script>
 
-<div bind:this={container} class="fire-overlay" class:hidden={!isActive}></div>
+<div
+    bind:this={container}
+    class="fire-overlay"
+    class:hidden={!isActive}
+    style="z-index: {zIndex};"
+></div>
 
 <style>
     .fire-overlay {
@@ -258,7 +334,6 @@
         left: 0;
         width: 100vw;
         height: 100vh;
-        z-index: 40; /* Below Modals (50) but presumably above content */
         pointer-events: none;
         overflow: hidden;
         background: transparent !important;

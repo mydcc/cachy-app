@@ -24,13 +24,14 @@ export const mdaService = {
                 symbol,
                 provider,
                 // Primary fields and their short aliases (la=last, mp=mark, lp=last)
-                lastPrice: d.lastPrice || d.la || d.lp || d.mp || d.ip || "0",
-                high: d.highPrice || d.h || "0",
-                low: d.lowPrice || d.l || "0",
+                // HARDENING: Force String conversion to ensure Decimal safety downstream
+                lastPrice: String(d.lastPrice || d.la || d.lp || d.mp || d.ip || "0"),
+                high: String(d.highPrice || d.h || "0"),
+                low: String(d.lowPrice || d.l || "0"),
                 // Extended volume checks: b=base, v=vol, q=quote, vol=volume, amount
-                volume: d.volume || d.v || d.b || d.vol || d.amount || "0",
-                quoteVolume: d.quoteVolume || d.qv || d.q || d.quoteVol || "0",
-                priceChangePercent: d.priceChangePercent || d.pc || d.r || "0", // r = rate change
+                volume: String(d.volume || d.v || d.b || d.vol || d.amount || "0"),
+                quoteVolume: String(d.quoteVolume || d.qv || d.q || d.quoteVol || "0"),
+                priceChangePercent: String(d.priceChangePercent || d.pc || d.r || "0"), // r = rate change
                 timestamp: Date.now()
             };
         }
@@ -40,12 +41,12 @@ export const mdaService = {
             return {
                 symbol,
                 provider,
-                lastPrice: raw.lastPrice || raw.last || "0",
-                high: raw.highPrice || raw.high24h || "0",
-                low: raw.lowPrice || raw.low24h || "0",
-                volume: raw.volume || raw.baseVolume || "0",
-                quoteVolume: raw.quoteVolume || raw.quoteVolume || "0",
-                priceChangePercent: raw.priceChangePercent || "0",
+                lastPrice: String(raw.lastPrice || raw.last || "0"),
+                high: String(raw.highPrice || raw.high24h || "0"),
+                low: String(raw.lowPrice || raw.low24h || "0"),
+                volume: String(raw.volume || raw.baseVolume || "0"),
+                quoteVolume: String(raw.quoteVolume || raw.quoteVolume || "0"),
+                priceChangePercent: String(raw.priceChangePercent || "0"),
                 timestamp: Date.now()
             };
         }
@@ -54,7 +55,7 @@ export const mdaService = {
         return {
             symbol,
             provider,
-            lastPrice: raw.price || raw.lastPrice || "0",
+            lastPrice: String(raw.price || raw.lastPrice || "0"),
             timestamp: Date.now()
         };
     },

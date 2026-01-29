@@ -8,6 +8,7 @@
  */
 
 import { Decimal } from "decimal.js"; // Type import only if using values, here we just use primitives mostly or objects
+import { untrack } from "svelte";
 
 export interface CalculatedTpDetail {
   index: number;
@@ -65,6 +66,7 @@ export const INITIAL_RESULTS_STATE: ResultsState = {
 };
 
 class ResultsManager {
+  private notifyTimer: any = null;
   // We use a single state object to allow easy resetting/bulk updates
   // or we can use individual fields. Individual fields are cleaner for fine-grained reactivity.
   // Given the calculator updates almost everything at once, a single object or spread might be fine.
@@ -132,7 +134,14 @@ class ResultsManager {
     fn(getSnapshot());
     return $effect.root(() => {
       $effect(() => {
-        fn(getSnapshot());
+        const snap = getSnapshot(); // track dependencies
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(snap);
+            this.notifyTimer = null;
+          }, 10);
+        });
       });
     });
   }

@@ -17,6 +17,7 @@
 
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import { locale, setLocale } from "../../../locales/i18n";
@@ -60,6 +61,7 @@
         theme: "settings.appearance.modeTheme",
         interactive: "settings.appearance.modeInteractive",
         custom: "settings.appearance.modeCustom",
+        classic: "settings.appearance.modeClassic",
     };
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
@@ -338,7 +340,7 @@
                                         "Color Mode"}
                                 </span>
                                 <div class="flex flex-wrap gap-2">
-                                    {#each ["theme", "interactive", "custom"] as mode}
+                                    {#each ["theme", "interactive", "custom", "classic"] as mode}
                                         <button
                                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffectColorMode ===
                                             mode
@@ -348,7 +350,11 @@
                                                 (settingsState.borderEffectColorMode =
                                                     mode as any)}
                                         >
-                                            {$_(colorModeLabels[mode]) || mode}
+                                            {$_(
+                                                colorModeLabels[
+                                                    mode
+                                                ] as TranslationKey,
+                                            ) || mode}
                                         </button>
                                     {/each}
                                 </div>
@@ -408,8 +414,11 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Market Overview Tiles</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnMarketOverview" as TranslationKey,
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnMarketOverviewTiles
@@ -421,8 +430,11 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >News Windows</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnNews" as TranslationKey,
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnNewsWindows
@@ -434,8 +446,11 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Channel Windows</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnChannels" as TranslationKey,
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnChannelWindows
@@ -447,12 +462,73 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Flash Cards</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnFlashCards" as TranslationKey,
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnFlashCards
                                         }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_(
+                                            "settings.appearance.burnJournal" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnJournal}
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_(
+                                            "settings.appearance.burnSettings" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnSettings
+                                        }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_(
+                                            "settings.appearance.burnGuide" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnGuide}
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_(
+                                            "settings.appearance.burnModals" as TranslationKey,
+                                        )}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnModals}
                                     />
                                 </label>
                             </div>

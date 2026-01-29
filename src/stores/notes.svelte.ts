@@ -9,6 +9,7 @@
 
 import { browser } from "$app/environment";
 import { settingsState } from "./settings.svelte";
+import { untrack } from "svelte";
 
 export interface NoteMessage {
   id: string;
@@ -90,12 +91,21 @@ class NotesManager {
     this.save();
   }
 
+  private notifyTimer: any = null;
+
   // Compatibility for easier migration if needed, though direct property access is preferred
   subscribe(fn: (value: { messages: NoteMessage[] }) => void) {
     fn({ messages: this.messages });
     return $effect.root(() => {
       $effect(() => {
-        fn({ messages: this.messages });
+        const snap = { messages: this.messages }; // Track
+        untrack(() => {
+          if (this.notifyTimer) clearTimeout(this.notifyTimer);
+          this.notifyTimer = setTimeout(() => {
+            fn(snap);
+            this.notifyTimer = null;
+          }, 100); // UI updates for notes can be slow
+        });
       });
     });
   }

@@ -23,6 +23,7 @@
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
     import { analysisState } from "../../stores/analysis.svelte";
+    import { _ } from "../../locales/i18n";
 
     let currentTime = $state(Date.now());
     let nextCycleIn = $state(0);
@@ -77,21 +78,21 @@
 <div class="calculation-dashboard">
     <!-- Status Overview -->
     <section class="status-overview">
-        <h3>Live Analysis Status</h3>
+        <h3>{$_("calculationDashboard.liveAnalysisStatus")}</h3>
 
         <div class="status-grid">
             <!-- Cycle Status -->
             <div class="status-card">
                 <div class="card-header">
-                    <span class="card-label">Next Cycle In</span>
+                    <span class="card-label">{$_("calculationDashboard.nextCycleIn")}</span>
                     <span
                         class="status-indicator {analysisState.isAnalyzing
                             ? 'active'
                             : ''}"
                     >
                         {analysisState.isAnalyzing
-                            ? "🔄 Analyzing"
-                            : "⏱️ Waiting"}
+                            ? $_("calculationDashboard.analyzing")
+                            : $_("calculationDashboard.waiting")}
                     </span>
                 </div>
                 <div class="card-value">{formatTime(nextCycleIn)}</div>
@@ -102,21 +103,23 @@
                     ></div>
                 </div>
                 <p class="card-desc">
-                    Interval: {settingsState.marketAnalysisInterval}s
+                    {$_("calculationDashboard.interval", {
+                        values: { seconds: settingsState.marketAnalysisInterval },
+                    })}
                 </p>
             </div>
 
             <!-- Cache Usage -->
             <div class="status-card">
                 <div class="card-header">
-                    <span class="card-label">Cache Usage</span>
+                    <span class="card-label">{$_("calculationDashboard.cacheUsage")}</span>
                     <span class="status-indicator {getHealthStatus()}">
                         {#if getHealthStatus() === "critical"}
-                            🔴 Critical
+                            {$_("calculationDashboard.critical")}
                         {:else if getHealthStatus() === "warning"}
-                            🟡 Warning
+                            {$_("calculationDashboard.warning")}
                         {:else}
-                            🟢 Healthy
+                            {$_("calculationDashboard.healthy")}
                         {/if}
                     </span>
                 </div>
@@ -132,13 +135,13 @@
                             100}%"
                     ></div>
                 </div>
-                <p class="card-desc">Symbols in memory</p>
+                <p class="card-desc">{$_("calculationDashboard.symbolsInMemory")}</p>
             </div>
 
             <!-- Estimated Memory -->
             <div class="status-card">
                 <div class="card-header">
-                    <span class="card-label">Est. Memory</span>
+                    <span class="card-label">{$_("calculationDashboard.estMemory")}</span>
                     <span class="card-value-small"
                         >{getMemoryEstimate().toFixed(1)} MB</span
                     >
@@ -152,42 +155,42 @@
                         )}%"
                     ></div>
                 </div>
-                <p class="card-desc">Rough estimate for analysis data</p>
+                <p class="card-desc">{$_("calculationDashboard.memoryDesc")}</p>
             </div>
 
             <!-- Performance Profile -->
             <div class="status-card">
                 <div class="card-header">
-                    <span class="card-label">Profile</span>
+                    <span class="card-label">{$_("calculationDashboard.profile")}</span>
                     <span class="profile-badge">
                         {#if settingsState.marketAnalysisInterval === 300}
-                            💡 Light
+                            {$_("calculationDashboard.profileLight")}
                         {:else if settingsState.marketAnalysisInterval === 60}
-                            ⚖️ Balanced
+                            {$_("calculationDashboard.profileBalanced")}
                         {:else if settingsState.marketAnalysisInterval === 10}
-                            ⚡ Pro
+                            {$_("calculationDashboard.profilePro")}
                         {:else}
-                            🔧 Custom
+                            {$_("calculationDashboard.profileCustom")}
                         {/if}
                     </span>
                 </div>
                 <div class="card-value-small">
                     {settingsState.analyzeAllFavorites
-                        ? "All Favorites"
-                        : "Top 4"}
+                        ? $_("calculationDashboard.allFavorites")
+                        : $_("calculationDashboard.top4")}
                 </div>
-                <p class="card-desc">Active configuration</p>
+                <p class="card-desc">{$_("calculationDashboard.activeConfig")}</p>
             </div>
         </div>
     </section>
 
     <!-- Current Symbols Being Tracked -->
     <section class="tracked-symbols">
-        <h3>Currently Analyzing</h3>
+        <h3>{$_("calculationDashboard.currentlyAnalyzing")}</h3>
 
         {#if Object.keys(analysisState.results).length === 0}
             <p class="empty-state">
-                No symbols analyzed yet. Add favorites to get started.
+                {$_("calculationDashboard.noSymbols")}
             </p>
         {:else}
             <div class="symbols-list">
@@ -201,7 +204,7 @@
                                 {#if data.updatedAt}
                                     {formatTime(currentTime - data.updatedAt)} ago
                                 {:else}
-                                    Pending
+                                    {$_("calculationDashboard.pending")}
                                 {/if}
                             </span>
                             {#if data.confluenceScore !== undefined}
@@ -232,7 +235,11 @@
 
             {#if Object.keys(analysisState.results).length > 8}
                 <p class="more-text">
-                    +{Object.keys(analysisState.results).length - 8} more symbols...
+                    {$_("calculationDashboard.moreSymbols", {
+                        values: {
+                            count: Object.keys(analysisState.results).length - 8,
+                        },
+                    })}
                 </p>
             {/if}
         {/if}
@@ -240,41 +247,43 @@
 
     <!-- Configuration Hints -->
     <section class="hints">
-        <h3>⚡ Quick Tips</h3>
+        <h3>{$_("calculationDashboard.quickTips")}</h3>
         <div class="hints-list">
             {#if settingsState.marketAnalysisInterval < 20}
                 <div class="hint warning">
-                    <strong>High frequency:</strong> Analysis runs every {settingsState.marketAnalysisInterval}s.
-                    Consider Light or Balanced profile if CPU is high.
+                    {@html $_("calculationDashboard.hintHighFreq", {
+                        values: {
+                            seconds: settingsState.marketAnalysisInterval,
+                        },
+                    })}
                 </div>
             {/if}
 
             {#if settingsState.analyzeAllFavorites && settingsState.favoriteSymbols.length > 10}
                 <div class="hint warning">
-                    <strong>Many favorites:</strong> Analyzing {settingsState
-                        .favoriteSymbols.length} symbols can increase CPU. Consider
-                    Light profile or disable "Analyze All Favorites".
+                    {@html $_("calculationDashboard.hintFavorites", {
+                        values: {
+                            count: settingsState.favoriteSymbols.length,
+                        },
+                    })}
                 </div>
             {/if}
 
             {#if Object.keys(analysisState.results).length / settingsState.marketCacheSize > 0.85}
                 <div class="hint critical">
-                    <strong>Cache nearly full:</strong> Consider increasing cache
-                    size or disabling analysis.
+                    {@html $_("calculationDashboard.hintCache")}
                 </div>
             {/if}
 
             {#if !settingsState.pauseAnalysisOnBlur}
                 <div class="hint info">
-                    <strong>Smart pause disabled:</strong> Analysis will continue
-                    even when browser is inactive.
+                    {@html $_("calculationDashboard.hintSmartPause")}
                 </div>
             {/if}
 
             {#if getHealthStatus() === "good"}
                 <div class="hint good">
-                    <strong>✓ All systems normal:</strong> Configuration is optimal
-                    for current load.
+                    {@html $_("calculationDashboard.hintGood")}
                 </div>
             {/if}
         </div>

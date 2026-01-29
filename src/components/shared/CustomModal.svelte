@@ -19,6 +19,7 @@
   import { modalState } from "../../stores/modal.svelte";
   import { _ } from "../../locales/i18n";
   import { trackClick } from "../../lib/actions";
+  import { sanitizeHtml } from "../../utils/sanitizer";
   import ModalFrame from "./ModalFrame.svelte";
 
   // Use derived state for reactivity or just access properties directly in template
@@ -35,13 +36,13 @@
 </script>
 
 <ModalFrame
-  isOpen={mState.isOpen}
+  isOpen={mState.isOpen && mState.type !== "symbolPicker"}
   title={mState.title}
   onclose={() => handleConfirm(false)}
   extraClasses={mState.extraClasses || "modal-size-sm"}
 >
   <div class="prose dark:prose-invert w-full max-w-none">
-    {@html mState.message}
+    {@html sanitizeHtml(mState.message)}
   </div>
 
   {#if mState.type === "prompt"}

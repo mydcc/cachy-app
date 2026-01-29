@@ -138,8 +138,18 @@
     // Global Error Handling
     const handleGlobalError = (event: ErrorEvent) => {
       if (import.meta.env.DEV) {
-        console.error("Caught global error:", event.error);
+        console.error("Caught global error:", {
+          message: event.message,
+          error: event.error,
+          filename: event.filename,
+          lineno: event.lineno,
+          colno: event.colno,
+        });
       }
+
+      // Don't show modal for harmless or empty errors
+      if (!event.message && !event.error) return;
+
       uiState.showError(event.message || "An unexpected error occurred.");
     };
 
@@ -147,10 +157,22 @@
       if (import.meta.env.DEV) {
         console.error("Caught unhandled rejection:", event.reason);
       }
+
+      // Stop if reason is null/undefined to avoid showing empty error modals
+      if (event.reason === null || event.reason === undefined) return;
+
       const message =
         event.reason instanceof Error
           ? event.reason.message
           : String(event.reason);
+
+      // Filter out common harmless network or cancellation errors
+      if (
+        message.includes("The user aborted a request") || // i18n-ignore
+        message === "AbortError"
+      )
+        return;
+
       uiState.showError(message);
     };
 
@@ -274,7 +296,10 @@
 <div class="app-container">
   <OfflineBanner />
   <BackgroundRenderer />
-  <FireOverlay />
+  <!-- Rendering Layers for Visual Effects -->
+  <FireOverlay layer="tiles" zIndex={10} />
+  <FireOverlay layer="windows" zIndex={200} />
+  <FireOverlay layer="modals" zIndex={20000} />
   {@render children?.()}
 
   <!-- Global Modals -->
