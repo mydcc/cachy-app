@@ -340,7 +340,7 @@ class MarketWatcher {
           : apiService.fetchBitunixKlines(symbol, tf, 750));
 
         if (klines && klines.length > 0) {
-          marketState.updateSymbolKlines(symbol, tf, klines);
+          marketState.updateSymbolKlines(symbol, tf, klines, "rest");
         }
       }
       // Depth not yet polled for Binance (requires specific API we logic)

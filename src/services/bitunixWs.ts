@@ -848,7 +848,7 @@ class BitunixWebSocketService {
                   }
                 }
                 const normalizedKlines = mdaService.normalizeKlines([d], "bitunix");
-                marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines);
+                  marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
               }
             }
             return;
@@ -1016,7 +1016,7 @@ class BitunixWebSocketService {
             }
           }
           const normalizedKlines = mdaService.normalizeKlines([data], "bitunix");
-          marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines);
+          marketState.updateSymbolKlines(symbol, timeframe, normalizedKlines, "ws");
         }
       }
       else if (validatedMessage.ch === "position") {

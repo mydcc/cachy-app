@@ -279,12 +279,12 @@ export class MarketManager {
     // The PerformanceMonitor can handle the reset or we add a loop.
   }
 
-  updateSymbolKlines(symbol: string, timeframe: string, klines: any[]) {
+  updateSymbolKlines(symbol: string, timeframe: string, klines: any[], source: "rest" | "ws" = "rest") {
     this.touchSymbol(symbol);
     const current = this.getOrCreateSymbol(symbol);
 
     // Normalize new klines to correct Kline type
-    const newKlines: Kline[] = klines.map(k => ({
+    let newKlines: Kline[] = klines.map(k => ({
       open: k.open instanceof Decimal ? k.open : new Decimal(k.open),
       high: k.high instanceof Decimal ? k.high : new Decimal(k.high),
       low: k.low instanceof Decimal ? k.low : new Decimal(k.low),
@@ -295,6 +295,15 @@ export class MarketManager {
 
     // Get existing history or init empty
     let history = current.klines[timeframe] || [];
+
+    // PROTECTION: Single Source of Truth for Live Candle (WebSocket)
+    // If source is REST, we must NEVER overwrite the latest live candle (Head)
+    // because REST snapshots lag behind the WebSocket stream.
+    if (source === "rest" && history.length > 0) {
+      const lastKnownTime = history[history.length - 1].time;
+      // Filter out any incoming REST candle that matches the current live candle's time
+      newKlines = newKlines.filter(k => k.time !== lastKnownTime);
+    }
 
     // Merge strategy:
     // 1. If history is empty, just set it.
