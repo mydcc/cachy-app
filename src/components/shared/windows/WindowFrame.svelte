@@ -3,6 +3,7 @@
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import { _ } from "../../../locales/i18n";
+    import CachyIcon from "../CachyIcon.svelte";
 
     interface Props {
         window: WindowBase;
@@ -42,18 +43,83 @@
         document.addEventListener("pointerup", onPointerUp);
     }
 
-    function startResize(e: PointerEvent) {
+    function startResize(e: PointerEvent, direction: string) {
+        e.stopPropagation();
         isResizing = true;
+
         const startWidth = win.width;
         const startHeight = win.height;
-        const startX = e.clientX;
-        const startY = e.clientY;
+        const startX = win.x;
+        const startY = win.y;
+        const startPointerX = e.clientX;
+        const startPointerY = e.clientY;
+
+        const HEADER_HEIGHT = 41; // Constant height of the window header
 
         const onPointerMove = (moveEvent: PointerEvent) => {
-            win.updateSize(
-                startWidth + (moveEvent.clientX - startX),
-                startHeight + (moveEvent.clientY - startY),
-            );
+            const dx = moveEvent.clientX - startPointerX;
+            const dy = moveEvent.clientY - startPointerY;
+
+            let newX = startX;
+            let newY = startY;
+            let newWidth = startWidth;
+            let newHeight = startHeight;
+
+            // Horizontal resizing
+            if (direction.includes("e")) {
+                newWidth = startWidth + dx;
+            } else if (direction.includes("w")) {
+                newWidth = startWidth - dx;
+                if (newWidth > win.minWidth) {
+                    newX = startX + dx;
+                } else {
+                    newX = startX + (startWidth - win.minWidth);
+                }
+            }
+
+            // Vertical resizing
+            if (direction.includes("s")) {
+                newHeight = startHeight + dy;
+            } else if (direction.includes("n")) {
+                newHeight = startHeight - dy;
+            }
+
+            // --- ASPECT RATIO CONSTRAINTS (Content focused) ---
+            if (win.aspectRatio) {
+                const ratio = win.aspectRatio;
+
+                if (direction === "e" || direction === "w") {
+                    // Width dictates content height + header
+                    newHeight = newWidth / ratio + HEADER_HEIGHT;
+                } else if (direction === "s" || direction === "n") {
+                    // Content height dictates width
+                    const contentHeight = newHeight - HEADER_HEIGHT;
+                    newWidth = contentHeight * ratio;
+                } else {
+                    // Corners: default to width as master
+                    newHeight = newWidth / ratio + HEADER_HEIGHT;
+                }
+
+                // Adjust X/Y again if we are resizing from N or W
+                if (direction.includes("n")) {
+                    newY = startY + (startHeight - newHeight);
+                }
+                if (direction.includes("w")) {
+                    newX = startX + (startWidth - newWidth);
+                }
+            }
+
+            // Final Boundary Checks
+            if (newWidth < win.minWidth) {
+                newWidth = win.minWidth;
+                if (win.aspectRatio)
+                    newHeight = newWidth / win.aspectRatio + HEADER_HEIGHT;
+                if (direction.includes("w"))
+                    newX = startX + (startWidth - newWidth);
+            }
+
+            win.updatePosition(newX, newY);
+            win.updateSize(newWidth, newHeight);
         };
 
         const onPointerUp = () => {
@@ -95,16 +161,11 @@
         <div class="header-content">
             {#if win.showCachyIcon}
                 <div class="cachy-logo">
-                    <svg
-                        viewBox="0 0 24 24"
+                    <CachyIcon
                         width="18"
                         height="18"
-                        fill="var(--accent-color)"
-                    >
-                        <path
-                            d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"
-                        />
-                    </svg>
+                        style="color: var(--accent-color)"
+                    />
                 </div>
             {/if}
             <span class="window-title">{win.title}</span>
@@ -143,7 +204,6 @@
             <button
                 onclick={() => windowManager.close(win.id)}
                 class="close-btn"
-                title={$_("common.remove")}
             >
                 ✕
             </button>
@@ -163,7 +223,39 @@
     </div>
 
     {#if win.isResizable}
-        <div class="resize-handle" onpointerdown={startResize}></div>
+        <!-- Invisible Resize Handles -->
+        <div
+            class="resize-grip n"
+            onpointerdown={(e) => startResize(e, "n")}
+        ></div>
+        <div
+            class="resize-grip s"
+            onpointerdown={(e) => startResize(e, "s")}
+        ></div>
+        <div
+            class="resize-grip e"
+            onpointerdown={(e) => startResize(e, "e")}
+        ></div>
+        <div
+            class="resize-grip w"
+            onpointerdown={(e) => startResize(e, "w")}
+        ></div>
+        <div
+            class="resize-grip nw"
+            onpointerdown={(e) => startResize(e, "nw")}
+        ></div>
+        <div
+            class="resize-grip ne"
+            onpointerdown={(e) => startResize(e, "ne")}
+        ></div>
+        <div
+            class="resize-grip sw"
+            onpointerdown={(e) => startResize(e, "sw")}
+        ></div>
+        <div
+            class="resize-grip se"
+            onpointerdown={(e) => startResize(e, "se")}
+        ></div>
     {/if}
 </div>
 
@@ -175,17 +267,17 @@
         overflow: hidden;
         pointer-events: auto;
         border-radius: 12px;
-        background: var(--bg-secondary-80);
-        backdrop-filter: blur(16px);
-        box-shadow: var(--shadow-popover);
-        border: 1px solid var(--border-glass-light);
+        background: var(--bg-secondary);
+        backdrop-filter: none;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        border: 0px solid var(--border-color);
         transition:
             box-shadow 0.2s ease,
             opacity 0.2s ease;
     }
     .window-frame.focused {
-        box-shadow: var(--shadow-modal);
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
+        border: 0px solid var(--accent-color);
     }
     .window-frame.dragging {
         opacity: 0.9;
@@ -199,13 +291,13 @@
     }
     .window-header {
         padding: 8px 12px;
-        background: var(--bg-glass-light);
+        background: transparent;
         cursor: grab;
         display: flex;
         justify-content: space-between;
         align-items: center;
         user-select: none;
-        border-bottom: 1px solid var(--bg-glass-light);
+        border-bottom: 1px solid var(--border-color);
     }
     .header-content {
         display: flex;
@@ -225,16 +317,69 @@
         flex: 1;
         overflow: auto;
         position: relative;
-        background: rgba(0, 0, 0, 0.1);
+        background: transparent;
     }
-    .resize-handle {
+    /* Resize Grips */
+    .resize-grip {
         position: absolute;
-        bottom: 0;
-        right: 0;
-        width: 16px;
-        height: 16px;
+        z-index: 100;
+        background: transparent;
+    }
+    .resize-grip.n,
+    .resize-grip.s {
+        height: 8px;
+        left: 8px;
+        right: 8px;
+        cursor: ns-resize;
+    }
+    .resize-grip.e,
+    .resize-grip.w {
+        width: 8px;
+        top: 8px;
+        bottom: 8px;
+        cursor: ew-resize;
+    }
+
+    .resize-grip.n {
+        top: -4px;
+    }
+    .resize-grip.s {
+        bottom: -4px;
+    }
+    .resize-grip.e {
+        right: -4px;
+    }
+    .resize-grip.w {
+        left: -4px;
+    }
+
+    .resize-grip.nw,
+    .resize-grip.ne,
+    .resize-grip.sw,
+    .resize-grip.se {
+        width: 12px;
+        height: 12px;
+        cursor: pointer;
+    }
+    .resize-grip.nw {
+        top: -4px;
+        left: -4px;
         cursor: nwse-resize;
-        z-index: 10;
+    }
+    .resize-grip.ne {
+        top: -4px;
+        right: -4px;
+        cursor: nesw-resize;
+    }
+    .resize-grip.sw {
+        bottom: -4px;
+        left: -4px;
+        cursor: nesw-resize;
+    }
+    .resize-grip.se {
+        bottom: -4px;
+        right: -4px;
+        cursor: nwse-resize;
     }
     .window-controls {
         display: flex;
