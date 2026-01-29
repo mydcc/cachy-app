@@ -449,7 +449,7 @@
         transition: all 0.2s;
     }
     .close-btn:hover {
-        background: rgba(255, 68, 68, 0.2);
-        color: #ff4444;
+        background: color-mix(in srgb, var(--danger-color), transparent 80%);
+        color: var(--danger-color);
     }
 </style>

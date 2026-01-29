@@ -352,8 +352,8 @@
     }
 
     .status-indicator.active {
-        background: #4caf50;
-        color: white;
+        background: var(--success-color);
+        color: var(--text-on-success);
         animation: pulse 1s infinite;
     }
 
@@ -368,18 +368,18 @@
     }
 
     .status-indicator.good {
-        background: #4caf50;
-        color: white;
+        background: var(--success-color);
+        color: var(--text-on-success);
     }
 
     .status-indicator.warning {
-        background: #ff9800;
-        color: white;
+        background: var(--warning-color);
+        color: var(--text-on-warning, var(--bg-primary));
     }
 
     .status-indicator.critical {
-        background: #f44336;
-        color: white;
+        background: var(--danger-color);
+        color: var(--text-on-danger);
     }
 
     .card-value {
@@ -403,16 +403,16 @@
 
     .progress-fill {
         height: 100%;
-        background: linear-gradient(90deg, #4caf50, #8bc34a);
+        background: linear-gradient(90deg, var(--success-color), color-mix(in srgb, var(--success-color), white 20%));
         transition: width 0.3s ease;
     }
 
     .progress-fill.warning {
-        background: linear-gradient(90deg, #ff9800, #ffc107);
+        background: linear-gradient(90deg, var(--warning-color), color-mix(in srgb, var(--warning-color), white 20%));
     }
 
     .progress-fill.critical {
-        background: linear-gradient(90deg, #f44336, #e91e63);
+        background: linear-gradient(90deg, var(--danger-color), color-mix(in srgb, var(--danger-color), white 20%));
     }
 
     .memory-bar {
@@ -424,7 +424,7 @@
 
     .memory-fill {
         height: 100%;
-        background: #2196f3;
+        background: var(--info-color);
         transition: width 0.3s ease;
     }
 
@@ -479,7 +479,7 @@
     }
 
     .info-tag.score {
-        background: #2196f3;
+        background: var(--info-color);
         color: white;
     }
 
@@ -489,17 +489,17 @@
     }
 
     .info-tag.condition.trending {
-        background: #4caf50;
-        color: white;
+        background: var(--success-color);
+        color: var(--text-on-success);
     }
 
     .info-tag.condition.overbought {
-        background: #f44336;
-        color: white;
+        background: var(--danger-color);
+        color: var(--text-on-danger);
     }
 
     .info-tag.condition.oversold {
-        background: #2196f3;
+        background: var(--info-color);
         color: white;
     }
 
@@ -536,25 +536,25 @@
     }
 
     .hint.info {
-        border-color: #2196f3;
-        background: rgba(33, 150, 243, 0.05);
+        border-color: var(--info-color);
+        background: color-mix(in srgb, var(--info-color), transparent 95%);
     }
 
     .hint.warning {
-        border-color: #ff9800;
-        background: rgba(255, 152, 0, 0.05);
+        border-color: var(--warning-color);
+        background: color-mix(in srgb, var(--warning-color), transparent 95%);
         color: var(--text-primary);
     }
 
     .hint.critical {
-        border-color: #f44336;
-        background: rgba(244, 67, 54, 0.05);
+        border-color: var(--danger-color);
+        background: color-mix(in srgb, var(--danger-color), transparent 95%);
         color: var(--text-primary);
     }
 
     .hint.good {
-        border-color: #4caf50;
-        background: rgba(76, 175, 80, 0.05);
+        border-color: var(--success-color);
+        background: color-mix(in srgb, var(--success-color), transparent 95%);
         color: var(--text-primary);
     }
 </style>
