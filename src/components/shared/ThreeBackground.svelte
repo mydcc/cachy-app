@@ -509,6 +509,7 @@
             window.addEventListener("deviceorientation", onDeviceOrientation);
         } else {
             if (controls) controls.enabled = true;
+            // i18n-ignore
             window.removeEventListener(
                 "deviceorientation", // i18n-ignore
                 onDeviceOrientation,
@@ -516,6 +517,7 @@
         }
 
         return () => {
+            // i18n-ignore
             window.removeEventListener(
                 "deviceorientation", // i18n-ignore
                 onDeviceOrientation,
