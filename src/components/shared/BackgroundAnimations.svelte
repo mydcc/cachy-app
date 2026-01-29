@@ -87,7 +87,8 @@
         position: absolute;
         width: 3px;
         height: 3px;
-        background: rgba(255, 255, 255, 0.3);
+        background: var(--text-primary);
+        opacity: 0.3;
         border-radius: 50%;
         left: var(--x);
         animation: float 15s var(--delay) infinite linear;
@@ -115,7 +116,7 @@
         background: radial-gradient(
             circle at 50% 50%,
             transparent 0%,
-            rgba(0, 0, 0, 0.3) 100%
+            var(--black-transparent) 100%
         );
         animation: breathe var(--duration) ease-in-out infinite;
     }

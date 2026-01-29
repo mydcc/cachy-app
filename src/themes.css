@@ -92,6 +92,53 @@
   --toggle-circle-bg: var(--blue-100);
   --toggle-circle-bg-on: var(--blue-100);
   --overlay-color: var(--black-overlay);
+
+  /* --- Harmonization Variables (Tailwind & Shadows) --- */
+  --slate-50: #f8fafc;
+  --slate-100: #f1f5f9;
+  --slate-200: #e2e8f0;
+  --slate-300: #cbd5e1;
+  --slate-400: #94a3b8;
+  --slate-500: #64748b;
+  --slate-600: #475569;
+  --slate-700: #334155;
+  --slate-800: #1e293b;
+  --slate-900: #0f172a;
+  --slate-950: #020617;
+
+  --indigo-50: #eef2ff;
+  --indigo-100: #e0e7ff;
+  --indigo-200: #c7d2fe;
+  --indigo-300: #a5b4fc;
+  --indigo-400: #818cf8;
+  --indigo-500: #6366f1;
+  --indigo-600: #4f46e5;
+  --indigo-700: #4338ca;
+  --indigo-800: #3730a3;
+  --indigo-900: #312e81;
+  --indigo-950: #1e1b4b;
+
+  --orange-500: #f97316;
+  --amber-500: #f59e0b;
+
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+  --shadow-2xl: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+
+  /* Semantic Shadows */
+  --shadow-card: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+  --shadow-popover: 0 10px 30px rgba(0, 0, 0, 0.5);
+  --shadow-modal: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+
+  /* Glass Effects */
+  --bg-glass-light: rgba(255, 255, 255, 0.05);
+  --border-glass-light: rgba(255, 255, 255, 0.1);
+
+  /* Status Defaults */
+  --info-color: var(--sky-500);
+
   /* --- Motion --- */
   --transition-fast: 0.15s ease-out;
   --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);

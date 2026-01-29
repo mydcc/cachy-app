@@ -176,7 +176,7 @@
         background: var(--bg-primary);
         border: 1px solid var(--border-color);
         border-radius: 12px;
-        box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+        box-shadow: var(--shadow-popover);
         display: flex;
         flex-direction: column;
         overflow: hidden;
@@ -184,7 +184,7 @@
     }
 
     .floating-iframe-modal:hover {
-        box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
+        box-shadow: var(--shadow-modal);
     }
 
     .window-header {
