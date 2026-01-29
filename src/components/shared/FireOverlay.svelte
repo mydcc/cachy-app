@@ -3,6 +3,8 @@
     import * as THREE from "three";
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { modalState } from "../../stores/modal.svelte";
+    import { uiState } from "../../stores/ui.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
 
@@ -25,25 +27,42 @@
     let isActive = $derived.by(() => {
         if (!settingsState.enableBurningBorders) return false;
 
-        // Track which layers have active elements
-        let hasModals = false;
-        let hasWindows = false;
-        let hasTiles = false;
+        // Check if ANY modal is open (even if it doesn't have a burning border)
+        // This prevents background tiles/windows from burning through transparent modal overlays
+        const isAnyModalOpen =
+            modalState.state.isOpen ||
+            uiState.showJournalModal ||
+            uiState.showSettingsModal ||
+            uiState.showAcademyModal ||
+            uiState.showGuideModal ||
+            uiState.showPrivacyModal ||
+            uiState.showWhitepaperModal ||
+            uiState.showChangelogModal ||
+            uiState.showMarketDashboardModal;
+
+        // Track which layers have active elements in the fireStore
+        let hasModalElements = false;
+        let hasWindowElements = false;
+        let hasTileElements = false;
 
         for (const el of fireStore.elements.values()) {
-            if (el.layer === "modals") hasModals = true;
-            else if (el.layer === "windows") hasWindows = true;
-            else if (el.layer === "tiles") hasTiles = true;
+            if (el.layer === "modals") hasModalElements = true;
+            else if (el.layer === "windows") hasWindowElements = true;
+            else if (el.layer === "tiles") hasTileElements = true;
         }
 
         // Priority logic:
-        // - 'modals' layer is always active if it has elements.
-        // - 'windows' layer is only active if it has elements AND no modals are active.
-        // - 'tiles' layer is only active if it has elements AND no windows AND no modals are active.
+        // - 'modals' layer is active if there are modal elements (burning modals).
+        // - 'windows' layer is active if windows exist AND no modal is open (checks isAnyModalOpen).
+        // - 'tiles' layer is active if tiles exist AND no windows exist AND no modal is open (checks isAnyModalOpen).
 
-        if (layer === "modals") return hasModals;
-        if (layer === "windows") return hasWindows && !hasModals;
-        if (layer === "tiles") return hasTiles && !hasWindows && !hasModals;
+        if (layer === "modals") return hasModalElements;
+
+        // If ANY modal is open, suppress lower layers
+        if (isAnyModalOpen) return false;
+
+        if (layer === "windows") return hasWindowElements;
+        if (layer === "tiles") return hasTileElements && !hasWindowElements;
 
         return false;
     });

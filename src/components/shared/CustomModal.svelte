@@ -36,7 +36,7 @@
 </script>
 
 <ModalFrame
-  isOpen={mState.isOpen}
+  isOpen={mState.isOpen && mState.type !== "symbolPicker"}
   title={mState.title}
   onclose={() => handleConfirm(false)}
   extraClasses={mState.extraClasses || "modal-size-sm"}
