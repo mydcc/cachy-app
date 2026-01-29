@@ -531,10 +531,6 @@
         background: var(--bg-secondary);
     }
 
-    .hint strong {
-        color: var(--text-primary);
-    }
-
     .hint.info {
         border-color: var(--info-color);
         background: color-mix(in srgb, var(--info-color), transparent 95%);

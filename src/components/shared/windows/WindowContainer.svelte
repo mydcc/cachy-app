@@ -5,7 +5,12 @@
 
 <div class="windows-container">
     {#each windowManager.windows as win (win.id)}
-        <div class="window-wrapper" onclick={(e) => e.stopPropagation()}>
+        <div
+            class="window-wrapper"
+            role="none"
+            onclick={(e) => e.stopPropagation()}
+            onkeydown={(e) => e.stopPropagation()}
+        >
             <WindowFrame window={win} />
         </div>
     {/each}
