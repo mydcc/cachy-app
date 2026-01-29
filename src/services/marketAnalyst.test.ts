@@ -33,39 +33,55 @@ function createTechMap(ema200?: number, rsi?: number) {
     };
 }
 
+function mockTechMap(ema200: number | string | null, rsi: number | string | null): Record<string, any> {
+    const map: Record<string, any> = {};
+    const periods = ["15m", "1h", "4h", "1d"];
+
+    periods.forEach(p => {
+        map[p] = {
+            movingAverages: ema200 !== null ? [
+                { name: "EMA", params: "200", value: new Decimal(ema200) }
+            ] : [],
+            oscillators: rsi !== null ? [
+                { name: "RSI", value: new Decimal(rsi) }
+            ] : []
+        };
+    });
+
+    return map;
+}
+
 describe("calculateAnalysisMetrics", () => {
     it("should calculate bullish trend when price > ema200", () => {
-        // Price 100, Open 90, EMA200 95, RSI 50
-        const result = calculateAnalysisMetrics(100, 90, createTechMap(95, 50));
+        const result = calculateAnalysisMetrics(100, 90, mockTechMap(95, 50));
         expect(result.trend4h).toBe("bullish");
         expect(result.price).toBe("100");
     });
 
     it("should calculate bearish trend when price <= ema200", () => {
-        // Price 90, Open 100, EMA200 95, RSI 50
-        const result = calculateAnalysisMetrics(90, 100, createTechMap(95, 50));
+        const result = calculateAnalysisMetrics(90, 100, mockTechMap(95, 50));
         expect(result.trend4h).toBe("bearish");
     });
 
     it("should calculate correct change24h percent", () => {
         // (110 - 100) / 100 * 100 = 10%
-        const result = calculateAnalysisMetrics(110, 100, createTechMap(105, 50));
+        const result = calculateAnalysisMetrics(110, 100, mockTechMap(105, 50));
         expect(result.change24h).toBe("10.00");
     });
 
     it("should handle overbought condition (RSI > 70)", () => {
-        const result = calculateAnalysisMetrics(100, 99, createTechMap(90, 75));
+        const result = calculateAnalysisMetrics(100, 99, mockTechMap(90, 75));
         expect(result.condition).toBe("overbought");
     });
 
     it("should handle oversold condition (RSI < 30)", () => {
-        const result = calculateAnalysisMetrics(100, 99, createTechMap(90, 25));
+        const result = calculateAnalysisMetrics(100, 99, mockTechMap(90, 25));
         expect(result.condition).toBe("oversold");
     });
 
     it("should handle trending condition (Change > 5% and RSI neutral)", () => {
         // 106 vs 100 = +6% change
-        const result = calculateAnalysisMetrics(106, 100, createTechMap(90, 50));
+        const result = calculateAnalysisMetrics(106, 100, mockTechMap(90, 50));
         expect(result.change24h).toBe("6.00");
         expect(result.condition).toBe("trending");
     });
@@ -79,7 +95,7 @@ describe("calculateAnalysisMetrics", () => {
     });
 
     it("should handle zero divisor for change24h", () => {
-        const result = calculateAnalysisMetrics(100, 0, createTechMap(90, 50));
+        const result = calculateAnalysisMetrics(100, 0, mockTechMap(90, 50));
         expect(result.change24h).toBe("0.00");
     });
 
@@ -87,7 +103,7 @@ describe("calculateAnalysisMetrics", () => {
         // Shiba Inu style prices
         const price = "0.00000888";
         const open = "0.00000800"; // +11%
-        const result = calculateAnalysisMetrics(price, open, createTechMap(0.00000850, 50));
+        const result = calculateAnalysisMetrics(price, open, mockTechMap("0.00000850", 50));
 
         expect(result.price).toBe("0.00000888");
         expect(result.change24h).toBe("11.00");
