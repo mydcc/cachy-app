@@ -24,6 +24,7 @@ import { connectionManager } from "./connectionManager";
 import { mdaService } from "./mdaService";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
+import { safeJsonParse } from "../utils/safeJson";
 import CryptoJS from "crypto-js";
 import { Decimal } from "decimal.js";
 import type { OMSPosition, OMSOrder, OMSOrderStatus } from "./omsTypes";
@@ -407,7 +408,7 @@ class BitunixWebSocketService {
         }
 
         try {
-          const message = JSON.parse(event.data);
+          const message = safeJsonParse(event.data);
           this.handleMessage(message, "public");
         } catch (e) {
           this.handleInternalError("public", e);
@@ -505,7 +506,7 @@ class BitunixWebSocketService {
         }
 
         try {
-          const message = JSON.parse(event.data);
+          const message = safeJsonParse(event.data);
           this.handleMessage(message, "private");
         } catch (e) {
           this.handleInternalError("private", e);

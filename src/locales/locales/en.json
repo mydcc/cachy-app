@@ -194,7 +194,8 @@
       "atrValuePlaceholder": "ATR Value",
       "multiplierPlaceholder": "Multiplier",
       "multiplierExample": "1.2",
-      "tagsPlaceholder": "Add tags... (e.g. #trend)"
+      "tagsPlaceholder": "Add tags... (e.g. #trend)",
+      "tagsLabel": "Tags"
     },
     "takeProfitRow": {
       "winLabel": "Win:",
@@ -788,7 +789,13 @@
     "spinButtonsHover": "On Hover",
     "spinButtonsHidden": "Hidden",
     "hotkeys": {
-      "conflictWarning": "{newCombo} is already used by {existingLabel}"
+      "conflictWarning": "{newCombo} is already used by {existingLabel}",
+      "modifierAlt": "Alt",
+      "modifierCtrl": "Ctrl",
+      "resetAll": "Reset All",
+      "resetConfirm": "Reset all custom hotkeys to defaults?",
+      "pressKey": "Press Key...",
+      "info": "Click on a key combination to record a new hotkey. Use <span class=\"text-[var(--accent-color)]\">{alt}</span> or <span class=\"text-[var(--accent-color)]\">{ctrl}</span> modifiers to avoid conflicts with typing."
     },
     "tabs": {
       "general": "General",
@@ -981,7 +988,24 @@
       "dataServices": "Data Services",
       "exchanges": "Exchanges",
       "passphrase": "Passphrase",
-      "rss": "RSS Feeds"
+      "rss": "RSS Feeds",
+      "filter": "Filter",
+      "plan": "Plan",
+      "filterAll": "All",
+      "filterHot": "Hot",
+      "filterBullish": "Bullish",
+      "filterBearish": "Bearish",
+      "filterImportant": "Important",
+      "planFree": "Free",
+      "planPro": "Pro"
+    },
+    "cloud": {
+      "title": "Community Cloud (Beta)",
+      "description": "Connect to SpacetimeDB to chat with other traders.",
+      "connectButton": "Connect to Local Cloud",
+      "noMessages": "No messages yet.",
+      "sendButton": "Send",
+      "placeholder": "Say hello..."
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {

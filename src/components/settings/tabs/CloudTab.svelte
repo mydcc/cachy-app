@@ -17,6 +17,7 @@
 
 <script lang="ts">
   import { cloudService } from '../../../services/cloudService';
+  import { _ } from '../../../locales/i18n';
   import { onMount } from 'svelte';
 
   let connected = $state(false);
@@ -42,12 +43,12 @@
 </script>
 
 <div class="space-y-4">
-  <h3 class="text-lg font-bold">Community Cloud (Beta)</h3>
+  <h3 class="text-lg font-bold">{$_("cloud.title")}</h3>
 
   <div class="p-4 border border-gray-700 rounded bg-gray-900/50">
-    <p class="text-sm text-gray-400 mb-2">Connect to SpacetimeDB to chat with other traders.</p>
+    <p class="text-sm text-gray-400 mb-2">{$_("cloud.description")}</p>
     <button onclick={connect} class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 cursor-pointer text-white font-medium transition-colors">
-      Connect to Local Cloud
+      {$_("cloud.connectButton")}
     </button>
   </div>
 
@@ -61,12 +62,12 @@
       </div>
     {/each}
     {#if messages.length === 0}
-        <div class="text-gray-600 italic text-center mt-10">No messages yet.</div>
+        <div class="text-gray-600 italic text-center mt-10">{$_("cloud.noMessages")}</div>
     {/if}
   </div>
 
   <div class="flex gap-2">
-    <input bind:value={messageText} placeholder="Say hello..." class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
-    <button onclick={send} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors">Send</button>
+    <input bind:value={messageText} placeholder={$_("cloud.placeholder")} class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
+    <button onclick={send} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors">{$_("cloud.sendButton")}</button>
   </div>
 </div>

@@ -197,7 +197,8 @@
       "atrValuePlaceholder": "ATR Wert",
       "multiplierPlaceholder": "Multiplikator",
       "multiplierExample": "1,2",
-      "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)"
+      "tagsPlaceholder": "Tags hinzufügen... (z.B. #trend)",
+      "tagsLabel": "Tags"
     },
     "takeProfitRow": {
       "winLabel": "Win:",
@@ -820,7 +821,13 @@
     "spinButtonsHover": "Bei Mouseover",
     "spinButtonsHidden": "Ausgeblendet",
     "hotkeys": {
-      "conflictWarning": "{newCombo} wird bereits von {existingLabel} verwendet"
+      "conflictWarning": "{newCombo} wird bereits von {existingLabel} verwendet",
+      "modifierAlt": "Alt",
+      "modifierCtrl": "Strg",
+      "resetAll": "Alles zurücksetzen",
+      "resetConfirm": "Alle Hotkeys auf Standard zurücksetzen?",
+      "pressKey": "Taste drücken...",
+      "info": "Klicke auf eine Kombination, um sie neu zu belegen. Nutze <span class=\"text-[var(--accent-color)]\">{alt}</span> oder <span class=\"text-[var(--accent-color)]\">{ctrl}</span>, um Konflikte zu vermeiden."
     },
     "tabs": {
       "general": "Allgemein",
@@ -881,7 +888,24 @@
       "dataServices": "Datendienste",
       "rss": "RSS Feeds",
       "customFeeds": "Eigene Feeds",
-      "addFeed": "Feed hinzufügen"
+      "addFeed": "Feed hinzufügen",
+      "filter": "Filter",
+      "plan": "Plan",
+      "filterAll": "Alle",
+      "filterHot": "Heiß",
+      "filterBullish": "Bullisch",
+      "filterBearish": "Bärisch",
+      "filterImportant": "Wichtig",
+      "planFree": "Kostenlos",
+      "planPro": "Pro"
+    },
+    "cloud": {
+      "title": "Community Cloud (Beta)",
+      "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
+      "connectButton": "Verbinden",
+      "noMessages": "Noch keine Nachrichten.",
+      "sendButton": "Senden",
+      "placeholder": "Sag Hallo..."
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",

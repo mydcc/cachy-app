@@ -387,7 +387,9 @@
                             </div>
                             <div class="grid grid-cols-2 gap-2 mt-3">
                                 <div class="field-group">
-                                    <label for="cp-filter">Filter</label>
+                                    <label for="cp-filter"
+                                        >{$_("settings.connections.filter")}</label
+                                    >
                                     <select
                                         id="cp-filter"
                                         bind:value={
@@ -395,17 +397,39 @@
                                         }
                                         class="api-input py-1 text-xs"
                                     >
-                                        <option value="all">All</option>
-                                        <option value="hot">Hot</option>
-                                        <option value="bullish">Bullish</option>
-                                        <option value="bearish">Bearish</option>
+                                        <option value="all"
+                                            >{$_(
+                                                "settings.connections.filterAll",
+                                            )}</option
+                                        >
+                                        <option value="hot"
+                                            >{$_(
+                                                "settings.connections.filterHot",
+                                            )}</option
+                                        >
+                                        <option value="bullish"
+                                            >{$_(
+                                                "settings.connections.filterBullish",
+                                            )}</option
+                                        >
+                                        <option value="bearish"
+                                            >{$_(
+                                                "settings.connections.filterBearish",
+                                            )}</option
+                                        >
                                         <option value="important"
-                                            >Important</option
+                                            >{$_(
+                                                "settings.connections.filterImportant",
+                                            )}</option
                                         >
                                     </select>
                                 </div>
                                 <div class="field-group">
-                                    <label for="cp-plan">Plan</label>
+                                    <label for="cp-plan"
+                                        >{$_(
+                                            "settings.connections.plan",
+                                        )}</label
+                                    >
                                     <select
                                         id="cp-plan"
                                         bind:value={
@@ -413,8 +437,16 @@
                                         }
                                         class="api-input py-1 text-xs"
                                     >
-                                        <option value="developer">Free</option>
-                                        <option value="growth">Pro</option>
+                                        <option value="developer"
+                                            >{$_(
+                                                "settings.connections.planFree",
+                                            )}</option
+                                        >
+                                        <option value="growth"
+                                            >{$_(
+                                                "settings.connections.planPro",
+                                            )}</option
+                                        >
                                     </select>
                                 </div>
                             </div>
