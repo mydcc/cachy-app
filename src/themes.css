@@ -499,9 +499,7 @@
   --overlay-derived: rgba(15, 5, 35, 0.8);
 
   /* --- Semantic Mapping --- */
-  --bg-primary: radial-gradient(farthest-side at top,
-      #3d050e,
-      #0f0505);
+  --bg-primary: radial-gradient(farthest-side at top, #3d050e, #0f0505);
 
   --bg-secondary: #0a0318;
   --bg-tertiary: #190924;
@@ -616,9 +614,7 @@
   --overlay-derived: rgba(0, 32, 57, 0.8);
 
   /* --- Semantic Mapping --- */
-  --bg-primary: radial-gradient(farthest-side at top,
-      #052618,
-      #010f08);
+  --bg-primary: radial-gradient(farthest-side at top, #052618, #010f08);
 
   --bg-secondary: #001221;
   --bg-tertiary: #011b2e;

@@ -52,7 +52,6 @@
   --color-bg-btn-accent-hover: var(--btn-accent-hover-bg);
   --color-bg-btn-success: var(--btn-success-bg);
   --color-bg-btn-success-hover: var(--btn-success-hover-bg);
-  --color-bg-toggle-off: var(--toggle-bg-off);
   --color-bg-toggle-on: var(--toggle-bg-on);
 
   /* Text Colors */
@@ -69,6 +68,11 @@
 
   /* Box Shadows */
   --shadow-tooltip: var(--shadow-tooltip);
+}
+
+html {
+  background: var(--bg-primary) !important;
+  min-height: 100vh;
 }
 
 /* Custom Fonts */

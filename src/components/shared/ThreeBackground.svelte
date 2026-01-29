@@ -16,154 +16,183 @@
 -->
 
 <script lang="ts">
-  import { onMount, onDestroy } from "svelte";
-  import { browser } from "$app/environment";
-  import * as THREE from "three";
-  import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
-  import { settingsState } from "../../stores/settings.svelte";
+    import { onMount, onDestroy } from "svelte";
+    import { browser } from "$app/environment";
+    import * as THREE from "three";
+    import { OrbitControls } from "three/examples/jsm/controls/OrbitControls.js";
+    import { settingsState } from "../../stores/settings.svelte";
 
-  // Galaxy Parameters from settings
-  // We use a derived or effect to react to changes?
-  // Since we are inside a component, we can access settingsState directly.
+    // Galaxy Parameters from settings
+    // We use a derived or effect to react to changes?
+    // Since we are inside a component, we can access settingsState directly.
 
-  let container: HTMLDivElement;
-  let galaxyMaterial: THREE.ShaderMaterial | null = null;
-  let galaxyGeometry: THREE.BufferGeometry | null = null;
-  let galaxyPoints: THREE.Points | null = null;
-  let renderer: THREE.WebGLRenderer | null = null;
-  let scene: THREE.Scene | null = null;
-  let camera: THREE.PerspectiveCamera | null = null;
-  let controls: OrbitControls | null = null;
-  let animationId: number | null = null;
-  let themeObserver: MutationObserver | null = null;
+    let container: HTMLDivElement;
+    let galaxyMaterial: THREE.ShaderMaterial | null = null;
+    let galaxyGeometry: THREE.BufferGeometry | null = null;
+    let galaxyPoints: THREE.Points | null = null;
+    let renderer: THREE.WebGLRenderer | null = null;
+    let scene: THREE.Scene | null = null;
+    let camera: THREE.PerspectiveCamera | null = null;
+    let controls: OrbitControls | null = null;
+    let animationId: number | null = null;
+    let themeObserver: MutationObserver | null = null;
 
-  // Helper to resolve CSS variables (handles "var(--name)" references)
-  // Helper to resolve CSS variables recursively without DOM layout thrashing
-  const resolveColor = (varName: string, fallback: string = "#000000"): string => {
-    if (!browser) return fallback;
+    // Helper to resolve CSS variables (handles "var(--name)" references)
+    // Helper to resolve CSS variables recursively without DOM layout thrashing
+    const resolveColor = (
+        varName: string,
+        fallback: string = "#000000",
+    ): string => {
+        if (!browser) return fallback;
 
-    const style = getComputedStyle(document.documentElement);
+        const style = getComputedStyle(document.documentElement);
 
-    const resolveRecursive = (value: string, depth: number): string => {
-      if (depth > 5) return value; // Prevent infinite loops
-      const trimmed = value.trim();
-      
-      // If it points to another variable like "var(--foo)"
-      if (trimmed.startsWith("var(--")) {
-        // Extract inner variable name: var(--foo) -> --foo
-        // Regex handles basic "var(--name)" and "var(--name, fallback)"
-        const match = trimmed.match(/^var\((--[\w-]+)(?:,\s*(.+))?\)$/);
-        if (match) {
-          const innerVar = match[1];
-          const innerFallback = match[2];
-          const resolvedValue = style.getPropertyValue(innerVar).trim();
-          
-          if (resolvedValue) {
-              return resolveRecursive(resolvedValue, depth + 1);
-          } else if (innerFallback) {
-              return resolveRecursive(innerFallback, depth + 1);
-          }
-        }
-      }
-      
-      return trimmed || fallback;
+        const resolveRecursive = (value: string, depth: number): string => {
+            if (depth > 5) return value; // Prevent infinite loops
+            const trimmed = value.trim();
+
+            // If it points to another variable like "var(--foo)"
+            if (trimmed.startsWith("var(--")) {
+                // Extract inner variable name: var(--foo) -> --foo
+                // Regex handles basic "var(--name)" and "var(--name, fallback)"
+                const match = trimmed.match(/^var\((--[\w-]+)(?:,\s*(.+))?\)$/);
+                if (match) {
+                    const innerVar = match[1];
+                    const innerFallback = match[2];
+                    const resolvedValue = style
+                        .getPropertyValue(innerVar)
+                        .trim();
+
+                    if (resolvedValue) {
+                        return resolveRecursive(resolvedValue, depth + 1);
+                    } else if (innerFallback) {
+                        return resolveRecursive(innerFallback, depth + 1);
+                    }
+                }
+            }
+
+            return trimmed || fallback;
+        };
+
+        const initialValue = varName.startsWith("--")
+            ? style.getPropertyValue(varName)
+            : varName;
+        const finalColor = resolveRecursive(initialValue, 0);
+
+        // If result is empty or still a var (failed resolve), return fallback
+        if (!finalColor || finalColor.startsWith("var(")) return fallback;
+
+        return finalColor;
     };
 
-    const initialValue = varName.startsWith("--") ? style.getPropertyValue(varName) : varName;
-    const finalColor = resolveRecursive(initialValue, 0);
+    const getVar = (name: string) => {
+        return resolveColor(name);
+    };
 
-    // If result is empty or still a var (failed resolve), return fallback
-    if (!finalColor || finalColor.startsWith("var(")) return fallback;
-    
-    return finalColor;
-  };
+    function generateGalaxy() {
+        if (!scene) return;
 
-  const getVar = (name: string) => {
-      return resolveColor(name);
-  };
+        // Dispose old galaxy
+        if (galaxyPoints) {
+            galaxyGeometry?.dispose();
+            galaxyMaterial?.dispose();
+            scene.remove(galaxyPoints);
+        }
 
-  function generateGalaxy() {
-    if (!scene) return;
+        const {
+            particleCount,
+            particleSize,
+            radius,
+            branches,
+            spin,
+            randomness,
+            randomnessPower,
+            concentrationPower,
+        } = settingsState.galaxySettings;
 
-    // Dispose old galaxy
-    if (galaxyPoints) {
-      galaxyGeometry?.dispose();
-      galaxyMaterial?.dispose();
-      scene.remove(galaxyPoints);
-    }
+        // Galaxy particle system
+        const positions = new Float32Array(particleCount * 3);
+        const randoms = new Float32Array(particleCount * 3);
+        const scales = new Float32Array(particleCount);
 
-    const {
-      particleCount,
-      particleSize,
-      radius,
-      branches,
-      spin,
-      randomness,
-      randomnessPower,
-      concentrationPower,
-    } = settingsState.galaxySettings;
+        for (let i = 0; i < particleCount; i++) {
+            const i3 = i * 3;
+            randoms[i3] = (Math.random() - 0.5) * 2 * randomness;
+            randoms[i3 + 1] = (Math.random() - 0.5) * 2 * randomness;
+            randoms[i3 + 2] = (Math.random() - 0.5) * 2 * randomness;
+            scales[i] = Math.random();
+            positions[i3] = positions[i3 + 1] = positions[i3 + 2] = 0;
+        }
 
-    // Galaxy particle system
-    const positions = new Float32Array(particleCount * 3);
-    const randoms = new Float32Array(particleCount * 3);
-    const scales = new Float32Array(particleCount);
+        galaxyGeometry = new THREE.BufferGeometry();
+        galaxyGeometry.setAttribute(
+            "position",
+            new THREE.BufferAttribute(positions, 3),
+        );
+        galaxyGeometry.setAttribute(
+            "aRandom",
+            new THREE.BufferAttribute(randoms, 3),
+        );
+        galaxyGeometry.setAttribute(
+            "aScale",
+            new THREE.BufferAttribute(scales, 1),
+        );
 
-    for (let i = 0; i < particleCount; i++) {
-      const i3 = i * 3;
-      randoms[i3] = (Math.random() - 0.5) * 2 * randomness;
-      randoms[i3 + 1] = (Math.random() - 0.5) * 2 * randomness;
-      randoms[i3 + 2] = (Math.random() - 0.5) * 2 * randomness;
-      scales[i] = Math.random();
-      positions[i3] = positions[i3 + 1] = positions[i3 + 2] = 0;
-    }
+        // Color mixing attribute (determines which outside color to use)
+        const colorMixs = new Float32Array(particleCount);
+        for (let i = 0; i < particleCount; i++) {
+            colorMixs[i] = Math.random();
+        }
+        galaxyGeometry.setAttribute(
+            "aColorMix",
+            new THREE.BufferAttribute(colorMixs, 1),
+        );
 
-    galaxyGeometry = new THREE.BufferGeometry();
-    galaxyGeometry.setAttribute("position", new THREE.BufferAttribute(positions, 3));
-    galaxyGeometry.setAttribute("aRandom", new THREE.BufferAttribute(randoms, 3));
-    galaxyGeometry.setAttribute("aScale", new THREE.BufferAttribute(scales, 1));
+        // Colors from Theme
+        // We use fallback to "white" for core if undefined to ensure visibility
+        let colorInside = new THREE.Color(
+            getVar("--galaxy-stars-core") || "#6366f1",
+        );
+        let colorOutside = new THREE.Color(
+            getVar("--galaxy-stars-edge") || "#8b5cf6",
+        );
+        let colorOutside2 = new THREE.Color(
+            getVar("--galaxy-stars-edge-2") || "#8b5cf6",
+        );
+        let colorOutside3 = new THREE.Color(
+            getVar("--galaxy-stars-edge-3") || "#6366f1",
+        );
 
-    // Color mixing attribute (determines which outside color to use)
-    const colorMixs = new Float32Array(particleCount);
-    for (let i = 0; i < particleCount; i++) {
-        colorMixs[i] = Math.random();
-    }
-    galaxyGeometry.setAttribute("aColorMix", new THREE.BufferAttribute(colorMixs, 1));
+        // Determine Blending Mode based on Background Brightness
+        const bgStr = getVar("--galaxy-bg") || "#0a0e27";
+        const bgCol = new THREE.Color(bgStr);
+        const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
+        const blendingMode = isLight
+            ? THREE.NormalBlending
+            : THREE.AdditiveBlending;
+        const alphaCutoff = isLight ? 0.6 : 0.2;
 
-    // Colors from Theme
-    // We use fallback to "white" for core if undefined to ensure visibility
-    let colorInside = new THREE.Color(getVar("--galaxy-stars-core") || "#6366f1");
-    let colorOutside = new THREE.Color(getVar("--galaxy-stars-edge") || "#8b5cf6");
-    let colorOutside2 = new THREE.Color(getVar("--galaxy-stars-edge-2") || "#8b5cf6");
-    let colorOutside3 = new THREE.Color(getVar("--galaxy-stars-edge-3") || "#6366f1");
-
-    // Determine Blending Mode based on Background Brightness
-    const bgStr = getVar("--galaxy-bg") || "#0a0e27";
-    const bgCol = new THREE.Color(bgStr);
-    const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
-    const blendingMode = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
-    const alphaCutoff = isLight ? 0.6 : 0.2;
-
-    // Shader material
-    galaxyMaterial = new THREE.ShaderMaterial({
-      depthWrite: false,
-      blending: blendingMode,
-      vertexColors: true,
-      uniforms: {
-        uTime: { value: 0 },
-        uSize: { value: particleSize },
-        uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
-        uColorInside: { value: colorInside },
-        uColorOutside: { value: colorOutside },
-        uColorOutside2: { value: colorOutside2 },
-        uColorOutside3: { value: colorOutside3 },
-        uRadius: { value: radius },
-        uBranches: { value: branches },
-        uSpinSpeed: { value: spin },
-        uRandomnessPower: { value: randomnessPower },
-        uConcentrationPower: { value: concentrationPower },
-        uAlphaCutoff: { value: alphaCutoff },
-      },
-      vertexShader: `
+        // Shader material
+        galaxyMaterial = new THREE.ShaderMaterial({
+            depthWrite: false,
+            blending: blendingMode,
+            vertexColors: true,
+            uniforms: {
+                uTime: { value: 0 },
+                uSize: { value: particleSize },
+                uPixelRatio: { value: Math.min(window.devicePixelRatio, 2) },
+                uColorInside: { value: colorInside },
+                uColorOutside: { value: colorOutside },
+                uColorOutside2: { value: colorOutside2 },
+                uColorOutside3: { value: colorOutside3 },
+                uRadius: { value: radius },
+                uBranches: { value: branches },
+                uSpinSpeed: { value: spin },
+                uRandomnessPower: { value: randomnessPower },
+                uConcentrationPower: { value: concentrationPower },
+                uAlphaCutoff: { value: alphaCutoff },
+            },
+            vertexShader: `
                 uniform float uTime;
                 uniform float uSize;
                 uniform float uPixelRatio;
@@ -217,7 +246,7 @@
                     }
                 }
             `,
-      fragmentShader: `
+            fragmentShader: `
                 uniform vec3 uColorInside;
                 uniform float uAlphaCutoff;
 
@@ -238,239 +267,260 @@
                     gl_FragColor = vec4(color, alpha);
                 }
             `,
-    });
+        });
 
-    galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
+        galaxyPoints = new THREE.Points(galaxyGeometry, galaxyMaterial);
 
-    // Apply initial rotation
-    const { galaxyRot } = settingsState.galaxySettings;
-    galaxyPoints.rotation.set(
-        (galaxyRot?.x || 0) * (Math.PI / 180),
-        (galaxyRot?.y || 0) * (Math.PI / 180),
-        (galaxyRot?.z || 0) * (Math.PI / 180)
-    );
+        // Apply initial rotation
+        const { galaxyRot } = settingsState.galaxySettings;
+        galaxyPoints.rotation.set(
+            (galaxyRot?.x || 0) * (Math.PI / 180),
+            (galaxyRot?.y || 0) * (Math.PI / 180),
+            (galaxyRot?.z || 0) * (Math.PI / 180),
+        );
 
-    scene.add(galaxyPoints);
-  }
-
-  function updateScene() {
-      const s = settingsState.galaxySettings;
-
-      // Update Galaxy Rotation (convert degrees to radians)
-      if (galaxyPoints) {
-          galaxyPoints.rotation.set(
-              (s.galaxyRot?.x || 0) * (Math.PI / 180),
-              (s.galaxyRot?.y || 0) * (Math.PI / 180),
-              (s.galaxyRot?.z || 0) * (Math.PI / 180)
-          );
-      }
-
-      // Update Camera Position
-      if (camera && s.camPos) {
-          camera.position.set(s.camPos.x, s.camPos.y, s.camPos.z);
-      }
-
-      if (!galaxyMaterial) return;
-      galaxyMaterial.uniforms.uSize.value = s.particleSize;
-      galaxyMaterial.uniforms.uRadius.value = s.radius;
-      galaxyMaterial.uniforms.uBranches.value = s.branches;
-      galaxyMaterial.uniforms.uSpinSpeed.value = s.spin;
-      galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
-      galaxyMaterial.uniforms.uConcentrationPower.value = s.concentrationPower;
-
-      // Update colors with resolution
-      const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
-      const highlight = resolveColor("--galaxy-stars-edge") || "#8b5cf6";
-      const highlight2 = resolveColor("--galaxy-stars-edge-2") || "#8b5cf6";
-      const highlight3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
-
-      galaxyMaterial.uniforms.uColorInside.value.set(accent);
-      galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
-      galaxyMaterial.uniforms.uColorOutside2.value.set(highlight2);
-      galaxyMaterial.uniforms.uColorOutside3.value.set(highlight3);
-
-      // Update Blending & Background
-      const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
-      if (scene) scene.background = new THREE.Color(bgStr);
-
-      const bgCol = new THREE.Color(bgStr);
-      const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
-      const newBlending = isLight ? THREE.NormalBlending : THREE.AdditiveBlending;
-      const newCutoff = isLight ? 0.6 : 0.2;
-
-      if (galaxyMaterial.blending !== newBlending) {
-          galaxyMaterial.blending = newBlending;
-          galaxyMaterial.needsUpdate = true;
-      }
-
-      if (galaxyMaterial.uniforms.uAlphaCutoff) {
-          galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
-      }
-  }
-
-  onMount(() => {
-    if (!browser || !container) return;
-
-    // Scene
-    scene = new THREE.Scene();
-    const bg = resolveColor("--galaxy-bg") || "#0a0e27";
-    scene.background = new THREE.Color(bg);
-
-    // Camera
-    camera = new THREE.PerspectiveCamera(
-      50,
-      window.innerWidth / window.innerHeight,
-      0.1,
-      100
-    );
-    // Initial position from settings
-    const { camPos } = settingsState.galaxySettings;
-    camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
-
-    // Renderer
-    renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
-    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-    renderer.setSize(window.innerWidth, window.innerHeight);
-    container.appendChild(renderer.domElement);
-
-    // Controls
-    controls = new OrbitControls(camera, renderer.domElement);
-    controls.enableDamping = true;
-    controls.enableZoom = false;
-    controls.minDistance = 0.1;
-    controls.maxDistance = 50;
-
-    // Initial Generation
-    generateGalaxy();
-
-    // Animation Loop
-    const clock = new THREE.Clock();
-    function animate() {
-      if (!renderer || !scene || !camera || !controls) return;
-
-      const elapsedTime = clock.getElapsedTime();
-
-      if (galaxyMaterial) {
-        galaxyMaterial.uniforms.uTime.value = elapsedTime;
-      }
-
-      if (!settingsState.galaxySettings.enableGyroscope) {
-          controls.update();
-      }
-      renderer.render(scene, camera);
-      animationId = requestAnimationFrame(animate);
+        scene.add(galaxyPoints);
     }
-    animate();
 
-    // Resize Handler
-    function onWindowResize() {
-        if (!camera || !renderer) return;
-        camera.aspect = window.innerWidth / window.innerHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(window.innerWidth, window.innerHeight);
-        if (galaxyMaterial) {
-            galaxyMaterial.uniforms.uPixelRatio.value = Math.min(window.devicePixelRatio, 2);
+    function updateScene() {
+        const s = settingsState.galaxySettings;
+
+        // Update Galaxy Rotation (convert degrees to radians)
+        if (galaxyPoints) {
+            galaxyPoints.rotation.set(
+                (s.galaxyRot?.x || 0) * (Math.PI / 180),
+                (s.galaxyRot?.y || 0) * (Math.PI / 180),
+                (s.galaxyRot?.z || 0) * (Math.PI / 180),
+            );
+        }
+
+        // Update Camera Position
+        if (camera && s.camPos) {
+            camera.position.set(s.camPos.x, s.camPos.y, s.camPos.z);
+        }
+
+        // Force transparency so CSS gradient shows through
+        if (scene) scene.background = null;
+
+        if (!galaxyMaterial) return;
+        galaxyMaterial.uniforms.uSize.value = s.particleSize;
+        galaxyMaterial.uniforms.uRadius.value = s.radius;
+        galaxyMaterial.uniforms.uBranches.value = s.branches;
+        galaxyMaterial.uniforms.uSpinSpeed.value = s.spin;
+        galaxyMaterial.uniforms.uRandomnessPower.value = s.randomnessPower;
+        galaxyMaterial.uniforms.uConcentrationPower.value =
+            s.concentrationPower;
+
+        // Update colors with resolution
+        const accent = resolveColor("--galaxy-stars-core") || "#6366f1";
+        const highlight = resolveColor("--galaxy-stars-edge") || "#8b5cf6";
+        const highlight2 = resolveColor("--galaxy-stars-edge-2") || "#8b5cf6";
+        const highlight3 = resolveColor("--galaxy-stars-edge-3") || "#6366f1";
+
+        galaxyMaterial.uniforms.uColorInside.value.set(accent);
+        galaxyMaterial.uniforms.uColorOutside.value.set(highlight);
+        galaxyMaterial.uniforms.uColorOutside2.value.set(highlight2);
+        galaxyMaterial.uniforms.uColorOutside3.value.set(highlight3);
+
+        // Update Blending & Background
+        const bgStr = resolveColor("--galaxy-bg") || "#0a0e27";
+        // scene.background removed to allow CSS gradient to show
+        // if (scene) scene.background = new THREE.Color(bgStr);
+
+        const bgCol = new THREE.Color(bgStr);
+        const isLight = bgCol.getHSL({ h: 0, s: 0, l: 0 }).l > 0.5;
+        const newBlending = isLight
+            ? THREE.NormalBlending
+            : THREE.AdditiveBlending;
+        const newCutoff = isLight ? 0.6 : 0.2;
+
+        if (galaxyMaterial.blending !== newBlending) {
+            galaxyMaterial.blending = newBlending;
+            galaxyMaterial.needsUpdate = true;
+        }
+
+        if (galaxyMaterial.uniforms.uAlphaCutoff) {
+            galaxyMaterial.uniforms.uAlphaCutoff.value = newCutoff;
         }
     }
-    window.addEventListener("resize", onWindowResize);
 
-    // Theme Observer
-    themeObserver = new MutationObserver(() => {
+    onMount(() => {
+        if (!browser || !container) return;
+
+        // Scene
+        scene = new THREE.Scene();
+        // const bg = resolveColor("--galaxy-bg") || "#0a0e27";
+        // scene.background = new THREE.Color(bg);
+
+        // Camera
+        camera = new THREE.PerspectiveCamera(
+            50,
+            window.innerWidth / window.innerHeight,
+            0.1,
+            100,
+        );
+        // Initial position from settings
+        const { camPos } = settingsState.galaxySettings;
+        camera.position.set(camPos?.x || 4, camPos?.y || 2, camPos?.z || 5);
+
+        // Renderer
+        renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        container.appendChild(renderer.domElement);
+
+        // Controls
+        controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.enableZoom = false;
+        controls.minDistance = 0.1;
+        controls.maxDistance = 50;
+
+        // Initial Generation
+        generateGalaxy();
+
+        // Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            if (!renderer || !scene || !camera || !controls) return;
+
+            const elapsedTime = clock.getElapsedTime();
+
+            if (galaxyMaterial) {
+                galaxyMaterial.uniforms.uTime.value = elapsedTime;
+            }
+
+            if (!settingsState.galaxySettings.enableGyroscope) {
+                controls.update();
+            }
+            renderer.render(scene, camera);
+            animationId = requestAnimationFrame(animate);
+        }
+        animate();
+
+        // Resize Handler
+        function onWindowResize() {
+            if (!camera || !renderer) return;
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            if (galaxyMaterial) {
+                galaxyMaterial.uniforms.uPixelRatio.value = Math.min(
+                    window.devicePixelRatio,
+                    2,
+                );
+            }
+        }
+        window.addEventListener("resize", onWindowResize);
+
+        // Theme Observer
+        themeObserver = new MutationObserver(() => {
+            updateScene();
+        });
+        themeObserver.observe(document.documentElement, {
+            attributes: true,
+            attributeFilter: ["class", "data-mode", "style"],
+        });
+
+        return () => {
+            if (animationId) cancelAnimationFrame(animationId);
+            window.removeEventListener("resize", onWindowResize);
+            themeObserver?.disconnect();
+            controls?.dispose();
+            renderer?.dispose();
+            galaxyGeometry?.dispose();
+            galaxyMaterial?.dispose();
+            if (renderer && renderer.domElement && container) {
+                container.removeChild(renderer.domElement);
+            }
+        };
+    });
+
+    // Reactivity to settings changes
+    let previousStructureKey = "";
+    $effect(() => {
+        const s = settingsState.galaxySettings;
+        // Define a key for properties that require geometry regeneration
+        const structureKey = `${s.particleCount}_${s.radius}_${s.branches}_${s.randomness}_${s.randomnessPower}_${s.concentrationPower}`;
+
+        if (structureKey !== previousStructureKey) {
+            generateGalaxy();
+            previousStructureKey = structureKey;
+        }
+
+        // Always update transforms and uniforms
         updateScene();
     });
-    themeObserver.observe(document.documentElement, {
-        attributes: true,
-        attributeFilter: ["class", "data-mode", "style"],
-    });
 
-    return () => {
-        if (animationId) cancelAnimationFrame(animationId);
-        window.removeEventListener("resize", onWindowResize);
-        themeObserver?.disconnect();
-        controls?.dispose();
-        renderer?.dispose();
-        galaxyGeometry?.dispose();
-        galaxyMaterial?.dispose();
-        if (renderer && renderer.domElement && container) {
-            container.removeChild(renderer.domElement);
+    // Gyroscope Logic
+    let initialOrientation: {
+        alpha: number;
+        beta: number;
+        gamma: number;
+    } | null = null;
+
+    function onDeviceOrientation(event: DeviceOrientationEvent) {
+        if (!camera || !settingsState.galaxySettings.enableGyroscope) return;
+
+        const alpha = event.alpha || 0;
+        const beta = event.beta || 0;
+        const gamma = event.gamma || 0;
+
+        if (!initialOrientation) {
+            initialOrientation = { alpha, beta, gamma };
+            return;
         }
-    };
-  });
 
-  // Reactivity to settings changes
-  let previousStructureKey = "";
-  $effect(() => {
-      const s = settingsState.galaxySettings;
-      // Define a key for properties that require geometry regeneration
-      const structureKey = `${s.particleCount}_${s.radius}_${s.branches}_${s.randomness}_${s.randomnessPower}_${s.concentrationPower}`;
+        // Calculate deltas
+        let dAlpha = alpha - initialOrientation.alpha;
+        let dBeta = beta - initialOrientation.beta;
 
-      if (structureKey !== previousStructureKey) {
-          generateGalaxy();
-          previousStructureKey = structureKey;
-      }
+        // Handle wrap-around for alpha
+        if (dAlpha > 180) dAlpha -= 360;
+        if (dAlpha < -180) dAlpha += 360;
 
-      // Always update transforms and uniforms
-      updateScene();
-  });
+        const basePos = settingsState.galaxySettings.camPos;
+        const r =
+            Math.sqrt(basePos.x ** 2 + basePos.y ** 2 + basePos.z ** 2) || 6;
 
-  // Gyroscope Logic
-  let initialOrientation: { alpha: number; beta: number; gamma: number } | null = null;
+        // Azimuth (around Y)
+        // dAlpha controls rotation around Y axis
+        const theta =
+            THREE.MathUtils.degToRad(dAlpha) + Math.atan2(basePos.x, basePos.z);
 
-  function onDeviceOrientation(event: DeviceOrientationEvent) {
-      if (!camera || !settingsState.galaxySettings.enableGyroscope) return;
+        // Polar (up/down)
+        // dBeta controls elevation
+        const phi = THREE.MathUtils.degToRad(dBeta) + Math.acos(basePos.y / r);
+        const clampedPhi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
 
-      const alpha = event.alpha || 0;
-      const beta = event.beta || 0;
-      const gamma = event.gamma || 0;
+        const x = r * Math.sin(clampedPhi) * Math.sin(theta);
+        const y = r * Math.cos(clampedPhi);
+        const z = r * Math.sin(clampedPhi) * Math.cos(theta);
 
-      if (!initialOrientation) {
-          initialOrientation = { alpha, beta, gamma };
-          return;
-      }
+        camera.position.set(x, y, z);
+        camera.lookAt(0, 0, 0);
+    }
 
-      // Calculate deltas
-      let dAlpha = alpha - initialOrientation.alpha;
-      let dBeta = beta - initialOrientation.beta;
+    $effect(() => {
+        if (settingsState.galaxySettings.enableGyroscope) {
+            if (controls) controls.enabled = false;
+            initialOrientation = null;
+            window.addEventListener("deviceorientation", onDeviceOrientation);
+        } else {
+            if (controls) controls.enabled = true;
+            window.removeEventListener(
+                "deviceorientation",
+                onDeviceOrientation,
+            );
+        }
 
-      // Handle wrap-around for alpha
-      if (dAlpha > 180) dAlpha -= 360;
-      if (dAlpha < -180) dAlpha += 360;
-
-      const basePos = settingsState.galaxySettings.camPos;
-      const r = Math.sqrt(basePos.x ** 2 + basePos.y ** 2 + basePos.z ** 2) || 6;
-
-      // Azimuth (around Y)
-      // dAlpha controls rotation around Y axis
-      const theta = THREE.MathUtils.degToRad(dAlpha) + Math.atan2(basePos.x, basePos.z);
-
-      // Polar (up/down)
-      // dBeta controls elevation
-      const phi = THREE.MathUtils.degToRad(dBeta) + Math.acos(basePos.y / r);
-      const clampedPhi = Math.max(0.1, Math.min(Math.PI - 0.1, phi));
-
-      const x = r * Math.sin(clampedPhi) * Math.sin(theta);
-      const y = r * Math.cos(clampedPhi);
-      const z = r * Math.sin(clampedPhi) * Math.cos(theta);
-
-      camera.position.set(x, y, z);
-      camera.lookAt(0, 0, 0);
-  }
-
-  $effect(() => {
-      if (settingsState.galaxySettings.enableGyroscope) {
-          if (controls) controls.enabled = false;
-          initialOrientation = null;
-          window.addEventListener("deviceorientation", onDeviceOrientation);
-      } else {
-          if (controls) controls.enabled = true;
-          window.removeEventListener("deviceorientation", onDeviceOrientation);
-      }
-
-      return () => {
-          window.removeEventListener("deviceorientation", onDeviceOrientation);
-      };
-  });
-
+        return () => {
+            window.removeEventListener(
+                "deviceorientation",
+                onDeviceOrientation,
+            );
+        };
+    });
 </script>
 
 <div
