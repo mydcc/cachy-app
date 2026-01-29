@@ -30,7 +30,7 @@
     overview: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" viewBox="0 0 16 16"><path d="M1 2.5A1.5 1.5 0 0 1 2.5 1h3A1.5 1.5 0 0 1 7 2.5v3A1.5 1.5 0 0 1 5.5 7h-3A1.5 1.5 0 0 1 1 5.5v-3zM2.5 2a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 1h3A1.5 1.5 0 0 1 15 2.5v3A1.5 1.5 0 0 1 13.5 7h-3A1.5 1.5 0 0 1 9 5.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zM1 10.5A1.5 1.5 0 0 1 2.5 9h3A1.5 1.5 0 0 1 7 10.5v3A1.5 1.5 0 0 1 5.5 15h-3A1.5 1.5 0 0 1 1 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3zm6.5.5A1.5 1.5 0 0 1 10.5 9h3a1.5 1.5 0 0 1 1.5 1.5v3a1.5 1.5 0 0 1-1.5 1.5h-3A1.5 1.5 0 0 1 9 13.5v-3zm1.5-.5a.5.5 0 0 0-.5.5v3a.5.5 0 0 0 .5.5h3a.5.5 0 0 0 .5-.5v-3a.5.5 0 0 0-.5-.5h-3z"/></svg>`,
     sentiment: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z" /></svg>`, // Activity/Lightning bolt for sentiment/energy
     academy: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path d="M12 14l9-5-9-5-9 5 9 5z" /><path d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5zm0 0l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0012 20.055a11.952 11.952 0 00-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14zm-4 6v-7.5l4-2.222" /></svg>`,
-    chartPatterns: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 3v18h18" /></svg>`
+    chartPatterns: `<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 12l3-3 3 3 4-4M8 21l4-4 4 4M3 3v18h18" /></svg>`,
   };
 </script>
 
@@ -44,9 +44,9 @@
     onclick={() => uiState.toggleMarketDashboardModal(true)}
     title={$_("marketDashboard.buttonTitle") || "Market Overview"}
     use:trackClick={{
-        category: "Navigation",
-        action: "Click",
-        name: "OpenMarketDashboard",
+      category: "Navigation",
+      action: "Click",
+      name: "OpenMarketDashboard",
     }}
   >
     {@html ICONS.dashboard}
@@ -58,9 +58,9 @@
     onclick={() => uiState.toggleSettingsModal(true)}
     title={$_("settings.title") || "Settings"}
     use:trackClick={{
-        category: "Navigation",
-        action: "Click",
-        name: "OpenSettings",
+      category: "Navigation",
+      action: "Click",
+      name: "OpenSettings",
     }}
   >
     {@html icons.settings}
@@ -82,12 +82,28 @@
     </button>
     <!-- Quiz Progress Bar -->
     {#if quizState.questions.length > 0}
-      <div
-        class="absolute left-[2px] bottom-1 w-[2px] bg-[var(--success-color)] rounded-full transition-all duration-500"
-        style:height="{(quizState.knownQuestionIds.size /
-          quizState.questions.length) *
-          28}px"
-      ></div>
+      {@const progress = Math.min(
+        100,
+        (quizState.knownQuestionIds.size / 52) * 100,
+      )}
+      <div class="absolute left-[2px] top-1/2 -translate-y-1/2 z-10">
+        <Tooltip text="{quizState.knownQuestionIds.size}/52">
+          <div
+            class="flex flex-col h-[28px] w-[4px] rounded-full overflow-hidden shadow-sm"
+          >
+            <!-- Red Segment (Top) -->
+            <div
+              class="bg-[var(--danger-color)] w-full transition-all duration-500"
+              style:height="{100 - progress}%"
+            ></div>
+            <!-- Green Segment (Bottom) -->
+            <div
+              class="bg-[var(--success-color)] w-full transition-all duration-500"
+              style:height="{progress}%"
+            ></div>
+          </div>
+        </Tooltip>
+      </div>
     {/if}
   </div>
 
@@ -97,7 +113,8 @@
   <button
     class="control-btn"
     class:active={settingsState.showTechnicals}
-    onclick={() => (settingsState.showTechnicals = !settingsState.showTechnicals)}
+    onclick={() =>
+      (settingsState.showTechnicals = !settingsState.showTechnicals)}
     title={$_("settings.showTechnicals") || "Toggle Technicals"}
   >
     {@html icons.chart}
@@ -107,7 +124,8 @@
   <button
     class="control-btn"
     class:active={settingsState.showMarketOverview}
-    onclick={() => (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
+    onclick={() =>
+      (settingsState.showMarketOverview = !settingsState.showMarketOverview)}
     title="Toggle Market Tiles"
   >
     {@html ICONS.overview}
@@ -117,7 +135,8 @@
   <button
     class="control-btn"
     class:active={settingsState.showMarketSentiment}
-    onclick={() => (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
+    onclick={() =>
+      (settingsState.showMarketSentiment = !settingsState.showMarketSentiment)}
     title="Toggle Market Sentiment"
   >
     {@html ICONS.sentiment}

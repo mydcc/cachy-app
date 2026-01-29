@@ -462,8 +462,10 @@
     );
 </script>
 
-<div class="mt-8 border-t border-[var(--border-color)] pt-6">
-    <div class="flex items-center gap-2 mb-4">
+<div
+    class="mt-12 border-t border-[var(--border-color)] pt-12 relative z-10 bg-[var(--bg-primary)]"
+>
+    <div class="flex items-center gap-2 mb-2">
         <span class="text-2xl">🦆</span>
         <h3 class="text-xl font-bold text-[var(--text-primary)]">
             {$_("journal.deepDive.title")}
@@ -762,7 +764,10 @@
                         <div
                             class="font-bold text-[var(--text-primary)] pr-2 flex items-center h-8"
                         >
-                            {$_("journal.days." + (dayMap[row.day] || "mon") as any)}
+                            {$_(
+                                ("journal.days." +
+                                    (dayMap[row.day] || "mon")) as any,
+                            )}
                         </div>
                         {#each row.hours as cell}
                             <div
@@ -798,8 +803,9 @@
                                     >
                                         <div class="font-bold">
                                             {$_(
-                                                "journal.days." +
-                                                    (dayMap[row.day] || "mon") as any,
+                                                ("journal.days." +
+                                                    (dayMap[row.day] ||
+                                                        "mon")) as any,
                                             )}
                                             {cell.hour}:00
                                         </div>

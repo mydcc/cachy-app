@@ -41,6 +41,14 @@
         onUploadScreenshot,
     }: Props = $props();
 
+    // Debug logging to verify data reception
+    $effect(() => {
+        // console.log("JournalTable trades received:", trades?.length);
+    });
+
+    // Ensure safe default if undefined passed
+    itemsPerPage = itemsPerPage || 10;
+
     // Local sort state for internal tables (shared across all groups)
     let internalSortField = $state("date");
     let internalSortDirection = $state<"asc" | "desc">("desc");
@@ -49,7 +57,11 @@
     let expandedGroups = $state(new Set<string>());
 
     // Helper to sort trades
-    function sortTradesList(list: any[], field: string, direction: "asc" | "desc") {
+    function sortTradesList(
+        list: any[],
+        field: string,
+        direction: "asc" | "desc",
+    ) {
         return [...list].sort((a, b) => {
             let aVal = a[field];
             let bVal = b[field];
@@ -183,7 +195,9 @@
 {#snippet tableTemplate(items: any[], isNested: boolean)}
     {@const activeSort = isNested ? internalSortField : sortField}
     {@const activeDir = isNested ? internalSortDirection : sortDirection}
-    {@const sortedItems = isNested ? sortTradesList(items, internalSortField, internalSortDirection) : items}
+    {@const sortedItems = isNested
+        ? sortTradesList(items, internalSortField, internalSortDirection)
+        : items}
 
     <div class="table-wrapper">
         <table class="journal-table">
@@ -195,7 +209,10 @@
                         {/if}
                         {#if columnVisibility.date && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("date") : handleMainSort("date")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("date")
+                                        : handleMainSort("date")}
                                 class="sortable col-date"
                             >
                                 {$_("journal.table.date")}
@@ -210,7 +227,10 @@
                         {/if}
                         {#if columnVisibility.symbol}
                             <th
-                                onclick={() => isNested ? handleInternalSort("symbol") : handleMainSort("symbol")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("symbol")
+                                        : handleMainSort("symbol")}
                                 class="sortable col-symbol"
                             >
                                 {$_("journal.table.symbol")}
@@ -225,7 +245,10 @@
                         {/if}
                         {#if columnVisibility.type && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("tradeType") : handleMainSort("tradeType")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("tradeType")
+                                        : handleMainSort("tradeType")}
                                 class="sortable"
                             >
                                 {$_("journal.table.type")}
@@ -240,7 +263,10 @@
                         {/if}
                         {#if columnVisibility.entry && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("entryPrice") : handleMainSort("entryPrice")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("entryPrice")
+                                        : handleMainSort("entryPrice")}
                                 class="sortable"
                             >
                                 {$_("journal.table.entry")}
@@ -255,7 +281,10 @@
                         {/if}
                         {#if columnVisibility.exit && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("exitPrice") : handleMainSort("exitPrice")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("exitPrice")
+                                        : handleMainSort("exitPrice")}
                                 class="sortable"
                             >
                                 {$_("journal.table.exit")}
@@ -270,7 +299,10 @@
                         {/if}
                         {#if columnVisibility.atr && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("atrValue") : handleMainSort("atrValue")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("atrValue")
+                                        : handleMainSort("atrValue")}
                                 class="sortable"
                             >
                                 {$_("journal.table.atr")}
@@ -285,7 +317,10 @@
                         {/if}
                         {#if columnVisibility.sl && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("stopLossPrice") : handleMainSort("stopLossPrice")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("stopLossPrice")
+                                        : handleMainSort("stopLossPrice")}
                                 class="sortable"
                             >
                                 {$_("journal.table.sl")}
@@ -300,7 +335,10 @@
                         {/if}
                         {#if columnVisibility.size && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("positionSize") : handleMainSort("positionSize")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("positionSize")
+                                        : handleMainSort("positionSize")}
                                 class="sortable"
                             >
                                 {$_("journal.table.size")}
@@ -315,7 +353,10 @@
                         {/if}
                         {#if columnVisibility.pnl}
                             <th
-                                onclick={() => isNested ? handleInternalSort("totalNetProfit") : handleMainSort("totalNetProfit")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("totalNetProfit")
+                                        : handleMainSort("totalNetProfit")}
                                 class="sortable"
                             >
                                 {$_("journal.table.pnl")}
@@ -330,7 +371,10 @@
                         {/if}
                         {#if columnVisibility.funding && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("fundingFee") : handleMainSort("fundingFee")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("fundingFee")
+                                        : handleMainSort("fundingFee")}
                                 class="sortable"
                             >
                                 {$_("journal.table.funding")}
@@ -345,7 +389,10 @@
                         {/if}
                         {#if columnVisibility.rr}
                             <th
-                                onclick={() => isNested ? handleInternalSort("totalRR") : handleMainSort("totalRR")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("totalRR")
+                                        : handleMainSort("totalRR")}
                                 class="sortable"
                             >
                                 {$_("journal.table.rr")}
@@ -360,7 +407,10 @@
                         {/if}
                         {#if columnVisibility.mae && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("mae") : handleMainSort("mae")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("mae")
+                                        : handleMainSort("mae")}
                                 class="sortable"
                             >
                                 {$_("journal.table.mae")}
@@ -375,7 +425,10 @@
                         {/if}
                         {#if columnVisibility.mfe && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("mfe") : handleMainSort("mfe")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("mfe")
+                                        : handleMainSort("mfe")}
                                 class="sortable"
                             >
                                 {$_("journal.table.mfe")}
@@ -390,7 +443,10 @@
                         {/if}
                         {#if columnVisibility.efficiency && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("efficiency") : handleMainSort("efficiency")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("efficiency")
+                                        : handleMainSort("efficiency")}
                                 class="sortable"
                             >
                                 {$_("journal.table.efficiency")}
@@ -405,7 +461,10 @@
                         {/if}
                         {#if columnVisibility.duration && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("duration") : handleMainSort("duration")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("duration")
+                                        : handleMainSort("duration")}
                                 class="sortable col-duration"
                             >
                                 {$_("journal.table.duration")}
@@ -420,7 +479,10 @@
                         {/if}
                         {#if columnVisibility.status && (!groupBySymbol || isNested)}
                             <th
-                                onclick={() => isNested ? handleInternalSort("status") : handleMainSort("status")}
+                                onclick={() =>
+                                    isNested
+                                        ? handleInternalSort("status")
+                                        : handleMainSort("status")}
                                 class="sortable"
                             >
                                 {$_("journal.table.status")}
@@ -432,10 +494,12 @@
                         {#if columnVisibility.tags && (!groupBySymbol || isNested)}
                             <th>{$_("journal.table.tags")}</th>
                         {/if}
-                        {#if columnVisibility.notes && (!groupBySymbol || isNested)}<th>
+                        {#if columnVisibility.notes && (!groupBySymbol || isNested)}<th
+                            >
                                 {$_("journal.table.notes")}</th
                             >{/if}
-                        {#if columnVisibility.action && (!groupBySymbol || isNested)}<th>
+                        {#if columnVisibility.action && (!groupBySymbol || isNested)}<th
+                            >
                                 {$_("journal.table.action")}</th
                             >{/if}
                     </tr>
@@ -504,7 +568,10 @@
                                     ></td>
                                     <td colspan="100" style="padding: 0;">
                                         <!-- RECURSIVE SNIPPET CALL -->
-                                        {@render tableTemplate(item.trades, true)}
+                                        {@render tableTemplate(
+                                            item.trades,
+                                            true,
+                                        )}
                                     </td>
                                 </tr>
                             {/if}
@@ -556,9 +623,9 @@
                                         >{item.exitPrice &&
                                         !item.exitPrice.isZero()
                                             ? formatDynamicDecimal(
-                                                    item.exitPrice,
-                                                    4,
-                                                )
+                                                  item.exitPrice,
+                                                  4,
+                                              )
                                             : "-"}</td
                                     >
                                 {/if}
@@ -568,9 +635,9 @@
                                         >{item.atrValue !== undefined &&
                                         item.atrValue !== null
                                             ? formatDynamicDecimal(
-                                                    item.atrValue,
-                                                    4,
-                                                )
+                                                  item.atrValue,
+                                                  4,
+                                              )
                                             : "-"}</td
                                     >
                                 {/if}
@@ -579,9 +646,9 @@
                                         >{item.stopLossPrice &&
                                         !item.stopLossPrice.isZero()
                                             ? formatDynamicDecimal(
-                                                    item.stopLossPrice,
-                                                    4,
-                                                )
+                                                  item.stopLossPrice,
+                                                  4,
+                                              )
                                             : "-"}</td
                                     >
                                 {/if}
@@ -589,9 +656,9 @@
                                     <td class="text-xs"
                                         >{item.positionSize
                                             ? formatDynamicDecimal(
-                                                    item.positionSize,
-                                                    4,
-                                                )
+                                                  item.positionSize,
+                                                  4,
+                                              )
                                             : "-"}</td
                                     >
                                 {/if}
@@ -611,9 +678,9 @@
                                         {item.fundingFee !== undefined &&
                                         item.fundingFee !== null
                                             ? formatDynamicDecimal(
-                                                    item.fundingFee,
-                                                    2,
-                                                )
+                                                  item.fundingFee,
+                                                  2,
+                                              )
                                             : "-"}
                                     </td>
                                 {/if}
@@ -622,8 +689,8 @@
                                         class="font-bold {item.totalRR?.gt(2)
                                             ? 'text-success'
                                             : item.totalRR?.gt(1)
-                                                ? 'text-warning'
-                                                : item.totalRR?.lt(0)
+                                              ? 'text-warning'
+                                              : item.totalRR?.lt(0)
                                                 ? 'text-danger'
                                                 : 'text-[var(--text-secondary)]'}"
                                     >
@@ -655,8 +722,8 @@
                                         {item.efficiency !== undefined &&
                                         item.efficiency !== null
                                             ? item.efficiency
-                                                    .times(100)
-                                                    .toFixed(0) + "%"
+                                                  .times(100)
+                                                  .toFixed(0) + "%"
                                             : "-"}
                                     </td>
                                 {/if}
@@ -687,8 +754,8 @@
                                                 item.status === 'Won'
                                                     ? '1'
                                                     : item.status === 'Lost'
-                                                        ? '-1'
-                                                        : '0',
+                                                      ? '-1'
+                                                      : '0',
                                             )}"
                                             disabled={item.isManual === false}
                                             onchange={(e) =>
@@ -763,11 +830,11 @@
                                                     triggerFileUpload(item.id)}
                                                 title={item.screenshot
                                                     ? $_(
-                                                            "journal.labels.replaceScreenshot",
-                                                        )
+                                                          "journal.labels.replaceScreenshot",
+                                                      )
                                                     : $_(
-                                                            "journal.labels.uploadScreenshot",
-                                                        )}
+                                                          "journal.labels.uploadScreenshot",
+                                                      )}
                                             >
                                                 {item.screenshot ? "↻" : "➕"}
                                             </button>
