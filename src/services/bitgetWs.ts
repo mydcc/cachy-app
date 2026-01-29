@@ -439,7 +439,7 @@ class BitgetWebSocketService {
         };
         const tf = map[tfRaw] || tfRaw;
 
-        marketState.updateSymbolKlines(instId, tf, klines);
+        marketState.updateSymbolKlines(instId, tf, klines, "ws");
       }
     }
     // Depth
