@@ -36,7 +36,7 @@
 
   import ToastContainer from "../components/shared/ToastContainer.svelte";
   import FireOverlay from "../components/shared/FireOverlay.svelte";
-  import EnergyProjectile from "../components/shared/EnergyProjectile.svelte";
+  import FXOverlay from "../components/shared/FXOverlay.svelte";
 
   import { _ } from "../locales/i18n";
 
@@ -416,7 +416,7 @@
 <WindowContainer />
 <FloatingWindowsContainer />
 <ToastContainer />
-<EnergyProjectile />
+<FXOverlay />
 
 {#if uiState.tooltip.visible}
   <div

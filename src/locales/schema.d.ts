@@ -864,6 +864,7 @@ export type TranslationKey =
   | "symbolPicker.volFilter.5m"
   | "symbolPicker.volFilter.10m"
   | "symbolPicker.volFilter.50m"
+  | "symbolPicker.maxFavorites"
   | "common.save"
   | "common.cancel"
   | "common.ok"
@@ -1311,4 +1312,5 @@ export type TranslationKey =
   | "quiz.answer"
   | "quiz.clickToReveal"
   | "quiz.practice"
-  | "quiz.known";
+  | "quiz.known"
+  | "windows.smash";

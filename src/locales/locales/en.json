@@ -1625,5 +1625,8 @@
     "clickToReveal": "Click to reveal",
     "practice": "Keep practicing",
     "known": "I knew it"
+  },
+  "windows": {
+    "smash": "Smash Window"
   }
 }

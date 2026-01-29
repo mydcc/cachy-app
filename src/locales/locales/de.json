@@ -1629,5 +1629,8 @@
     "clickToReveal": "Klicken zum Aufdecken",
     "practice": "Noch üben",
     "known": "Gewusst"
+  },
+  "windows": {
+    "smash": "Fenster zerschlagen"
   }
 }

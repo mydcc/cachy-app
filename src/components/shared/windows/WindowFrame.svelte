@@ -1,5 +1,6 @@
 <script lang="ts">
     import { windowManager } from "../../../lib/windows/WindowManager.svelte";
+    import { effectsState } from "../../../stores/effects.svelte";
     import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
     import { burn } from "../../../actions/burn";
     import { _ } from "../../../locales/i18n";
@@ -198,6 +199,32 @@
                     >
                 </div>
             {/if}
+
+            <div class="control-group">
+                <button
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        // Get the window rect
+                        const winEl = (e.currentTarget as HTMLElement).closest(
+                            ".window-frame",
+                        ) as HTMLElement;
+                        effectsState.triggerSmash(winEl, win.id);
+                        windowManager.close(win.id); // Close immediately for visual effect
+                    }}
+                    class="tool-btn danger"
+                    title={$_("windows.smash")}>🔨</button
+                >
+                <div class="divider"></div>
+                <button
+                    onclick={(e) => {
+                        e.stopPropagation();
+                        // MVP: Feed fixed amount (e.g. 10 XP)
+                        effectsState.triggerFeed(10);
+                    }}
+                    class="tool-btn success"
+                    title="Feed Duck (Profit)">🍞</button
+                >
+            </div>
 
             <div class="divider"></div>
 
