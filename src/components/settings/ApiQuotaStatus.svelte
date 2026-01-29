@@ -9,7 +9,7 @@
 
 <script lang="ts">
     import { apiQuotaTracker } from "../../services/apiQuotaTracker.svelte";
-    import { _ } from "../../locales/i18n";
+    import { _, locale } from "../../locales/i18n";
 
     // Reactive derived state (no polling needed)
     let cryptoPanicStats = $derived(apiQuotaTracker.getStats("cryptopanic"));
@@ -17,7 +17,7 @@
 
     function formatDate(timestamp: number | null): string {
         if (!timestamp) return "-";
-        return new Date(timestamp).toLocaleDateString("de-DE", {
+        return new Date(timestamp).toLocaleDateString($locale ?? "en-US", {
             day: "2-digit",
             month: "2-digit",
             year: "numeric",
@@ -46,7 +46,7 @@
 
 <div class="quota-panel">
     <h4 class="text-sm font-semibold text-[var(--text-primary)] mb-3">
-        API Quota Monitoring
+        {$_("settings.apiQuota.title")}
     </h4>
 
     {#if cryptoPanicStats}

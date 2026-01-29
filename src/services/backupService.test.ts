@@ -19,6 +19,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import * as backupService from "./backupService";
 import { get } from "svelte/store";
 import { accountState } from "../stores/account.svelte";
+import { CONSTANTS } from "../lib/constants";
 
 // Mock $app/environment
 vi.mock("$app/environment", () => ({
@@ -55,7 +56,7 @@ describe("backupService", () => {
   const validSettings = JSON.stringify({ theme: "dark" });
 
   it("should create a valid V4 backup", async () => {
-    localStorage.setItem("cachy_settings", validSettings);
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, validSettings);
 
     // Mock URL.createObjectURL to capture the blob
     let capturedBlob: Blob | null = null;
@@ -92,7 +93,7 @@ describe("backupService", () => {
   });
 
   it("should restore a V4 backup correctly", async () => {
-    localStorage.setItem("cachy_settings", validSettings);
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, validSettings);
 
     // Capture the backup first
     let capturedBlob: Blob | null = null;
@@ -122,12 +123,12 @@ describe("backupService", () => {
     // Pass the STRING content, not the blob/file
     await backupService.restoreFromBackup(backupText, "password");
 
-    const restored = localStorage.getItem("cachy_settings");
+    const restored = localStorage.getItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY);
     expect(restored).toBe(validSettings);
   });
 
   it("should fail with incorrect password", async () => {
-    localStorage.setItem("cachy_settings", validSettings);
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, validSettings);
 
     // Helper to capture backup content
     let capturedBlob: Blob | null = null;
@@ -157,7 +158,7 @@ describe("backupService", () => {
     // The service currently catches JSON parse errors and returns null for that key,
     // effectively "skipping" it, so it shouldn't throw but produce a partial backup.
     // Let's verify it doesn't crash.
-    localStorage.setItem("cachy_settings", "{ interrupted json");
+    localStorage.setItem(CONSTANTS.LOCAL_STORAGE_SETTINGS_KEY, "{ interrupted json");
 
     // Mock DOM
     global.URL.createObjectURL = vi.fn(() => "mock");

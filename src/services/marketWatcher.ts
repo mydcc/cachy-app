@@ -37,6 +37,7 @@ class MarketWatcher {
   // private currentIntervalSeconds: number = 10; // Deprecated: Use settingsState
   private fetchLocks = new Set<string>(); // "symbol:channel"
   private unlockTimeouts = new Map<string, any>(); // Track lock release timers to prevent race conditions
+  private proactiveLockTimeouts = new Map<string, any>(); // Safety valve for stuck locks
   private staggerTimeouts = new Set<any>(); // Track staggered requests to prevent zombie calls
   private maxConcurrentPolls = 24; // Increased for dashboards
   private inFlight = 0;
@@ -203,6 +204,10 @@ class MarketWatcher {
     this.unlockTimeouts.forEach((t) => clearTimeout(t));
     this.unlockTimeouts.clear();
 
+    // Clear proactive safety timeouts
+    this.proactiveLockTimeouts.forEach((t) => clearTimeout(t));
+    this.proactiveLockTimeouts.clear();
+
     // Clear pending fetch locks to prevent memory leaks
     this.fetchLocks.clear();
   }
@@ -286,6 +291,17 @@ class MarketWatcher {
     this.fetchLocks.add(lockKey);
     this.inFlight++;
 
+    // Safety: Proactive lock release (TTL) in case of critical failure/hang
+    const safetyTimeout = setTimeout(() => {
+        if (this.fetchLocks.has(lockKey)) {
+             logger.warn("market", `[MarketWatcher] Proactive lock release for ${lockKey} (stuck)`);
+             this.fetchLocks.delete(lockKey);
+             this.proactiveLockTimeouts.delete(lockKey);
+             this.inFlight = Math.max(0, this.inFlight - 1);
+        }
+    }, 15000); // 15s (must be > fetch timeout)
+    this.proactiveLockTimeouts.set(lockKey, safetyTimeout);
+
     // Determine priority: high for the main trading symbol, normal for the rest
     const isMainSymbol =
       tradeState.symbol &&
@@ -335,6 +351,12 @@ class MarketWatcher {
         this.lastErrorLog = now;
       }
     } finally {
+      // Clear safety timeout as we are handling it normally
+      if (this.proactiveLockTimeouts.has(lockKey)) {
+          clearTimeout(this.proactiveLockTimeouts.get(lockKey));
+          this.proactiveLockTimeouts.delete(lockKey);
+      }
+
       // Re-allow polling after interval
       // Dynamic interval from settings
       const interval = Math.max(settingsState.marketDataInterval || 5, 2); // Min 2s safety

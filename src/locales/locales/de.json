@@ -670,6 +670,7 @@
     "reset": "Daten zurücksetzen",
     "resetConfirm": "Sind Sie sicher, dass Sie alle Daten zurücksetzen möchten? Dies kann nicht rückgängig gemacht werden.",
     "apiQuota": {
+      "title": "API Quota Überwachung",
       "cryptopanic": "CryptoPanic",
       "newsapi": "NewsAPI",
       "totalCalls": "Calls insgesamt",
@@ -1005,7 +1006,22 @@
       "sidebarTitle": "Sidebar-Konfiguration"
     },
     "data": {
-      "title": "Daten-Wartung"
+      "title": "Daten-Wartung",
+      "scanAll": "Alles Scannen",
+      "scanning": "Scanne...",
+      "repair": "Reparieren",
+      "correct": "Korrigieren",
+      "atrTitle": "Volatilitäts-Matrix (ATR)",
+      "atrDesc": "Prüft auf Trades ohne ATR-Wert und lädt diesen automatisch nach.",
+      "mfeMaeTitle": "Exekutions-Metriken (MFE/MAE)",
+      "mfeMaeDesc": "Berechnet maximalen Gewinn (MFE) und Verlust (MAE) während des Trades.",
+      "symbolsTitle": "Symbole bereinigen",
+      "symbolsDesc": "Korrigiert falsche Formate (z.B. 'btc/usdt' zu 'BTCUSDT').",
+      "statusClean": "Alles sauber. Keine fehlenden Daten gefunden.",
+      "statusIssues": "{count} Probleme gefunden.",
+      "repairingAtr": "Starte ATR Reparatur...",
+      "repairingMfeMae": "Starte MFE/MAE Reparatur...",
+      "repairingSymbols": "Starte Symbol-Bereinigung..."
     },
     "enableCmcContext": "CMC-Kontext aktivieren",
     "enableGlassmorphism": "Glassmorphismus aktivieren",

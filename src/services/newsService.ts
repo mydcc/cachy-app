@@ -14,87 +14,10 @@ import { discordService } from "./discordService";
 import { getPresetUrls } from "../config/rssPresets";
 import { logger } from "./logger";
 import { apiQuotaTracker } from "./apiQuotaTracker.svelte";
+import { dbService } from "./dbService";
 import { z } from "zod";
 
-const isBrowser = typeof window !== "undefined" && typeof localStorage !== "undefined";
-
-function safeReadCache<T>(key: string, schema?: z.ZodType<T>): T | null {
-  if (!isBrowser) return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-    const parsed = JSON.parse(raw);
-
-    if (schema) {
-      const validation = schema.safeParse(parsed);
-      if (!validation.success) {
-        // Log brief error to avoid console spam
-        logger.log("ai", `[newsService] Cache validation failed for ${key}, resetting cache.`);
-        localStorage.removeItem(key);
-        return null;
-      }
-      return validation.data;
-    }
-
-    return parsed as T;
-  } catch (e) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
-    logger.warn("ai", `[newsService] Corrupted cache cleared for ${key}`);
-    return null;
-  }
-}
-
-async function safeReadCacheAsync<T>(key: string, schema?: z.ZodType<T>): Promise<T | null> {
-  if (!isBrowser) return null;
-  try {
-    const raw = localStorage.getItem(key);
-    if (!raw) return null;
-
-    // Offload JSON.parse to background thread using Response/Blob hack
-    // This prevents UI freeze for large JSON strings (like 1MB+ news cache)
-    const blob = new Blob([raw], { type: 'application/json' });
-    const response = new Response(blob);
-    const parsed = await response.json();
-
-    if (schema) {
-      const validation = schema.safeParse(parsed);
-      if (!validation.success) {
-        logger.log("ai", `[newsService] Cache validation failed for ${key}, resetting cache.`);
-        localStorage.removeItem(key);
-        return null;
-      }
-      return validation.data;
-    }
-
-    return parsed as T;
-  } catch (e) {
-    try {
-      localStorage.removeItem(key);
-    } catch {
-      /* ignore */
-    }
-    logger.warn("ai", `[newsService] Corrupted cache cleared for ${key}`);
-    return null;
-  }
-}
-
-function safeWriteCache<T>(key: string, value: T) {
-  if (!isBrowser) return;
-  try {
-    const str = JSON.stringify(value);
-    // Hardening: Warn if cache is getting too large for sync write to prevent UI freeze
-    if (str.length > 500000) { // 500KB
-        logger.warn("ai", `[newsService] Large cache write (${Math.round(str.length/1024)}KB) for ${key}. UI jank possible.`);
-    }
-    localStorage.setItem(key, str);
-  } catch (e) {
-    logger.warn("ai", `[newsService] Failed to persist cache ${key}`, e);
-  }
-}
+const isBrowser = typeof window !== "undefined";
 
 // --- Interfaces & Constants ---
 export interface NewsItem {
@@ -174,16 +97,17 @@ function matchesSymbol(text: string, symbol: string): boolean {
   return keywords.some((k) => lowerText.includes(k.toLowerCase()));
 }
 
-const CACHE_PREFIX_NEWS_COIN = "cachy_news_coin_"; // Pro-Coin-Cache
-const CACHE_KEY_NEWS_GLOBAL = "cachy_news_global"; // Globaler Pool
-const CACHE_KEY_SENTIMENT = "cachy_sentiment_cache";
-const CACHE_TTL_NEWS = 1000 * 60 * 60 * 24; // 24 Stunden
+const CACHE_PREFIX_NEWS_COIN = "news_"; // Prefixed ID for IDB
+const CACHE_KEY_NEWS_GLOBAL = "news_global";
+const CACHE_KEY_SENTIMENT = "sentiment_global";
+const CACHE_TTL_NEWS = 1000 * 60 * 60 * 24; // 24 hours
 const CACHE_TTL_SENTIMENT = 1000 * 60 * 15; // 15 minutes
-const MIN_NEWS_PER_COIN = 10; // Mindestanzahl News pro Coin
-const MAX_NEWS_AGE_MS = 1000 * 60 * 60 * 24; // 24h max Alter
-const MAX_SYMBOLS_CACHED = 20; // Max. Symbole im Cache
+const MIN_NEWS_PER_COIN = 10;
+const MAX_NEWS_AGE_MS = 1000 * 60 * 60 * 24;
+const MAX_SYMBOLS_CACHED = 20;
 
 interface NewsCacheEntry {
+  id: string; // Used as keyPath in IDB
   symbol: string;
   items: NewsItem[];
   timestamp: number;
@@ -197,95 +121,45 @@ const pendingSentimentFetches = new Map<
   Promise<SentimentAnalysis | null>
 >();
 
-const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 Minuten Cooldown zwischen API Calls
+const MIN_FETCH_INTERVAL = 1000 * 60 * 30; // 30 mins
 
-/**
- * Prüft, ob News für ein Symbol abgerufen werden müssen
- * Accepts optional cached entry to avoid double-read.
- */
-function shouldFetchNews(symbol: string | undefined, cachedEntry?: NewsCacheEntry | null): boolean {
-  const symbolKey = symbol || "global";
-  const cacheKey = symbol ? CACHE_PREFIX_NEWS_COIN + symbolKey : CACHE_KEY_NEWS_GLOBAL;
-
-  // If not provided, try to read sync (fallback, but ideally we pass it)
-  const cached = cachedEntry !== undefined ? cachedEntry : safeReadCache<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
-
+function shouldFetchNews(cached: NewsCacheEntry | undefined | null): boolean {
   if (!cached) {
-    // Wenn Cache leer ist, müssen wir versuchen zu laden,
-    // ES SEI DENN, Quota ist leer. Dann sparen wir uns den Call.
-    if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
-      return false;
-    }
+    if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) return false;
     return true;
   }
 
   const now = Date.now();
-
-  // 0. Hard Limit: Respektiere Cooldown (Rate Limit Schutz)
-  // Egal wie "schlecht" der Cache ist, wir fragen nicht öfter als alle 30min an.
   const timeSinceLastCall = now - (cached.lastApiCall || 0);
-  if (timeSinceLastCall < MIN_FETCH_INTERVAL) {
-    return false;
-  }
+  if (timeSinceLastCall < MIN_FETCH_INTERVAL) return false;
 
-  // Wenn wir hier sind, ist der Timer abgelaufen.
-  // ABER: Wenn Quota leer ist, brauchen wir gar nicht erst anfangen (verhindert Warning Log)
-  if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) {
-    return false;
-  }
+  if (apiQuotaTracker.isQuotaExhausted("cryptopanic")) return false;
 
   const ageMs = now - cached.timestamp;
+  if (ageMs > MAX_NEWS_AGE_MS) return true;
+  if (cached.items.length < MIN_NEWS_PER_COIN) return true;
 
-  // Bedingung 1: Cache selbst ist veraltet (älter als 24h)
-  if (ageMs > MAX_NEWS_AGE_MS) {
-    return true;
-  }
-
-  // Bedingung 2: Weniger als MIN_NEWS_PER_COIN News
-  // Nur wenn wir noch Quota haben und der letzte Call länger her ist
-  if (cached.items.length < MIN_NEWS_PER_COIN) {
-    return true;
-  }
-
-  // Bedingung 3: Älteste News ist > 24h alt (bei vollem Cache)
   if (cached.items.length > 0) {
     const oldestNews = cached.items[cached.items.length - 1];
     const oldestNewsAge = now - new Date(oldestNews.published_at).getTime();
-    if (oldestNewsAge > MAX_NEWS_AGE_MS) {
-      return true;
-    }
+    if (oldestNewsAge > MAX_NEWS_AGE_MS) return true;
   }
 
   return false;
 }
 
-/**
- * Bereinigt alte Caches wenn zu viele Symbole gespeichert sind
- * Optimized to run async and avoid blocking main thread with JSON.parse
- */
 async function pruneOldCaches() {
   if (!isBrowser) return;
 
   try {
-    const keys = Object.keys(localStorage).filter(k => k.startsWith(CACHE_PREFIX_NEWS_COIN));
+    const allNews = await dbService.getAll<NewsCacheEntry>("news");
+    if (allNews.length > MAX_SYMBOLS_CACHED) {
+      const sorted = allNews.sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+      const toDelete = sorted.slice(0, allNews.length - MAX_SYMBOLS_CACHED);
 
-    if (keys.length > MAX_SYMBOLS_CACHED) {
-      // Sortiere nach Alter (älteste zuerst)
-      // Use async read to unblock UI during heavy parsing
-      const entries = await Promise.all(keys.map(async k => ({
-          key: k,
-          entry: await safeReadCacheAsync<NewsCacheEntry>(k, NewsCacheEntrySchema),
-      })));
-
-      const sorted = entries
-        .filter(x => x.entry !== null)
-        .sort((a, b) => (a.entry!.timestamp || 0) - (b.entry!.timestamp || 0));
-
-      // Lösche älteste bis unter Limit
-      const toDelete = sorted.slice(0, keys.length - MAX_SYMBOLS_CACHED);
-      toDelete.forEach(x => {
-        localStorage.removeItem(x.key);
-      });
+      for (const item of toDelete) {
+        if (item.id) await dbService.delete("news", item.id);
+      }
     }
   } catch (e) {
     logger.warn("market", "[pruneOldCaches] Failed to prune caches", e);
@@ -312,19 +186,33 @@ export const newsService = {
 
     const fetchPromise = (async (): Promise<NewsItem[]> => {
       try {
-        // 1. Cache-Validierung mit intelligenter Logik (ASYNC)
-        const cached = await safeReadCacheAsync<NewsCacheEntry>(cacheKey, NewsCacheEntrySchema);
-        if (cached && !shouldFetchNews(symbol, cached)) {
-          return cached.items;
+        // 1. Cache-Validierung (ASYNC with IDB)
+        const cached = await dbService.get<NewsCacheEntry>("news", cacheKey);
+
+        // Zod validation optional here as IDB stores structured data,
+        // but good for schema evolution protection.
+        let validCached = cached;
+        if (cached) {
+            const validation = NewsCacheEntrySchema.safeParse(cached);
+            if (!validation.success) {
+                logger.warn("ai", `[newsService] Schema mismatch in DB for ${cacheKey}`, validation.error);
+                // Try to use it anyway if structure is somewhat valid, or discard?
+                // Discarding is safer to prevent runtime errors
+                validCached = undefined;
+                await dbService.delete("news", cacheKey);
+            }
+        }
+
+        if (validCached && !shouldFetchNews(validCached)) {
+          return validCached.items;
         }
 
         // 2. Prüfe Quota-Status
         const isQuotaExhausted = apiQuotaTracker.isQuotaExhausted("cryptopanic");
         if (isQuotaExhausted) {
           logger.warn("market", `[fetchNews] API quota exhausted, using stale cache or fallback for ${symbolKey}`);
-          // Nutze alte Cache-Daten wenn vorhanden
-          if (cached && cached.items.length > 0) {
-            return cached.items;
+          if (validCached && validCached.items.length > 0) {
+            return validCached.items;
           }
         }
 
@@ -473,17 +361,18 @@ export const newsService = {
             new Date(a.published_at).getTime(),
         );
 
-        // Cache-Update mit neuer Struktur
+        // Cache-Update with IDB
         const cacheEntry: NewsCacheEntry = {
+          id: cacheKey, // keyPath
           symbol: symbolKey,
           items: newsItems,
           timestamp: Date.now(),
           lastApiCall: Date.now(),
         };
-        safeWriteCache(cacheKey, cacheEntry);
 
-        // Bereinige alte Caches (Async to unblock)
-        // We do NOT await this to return news faster, but catch errors
+        await dbService.put("news", cacheEntry);
+
+        // Bereinige alte Caches (Async)
         pruneOldCaches().catch(e => logger.warn("ai", "Prune failed", e));
 
         return newsItems;
@@ -507,7 +396,9 @@ export const newsService = {
     // Immer serverseitig, kein allowClientSideAi mehr
     const analysisPromise = (async (): Promise<SentimentAnalysis | null> => {
       try {
-        const cached = safeReadCache<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>(CACHE_KEY_SENTIMENT, SentimentCacheSchema);
+        // IDB Read
+        const cached = await dbService.get<{ data: SentimentAnalysis; timestamp: number; newsHash: string }>("sentiment", newsHash);
+
         if (
           cached &&
           Date.now() - cached.timestamp < CACHE_TTL_SENTIMENT &&
@@ -575,7 +466,8 @@ export const newsService = {
             .trim(),
         );
 
-        safeWriteCache(CACHE_KEY_SENTIMENT, {
+        // IDB Write - use newsHash as key
+        await dbService.put("sentiment", {
           data: analysis,
           timestamp: Date.now(),
           newsHash,
