@@ -1,5 +1,6 @@
 <script lang="ts">
     import { _ } from "../../../locales/i18n";
+    import type { TranslationKey } from "../../../locales/schema";
     import { settingsState } from "../../../stores/settings.svelte";
     import { uiState } from "../../../stores/ui.svelte";
     import { locale, setLocale } from "../../../locales/i18n";
@@ -332,7 +333,11 @@
                                                 (settingsState.borderEffectColorMode =
                                                     mode as any)}
                                         >
-                                            {$_(colorModeLabels[mode]) || mode}
+                                            {$_(
+                                                colorModeLabels[
+                                                    mode
+                                                ] as TranslationKey,
+                                            ) || mode}
                                         </button>
                                     {/each}
                                 </div>
@@ -394,7 +399,7 @@
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
                                         {$_(
-                                            "settings.appearance.burnMarketOverview",
+                                            "settings.appearance.burnMarketOverview" as TranslationKey,
                                         )}
                                     </span>
                                     <Toggle
@@ -409,7 +414,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnNews")}
+                                        {$_(
+                                            "settings.appearance.burnNews" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={
@@ -423,7 +430,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnChannels")}
+                                        {$_(
+                                            "settings.appearance.burnChannels" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={
@@ -438,7 +447,7 @@
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
                                         {$_(
-                                            "settings.appearance.burnFlashCards",
+                                            "settings.appearance.burnFlashCards" as TranslationKey,
                                         )}
                                     </span>
                                     <Toggle
@@ -453,7 +462,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnJournal")}
+                                        {$_(
+                                            "settings.appearance.burnJournal" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={settingsState.burnJournal}
@@ -465,7 +476,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnSettings")}
+                                        {$_(
+                                            "settings.appearance.burnSettings" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={
@@ -479,7 +492,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnGuide")}
+                                        {$_(
+                                            "settings.appearance.burnGuide" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={settingsState.burnGuide}
@@ -491,7 +506,9 @@
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
                                     >
-                                        {$_("settings.appearance.burnModals")}
+                                        {$_(
+                                            "settings.appearance.burnModals" as TranslationKey,
+                                        )}
                                     </span>
                                     <Toggle
                                         bind:checked={settingsState.burnModals}
