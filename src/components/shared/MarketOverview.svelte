@@ -149,14 +149,16 @@
 
   // RSI Values from centralized Technicals
   let rsiValue = $derived.by(() => {
-    if (!wsData?.technicals?.oscillators) return null;
-    const rsi = wsData.technicals.oscillators.find((o) => o.name === "RSI");
+    const tech = wsData?.technicals?.[effectiveRsiTimeframe];
+    if (!tech?.oscillators) return null;
+    const rsi = tech.oscillators.find((o) => o.name === "RSI");
     return rsi ? rsi.value : null;
   });
 
   let signalValue = $derived.by(() => {
-    if (!wsData?.technicals?.oscillators) return null;
-    const rsi = wsData.technicals.oscillators.find((o) => o.name === "RSI");
+    const tech = wsData?.technicals?.[effectiveRsiTimeframe];
+    if (!tech?.oscillators) return null;
+    const rsi = tech.oscillators.find((o) => o.name === "RSI");
     return rsi ? rsi.signal : null; // Signal might be undefined on IndicatorResult, check type
   });
 
