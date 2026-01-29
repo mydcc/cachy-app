@@ -20,9 +20,12 @@
     import { uiState } from "../../stores/ui.svelte";
     import { analysisState } from "../../stores/analysis.svelte";
     import { settingsState } from "../../stores/settings.svelte";
+    import { marketState } from "../../stores/market.svelte";
+    import { marketWatcher } from "../../services/marketWatcher"; // Use existing service
     import { onMount } from "svelte";
     import { _ } from "../../locales/i18n";
     import { fade } from "svelte/transition";
+    import { Decimal } from "decimal.js";
 
     // Icons
     const ICONS = {
@@ -33,6 +36,73 @@
     };
 
     let sortedResults = $derived(analysisState.sortedByScore);
+
+    // Effect: Subscribe to live data for displayed symbols when modal is open
+    // Optimized with diffing to prevent unnecessary unsubs/subs when sort order changes
+    let previousSymbols = new Set<string>();
+
+    $effect(() => {
+        if (uiState.showMarketDashboardModal) {
+            const currentSymbols = new Set(
+                sortedResults.map((item) => item.symbol),
+            );
+
+            // 1. Unsubscribe symbols that are no longer present
+            for (const sym of previousSymbols) {
+                if (!currentSymbols.has(sym)) {
+                    marketWatcher.unregister(sym, "ticker");
+                }
+            }
+
+            // 2. Subscribe to new symbols
+            for (const sym of currentSymbols) {
+                if (!previousSymbols.has(sym)) {
+                    marketWatcher.register(sym, "ticker");
+                }
+            }
+
+            previousSymbols = currentSymbols;
+        } else {
+            // Cleanup all when modal is closed
+            if (previousSymbols.size > 0) {
+                for (const sym of previousSymbols) {
+                    marketWatcher.unregister(sym, "ticker");
+                }
+                previousSymbols.clear();
+            }
+        }
+    });
+
+    // Cleanup on destroy
+    $effect(() => {
+        return () => {
+            for (const sym of previousSymbols) {
+                marketWatcher.unregister(sym, "ticker");
+            }
+            previousSymbols.clear();
+        };
+    });
+
+    function getLivePrice(item: any) {
+        // Try live data first, fall back to analysis snapshot
+        const live = marketState.data[item.symbol];
+        if (live && live.lastPrice) {
+            return new Decimal(live.lastPrice).toString();
+        }
+        return item.price;
+    }
+
+    function getLiveChange(item: any) {
+        const live = marketState.data[item.symbol];
+        if (
+            live &&
+            live.priceChangePercent !== undefined &&
+            live.priceChangePercent !== null
+        ) {
+            return new Decimal(live.priceChangePercent).toNumber();
+        }
+        return parseFloat(item.change24h);
+    }
 
     function formatPrice(price: string | number) {
         const p = typeof price === "string" ? parseFloat(price) : price;
@@ -122,7 +192,8 @@
                 class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 max-h-[60vh] overflow-y-auto custom-scrollbar pr-2"
             >
                 {#each sortedResults as item (item.symbol)}
-                    {@const changeNum = parseFloat(item.change24h)}
+                    {@const liveChange = getLiveChange(item)}
+                    {@const livePrice = getLivePrice(item)}
                     {@const rsiNum = parseFloat(item.rsi1h)}
                     <div
                         class="bg-[var(--bg-tertiary)] rounded-xl p-4 border border-[var(--border-color)] hover:border-[var(--accent-color)] transition-all group"
@@ -133,15 +204,15 @@
                                 <div
                                     class="text-xs text-[var(--text-secondary)]"
                                 >
-                                    ${formatPrice(item.price)}
+                                    ${formatPrice(livePrice)}
                                     <span
-                                        class={changeNum >= 0
+                                        class={liveChange >= 0
                                             ? "text-[var(--success-color)]"
                                             : "text-[var(--danger-color)]"}
                                     >
-                                        ({changeNum > 0
+                                        ({liveChange > 0
                                             ? "+"
-                                            : ""}{changeNum.toFixed(2)}%)
+                                            : ""}{liveChange.toFixed(2)}%)
                                     </span>
                                 </div>
                             </div>
