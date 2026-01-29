@@ -21,7 +21,7 @@ export type { Kline, TechnicalsData, IndicatorResult };
 
 // Cache for indicator calculations - Dynamic configuration from settings
 // Initial defaults, will be overridden by settings on app init
-let MAX_CACHE_SIZE = 15;
+let MAX_CACHE_SIZE = 100;
 let CACHE_TTL_MS = 60 * 1000; // 1 minute default
 
 // Update cache settings dynamically

@@ -17,6 +17,12 @@ export interface SymbolAnalysis {
     rsi1h: string;
     confluenceScore: number; // Score is abstract (0-100), safe as number
     condition: "overbought" | "oversold" | "neutral" | "trending";
+    trends?: {
+        "15m": "bullish" | "bearish" | "neutral";
+        "1h": "bullish" | "bearish" | "neutral";
+        "4h": "bullish" | "bearish" | "neutral";
+        "1d": "bullish" | "bearish" | "neutral";
+    };
 }
 
 class AnalysisManager {
@@ -35,14 +41,14 @@ class AnalysisManager {
     private enforceCacheLimit() {
         const maxSize = settingsState.marketCacheSize || 20;
         const keys = Object.keys(this.results);
-        
+
         if (keys.length <= maxSize) return;
-        
+
         // Sort by updatedAt (oldest first) - LRU style
         const sorted = keys
             .map(k => ({ key: k, updatedAt: this.results[k].updatedAt }))
             .sort((a, b) => a.updatedAt - b.updatedAt);
-        
+
         // Remove oldest entries until under limit
         const toRemove = sorted.slice(0, keys.length - maxSize);
         toRemove.forEach(item => {

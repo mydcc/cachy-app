@@ -9,6 +9,7 @@
 import { settingsState } from "../stores/settings.svelte";
 import { favoritesState } from "../stores/favorites.svelte";
 import { analysisState, type SymbolAnalysis } from "../stores/analysis.svelte";
+import { marketState } from "../stores/market.svelte";
 import { apiService } from "./apiService";
 import { technicalsService } from "./technicalsService";
 import { indicatorState } from "../stores/indicator.svelte";
@@ -19,7 +20,7 @@ import { Decimal } from "decimal.js";
 import { safeSub, safeDiv } from "../utils/utils";
 
 // DELAY_BETWEEN_SYMBOLS is now dynamic from settingsState
-const DATA_FRESHNESS_TTL = 10 * 60 * 1000; // 10 minutes cache
+const DATA_FRESHNESS_TTL = 5 * 60 * 1000; // 5 minutes cache
 
 class MarketAnalystService {
     private isRunning = false;
@@ -43,7 +44,7 @@ class MarketAnalystService {
     private async processNext() {
         if (!this.isRunning) return;
 
-        const { capabilities, marketAnalysisInterval, pauseAnalysisOnBlur, analyzeAllFavorites } = settingsState;
+        const { capabilities, marketAnalysisInterval, pauseAnalysisOnBlur } = settingsState;
 
         if (!capabilities.marketData || marketAnalysisInterval <= 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 10000);
@@ -57,13 +58,15 @@ class MarketAnalystService {
             return;
         }
 
-        const favorites = favoritesState.items;
+        // FIX: Use the full watchlist (up to 12) from settings, not the limited top 4 tiles
+        const favorites = settingsState.favoriteSymbols;
         if (favorites.length === 0) {
             this.timeoutId = setTimeout(() => this.processNext(), 5000);
             return;
         }
 
-        const limit = analyzeAllFavorites ? favorites.length : Math.min(favorites.length, 6);
+        // FIX: Always analyze ALL favorites in the list (max 12), ignoring the artificial '6' limit
+        const limit = favorites.length;
         this.currentSymbolIndex = (this.currentSymbolIndex + 1) % limit;
         const symbol = favorites[this.currentSymbolIndex];
 
@@ -71,21 +74,11 @@ class MarketAnalystService {
             const existing = analysisState.results[symbol];
             const freshnessThreshold = isHidden ? DATA_FRESHNESS_TTL * 2 : DATA_FRESHNESS_TTL;
 
-            // Check freshness - if fresh, skip analysis for this symbol
-            if (existing && (Date.now() - existing.updatedAt < freshnessThreshold)) {
-                // Return early, but allow finally block to schedule the NEXT standard cycle
-                // or schedule a quick check here and PREVENT the finally block from double-scheduling?
-                // Better approach: Throw a special control flow error or use a flag,
-                // BUT simplest is to just NOT return here, but skip the work.
+            // "Neutral" here implies missing data (EMA200 calculation failed), so we should retry
+            const isInvalid = !existing?.trends || existing?.trends["4h"] === "neutral";
 
-                // Let's just skip the heavy lifting block.
-                // We will rely on the finally block to schedule the next standard interval.
-                // If we want a faster retry for the NEXT symbol, we can adjust the delay in finally.
-
-                // For now, let's just log and skip to finally.
-                // But wait, if we want to process the next symbol SOONER (2s instead of 60s),
-                // we need to signal that.
-
+            // Check freshness - only skip if fresh AND valid
+            if (existing && !isInvalid && (Date.now() - existing.updatedAt < freshnessThreshold)) {
                 throw new Error("SKIP_FRESH");
             }
 
@@ -93,15 +86,17 @@ class MarketAnalystService {
             console.log(`[TECHNICALS] Analyst: Processing ${symbol}... (Started)`);
 
             const provider = settingsState.apiProvider;
-            const timeframes = settingsState.analysisTimeframes;
+            // Ensure we have the required timeframes for the dashboard matrix
+            const requiredTimeframes = ["15m", "1h", "4h", "1d"];
+            const timeframes = Array.from(new Set([...settingsState.analysisTimeframes, ...requiredTimeframes]));
 
             // Determine kline counts per timeframe
             const klineCountMap: Record<string, number> = {
                 "5m": 200,
                 "15m": 200,
                 "1h": 200,
-                "4h": 100,
-                "1d": 100
+                "4h": 300, // EMA 200 needs 200+ candles
+                "1d": 300
             };
 
             // PARALLEL: Fetch all timeframes at once
@@ -137,7 +132,25 @@ class MarketAnalystService {
             const techPromises = timeframes.map(tf => {
                 const klines = klinesMap[tf];
                 if (!klines || klines.length < 20) return Promise.resolve(null);
-                return technicalsService.calculateTechnicals(klines, indicatorState.toJSON());
+
+                // Clone settings to safely inject required dashboard indicators
+                const settings = JSON.parse(JSON.stringify(indicatorState.toJSON()));
+
+                // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
+                // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
+                if (!settings.ema) settings.ema = {};
+                if (!settings.ema.ema3) settings.ema.ema3 = {};
+                settings.ema.ema3.length = 200;
+
+                // FORCE: RSI 14 for Heatmap
+                if (!settings.rsi) settings.rsi = {};
+                if (!settings.rsi.length) settings.rsi.length = 14;
+
+                // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
+                // The calculator checks "shouldCalculate('ema')".
+                const requiredIndicators = { "EMA": true, "RSI": true };
+
+                return technicalsService.calculateTechnicals(klines, settings, requiredIndicators);
             });
 
             const techResults = await Promise.all(techPromises);
@@ -153,6 +166,9 @@ class MarketAnalystService {
             // Extract metrics from available data
             const tech1h = techMap["1h"];
             const tech4h = techMap["4h"];
+
+
+
             const techPrimary = tech1h || techMap[primaryTf];
 
             if (techPrimary) {
@@ -165,8 +181,7 @@ class MarketAnalystService {
                 const metrics = calculateAnalysisMetrics(
                     lastKline?.close,
                     openKline?.open,
-                    ema200_4h,
-                    rsiObj?.value
+                    techMap
                 );
 
                 analysisState.updateAnalysis(symbol, {
@@ -176,6 +191,9 @@ class MarketAnalystService {
                     ...metrics
                 });
 
+                // Update Performance Telemetry
+                marketState.updateTelemetry({ lastCalcDuration: calcTime });
+
                 console.log(`[TECHNICALS] Analyst: ${symbol} COMPLETE - Fetch: ${fetchTime.toFixed(0)}ms, Calc: ${calcTime.toFixed(0)}ms, Total: ${(fetchTime + calcTime).toFixed(0)}ms`);
             }
         } catch (e) {
@@ -184,7 +202,7 @@ class MarketAnalystService {
             if (errorMsg === "SKIP_FRESH") {
                 // Expected skip, just log debug
                 if (import.meta.env.DEV) {
-                   // console.log(`[TECHNICALS] Skipping ${symbol} (Fresh)`);
+                    // console.log(`[TECHNICALS] Skipping ${symbol} (Fresh)`);
                 }
                 // Schedule next quickly
                 this.scheduleNext(2000);
@@ -201,14 +219,23 @@ class MarketAnalystService {
             }
         } finally {
             analysisState.isAnalyzing = false;
-            // Only schedule standard delay if we didn't already schedule a quick one (via SKIP_FRESH)
-            // We check if timeoutId was set in the catch block?
-            // Actually, best pattern is to verify if we are still running.
 
             if (this.isRunning && !this.timeoutId) {
-                 const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
-                 const finalDelay = isHidden ? baseDelay * 2 : baseDelay;
-                 this.scheduleNext(finalDelay);
+                // INTELLIGENT SCHEDULING
+                // Check if any favorite needs analysis (missing or neutral trends)
+                // If yes, run fast (2s) to fill the dashboard.
+                // If no, run at standard interval to maintain freshness.
+
+                const anyNeedsUpdate = favoritesState.items.some(sym => {
+                    const data = analysisState.results[sym];
+                    return !data || !data.trends || data.trends["4h"] === "neutral";
+                });
+
+                const baseDelay = (settingsState.marketAnalysisInterval || 60) * 1000;
+                // If filling gaps, go fast (2s). If maintaining, use user setting.
+                const delay = anyNeedsUpdate ? 2000 : (isHidden ? baseDelay * 2 : baseDelay);
+
+                this.scheduleNext(delay);
             }
         }
     }
@@ -230,8 +257,7 @@ export const marketAnalyst = new MarketAnalystService();
 export function calculateAnalysisMetrics(
     lastClose: Decimal.Value | null | undefined,
     open24h: Decimal.Value | null | undefined,
-    ema200: Decimal.Value | null | undefined,
-    rsiValue: Decimal.Value | null | undefined
+    techMap: Record<string, any>
 ) {
     const safeDec = (v: Decimal.Value | null | undefined): Decimal => {
         try {
@@ -253,11 +279,32 @@ export function calculateAnalysisMetrics(
     }
     const change24h = change24hDec.toFixed(2);
 
-    const ema200Dec = safeDec(ema200);
+    // Helper to determine trend for a timeframe
+    const getTrend = (tf: string): "bullish" | "bearish" | "neutral" => {
+        const tech = techMap[tf];
+        if (!tech) return "neutral";
 
-    // Use safe comparison
-    const trend4h: SymbolAnalysis["trend4h"] = priceDec.greaterThan(ema200Dec) ? "bullish" : "bearish";
+        // Use confluence score if available for broad trend, or EMA check
+        // Ideally checking Price > EMA200
+        const ema = tech.movingAverages?.find((m: any) => m.name === "EMA" && m.params === "200")?.value;
+        if (ema === undefined) return "neutral";
 
+        return priceDec.greaterThan(safeDec(ema)) ? "bullish" : "bearish";
+    };
+
+    const trends = {
+        "15m": getTrend("15m"),
+        "1h": getTrend("1h"),
+        "4h": getTrend("4h"),
+        "1d": getTrend("1d")
+    };
+
+    // Keep legacy trend4h for compatibility
+    const trend4h = trends["4h"];
+
+    // RSI from 1h or primary
+    const techPrimary = techMap["1h"] || Object.values(techMap)[0];
+    const rsiValue = techPrimary?.oscillators?.find((o: any) => o.name === "RSI")?.value;
     const rsiDec = safeDec(rsiValue || 50);
     const rsi1h = rsiDec.toFixed(2);
 
@@ -275,6 +322,7 @@ export function calculateAnalysisMetrics(
         price,
         change24h,
         trend4h,
+        trends,
         rsi1h,
         condition
     };
