@@ -70,6 +70,15 @@ export function getPresetById(id: string): RssPreset | undefined {
 /**
  * Get all preset URLs for given IDs
  */
-export function getPresetUrls(ids: string[]): string[] {
-  return RSS_PRESETS.filter((p) => ids.includes(p.id)).map((p) => p.url);
+export function getPresetUrls(ids: string[], presets: RssPreset[] = RSS_PRESETS): string[] {
+  const idsSet = new Set(ids);
+  const urls: string[] = [];
+
+  for (const p of presets) {
+    if (idsSet.has(p.id)) {
+      urls.push(p.url);
+    }
+  }
+
+  return urls;
 }

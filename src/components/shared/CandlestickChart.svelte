@@ -92,25 +92,21 @@
 
   function prepareChartData(candles: CandleData[]) {
     // Dynamic Spacing Logic
-    // If few candles, we pad with empty labels to center them visually
-    // If many candles, we use them as is.
-    // Target: We want them centered.
-    // Hack: Add empty data points to left and right?
-    // Better: Chart.js 'barThickness' and axis padding.
+    // We use a linear x-axis to allow fractional padding (min/max)
+    // which effectively centers the candles visually when there are few of them.
+    const wickData = candles.map((c, i) => ({
+      x: i,
+      y: [c.low, c.high] as [number, number],
+    }));
 
-    // We stick to simple data mapping but control visual density via scales config
-    const labels = candles.map((_, i) => i.toString());
-
-    const wickData = candles.map((c) => [c.low, c.high] as [number, number]);
-
-    const bodyData = candles.map((c) => {
+    const bodyData = candles.map((c, i) => {
+      let y: [number, number];
       if (Math.abs(c.open - c.close) < 0.00001) {
-        return [c.open - 0.05, c.open + 0.05] as [number, number];
+        y = [c.open - 0.05, c.open + 0.05];
+      } else {
+        y = [Math.min(c.open, c.close), Math.max(c.open, c.close)];
       }
-      return [Math.min(c.open, c.close), Math.max(c.open, c.close)] as [
-        number,
-        number,
-      ];
+      return { x: i, y };
     });
 
     const successColor = resolveColor("--success-color", "#0ECB81");
@@ -121,7 +117,6 @@
     );
 
     return {
-      labels,
       datasets: [
         {
           label: "Wicks",
@@ -358,6 +353,7 @@
           },
           scales: {
             x: {
+              type: "linear",
               display: false,
               grid: { display: false },
               min: xMin,
@@ -374,7 +370,7 @@
           animation: false,
         },
         plugins: [annotationPlugin],
-      } as ChartConfiguration);
+      } as unknown as ChartConfiguration);
     }
   });
 

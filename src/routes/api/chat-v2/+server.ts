@@ -17,60 +17,11 @@
 
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
-import { promises as fs } from "fs";
-import path from "path";
-
-const DB_FILE = "db/chat_messages.json";
-const MAX_HISTORY = 1000;
-
-interface ChatMessage {
-  id: string;
-  text: string;
-  sender: "user" | "system";
-  timestamp: number;
-  profitFactor?: number;
-  clientId?: string;
-}
-
-// Helper to ensure DB exists and read it
-async function getMessages(): Promise<ChatMessage[]> {
-  try {
-    // Try to read the file
-    // In a real server environment, ensure 'db' folder exists
-    const data = await fs.readFile(DB_FILE, "utf-8");
-    return JSON.parse(data);
-  } catch (error: any) {
-    if (error.code === "ENOENT") {
-      // File doesn't exist, create it with welcome message
-      const initial: ChatMessage[] = [
-        {
-          id: "system-welcome",
-          text: "Welcome to the global chat!",
-          sender: "system",
-          timestamp: Date.now(),
-        },
-      ];
-      // Ensure directory exists
-      await fs.mkdir(path.dirname(DB_FILE), { recursive: true });
-      await fs.writeFile(DB_FILE, JSON.stringify(initial, null, 2));
-      return initial;
-    }
-    console.error("Error reading chat db:", error);
-    return [];
-  }
-}
-
-async function saveMessages(messages: ChatMessage[]) {
-  try {
-    await fs.writeFile(DB_FILE, JSON.stringify(messages, null, 2));
-  } catch (error) {
-    console.error("Error writing chat db:", error);
-  }
-}
+import { chatStore, type ChatMessage } from "$lib/server/chatStore";
 
 export const GET: RequestHandler = async ({ url }) => {
   const since = url.searchParams.get("since");
-  const messages = await getMessages();
+  const messages = await chatStore.getMessages();
   let result = messages;
 
   if (since) {
@@ -103,15 +54,7 @@ export const POST: RequestHandler = async ({ request }) => {
       clientId: clientId || undefined,
     };
 
-    const messages = await getMessages();
-    messages.push(newMessage);
-
-    // Trim history
-    if (messages.length > MAX_HISTORY) {
-      messages.splice(0, messages.length - MAX_HISTORY);
-    }
-
-    await saveMessages(messages);
+    await chatStore.addMessage(newMessage);
 
     return json({
       success: true,

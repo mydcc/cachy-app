@@ -299,7 +299,7 @@ class TradeManager {
     this.atrTimeframe = INITIAL_TRADE_STATE.atrTimeframe;
     this.tradeNotes = INITIAL_TRADE_STATE.tradeNotes;
     this.tags = [...INITIAL_TRADE_STATE.tags];
-    this.targets = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE.targets));
+    this.targets = structuredClone(INITIAL_TRADE_STATE.targets);
     this.isPositionSizeLocked = INITIAL_TRADE_STATE.isPositionSizeLocked;
     this.lockedPositionSize = INITIAL_TRADE_STATE.lockedPositionSize;
     this.isRiskAmountLocked = INITIAL_TRADE_STATE.isRiskAmountLocked;
@@ -375,7 +375,7 @@ class TradeManager {
     const currentTradeType = this.tradeType;
 
     // Reset everything to deep copy of initial state to prevent reference issues
-    const defaults = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
+    const defaults = structuredClone(INITIAL_TRADE_STATE);
     Object.assign(this, defaults);
 
     // Restore preserved values

@@ -43,12 +43,12 @@
 </script>
 
 <div class="space-y-4">
-  <h3 class="text-lg font-bold">{$_("cloud.title")}</h3>
+  <h3 class="text-lg font-bold">{$_("settings.cloud.title")}</h3>
 
   <div class="p-4 border border-gray-700 rounded bg-gray-900/50">
-    <p class="text-sm text-gray-400 mb-2">{$_("cloud.description")}</p>
+    <p class="text-sm text-gray-400 mb-2">{$_("settings.cloud.description")}</p>
     <button onclick={connect} class="px-4 py-2 bg-blue-600 rounded hover:bg-blue-500 cursor-pointer text-white font-medium transition-colors">
-      {$_("cloud.connectButton")}
+      {$_("settings.cloud.connectButton")}
     </button>
   </div>
 
@@ -62,12 +62,12 @@
       </div>
     {/each}
     {#if messages.length === 0}
-        <div class="text-gray-600 italic text-center mt-10">{$_("cloud.noMessages")}</div>
+        <div class="text-gray-600 italic text-center mt-10">{$_("settings.cloud.noMessages")}</div>
     {/if}
   </div>
 
   <div class="flex gap-2">
-    <input bind:value={messageText} placeholder={$_("cloud.placeholder")} class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
-    <button onclick={send} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors">{$_("cloud.sendButton")}</button>
+    <input bind:value={messageText} placeholder={$_("settings.cloud.placeholder")} class="flex-1 p-2 bg-gray-800 border border-gray-700 rounded text-white focus:outline-none focus:border-blue-500 transition-colors" />
+    <button onclick={send} class="px-4 py-2 bg-green-600 rounded hover:bg-green-500 cursor-pointer text-white font-medium transition-colors">{$_("settings.cloud.sendButton")}</button>
   </div>
 </div>
