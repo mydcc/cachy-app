@@ -23,6 +23,7 @@
 <script lang="ts">
     import { settingsState } from "../../stores/settings.svelte";
     import { _ } from "../../locales/i18n";
+    import type { TranslationKey } from "../../locales/schema";
 
     type PresetType = "light" | "balanced" | "pro";
 
@@ -124,7 +125,7 @@
                     onclick={() => applyPreset(key as PresetType)}
                     title={preset.description}
                 >
-                    <div class="preset-label">{$_(`settings.calculationDashboard.profile${key.charAt(0).toUpperCase() + key.slice(1)}`)}</div>
+                    <div class="preset-label">{$_(`calculationDashboard.profile${key.charAt(0).toUpperCase() + key.slice(1)}` as TranslationKey)}</div>
                     <div class="preset-desc">{preset.description}</div>
                     <div class="preset-specs">
                         {$_("settings.calculation.intervalLabel")} {formatIntervalLabel(
@@ -328,8 +329,8 @@
                 <span class="label">{$_("settings.calculation.profileLabel")}</span>
                 <span class="value"
                     >{selectedPreset
-                        ? $_(`settings.calculationDashboard.profile${selectedPreset.charAt(0).toUpperCase() + selectedPreset.slice(1)}`)
-                        : $_("settings.calculationDashboard.profileCustom")}</span
+                        ? $_(`calculationDashboard.profile${selectedPreset.charAt(0).toUpperCase() + selectedPreset.slice(1)}` as TranslationKey)
+                        : $_("calculationDashboard.profileCustom")}</span
                 >
             </div>
             <div class="info-item">
@@ -343,7 +344,7 @@
             <div class="info-item">
                 <span class="label">{$_("settings.calculation.symbolsLabel")}</span>
                 <span class="value"
-                    >{settingsState.analyzeAllFavorites ? $_("settings.calculationDashboard.allFavorites") : $_("settings.calculationDashboard.top4")}</span
+                    >{settingsState.analyzeAllFavorites ? $_("calculationDashboard.allFavorites") : $_("calculationDashboard.top4")}</span
                 >
             </div>
             <div class="info-item">
