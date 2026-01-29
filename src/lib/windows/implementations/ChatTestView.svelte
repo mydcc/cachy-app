@@ -1,5 +1,5 @@
 <script lang="ts">
-    import type { WindowBase } from "../../../lib/windows/WindowBase";
+    import type { WindowBase } from "../../../lib/windows/WindowBase.svelte";
 
     interface Props {
         window: WindowBase;
