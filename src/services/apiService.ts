@@ -453,18 +453,31 @@ export const apiService = {
           }
           if (!response.ok) {
             // Try to parse error details
+            let errData: any = {};
             try {
-              const errData = await response.json();
-              if (
-                errData.error &&
-                !errData.error.includes("Symbol not found")
-              ) {
-                // Log to proper logger
-                logger.warn("network", `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`);
-              }
+              errData = await response.json();
             } catch {
               /* ignore parsing error */
             }
+
+            if (errData.error) {
+              const lowerErr = String(errData.error).toLowerCase();
+              if (
+                lowerErr.includes("symbol not found") ||
+                lowerErr.includes("system error")
+              ) {
+                const error = new Error("apiErrors.symbolNotFound");
+                (error as any).status = 404;
+                throw error;
+              }
+
+              // Log to proper logger
+              logger.warn(
+                "network",
+                `[Bitunix] Kline fetch failed (${response.status}): ${errData.error || "Unknown"}`,
+              );
+            }
+
             throw new Error("apiErrors.klineError");
           }
           const res = await apiService.safeJson(response);

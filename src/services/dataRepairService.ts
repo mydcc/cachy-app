@@ -150,8 +150,14 @@ export const dataRepairService = {
         } else {
           failed++;
         }
-      } catch (e) {
-        logger.error("journal", `[DataRepair] Failed to repair ${trade.symbol}`, e);
+      } catch (e: any) {
+        if (e.message !== "apiErrors.symbolNotFound") {
+          logger.error(
+            "journal",
+            `[DataRepair] Failed to repair ${trade.symbol}`,
+            e,
+          );
+        }
         failed++;
         // Continue with next trade
       }
@@ -288,8 +294,14 @@ export const dataRepairService = {
         } else {
           failed++;
         }
-      } catch (e) {
-        logger.error("journal", `[DataRepair] MFE/MAE Err ${trade.symbol}`, e);
+      } catch (e: any) {
+        if (e.message !== "apiErrors.symbolNotFound") {
+          logger.error(
+            "journal",
+            `[DataRepair] MFE/MAE Err ${trade.symbol}`,
+            e,
+          );
+        }
         failed++;
       }
 
