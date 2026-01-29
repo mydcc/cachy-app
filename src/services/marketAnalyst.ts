@@ -139,12 +139,12 @@ class MarketAnalystService {
 
                 // FORCE: Pro Dashboard relies on EMA 200 for Trend Direction
                 // We hijack EMA 3 slot to ensure it is calculated as 200 regardless of user setting
-                if (!settings.ema) settings.ema = {};
-                if (!settings.ema.ema3) settings.ema.ema3 = {};
+                if (!settings.ema) settings.ema = {} as any;
+                if (!settings.ema.ema3) settings.ema.ema3 = {} as any;
                 settings.ema.ema3.length = 200;
 
                 // FORCE: RSI 14 for Heatmap
-                if (!settings.rsi) settings.rsi = {};
+                if (!settings.rsi) settings.rsi = {} as any;
                 if (!settings.rsi.length) settings.rsi.length = 14;
 
                 // Force enable them by name (keys must match calculator logic which uses strictly 'EMA' usually)
