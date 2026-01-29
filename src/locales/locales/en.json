@@ -1000,14 +1000,6 @@
       "planFree": "Free",
       "planPro": "Pro"
     },
-    "cloud": {
-      "title": "Community Cloud (Beta)",
-      "description": "Connect to SpacetimeDB to chat with other traders.",
-      "connectButton": "Connect to Local Cloud",
-      "noMessages": "No messages yet.",
-      "sendButton": "Send",
-      "placeholder": "Say hello..."
-    },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
       "addFeed": "Add Feed",
