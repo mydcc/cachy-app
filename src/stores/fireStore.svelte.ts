@@ -9,6 +9,7 @@ export interface BurningElement {
     intensity: number;
     color: string;
     layer: 'tiles' | 'windows' | 'modals';
+    mode?: 'theme' | 'interactive' | 'custom' | 'classic' | 'glow';
 }
 
 class FireStore {

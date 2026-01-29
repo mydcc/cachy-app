@@ -4,8 +4,21 @@
   import { quintOut } from "svelte/easing";
   import { burn } from "../../actions/burn";
   import { settingsState } from "../../stores/settings.svelte";
+  import { marketState } from "../../stores/market.svelte";
+  import { tradeState } from "../../stores/trade.svelte";
 
   let isFlipped = $state(false);
+
+  // Derived market color based on active symbol
+  let marketColor = $derived.by(() => {
+    const symbol = tradeState.symbol;
+    const data = marketState.data[symbol];
+    if (!data || !data.priceChangePercent) return "var(--accent-color)";
+
+    return data.priceChangePercent.isPositive()
+      ? "var(--up-color)"
+      : "var(--down-color)";
+  });
 
   // Reset flip when active question changes (new card)
   $effect(() => {
@@ -59,7 +72,7 @@
         <div
           use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
-            ? { color: "#ff8800", intensity: 1.2, layer: "modals" }
+            ? { intensity: 1.2, layer: "modals" }
             : undefined}
           class="absolute inset-0 backface-hidden flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >
@@ -84,7 +97,7 @@
         <div
           use:burn={settingsState.enableBurningBorders &&
           settingsState.burnFlashCards
-            ? { color: "#00ff9d", intensity: 1.2, layer: "modals" }
+            ? { color: marketColor, intensity: 1.2, layer: "modals" }
             : undefined}
           class="absolute inset-0 backface-hidden rotate-y-180 flex flex-col items-center justify-center p-8 text-center bg-[var(--bg-secondary)] border border-[var(--border-color)] rounded-2xl shadow-2xl glass-panel"
         >

@@ -197,10 +197,10 @@
         }
         if (isChannel && settingsState.burnChannelWindows) {
             return {
-                color: "#ff8c00",
+                mode: "classic" as const,
                 intensity: 1.8,
                 layer: "windows" as const,
-            }; // Orange for Channel
+            }; // Classic Fire Mode for Channel
         }
 
         return undefined;

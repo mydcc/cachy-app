@@ -24,10 +24,27 @@
     // Reactive state to hide the whole thing when not needed
     let isActive = $derived.by(() => {
         if (!settingsState.enableBurningBorders) return false;
-        // Optimization: Only active if there are elements for *this* layer
+
+        // Track which layers have active elements
+        let hasModals = false;
+        let hasWindows = false;
+        let hasTiles = false;
+
         for (const el of fireStore.elements.values()) {
-            if (el.layer === layer) return true;
+            if (el.layer === "modals") hasModals = true;
+            else if (el.layer === "windows") hasWindows = true;
+            else if (el.layer === "tiles") hasTiles = true;
         }
+
+        // Priority logic:
+        // - 'modals' layer is always active if it has elements.
+        // - 'windows' layer is only active if it has elements AND no modals are active.
+        // - 'tiles' layer is only active if it has elements AND no windows AND no modals are active.
+
+        if (layer === "modals") return hasModals;
+        if (layer === "windows") return hasWindows && !hasModals;
+        if (layer === "tiles") return hasTiles && !hasWindows && !hasModals;
+
         return false;
     });
 
@@ -93,7 +110,6 @@
                 uSpeed: { value: 1.0 },
                 uTurbulence: { value: 1.0 },
                 uScale: { value: 1.1 },
-                uMode: { value: 0 }, // 0=Fire, 1=Glow
                 uResolution: {
                     value: new THREE.Vector2(
                         window.innerWidth,
@@ -110,6 +126,12 @@
         mesh = new THREE.InstancedMesh(geometry, material, MAX_INSTANCES);
         mesh.instanceMatrix.setUsage(THREE.DynamicDrawUsage);
         mesh.frustumCulled = false; // Important for moving instances
+
+        // Initialization of per-instance modes (aMode)
+        const modes = new Float32Array(MAX_INSTANCES);
+        const modeAttribute = new THREE.InstancedBufferAttribute(modes, 1);
+        geometry.setAttribute("aMode", modeAttribute);
+
         scene.add(mesh);
 
         // Z-Index -1 to be behind content, or 40 to be above content but below modals
@@ -147,17 +169,17 @@
 
             // Map settings to shader params
             if (settingsState.burningBordersIntensity === "low") {
-                baseIntensity = 0.8;
+                baseIntensity = 0.25;
                 baseThickness = 6.0;
             }
             if (settingsState.burningBordersIntensity === "high") {
-                baseIntensity = 2.5;
+                baseIntensity = 1;
                 baseThickness = 14.0;
             }
 
             // Speed adjustments
             if (settingsState.burningBordersIntensity === "high") {
-                baseSpeed = 1.0;
+                baseSpeed = 0.6;
                 baseTurbulence = 0.8;
             }
 
@@ -172,7 +194,10 @@
             material.uniforms.uSpeed.value = baseSpeed;
             material.uniforms.uTurbulence.value = baseTurbulence;
             material.uniforms.uScale.value = scaleFactor;
-            material.uniforms.uMode.value = currentMode;
+
+            const modeAttr = geometry.getAttribute(
+                "aMode",
+            ) as THREE.InstancedBufferAttribute;
 
             let i = 0;
             const width = window.innerWidth;
@@ -202,8 +227,19 @@
                 tempColor.set(color || "#ff8800");
                 mesh.setColorAt(i, tempColor);
 
+                // Set mode per instance
+                let instanceMode = currentMode;
+                // If the element has an explicit mode override, use it.
+                // 3 is the new 'classic' fire mode.
+                if (data.mode === "classic") instanceMode = 3;
+                else if (data.mode === "glow") instanceMode = 1;
+
+                modeAttr.setX(i, instanceMode);
+
                 i++;
             }
+
+            modeAttr.needsUpdate = true;
 
             mesh.count = i;
             mesh.instanceMatrix.needsUpdate = true;

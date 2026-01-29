@@ -50,13 +50,38 @@
   let burnConfig = $derived.by(() => {
     if (!settingsState.enableBurningBorders) return undefined;
 
-    // Special handling for Journal
+    // 1. Journal
     const isJournal = title === $_("journal.title");
     if (isJournal) {
       if (!settingsState.burnJournal) return undefined;
       return {
-        color: "var(--accent-color)",
         intensity: 1.5,
+        layer: "modals" as const,
+      };
+    }
+
+    // 2. Settings
+    const isSettings = title === ($_("settings.title") || "Settings");
+    if (isSettings) {
+      if (!settingsState.burnSettings) return undefined;
+      return {
+        intensity: 1.5,
+        layer: "modals" as const,
+      };
+    }
+
+    // 3. Guide & Documentation
+    const isGuide =
+      title === $_("app.guideTitle") ||
+      title === $_("app.changelogTitle") ||
+      title === $_("app.privacyLegal") ||
+      title === $_("app.whitepaper") ||
+      title === "Trading Academy";
+
+    if (isGuide) {
+      if (!settingsState.burnGuide) return undefined;
+      return {
+        intensity: 1.2,
         layer: "modals" as const,
       };
     }

@@ -217,7 +217,7 @@ export interface Settings {
   // Burning Borders
   enableBurningBorders: boolean;
   borderEffect: "fire" | "glow";
-  borderEffectColorMode: "theme" | "interactive" | "custom";
+  borderEffectColorMode: "theme" | "interactive" | "custom" | "classic";
   borderEffectCustomColor: string;
   burningBordersIntensity: AnimationIntensity;
   burnNewsWindows: boolean;
@@ -226,6 +226,8 @@ export interface Settings {
   burnFlashCards: boolean;
   burnJournal: boolean;
   burnModals: boolean;
+  burnSettings: boolean;
+  burnGuide: boolean;
   fireConfig: {
     speed: number;
     turbulence: number;
@@ -411,6 +413,8 @@ const defaultSettings: Settings = {
   burnFlashCards: true,
   burnJournal: true,
   burnModals: true,
+  burnSettings: true,
+  burnGuide: true,
   fireConfig: {
     speed: 1.0,
     turbulence: 1.0,
@@ -676,7 +680,7 @@ export class SettingsManager {
 
   enableBurningBorders = $state<boolean>(defaultSettings.enableBurningBorders);
   borderEffect = $state<"fire" | "glow">(defaultSettings.borderEffect || "fire");
-  borderEffectColorMode = $state<"theme" | "interactive" | "custom">(
+  borderEffectColorMode = $state<"theme" | "interactive" | "custom" | "classic">(
     defaultSettings.borderEffectColorMode,
   );
   borderEffectCustomColor = $state<string>(
@@ -693,6 +697,8 @@ export class SettingsManager {
   burnFlashCards = $state<boolean>(defaultSettings.burnFlashCards);
   burnJournal = $state<boolean>(defaultSettings.burnJournal);
   burnModals = $state<boolean>(defaultSettings.burnModals);
+  burnSettings = $state<boolean>(defaultSettings.burnSettings);
+  burnGuide = $state<boolean>(defaultSettings.burnGuide);
 
   fireConfig = $state(defaultSettings.fireConfig);
 
@@ -1096,6 +1102,8 @@ export class SettingsManager {
       this.burnFlashCards = merged.burnFlashCards ?? defaultSettings.burnFlashCards;
       this.burnJournal = merged.burnJournal ?? defaultSettings.burnJournal;
       this.burnModals = merged.burnModals ?? defaultSettings.burnModals;
+      this.burnSettings = merged.burnSettings ?? defaultSettings.burnSettings;
+      this.burnGuide = merged.burnGuide ?? defaultSettings.burnGuide;
       this.fireConfig = { ...defaultSettings.fireConfig, ...(merged.fireConfig || {}) };
 
 
@@ -1227,6 +1235,8 @@ export class SettingsManager {
       burnFlashCards: this.burnFlashCards,
       burnJournal: this.burnJournal,
       burnModals: this.burnModals,
+      burnSettings: this.burnSettings,
+      burnGuide: this.burnGuide,
       fireConfig: $state.snapshot(this.fireConfig),
       minChatProfitFactor: this.minChatProfitFactor,
       fontFamily: this.fontFamily,

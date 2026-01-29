@@ -549,7 +549,16 @@
       "colorMode": "Farbmodus",
       "modeTheme": "Theme",
       "modeInteractive": "Interaktiv",
-      "modeCustom": "Benutzerdefiniert"
+      "modeCustom": "Benutzerdefiniert",
+      "modeClassic": "Klassisches Feuer",
+      "burnMarketOverview": "Marktübersicht Kacheln",
+      "burnNews": "News Fenster",
+      "burnChannels": "Kanal Fenster",
+      "burnFlashCards": "Flash Cards",
+      "burnJournal": "Trade Journal",
+      "burnSettings": "Einstellungen Modal",
+      "burnGuide": "Anleitung & Dokumente",
+      "burnModals": "Andere Fenster"
     },
     "theme": "Design",
     "themeDark": "Dunkel",

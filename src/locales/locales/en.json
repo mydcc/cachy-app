@@ -573,7 +573,16 @@
       "colorMode": "Color Mode",
       "modeTheme": "Theme",
       "modeInteractive": "Interactive",
-      "modeCustom": "Custom"
+      "modeCustom": "Custom",
+      "modeClassic": "Classic Fire",
+      "burnMarketOverview": "Market Overview Tiles",
+      "burnNews": "News Windows",
+      "burnChannels": "Channel Windows",
+      "burnFlashCards": "Flash Cards",
+      "burnJournal": "Trade Journal",
+      "burnSettings": "Settings Modal",
+      "burnGuide": "Guide & Docs",
+      "burnModals": "Other Modals"
     },
     "theme": "Theme",
     "themeDark": "Dark",

@@ -43,6 +43,7 @@
         theme: "settings.appearance.modeTheme",
         interactive: "settings.appearance.modeInteractive",
         custom: "settings.appearance.modeCustom",
+        classic: "settings.appearance.modeClassic",
     };
 
     const activeSubTab = $derived(uiState.settingsVisualsSubTab);
@@ -321,7 +322,7 @@
                                         "Color Mode"}
                                 </span>
                                 <div class="flex flex-wrap gap-2">
-                                    {#each ["theme", "interactive", "custom"] as mode}
+                                    {#each ["theme", "interactive", "custom", "classic"] as mode}
                                         <button
                                             class="px-3 py-1.5 text-xs capitalize rounded border transition-colors {settingsState.borderEffectColorMode ===
                                             mode
@@ -391,8 +392,11 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Market Overview Tiles</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnMarketOverview",
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnMarketOverviewTiles
@@ -404,8 +408,9 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >News Windows</span
                                     >
+                                        {$_("settings.appearance.burnNews")}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnNewsWindows
@@ -417,8 +422,9 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Channel Windows</span
                                     >
+                                        {$_("settings.appearance.burnChannels")}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnChannelWindows
@@ -430,12 +436,65 @@
                                 >
                                     <span
                                         class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
-                                        >Flash Cards</span
                                     >
+                                        {$_(
+                                            "settings.appearance.burnFlashCards",
+                                        )}
+                                    </span>
                                     <Toggle
                                         bind:checked={
                                             settingsState.burnFlashCards
                                         }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_("settings.appearance.burnJournal")}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnJournal}
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_("settings.appearance.burnSettings")}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.burnSettings
+                                        }
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_("settings.appearance.burnGuide")}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnGuide}
+                                    />
+                                </label>
+                                <label
+                                    class="flex items-center justify-between cursor-pointer group"
+                                >
+                                    <span
+                                        class="text-xs text-[var(--text-secondary)] group-hover:text-[var(--text-primary)] transition-colors"
+                                    >
+                                        {$_("settings.appearance.burnModals")}
+                                    </span>
+                                    <Toggle
+                                        bind:checked={settingsState.burnModals}
                                     />
                                 </label>
                             </div>
