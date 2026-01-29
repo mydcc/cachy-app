@@ -30,7 +30,7 @@ export class DBService {
             const request = window.indexedDB.open(DB_NAME, DB_VERSION);
 
             request.onerror = () => {
-                logger.error("system", "[DB] Failed to open IndexedDB", request.error);
+                logger.error("data", "[DB] Failed to open IndexedDB", request.error);
                 reject(request.error);
             };
 
