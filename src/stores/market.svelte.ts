@@ -307,16 +307,46 @@ export class MarketManager {
     }
 
     // Merge strategy:
-    // 1. If history is empty, just set it.
-    // 2. If overlapping, merge and dedup by time.
-    if (history.length === 0) {
+    // Optimized for append-only / live update behavior
+    if (newKlines.length === 0) {
+      // No updates
+    } else if (history.length === 0) {
+      newKlines.sort((a, b) => a.time - b.time);
       history = newKlines;
     } else {
-      const existingMap = new Map(history.map(k => [k.time, k]));
-      newKlines.forEach(k => existingMap.set(k.time, k));
-      // Sort needed after map merge? Usually map iteration is insertion order, but keys are numbers.
-      // Better to convert back and sort to be safe.
-      history = Array.from(existingMap.values()).sort((a, b) => a.time - b.time);
+      // Ensure incoming klines are sorted (usually are, but safety first)
+      newKlines.sort((a, b) => a.time - b.time);
+
+      const lastHistTime = history[history.length - 1].time;
+      const firstNewTime = newKlines[0].time;
+
+      if (firstNewTime > lastHistTime) {
+        // Fast Path 1: Strict Append (New candle started)
+        history = history.concat(newKlines);
+      } else if (firstNewTime === lastHistTime && newKlines.length === 1) {
+        // Fast Path 2: Live Update (Update current candle)
+        // Copy to avoid mutating state proxy in-place before assignment
+        const newHistory = [...history];
+        newHistory[newHistory.length - 1] = newKlines[0];
+        history = newHistory;
+      } else if (firstNewTime >= lastHistTime) {
+        // Fast Path 3: Overlap at the end (e.g. update last + new candle)
+        const newHistory = [...history];
+        for (const k of newKlines) {
+          if (k.time === lastHistTime) {
+            newHistory[newHistory.length - 1] = k;
+          } else if (k.time > lastHistTime) {
+            newHistory.push(k);
+          }
+        }
+        history = newHistory;
+      } else {
+        // Slow Path: Historical backfill or disordered data
+        // Use Map for robust deduplication
+        const existingMap = new Map(history.map(k => [k.time, k]));
+        newKlines.forEach(k => existingMap.set(k.time, k));
+        history = Array.from(existingMap.values()).sort((a, b) => a.time - b.time);
+      }
     }
 
     // Limit history size to prevent memory leaks (e.g. 1500 candles)
