@@ -208,6 +208,11 @@
                 baseIntensity *= 2.0; // Needs higher base for bloom look
             }
 
+            // Refine constraints for large Modal windows
+            if (layer === "modals") {
+                baseThickness *= 0.7; // Make the border thinner on large modals to be less overwhelming
+            }
+
             material.uniforms.uIntensity.value = baseIntensity;
             material.uniforms.uThickness.value = baseThickness;
             material.uniforms.uSpeed.value = baseSpeed;
