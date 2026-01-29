@@ -769,6 +769,14 @@ class BitunixWebSocketService {
 
           if (message.ch === "price") {
             if (symbol && isObjectData && isPriceData(data)) {
+              // HARDENING: Check for native numbers in critical fields (Dev Mode only)
+              // If Bitunix sends numbers, JSON.parse already corrupted them before this check.
+              if (import.meta.env.DEV) {
+                if (typeof data.lastPrice === 'number' || typeof data.lp === 'number') {
+                   console.warn(`[BitunixWS] CRITICAL: Received numeric price for ${symbol}. Precision loss likely!`, data);
+                }
+              }
+
               const normalized = mdaService.normalizeTicker(message, "bitunix");
               if (!this.shouldThrottle(`${symbol}:price`)) {
                 marketState.updateSymbol(symbol, {

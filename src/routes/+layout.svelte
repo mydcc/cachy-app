@@ -168,7 +168,7 @@
 
       // Filter out common harmless network or cancellation errors
       if (
-        message.includes("The user aborted a request") ||
+        message.includes("The user aborted a request") || // i18n-ignore
         message === "AbortError"
       )
         return;
