@@ -39,6 +39,8 @@
 
   import { _ } from "../locales/i18n";
 
+  import WindowContainer from "../components/shared/windows/WindowContainer.svelte";
+
   import "../app.css";
 
   import { CONSTANTS } from "../lib/constants";
@@ -400,6 +402,7 @@
   <DisclaimerModal />
 {/if}
 
+<WindowContainer />
 <FloatingWindowsContainer />
 <ToastContainer />
 
