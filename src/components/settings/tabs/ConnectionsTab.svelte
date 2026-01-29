@@ -596,9 +596,9 @@
         opacity: 0.3;
     }
     .status-dot.connected {
-        background: #10b981;
+        background: var(--success-color);
         opacity: 1;
-        box-shadow: 0 0 8px #10b981;
+        box-shadow: 0 0 8px var(--success-color);
     }
     .api-input {
         width: 100%;

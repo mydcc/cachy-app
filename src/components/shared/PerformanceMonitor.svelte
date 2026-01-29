@@ -519,18 +519,18 @@
     }
 
     .tip.warning {
-        background: rgba(255, 152, 0, 0.1);
-        border-left: 3px solid #ff9800;
+        background: color-mix(in srgb, var(--warning-color), transparent 90%);
+        border-left: 3px solid var(--warning-color);
     }
 
     .tip.info {
-        background: rgba(33, 150, 243, 0.1);
-        border-left: 3px solid #2196f3;
+        background: color-mix(in srgb, var(--info-color), transparent 90%);
+        border-left: 3px solid var(--info-color);
     }
 
     .tip.success {
-        background: rgba(76, 175, 80, 0.1);
-        border-left: 3px solid #4caf50;
+        background: color-mix(in srgb, var(--success-color), transparent 90%);
+        border-left: 3px solid var(--success-color);
     }
 
     .tip-icon {

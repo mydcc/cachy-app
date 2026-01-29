@@ -177,14 +177,14 @@
         border-radius: 12px;
         background: var(--bg-secondary-80);
         backdrop-filter: blur(16px);
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
-        border: 1px solid rgba(255, 255, 255, 0.1);
+        box-shadow: var(--shadow-popover);
+        border: 1px solid var(--border-glass-light);
         transition:
             box-shadow 0.2s ease,
             opacity 0.2s ease;
     }
     .window-frame.focused {
-        box-shadow: 0 15px 45px rgba(0, 0, 0, 0.8);
+        box-shadow: var(--shadow-modal);
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
     .window-frame.dragging {
@@ -199,13 +199,13 @@
     }
     .window-header {
         padding: 8px 12px;
-        background: rgba(255, 255, 255, 0.03);
+        background: var(--bg-glass-light);
         cursor: grab;
         display: flex;
         justify-content: space-between;
         align-items: center;
         user-select: none;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        border-bottom: 1px solid var(--bg-glass-light);
     }
     .header-content {
         display: flex;
@@ -304,7 +304,7 @@
         transition: all 0.2s;
     }
     .close-btn:hover {
-        background: rgba(255, 68, 68, 0.2);
-        color: #ff4444;
+        background: color-mix(in srgb, var(--danger-color), transparent 80%);
+        color: var(--danger-color);
     }
 </style>

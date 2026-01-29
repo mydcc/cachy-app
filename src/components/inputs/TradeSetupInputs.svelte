@@ -469,13 +469,13 @@
         }}
         class="input-field w-full px-4 py-2 rounded-md transition-all {priceDeviation >
         10
-          ? 'border-orange-500 shadow-[0_0_5px_rgba(249,115,22,0.3)]'
+          ? 'border-[var(--orange-500)] shadow-[0_0_5px_var(--orange-500)]'
           : ''}"
         placeholder={$_("dashboard.tradeSetupInputs.entryPricePlaceholder")}
       />
       {#if priceDeviation > 1}
         <div
-          class="absolute -top-6 left-0 text-[10px] text-orange-500 font-bold animate-pulse flex items-center gap-1"
+          class="absolute -top-6 left-0 text-[10px] text-[var(--orange-500)] font-bold animate-pulse flex items-center gap-1"
         >
           <svg
             xmlns="http://www.w3.org/2000/svg"
@@ -779,9 +779,7 @@
 
 <style>
   .input-field:focus {
-    box-shadow:
-      0 4px 6px -1px rgba(0, 0, 0, 0.3),
-      0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    box-shadow: var(--shadow-card);
     border-color: var(--accent-color);
     z-index: 10;
   }

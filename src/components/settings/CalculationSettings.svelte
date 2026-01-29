@@ -430,8 +430,8 @@
 
     .preset-btn.active {
         border-color: var(--primary-color);
-        background: var(--primary-color, rgba(76, 175, 80, 0.1));
-        box-shadow: 0 0 0 3px var(--primary-color, rgba(76, 175, 80, 0.2));
+        background: var(--primary-color, color-mix(in srgb, var(--success-color), transparent 90%));
+        box-shadow: 0 0 0 3px var(--primary-color, color-mix(in srgb, var(--success-color), transparent 80%));
     }
 
     .preset-label {
@@ -509,7 +509,7 @@
     }
 
     .badge.active {
-        background: var(--primary-color, rgba(76, 175, 80, 0.2));
+        background: var(--primary-color, color-mix(in srgb, var(--success-color), transparent 80%));
         color: var(--primary-color);
     }
 
@@ -540,7 +540,7 @@
 
     .warning {
         display: block;
-        color: #ff9800;
+        color: var(--warning-color);
         font-weight: 500;
         margin-top: 0.25rem;
     }

@@ -513,14 +513,14 @@
 
     .symbol-item {
         min-height: 5.5rem;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        box-shadow: var(--shadow-md);
         color: var(--text-primary);
     }
 
     .symbol-item:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-        border-color: rgba(255, 255, 255, 0.2);
+        box-shadow: var(--shadow-lg);
+        border-color: var(--border-glass-light);
     }
 
     /* Target badges specifically on hover for high contrast */
