@@ -21,8 +21,8 @@
     if (!data || !data.priceChangePercent) return "var(--accent-color)";
 
     return data.priceChangePercent.gte(0)
-      ? "var(--up-color)"
-      : "var(--down-color)";
+      ? "var(--success-color)"
+      : "var(--danger-color)";
   });
 
   // Reset flip when active question changes (new card)

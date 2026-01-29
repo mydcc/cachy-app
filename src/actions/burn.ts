@@ -34,7 +34,10 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     let lastThemeCheck = 0;
     let cachedUpColor = "";
     let cachedDownColor = "";
-    let lastMarketCheck = 0;
+    // Global trend state for Interactive Mode (shared across all instances)
+    let globalLastSymbol = "";
+    let globalLastPrice: any = null; // Decimal
+    let globalTrendColor = ""; // Persists until change
 
     /**
      * Resolves the final color based on settings and options.
@@ -43,32 +46,33 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
     const resolveColor = (inputColor?: string, localMode?: string): string => {
         const mode = localMode || settingsState.borderEffectColorMode;
 
-        if (mode === "theme") {
+        // Common vars for theme color resolution
+        const getaccent = () => {
             const now = Date.now();
-            // Throttled check for theme color every 500ms or if mode changed
-            if (lastMode !== "theme" || !cachedThemeColor || now - lastThemeCheck > 500) {
-                const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim();
-                cachedThemeColor = accent || "#ff8800";
+            if (!cachedThemeColor || now - lastThemeCheck > 500) {
+                cachedThemeColor = getComputedStyle(document.documentElement).getPropertyValue('--accent-color').trim() || "#ff8800";
                 lastThemeCheck = now;
             }
             return cachedThemeColor;
+        };
+
+        if (mode === "theme") {
+            return getaccent();
         }
 
-        // Reset cache when leaving theme mode
-        cachedThemeColor = "";
+        // Reset cache when leaving theme mode (controlled mainly by getaccent check)
 
         if (mode === "custom") {
             return settingsState.borderEffectCustomColor;
         }
 
         if (mode === "classic") {
-            return "#ff8800"; // Dummy, shader uses fixed color for mode 3
+            return "#ff8800"; // Dummy
         }
 
         // Interactive Mode Logic
         if (mode === "interactive") {
-            // 1. If an explicit color (e.g. from FlashCard back) is provided, use it.
-            //    Check if it's a var() and resolve it.
+            // 1. Explicit color override (e.g. FlashCard Back)
             if (inputColor) {
                 if (inputColor.startsWith('var(')) {
                     const varName = inputColor.match(/var\(([^)]+)\)/)?.[1];
@@ -79,32 +83,42 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
                 return inputColor;
             }
 
-            // 2. If no inputColor, use automatic Market PnL color
-            const now = Date.now();
-            if (!cachedUpColor || !cachedDownColor || now - lastMarketCheck > 1000) {
-                const style = getComputedStyle(document.documentElement);
-                cachedUpColor = style.getPropertyValue('--up-color').trim() || "#00ff00";
-                cachedDownColor = style.getPropertyValue('--down-color').trim() || "#ff0000";
-                lastMarketCheck = now;
-            }
-
+            // 2. Automatic Price Trend (Like Market Tiles Border)
             const symbol = tradeState.symbol;
             if (symbol) {
                 const provider = settingsState.apiProvider;
                 const key = normalizeSymbol(symbol, provider);
                 const data = marketState.data[key];
 
-                if (data && data.priceChangePercent) {
-                    return data.priceChangePercent.gte(0) ? cachedUpColor : cachedDownColor;
+                // Cache colors if needed
+                if (!cachedUpColor || !cachedDownColor) {
+                    const style = getComputedStyle(document.documentElement);
+                    cachedUpColor = style.getPropertyValue('--success-color').trim() || "#00ff00";
+                    cachedDownColor = style.getPropertyValue('--danger-color').trim() || "#ff0000";
                 }
+
+                if (data && data.lastPrice) {
+                    // Check for Symbol Change -> Reset Trend
+                    if (symbol !== globalLastSymbol) {
+                        globalLastSymbol = symbol;
+                        globalLastPrice = data.lastPrice;
+                        globalTrendColor = ""; // Reset to neutral/accent
+                    }
+                    // Check for Price Change -> Update Trend
+                    else if (globalLastPrice && !data.lastPrice.equals(globalLastPrice)) {
+                        const isUp = data.lastPrice.gt(globalLastPrice);
+                        globalTrendColor = isUp ? cachedUpColor : cachedDownColor;
+                        globalLastPrice = data.lastPrice;
+                    }
+                }
+
+                // Return Trend Color if established, otherwise Accent (Idle/Init)
+                return globalTrendColor || getaccent();
             }
-            // Fallback if no market data: behave like theme or neutral
-            return "#888888";
+
+            return getaccent(); // Fallback to accent
         }
 
-        // Custom Mode (implicit fallback from resolve logic structure above? No, custom handled before.)
-
-        // Default fallback
         return inputColor ?? "#ffaa00";
     };
 

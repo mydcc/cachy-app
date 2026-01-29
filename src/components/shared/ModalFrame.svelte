@@ -151,7 +151,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 50;
+    z-index: 10000;
   }
   .modal-content {
     background-color: var(--bg-secondary);
