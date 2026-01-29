@@ -265,3 +265,23 @@ A good general information heirarchy you should should use in Markdown reports a
 - Root-cause fixes
 - KISS
 - Epistemic humility 👈️
+
+## **18. Theming und Kontrast-Sicherheit (System Hardening)**
+
+Um die Barrierefreiheit und Lesbarkeit über alle 20+ Themes hinweg zu garantieren, gelten folgende Regeln für UI-Komponenten:
+
+- **Verbot von hardcodeten Textfarben auf dynamischen Hintergründen:**
+  - Code wie `class="bg-[var(--accent-color)] text-white"` ist **VERBOTEN**, da er in Themes mit hellem Accent (z.B. VIP, Solarized Light) zu unlesbarem Text führt.
+
+- **Nutzung von "Paired Utility Classes":**
+  - Statt Hintergrund und Text getrennt zu definieren, **MÜSSEN** die gepaarten Klassen aus `themes.css` verwendet werden, die in jedem Theme korrekt aufeinander abgestimmt sind.
+  - **Standard:** `.bg-accent-paired` (setzt Hintergrund auf Accent und Text auf die passende Kontrastfarbe).
+  - **Erfolg/Fehler:** `.bg-success-paired`, `.bg-danger-paired`, `.bg-warning-paired`.
+  - **Hover:** `.hover-bg-accent-paired` (für simple Hover-Effekte).
+
+- **Beispiel (Svelte):**
+  - **FALSCH:** `class="bg-[var(--accent-color)] text-white"`
+  - **KORREKT:** `class="bg-accent-paired"`
+
+- **Neue Themes:**
+  - Jedes neue Theme in `themes.css` **MUSS** zwingend die Variablen `--text-on-accent`, `--text-on-success` und `--text-on-danger` definieren.

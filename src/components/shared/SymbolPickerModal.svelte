@@ -448,7 +448,7 @@
                         <div
                             role="button"
                             tabindex="0"
-                            class="symbol-item cursor-pointer group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover:bg-[var(--accent-color)] hover:text-white transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
+                            class="symbol-item cursor-pointer group relative flex flex-col items-center justify-center p-3 rounded-xl bg-[var(--bg-tertiary)] hover-bg-accent-paired transition-all duration-200 border border-[var(--border-color)] overflow-hidden"
                             onclick={() => selectSymbol(s)}
                             onkeydown={(e) =>
                                 e.key === "Enter" && selectSymbol(s)}
@@ -521,8 +521,6 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
         border-color: rgba(255, 255, 255, 0.2);
-        /* VIP Theme Support: Use the button accent text color on hover */
-        color: var(--btn-accent-text, white) !important;
     }
 
     /* Target badges specifically on hover for high contrast */

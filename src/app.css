@@ -60,6 +60,9 @@
   --color-text-btn-danger: var(--btn-danger-text);
   --color-text-btn-accent: var(--btn-accent-text);
   --color-text-btn-success: var(--btn-success-text);
+  --color-text-on-accent: var(--text-on-accent);
+  --color-text-on-success: var(--text-on-success);
+  --color-text-on-danger: var(--text-on-danger);
 
   /* Border Colors */
   --color-border-color: var(--border-color);

@@ -117,7 +117,7 @@
   >
     {#each selected as tf, i (tf)}
       <div
-        class="flex items-center gap-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] px-2 py-1 rounded text-xs font-bold text-[var(--accent-color)]"
+        class="flex items-center gap-1 bg-[var(--bg-tertiary)] border border-[var(--border-color)] px-2 py-1 rounded text-xs font-bold text-[var(--text-on-accent)]"
         in:scale={{ duration: 200, easing: quintOut }}
         out:scale={{ duration: 150, easing: quintOut }}
       >

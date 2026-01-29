@@ -68,6 +68,9 @@
   --warning-color: var(--yellow-400);
   --nav-hover-bg: var(--blue-800);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.5);
+  --text-on-accent: var(--blue-950);
+  --text-on-success: var(--blue-950);
+  --text-on-danger: var(--blue-100);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--blue-700);
@@ -152,6 +155,9 @@
   --danger-color: var(--red-600);
   --warning-color: var(--orange-500);
   --shadow-tooltip: 0 10px 40px -10px rgba(0, 0, 0, 0.1);
+  --text-on-accent: var(--pure-white);
+  --text-on-success: var(--pure-white);
+  --text-on-danger: var(--slate-100);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--slate-400);
@@ -253,6 +259,9 @@
   --danger-color: var(--core-red-insights);
   --warning-color: var(--highlight-red-alt);
   --shadow-tooltip: 0 30px 90px -20px rgba(12, 8, 47, 0.5);
+  --text-on-accent: var(--purple-light);
+  --text-on-success: var(--purple-light);
+  --text-on-danger: var(--purple-light);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--core-meteorite);
@@ -357,6 +366,9 @@
   --danger-color: var(--core-red-insights);
   --warning-color: var(--highlight-red-alt);
   --shadow-tooltip: 0 30px 90px -20px rgba(8, 16, 63, 0.5);
+  --text-on-accent: var(--blue-pro-light);
+  --text-on-success: var(--blue-pro-light);
+  --text-on-danger: var(--blue-pro-light);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--core-meteorite);
@@ -426,6 +438,9 @@
   --warning-color: var(--orange-500);
   --nav-hover-bg: var(--gray-700);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+  --text-on-accent: var(--gray-900);
+  --text-on-success: var(--gray-900);
+  --text-on-danger: var(--white);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gray-blue-400);
@@ -439,7 +454,7 @@
   --btn-accent-text: var(--gray-900);
   --btn-success-bg: var(--green-500);
   --btn-success-hover-bg: var(--green-600);
-  --btn-success-text: var(--white);
+  --btn-success-text: var(--gray-900);
 
   /* --- Toggle & UI --- */
   --toggle-bg-off: var(--gray-600);
@@ -484,6 +499,9 @@
   --danger-color: var(--red-500);
   --warning-color: var(--yellow-400);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+  --text-on-accent: var(--matrix-base);
+  --text-on-success: var(--matrix-base);
+  --text-on-danger: #ffffff;
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--green-700);
@@ -544,6 +562,9 @@
   --danger-color: var(--red);
   --warning-color: var(--yellow);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.7);
+  --text-on-accent: var(--dark-purple-800);
+  --text-on-success: var(--dark-purple-800);
+  --text-on-danger: var(--dark-purple-800);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--dark-purple-600);
@@ -607,6 +628,9 @@
   --danger-color: var(--red);
   --warning-color: var(--yellow);
   --shadow-tooltip: 0 30px 90px -20px rgba(0, 0, 0, 0.1);
+  --text-on-accent: var(--base3);
+  --text-on-success: var(--base3);
+  --text-on-danger: var(--base3);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
@@ -666,6 +690,9 @@
   --success-color: var(--aurora-green);
   --danger-color: var(--aurora-red);
   --warning-color: var(--aurora-yellow);
+  --text-on-accent: var(--polar-night-1);
+  --text-on-success: var(--polar-night-1);
+  --text-on-danger: var(--polar-night-1);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--polar-night-3);
@@ -730,6 +757,9 @@
   --danger-color: var(--gruv-red-bright);
   --warning-color: var(--gruv-yellow-bright);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--gruv-dark0-hard);
+  --text-on-success: var(--gruv-dark0-hard);
+  --text-on-danger: var(--gruv-light1);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gruv-dark4);
@@ -795,6 +825,9 @@
   --danger-color: var(--mono-red);
   --warning-color: var(--mono-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--mono-bg-dark);
+  --text-on-success: var(--mono-bg-dark);
+  --text-on-danger: var(--mono-bg-dark);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--mono-bg-light);
@@ -860,6 +893,9 @@
   --danger-color: var(--tokyo-red);
   --warning-color: var(--tokyo-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--tokyo-bg);
+  --text-on-success: var(--tokyo-bg);
+  --text-on-danger: var(--tokyo-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--tokyo-comment);
@@ -925,6 +961,9 @@
   --danger-color: var(--ever-red);
   --warning-color: var(--ever-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--ever-bg);
+  --text-on-success: var(--ever-bg);
+  --text-on-danger: var(--ever-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ever-gray);
@@ -990,6 +1029,9 @@
   --danger-color: var(--red);
   --warning-color: var(--yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--base3);
+  --text-on-success: var(--base3);
+  --text-on-danger: var(--base3);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--base02);
@@ -1057,6 +1099,9 @@
   --danger-color: var(--cat-red);
   --warning-color: var(--cat-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--cat-base);
+  --text-on-success: var(--cat-base);
+  --text-on-danger: var(--cat-base);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--cat-surface1);
@@ -1121,6 +1166,9 @@
   --danger-color: var(--one-red);
   --warning-color: var(--one-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--one-bg);
+  --text-on-success: var(--one-bg);
+  --text-on-danger: var(--one-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--one-comment);
@@ -1183,6 +1231,9 @@
   --danger-color: var(--obsidian-red);
   --warning-color: var(--obsidian-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--obsidian-white);
+  --text-on-success: var(--obsidian-bg);
+  --text-on-danger: var(--obsidian-white);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--obsidian-border);
@@ -1244,6 +1295,9 @@
   --danger-color: var(--drac-soft-red);
   --warning-color: var(--drac-soft-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--drac-soft-bg);
+  --text-on-success: var(--drac-soft-bg);
+  --text-on-danger: var(--drac-soft-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--drac-soft-border);
@@ -1310,6 +1364,9 @@
   --danger-color: var(--ayu-error);
   --warning-color: var(--ayu-func);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--ayu-bg);
+  --text-on-success: var(--ayu-bg);
+  --text-on-danger: var(--ayu-fg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-border);
@@ -1373,6 +1430,9 @@
   --danger-color: var(--cobalt-red);
   --warning-color: var(--cobalt-orange);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--cobalt-bg);
+  --text-on-success: var(--cobalt-bg);
+  --text-on-danger: var(--cobalt-fg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--cobalt-bg-alt);
@@ -1440,6 +1500,9 @@
   --danger-color: var(--owl-red);
   --warning-color: var(--owl-yellow);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--owl-bg);
+  --text-on-success: var(--owl-bg);
+  --text-on-danger: var(--owl-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--owl-bg-lighter);
@@ -1499,6 +1562,9 @@
   --danger-color: var(--midnight-error);
   --warning-color: var(--midnight-warning);
   --shadow-tooltip: 0 30px 90px -20px var(--black-transparent);
+  --text-on-accent: var(--midnight-bg-main);
+  --text-on-success: var(--midnight-text-primary);
+  --text-on-danger: var(--midnight-text-primary);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--midnight-bg-overlay);
@@ -1561,6 +1627,9 @@
   --success-color: var(--ayu-light-green);
   --danger-color: var(--ayu-light-red);
   --warning-color: var(--ayu-light-orange);
+  --text-on-accent: var(--ayu-light-bg);
+  --text-on-success: var(--ayu-light-fg);
+  --text-on-danger: var(--ayu-light-fg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-light-border);
@@ -1622,6 +1691,9 @@
   --success-color: var(--ayu-mirage-green);
   --danger-color: var(--ayu-mirage-red);
   --warning-color: var(--ayu-mirage-orange);
+  --text-on-accent: var(--ayu-mirage-bg);
+  --text-on-success: var(--ayu-mirage-bg);
+  --text-on-danger: var(--ayu-mirage-bg);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--ayu-mirage-border);
@@ -1688,6 +1760,9 @@
   --success-color: var(--gh-dark-green);
   --danger-color: var(--gh-dark-red);
   --warning-color: var(--gh-dark-orange);
+  --text-on-accent: var(--gh-dark-white);
+  --text-on-success: var(--gh-dark-bg);
+  --text-on-danger: var(--gh-dark-white);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gh-dark-btn-bg);
@@ -1754,6 +1829,9 @@
   --success-color: var(--gh-light-green);
   --danger-color: var(--gh-light-red);
   --warning-color: var(--gh-light-orange);
+  --text-on-accent: var(--gh-light-white);
+  --text-on-success: var(--gh-light-white);
+  --text-on-danger: var(--gh-light-white);
 
   /* --- Button Colors --- */
   --btn-default-bg: var(--gh-light-btn-bg);
@@ -2703,4 +2781,46 @@ svg {
   padding: 1rem;
   width: 100%;
   box-sizing: border-box;
+}
+
+/* =================================================================
+   Paired Utility Classes (Industry Standard)
+   Ensures robust contrast by setting background and matching text color together.
+   Use these instead of separate bg-* and text-* classes.
+   ================================================================= */
+
+.bg-accent-paired {
+  background-color: var(--accent-color) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.bg-success-paired {
+  background-color: var(--success-color) !important;
+  color: var(--text-on-success) !important;
+}
+
+.bg-danger-paired {
+  background-color: var(--danger-color) !important;
+  color: var(--text-on-danger) !important;
+}
+
+.bg-warning-paired {
+  background-color: var(--warning-color) !important;
+  color: var(--text-on-warning, var(--text-primary)) !important;
+}
+
+/* Hover variants (using standard CSS classes for manual usage) */
+.hover-bg-accent-paired:hover {
+  background-color: var(--accent-color) !important;
+  color: var(--text-on-accent) !important;
+}
+
+.hover-bg-success-paired:hover {
+  background-color: var(--success-color) !important;
+  color: var(--text-on-success) !important;
+}
+
+.hover-bg-danger-paired:hover {
+  background-color: var(--danger-color) !important;
+  color: var(--text-on-danger) !important;
 }
