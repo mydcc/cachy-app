@@ -153,6 +153,16 @@
       // Don't show modal for harmless or empty errors
       if (!event.message && !event.error) return;
 
+      // Ignore harmless ResizeObserver loop error
+      if (
+        event.message.includes(
+          "ResizeObserver loop completed with undelivered notifications",
+        ) ||
+        event.message.includes("ResizeObserver loop limit exceeded")
+      ) {
+        return;
+      }
+
       uiState.showError(event.message || "An unexpected error occurred.");
     };
 

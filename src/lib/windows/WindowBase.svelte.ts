@@ -74,11 +74,11 @@ export abstract class WindowBase {
         if (this.aspectRatio) {
             const HEADER_HEIGHT = 41; // Corrected: 8px pad + 24px btn + 8px pad + 1px border
             // The ratio applies to the content, so Height = (Width / Ratio) + Header
-            newHeight = (newWidth / this.aspectRatio) + HEADER_HEIGHT;
+            newHeight = Math.round((newWidth / this.aspectRatio) + HEADER_HEIGHT);
         }
 
-        this.width = newWidth;
-        this.height = newHeight;
+        this.width = Math.round(newWidth);
+        this.height = Math.round(newHeight);
     }
 
     // --- CORE FEATURE METHODS ---

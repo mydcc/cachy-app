@@ -150,12 +150,13 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
 
             const rect = node.getBoundingClientRect();
 
-            // 1. Position Update Guard with some tolerance
+            // 1. Position Update Guard with integer tolerance
+            // Using 1.0 instead of 0.1 to prevent sub-pixel layout loops
             const posChanged = !lastRect ||
-                Math.abs(rect.top - lastRect.top) > 0.1 ||
-                Math.abs(rect.left - lastRect.left) > 0.1 ||
-                Math.abs(rect.width - lastRect.width) > 0.1 ||
-                Math.abs(rect.height - lastRect.height) > 0.1;
+                Math.abs(rect.top - lastRect.top) >= 1.0 ||
+                Math.abs(rect.left - lastRect.left) >= 1.0 ||
+                Math.abs(rect.width - lastRect.width) >= 1.0 ||
+                Math.abs(rect.height - lastRect.height) >= 1.0;
 
             // 2. Style Update (Normalized comparison)
             const finalColor = resolveColor(options.color, options.mode).toLowerCase();
@@ -179,10 +180,10 @@ export function burn(node: HTMLElement, options: BurnOptions | undefined) {
             // 4. Update
             if (posChanged || styleChanged || force) {
                 fireStore.updateElement(id, {
-                    x: rect.left,
-                    y: rect.top,
-                    width: rect.width,
-                    height: rect.height,
+                    x: Math.round(rect.left),
+                    y: Math.round(rect.top),
+                    width: Math.round(rect.width),
+                    height: Math.round(rect.height),
                     intensity: intensity,
                     color: finalColor,
                     layer: currentLayer as any,
