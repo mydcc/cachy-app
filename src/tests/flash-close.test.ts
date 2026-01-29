@@ -26,6 +26,7 @@ vi.mock('../services/omsService', () => ({
 vi.mock('../services/logger', () => ({
     logger: {
         log: vi.fn(),
+        warn: vi.fn(),
         error: vi.fn()
     }
 }));

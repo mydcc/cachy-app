@@ -9,7 +9,7 @@ import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
-import { PositionListSchema, type PositionRaw } from "./apiSchemas";
+import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
 import type { OMSPosition } from "./omsTypes";
 
 export class BitunixApiError extends Error {
@@ -228,15 +228,22 @@ class TradeService {
             const rawPositions = Array.isArray(pendingResult.data) ? pendingResult.data : [];
             const validation = PositionListSchema.safeParse(rawPositions);
 
-            if (!validation.success) {
-                logger.error("market", "[TradeService] API Schema mismatch", validation.error);
-                // Fallback: Try to use raw data but log error, OR throw?
-                // For critical financial data, we should probably be safe, but we don't want to break if one optional field is wrong.
-                // PositionListSchema uses optionals heavily, so failure means structure is REALLY wrong.
-                throw new Error("apiErrors.schemaMismatch");
-            }
+            let pendingPositions: PositionRaw[] = [];
 
-            const pendingPositions = validation.data;
+            if (validation.success) {
+                pendingPositions = validation.data;
+            } else {
+                logger.error("market", "[TradeService] API Schema List mismatch. Falling back to individual item validation.", validation.error);
+                // Best Effort Parsing: Iterate and keep only valid items
+                rawPositions.forEach((item: any, index: number) => {
+                    const itemValidation = PositionRawSchema.safeParse(item);
+                    if (itemValidation.success) {
+                        pendingPositions.push(itemValidation.data);
+                    } else {
+                        logger.warn("market", `[TradeService] Dropping invalid position at index ${index}`, itemValidation.error);
+                    }
+                });
+            }
 
             // Map and Update OMS using robust mapper
             pendingPositions.forEach((p: PositionRaw) => {
@@ -295,6 +302,9 @@ class TradeService {
 
         // Use explicit amount or full position amount
         // If explicit amount is provided, use it.
+        if (!amount) {
+             logger.warn("market", `[ClosePosition] No amount specified. Defaulting to FULL CLOSE for ${symbol} ${positionSide}`);
+        }
         const qty = amount ? amount.toString() : position.amount.toString();
 
         logger.log("market", `[ClosePosition] Closing ${symbol} ${positionSide} (${qty})`);

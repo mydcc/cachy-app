@@ -24,6 +24,7 @@
     } from "../../services/candlestickPatterns";
     import CandlestickChart from "./CandlestickChart.svelte";
     import { marked } from "marked";
+    import { sanitizeHtml } from "../../utils/sanitizer";
     import markedKatex from "marked-katex-extension";
     import "katex/dist/katex.min.css";
 
@@ -122,7 +123,9 @@
     }
 
     function renderMarkdown(text: string) {
-        return marked.parse(text);
+        if (!text) return "";
+        const raw = marked.parse(text) as string;
+        return sanitizeHtml(raw);
     }
 </script>
 

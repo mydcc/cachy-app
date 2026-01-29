@@ -21,6 +21,7 @@
     import { CHART_PATTERNS } from "../../services/chartPatterns";
     import ChartPatternChart from "./ChartPatternChart.svelte";
     import { marked } from "marked";
+    import { sanitizeHtml } from "../../utils/sanitizer";
     import markedKatex from "marked-katex-extension";
     import "katex/dist/katex.min.css";
 
@@ -119,7 +120,8 @@
 
     function renderMarkdown(text: string) {
         if (!text) return "";
-        return marked.parse(text);
+        const raw = marked.parse(text) as string;
+        return sanitizeHtml(raw);
     }
 </script>
 
