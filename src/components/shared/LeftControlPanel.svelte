@@ -86,10 +86,10 @@
         100,
         (quizState.knownQuestionIds.size / 52) * 100,
       )}
-      <div class="absolute left-[2px] top-1/2 -translate-y-1/2 z-10">
+      <div class="absolute -left-[0.25rem] top-1/2 -translate-y-1/2 z-10">
         <Tooltip text="{quizState.knownQuestionIds.size}/52">
           <div
-            class="flex flex-col h-[28px] w-[4px] rounded-full overflow-hidden shadow-sm"
+            class="flex flex-col h-[28px] w-[3px] rounded-full overflow-hidden shadow-sm"
           >
             <!-- Red Segment (Top) -->
             <div
