@@ -1621,5 +1621,12 @@
   },
   "academy": {
     "title": "[DE] Trading Academy"
+  },
+  "quiz": {
+    "question": "Frage",
+    "answer": "Antwort",
+    "clickToReveal": "Klicken zum Aufdecken",
+    "practice": "Noch üben",
+    "known": "Gewusst"
   }
 }

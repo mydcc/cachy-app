@@ -1617,5 +1617,12 @@
   },
   "academy": {
     "title": "Trading Academy"
+  },
+  "quiz": {
+    "question": "Question",
+    "answer": "Answer",
+    "clickToReveal": "Click to reveal",
+    "practice": "Keep practicing",
+    "known": "I knew it"
   }
 }
