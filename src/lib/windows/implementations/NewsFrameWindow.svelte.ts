@@ -1,6 +1,6 @@
 /*
   Copyright (C) 2026 MYDCT
-  News Window Implementation with Zoom and Font-Size support
+  News Window Implementation - All Flags Prepared
 */
 
 import { WindowBase } from "../WindowBase.svelte";
@@ -10,17 +10,27 @@ export class NewsFrameWindow extends WindowBase {
     constructor(title = "Market News") {
         super({
             title,
-            width: 700,
-            height: 600,
-            x: 200,
-            y: 100
+            width: 640,
+            height: 480
         });
 
-        // Hier aktivieren wir die gewünschten Features
-        this.allowZoom = true;       // Zoom-Buttons aktivieren
-        this.allowFontSize = true;   // Schriftgrößensteuerung aktivieren
-        this.showCachyIcon = true;   // Logo im Header anzeigen
-        this.burnIntensity = 1.2;    // Etwas stärkerer Rahmen-Effekt für News
+        // --- ALL FLAGS INITIALIZED (Set to false as requested) ---
+
+        // UI Features
+        this.showCachyIcon = false;
+        this.allowZoom = false;
+        this.allowFontSize = false;
+
+        // Visual Effects
+        this.enableBurningBorders = true; // Meistens erwünscht, sonst false
+        this.burnIntensity = 1.0;
+        this.isTransparent = false;
+        this.opacity = 1.0;
+
+        // Interaction
+        this.isDraggable = true;
+        this.isResizable = true;
+        this.closeOnBlur = true; // Schließt sich, wenn man woanders klickt
     }
 
     get component() {

@@ -8,8 +8,8 @@ export abstract class WindowBase {
     title = $state("");
     x = $state(0);
     y = $state(0);
-    width = $state(800);
-    height = $state(600);
+    width = $state(640);
+    height = $state(480);
     zIndex = $state(100);
     isFocused = $state(false);
     minWidth = 200;
@@ -20,18 +20,34 @@ export abstract class WindowBase {
     allowZoom = $state(false);
     allowFontSize = $state(false);
     enableBurningBorders = $state(true);
+    isDraggable = $state(true);
+    isResizable = $state(true);
+    isTransparent = $state(false);
+    opacity = $state(1.0);
+    closeOnBlur = $state(false);
 
     // --- FEATURE STATE ---
     fontSize = $state(14);
     zoomLevel = $state(1.0);
     burnIntensity = $state(1.0);
 
+    static staggerCount = 0;
+
     constructor(options: { title: string; width?: number; height?: number; x?: number; y?: number }) {
         this.title = options.title;
         if (options.width) this.width = options.width;
         if (options.height) this.height = options.height;
-        if (options.x !== undefined) this.x = options.x;
-        if (options.y !== undefined) this.y = options.y;
+
+        // Intelligent centering & staggering
+        if (typeof window !== 'undefined') {
+            const stagger = (WindowBase.staggerCount % 10) * 25;
+            this.x = options.x ?? (window.innerWidth - this.width) / 2 + stagger;
+            this.y = options.y ?? (window.innerHeight - this.height) / 2 + stagger;
+            WindowBase.staggerCount++;
+        } else {
+            this.x = options.x ?? 100;
+            this.y = options.y ?? 100;
+        }
     }
 
     // Abstract property to define which Svelte component to render inside

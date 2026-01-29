@@ -12,7 +12,8 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { uiState } from "../../stores/ui.svelte";
   import { newsStore } from "../../stores/news.svelte";
-  import { floatingWindowsStore } from "../../stores/floatingWindows.svelte";
+  import { windowManager } from "../../lib/windows/WindowManager.svelte";
+  import { IframeWindow } from "../../lib/windows/implementations/IframeWindow.svelte";
   import { icons } from "../../lib/constants";
   import { _ } from "../../locales/i18n";
   import CachyIcon from "./CachyIcon.svelte";
@@ -82,7 +83,7 @@
 
   function handleArticleClick(e: MouseEvent, url: string, title: string) {
     e.preventDefault();
-    floatingWindowsStore.openWindow(url, title);
+    windowManager.open(new IframeWindow(url, title));
   }
 </script>
 

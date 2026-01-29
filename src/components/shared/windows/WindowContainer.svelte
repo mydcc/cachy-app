@@ -5,7 +5,9 @@
 
 <div class="windows-container">
     {#each windowManager.windows as win (win.id)}
-        <WindowFrame window={win} />
+        <div class="window-wrapper" onclick={(e) => e.stopPropagation()}>
+            <WindowFrame window={win} />
+        </div>
     {/each}
 </div>
 
@@ -14,9 +16,13 @@
         position: fixed;
         top: 0;
         left: 0;
-        width: 0;
-        height: 0;
+        width: 100vw;
+        height: 100vh;
         z-index: 11000;
-        pointer-events: none;
+        pointer-events: none; /* Let clicks pass through to the app */
+    }
+    .window-wrapper {
+        position: absolute;
+        pointer-events: auto; /* Interaction with windows only */
     }
 </style>

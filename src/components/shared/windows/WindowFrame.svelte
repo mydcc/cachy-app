@@ -72,11 +72,13 @@
     class="window-frame glass-panel"
     class:focused={win.isFocused}
     class:dragging={isDragging}
+    class:transparent={win.isTransparent}
     style:left="{win.x}px"
     style:top="{win.y}px"
     style:width="{win.width}px"
     style:height="{win.height}px"
     style:z-index={win.zIndex}
+    style:opacity={win.opacity}
     onpointerdown={handlePointerDown}
     use:burn={win.enableBurningBorders
         ? {
@@ -85,7 +87,11 @@
           }
         : undefined}
 >
-    <div class="window-header" onpointerdown={startDrag}>
+    <div
+        class="window-header"
+        onpointerdown={win.isDraggable ? startDrag : undefined}
+        style:cursor={win.isDraggable ? "grab" : "default"}
+    >
         <div class="header-content">
             {#if win.showCachyIcon}
                 <div class="cachy-logo">
@@ -156,7 +162,9 @@
         </div>
     </div>
 
-    <div class="resize-handle" onpointerdown={startResize}></div>
+    {#if win.isResizable}
+        <div class="resize-handle" onpointerdown={startResize}></div>
+    {/if}
 </div>
 
 <style>
@@ -182,6 +190,12 @@
     .window-frame.dragging {
         opacity: 0.9;
         cursor: grabbing;
+    }
+    .window-frame.transparent {
+        background: transparent;
+        backdrop-filter: none;
+        border: none;
+        box-shadow: none;
     }
     .window-header {
         padding: 8px 12px;

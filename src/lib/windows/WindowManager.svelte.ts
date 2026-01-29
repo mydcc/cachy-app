@@ -29,8 +29,34 @@ class WindowManager {
         const win = this._windows.find(w => w.id === id);
         if (win) {
             win.zIndex = this._nextZIndex++;
-            this._windows.forEach(w => w.isFocused = (w.id === id));
+
+            // Close other windows that have closeOnBlur set to true
+            this._windows.forEach(w => {
+                if (w.id !== id && w.closeOnBlur) {
+                    this.close(w.id);
+                } else {
+                    w.isFocused = (w.id === id);
+                }
+            });
         }
+    }
+
+    constructor() {
+        if (typeof window !== 'undefined') {
+            window.addEventListener('mousedown', (e) => {
+                // If we clicked something that is NOT part of a window,
+                // close all windows with closeOnBlur = true
+                const target = e.target as HTMLElement;
+                if (!target.closest('.window-frame')) {
+                    this.handleBackgroundClick();
+                }
+            });
+        }
+    }
+
+    // Call this when clicking the background/layout
+    handleBackgroundClick() {
+        this._windows.filter(w => w.closeOnBlur).forEach(w => this.close(w.id));
     }
 }
 
