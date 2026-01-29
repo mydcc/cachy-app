@@ -1736,5 +1736,13 @@
   },
   "windows": {
     "smash": "Fenster zerschlagen"
+  },
+  "cloud": {
+    "title": "Community Cloud (Beta)",
+    "description": "Verbinde dich mit SpacetimeDB, um mit anderen Tradern zu chatten.",
+    "connectButton": "Verbinden",
+    "noMessages": "Noch keine Nachrichten.",
+    "sendButton": "Senden",
+    "placeholder": "Sag Hallo..."
   }
 }
