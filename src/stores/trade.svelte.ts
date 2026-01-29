@@ -375,7 +375,7 @@ class TradeManager {
     const currentTradeType = this.tradeType;
 
     // Reset everything to deep copy of initial state to prevent reference issues
-    const defaults = JSON.parse(JSON.stringify(INITIAL_TRADE_STATE));
+    const defaults = structuredClone(INITIAL_TRADE_STATE);
     Object.assign(this, defaults);
 
     // Restore preserved values
