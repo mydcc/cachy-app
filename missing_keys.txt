@@ -1,0 +1,73 @@
+❌ REFERENCED IN CODE BUT MISSING IN GERMAN (43 keys):
+   - academy.title
+   - apiErrors.failedToLoadOrders
+   - apiErrors.failedToLoadPositions
+   - apiErrors.generic
+   - apiErrors.noMarketData
+   - calculator.errors.generic
+   - calculator.errors.slAboveEntry
+   - calculator.errors.slBelowEntry
+   - calculator.errors.slDistance
+   - candlestickPatterns.title
+   - chartPatterns.title
+   - common.close
+   - common.remove
+   - connection.connected
+   - connection.connecting
+   ... and 28 more
+
+✓ All code references found in English
+
+================================================================================
+4. UNUSED KEYS
+================================================================================
+
+⚠️ GERMAN - Possibly unused keys (397 keys):
+   - app.backupButtonAriaLabel
+   - app.backupButtonTitle
+   - app.backupWrongPassword
+   - app.closeChangelogAriaLabel
+   - app.closeGuideAriaLabel
+   - app.enterBackupPassword
+   - app.marketDashboard.buttonTitle
+   - app.marketDashboard.point
+   - app.marketDashboard.title
+   - app.passwordRequiredTitle
+   - app.pro
+   - app.proActive
+   - app.restoreButtonAriaLabel
+   - app.restoreButtonTitle
+   - app.restoreConfirmTitle
+   ... and 382 more
+
+⚠️ ENGLISH - Possibly unused keys (786 keys):
+   - analyst.condition.overbought
+   - analyst.condition.oversold
+   - analyst.condition.trending
+   - analyst.trend.bearish
+   - analyst.trend.bullish
+   - analyst.trend.neutral
+   - apiErrors.fetchFailed
+   - apiErrors.invalidAmount
+   - apiErrors.invalidResponse
+   - apiErrors.klineError
+   - apiErrors.missingCredentials
+   - apiErrors.symbolNotFound
+   - apiErrors.syncFailed
+   - apiErrors.syncIncomplete
+   - apiErrors.syncNoNewData
+   ... and 771 more
+
+================================================================================
+SUMMARY
+================================================================================
+❌ Only in DE: 1
+❌ Only in EN: 433
+✓ Empty values in DE: 0
+✓ Empty values in EN: 0
+❌ Missing in DE (code ref): 43
+✓ Missing in EN (code ref): 0
+❌ Unused in DE: 397
+❌ Unused in EN: 786
+
+Total Issues Found: 1660
