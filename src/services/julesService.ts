@@ -50,6 +50,10 @@ export const julesService = {
     const currentSymbol = trade.symbol;
     const marketData = currentSymbol ? marketState.data[currentSymbol] : null;
 
+    // Resolve technicals for active timeframe (default 1h if not set)
+    const tf = trade.analysisTimeframe || "1h";
+    const techs = marketData?.technicals?.[tf];
+
     // Sanitize Settings (remove API Secrets)
     const safeSettings = {
       ...settings,
@@ -100,21 +104,21 @@ export const julesService = {
           ? {
             lastPrice: marketData.lastPrice,
             priceChange: marketData.priceChangePercent,
-            technicals: marketData.technicals
+            technicals: techs
               ? {
-                summary: marketData.technicals.summary,
-                confluence: marketData.technicals.confluence,
+                summary: techs.summary,
+                confluence: techs.confluence,
                 // We send key signals to AI, not entire array of 1000s of numbers
                 signals: {
-                  rsi: marketData.technicals.oscillators.find(
+                  rsi: techs.oscillators.find(
                     (o) => o.name === "RSI",
                   )?.value,
-                  macdAction: marketData.technicals.oscillators.find(
+                  macdAction: techs.oscillators.find(
                     (o) => o.name === "MACD",
                   )?.action,
-                  divergences: marketData.technicals.divergences,
+                  divergences: techs.divergences,
                   ichimokuAction:
-                    marketData.technicals.advanced?.ichimoku?.action,
+                    techs.advanced?.ichimoku?.action,
                 },
               }
               : "Calculating...",

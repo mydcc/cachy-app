@@ -16,9 +16,18 @@
  */
 
 import { GET, POST } from "./+server";
-import { describe, it, expect, vi } from "vitest";
+import { chatStore } from "$lib/server/chatStore";
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { promises as fs } from "fs";
 
 describe("Chat API v2", () => {
+  beforeEach(async () => {
+    chatStore.reset();
+    try {
+        await fs.rm("db/chat_messages.json", { force: true });
+    } catch {}
+  });
+
   it("should return initial welcome message on GET", async () => {
     const url = new URL("http://localhost/api/chat-v2");
     const event = { url } as any;
