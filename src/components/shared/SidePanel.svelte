@@ -696,7 +696,7 @@
                         $_(
                           mode === "notes"
                             ? "notes.clearConfirm"
-                            : "chat.clearConfirm" as any,
+                            : ("chat.clearConfirm" as any),
                         ) || "Clear history?",
                       )
                     ) {
@@ -1089,7 +1089,7 @@
               {#if !messageText}
                 <div class="flex gap-2 overflow-x-auto mb-2 pb-1 no-scrollbar">
                   <button
-                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
                       messageText =
                         "Analysiere den Markt für " +
@@ -1100,7 +1100,7 @@
                     📊 Market Check
                   </button>
                   <button
-                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
                       messageText =
                         "Erstelle eine technische Analyse für " +
@@ -1111,7 +1111,7 @@
                     🧪 Tech Analysis
                   </button>
                   <button
-                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
                       messageText = "Prüfe mein Setup auf Fehler und Risiken.";
                       handleSend();
@@ -1120,7 +1120,7 @@
                     ⚠️ Risk Audit
                   </button>
                   <button
-                    class="text-xs border border-[var(--border-color)] rounded-full px-3 py-1 bg-[var(--bg-tertiary)] hover:bg-[var(--bg-secondary)] whitespace-nowrap transition-colors"
+                    class="text-xs border border-[var(--accent-color)] rounded-full px-3 py-1 bg-[var(--accent-color)] text-[var(--text-on-accent)] hover:opacity-90 whitespace-nowrap transition-colors font-bold shadow-sm"
                     onclick={() => {
                       messageText = "Gibt es wichtige News?";
                       handleSend();
@@ -1353,7 +1353,7 @@
   .confirm-btn {
     flex: 1;
     background: var(--accent-color);
-    color: white;
+    color: var(--text-on-accent, white);
     border: none;
     padding: 4px 8px;
     border-radius: 4px;
