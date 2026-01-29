@@ -44,9 +44,25 @@ export default defineConfig({
       output: {
         manualChunks: (id) => {
           if (id.includes("node_modules")) {
+            if (id.includes("three")) {
+              return "three-vendor";
+            }
+            if (id.includes("chart.js") || id.includes("chartjs-")) {
+              return "chart-vendor";
+            }
+            if (id.includes("katex") || id.includes("marked")) {
+              return "markdown-vendor";
+            }
+            if (id.includes("@google/generative-ai") || id.includes("openai")) {
+              return "ai-vendor";
+            }
             if (id.includes("decimal.js") || id.includes("crypto-js")) {
               return "math-vendor";
             }
+            if (id.includes("svelte-i18n") || id.includes("intl-messageformat")) {
+              return "i18n-vendor";
+            }
+
             return "vendor";
           }
         },
