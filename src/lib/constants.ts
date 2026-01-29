@@ -599,6 +599,8 @@ export const themes = [
   "solarized-light",
   "steel",
   "meteorite",
+  "insight",
+  "ever",
   "light",
 ];
 export const themeIcons = {
@@ -606,6 +608,8 @@ export const themeIcons = {
   light: "☀️",
   meteorite: "☄️",
   steel: "🛡️",
+  insight: "🎯",
+  ever: "🌱",
   VIP: "🦆",
   matrix: "💻",
   dracula: "🧛",

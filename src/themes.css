@@ -198,13 +198,14 @@
   --core-red-insights: #ee485f;
 
   /* --- Highlighting Colors --- */
+  /* --- Highlighting Colors --- */
   --highlight-purple: #7383f5;
   --highlight-meteorite: #c2befa;
   --highlight-green-free: #48b0b2;
-  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro-alt: #c2cfed;
   --highlight-blue-pro: #80b8f2;
-  --highlight-red-alt: #fa9de7;
-  --highlight-red: #ff60ee;
+  --highlight-red-alt: #ffe0ee;
+  --highlight-red: #fa9de7;
 
   /* --- Gradient Colors --- */
   --gradient-purple-light: #2b1f99;
@@ -305,13 +306,14 @@
   --core-red-insights: #ee485f;
 
   /* --- Highlighting Colors --- */
+  /* --- Highlighting Colors --- */
   --highlight-purple: #7383f5;
   --highlight-meteorite: #c2befa;
   --highlight-green-free: #48b0b2;
-  --highlight-blue-pro-alt: #7fb5a8;
+  --highlight-blue-pro-alt: #c2cfed;
   --highlight-blue-pro: #80b8f2;
-  --highlight-red-alt: #fa9de7;
-  --highlight-red: #ff60ee;
+  --highlight-red-alt: #ffe0ee;
+  --highlight-red: #fa9de7;
 
   /* --- Gradient Colors --- */
   --gradient-purple-light: #2b1f99;
@@ -356,7 +358,7 @@
   --scrollbar-thumb: var(--bg-tertiary);
   --scrollbar-track: var(--bg-secondary);
   --text-primary: var(--blue-pro-light);
-  --text-secondary: var(--highlight-blue-pro);
+  --text-secondary: var(--highlight-blue-pro-alt);
   --text-tertiary: var(--core-meteorite);
   --border-color: #1a2a6c;
   /* Sharper borders for better separation */
@@ -389,6 +391,237 @@
   --toggle-bg-on: var(--core-blue-pro);
   --toggle-circle-bg: var(--blue-pro-light);
   --toggle-circle-bg-on: var(--blue-pro-light);
+
+  /* --- Overlay --- */
+  --overlay-color: var(--overlay-derived);
+}
+
+/* =================================================================
+   Insight Theme (Red)
+   ================================================================= */
+.theme-insight {
+  /* --- Galaxy Overrides --- */
+  --galaxy-bg: #05010a;
+  --galaxy-stars-edge-2: var(--highlight-red);
+  --galaxy-stars-edge-3: var(--highlight-purple);
+
+  /* --- Core Colors --- */
+  --core-purple: #4e21e7;
+  --core-meteorite: #433f65;
+  --core-green-free: #0da49a;
+  --core-blue-pro: #334eff;
+  --core-red-insights: #ee485f;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #c2cfed;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #ffe0ee;
+  --highlight-red: #fa9de7;
+
+  /* --- Gradient Colors --- */
+  --gradient-purple-light: #2b1f99;
+  --gradient-purple-dark: #0c082f;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
+  --gradient-blue-light: #3c6e99;
+  --gradient-blue-dark: #08103f;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #1f0a2e;
+  --bg-tertiary-derived: #2d103a;
+  --chat-bubble-assistant-bg: #0f0523;
+  --accent-hover-derived: #ff60ee;
+  --default-hover-derived: #5b587d;
+  --danger-hover-derived: #f46d7e;
+  --success-hover-derived: #3db6af;
+  --overlay-derived: rgba(15, 5, 35, 0.8);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-red-light),
+      var(--gradient-red-dark));
+
+  --bg-secondary: #0a0318;
+  --bg-tertiary: #190924;
+
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
+  --chat-messages-bg: var(--gradient-red-dark);
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
+
+  --text-primary: var(--red-insights-light);
+  --text-secondary: var(--highlight-red-alt);
+  --text-tertiary: var(--core-meteorite);
+
+  --border-color: #3e1436;
+
+  --accent-color: var(--core-red-insights);
+  --accent-color-hover: var(--accent-hover-derived);
+
+  --success-color: var(--core-green-free);
+  --danger-color: var(--core-red-insights);
+  --warning-color: var(--highlight-red-alt);
+
+  --shadow-tooltip: 0 30px 90px -20px rgba(15, 5, 35, 0.5);
+
+  --text-on-accent: var(--red-insights-light);
+  --text-on-success: var(--red-insights-light);
+  --text-on-danger: var(--red-insights-light);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--core-meteorite);
+  --btn-default-hover-bg: var(--default-hover-derived);
+  --btn-default-text: var(--red-insights-light);
+
+  --btn-danger-bg: var(--core-red-insights);
+  --btn-danger-hover-bg: var(--danger-hover-derived);
+  --btn-danger-text: var(--red-insights-light);
+
+  --btn-accent-bg: var(--core-red-insights);
+  --btn-accent-hover-bg: var(--accent-hover-derived);
+  --btn-accent-text: var(--red-insights-light);
+
+  --btn-success-bg: var(--core-green-free);
+  --btn-success-hover-bg: var(--success-hover-derived);
+  --btn-success-text: var(--red-insights-light);
+
+  /* --- Toggle Colors --- */
+  --toggle-bg-off: var(--core-meteorite);
+  --toggle-bg-on: var(--core-red-insights);
+  --toggle-circle-bg: var(--red-insights-light);
+  --toggle-circle-bg-on: var(--red-insights-light);
+
+  /* --- Overlay --- */
+  --overlay-color: var(--overlay-derived);
+}
+
+/* =================================================================
+   Ever Theme (Green)
+   ================================================================= */
+.theme-ever {
+  /* --- Galaxy Overrides --- */
+  --galaxy-bg: #000a12;
+  --galaxy-stars-edge-2: var(--highlight-green-free);
+  --galaxy-stars-edge-3: var(--core-blue-pro);
+
+  /* --- Core Colors --- */
+  --core-purple: #4e21e7;
+  --core-meteorite: #433f65;
+  --core-green-free: #0da49a;
+  --core-blue-pro: #334eff;
+  --core-red-insights: #ee485f;
+
+  /* --- Highlighting Colors --- */
+  --highlight-purple: #7383f5;
+  --highlight-meteorite: #c2befa;
+  --highlight-green-free: #48b0b2;
+  --highlight-blue-pro-alt: #c2cfed;
+  --highlight-blue-pro: #80b8f2;
+  --highlight-red-alt: #ffe0ee;
+  --highlight-red: #fa9de7;
+
+  /* Missing in CSS but present in guidelines: Green Alt */
+  --highlight-green-alt: #7fb5a8;
+
+  /* --- Gradient Colors --- */
+  --gradient-purple-light: #2b1f99;
+  --gradient-purple-dark: #0c082f;
+  --gradient-green-light: #3c8499;
+  --gradient-green-dark: #002039;
+  --gradient-blue-light: #3c6e99;
+  --gradient-blue-dark: #08103f;
+  --gradient-red-light: #6d2954;
+  --gradient-red-dark: #0f0523;
+
+  /* --- Light and Dark Colors --- */
+  --purple-light: #ede8fd;
+  --purple-dark: #0c082f;
+  --green-free-light: #e6f6f5;
+  --green-free-dark: #002039;
+  --blue-pro-light: #eaedff;
+  --blue-pro-dark: #08103f;
+  --red-insights-light: #feecef;
+  --red-insights-dark: #0f0523;
+
+  /* --- Derived Colors --- */
+  --bg-secondary-derived: #061f26;
+  --bg-tertiary-derived: #0d2e36;
+  --chat-bubble-assistant-bg: #002039;
+  --accent-hover-derived: #3db6af;
+  --default-hover-derived: #5b587d;
+  --danger-hover-derived: #f46d7e;
+  --success-hover-derived: #3db6af;
+  --overlay-derived: rgba(0, 32, 57, 0.8);
+
+  /* --- Semantic Mapping --- */
+  --bg-primary: radial-gradient(farthest-side at top,
+      var(--gradient-green-light),
+      var(--gradient-green-dark));
+
+  --bg-secondary: #001221;
+  --bg-tertiary: #011b2e;
+
+  --chat-bubble-bg: var(--chat-bubble-assistant-bg);
+  --chat-messages-bg: var(--gradient-green-dark);
+  --scrollbar-thumb: var(--bg-tertiary);
+  --scrollbar-track: var(--bg-secondary);
+
+  --text-primary: var(--green-free-light);
+  --text-secondary: var(--highlight-green-alt);
+  --text-tertiary: var(--core-meteorite);
+
+  --border-color: #0d3840;
+
+  --accent-color: var(--core-green-free);
+  --accent-color-hover: var(--accent-hover-derived);
+
+  --success-color: var(--core-green-free);
+  --danger-color: var(--core-red-insights);
+  --warning-color: var(--highlight-red-alt);
+
+  --shadow-tooltip: 0 30px 90px -20px rgba(0, 32, 57, 0.5);
+
+  --text-on-accent: var(--green-free-light);
+  --text-on-success: var(--green-free-light);
+  --text-on-danger: var(--green-free-light);
+
+  /* --- Button Colors --- */
+  --btn-default-bg: var(--core-meteorite);
+  --btn-default-hover-bg: var(--default-hover-derived);
+  --btn-default-text: var(--green-free-light);
+
+  --btn-danger-bg: var(--core-red-insights);
+  --btn-danger-hover-bg: var(--danger-hover-derived);
+  --btn-danger-text: var(--green-free-light);
+
+  --btn-accent-bg: var(--core-green-free);
+  --btn-accent-hover-bg: var(--accent-hover-derived);
+  --btn-accent-text: var(--green-free-light);
+
+  --btn-success-bg: var(--core-green-free);
+  --btn-success-hover-bg: var(--success-hover-derived);
+  --btn-success-text: var(--green-free-light);
+
+  /* --- Toggle Colors --- */
+  --toggle-bg-off: var(--core-meteorite);
+  --toggle-bg-on: var(--core-green-free);
+  --toggle-circle-bg: var(--green-free-light);
+  --toggle-circle-bg-on: var(--green-free-light);
 
   /* --- Overlay --- */
   --overlay-color: var(--overlay-derived);
