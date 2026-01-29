@@ -38,33 +38,44 @@
   let themeObserver: MutationObserver | null = null;
 
   // Helper to resolve CSS variables (handles "var(--name)" references)
-  const resolveColor = (varName: string, fallback: string = "#000000") => {
+  // Helper to resolve CSS variables recursively without DOM layout thrashing
+  const resolveColor = (varName: string, fallback: string = "#000000"): string => {
     if (!browser) return fallback;
 
-    // 1. Get the raw value (might be "var(--other)")
-    let val = getComputedStyle(document.documentElement).getPropertyValue(varName).trim();
-    if (!val) return fallback;
+    const style = getComputedStyle(document.documentElement);
 
-    // 2. If it's a direct color (hex, rgb, etc) and not a variable reference, return it
-    if (!val.startsWith("var(") && !val.includes("var(")) {
-        return val;
-    }
+    const resolveRecursive = (value: string, depth: number): string => {
+      if (depth > 5) return value; // Prevent infinite loops
+      const trimmed = value.trim();
+      
+      // If it points to another variable like "var(--foo)"
+      if (trimmed.startsWith("var(--")) {
+        // Extract inner variable name: var(--foo) -> --foo
+        // Regex handles basic "var(--name)" and "var(--name, fallback)"
+        const match = trimmed.match(/^var\((--[\w-]+)(?:,\s*(.+))?\)$/);
+        if (match) {
+          const innerVar = match[1];
+          const innerFallback = match[2];
+          const resolvedValue = style.getPropertyValue(innerVar).trim();
+          
+          if (resolvedValue) {
+              return resolveRecursive(resolvedValue, depth + 1);
+          } else if (innerFallback) {
+              return resolveRecursive(innerFallback, depth + 1);
+          }
+        }
+      }
+      
+      return trimmed || fallback;
+    };
 
-    // 3. If it is a variable reference, we need the browser to resolve it.
-    // We create a temp element, apply the variable as a background, and read the computed rgb.
-    try {
-        const temp = document.createElement("div");
-        temp.style.display = "none";
-        temp.style.backgroundColor = `var(${varName})`;
-        document.body.appendChild(temp);
-        const resolved = getComputedStyle(temp).backgroundColor;
-        document.body.removeChild(temp);
-        // resolved is usually "rgb(r, g, b)" or "rgba(...)" which Three.js handles
-        return resolved || fallback;
-    } catch (e) {
-        console.warn("[Galaxy] Failed to resolve color:", varName, e);
-        return fallback;
-    }
+    const initialValue = varName.startsWith("--") ? style.getPropertyValue(varName) : varName;
+    const finalColor = resolveRecursive(initialValue, 0);
+
+    // If result is empty or still a var (failed resolve), return fallback
+    if (!finalColor || finalColor.startsWith("var(")) return fallback;
+    
+    return finalColor;
   };
 
   const getVar = (name: string) => {

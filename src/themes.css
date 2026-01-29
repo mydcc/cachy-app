@@ -448,9 +448,9 @@
    ================================================================= */
 .theme-insight {
   /* --- Galaxy Overrides --- */
-  --galaxy-bg: #05010a;
-  --galaxy-stars-edge-2: var(--highlight-red);
-  --galaxy-stars-edge-3: var(--highlight-purple);
+  --galaxy-bg: #0f0505;
+  --galaxy-stars-edge-2: #8a1c1c;
+  --galaxy-stars-edge-3: #4a0a0a;
 
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
@@ -500,8 +500,8 @@
 
   /* --- Semantic Mapping --- */
   --bg-primary: radial-gradient(farthest-side at top,
-      var(--gradient-red-light),
-      var(--gradient-red-dark));
+      #3d050e,
+      #0f0505);
 
   --bg-secondary: #0a0318;
   --bg-tertiary: #190924;
@@ -562,9 +562,9 @@
    ================================================================= */
 .theme-ever {
   /* --- Galaxy Overrides --- */
-  --galaxy-bg: #000a12;
-  --galaxy-stars-edge-2: var(--highlight-green-free);
-  --galaxy-stars-edge-3: var(--core-blue-pro);
+  --galaxy-bg: #010f08;
+  --galaxy-stars-edge-2: #0e4d2e;
+  --galaxy-stars-edge-3: #052618;
 
   /* --- Core Colors --- */
   --core-purple: #4e21e7;
@@ -617,8 +617,8 @@
 
   /* --- Semantic Mapping --- */
   --bg-primary: radial-gradient(farthest-side at top,
-      var(--gradient-green-light),
-      var(--gradient-green-dark));
+      #052618,
+      #010f08);
 
   --bg-secondary: #001221;
   --bg-tertiary: #011b2e;
