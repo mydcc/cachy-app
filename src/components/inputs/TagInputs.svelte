@@ -55,7 +55,9 @@
 
 <!-- Tags Input -->
 <div class="mb-2 relative">
-  <label for="tag-input" class="sr-only">Tags</label>
+  <label for="tag-input" class="sr-only"
+    >{$_("dashboard.tradeSetupInputs.tagsLabel")}</label
+  >
   <div
     class="input-field w-full px-4 py-2 rounded-md flex flex-wrap items-center gap-2 min-h-[42px]"
   >

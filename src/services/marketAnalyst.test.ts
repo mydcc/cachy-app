@@ -18,7 +18,20 @@
 
 import { describe, it, expect } from "vitest";
 import { calculateAnalysisMetrics } from "./marketAnalyst";
-import { Decimal } from "decimal.js";
+
+// Helper to mock the complex structure expected by calculateAnalysisMetrics
+function createTechMap(ema200?: number, rsi?: number) {
+    return {
+        "4h": {
+            movingAverages: ema200 !== undefined ? [{ name: "EMA", params: "200", value: ema200 }] : [],
+            oscillators: []
+        },
+        "1h": {
+            movingAverages: [],
+            oscillators: rsi !== undefined ? [{ name: "RSI", value: rsi }] : []
+        }
+    };
+}
 
 function mockTechMap(ema200: number | string | null, rsi: number | string | null): Record<string, any> {
     const map: Record<string, any> = {};

@@ -109,7 +109,7 @@
   }
 
   function resetToDefaults() {
-    if (confirm("Reset all custom hotkeys to defaults?")) {
+    if (confirm($_("settings.hotkeys.resetConfirm"))) {
       customHotkeys = {};
       settingsState.customHotkeys = {};
     }
@@ -134,17 +134,18 @@
 <div class="flex flex-col gap-4 h-full">
   <div class="flex justify-between items-center mb-2">
     <p class="text-xs text-[var(--text-secondary)]">
-      Click on a key combination to record a new hotkey. Use <span
-        class="text-[var(--accent-color)]">Alt</span
-      >
-      or <span class="text-[var(--accent-color)]">Ctrl</span> modifiers to avoid conflicts
-      with typing.
+      {@html $_("settings.hotkeys.info", {
+        values: {
+          alt: $_("settings.hotkeys.modifierAlt"),
+          ctrl: $_("settings.hotkeys.modifierCtrl"),
+        },
+      })}
     </p>
     <button
       class="text-xs text-[var(--danger-color)] hover:underline"
       onclick={resetToDefaults}
     >
-      Reset All
+      {$_("settings.hotkeys.resetAll")}
     </button>
   </div>
 
@@ -174,7 +175,7 @@
                 }}
               >
                 {editingId === action.id
-                  ? "Press Key..."
+                  ? $_("settings.hotkeys.pressKey")
                   : getDisplayKey(action)}
               </button>
             </div>
