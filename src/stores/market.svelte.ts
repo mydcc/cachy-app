@@ -254,12 +254,17 @@ export class MarketManager {
     if (partial.priceChangePercent !== undefined) current.priceChangePercent = toDecimal(partial.priceChangePercent) ?? current.priceChangePercent;
     if (partial.fundingRate !== undefined) current.fundingRate = toDecimal(partial.fundingRate) ?? current.fundingRate;
 
-    if (partial.nextFundingTime !== undefined) {
-      if (typeof partial.nextFundingTime === "string") {
-        current.nextFundingTime = parseInt(partial.nextFundingTime, 10);
-      } else {
-        current.nextFundingTime = partial.nextFundingTime;
+    if (partial.nextFundingTime !== undefined && partial.nextFundingTime !== null) {
+      let nft = typeof partial.nextFundingTime === "string"
+        ? parseInt(partial.nextFundingTime, 10)
+        : partial.nextFundingTime;
+
+      // Heuristik: Falls der Timestamp weniger als 12 Stellen hat, ist er wahrscheinlich in Sekunden
+      // 10^12 ist ca. das Jahr 2001 in Millisekunden. Aktuelle Timestamps in Sekunden liegen bei ~1.7*10^9.
+      if (nft > 0 && nft < 10000000000) {
+        nft *= 1000;
       }
+      current.nextFundingTime = nft;
     }
 
     if (partial.depth !== undefined) current.depth = partial.depth;
@@ -363,16 +368,9 @@ export class MarketManager {
   // Legacy update methods refactored to use updateSymbol
   updatePrice(symbol: string, data: any) {
     try {
-      let nft = 0;
-      if (data.nextFundingTime) {
-        nft = /^\d+$/.test(data.nextFundingTime)
-          ? parseInt(data.nextFundingTime, 10)
-          : new Date(data.nextFundingTime).getTime();
-      }
-
-      // Defensive check
+      // Note: Normalization to ms happens in applyUpdate
       const update: Partial<MarketData> = {
-        nextFundingTime: nft,
+        nextFundingTime: data.nextFundingTime,
       };
 
       if (data.price) update.lastPrice = new Decimal(data.price);
