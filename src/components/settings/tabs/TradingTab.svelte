@@ -251,7 +251,32 @@
                     </button>
                 </div>
 
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Chart History Limit -->
+                    <div class="field-group">
+                        <label for="history-limit">
+                            History Length (Candles)
+                            <span
+                                class="text-[var(--accent-color)] font-mono ml-auto"
+                                >{settingsState.chartHistoryLimit}</span
+                            >
+                        </label>
+                        <input
+                            id="history-limit"
+                            type="range"
+                            min="200"
+                            max="2000"
+                            step="100"
+                            bind:value={settingsState.chartHistoryLimit}
+                            class="w-full accent-[var(--accent-color)] cursor-pointer"
+                        />
+                        <p
+                            class="text-[10px] text-[var(--text-secondary)] mt-1"
+                        >
+                            More history = slower initial load. (Max: 2000)
+                        </p>
+                    </div>
+                </div>
 
                 <div class="mt-0">
                     <label class="toggle-card mb-4">
@@ -271,56 +296,121 @@
 
                     <!-- Market Tile Links Configuration -->
                     {#if settingsState.showMarketOverview}
-                        <div class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 border border-[var(--border-color)]">
-                            <h4 class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-3">
+                        <div
+                            class="p-4 bg-[var(--bg-secondary)] rounded-lg mb-4 border border-[var(--border-color)]"
+                        >
+                            <h4
+                                class="text-xs font-bold text-[var(--text-secondary)] uppercase mb-3"
+                            >
                                 Tile Action Links
                             </h4>
 
                             <div class="flex flex-col gap-3">
                                 <!-- Master Toggle -->
-                                <label class="flex items-center justify-between cursor-pointer">
-                                    <span class="text-sm">Show Links Footer</span>
-                                    <Toggle bind:checked={settingsState.showMarketOverviewLinks} />
+                                <label
+                                    class="flex items-center justify-between cursor-pointer"
+                                >
+                                    <span class="text-sm"
+                                        >Show Links Footer</span
+                                    >
+                                    <Toggle
+                                        bind:checked={
+                                            settingsState.showMarketOverviewLinks
+                                        }
+                                    />
                                 </label>
 
                                 {#if settingsState.showMarketOverviewLinks}
-                                    <hr class="border-[var(--border-color)] my-1" />
+                                    <hr
+                                        class="border-[var(--border-color)] my-1"
+                                    />
 
                                     <!-- Individual Link Toggles -->
                                     <div class="grid grid-cols-3 gap-2">
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" bind:checked={settingsState.showTvLink} />
-                                            <span class="text-xs">TradingView</span>
+                                        <label
+                                            class="flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    settingsState.showTvLink
+                                                }
+                                            />
+                                            <span class="text-xs"
+                                                >TradingView</span
+                                            >
                                         </label>
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" bind:checked={settingsState.showCgHeatLink} />
+                                        <label
+                                            class="flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    settingsState.showCgHeatLink
+                                                }
+                                            />
                                             <span class="text-xs">Heatmap</span>
                                         </label>
-                                        <label class="flex items-center gap-2 cursor-pointer">
-                                            <input type="checkbox" bind:checked={settingsState.showBrokerLink} />
+                                        <label
+                                            class="flex items-center gap-2 cursor-pointer"
+                                        >
+                                            <input
+                                                type="checkbox"
+                                                bind:checked={
+                                                    settingsState.showBrokerLink
+                                                }
+                                            />
                                             <span class="text-xs">Broker</span>
                                         </label>
                                     </div>
 
                                     <!-- Heatmap Mode Selection -->
                                     {#if settingsState.showCgHeatLink}
-                                        <div class="mt-2 pt-2 border-t border-[var(--border-color)] border-dashed">
-                                            <label class="flex flex-col gap-1.5">
-                                                <span class="text-xs font-semibold text-[var(--text-secondary)]">Heatmap Action</span>
+                                        <div
+                                            class="mt-2 pt-2 border-t border-[var(--border-color)] border-dashed"
+                                        >
+                                            <label
+                                                class="flex flex-col gap-1.5"
+                                            >
+                                                <span
+                                                    class="text-xs font-semibold text-[var(--text-secondary)]"
+                                                    >Heatmap Action</span
+                                                >
                                                 <select
-                                                    bind:value={settingsState.heatmapMode}
+                                                    bind:value={
+                                                        settingsState.heatmapMode
+                                                    }
                                                     class="input-field py-1.5 text-xs w-full"
                                                 >
-                                                    <option value="coinglass_new_tab">Coinglass (New Tab)</option>
-                                                    <option value="coinglass_popup">Coinglass (Popup Window)</option>
-                                                    <option value="coinank_new_tab">Coinank (New Tab)</option>
-                                                    <option value="coinank_popup">Coinank (ProChart Popup)</option>
+                                                    <option
+                                                        value="coinglass_new_tab"
+                                                        >Coinglass (New Tab)</option
+                                                    >
+                                                    <option
+                                                        value="coinglass_popup"
+                                                        >Coinglass (Popup
+                                                        Window)</option
+                                                    >
+                                                    <option
+                                                        value="coinank_new_tab"
+                                                        >Coinank (New Tab)</option
+                                                    >
+                                                    <option
+                                                        value="coinank_popup"
+                                                        >Coinank (ProChart
+                                                        Popup)</option
+                                                    >
                                                 </select>
-                                                <p class="text-[10px] text-[var(--text-secondary)] opacity-80">
-                                                    {#if settingsState.heatmapMode && settingsState.heatmapMode.includes('coinank')}
-                                                        Maps current timeframe to Heatmap lookback period.
+                                                <p
+                                                    class="text-[10px] text-[var(--text-secondary)] opacity-80"
+                                                >
+                                                    {#if settingsState.heatmapMode && settingsState.heatmapMode.includes("coinank")}
+                                                        Maps current timeframe
+                                                        to Heatmap lookback
+                                                        period.
                                                     {:else}
-                                                        Opens Coinglass liquidation heatmap.
+                                                        Opens Coinglass
+                                                        liquidation heatmap.
                                                     {/if}
                                                 </p>
                                             </label>

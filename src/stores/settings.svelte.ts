@@ -249,6 +249,7 @@ export interface Settings {
   technicalsCacheTTL: number; // Cache TTL in seconds
   maxTechnicalsHistory: number; // Max klines to keep in memory
   enableIndicatorOptimization: boolean; // Only calculate enabled indicators
+  chartHistoryLimit: number; // Max candles to load on chart (200-2000)
 
   // Individual Indicator Toggles
   enabledIndicators: {
@@ -436,6 +437,7 @@ const defaultSettings: Settings = {
   technicalsCacheTTL: 60, // 1 minute
   maxTechnicalsHistory: 750,
   enableIndicatorOptimization: true,
+  chartHistoryLimit: 1000,
 
   // Core indicators enabled by default
   enabledIndicators: {
@@ -722,6 +724,7 @@ export class SettingsManager {
   technicalsCacheTTL = $state<number>(defaultSettings.technicalsCacheTTL);
   maxTechnicalsHistory = $state<number>(defaultSettings.maxTechnicalsHistory);
   enableIndicatorOptimization = $state<boolean>(defaultSettings.enableIndicatorOptimization);
+  chartHistoryLimit = $state<number>(defaultSettings.chartHistoryLimit);
   enabledIndicators = $state(defaultSettings.enabledIndicators);
 
   get marketMode() {
@@ -1297,6 +1300,7 @@ export class SettingsManager {
       technicalsCacheTTL: this.technicalsCacheTTL,
       maxTechnicalsHistory: this.maxTechnicalsHistory,
       enableIndicatorOptimization: this.enableIndicatorOptimization,
+      chartHistoryLimit: this.chartHistoryLimit,
       enabledIndicators: $state.snapshot(this.enabledIndicators),
     };
   }
