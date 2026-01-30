@@ -1342,7 +1342,7 @@
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n$$ \\text{Aktueller Körper} > \\text{Vorheriger Körper} $$\n$$ \\text{Open} \\le \\text{Prev Close} $$\n$$ \\text{Close} \\ge \\text{Prev Open} $$",
       "interpretation": "Signalisiert, dass die Käufer die Kontrolle von den Verkäufern übernommen haben und eine starke Aufwärtsbewegung wahrscheinlich ist.",
       "indicatorCombination": "Ein Bullish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überverkauften RSI (<30) oder eine bullische Divergenz kann die Zuverlässigkeit erhöhen."
     },
@@ -1390,7 +1390,7 @@
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.",
+      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien\n$$ \\text{Oberer Schatten} \\ge 2 \\times \\text{Körper} $$\n$$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n$$ \\text{Unterer Schatten} < 2\\% \\text{ der Spanne} $$",
       "interpretation": "Signalisiert, dass Käufer versuchten, den Preis nach oben zu treiben, aber auf Widerstand trafen. Wenn die nächste Kerze höher schließt, kann dies eine bullische Umkehr bestätigen.",
       "indicatorCombination": "Ein Inverted Hammer ist aussagekräftiger, wenn er nach einem klaren Abwärtstrend und an einer Unterstützungslinie auftritt. Bestätigung durch eine bullische Folgekerze mit Volumen ist wichtig."
     },
@@ -1540,7 +1540,7 @@
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n$$ \\text{Aktueller Körper} > \\text{Vorheriger Körper} $$\n$$ \\text{Open} \\ge \\text{Prev Close} $$\n$$ \\text{Close} \\le \\text{Prev Open} $$",
       "interpretation": "Signalisiert, dass Verkäufer die Kontrolle von den Käufern übernommen haben und eine starke bärische Umkehr wahrscheinlich ist.",
       "indicatorCombination": "Ein Bearish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überkauften RSI (>70) oder eine bärische Divergenz kann die Zuverlässigkeit erhöhen."
     },
@@ -1594,13 +1594,13 @@
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.",
+      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.\n\n### Mathematische Kriterien\n$$ \\text{Unterer Schatten} \\ge 2 \\times \\text{Körper} $$\n$$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n$$ \\text{Oberer Schatten} < 2\\% \\text{ der Spanne} $$",
       "interpretation": "Obwohl er bullisch aussieht, deutet sein Erscheinen nach einem Aufwärtstrend auf nachlassende Kaufkraft und eine potenzielle bärische Umkehr hin, besonders wenn die nächste Kerze tiefer schließt.",
       "indicatorCombination": "Ein Hanging Man an einem wichtigen Widerstand oder gleitenden Durchschnitt ist ein stärkeres Signal. Ein Volumenanstieg bei der Bestätigungskerze unterstützt die Umkehr."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.",
+      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien\n$$ \\text{Oberer Schatten} \\ge 2 \\times \\text{Körper} $$\n$$ \\text{Körper} < 50\\% \\text{ der Spanne} $$\n$$ \\text{Unterer Schatten} < 2\\% \\text{ der Spanne} $$",
       "interpretation": "Signalisiert, dass Käufer den Preis nach oben trieben, aber Verkäufer stark genug waren, den Preis bis nahe an den Eröffnungskurs zurückzubringen. Potenzielle bärische Umkehr.",
       "indicatorCombination": "Ein Shooting Star an einem Widerstandslevel oder in einer überkauften Zone (RSI) ist aussagekräftiger. Ein Volumenanstieg bei der Shooting Star Kerze oder der bärischen Bestätigungskerze erhöht die Zuverlässigkeit."
     },
