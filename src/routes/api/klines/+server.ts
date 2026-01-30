@@ -18,6 +18,7 @@
 import { json } from "@sveltejs/kit";
 import type { RequestHandler } from "./$types";
 import { Decimal } from "decimal.js";
+import { safeJsonParse } from "../../../utils/safeJson";
 
 export const GET: RequestHandler = async ({ url }) => {
   const symbol = url.searchParams.get("symbol");
@@ -95,7 +96,7 @@ async function fetchBitunixKlines(
     const text = await response.text();
     let data;
     try {
-      data = JSON.parse(text);
+      data = safeJsonParse(text);
     } catch (e) {
     }
 
@@ -119,7 +120,9 @@ async function fetchBitunixKlines(
     throw error;
   }
 
-  const data = await response.json();
+  const responseText = await response.text();
+  const data = safeJsonParse(responseText);
+
   if (data.code !== 0 && data.code !== "0") {
     if (
       data.code === 2 ||

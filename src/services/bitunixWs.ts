@@ -784,6 +784,9 @@ class BitunixWebSocketService {
                      logger.error("network", `[BitunixWS] CRITICAL PRECISION LOSS: Received numeric price for ${symbol}. Contact Exchange Support immediately.`);
                      this.lastNumericWarning = now;
                  }
+                 // Force cast to string to prevent downstream crashes or invalid types
+                 if (typeof data.lastPrice === 'number') data.lastPrice = String(data.lastPrice);
+                 if (typeof data.lp === 'number') data.lp = String(data.lp);
               }
 
               const normalized = mdaService.normalizeTicker(message, "bitunix");

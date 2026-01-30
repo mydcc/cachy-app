@@ -177,8 +177,8 @@
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
             title={isLeverageSynced
-              ? "Synced with API"
-              : `Manual Override (Click to sync to ${remoteLev}x)`}
+              ? $_("dashboard.generalInputs.syncedWithApi")
+              : $_("dashboard.generalInputs.manualOverride", { value: remoteLev + "x" })}
             onclick={syncLeverage}
           ></button>
         {/if}
@@ -216,8 +216,8 @@
               ? 'var(--success-color)'
               : 'var(--warning-color)'}; margin-right: 14px;"
             title={isFeeSynced
-              ? "Synced with API"
-              : `Manual Override (Click to sync to ${targetRemoteFee}%)`}
+              ? $_("dashboard.generalInputs.syncedWithApi")
+              : $_("dashboard.generalInputs.manualOverride", { value: targetRemoteFee + "%" })}
             onclick={syncFee}
           ></button>
         {/if}

@@ -22,6 +22,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { settingsState } from "../stores/settings.svelte";
 import { marketState } from "../stores/market.svelte";
 import { logger } from "./logger";
+import { safeJsonParse } from "../utils/safeJson";
 import type { Kline } from "./technicalsTypes";
 import {
   BitunixTickerResponseSchema,
@@ -288,7 +289,7 @@ export const apiService = {
     }
 
     try {
-      return JSON.parse(text);
+      return safeJsonParse(text);
     } catch (e) {
       logger.error("network", "[API] JSON parse error");
       throw new Error("apiErrors.invalidJson");
