@@ -24,7 +24,7 @@ export class IframeWindow extends WindowBase {
         // --- ALL FLAGS INITIALIZED (Disabled by default for fine-tuning) ---
 
         // UI Features
-        this.showCachyIcon = false;
+        this.showCachyIcon = true;
         this.allowZoom = false;
         this.allowFontSize = false;
 
