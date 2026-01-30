@@ -66,12 +66,17 @@ class WindowManager {
     constructor() {
         if (typeof window !== 'undefined') {
             window.addEventListener('mousedown', (e) => {
-                // If we clicked something that is NOT part of a window,
-                // close all windows with closeOnBlur = true
                 const target = e.target as HTMLElement;
-                if (!target.closest('.window-frame')) {
-                    this.handleBackgroundClick();
-                }
+
+                // 1. If we clicked inside a window, ignore.
+                if (target.closest('.window-frame')) return;
+
+                // 2. If we clicked on ANY UI component (calculator, tiles, sidebars), 
+                // we keep the windows open. All major UI components in Cachy use '.glass-panel'.
+                if (target.closest('.glass-panel')) return;
+
+                // 3. Otherwise, it's a "background click" (the void), so close windows.
+                this.handleBackgroundClick();
             });
         }
     }
