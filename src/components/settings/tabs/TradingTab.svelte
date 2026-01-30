@@ -311,9 +311,9 @@
                                                     bind:value={settingsState.heatmapMode}
                                                     class="input-field py-1.5 text-xs w-full"
                                                 >
-                                                    <option value="coinglass_link">Coinglass (Link)</option>
+                                                    <option value="coinglass_new_tab">Coinglass (New Tab)</option>
                                                     <option value="coinglass_popup">Coinglass (Popup Window)</option>
-                                                    <option value="coinank_link">Coinank (Link)</option>
+                                                    <option value="coinank_new_tab">Coinank (New Tab)</option>
                                                     <option value="coinank_popup">Coinank (ProChart Popup)</option>
                                                 </select>
                                                 <p class="text-[10px] text-[var(--text-secondary)] opacity-80">
