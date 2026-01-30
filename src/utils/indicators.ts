@@ -28,7 +28,7 @@ export type NumberArray = number[] | Float64Array;
 // --- JSIndicators (Fast, Array-based, used by Worker/Service) ---
 export const JSIndicators = {
   sma(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     if (data.length < period) return result;
     let sum = 0;
     for (let i = 0; i < period; i++) sum += data[i];
@@ -40,8 +40,28 @@ export const JSIndicators = {
     return result;
   },
 
+  wma(data: NumberArray, period: number): number[] {
+    const result = new Array(data.length).fill(NaN);
+    if (data.length < period) return result;
+
+    const denominator = (period * (period + 1)) / 2;
+
+    for (let i = period - 1; i < data.length; i++) {
+      let sum = 0;
+      for (let j = 0; j < period; j++) {
+        // data[i] has weight n, data[i-1] has weight n-1...
+        // standard WMA: most recent price has heaviest weight
+        // j=0 (oldest in window) -> weight 1
+        // j=period-1 (newest) -> weight period
+        sum += data[i - period + 1 + j] * (j + 1);
+      }
+      result[i] = sum / denominator;
+    }
+    return result;
+  },
+
   ema(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     if (data.length < period) return result;
     const k = 2 / (period + 1);
     let sum = 0;
@@ -58,7 +78,7 @@ export const JSIndicators = {
   smma(data: NumberArray, period: number): number[] {
     // Wilder's Smoothing (RMA)
     // alpha = 1 / period
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     if (data.length < period) return result;
 
     let sum = 0;
@@ -75,7 +95,7 @@ export const JSIndicators = {
   },
 
   rsi(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     if (data.length <= period) return result;
     let sumGain = 0;
     let sumLoss = 0;
@@ -105,7 +125,7 @@ export const JSIndicators = {
     close: NumberArray,
     kPeriod: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < kPeriod) return result;
     for (let i = kPeriod - 1; i < close.length; i++) {
       const lookbackHigh = Math.max(...high.slice(i - kPeriod + 1, i + 1));
@@ -121,12 +141,12 @@ export const JSIndicators = {
     const emaSlow = this.ema(data, slow);
     const macdLine = emaFast.map((v, i) => v - emaSlow[i]);
     const macdSignal = this.ema(macdLine.slice(slow - 1), signal);
-    const paddedSignal = new Array(slow - 1).fill(0).concat(macdSignal);
+    const paddedSignal = new Array(slow - 1).fill(NaN).concat(macdSignal);
     return { macd: macdLine, signal: paddedSignal };
   },
 
   mom(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     for (let i = period; i < data.length; i++) {
       result[i] = data[i] - data[i - period];
     }
@@ -134,7 +154,7 @@ export const JSIndicators = {
   },
 
   cci(data: NumberArray, period: number): number[] {
-    const result = new Array(data.length).fill(0);
+    const result = new Array(data.length).fill(NaN);
     if (data.length < period) return result;
 
     for (let i = period - 1; i < data.length; i++) {
@@ -173,7 +193,7 @@ export const JSIndicators = {
     close: NumberArray,
     period: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < period * 2) return result;
 
     const upMove = new Array(close.length).fill(0);
@@ -214,7 +234,7 @@ export const JSIndicators = {
     close: NumberArray,
     period: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < period) return result;
     const tr = new Array(close.length).fill(0);
     for (let i = 1; i < close.length; i++) {
@@ -230,8 +250,8 @@ export const JSIndicators = {
 
   bb(data: NumberArray, period: number, stdDev: number = 2) {
     const sma = this.sma(data, period);
-    const upper = new Array(data.length).fill(0);
-    const lower = new Array(data.length).fill(0);
+    const upper = new Array(data.length).fill(NaN);
+    const lower = new Array(data.length).fill(NaN);
 
     for (let i = period - 1; i < data.length; i++) {
       const slice = data.slice(i - period + 1, i + 1);
@@ -255,7 +275,7 @@ export const JSIndicators = {
     time?: NumberArray,
     anchor?: { mode: "session" | "fixed"; anchorPoint?: number },
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     let cumVol = 0;
     let cumVolPrice = 0;
     let lastDay = -1;
@@ -278,7 +298,7 @@ export const JSIndicators = {
       const vol = volume[i];
       cumVol += vol;
       cumVolPrice += typicalPrice * vol;
-      result[i] = cumVol === 0 ? 0 : cumVolPrice / cumVol;
+      result[i] = cumVol === 0 ? NaN : cumVolPrice / cumVol;
     }
     return result;
   },
@@ -290,7 +310,7 @@ export const JSIndicators = {
     volume: NumberArray,
     period: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < period + 1) return result;
 
     const typicalPrices = close.map((c, i) => (high[i] + low[i] + c) / 3);
@@ -345,7 +365,7 @@ export const JSIndicators = {
 
     // We need a helper for simple stochastic on a single array
     const stochSingle = (src: NumberArray, len: number) => {
-      const res = new Array(src.length).fill(0);
+      const res = new Array(src.length).fill(NaN);
       for (let i = len - 1; i < src.length; i++) {
         const slice = src.slice(i - len + 1, i + 1);
         const min = Math.min(...slice);
@@ -373,7 +393,7 @@ export const JSIndicators = {
     close: NumberArray,
     period: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < period) return result;
 
     for (let i = period - 1; i < close.length; i++) {
@@ -391,7 +411,7 @@ export const JSIndicators = {
     close: NumberArray,
     period: number,
   ): number[] {
-    const result = new Array(close.length).fill(0);
+    const result = new Array(close.length).fill(NaN);
     if (close.length < period) return result;
     // CI = 100 * LOG10( SUM(ATR(1), n) / ( MaxHi(n) - MinLo(n) ) ) / LOG10(n)
 
@@ -445,10 +465,10 @@ export const JSIndicators = {
     };
 
     const len = high.length;
-    const conversion = new Array(len).fill(0);
-    const base = new Array(len).fill(0);
-    const spanA = new Array(len).fill(0);
-    const spanB = new Array(len).fill(0);
+    const conversion = new Array(len).fill(NaN);
+    const base = new Array(len).fill(NaN);
+    const spanA = new Array(len).fill(NaN);
+    const spanB = new Array(len).fill(NaN);
     // const lagging = close.map((c, i) => c); // Just the close price
 
     for (let i = 0; i < len; i++) {
@@ -468,8 +488,8 @@ export const JSIndicators = {
     const displacement = basePeriod; // Often 26
 
     // E.g. Cloud at i = SpanA[i-26]
-    const currentSpanA = new Array(len).fill(0);
-    const currentSpanB = new Array(len).fill(0);
+    const currentSpanA = new Array(len).fill(NaN);
+    const currentSpanB = new Array(len).fill(NaN);
 
     for (let i = displacement; i < len; i++) {
       currentSpanA[i] = spanA[i - displacement];
@@ -497,10 +517,10 @@ export const JSIndicators = {
     // 1. ATR
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const basicUpper = new Array(len).fill(0);
-    const basicLower = new Array(len).fill(0);
-    const finalUpper = new Array(len).fill(0);
-    const finalLower = new Array(len).fill(0);
+    const basicUpper = new Array(len).fill(NaN);
+    const basicLower = new Array(len).fill(NaN);
+    const finalUpper = new Array(len).fill(NaN);
+    const finalLower = new Array(len).fill(NaN);
     const trend = new Array(len).fill(0); // 1 = Bull, -1 = Bear
     // Initialize trend
     trend[0] = 1;
@@ -565,8 +585,8 @@ export const JSIndicators = {
     // Short Exit = Lowest Low (period) + ATR * mult
     const atr = this.atr(high, low, close, period);
     const len = close.length;
-    const buyStop = new Array(len).fill(0);
-    const sellStop = new Array(len).fill(0);
+    const buyStop = new Array(len).fill(NaN);
+    const sellStop = new Array(len).fill(NaN);
 
     for (let i = period; i < len; i++) {
       const highestHigh = Math.max(...high.slice(i - period + 1, i + 1));
@@ -708,7 +728,7 @@ export const JSIndicators = {
 
   psar(high: NumberArray, low: NumberArray, accel: number = 0.02, max: number = 0.2) {
     // Wilder's Parabolic SAR
-    const result = new Array(high.length).fill(0);
+    const result = new Array(high.length).fill(NaN);
     if (high.length < 2) return result;
 
     let isLong = true;

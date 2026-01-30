@@ -24,6 +24,7 @@ export interface TradeValues {
   leverage: Decimal;
   fees: Decimal;
   exitFees?: Decimal; // Optional: if defined, used for exit calculation
+  maintenanceMarginRate?: Decimal; // Optional: Maintenance Margin Rate (e.g. 0.005 for 0.5%)
   symbol: string;
   useAtrSl: boolean;
   atrValue: Decimal;
@@ -73,6 +74,7 @@ export interface AppState {
   leverage: string; // Serialized Decimal
   fees: string; // Serialized Decimal
   exitFees?: string; // Serialized Decimal
+  maintenanceMarginRate?: string; // Serialized Decimal
   feeMode?: "maker_maker" | "maker_taker" | "taker_taker" | "taker_maker";
   symbol: string;
   atrValue: string; // Serialized Decimal
@@ -133,6 +135,7 @@ export interface AppState {
   remoteMarginMode?: string;
   remoteMakerFee?: Decimal;
   remoteTakerFee?: Decimal;
+  remoteMmr?: Decimal;
 }
 
 export interface CurrentTradeData

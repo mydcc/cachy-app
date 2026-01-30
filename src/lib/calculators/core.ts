@@ -70,20 +70,22 @@ export function calculateBaseMetrics(
   const breakEvenPrice =
     tradeType === CONSTANTS.TRADE_TYPE_LONG
       ? values.entryPrice
-          .times(feeFactor.plus(1))
-          .div(new Decimal(1).minus(feeFactor))
+        .times(feeFactor.plus(1))
+        .div(new Decimal(1).minus(feeFactor))
       : values.entryPrice
-          .times(new Decimal(1).minus(feeFactor))
-          .div(feeFactor.plus(1));
+        .times(new Decimal(1).minus(feeFactor))
+        .div(feeFactor.plus(1));
+
+  const mmr = values.maintenanceMarginRate || new Decimal(0);
 
   const liquidationPrice = values.leverage.gt(0)
     ? tradeType === CONSTANTS.TRADE_TYPE_LONG
       ? values.entryPrice.times(
-          new Decimal(1).minus(new Decimal(1).div(values.leverage)),
-        )
+        new Decimal(1).minus(new Decimal(1).div(values.leverage)).plus(mmr),
+      )
       : values.entryPrice.times(
-          new Decimal(1).plus(new Decimal(1).div(values.leverage)),
-        )
+        new Decimal(1).plus(new Decimal(1).div(values.leverage)).minus(mmr),
+      )
     : new Decimal(0);
 
   return {
@@ -123,8 +125,8 @@ export function calculateIndividualTp(
   const returnOnCapital =
     requiredMargin.gt(0) && currentTpPercent.gt(0)
       ? netProfit
-          .div(requiredMargin.times(currentTpPercent.div(100)))
-          .times(100)
+        .div(requiredMargin.times(currentTpPercent.div(100)))
+        .times(100)
       : new Decimal(0);
   return {
     netProfit,
