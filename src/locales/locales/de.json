@@ -162,7 +162,9 @@
       "leverage": "Hebel",
       "fees": "Gebühren (%)",
       "leveragePlaceholder": "Hebel (z.B. 10x)",
-      "feesPlaceholder": "Gebühren pro Trade (%)"
+      "feesPlaceholder": "Gebühren pro Trade (%)",
+      "syncedWithApi": "Synchronisiert mit API",
+      "manualOverride": "Manuell überschrieben (Klicken zum Synchronisieren auf {value})"
     },
     "portfolioInputs": {
       "header": "Portfolio",

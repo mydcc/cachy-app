@@ -31,11 +31,11 @@ export function calculateAllIndicators(
   if (klines.length < 2) return getEmptyData();
 
   // Prepare data arrays (number[] for speed)
-  const highsNum = klines.map((k) => new Decimal(k.high).toNumber());
-  const lowsNum = klines.map((k) => new Decimal(k.low).toNumber());
-  const closesNum = klines.map((k) => new Decimal(k.close).toNumber());
-  const opensNum = klines.map((k) => new Decimal(k.open).toNumber());
-  const volumesNum = klines.map((k) => new Decimal(k.volume).toNumber());
+  const highsNum = klines.map((k) => k.high.toNumber());
+  const lowsNum = klines.map((k) => k.low.toNumber());
+  const closesNum = klines.map((k) => k.close.toNumber());
+  const opensNum = klines.map((k) => k.open.toNumber());
+  const volumesNum = klines.map((k) => k.volume.toNumber());
   const timesNum = klines.map((k) => k.time);
 
   return calculateIndicatorsFromArrays(
