@@ -7,7 +7,8 @@
 
 import { browser } from "$app/environment";
 import { logger } from "./logger";
-import type { Kline } from "./technicalsTypes";
+import type { Kline, SerializedKline } from "./technicalsTypes";
+import { serializeKline, deserializeKline } from "./technicalsTypes";
 
 const DB_NAME = "CachyDB";
 const DB_VERSION = 1;
@@ -17,7 +18,7 @@ export interface StoredKlines {
     id: string; // symbol:tf
     symbol: string;
     tf: string;
-    data: Kline[];
+    data: SerializedKline[];
     lastUpdated: number;
 }
 
@@ -87,7 +88,7 @@ class StorageService {
                     if (existingRecord && existingRecord.data) {
                         // Merge Strategy: Map by time to deduplicate
                         const map = new Map<number, Kline>();
-                        existingRecord.data.forEach(k => map.set(k.time, k));
+                        existingRecord.data.forEach(k => map.set(k.time, deserializeKline(k)));
                         newKlines.forEach(k => map.set(k.time, k));
 
                         // Sort by time
@@ -100,7 +101,7 @@ class StorageService {
                         id,
                         symbol,
                         tf,
-                        data: mergedData,
+                        data: mergedData.map(serializeKline),
                         lastUpdated: Date.now()
                     };
 
@@ -133,7 +134,7 @@ class StorageService {
 
                 req.onsuccess = () => {
                     const result: StoredKlines = req.result;
-                    resolve(result ? result.data : []);
+                    resolve(result ? result.data.map(deserializeKline) : []);
                 };
 
                 req.onerror = () => reject(req.error);

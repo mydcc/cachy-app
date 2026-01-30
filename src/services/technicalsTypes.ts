@@ -26,6 +26,37 @@ export interface Kline {
   time: number; // Unix timestamp in ms
 }
 
+export interface SerializedKline {
+  open: string;
+  high: string;
+  low: string;
+  close: string;
+  volume: string;
+  time: number;
+}
+
+export function serializeKline(k: Kline): SerializedKline {
+  return {
+    open: k.open.toString(),
+    high: k.high.toString(),
+    low: k.low.toString(),
+    close: k.close.toString(),
+    volume: k.volume.toString(),
+    time: k.time
+  };
+}
+
+export function deserializeKline(k: SerializedKline): Kline {
+  return {
+    open: new Decimal(k.open),
+    high: new Decimal(k.high),
+    low: new Decimal(k.low),
+    close: new Decimal(k.close),
+    volume: new Decimal(k.volume),
+    time: k.time
+  };
+}
+
 export interface IndicatorResult {
   name: string;
   params?: string; // e.g. "14, 14"
