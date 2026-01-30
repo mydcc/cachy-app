@@ -10,6 +10,7 @@
   import { settingsState } from "../../stores/settings.svelte";
   import { indicatorState } from "../../stores/indicator.svelte";
   import { uiState } from "../../stores/ui.svelte";
+  import { windowManager } from "../../lib/windows/WindowManager.svelte";
   import { marketState } from "../../stores/market.svelte";
   import type { TechnicalsData } from "../../services/technicalsTypes";
   import { normalizeTimeframeInput } from "../../utils/utils";
@@ -138,7 +139,11 @@
         <button
           type="button"
           class="text-sm font-bold text-[var(--text-primary)] hover:text-[var(--accent-color)] transition-colors border-none outline-none bg-transparent cursor-pointer p-0"
-          onclick={() => uiState.openSettings("indicators")}
+          onclick={() => {
+            uiState.toggleSettingsModal(true);
+            uiState.settingsTab = "trading";
+            uiState.settingsTradingSubTab = "market";
+          }}
         >
           {typeof $_ === "function"
             ? $_("settings.technicals.title")

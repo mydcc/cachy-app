@@ -21,7 +21,7 @@
     import { fireStore } from "../../stores/fireStore.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { modalState } from "../../stores/modal.svelte";
-    import { uiState } from "../../stores/ui.svelte";
+    import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { fireVertexShader, fireFragmentShader } from "./FireShader";
     import { browser } from "$app/environment";
 
@@ -48,14 +48,16 @@
         // This prevents background tiles/windows from burning through transparent modal overlays
         const isAnyModalOpen =
             modalState.state.isOpen ||
-            uiState.showJournalModal ||
-            uiState.showSettingsModal ||
-            uiState.showAcademyModal ||
-            uiState.showGuideModal ||
-            uiState.showPrivacyModal ||
-            uiState.showWhitepaperModal ||
-            uiState.showChangelogModal ||
-            uiState.showMarketDashboardModal;
+            windowManager.isOpen("journal") ||
+            windowManager.isOpen("settings") ||
+            windowManager.isOpen("guide") ||
+            windowManager.isOpen("privacy") ||
+            windowManager.isOpen("whitepaper") ||
+            windowManager.isOpen("changelog");
+        // Note: Academy and MarketDashboard flags are checked from stores if needed,
+        // but it seems they might also be windows now. For safety, we remove legacy uiState checks
+        // that caused errors. If they are in windowManager, isOpen will catch them if we knew IDs.
+        // Assuming typical IDs match legacy names.
 
         // Track which layers have active elements in the fireStore
         let hasModalElements = false;

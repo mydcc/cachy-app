@@ -25,6 +25,7 @@
     import { app } from "../../services/app";
     import { bitunixWs } from "../../services/bitunixWs";
     import { uiState } from "../../stores/ui.svelte";
+    import { windowManager } from "../../lib/windows/WindowManager.svelte";
     import { marketState } from "../../stores/market.svelte";
     import { settingsState } from "../../stores/settings.svelte";
     import { apiService } from "../../services/apiService";
@@ -53,13 +54,17 @@
         if (isOpen) {
             // Close other UI modals to prevent "ghost" burning borders
             untrack(() => {
-                if (uiState.showJournalModal) uiState.toggleJournalModal(false);
-                if (uiState.showSettingsModal)
+                if (windowManager.isOpen("journal"))
+                    uiState.toggleJournalModal(false);
+                if (windowManager.isOpen("settings"))
                     uiState.toggleSettingsModal(false);
-                if (uiState.showAcademyModal) uiState.toggleAcademyModal(false);
-                if (uiState.showGuideModal) uiState.toggleGuideModal(false);
-                if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
-                if (uiState.showChangelogModal)
+                if (windowManager.isOpen("academy"))
+                    uiState.toggleAcademyModal(false);
+                if (windowManager.isOpen("guide"))
+                    uiState.toggleGuideModal(false);
+                if (windowManager.isOpen("privacy"))
+                    uiState.togglePrivacyModal(false);
+                if (windowManager.isOpen("changelog"))
                     uiState.toggleChangelogModal(false);
             });
         }
