@@ -19,6 +19,17 @@
 import { CANDLESTICK_PATTERNS, type CandleData, type PatternDefinition } from './candlestickPatterns';
 
 export class PatternDetector {
+  private normalizedTemplates: Map<string, CandleData[]> = new Map();
+
+  constructor() {
+    this.precomputeTemplates();
+  }
+
+  private precomputeTemplates() {
+    for (const pattern of CANDLESTICK_PATTERNS) {
+      this.normalizedTemplates.set(pattern.id, this.normalizeSequence(pattern.candles));
+    }
+  }
 
   /**
    * Main entry point to detect patterns.
@@ -82,7 +93,7 @@ export class PatternDetector {
     }
 
     // 3. Fallback: Geometric / Template Matcher
-    return this.geometricMatch(pattern.candles, currentCandles);
+    return this.geometricMatch(pattern.id, pattern.candles, currentCandles);
   }
 
   // --- Specific Pattern Logic (Formulas) ---
@@ -198,9 +209,14 @@ export class PatternDetector {
 
   // --- Geometric Matcher ---
 
-  private geometricMatch(template: CandleData[], input: CandleData[]): boolean {
+  private geometricMatch(patternId: string, template: CandleData[], input: CandleData[]): boolean {
       // Normalize both to 0..1 range based on their own min/max
-      const normTemplate = this.normalizeSequence(template);
+      let normTemplate = this.normalizedTemplates.get(patternId);
+      if (!normTemplate) {
+        // Fallback for unknown patterns or if precomputation failed/was skipped
+        normTemplate = this.normalizeSequence(template);
+      }
+
       const normInput = this.normalizeSequence(input);
 
       let totalDiff = 0;
