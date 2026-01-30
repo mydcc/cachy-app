@@ -21,6 +21,7 @@ import { settingsState } from "../stores/settings.svelte";
 import { julesState } from "../stores/jules.svelte";
 import { tradeState } from "../stores/trade.svelte";
 import { uiState } from "../stores/ui.svelte";
+import { windowManager } from "../lib/windows/WindowManager.svelte";
 import { accountState } from "../stores/account.svelte";
 import { marketState } from "../stores/market.svelte";
 
@@ -127,9 +128,9 @@ export const julesService = {
       },
       uiState: {
         theme: ui.currentTheme,
-        activeModal: ui.showJournalModal
+        activeModal: windowManager.isOpen("journal")
           ? "Journal"
-          : ui.showSettingsModal
+          : windowManager.isOpen("settings")
             ? "Settings"
             : "None",
       },

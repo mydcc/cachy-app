@@ -31,6 +31,7 @@
   import { presetState } from "../stores/preset.svelte";
   import { settingsState } from "../stores/settings.svelte"; // Import settings state
   import { uiState } from "../stores/ui.svelte"; // Import uiState
+  import { windowManager } from "../lib/windows/WindowManager.svelte";
   import { favoritesState } from "../stores/favorites.svelte";
   import { modalState } from "../stores/modal.svelte";
   import { onMount } from "svelte";
@@ -101,7 +102,7 @@
 
   // Load modal contents when opened
   $effect(() => {
-    if (uiState.showChangelogModal && changelogContent === "") {
+    if (windowManager.isOpen("changelog") && changelogContent === "") {
       loadInstruction("changelog").then((content) => {
         changelogContent = content.html;
       });
@@ -109,7 +110,7 @@
   });
 
   $effect(() => {
-    if (uiState.showGuideModal && guideContent === "") {
+    if (windowManager.isOpen("guide") && guideContent === "") {
       loadInstruction("guide").then((content) => {
         guideContent = content.html;
       });
@@ -117,7 +118,7 @@
   });
 
   $effect(() => {
-    if (uiState.showPrivacyModal && privacyContent === "") {
+    if (windowManager.isOpen("privacy") && privacyContent === "") {
       loadInstruction("privacy").then((content) => {
         privacyContent = content.html;
       });
@@ -125,7 +126,7 @@
   });
 
   $effect(() => {
-    if (uiState.showWhitepaperModal && whitepaperContent === "") {
+    if (windowManager.isOpen("whitepaper") && whitepaperContent === "") {
       loadInstruction("whitepaper").then((content) => {
         whitepaperContent = content.html;
       });
@@ -196,12 +197,14 @@
   function handleKeydown(event: KeyboardEvent) {
     if (event && event.key && event.key.toLowerCase() === "escape") {
       event.preventDefault();
-      if (uiState.showJournalModal) uiState.toggleJournalModal(false);
-      if (uiState.showGuideModal) uiState.toggleGuideModal(false);
-      if (uiState.showPrivacyModal) uiState.togglePrivacyModal(false);
-      if (uiState.showWhitepaperModal) uiState.toggleWhitepaperModal(false);
-      if (uiState.showChangelogModal) uiState.toggleChangelogModal(false);
-      if (uiState.showAcademyModal) uiState.toggleAcademyModal(false);
+      if (windowManager.isOpen("journal")) uiState.toggleJournalModal(false);
+      if (windowManager.isOpen("guide")) uiState.toggleGuideModal(false);
+      if (windowManager.isOpen("privacy")) uiState.togglePrivacyModal(false);
+      if (windowManager.isOpen("whitepaper"))
+        uiState.toggleWhitepaperModal(false);
+      if (windowManager.isOpen("changelog"))
+        uiState.toggleChangelogModal(false);
+      if (windowManager.isOpen("academy")) uiState.toggleAcademyModal(false);
       if (modalState.state.isOpen) modalState.handleModalConfirm(false);
       return;
     }
@@ -831,49 +834,7 @@
   </div>
 </footer>
 
-<ModalFrame
-  isOpen={uiState.showChangelogModal}
-  title={$_("app.changelogTitle")}
-  onclose={() => uiState.toggleChangelogModal(false)}
-  extraClasses="modal-size-instructions"
->
-  <div id="changelog-content" class="prose dark:prose-invert">
-    {@html changelogContent}
-  </div>
-</ModalFrame>
-
-<ModalFrame
-  isOpen={uiState.showGuideModal}
-  title={$_("app.guideTitle")}
-  onclose={() => uiState.toggleGuideModal(false)}
-  extraClasses="modal-size-instructions"
->
-  <div id="guide-content" class="prose dark:prose-invert">
-    {@html guideContent}
-  </div>
-</ModalFrame>
-
-<ModalFrame
-  isOpen={uiState.showPrivacyModal}
-  title={$_("app.privacyLegal")}
-  onclose={() => uiState.togglePrivacyModal(false)}
-  extraClasses="modal-size-instructions"
->
-  <div id="privacy-content" class="prose dark:prose-invert">
-    {@html privacyContent}
-  </div>
-</ModalFrame>
-
-<ModalFrame
-  isOpen={uiState.showWhitepaperModal}
-  title={$_("app.whitepaper")}
-  onclose={() => uiState.toggleWhitepaperModal(false)}
-  extraClasses="modal-size-instructions"
->
-  <div id="whitepaper-content" class="prose dark:prose-invert">
-    {@html whitepaperContent}
-  </div>
-</ModalFrame>
+<!-- No ModalFrames for Guide/Changelog etc. anymore - they are managed by WindowManager -->
 
 <AcademyModal />
 <FlashCard />
