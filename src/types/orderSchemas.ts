@@ -69,6 +69,12 @@ export const ClosePositionSchema = BaseRequestSchema.extend({
   marginCoin: z.string().optional().default("USDT"), // For Bitget
 });
 
+// --- Cancel All ---
+export const CancelAllSchema = BaseRequestSchema.extend({
+  type: z.literal("cancel-all"),
+  symbol: z.string().optional(), // Optional filter
+});
+
 // --- History ---
 export const HistorySchema = BaseRequestSchema.extend({
   type: z.literal("history"),
@@ -94,10 +100,12 @@ export const PendingSchema = BaseRequestSchema.extend({
 export const OrderRequestSchema = z.discriminatedUnion("type", [
   PlaceOrderSchema,
   ClosePositionSchema,
+  CancelAllSchema,
   HistorySchema,
   PendingSchema
 ]);
 
 export type PlaceOrderPayload = z.infer<typeof PlaceOrderSchema>;
 export type ClosePositionPayload = z.infer<typeof ClosePositionSchema>;
+export type CancelAllPayload = z.infer<typeof CancelAllSchema>;
 export type OrderRequestPayload = z.infer<typeof OrderRequestSchema>;

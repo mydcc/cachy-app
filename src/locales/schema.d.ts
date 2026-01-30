@@ -330,6 +330,8 @@ export type TranslationKey =
   | "journal.messages.min20Trades"
   | "journal.messages.noStrategyLosses"
   | "journal.messages.noTimingLosses"
+  | "journal.messages.atrRecalcStart"
+  | "journal.messages.atrRecalcError"
   | "journal.deepDive.title"
   | "journal.deepDive.performance"
   | "journal.deepDive.execution"

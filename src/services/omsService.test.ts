@@ -27,7 +27,7 @@ describe('OrderManagementSystem', () => {
         price: new Decimal(50000),
         amount: new Decimal(1),
         filledAmount: new Decimal(0),
-        status: 'new',
+        status: 'pending',
         timestamp: Date.now()
       };
       omsService.updateOrder(order);
@@ -48,7 +48,7 @@ describe('OrderManagementSystem', () => {
         price: new Decimal(100),
         amount: new Decimal(1),
         filledAmount: new Decimal(0),
-        status: 'new',
+        status: 'pending',
         timestamp: Date.now()
       });
     }
@@ -80,7 +80,7 @@ describe('OrderManagementSystem', () => {
             price: new Decimal(100),
             amount: new Decimal(1),
             filledAmount: new Decimal(0),
-            status: 'new',
+            status: 'pending',
             timestamp: Date.now()
           });
     }
@@ -97,7 +97,7 @@ describe('OrderManagementSystem', () => {
         price: new Decimal(100),
         amount: new Decimal(1),
         filledAmount: new Decimal(0),
-        status: 'new',
+        status: 'pending',
         timestamp: Date.now()
     });
 
@@ -121,7 +121,7 @@ describe('OrderManagementSystem', () => {
             price: new Decimal(100),
             amount: new Decimal(1),
             filledAmount: new Decimal(0),
-            status: 'new',
+            status: 'pending',
             timestamp: Date.now()
         });
     }
@@ -135,7 +135,7 @@ describe('OrderManagementSystem', () => {
         price: new Decimal(100),
         amount: new Decimal(1),
         filledAmount: new Decimal(0),
-        status: 'new',
+        status: 'pending',
         timestamp: Date.now()
     });
 
