@@ -372,7 +372,15 @@ export class MarketManager {
       history = history.slice(-MAX_HISTORY);
     }
 
-    current.klines[timeframe] = history;
+    // [REACTIVITY FIX]
+    // In Svelte 5, deep mutations on proxies work, BUT replacing the array reference
+    // is the safest way to guarantee effect triggers in downstream components like CandleChartView.
+    current.klines[timeframe] = [...history];
+    current.lastUpdated = Date.now();
+
+    // Trigger shape update on the symbol object itself to be safe
+    // (This helps if components subscribe to 'symbol.klines' reference)
+    this.data[symbol] = current;
 
     this.enforceCacheLimit();
   }

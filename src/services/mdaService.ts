@@ -67,7 +67,7 @@ export const mdaService = {
         return raw.map(k => {
             if (provider === "bitunix") {
                 return {
-                    time: Number(k.time || k.t),
+                    time: Number(k.time || k.t || k.ts || k.timestamp),
                     open: k.open || k.o || "0",
                     high: k.high || k.h || "0",
                     low: k.low || k.l || "0",

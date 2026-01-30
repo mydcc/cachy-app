@@ -1,20 +1,3 @@
-/*
- * Copyright (C) 2026 MYDCT
- *
- * This program is free software: you can redistribute it and/or modify
- * it under the terms of the GNU Affero General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- *
- * This program is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- * GNU Affero General Public License for more details.
- *
- * You should have received a copy of the GNU Affero General Public License
- * along with this program.  If not, see <https://www.gnu.org/licenses/>.
- */
-
 import { untrack } from "svelte";
 import { bitunixWs } from "./bitunixWs";
 import { apiService } from "./apiService";
@@ -24,6 +7,7 @@ import { normalizeSymbol } from "../utils/symbolUtils";
 import { browser } from "$app/environment";
 import { tradeState } from "../stores/trade.svelte";
 import { logger } from "./logger";
+import { storageService } from "./storageService";
 
 interface MarketWatchRequest {
   symbol: string;
@@ -71,12 +55,17 @@ class MarketWatcher {
     if (count === 0) {
       this.syncSubscriptions();
 
-      // Also trigger an immediate REST fetch to avoid "no data" message
-      // Use the current provider and high priority for price/ticker
-      untrack(() => {
-        const provider = settingsState.apiProvider;
-        this.pollSymbolChannel(normSymbol, channel, provider);
-      });
+      // Trigger history sync for Klines
+      if (channel.startsWith("kline_")) {
+        const tf = channel.replace("kline_", "");
+        this.ensureHistory(normSymbol, tf);
+      } else {
+        // Regular poll for Price/Ticker
+        untrack(() => {
+          const provider = settingsState.apiProvider;
+          this.pollSymbolChannel(normSymbol, channel, provider);
+        });
+      }
     }
   }
 
@@ -109,7 +98,8 @@ class MarketWatcher {
     // If future providers get WS support, add them here.
     if (settings.apiProvider !== "bitunix") {
       // If we switched away from Bitunix, clear all WS subscriptions
-      Array.from(bitunixWs.publicSubscriptions).forEach((key) => {
+      // Use pendingSubscriptions instead of publicSubscriptions
+      Array.from(bitunixWs.pendingSubscriptions).forEach((key: string) => {
         const [channel, symbol] = key.split(":");
         bitunixWs.unsubscribe(symbol, channel);
       });
@@ -141,13 +131,13 @@ class MarketWatcher {
     // 2. Diff and Sync
     // Subscribe to additions
     intended.forEach((sub, key) => {
-      if (!bitunixWs.publicSubscriptions.has(key)) {
+      if (!bitunixWs.pendingSubscriptions.has(key)) {
         bitunixWs.subscribe(sub.symbol, sub.channel);
       }
     });
 
     // Unsubscribe from removals
-    bitunixWs.publicSubscriptions.forEach((key) => {
+    bitunixWs.pendingSubscriptions.forEach((key: string) => {
       if (!intended.has(key)) {
         const [channel, symbol] = key.split(":");
         bitunixWs.unsubscribe(symbol, channel);
@@ -176,13 +166,17 @@ class MarketWatcher {
     // Initial delay to avoid startup congestion
     this.startTimeout = setTimeout(() => {
       this.pollingInterval = setInterval(() => {
-        const paused = this.isPollingPaused();
-        if (import.meta.env.DEV) {
-          // console.log(`[MarketWatcher] Polling Cycle. Paused: ${paused}, WS Status: ${marketState.connectionStatus}`);
-        }
-        if (paused) return;
+        // [HYBRID ARCHITECTURE CHANGE]
+        // We no longer pause globally if WS is connected.
+        // We run the cycle and let 'performPollingCycle' decide per-symbol.
         this.performPollingCycle();
-      }, 1000); // Check every second for what needs polling
+
+        // Periodic Subscription Sync (Self-Healing)
+        // Checks every 5 cycles (approx 5s) if WS subscriptions match requests
+        if (Date.now() % 5000 < 1000) {
+          this.syncSubscriptions();
+        }
+      }, 1000);
     }, 2000);
   }
 
@@ -218,18 +212,9 @@ class MarketWatcher {
     }
   }
 
-  private isPollingPaused() {
-    if (!browser) return true;
-    const settings = settingsState;
-    if (!settings.capabilities.marketData) return true;
+  // Removed isPollingPaused() as part of Hybrid Architecture.
+  // Polling is now governed by "Gap Detection" inside performPollingCycle.
 
-    const paused = marketState.connectionStatus === "connected";
-    if (import.meta.env.DEV && !paused) {
-      // Only log if WE ARE ACTUALLY POLLING
-      // console.log(`[MarketWatcher] Polling... Status: ${marketState.connectionStatus}, Provider: ${settings.apiProvider}`);
-    }
-    return paused;
-  }
 
   private async performPollingCycle() {
     const settings = settingsState;
@@ -239,10 +224,10 @@ class MarketWatcher {
     // This handles edge cases where `finally` block might not have cleared a lock
     // or if component logic caused orphan keys.
     if (this.fetchLocks.size > 200) {
-        // Emergency cleanup
-        logger.warn("market", `[MarketWatcher] Pruning stale locks (${this.fetchLocks.size})`);
-        this.fetchLocks.clear();
-        this.inFlight = 0;
+      // Emergency cleanup
+      logger.warn("market", `[MarketWatcher] Pruning stale locks (${this.fetchLocks.size})`);
+      this.fetchLocks.clear();
+      this.inFlight = 0;
     }
 
     const allowed = Math.max(this.maxConcurrentPolls - this.inFlight, 0);
@@ -251,6 +236,20 @@ class MarketWatcher {
     const tasks: Array<{ symbol: string; channel: string; lockKey: string }> = [];
 
     this.requests.forEach((channels, symbol) => {
+      // [HYBRID] Gap Detection
+      // Check if we have recent data for this symbol from WS
+      const data = marketState.data[symbol];
+      const now = Date.now();
+      const lastUpdate = data?.lastUpdated || 0;
+      const isStale = (now - lastUpdate) > 10000; // 10s Gap Threshold
+      const isWsConnected = marketState.connectionStatus === "connected";
+
+      // If WS is connected AND data is fresh, we skip polling (Pure WebSocket Mode)
+      // If WS is disconnected OR data is stale (Gap), we Poll (REST Fallback)
+      if (isWsConnected && !isStale) {
+        return;
+      }
+
       channels.forEach((_, channel) => {
         const lockKey = `${symbol}:${channel}`;
         if (this.fetchLocks.has(lockKey)) return;
@@ -281,6 +280,47 @@ class MarketWatcher {
     }
   }
 
+  private async ensureHistory(symbol: string, tf: string) {
+    const provider = settingsState.apiProvider;
+    if (provider !== "bitunix") return; // Only supporting bitunix history optimization for now
+
+    // 1. Try Load from DB
+    const stored = await storageService.getKlines(symbol, tf);
+    if (stored && stored.length > 0) {
+      if (import.meta.env.DEV) console.log(`[History] Loaded ${stored.length} candles from DB for ${symbol}`);
+      marketState.updateSymbolKlines(symbol, tf, stored, "rest");
+    }
+
+    // 2. Determine if we need to fetch
+    // If we have saved data, we likely just need the HEAD (recent candles).
+    // If empty, we need massive backfill.
+    const limit = settingsState.chartHistoryLimit || 1000;
+
+    const doFetch = async () => {
+      // Fetch part 1: Latest
+      const latestLimit = 1000; // API Max
+      const klines1 = await apiService.fetchBitunixKlines(symbol, tf, latestLimit);
+
+      if (klines1 && klines1.length > 0) {
+        marketState.updateSymbolKlines(symbol, tf, klines1, "rest");
+        storageService.saveKlines(symbol, tf, klines1); // Async save
+
+        // Fetch part 2: Backfill if needed and initial head was full
+        if (limit > 1000 && klines1.length >= 1000) {
+          const oldestTime = klines1[0].time;
+          const klines2 = await apiService.fetchBitunixKlines(symbol, tf, 1000, undefined, oldestTime);
+          if (klines2 && klines2.length > 0) {
+            marketState.updateSymbolKlines(symbol, tf, klines2, "rest");
+            storageService.saveKlines(symbol, tf, klines2);
+          }
+        }
+      }
+    }
+
+    // Execute non-blocking
+    doFetch().catch(e => logger.warn("market", `[History] Error ensuring history for ${symbol}`, e));
+  }
+
   private async pollSymbolChannel(
     symbol: string,
     channel: string,
@@ -293,12 +333,12 @@ class MarketWatcher {
 
     // Safety: Proactive lock release (TTL) in case of critical failure/hang
     const safetyTimeout = setTimeout(() => {
-        if (this.fetchLocks.has(lockKey)) {
-             logger.warn("market", `[MarketWatcher] Proactive lock release for ${lockKey} (stuck)`);
-             this.fetchLocks.delete(lockKey);
-             this.proactiveLockTimeouts.delete(lockKey);
-             this.inFlight = Math.max(0, this.inFlight - 1);
-        }
+      if (this.fetchLocks.has(lockKey)) {
+        logger.warn("market", `[MarketWatcher] Proactive lock release for ${lockKey} (stuck)`);
+        this.fetchLocks.delete(lockKey);
+        this.proactiveLockTimeouts.delete(lockKey);
+        this.inFlight = Math.max(0, this.inFlight - 1);
+      }
     }, 15000); // 15s (must be > fetch timeout)
     this.proactiveLockTimeouts.set(lockKey, safetyTimeout);
 
@@ -313,10 +353,10 @@ class MarketWatcher {
       // 10s timeout for REST calls
       const timeoutMs = 10000;
       const withTimeout = <T>(promise: Promise<T>): Promise<T> => {
-          return Promise.race([
-              promise,
-              new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
-          ]);
+        return Promise.race([
+          promise,
+          new Promise<T>((_, reject) => setTimeout(() => reject(new Error("Timeout")), timeoutMs))
+        ]);
       };
 
       if (channel === "price" || channel === "ticker") {
@@ -335,12 +375,15 @@ class MarketWatcher {
         });
       } else if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
+        // Use 1000 limit for routine polling as well, to catch up gaps efficiently
         const klines = await withTimeout(provider === "bitget"
-          ? apiService.fetchBitgetKlines(symbol, tf, 750)
-          : apiService.fetchBitunixKlines(symbol, tf, 750));
+          ? apiService.fetchBitgetKlines(symbol, tf, 1000)
+          : apiService.fetchBitunixKlines(symbol, tf, 1000));
 
         if (klines && klines.length > 0) {
           marketState.updateSymbolKlines(symbol, tf, klines, "rest");
+          // Persist on routine poll too
+          storageService.saveKlines(symbol, tf, klines);
         }
       }
       // Depth not yet polled for Binance (requires specific API we logic)
@@ -353,8 +396,8 @@ class MarketWatcher {
     } finally {
       // Clear safety timeout as we are handling it normally
       if (this.proactiveLockTimeouts.has(lockKey)) {
-          clearTimeout(this.proactiveLockTimeouts.get(lockKey));
-          this.proactiveLockTimeouts.delete(lockKey);
+        clearTimeout(this.proactiveLockTimeouts.get(lockKey));
+        this.proactiveLockTimeouts.delete(lockKey);
       }
 
       // Re-allow polling after interval
