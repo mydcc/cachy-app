@@ -1378,7 +1378,7 @@
     },
     "hammer": {
       "name": "Hammer",
-      "description": "Ein Hammer ist ein bullisches Umkehrmuster, das am Ende eines Abwärtstrends erscheint. Er hat einen kleinen Körper am oberen Ende der Handelsspanne und einen langen unteren Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein oberer Schatten.",
+      "description": "Ein Hammer ist ein bullisches Umkehrmuster, das am Ende eines Abwärtstrends erscheint. Er hat einen kleinen Körper am oberen Ende der Handelsspanne und einen langen unteren Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein oberer Schatten.\n\n### Mathematische Kriterien (Formeln)\nUm eine Kerze objektiv als Hammer zu definieren, werden oft folgende Formeln verwendet:\n\n*   **Schatten-zu-Körper Verhältnis:** Der untere Schatten (Lunte) muss mindestens doppelt so lang sein wie der Körper.\n$$ \\text{Lower Shadow} \\ge 2 \\times |\\text{Open} - \\text{Close}| $$\n*   **Körper Position (Fibonacci Methode):** Der gesamte Körper muss im oberen Drittel liegen (über dem 38.2% Retracement).\n*   **Oberer Schatten:** Er sollte sehr klein oder nicht vorhanden sein.\n$$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Total Range} $$",
       "interpretation": "Signalisiert, dass Verkäufer den Preis drückten, aber Käufer stark genug waren, um den Preis bis zum Schlusskurs wieder nach oben zu treiben. Mögliche Bodenbildung.",
       "indicatorCombination": "Ein Hammer an einer wichtigen Unterstützungslinie oder einem gleitenden Durchschnitt ist ein stärkeres Signal. Ein Anstieg des Volumens bei der Hammer-Kerze oder der Bestätigungskerze unterstützt die Umkehr."
     },
