@@ -31,6 +31,7 @@
   import Tooltip from "./Tooltip.svelte";
   import { viewport } from "../../actions/viewport";
   import { burn } from "../../actions/burn";
+  import { ChartWindow } from "../../lib/windows/implementations/ChartWindow.svelte";
 
   interface Props {
     customSymbol?: string | undefined;
@@ -439,6 +440,28 @@
           '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>'}
       </button>
     {/if}
+
+    <button
+      class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
+      title="Open Real-time Chart"
+      onclick={(e) => {
+        e.stopPropagation();
+        windowManager.toggle(`chart-${symbol}`, () => new ChartWindow(symbol));
+      }}
+    >
+      <svg
+        xmlns="http://www.w3.org/2000/svg"
+        width="16"
+        height="16"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+        ><path d="M3 3v18h18" /><path d="m19 9-5 5-4-4-3 3" /></svg
+      >
+    </button>
 
     <button
       class="text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition-colors p-1 rounded-md hover:bg-[var(--bg-tertiary)]"
