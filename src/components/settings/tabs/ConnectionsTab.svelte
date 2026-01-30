@@ -110,7 +110,7 @@
                     <!-- Bitunix -->
                     <div class="api-card">
                         <div class="header">
-                            <span class="font-bold text-sm">Bitunix</span>
+                            <span class="font-bold text-sm">{$_("settings.connections.providers.bitunix")}</span>
                             <span
                                 class="status-dot {settingsState.apiKeys.bitunix
                                     .key
@@ -213,7 +213,7 @@
                     <!-- Bitget -->
                     <div class="api-card">
                         <div class="header">
-                            <span class="font-bold text-sm">Bitget</span>
+                            <span class="font-bold text-sm">{$_("settings.connections.providers.bitget")}</span>
                             <span
                                 class="status-dot {settingsState.apiKeys.bitget
                                     .key &&
@@ -373,7 +373,7 @@
                     <!-- CryptoPanic -->
                     <div class="api-card">
                         <div class="header">
-                            <span class="font-bold text-sm">CryptoPanic</span>
+                            <span class="font-bold text-sm">{$_("settings.connections.providers.cryptopanic")}</span>
                         </div>
                         <div class="body">
                             <div class="field-group">
@@ -456,7 +456,7 @@
                     <!-- Other APIs -->
                     <div class="flex flex-col gap-4">
                         <div class="api-card compact">
-                            <label for="cmc-key">CoinMarketCap API</label>
+                            <label for="cmc-key">{$_("settings.connections.labels.cmc")}</label>
                             <input
                                 id="cmc-key"
                                 type="password"
@@ -465,7 +465,7 @@
                             />
                         </div>
                         <div class="api-card compact">
-                            <label for="news-key">NewsAPI.org</label>
+                            <label for="news-key">{$_("settings.connections.labels.newsapi")}</label>
                             <input
                                 id="news-key"
                                 type="password"
@@ -475,7 +475,7 @@
                         </div>
                         <div class="api-card compact">
                             <label for="imgbb-key"
-                                >ImgBB API (Screenshots)</label
+                                >{$_("settings.connections.labels.imgbb")}</label
                             >
                             <input
                                 id="imgbb-key"

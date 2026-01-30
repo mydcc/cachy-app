@@ -13,6 +13,7 @@ import { serializeKline, deserializeKline } from "./technicalsTypes";
 const DB_NAME = "CachyDB";
 const DB_VERSION = 1;
 const STORE_KLINES = "klines";
+const MAX_STORED_KLINES = 5000;
 
 export interface StoredKlines {
     id: string; // symbol:tf
@@ -95,6 +96,11 @@ class StorageService {
                         mergedData = Array.from(map.values()).sort((a, b) => a.time - b.time);
                     } else {
                         mergedData = [...newKlines].sort((a, b) => a.time - b.time);
+                    }
+
+                    // Hard Limit for Storage
+                    if (mergedData.length > MAX_STORED_KLINES) {
+                        mergedData = mergedData.slice(-MAX_STORED_KLINES);
                     }
 
                     const record: StoredKlines = {

@@ -588,6 +588,7 @@
       "cacheSize": "Market Data Cache Size",
       "timeframes": "Analysis Timeframes",
       "enableNews": "Enable News Analysis",
+      "recommendation": "Recommendation: Select 2-3 timeframes that match your trading style.",
       "profilesDesc": "Choose a preset matching your trading style.",
       "advancedDesc": "Granular control over analysis loop.",
       "intervalHelp": "How often technical indicators are recalculated.",
@@ -1004,7 +1005,17 @@
       "filterBearish": "Bearish",
       "filterImportant": "Important",
       "planFree": "Free",
-      "planPro": "Pro"
+      "planPro": "Pro",
+      "providers": {
+        "bitunix": "Bitunix",
+        "bitget": "Bitget",
+        "cryptopanic": "CryptoPanic"
+      },
+      "labels": {
+        "cmc": "CoinMarketCap API",
+        "newsapi": "NewsAPI.org",
+        "imgbb": "ImgBB API (Screenshots)"
+      }
     },
     "imgbbExpiration": "Expiration Time",
     "integrations": {
@@ -1066,7 +1077,22 @@
     },
     "trading": {
       "chartTitle": "Chart & Data",
-      "executionTitle": "Execution & Fees"
+      "executionTitle": "Execution & Fees",
+      "executionData": "Execution & Data",
+      "spinButtons": {
+        "always": "Always Visible",
+        "hover": "On Hover",
+        "hidden": "Hidden"
+      },
+      "syncPrice": "Sync inputs with live price",
+      "confirmDelete": "Confirm Trade Deletion",
+      "confirmDeleteDesc": "Safety check before removing",
+      "confirmBulkDelete": "Confirm Bulk Deletion",
+      "confirmBulkDeleteDesc": "Safety check for 'Close All'",
+      "marketTiles": "Market Overview Tiles",
+      "marketTilesDesc": "Show market data tiles in sidebar",
+      "showLinks": "Show Links Footer",
+      "tradingView": "TradingView"
     }
   },
   "symbolPicker": {

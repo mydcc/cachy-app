@@ -287,7 +287,7 @@
             </div>
             <p class="help-text">
                 Each selected timeframe multiplies API calls and CPU usage. 
-                <strong>Recommendation:</strong> Select 2-3 timeframes that match your trading style.
+                <strong>{$_("settings.calculation.recommendation")}</strong>
                 Scalpers: 5m, 15m. Day traders: 15m, 1h, 4h. Swing traders: 1h, 4h, 1d.
                 {#if settingsState.analysisTimeframes.length >= 4}
                     <span class="warning"

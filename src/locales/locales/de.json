@@ -19,9 +19,6 @@
     "restoreConfirmTitle": "Backup wiederherstellen?",
     "restoreConfirmMessage": "Möchten Sie dieses Backup wirklich wiederherstellen? Alle Ihre aktuellen Einstellungen, Presets und Journaleinträge werden unwiderruflich überschrieben. Diese Aktion kann nicht rückgängig gemacht werden.",
     "fileReadError": "Fehler beim Lesen der ausgewählten Datei.",
-    "marketDashboard.point": "Marktübersicht",
-    "marketDashboard.title": "Globale Marktanalyse",
-    "marketDashboard.buttonTitle": "Marktübersicht öffnen",
     "version": "Version",
     "privacyLegal": "Datenschutz & Rechtliches",
     "whitepaper": "Whitepaper",
@@ -38,7 +35,8 @@
       "buttonTitle": "Marktübersicht öffnen",
       "point": "Marktübersicht",
       "title": "Globale Marktanalyse"
-    }
+    },
+    "tradeExecutionDev": "🚧 Trade-Ausführung in Entwicklung"
   },
   "sidePanel": {
     "globalChat": "Globaler Chat",
@@ -591,6 +589,7 @@
       "cacheSize": "Marktdaten Cache Größe",
       "timeframes": "Analyse Zeitrahmen",
       "enableNews": "News Analyse aktivieren",
+      "recommendation": "Empfehlung: Wähle 2-3 Zeitrahmen, die zu deinem Trading-Stil passen.",
       "profilesDesc": "Wähle ein Profil passend zu deinem Trading-Stil.",
       "advancedDesc": "Feinsteuerung der Analyse-Schleife.",
       "intervalHelp": "Wie oft technische Indikatoren neu berechnet werden.",
@@ -756,7 +755,17 @@
       "addFeed": "Feed hinzufügen",
       "removeFeed": "Entfernen",
       "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
+      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)",
+      "providers": {
+        "bitunix": "Bitunix",
+        "bitget": "Bitget",
+        "cryptopanic": "CryptoPanic"
+      },
+      "labels": {
+        "cmc": "CoinMarketCap API",
+        "newsapi": "NewsAPI.org",
+        "imgbb": "ImgBB API (Screenshots)"
+      }
     },
     "ai": {
       "status": {
@@ -907,7 +916,22 @@
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",
-      "chartTitle": "Chart & Daten"
+      "chartTitle": "Chart & Daten",
+      "executionData": "Ausführung & Daten",
+      "spinButtons": {
+        "always": "Immer sichtbar",
+        "hover": "Bei Mouseover",
+        "hidden": "Versteckt"
+      },
+      "syncPrice": "Eingaben mit Live-Preis synchronisieren",
+      "confirmDelete": "Löschen bestätigen",
+      "confirmDeleteDesc": "Sicherheitsabfrage vor dem Entfernen",
+      "confirmBulkDelete": "Massenlöschung bestätigen",
+      "confirmBulkDeleteDesc": "Sicherheitsabfrage für 'Alles schließen'",
+      "marketTiles": "Marktübersicht Kacheln",
+      "marketTilesDesc": "Marktdaten-Kacheln in der Seitenleiste anzeigen",
+      "showLinks": "Links-Footer anzeigen",
+      "tradingView": "TradingView"
     },
     "profile": {
       "appearanceTitle": "Erscheinungsbild & Identität",
