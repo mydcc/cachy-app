@@ -59,12 +59,26 @@ export class PatternDetector {
     }
 
     // 2. Specific Logic overrides (for "Formula" accuracy)
-    // We can add switch cases here for "Hardcoded" formulas like Hammer
-    if (pattern.id === 'hammer') {
-       return this.isHammer(currentCandles[0]);
-    }
-    if (pattern.id === 'bullish_engulfing') {
-       return this.isBullishEngulfing(currentCandles[0], currentCandles[1]);
+    // We utilize strict formulas derived from LuxAlgo PineScript where possible.
+    switch (pattern.id) {
+        case 'hammer':
+            return this.isHammer(currentCandles[0]);
+        case 'inverted_hammer':
+            return this.isInvertedHammer(currentCandles[0]);
+        case 'hanging_man':
+            // Hanging Man is morphologically a Hammer, but at the top of a trend (Trend check handled above)
+            return this.isHammer(currentCandles[0]);
+        case 'shooting_star':
+            // Shooting Star is morphologically an Inverted Hammer, but at the top of a trend
+            return this.isInvertedHammer(currentCandles[0]);
+        case 'bullish_engulfing':
+            return this.isBullishEngulfing(currentCandles[0], currentCandles[1]);
+        case 'bearish_engulfing':
+            return this.isBearishEngulfing(currentCandles[0], currentCandles[1]);
+        case 'morning_star':
+            return this.isMorningStar(currentCandles[0], currentCandles[1], currentCandles[2]);
+        case 'evening_star':
+            return this.isEveningStar(currentCandles[0], currentCandles[1], currentCandles[2]);
     }
 
     // 3. Fallback: Geometric / Template Matcher
@@ -74,33 +88,43 @@ export class PatternDetector {
   // --- Specific Pattern Logic (Formulas) ---
 
   /**
-   * Hammer:
-   * - Small body at top
+   * Hammer / Hanging Man:
    * - Lower shadow >= 2x body
-   * - Very small upper shadow
+   * - Upper shadow <= 10% of range
    */
   private isHammer(candle: CandleData): boolean {
-    const open = candle.open;
-    const close = candle.close;
-    const high = candle.high;
-    const low = candle.low;
+    const body = Math.abs(candle.open - candle.close);
+    const upperShadow = candle.high - Math.max(candle.open, candle.close);
+    const lowerShadow = Math.min(candle.open, candle.close) - candle.low;
+    const totalRange = candle.high - candle.low;
 
-    const body = Math.abs(open - close);
-    const upperShadow = high - Math.max(open, close);
-    const lowerShadow = Math.min(open, close) - low;
-    const totalRange = high - low;
+    if (totalRange === 0) return false;
 
-    // Formula 1: Lower Shadow >= 2 * Body
-    const condition1 = lowerShadow >= body * 2;
+    // LuxAlgo: Lower Wick > 2 * Body
+    const cond1 = lowerShadow >= body * 2;
+    // LuxAlgo: Upper Wick < 2% (We use 10% for slight tolerance)
+    const cond2 = upperShadow <= totalRange * 0.1;
 
-    // Formula 2: Upper Shadow very small (e.g. <= 10% of range or <= body)
-    // The prompt says "Upper Shadow <= 0.1 * Range"
-    const condition2 = upperShadow <= totalRange * 0.1;
+    return cond1 && cond2;
+  }
 
-    // Formula 3: Body in upper third (implied by shadows, but let's check)
-    // Actually condition1+2 largely covers it.
+  /**
+   * Inverted Hammer / Shooting Star:
+   * - Upper shadow >= 2x body
+   * - Lower shadow <= 10% of range
+   */
+  private isInvertedHammer(candle: CandleData): boolean {
+      const body = Math.abs(candle.open - candle.close);
+      const upperShadow = candle.high - Math.max(candle.open, candle.close);
+      const lowerShadow = Math.min(candle.open, candle.close) - candle.low;
+      const totalRange = candle.high - candle.low;
 
-    return condition1 && condition2;
+      if (totalRange === 0) return false;
+
+      const cond1 = upperShadow >= body * 2;
+      const cond2 = lowerShadow <= totalRange * 0.1;
+
+      return cond1 && cond2;
   }
 
   private isBullishEngulfing(prev: CandleData, curr: CandleData): boolean {
@@ -110,10 +134,55 @@ export class PatternDetector {
       if (curr.close <= curr.open) return false;
 
       // 3. Engulfing: Curr Body > Prev Body (and wraps it)
-      // Curr Open <= Prev Close (gap down or equal)
-      // Curr Close >= Prev Open (gap up or equal)
-      // Strict definition: body overlaps completely
       return curr.open <= prev.close && curr.close >= prev.open;
+  }
+
+  private isBearishEngulfing(prev: CandleData, curr: CandleData): boolean {
+      // 1. Prev is Bullish
+      if (prev.close <= prev.open) return false;
+      // 2. Curr is Bearish
+      if (curr.close >= curr.open) return false;
+
+      // 3. Engulfing
+      return curr.open >= prev.close && curr.close <= prev.open;
+  }
+
+  private isMorningStar(c1: CandleData, c2: CandleData, c3: CandleData): boolean {
+      // 1. Long Bearish
+      if (c1.close >= c1.open) return false;
+      const body1 = Math.abs(c1.open - c1.close);
+      const range1 = c1.high - c1.low;
+      if (body1 < range1 * 0.5) return false;
+
+      // 2. Small Body (Star)
+      const body2 = Math.abs(c2.open - c2.close);
+      if (body2 >= body1 * 0.5) return false;
+
+      // 3. Long Bullish
+      if (c3.close <= c3.open) return false;
+
+      // 4. Position: C3 closes above midpoint of C1
+      const midpoint1 = (c1.open + c1.close) / 2;
+      return c3.close > midpoint1;
+  }
+
+  private isEveningStar(c1: CandleData, c2: CandleData, c3: CandleData): boolean {
+      // 1. Long Bullish
+      if (c1.close <= c1.open) return false;
+      const body1 = Math.abs(c1.open - c1.close);
+      const range1 = c1.high - c1.low;
+      if (body1 < range1 * 0.5) return false;
+
+      // 2. Small Body (Star)
+      const body2 = Math.abs(c2.open - c2.close);
+      if (body2 >= body1 * 0.5) return false;
+
+      // 3. Long Bearish
+      if (c3.close >= c3.open) return false;
+
+      // 4. Position: C3 closes below midpoint of C1
+      const midpoint1 = (c1.open + c1.close) / 2;
+      return c3.close < midpoint1;
   }
 
   private isUptrend(candles: CandleData[]): boolean {
