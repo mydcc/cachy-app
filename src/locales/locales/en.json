@@ -1339,7 +1339,7 @@
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "A bullish engulfing pattern occurs after a downtrend. It consists of two candles: The first is a bearish candle, followed by a larger bullish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n$$ \\text{Current Body} > \\text{Previous Body} $$\n$$ \\text{Open} \\le \\text{Prev Close} $$\n$$ \\text{Close} \\ge \\text{Prev Open} $$",
+      "description": "A bullish engulfing pattern occurs after a downtrend. It consists of two candles: The first is a bearish candle, followed by a larger bullish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n\n  $$ \\text{Current Body} > \\text{Previous Body} $$\n\n  $$ \\text{Open} \\le \\text{Prev Close} $$\n\n  $$ \\text{Close} \\ge \\text{Prev Open} $$",
       "interpretation": "Signals that buyers have taken control from sellers and a strong bullish reversal is likely.",
       "indicatorCombination": "A Bullish Engulfing is stronger when it occurs on high volume. Additional confirmation from an oversold RSI (<30) or a bullish divergence can increase its reliability."
     },
@@ -1375,7 +1375,7 @@
     },
     "hammer": {
       "name": "Hammer",
-      "description": "A Hammer candle is a bullish reversal pattern in trading that appears at the end of a downtrend. Identification is based on specific geometric ratios between the body and the wick.\n\n### Mathematical Criteria (Formulas)\nTo objectively define a candle as a Hammer, the following formulas are often used:\n\n*   **Shadow-to-Body Ratio:** The lower shadow (wick) must be at least twice as long as the candle body.\n$$ \\text{Lower Shadow} \\ge 2 \\times |\\text{Open} - \\text{Close}| $$\n*   **Body Position (Fibonacci Method):** The entire candle body must be in the upper third (above the 38.2% Fibonacci retracement) of the candle's total trading range.\n*   **Upper Shadow:** It should be very small or non-existent.\n$$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Total Range} $$",
+      "description": "A Hammer candle is a bullish reversal pattern in trading that appears at the end of a downtrend. Identification is based on specific geometric ratios between the body and the wick.\n\n### Mathematical Criteria (Formulas)\nTo objectively define a candle as a Hammer, the following formulas are often used:\n\n*   **Shadow-to-Body Ratio:** The lower shadow (wick) must be at least twice as long as the candle body.\n\n  $$ \\text{Lower Shadow} \\ge 2 \\times |\\text{Open} - \\text{Close}| $$\n*   **Body Position (Fibonacci Method):** The entire candle body must be in the upper third (above the 38.2% Fibonacci retracement) of the candle's total trading range.\n*   **Upper Shadow:** It should be very small or non-existent.\n\n  $$ \\text{Upper Shadow} \\le 0.1 \\times \\text{Total Range} $$",
       "interpretation": "### Trading Formulas for Entry and Exit\nWhen a Hammer candle is identified, traders often use standardized formulas for setting order levels:\n\n| Action | Formula / Rule |\n| :--- | :--- |\n| **Entry (Buy)** | High of the Hammer + small buffer (e.g., 1-2 pips/points). |\n| **Stop-Loss (SL)** | Low of the Hammer - small buffer. |\n| **Target** | Entry + (2 * (Entry - SL)) for a 2:1 Risk-Reward Ratio. |\n\n### Important Context\n*   **Trend:** A Hammer is only significant after a clear downtrend (at least 3-5 falling candles).\n*   **Confirmation:** Many traders wait for the next candle; if it closes above the high of the Hammer, the signal is confirmed.\n*   **Context:** The success rate increases significantly if the Hammer occurs at a known support zone or a moving average (e.g., 50 EMA).",
       "indicatorCombination": "A Hammer at a key support line or a moving average is a stronger signal. An increase in volume on the Hammer candle or the confirmation candle supports the reversal."
     },
@@ -1387,7 +1387,7 @@
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "The Inverted Hammer is a bullish reversal pattern that occurs after a downtrend. It has a small body at the lower end of the trading range and a long upper shadow. Little to no lower shadow.\n\n### Mathematical Criteria\n$$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n$$ \\text{Body} < 50\\% \\text{ of Range} $$\n$$ \\text{Lower Shadow} < 2\\% \\text{ of Range} $$",
+      "description": "The Inverted Hammer is a bullish reversal pattern that occurs after a downtrend. It has a small body at the lower end of the trading range and a long upper shadow. Little to no lower shadow.\n\n### Mathematical Criteria\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Body} < 50\\% \\text{ of Range} $$\n\n  $$ \\text{Lower Shadow} < 2\\% \\text{ of Range} $$",
       "interpretation": "Signals that buyers attempted to push the price up but met resistance. If the next candle closes higher, it can confirm a bullish reversal.",
       "indicatorCombination": "An Inverted Hammer is more significant when it occurs after a clear downtrend and at a support line. Confirmation by a bullish follow-up candle with volume is important."
     },
@@ -1537,7 +1537,7 @@
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "A bearish engulfing pattern occurs after an uptrend. It consists of two candles: The first is a bullish candle, followed by a larger bearish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n$$ \\text{Current Body} > \\text{Previous Body} $$\n$$ \\text{Open} \\ge \\text{Prev Close} $$\n$$ \\text{Close} \\le \\text{Prev Open} $$",
+      "description": "A bearish engulfing pattern occurs after an uptrend. It consists of two candles: The first is a bullish candle, followed by a larger bearish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n\n  $$ \\text{Current Body} > \\text{Previous Body} $$\n\n  $$ \\text{Open} \\ge \\text{Prev Close} $$\n\n  $$ \\text{Close} \\le \\text{Prev Open} $$",
       "interpretation": "Signals that sellers have taken control from buyers and a strong bearish reversal is likely.",
       "indicatorCombination": "A Bearish Engulfing is stronger when it occurs on high volume. Additional confirmation from an overbought RSI (>70) or a bearish divergence can increase its reliability."
     },
@@ -1591,13 +1591,13 @@
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "The Hanging Man is a bearish reversal pattern that occurs after an uptrend. It has the same shape as a Hammer (small body at the top, long lower shadow) but appears after an uptrend.\n\n### Mathematical Criteria\n$$ \\text{Lower Shadow} \\ge 2 \\times \\text{Body} $$\n$$ \\text{Body} < 50\\% \\text{ of Range} $$\n$$ \\text{Upper Shadow} < 2\\% \\text{ of Range} $$",
+      "description": "The Hanging Man is a bearish reversal pattern that occurs after an uptrend. It has the same shape as a Hammer (small body at the top, long lower shadow) but appears after an uptrend.\n\n### Mathematical Criteria\n\n  $$ \\text{Lower Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Body} < 50\\% \\text{ of Range} $$\n\n  $$ \\text{Upper Shadow} < 2\\% \\text{ of Range} $$",
       "interpretation": "Although it looks bullish, its appearance after an uptrend suggests waning buying power and a potential bearish reversal, especially if the next candle closes lower.",
       "indicatorCombination": "A Hanging Man at a key resistance level or a moving average is a stronger signal. An increase in volume on the confirmation candle supports the reversal."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "A Shooting Star is a bearish reversal pattern that occurs after an uptrend. It has a small body at the lower end of the trading range and a long upper shadow (at least twice the length of the body). Little to no lower shadow.\n\n### Mathematical Criteria\n$$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n$$ \\text{Body} < 50\\% \\text{ of Range} $$\n$$ \\text{Lower Shadow} < 2\\% \\text{ of Range} $$",
+      "description": "A Shooting Star is a bearish reversal pattern that occurs after an uptrend. It has a small body at the lower end of the trading range and a long upper shadow (at least twice the length of the body). Little to no lower shadow.\n\n### Mathematical Criteria\n\n  $$ \\text{Upper Shadow} \\ge 2 \\times \\text{Body} $$\n\n  $$ \\text{Body} < 50\\% \\text{ of Range} $$\n\n  $$ \\text{Lower Shadow} < 2\\% \\text{ of Range} $$",
       "interpretation": "Signals that buyers pushed the price up, but sellers were strong enough to bring the price back down to near the opening price. Potential bearish reversal.",
       "indicatorCombination": "A Shooting Star at a resistance level or in an overbought zone (RSI) is more significant. An increase in volume on the Shooting Star candle or the bearish confirmation candle increases reliability."
     },
