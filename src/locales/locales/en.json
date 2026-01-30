@@ -35,7 +35,8 @@
       "buttonTitle": "Open Market Overview",
       "point": "Market Overview",
       "title": "Global Market Analysis"
-    }
+    },
+    "tradeExecutionDev": "🚧 Trade Execution in Development"
   },
   "sidePanel": {
     "globalChat": "Global Chat",

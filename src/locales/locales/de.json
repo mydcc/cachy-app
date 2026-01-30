@@ -755,17 +755,7 @@
       "addFeed": "Feed hinzufügen",
       "removeFeed": "Entfernen",
       "rssFilterBySymbol": "Nach aktivem Symbol filtern",
-      "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)",
-      "providers": {
-        "bitunix": "Bitunix",
-        "bitget": "Bitget",
-        "cryptopanic": "CryptoPanic"
-      },
-      "labels": {
-        "cmc": "CoinMarketCap API",
-        "newsapi": "NewsAPI.org",
-        "imgbb": "ImgBB API (Screenshots)"
-      }
+        "rssFilterBySymbolDesc": "Zeigt nur RSS-News an, die zum Chart-Symbol passen (z.B. BTC)"
     },
     "ai": {
       "status": {
@@ -912,7 +902,17 @@
       "filterBearish": "Bärisch",
       "filterImportant": "Wichtig",
       "planFree": "Kostenlos",
-      "planPro": "Pro"
+      "planPro": "Pro",
+      "providers": {
+        "bitunix": "Bitunix",
+        "bitget": "Bitget",
+        "cryptopanic": "CryptoPanic"
+      },
+      "labels": {
+        "cmc": "CoinMarketCap API",
+        "newsapi": "NewsAPI.org",
+        "imgbb": "ImgBB API (Screenshots)"
+      }
     },
     "trading": {
       "executionTitle": "Exekution & Gebühren",

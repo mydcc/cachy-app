@@ -34,6 +34,7 @@ export type TranslationKey =
   | "app.marketDashboard.buttonTitle"
   | "app.marketDashboard.point"
   | "app.marketDashboard.title"
+  | "app.tradeExecutionDev"
   | "sidePanel.globalChat"
   | "sidePanel.myNotes"
   | "sidePanel.aiAssistant"
