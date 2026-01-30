@@ -403,9 +403,36 @@
     }
     .window-content {
         flex: 1;
-        overflow: auto;
+        overflow-y: auto;
+        overflow-x: hidden;
         position: relative;
         background: transparent;
+        scrollbar-width: thin;
+        scrollbar-color: var(--scrollbar-thumb, rgba(255, 255, 255, 0.1))
+            transparent;
+    }
+
+    /* Webkit Scrollbar Styling */
+    .window-content::-webkit-scrollbar {
+        width: 6px;
+    }
+
+    .window-content::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+    .window-content::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 10px;
+        transition: background 0.2s;
+    }
+
+    .window-content:hover::-webkit-scrollbar-thumb {
+        background: rgba(255, 255, 255, 0.2);
+    }
+
+    .window-content::-webkit-scrollbar-thumb:hover {
+        background: var(--accent-color, rgba(255, 255, 255, 0.3));
     }
     /* Resize Grips */
     .resize-grip {
