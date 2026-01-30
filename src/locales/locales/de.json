@@ -1338,7 +1338,7 @@
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "description": "Ein Bullish Engulfing tritt nach einem Abwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bärische Kerze, gefolgt von einer größeren bullischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n$$ O_{curr} < C_{prev} \\quad \\text{und} \\quad C_{curr} > O_{prev} $$\n$$ B_{body} > 0.5 \\cdot B_{prev\\_body} $$",
       "interpretation": "Signalisiert, dass die Käufer die Kontrolle von den Verkäufern übernommen haben und eine starke Aufwärtsbewegung wahrscheinlich ist.",
       "indicatorCombination": "Ein Bullish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überverkauften RSI (<30) oder eine bullische Divergenz kann die Zuverlässigkeit erhöhen."
     },
@@ -1374,7 +1374,7 @@
     },
     "hammer": {
       "name": "Hammer",
-      "description": "Ein Hammer ist ein bullisches Umkehrmuster, das am Ende eines Abwärtstrends erscheint. Er hat einen kleinen Körper am oberen Ende der Handelsspanne und einen langen unteren Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein oberer Schatten.",
+      "description": "Ein Hammer ist ein bullisches Umkehrmuster, das am Ende eines Abwärtstrends erscheint. Er hat einen kleinen Körper am oberen Ende der Handelsspanne und einen langen unteren Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein oberer Schatten.\n\n### Mathematische Kriterien (LuxAlgo)\n$$ L_{wick} > 2 \\cdot B_{body} $$\n$$ B_{body} < 0.5 \\cdot R_{range} $$\n$$ U_{wick} < 0.02 \\cdot R_{range} $$",
       "interpretation": "Signalisiert, dass Verkäufer den Preis drückten, aber Käufer stark genug waren, um den Preis bis zum Schlusskurs wieder nach oben zu treiben. Mögliche Bodenbildung.",
       "indicatorCombination": "Ein Hammer an einer wichtigen Unterstützungslinie oder einem gleitenden Durchschnitt ist ein stärkeres Signal. Ein Anstieg des Volumens bei der Hammer-Kerze oder der Bestätigungskerze unterstützt die Umkehr."
     },
@@ -1386,7 +1386,7 @@
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.",
+      "description": "Der Inverted Hammer ist ein bullisches Umkehrmuster, das nach einem Abwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten. Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien (LuxAlgo)\n$$ U_{wick} > 2 \\cdot B_{body} $$\n$$ B_{body} < 0.5 \\cdot R_{range} $$\n$$ L_{wick} < 0.02 \\cdot R_{range} $$",
       "interpretation": "Signalisiert, dass Käufer versuchten, den Preis nach oben zu treiben, aber auf Widerstand trafen. Wenn die nächste Kerze höher schließt, kann dies eine bullische Umkehr bestätigen.",
       "indicatorCombination": "Ein Inverted Hammer ist aussagekräftiger, wenn er nach einem klaren Abwärtstrend und an einer Unterstützungslinie auftritt. Bestätigung durch eine bullische Folgekerze mit Volumen ist wichtig."
     },
@@ -1536,7 +1536,7 @@
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').",
+      "description": "Ein Bearish Engulfing tritt nach einem Aufwärtstrend auf. Es besteht aus zwei Kerzen: Die erste ist eine bullische Kerze, gefolgt von einer größeren bärischen Kerze, deren Körper den Körper der vorangegangenen Kerze vollständig umschließt ('engulfed').\n\n### Mathematische Kriterien\n$$ O_{curr} > C_{prev} \\quad \\text{und} \\quad C_{curr} < O_{prev} $$\n$$ B_{body} > 0.5 \\cdot B_{prev\\_body} $$",
       "interpretation": "Signalisiert, dass Verkäufer die Kontrolle von den Käufern übernommen haben und eine starke bärische Umkehr wahrscheinlich ist.",
       "indicatorCombination": "Ein Bearish Engulfing ist stärker, wenn es bei hohem Volumen auftritt. Zusätzliche Bestätigung durch einen überkauften RSI (>70) oder eine bärische Divergenz kann die Zuverlässigkeit erhöhen."
     },
@@ -1590,13 +1590,13 @@
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.",
+      "description": "Der Hanging Man ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat dieselbe Form wie ein Hammer (kleiner Körper oben, langer unterer Schatten), erscheint aber nach einem Aufwärtstrend.\n\n### Mathematische Kriterien (LuxAlgo)\n$$ L_{wick} > 2 \\cdot B_{body} $$\n$$ B_{body} < 0.5 \\cdot R_{range} $$\n$$ U_{wick} < 0.02 \\cdot R_{range} $$",
       "interpretation": "Obwohl er bullisch aussieht, deutet sein Erscheinen nach einem Aufwärtstrend auf nachlassende Kaufkraft und eine potenzielle bärische Umkehr hin, besonders wenn die nächste Kerze tiefer schließt.",
       "indicatorCombination": "Ein Hanging Man an einem wichtigen Widerstand oder gleitenden Durchschnitt ist ein stärkeres Signal. Ein Volumenanstieg bei der Bestätigungskerze unterstützt die Umkehr."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.",
+      "description": "Ein Shooting Star ist ein bärisches Umkehrmuster, das nach einem Aufwärtstrend auftritt. Er hat einen kleinen Körper am unteren Ende der Handelsspanne und einen langen oberen Schatten (mindestens doppelt so lang wie der Körper). Wenig bis kein unterer Schatten.\n\n### Mathematische Kriterien (LuxAlgo)\n$$ U_{wick} > 2 \\cdot B_{body} $$\n$$ B_{body} < 0.5 \\cdot R_{range} $$\n$$ L_{wick} < 0.02 \\cdot R_{range} $$",
       "interpretation": "Signalisiert, dass Käufer den Preis nach oben trieben, aber Verkäufer stark genug waren, den Preis bis nahe an den Eröffnungskurs zurückzubringen. Potenzielle bärische Umkehr.",
       "indicatorCombination": "Ein Shooting Star an einem Widerstandslevel oder in einer überkauften Zone (RSI) ist aussagekräftiger. Ein Volumenanstieg bei der Shooting Star Kerze oder der bärischen Bestätigungskerze erhöht die Zuverlässigkeit."
     },

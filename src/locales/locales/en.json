@@ -1335,7 +1335,7 @@
     },
     "bullish_engulfing": {
       "name": "Bullish Engulfing",
-      "description": "A bullish engulfing pattern occurs after a downtrend. It consists of two candles: The first is a bearish candle, followed by a larger bullish candle whose body completely engulfs the body of the previous candle.",
+      "description": "A bullish engulfing pattern occurs after a downtrend. It consists of two candles: The first is a bearish candle, followed by a larger bullish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n$$ O_{curr} < C_{prev} \\quad \\text{and} \\quad C_{curr} > O_{prev} $$\n$$ B_{body} > 0.5 \\times B_{prev\\_body} $$",
       "interpretation": "Signals that buyers have taken control from sellers and a strong bullish reversal is likely.",
       "indicatorCombination": "A Bullish Engulfing is stronger when it occurs on high volume. Additional confirmation from an oversold RSI (<30) or a bullish divergence can increase its reliability."
     },
@@ -1383,7 +1383,7 @@
     },
     "inverted_hammer": {
       "name": "Inverted Hammer",
-      "description": "The Inverted Hammer is a bullish reversal pattern that occurs after a downtrend. It has a small body at the lower end of the trading range and a long upper shadow. Little to no lower shadow.",
+      "description": "The Inverted Hammer is a bullish reversal pattern that occurs after a downtrend. It has a small body at the lower end of the trading range and a long upper shadow. Little to no lower shadow.\n\n### Mathematical Criteria (LuxAlgo)\n$$ U_{wick} > 2 \\times B_{body} $$\n$$ B_{body} < 0.5 \\times R_{range} $$\n$$ L_{wick} < 0.02 \\times R_{range} $$",
       "interpretation": "Signals that buyers attempted to push the price up but met resistance. If the next candle closes higher, it can confirm a bullish reversal.",
       "indicatorCombination": "An Inverted Hammer is more significant when it occurs after a clear downtrend and at a support line. Confirmation by a bullish follow-up candle with volume is important."
     },
@@ -1533,7 +1533,7 @@
     },
     "bearish_engulfing": {
       "name": "Bearish Engulfing",
-      "description": "A bearish engulfing pattern occurs after an uptrend. It consists of two candles: The first is a bullish candle, followed by a larger bearish candle whose body completely engulfs the body of the previous candle.",
+      "description": "A bearish engulfing pattern occurs after an uptrend. It consists of two candles: The first is a bullish candle, followed by a larger bearish candle whose body completely engulfs the body of the previous candle.\n\n### Mathematical Criteria\n$$ O_{curr} > C_{prev} \\quad \\text{and} \\quad C_{curr} < O_{prev} $$\n$$ B_{body} > 0.5 \\times B_{prev\\_body} $$",
       "interpretation": "Signals that sellers have taken control from buyers and a strong bearish reversal is likely.",
       "indicatorCombination": "A Bearish Engulfing is stronger when it occurs on high volume. Additional confirmation from an overbought RSI (>70) or a bearish divergence can increase its reliability."
     },
@@ -1587,13 +1587,13 @@
     },
     "hanging_man": {
       "name": "Hanging Man",
-      "description": "The Hanging Man is a bearish reversal pattern that occurs after an uptrend. It has the same shape as a Hammer (small body at the top, long lower shadow) but appears after an uptrend.",
+      "description": "The Hanging Man is a bearish reversal pattern that occurs after an uptrend. It has the same shape as a Hammer (small body at the top, long lower shadow) but appears after an uptrend.\n\n### Mathematical Criteria (LuxAlgo)\n$$ L_{wick} > 2 \\times B_{body} $$\n$$ B_{body} < 0.5 \\times R_{range} $$\n$$ U_{wick} < 0.02 \\times R_{range} $$",
       "interpretation": "Although it looks bullish, its appearance after an uptrend suggests waning buying power and a potential bearish reversal, especially if the next candle closes lower.",
       "indicatorCombination": "A Hanging Man at a key resistance level or a moving average is a stronger signal. An increase in volume on the confirmation candle supports the reversal."
     },
     "shooting_star": {
       "name": "Shooting Star",
-      "description": "A Shooting Star is a bearish reversal pattern that occurs after an uptrend. It has a small body at the lower end of the trading range and a long upper shadow (at least twice the length of the body). Little to no lower shadow.",
+      "description": "A Shooting Star is a bearish reversal pattern that occurs after an uptrend. It has a small body at the lower end of the trading range and a long upper shadow (at least twice the length of the body). Little to no lower shadow.\n\n### Mathematical Criteria (LuxAlgo)\n$$ U_{wick} > 2 \\times B_{body} $$\n$$ B_{body} < 0.5 \\times R_{range} $$\n$$ L_{wick} < 0.02 \\times R_{range} $$",
       "interpretation": "Signals that buyers pushed the price up, but sellers were strong enough to bring the price back down to near the opening price. Potential bearish reversal.",
       "indicatorCombination": "A Shooting Star at a resistance level or in an overbought zone (RSI) is more significant. An increase in volume on the Shooting Star candle or the bearish confirmation candle increases reliability."
     },

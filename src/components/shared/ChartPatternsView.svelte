@@ -169,6 +169,18 @@
                     onclick={() => selectPattern(pattern.id)}
                 >
                     <div class="flex items-center gap-2 truncate">
+                        <!-- Sentiment Dot -->
+                        <div
+                            class="w-2 h-2 rounded-full flex-shrink-0"
+                            class:bg-[var(--success-color)]={pattern.sentiment ===
+                                "bullish"}
+                            class:bg-[var(--error-color)]={pattern.sentiment ===
+                                "bearish"}
+                            class:bg-[var(--text-tertiary)]={pattern.sentiment ===
+                                "neutral"}
+                            title={pattern.sentiment}
+                        ></div>
+
                         {#if favorites.has(pattern.id)}
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -252,11 +264,28 @@
                         </button>
                     </div>
 
-                    <span
-                        class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
-                    >
-                        {currentPattern.category}
-                    </span>
+                    <div class="flex items-center gap-2">
+                        <span
+                            class="text-xs px-2 py-1 rounded border border-[var(--border-color)] font-bold uppercase tracking-wider"
+                            class:bg-[color-mix(in_srgb,var(--success-color),transparent_90%)]={currentPattern.sentiment ===
+                                "bullish"}
+                            class:text-[var(--success-color)]={currentPattern.sentiment ===
+                                "bullish"}
+                            class:bg-[color-mix(in_srgb,var(--error-color),transparent_90%)]={currentPattern.sentiment ===
+                                "bearish"}
+                            class:text-[var(--error-color)]={currentPattern.sentiment ===
+                                "bearish"}
+                            class:bg-[var(--bg-tertiary)]={currentPattern.sentiment ===
+                                "neutral"}
+                        >
+                            {currentPattern.sentiment}
+                        </span>
+                        <span
+                            class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
+                        >
+                            {currentPattern.category}
+                        </span>
+                    </div>
                 </div>
             </div>
 

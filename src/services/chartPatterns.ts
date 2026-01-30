@@ -73,6 +73,7 @@ export interface ChartPatternDefinition {
   advancedConsiderations?: string;
   performanceStats?: string;
   category: string;
+  sentiment: 'bullish' | 'bearish' | 'neutral';
   drawFunction: (
     ctx: CanvasRenderingContext2D,
     w: number,
@@ -276,6 +277,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "headAndShoulders",
     name: "SKS (Schulter-Kopf-Schulter)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein SKS-Muster ist eine bärische Umkehrformation, die typischerweise am Ende eines Aufwärtstrends auftritt. Es besteht aus drei Hochs, wobei das mittlere Hoch (Kopf) höher ist als die beiden seitlichen Hochs (Schultern). Eine Nackenlinie verbindet die Tiefs zwischen den Hochs.",
     characteristics: [
       "Tritt nach einem Aufwärtstrend auf.",
@@ -304,6 +306,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "inverseHeadAndShoulders",
     name: "Inverse SKS (iSKS)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Eine inverse SKS-Formation ist ein bullisches Umkehrmuster, das typischerweise am Ende eines Abwärtstrends auftritt. Es ist das Spiegelbild des SKS-Musters.",
     characteristics: [
       "Tritt nach einem Abwärtstrend auf.",
@@ -332,6 +335,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "headAndShouldersTopFailure",
     name: "SKS-Top Fehlausbruch",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein SKS-Top Fehlausbruch tritt auf, wenn ein SKS-Muster sich zu bilden beginnt, der Kurs aber die Nackenlinie nicht nachhaltig nach unten durchbricht und stattdessen wieder über die rechte Schulter oder sogar den Kopf ansteigt. Dies kann ein starkes bullisches Signal sein.",
     characteristics: [
       "Ansatz eines SKS-Top-Musters (linke Schulter, Kopf, rechte Schulter).",
@@ -370,6 +374,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "headAndShouldersBottomFailure",
     name: "iSKS-Boden Fehlausbruch",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein iSKS-Boden Fehlausbruch tritt auf, wenn ein inverses SKS-Muster sich zu bilden beginnt, der Kurs aber die Nackenlinie nicht nachhaltig nach oben durchbricht und stattdessen wieder unter die rechte Schulter oder sogar den Kopf fällt. Dies kann ein starkes bärisches Signal sein.",
     characteristics: [
       "Ansatz eines iSKS-Musters (linke Schulter, Kopf, rechte Schulter).",
@@ -407,6 +412,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "doubleTop",
     name: "Doppeltop",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein Doppeltop ist ein bärisches Umkehrmuster, das nach einem signifikanten Aufwärtstrend auftritt. Es besteht aus zwei etwa gleich hohen Hochs mit einem moderaten Tief dazwischen.",
     characteristics: [
       "Zwei aufeinanderfolgende Hochs auf ähnlichem Niveau.",
@@ -433,6 +439,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "doubleBottom",
     name: "Doppelboden",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Doppelboden ist ein bullisches Umkehrmuster, das nach einem signifikanten Abwärtstrend auftritt. Es besteht aus zwei etwa gleich tiefen Tiefs mit einem moderaten Hoch dazwischen.",
     characteristics: [
       "Zwei aufeinanderfolgende Tiefs auf ähnlichem Niveau.",
@@ -459,6 +466,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "tripleTop",
     name: "Dreifachtop (Triple Top)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein Dreifachtop ist ein bärisches Umkehrmuster, ähnlich dem Doppeltop, aber mit drei Hochs auf etwa gleichem Niveau. Es signalisiert eine stärkere Widerstandszone.",
     characteristics: [
       "Drei aufeinanderfolgende Hochs auf ähnlichem Niveau.",
@@ -487,6 +495,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "tripleBottom",
     name: "Dreifachboden (Triple Bottom)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Dreifachboden ist ein bullisches Umkehrmuster, ähnlich dem Doppelboden, aber mit drei Tiefs auf etwa gleichem Niveau. Es signalisiert eine stärkere Unterstützungszone.",
     characteristics: [
       "Drei aufeinanderfolgende Tiefs auf ähnlichem Niveau.",
@@ -515,6 +524,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "fallingWedge",
     name: "Fallender Keil (Falling Wedge)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein fallender Keil ist typischerweise eine bullische Umkehrformation, kann aber auch als Fortsetzungsmuster in einem Aufwärtstrend auftreten. Er wird durch zwei konvergierende, abwärts geneigte Linien gebildet.",
     characteristics: [
       "Zwei abwärts geneigte Linien (Widerstand und Unterstützung), die konvergieren.",
@@ -553,6 +563,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "risingWedge",
     name: "Steigender Keil (Rising Wedge)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein steigender Keil ist typischerweise eine bärische Umkehrformation, kann aber auch als Fortsetzungsmuster in einem Abwärtstrend auftreten. Er wird durch zwei konvergierende, aufwärts geneigte Linien gebildet.",
     characteristics: [
       "Zwei aufwärts geneigte Linien (Widerstand und Unterstützung), die konvergieren.",
@@ -591,6 +602,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "diamondTop",
     name: "Diamant Top (Diamond Top)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein Diamant Top ist eine seltene, aber zuverlässige bärische Umkehrformation, die nach einem Aufwärtstrend auftritt. Sie ähnelt einer Kombination aus Broadening Top und Symmetrischem Dreieck.",
     characteristics: [
       "Tritt nach einem signifikanten Aufwärtstrend auf.",
@@ -638,6 +650,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "diamondBottom",
     name: "Diamant Bottom (Diamond Bottom)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Diamant Bottom ist eine seltene, aber zuverlässige bullische Umkehrformation, die nach einem Abwärtstrend auftritt. Sie ist das Spiegelbild des Diamant Top.",
     characteristics: [
       "Tritt nach einem signifikanten Abwärtstrend auf.",
@@ -685,6 +698,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "roundingTop",
     name: "Abgerundetes Top (Rounding Top)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein abgerundetes Top ist eine bärische Umkehrformation, die einen allmählichen Übergang von einem Aufwärtstrend zu einem Abwärtstrend darstellt. Es hat eine umgekehrte U-Form.",
     characteristics: [
       "Allmähliche, abgerundete Spitze.",
@@ -718,6 +732,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "roundingBottom",
     name: "Abgerundeter Boden (Rounding Bottom)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein abgerundeter Boden (auch Saucer Bottom) ist eine bullische Umkehrformation, die einen allmählichen Übergang von einem Abwärtstrend zu einem Aufwärtstrend darstellt. Es hat eine U-Form.",
     characteristics: [
       "Allmählicher, abgerundeter Boden.",
@@ -751,6 +766,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "broadeningTop",
     name: "Megafon Top (Broadening Top)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein Broadening Top (auch Megafon Top) ist eine bärische Umkehrformation, die durch zunehmende Volatilität gekennzeichnet ist. Es besteht aus drei ansteigenden Hochs und zwei fallenden Tiefs, wobei die Trendlinien auseinanderlaufen.",
     characteristics: [
       "Zwei auseinanderlaufende Trendlinien: obere steigt, untere fällt.",
@@ -786,6 +802,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "broadeningBottom",
     name: "Megafon Bottom (Broadening Bottom)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Broadening Bottom (auch Megafon Bottom) ist eine bullische Umkehrformation, die durch zunehmende Volatilität gekennzeichnet ist. Es besteht aus drei fallenden Tiefs und zwei steigenden Hochs.",
     characteristics: [
       "Zwei auseinanderlaufende Trendlinien: obere steigt, untere fällt.",
@@ -821,6 +838,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "islandReversal",
     name: "Umkehrinsel (Island Reversal)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Eine Umkehrinsel ist eine starke Umkehrformation, die durch eine Kurslücke (Gap), eine Konsolidierungsphase und eine weitere Kurslücke in die entgegengesetzte Richtung gekennzeichnet ist.",
     characteristics: [
       "Ein Gap in Trendrichtung.",
@@ -857,6 +875,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "pipeBottom",
     name: "Pfeifenboden (Pipe Bottom)",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Pfeifenboden ist eine bullische Umkehrformation, die durch zwei lange, parallele oder leicht konvergierende Abwärtskerzen mit tiefen Tiefs gekennzeichnet ist, gefolgt von einer starken Aufwärtsbewegung.",
     characteristics: [
       "Tritt nach einem Abwärtstrend auf.",
@@ -894,6 +913,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "pipeTop",
     name: "Pfeifenspitze (Pipe Top)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Eine Pfeifenspitze ist eine bärische Umkehrformation, das Spiegelbild des Pfeifenbodens. Sie wird durch zwei lange Aufwärtskerzen mit hohen Hochs gekennzeichnet.",
     characteristics: [
       "Tritt nach einem Aufwärtstrend auf.",
@@ -931,6 +951,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "bumpAndRunReversalTop",
     name: "Bump and Run Reversal Top",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Eine bärische Umkehrformation. Sie beginnt mit einem moderaten Aufwärtstrend (Lead-in), gefolgt von einem steilen, exzessiven Anstieg (Bump), der die ursprüngliche Trendlinie durchbricht.",
     characteristics: [
       "Lead-in Phase: Moderater Aufwärtstrend.",
@@ -964,6 +985,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "bumpAndRunReversalBottom",
     name: "Bump and Run Reversal Bottom",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Eine bullische Umkehrformation. Sie beginnt mit einem moderaten Abwärtstrend, gefolgt von einem steilen Abfall (Bump).",
     characteristics: [
       "Lead-in Phase: Moderater Abwärtstrend.",
@@ -997,6 +1019,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "spikeTop",
     name: "Spike Top",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Ein Spike Top (V-Top) ist eine scharfe, schnelle Umkehrformation ohne signifikante Konsolidierung.",
     characteristics: [
       "Sehr schneller, fast senkrechter Anstieg.",
@@ -1018,6 +1041,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "spikeBottom",
     name: "Spike Bottom",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Ein Spike Bottom (V-Bottom) ist eine scharfe, schnelle bullische Umkehrformation.",
     characteristics: [
       "Sehr schneller, fast senkrechter Abfall.",
@@ -1039,6 +1063,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "threeDrivesTop",
     name: "Three Drives to a Top",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Eine bärische Umkehrformation mit drei symmetrischen Hochs.",
     characteristics: [
       "Drei aufeinanderfolgende Hochs (Drives).",
@@ -1080,6 +1105,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "threeDrivesBottom",
     name: "Three Drives to a Bottom",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Eine bullische Umkehrformation mit drei symmetrischen Tiefs.",
     characteristics: [
       "Drei aufeinanderfolgende Tiefs (Drives).",
@@ -1121,6 +1147,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "hornTop",
     name: "Horn Top",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Eine bärische Umkehrformation mit zwei spitzen Hochs (Hörnern) und einem Zwischentief.",
     characteristics: [
       "Zwei scharfe, spitze Hochs.",
@@ -1148,6 +1175,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "hornBottom",
     name: "Horn Bottom",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Eine bullische Umkehrformation mit zwei spitzen Tiefs (Hörnern) und einem Zwischenhoch.",
     characteristics: [
       "Zwei scharfe, spitze Tiefs.",
@@ -1175,6 +1203,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "eveAdamTop",
     name: "Eve & Adam Top",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Bärische Umkehr: abgerundetes Hoch (Eve) gefolgt von spitzem Hoch (Adam).",
     characteristics: [
       "Eve Top: Breites, abgerundetes Hoch.",
@@ -1211,6 +1240,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "eveAdamBottom",
     name: "Eve & Adam Bottom",
     category: "Umkehrmuster",
+    sentiment: "bullish",
     description: "Bullische Umkehr: abgerundetes Tief (Eve) gefolgt von spitzem Tief (Adam).",
     characteristics: [
       "Eve Bottom: Breites, abgerundetes Tief.",
@@ -1247,6 +1277,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "invertedCupAndHandleReversal",
     name: "Invertierte Tasse mit Henkel (Umkehr)",
     category: "Umkehrmuster",
+    sentiment: "bearish",
     description: "Bärische Umkehrformation, Spiegelbild der Tasse mit Henkel.",
     characteristics: [
       "Invertierte Tasse (abgerundetes Hoch).",
@@ -1295,6 +1326,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "symmetricalTriangleContinuationBullish",
     name: "Symmetr. Dreieck (Forts. Bullisch)",
     category: "Fortsetzungsmuster",
+    sentiment: "bullish",
     description: "Symmetrisches Dreieck im Aufwärtstrend.",
     characteristics: ["Vorheriger Aufwärtstrend.", "Konvergierende Linien."],
     trading: "Kauf beim Ausbruch nach oben.",
@@ -1324,6 +1356,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "symmetricalTriangleContinuationBearish",
     name: "Symmetr. Dreieck (Forts. Bärisch)",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Symmetrisches Dreieck im Abwärtstrend.",
     characteristics: ["Vorheriger Abwärtstrend.", "Konvergierende Linien."],
     trading: "Verkauf beim Ausbruch nach unten.",
@@ -1353,6 +1386,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "cupAndHandle",
     name: "Tasse mit Henkel",
     category: "Fortsetzungsmuster",
+    sentiment: "bullish",
     description: "Bullische Fortsetzungsformation.",
     characteristics: ["Tasse (Runder Boden).", "Henkel (Konsolidierung)."],
     trading: "Kauf beim Ausbruch über den Henkel.",
@@ -1394,6 +1428,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "invertedCupAndHandleContinuation",
     name: "Invertierte Tasse mit Henkel (Fortsetzung)",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Bärische Fortsetzungsformation.",
     characteristics: ["Invertierte Tasse.", "Henkel."],
     trading: "Verkauf beim Ausbruch nach unten.",
@@ -1437,6 +1472,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "bullishPennant",
     name: "Bullischer Wimpel",
     category: "Fortsetzungsmuster",
+    sentiment: "bullish",
     description: "Kurzfristige Fortsetzung nach starkem Anstieg.",
     characteristics: ["Flaggenmast.", "Kleines symmetrisches Dreieck (Wimpel)."],
     trading: "Kauf beim Ausbruch.",
@@ -1461,6 +1497,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "bearishPennant",
     name: "Bärischer Wimpel",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Kurzfristige Fortsetzung nach starkem Abfall.",
     characteristics: ["Flaggenmast.", "Kleines symmetrisches Dreieck (Wimpel)."],
     trading: "Verkauf beim Ausbruch.",
@@ -1485,6 +1522,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "ascendingChannel",
     name: "Aufsteigender Kanal",
     category: "Fortsetzungsmuster",
+    sentiment: "bullish",
     description: "Kanal mit aufwärts gerichteten Trendlinien.",
     characteristics: ["Parallele aufwärts geneigte Linien.", "HH und HL."],
     trading: "Trades innerhalb des Kanals oder bei Ausbruch (Vorsicht).",
@@ -1514,6 +1552,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "descendingChannel",
     name: "Absteigender Kanal",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Kanal mit abwärts gerichteten Trendlinien.",
     characteristics: ["Parallele abwärts geneigte Linien.", "LH und LL."],
     trading: "Trades innerhalb des Kanals oder bei Ausbruch.",
@@ -1543,6 +1582,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "rectangleContinuationBullish",
     name: "Rechteck (Forts. Bullisch)",
     category: "Fortsetzungsmuster",
+    sentiment: "bullish",
     description: "Rechteck nach Aufwärtstrend.",
     characteristics: ["Vorheriger Aufwärtstrend.", "Horizontale Begrenzungen."],
     trading: "Kauf beim Ausbruch nach oben.",
@@ -1571,6 +1611,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "rectangleContinuationBearish",
     name: "Rechteck (Forts. Bärisch)",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Rechteck nach Abwärtstrend.",
     characteristics: ["Vorheriger Abwärtstrend.", "Horizontale Begrenzungen."],
     trading: "Verkauf beim Ausbruch nach unten.",
@@ -1599,6 +1640,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "deadCatBounce",
     name: "Dead Cat Bounce",
     category: "Fortsetzungsmuster",
+    sentiment: "bearish",
     description: "Kurzfristige Erholung nach starkem Abverkauf, gefolgt von weiterem Abfall.",
     characteristics: [
       "Starker Kursrückgang.",
@@ -1624,6 +1666,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "runawayGap",
     name: "Fortsetzungslücke (Runaway Gap)",
     category: "Gap-Typen",
+    sentiment: "bullish",
     description: "Lücke inmitten eines Trends, signalisiert Beschleunigung.",
     characteristics: ["Etablierter Trend.", "Mittleres bis hohes Volumen."],
     trading: "Einstieg in Trendrichtung.",
@@ -1659,6 +1702,7 @@ export const CHART_PATTERNS: ChartPatternDefinition[] = [
     id: "exhaustionGap",
     name: "Erschöpfungslücke (Exhaustion Gap)",
     category: "Gap-Typen",
+    sentiment: "bearish",
     description: "Lücke am Ende eines Trends, signalisiert Umkehr.",
     characteristics: ["Ende eines Trends.", "Hohes Volumen oder Blow-off."],
     trading: "Gegenbewegung abwarten.",
