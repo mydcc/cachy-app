@@ -311,12 +311,12 @@
     // Use effective RSI timeframe as proxy for "active strategy timeframe"
     const tf = effectiveRsiTimeframe || "1d";
 
-    if (mode === "coinank_link") {
+    if (mode === "coinank_new_tab") {
       return getCoinankUrl(symbol, tf, currentProvider, "link");
     } else if (mode === "coinank_popup") {
       return getCoinankUrl(symbol, tf, currentProvider, "iframe");
     } else {
-      // Coinglass (link or popup)
+      // Coinglass (new tab or popup)
       return getCoinglassUrl(symbol);
     }
   });
@@ -328,14 +328,18 @@
     const tf = effectiveRsiTimeframe || "1d";
 
     if (mode === "coinglass_popup") {
-      // Open Popup Window (solves CORS image issue by just showing the page in a dedicated window)
+      // Open Popup Window
       externalLinkService.openPopout(cgHeatmapLink, cgTarget, 1200, 800);
     } else if (mode === "coinank_popup") {
-      // Open Popup Window (solves Iframe Login issue by sharing session with main window)
+      // Open ProChart Popup
       const url = getCoinankUrl(symbol, tf, currentProvider, "iframe");
       externalLinkService.openPopout(url, `coinank_${symbol}_${tf}`, 1400, 900);
+    } else if (mode === "coinank_new_tab") {
+      // Coinank Standard Link (New Tab)
+      const url = getCoinankUrl(symbol, tf, currentProvider, "link");
+      externalLinkService.openOrFocus(url, `coinank_heat_${symbol}`);
     } else {
-      // Direct Link
+      // Coinglass Standard Link (New Tab) - Default
       externalLinkService.openOrFocus(cgHeatmapLink, cgTarget);
     }
   }
