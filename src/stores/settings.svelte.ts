@@ -32,7 +32,7 @@ export type AnalysisDepth = "quick" | "standard" | "deep";
 
 export type MarketMode = "performance" | "balanced" | "pro" | "custom";
 export type TechnicalsUpdateMode = "realtime" | "fast" | "balanced" | "conservative";
-export type HeatmapMode = "coinglass_link" | "coinglass_popup" | "coinank_link" | "coinank_popup";
+export type HeatmapMode = "coinglass_new_tab" | "coinglass_popup" | "coinank_new_tab" | "coinank_popup";
 
 export const TECHNICALS_UPDATE_PRESETS = {
   realtime: {
@@ -362,7 +362,7 @@ const defaultSettings: Settings = {
   showTechnicalsPivots: true,
   showTvLink: true,
   showCgHeatLink: true,
-  heatmapMode: "coinglass_link",
+  heatmapMode: "coinglass_new_tab",
   showBrokerLink: true,
   rssPresets: ["coindesk", "cointelegraph"],
   customRssFeeds: [],
