@@ -76,6 +76,10 @@ export abstract class WindowBase {
     // Abstract property to define which Svelte component to render inside
     abstract get component(): any;
 
+    get componentProps(): Record<string, any> {
+        return {};
+    }
+
     focus() {
         this.isFocused = true;
     }

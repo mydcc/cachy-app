@@ -302,7 +302,7 @@
             style:width="{100 / win.zoomLevel}%"
             style:height="{100 / win.zoomLevel}%"
         >
-            <win.component window={win} />
+            <win.component window={win} {...win.componentProps} />
         </div>
     </div>
 

@@ -15,15 +15,24 @@ export class ModalWindow extends WindowBase {
         this.windowType = 'modal';
         this.backdrop = options.backdrop ?? true;
 
-        // Modals are usually centered by default
-        if (options.x === undefined && options.y === undefined && typeof window !== 'undefined') {
-            this.x = (window.innerWidth - this.width) / 2;
-            this.y = (window.innerHeight - this.height) / 2;
-        }
+        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
 
-        this.showCachyIcon = options.showCachyIcon ?? true;
-        this.isResizable = options.isResizable ?? false; // Modals often fixed size
-        this.isDraggable = options.isDraggable ?? true;
+        // UI Features
+        this.showCachyIcon = false;
+        this.allowZoom = false;
+        this.allowFontSize = false;
+
+        // Visual Effects
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
+        this.burnIntensity = 0.5;
+        this.isTransparent = false;
+        this.opacity = 1.0;
+
+        // Interaction
+        this.isDraggable = true;
+        this.isResizable = true;
+        this.closeOnBlur = false;
     }
 
     get component() {

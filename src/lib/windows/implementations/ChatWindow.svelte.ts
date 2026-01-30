@@ -14,23 +14,24 @@ export class ChatWindow extends WindowBase {
             height: 450
         });
 
-        // --- ALL FLAGS INITIALIZED (Set to false as requested) ---
+        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
 
         // UI Features
-        this.showCachyIcon = true;
+        this.showCachyIcon = false;
         this.allowZoom = false;
         this.allowFontSize = false;
 
         // Visual Effects
-        this.enableBurningBorders = false; // Chat schlicht halten
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
         this.burnIntensity = 0.5;
         this.isTransparent = false;
-        this.opacity = 0.95; // Leicht transparent für den Chat
+        this.opacity = 1.0;
 
         // Interaction
         this.isDraggable = true;
         this.isResizable = true;
-        this.closeOnBlur = false; // Chat soll offen bleiben
+        this.closeOnBlur = false;
     }
 
     get component() {

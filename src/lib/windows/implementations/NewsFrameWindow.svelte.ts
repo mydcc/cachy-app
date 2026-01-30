@@ -14,7 +14,7 @@ export class NewsFrameWindow extends WindowBase {
             height: 480
         });
 
-        // --- ALL FLAGS INITIALIZED (Set to false as requested) ---
+        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
 
         // UI Features
         this.showCachyIcon = false;
@@ -22,15 +22,16 @@ export class NewsFrameWindow extends WindowBase {
         this.allowFontSize = false;
 
         // Visual Effects
-        this.enableBurningBorders = true; // Meistens erwünscht, sonst false
-        this.burnIntensity = 1.0;
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
+        this.burnIntensity = 0.5;
         this.isTransparent = false;
         this.opacity = 1.0;
 
         // Interaction
         this.isDraggable = true;
         this.isResizable = true;
-        this.closeOnBlur = true; // Schließt sich, wenn man woanders klickt
+        this.closeOnBlur = false;
     }
 
     get component() {

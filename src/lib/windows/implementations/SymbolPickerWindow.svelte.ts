@@ -10,21 +10,28 @@ export class SymbolPickerWindow extends WindowBase {
     constructor() {
         super({
             title: "Symbol Selection",
-            width: 850,
+            width: 800,
             height: 600
         });
 
-        // --- FEATURE FLAGS ---
+        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
+
+        // UI Features
         this.showCachyIcon = true;
-        this.allowZoom = false; // No zoom needed for picker
+        this.allowZoom = false;
         this.allowFontSize = false;
 
-        this.enableBurningBorders = true;
-        this.burnIntensity = 0.8;
+        // Visual Effects
+        this.enableGlassmorphism = false;
+        this.enableBurningBorders = false;
+        this.burnIntensity = 0.5;
+        this.isTransparent = false;
+        this.opacity = 1.0;
 
+        // Interaction
         this.isDraggable = true;
         this.isResizable = true;
-        this.closeOnBlur = true; // Essential for a "picker"
+        this.closeOnBlur = false;
     }
 
     get component() {

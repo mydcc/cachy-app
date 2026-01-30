@@ -18,14 +18,21 @@ export class ChannelWindow extends WindowBase {
         if (id) this.id = id;
         this.url = url;
 
-        // --- FEATURE FLAGS ---
-        this.showCachyIcon = true;
+        // --- ALL FLAGS INITIALIZED (Disabled by default) ---
+
+        // UI Features
+        this.showCachyIcon = false;
         this.allowZoom = false;
         this.allowFontSize = false;
 
+        // Visual Effects
+        this.enableGlassmorphism = false;
         this.enableBurningBorders = false;
-        this.burnIntensity = 1.2; // Extra intensity for market channels
+        this.burnIntensity = 0.5;
+        this.isTransparent = false;
+        this.opacity = 1.0;
 
+        // Interaction
         this.isDraggable = true;
         this.isResizable = true;
         this.closeOnBlur = false;
