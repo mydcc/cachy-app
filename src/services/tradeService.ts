@@ -9,6 +9,7 @@ import Decimal from "decimal.js";
 import { omsService } from "./omsService";
 import { logger } from "./logger";
 import { settingsState } from "../stores/settings.svelte";
+import { safeJsonParse } from "../utils/safeJson";
 import { PositionListSchema, PositionRawSchema, type PositionRaw } from "./apiSchemas";
 import type { OMSPosition } from "./omsTypes";
 
@@ -69,7 +70,8 @@ class TradeService {
             })
         });
 
-        const data = await response.json();
+        const text = await response.text();
+        const data = safeJsonParse(text);
 
         // Loose check for "code" != 0 (Bitunix style)
         // We cast to string to handle both number 0 and string "0"

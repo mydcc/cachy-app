@@ -159,7 +159,9 @@
       "leverage": "Leverage",
       "fees": "Fees (%)",
       "leveragePlaceholder": "Leverage (e.g. 10x)",
-      "feesPlaceholder": "Fees per Trade (%)"
+      "feesPlaceholder": "Fees per Trade (%)",
+      "syncedWithApi": "Synced with API",
+      "manualOverride": "Manual Override (Click to sync to {value})"
     },
     "portfolioInputs": {
       "header": "Portfolio",
