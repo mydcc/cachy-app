@@ -123,6 +123,22 @@
         const raw = marked.parse(text) as string;
         return sanitizeHtml(raw);
     }
+
+    function getCategoryIcon(category: string) {
+        switch (category) {
+            case "Umkehrmuster":
+                // U-Turn / Reversal Icon
+                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M16.023 9.348h4.992v-.001M2.985 19.644v-4.992m0 0h4.992m-4.993 0 3.181 3.183a8.25 8.25 0 0 0 13.803-3.7M4.031 9.865a8.25 8.25 0 0 1 13.803-3.7l3.181 3.182m0-4.991v4.99" /></svg>`;
+            case "Fortsetzungsmuster":
+                // Trend / Continuation Icon
+                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941" /></svg>`;
+            case "Gap-Typen":
+                // Gap / Pause Icon
+                return `<svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="1.5" stroke="currentColor" class="w-4 h-4"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 6.75h16.5M3.75 12h16.5m-16.5 5.25H12" /></svg>`;
+            default:
+                return "";
+        }
+    }
 </script>
 
 <div class="flex flex-col md:flex-row h-full gap-4">
@@ -169,6 +185,9 @@
                     onclick={() => selectPattern(pattern.id)}
                 >
                     <div class="flex items-center gap-2 truncate">
+                        <div class="text-[var(--text-secondary)] shrink-0" title={pattern.category}>
+                            {@html getCategoryIcon(pattern.category)}
+                        </div>
                         {#if favorites.has(pattern.id)}
                             <svg
                                 xmlns="http://www.w3.org/2000/svg"
@@ -253,8 +272,9 @@
                     </div>
 
                     <span
-                        class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)]"
+                        class="text-xs px-2 py-1 rounded bg-[var(--bg-tertiary)] border border-[var(--border-color)] flex items-center gap-2"
                     >
+                        {@html getCategoryIcon(currentPattern.category)}
                         {currentPattern.category}
                     </span>
                 </div>
