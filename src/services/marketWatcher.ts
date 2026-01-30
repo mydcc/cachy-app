@@ -59,13 +59,13 @@ class MarketWatcher {
       if (channel.startsWith("kline_")) {
         const tf = channel.replace("kline_", "");
         this.ensureHistory(normSymbol, tf);
-      } else {
-        // Regular poll for Price/Ticker
-        untrack(() => {
-          const provider = settingsState.apiProvider;
-          this.pollSymbolChannel(normSymbol, channel, provider);
-        });
       }
+
+      // Start polling for all channels (Price/Ticker/Kline)
+      untrack(() => {
+        const provider = settingsState.apiProvider;
+        this.pollSymbolChannel(normSymbol, channel, provider);
+      });
     }
   }
 
