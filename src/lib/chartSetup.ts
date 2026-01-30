@@ -35,6 +35,7 @@ import {
 } from "chart.js";
 import annotationPlugin from "chartjs-plugin-annotation";
 import ChartDataLabels from "chartjs-plugin-datalabels";
+import { externalTooltipHandler } from "./chartTooltip";
 
 ChartJS.register(
   Title,
@@ -76,6 +77,10 @@ ChartJS.defaults.scale.grid.color = "#334155";
 ChartJS.defaults.set("plugins.datalabels", {
   display: false,
 });
+
+// Use custom external tooltip (supports KaTeX)
+ChartJS.defaults.plugins.tooltip.enabled = false;
+ChartJS.defaults.plugins.tooltip.external = externalTooltipHandler;
 
 // Configure passive event listeners to prevent scroll-blocking warnings
 ChartJS.defaults.events = [

@@ -364,6 +364,10 @@
     filterDateEnd = dateStr;
   }
 
+  function handleSearchChange(query: string) {
+    tradeState.journalSearchQuery = query;
+  }
+
   // Reactive Stats for Filtered Trades
   let filteredPerformance = $derived(
     calculator.calculatePerformanceStats(processedTrades) || {
@@ -612,6 +616,7 @@
   <JournalDeepDive
     {themeColors}
     onfilterDateChange={(data) => handleDateFilterChange(data)}
+    onSearchChange={handleSearchChange}
   />
 
   {#if showUnlockOverlay}

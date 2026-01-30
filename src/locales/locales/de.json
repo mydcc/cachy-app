@@ -379,6 +379,13 @@
       "noStrategyLosses": "(Keine Strategie-Verluste)",
       "noTimingLosses": "(Keine Zeit-Verluste)"
     },
+    "math": {
+      "sqn": "\\text{SQN} = \\sqrt{N} \\times \\frac{\\text{Average R}}{\\text{Std Dev R}}",
+      "profitFactor": "\\text{Profit Factor} = \\frac{\\text{Brutto Gewinn}}{\\text{Brutto Verlust}}",
+      "winRate": "\\text{Win Rate} = \\frac{\\text{Gewinntrades}}{\\text{Alle Trades}} \\times 100",
+      "expectancy": "\\text{Erwartungswert} = (\\text{Win Rate} \\times \\text{Avg Win}) - (\\text{Loss Rate} \\times \\text{Avg Loss})",
+      "avgR": "\\text{Avg R} = \\frac{\\sum \\text{R-Multiples}}{\\text{Alle Trades}}"
+    },
     "deepDive": {
       "title": "Deep Dive",
       "performance": "Performance",

@@ -38,9 +38,10 @@
     interface Props {
         themeColors: any;
         onfilterDateChange?: (data: { date: string }) => void;
+        onSearchChange?: (query: string) => void;
     }
 
-    let { themeColors, onfilterDateChange }: Props = $props();
+    let { themeColors, onfilterDateChange, onSearchChange }: Props = $props();
 
     // Local State
     let activeDeepDivePreset = $state("performance");
@@ -55,6 +56,23 @@
         Sat: "sat",
         Sun: "sun",
     };
+
+    function handleMonthClick(detail: { index: number; label: string }) {
+        // Try to parse "Month YYYY" or similar
+        const date = new Date(detail.label);
+        if (!isNaN(date.getTime())) {
+            const y = date.getFullYear();
+            const m = date.getMonth() + 1;
+            const dateStr = `${y}-${m.toString().padStart(2, "0")}-01`;
+            onfilterDateChange?.({ date: dateStr });
+        }
+    }
+
+    function handleSymbolClick(detail: { label: string }) {
+        if (detail.label) {
+            onSearchChange?.(detail.label);
+        }
+    }
 
     // --- Data Logic derived from stores ---
     let journal = $derived(journalState.entries);
@@ -77,6 +95,7 @@
                           backgroundColor: hexToRgba(themeColors.success, 0.1),
                           fill: true,
                           tension: 0.3,
+                          mathFormula: $_("journal.math.winRate"),
                       },
                   ],
               }
@@ -94,6 +113,7 @@
                           backgroundColor: hexToRgba(themeColors.warning, 0.1),
                           fill: true,
                           tension: 0.3,
+                          mathFormula: $_("journal.math.profitFactor"),
                       },
                   ],
               }
@@ -113,6 +133,7 @@
                 backgroundColor: hexToRgba(themeColors.danger, 0.2),
                 fill: true,
                 tension: 0.1,
+                mathFormula: $_("journal.math.avgR"),
             },
         ],
     });
@@ -455,6 +476,7 @@
                           backgroundColor: hexToRgba(themeColors.accent, 0.1),
                           fill: true,
                           tension: 0.3,
+                          mathFormula: $_("journal.math.sqn"),
                       },
                   ],
               }
@@ -551,6 +573,19 @@
                         </div>
                     {/if}
                 </div>
+            </div>
+            <!-- Monthly PnL CORRECTED -->
+            <div
+                class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px] col-span-3 mt-4"
+            >
+                <BarChart
+                    data={monthlyData}
+                    title={$_("journal.deepDive.charts.titles.monthlyPnl")}
+                    description={$_(
+                        "journal.deepDive.charts.descriptions.monthlyPnl",
+                    )}
+                    onChartClick={handleMonthClick}
+                />
             </div>
 
             <!-- 2. EXECUTION -->
@@ -669,6 +704,35 @@
                         "journal.deepDive.charts.descriptions.assetBubble",
                     )}
                 />
+            </div>
+            <!-- Top/Bottom Symbols CORRECTED -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 col-span-3 mt-4">
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+                >
+                    <BarChart
+                        data={topSymbolData}
+                        title={$_("journal.deepDive.charts.titles.topSymbols")}
+                        horizontal={true}
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.topSymbols",
+                        )}
+                        onChartClick={handleSymbolClick}
+                    />
+                </div>
+                <div
+                    class="chart-tile bg-[var(--bg-secondary)] p-4 rounded-lg border border-[var(--border-color)] h-[250px]"
+                >
+                    <BarChart
+                        data={bottomSymbolData}
+                        title={$_("journal.deepDive.charts.titles.bottomSymbols")}
+                        horizontal={true}
+                        description={$_(
+                            "journal.deepDive.charts.descriptions.bottomSymbols",
+                        )}
+                        onChartClick={handleSymbolClick}
+                    />
+                </div>
             </div>
 
             <!-- 5. LEAKAGE -->

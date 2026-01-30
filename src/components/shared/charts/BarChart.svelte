@@ -28,6 +28,12 @@
     horizontal?: boolean;
     description?: string;
     options?: any;
+    onChartClick?: (detail: {
+      index: number;
+      datasetIndex: number;
+      label: string;
+      value: any;
+    }) => void;
   }
 
   let {
@@ -36,6 +42,7 @@
     horizontal = false,
     description = "",
     options = undefined,
+    onChartClick,
   }: Props = $props();
 
   let canvas: HTMLCanvasElement;
@@ -55,12 +62,39 @@
     },
   });
 
+  let finalOptions = $derived.by(() => {
+    const base = options || defaultOptions;
+    if (onChartClick) {
+      return {
+        ...base,
+        onClick: (e: any, elements: any[], chart: any) => {
+          if (base.onClick) base.onClick(e, elements, chart);
+          if (elements && elements.length > 0) {
+            const first = elements[0];
+            const label = chart.data.labels
+              ? chart.data.labels[first.index]
+              : null;
+            const value =
+              chart.data.datasets[first.datasetIndex].data[first.index];
+            onChartClick({
+              index: first.index,
+              datasetIndex: first.datasetIndex,
+              label,
+              value,
+            });
+          }
+        },
+      };
+    }
+    return base;
+  });
+
   $effect(() => {
     if (canvas) {
       chart = new Chart(canvas, {
         type: "bar",
         data: untrack(() => data),
-        options: untrack(() => options || defaultOptions),
+        options: untrack(() => finalOptions),
       });
 
       return () => {
@@ -76,7 +110,7 @@
   const throttledChartUpdate = throttle(() => {
     if (chart) {
       chart.data = data;
-      chart.options = options || defaultOptions;
+      chart.options = finalOptions;
       chart.update();
     }
   }, 250);
